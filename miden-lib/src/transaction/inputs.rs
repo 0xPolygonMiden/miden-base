@@ -4,7 +4,7 @@ use miden_objects::{
     accounts::Account,
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
-    Felt, FieldElement, Word, EMPTY_WORD, ZERO,
+    Digest, Felt, FieldElement, Word, EMPTY_WORD, WORD_SIZE, ZERO,
 };
 
 use super::TransactionKernel;
@@ -24,12 +24,12 @@ pub(super) fn extend_advice_inputs(
     advice_inputs: &mut AdviceInputs,
 ) {
     // TODO: remove this value and use a user input instead
-    let kernel_offset = 0;
+    let kernel_version = 0;
 
-    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs, kernel_offset);
+    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs, kernel_version);
 
     // build the advice map and Merkle store for relevant components
-    add_kernel_hashes_to_advice_inputs(advice_inputs, kernel_offset);
+    add_kernel_hashes_to_advice_inputs(advice_inputs, kernel_version);
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
@@ -53,7 +53,7 @@ pub(super) fn extend_advice_inputs(
 ///     PROOF_HASH,
 ///     [block_num, version, timestamp, 0],
 ///     NOTE_ROOT,
-///     kernel_offset
+///     kernel_version
 ///     [account_id, 0, 0, account_nonce],
 ///     ACCOUNT_VAULT_ROOT,
 ///     ACCOUNT_STORAGE_ROOT,
@@ -65,7 +65,7 @@ fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
     inputs: &mut AdviceInputs,
-    kernel_offset: u8,
+    kernel_version: u8,
 ) {
     let header = tx_inputs.block_header();
 
@@ -86,9 +86,9 @@ fn build_advice_stack(
     ]);
     inputs.extend_stack(header.note_root());
 
-    // push the offset of the kernel which will be used for this transaction
+    // push the version of the kernel which will be used for this transaction
     // Note: keep in sync with the process_kernel_data kernel procedure
-    inputs.extend_stack([Felt::from(kernel_offset)]);
+    inputs.extend_stack([Felt::from(kernel_version)]);
 
     // push core account items onto the stack
     // Note: keep in sync with the process_account_data kernel procedure
@@ -312,15 +312,24 @@ fn add_input_notes_to_advice_inputs(
 /// Inserts the following entries into the advice map:
 /// - The accumulative hash of all kernels |-> array of each kernel hash.
 /// - The hash of the selected kernel |-> array of the kernel's procedure hashes.
-pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_offset: u8) {
-    let kernel_hashes = [TransactionKernel::kernel_hash(kernel_offset).as_elements()].concat();
-
-    // insert kernels root with kernel hashes into the advice map
-    inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
+pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_version: u8) {
+    let mut kernel_hashes: Vec<Felt> =
+        Vec::with_capacity(TransactionKernel::KERNEL_VERSION_NUMBER * WORD_SIZE);
+    for version in 0..TransactionKernel::KERNEL_VERSION_NUMBER {
+        kernel_hashes
+            .extend_from_slice(TransactionKernel::kernel_hash(version as u8).as_elements());
+    }
 
     // insert the selected kernel hash with its procedure hashes into the advice map
     inputs.extend_map([(
-        TransactionKernel::kernel_hash(kernel_offset),
-        TransactionKernel::procedures_as_elements(kernel_offset),
+        Digest::new(
+            kernel_hashes[kernel_version as usize..kernel_version as usize + WORD_SIZE]
+                .try_into()
+                .expect("invalid kernel offset"),
+        ),
+        TransactionKernel::procedures_as_elements(kernel_version),
     )]);
+
+    // insert kernels root with kernel hashes into the advice map
+    inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
 }

@@ -107,18 +107,18 @@ end
 #! respectively. 
 #! 
 #! Inputs:
-#!   Stack: []
-#!   Advice stack: [kernel_offset]
+#!   Operand stack: []
+#!   Advice stack: [kernel_version]
 #!   Advice map: {
 #!     KERNEL_ROOT: [KERNEL_HASHES]
 #!     KERNEL_HASH: [KERNEL_PROCEDURE_HASHES]
 #!   }
 #! Outputs:
-#!   Stack: []
+#!   Operand stack: []
 #!   Advice stack: []
 #! 
 #! Where:
-#! - kernel_offset, index of the desired kernel in the array of all kernels available for the 
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
 #!   current transaction
 #! - KERNEL_ROOT, accumulative hash from all kernel hashes.
 #! - [KERNEL_HASHES], array of each kernel hash
@@ -126,40 +126,40 @@ end
 proc.process_kernel_data
     # move the kernel offset to the operand stack 
     adv_push.1
-    # OS  => [kernel_offset]
+    # OS  => [kernel_version]
     # AS => []
 
     # load the kernel root from the memory
     exec.memory::get_kernel_root
-    # OS  => [KERNEL_ROOT, kernel_offset]
+    # OS  => [KERNEL_ROOT, kernel_version]
     # AS => []
 
     # push the kernel hashes from the advice map to the advice stack 
     adv.push_mapvaln
-    # OS  => [KERNEL_ROOT, kernel_offset]
+    # OS  => [KERNEL_ROOT, kernel_version]
     # AS => [len_felts, [KERNEL_HASHES]]
 
     # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the 
     # number of Words from it
     adv_push.1 div.4
-    # OS  => [len_words, KERNEL_ROOT, kernel_offset]
+    # OS  => [len_words, KERNEL_ROOT, kernel_version]
     # AS => [[KERNEL_HASHES]]
 
     # get the pointer to the memory where kernel hashes will be stored
     # Note: for now we use the same address for kernel hash and for kernel procedures since there is
     # only one kernel and its hash will be overwritten by the procedures anyway. 
     exec.memory::get_kernel_procedures_ptr swap
-    # OS  => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_offset]
+    # OS  => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_version]
     # AS => [[KERNEL_HASHES]]
 
     # store the kernel hashes in memory
     exec.mem::pipe_words_to_memory
-    # OS  => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_offset]
+    # OS  => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
     # AS => []
 
     # assert that sequential hash matches the precomputed kernel root
     movup.4 drop assert_eqw
-    # OS  => [kernel_offset]
+    # OS  => [kernel_version]
     # AS => []
 
     # get the hash of the kernel which will be used in the current transaction
@@ -179,6 +179,11 @@ proc.process_kernel_data
     # move the number of felt elements in the [PROC_HASHES] array to the stack and get the 
     # number of Words from it
     adv_push.1 div.4
+    # OS  => [len_words, KERNEL_HASH]
+    # AS => [[PROC_HASHES]]
+
+    # store the number of the procedures of the chosen kernel to the memory
+    dup exec.memory::set_num_kernel_procedures
     # OS  => [len_words, KERNEL_HASH]
     # AS => [[PROC_HASHES]]
 
@@ -1207,7 +1212,7 @@ end
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
 #!     NOTE_ROOT,
-#!     kernel_offset
+#!     kernel_version
 #!     [account_id, 0, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_ROOT,
@@ -1239,7 +1244,7 @@ end
 #! - version, the current protocol version.
 #! - timestamp, the current timestamp.
 #! - NOTE_ROOT, root of the tree with all notes created in the block.
-#! - kernel_offset, index of the desired kernel in the array of all kernels available for the 
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
 #!   current transaction.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.

@@ -18,7 +18,7 @@ pub type StorageSlot = u8;
 // | Chain MMR         | 300           | 332?         |
 // | Account data      | 400           | 651?         |
 // | Account procedures| 999           | ?            |
-// | Kernel data       | 10_000        | 10_028?      |
+// | Kernel data       | 9_999         | 10_028?      |
 // | Input notes       | 1_048_576     | ?            |
 // | Output notes      | 4_194_304     | ?            |
 
@@ -198,6 +198,9 @@ pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1000;
 
 // KERNEL DATA
 // ------------------------------------------------------------------------------------------------
+
+/// The memory address at which the number of the procedures of the selected kernel is stored.
+pub const NUM_KERNEL_PROCEDURES_PTR: MemoryAddress = 9999;
 
 /// The memory address at which the section, where the hashes of the kernel procedures are stored,
 /// begins

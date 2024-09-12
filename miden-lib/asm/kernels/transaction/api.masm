@@ -30,6 +30,9 @@ const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
 # Getting a map item on a non-map slot
 const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
 
+# Provided kernel procedure offset is out of bounds
+const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x0002004F
+
 # EVENTS
 # =================================================================================================
 
@@ -777,6 +780,11 @@ end
 #!   first word on the stack will be occupied by the procedure hash. 
 #! - procedure_outputs are the outputs of the procedure to be executed. 
 export.exec_kernel_proc
+    # check that the provided procedure offset is within expected bounds
+    dup exec.memory::get_num_kernel_procedures 
+    lt assert.err=ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS
+    # => [procedure_pointer, <procedure_inputs>, <pad>]
+
     # compute the memory pointer at which desired procedure is stored
     exec.memory::get_kernel_procedures_ptr add
     # => [procedure_pointer, <procedure_inputs>, <pad>]

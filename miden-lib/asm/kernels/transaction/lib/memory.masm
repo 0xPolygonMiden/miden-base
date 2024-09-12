@@ -132,6 +132,9 @@ const.ACCT_PROCEDURES_SECTION_OFFSET=1000
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
 
+# The memory address at which the number of the procedures of the selected kernel is stored. 
+const.NUM_KERNEL_PROCEDURES_PTR=9999
+
 # The memory address at which the hashes of kernel procedures begin.
 # TODO: choose the proper memory location for the kernel procedures.
 const.KERNEL_PROCEDURES_PTR=10000
@@ -1237,6 +1240,28 @@ end
 
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
+
+#! Sets the number of of the procedures of the selected kernel.
+#!
+#! Stack: [num_kernel_procedures]
+#! Output: []
+#!
+#! Where:
+#! - num_kernel_procedures is the number of the procedures of the selected kernel.
+export.set_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_store
+end
+
+#! Returns the number of the procedures of the selected kernel.
+#!
+#! Stack: []
+#! Output: [num_kernel_procedures]
+#!
+#! Where:
+#! - num_kernel_procedures is the number of the procedures of the selected kernel.
+export.get_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_load
+end
 
 #! Returns a pointer to the memory where hashes of the kernel procedures are stored. 
 #!

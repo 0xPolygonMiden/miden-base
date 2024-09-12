@@ -133,7 +133,6 @@ impl TransactionKernel {
     ///     acct_id,
     ///     INITIAL_ACCOUNT_HASH,
     ///     INPUT_NOTES_COMMITMENT,
-    ///     kernel_offset
     /// ]
     /// ```
     ///
@@ -142,8 +141,6 @@ impl TransactionKernel {
     /// - acct_id, the account that the transaction is being executed against.
     /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-    /// - kernel_offset, index of the desired kernel in the array of all kernels available for the
-    ///   current transaction.
     pub fn build_input_stack(
         acct_id: AccountId,
         init_acct_hash: Digest,
@@ -151,7 +148,7 @@ impl TransactionKernel {
         block_hash: Digest,
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
-        let mut inputs: Vec<Felt> = Vec::with_capacity(12);
+        let mut inputs: Vec<Felt> = Vec::with_capacity(13);
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
         inputs.push(acct_id.into());
