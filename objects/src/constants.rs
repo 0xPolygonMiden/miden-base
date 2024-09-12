@@ -26,7 +26,7 @@ pub const MIN_PROOF_SECURITY_LEVEL: u32 = 96;
 pub const BATCH_NOTE_TREE_DEPTH: u8 = 10;
 
 /// The maximum number of notes that can be created in a single batch.
-pub const MAX_NOTES_PER_BATCH: usize = 1 << (BATCH_NOTE_TREE_DEPTH - 1);
+pub const MAX_NOTES_PER_BATCH: usize = 1 << BATCH_NOTE_TREE_DEPTH;
 
 // BLOCK
 // ================================================================================================
