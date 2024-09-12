@@ -1,11 +1,9 @@
-use alloc::{
-    collections::BTreeMap,
-    string::{String, ToString},
-};
+use alloc::string::{String, ToString};
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
+        StorageSlot,
     },
     AccountError, Word,
 };
@@ -30,7 +28,7 @@ pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,
     account_type: AccountType,
-    account_storage_type: AccountStorageType,
+    account_storage_mode: AccountStorageMode,
 ) -> Result<(Account, Word), AccountError> {
     if matches!(account_type, AccountType::FungibleFaucet | AccountType::NonFungibleFaucet) {
         return Err(AccountError::AccountIdInvalidFieldElement(
@@ -53,15 +51,14 @@ pub fn create_basic_wallet(
     let assembler = TransactionKernel::assembler();
     let account_code = AccountCode::compile(source_code, assembler)?;
 
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, storage_slot_0_data)], BTreeMap::new())?;
+    let account_storage = AccountStorage::new(vec![StorageSlot::Value(storage_slot_0_data)])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
         account_type,
-        account_storage_type,
+        account_storage_mode,
         account_code.commitment(),
-        account_storage.root(),
+        account_storage.commitment(),
     )?;
 
     Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
@@ -76,7 +73,7 @@ mod tests {
     use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
     use vm_processor::utils::{Deserializable, Serializable};
 
-    use super::{create_basic_wallet, Account, AccountStorageType, AccountType, AuthScheme};
+    use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
 
     #[test]
     fn test_create_basic_wallet() {
@@ -85,7 +82,7 @@ mod tests {
             [1; 32],
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
-            AccountStorageType::OnChain,
+            AccountStorageMode::Public,
         );
 
         wallet.unwrap_or_else(|err| {
@@ -100,7 +97,7 @@ mod tests {
             [1; 32],
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
-            AccountStorageType::OnChain,
+            AccountStorageMode::Public,
         )
         .unwrap()
         .0;

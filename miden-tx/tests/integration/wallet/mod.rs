@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{
@@ -7,7 +5,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        Account, AccountId, AccountStorage, SlotItem,
+        Account, AccountId, AccountStorage, StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
@@ -83,9 +81,14 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, target_pub_key)], BTreeMap::new())
-            .unwrap();
+    let account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(target_pub_key),
+        StorageSlot::Map(StorageMap::default()),
+    ])
+    .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::from_parts(
@@ -162,9 +165,14 @@ fn prove_send_asset_via_wallet() {
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
-    let sender_account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, sender_pub_key)], BTreeMap::new())
-            .unwrap();
+    let sender_account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(sender_pub_key),
+        StorageSlot::Map(StorageMap::default()),
+    ])
+    .unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
@@ -182,7 +190,7 @@ fn prove_send_asset_via_wallet() {
 #[test]
 fn wallet_creation() {
     use miden_objects::accounts::{
-        account_id::testing::ACCOUNT_ID_SENDER, AccountStorageType, AccountType,
+        account_id::testing::ACCOUNT_ID_SENDER, AccountStorageMode, AccountType,
     };
 
     // we need a Falcon Public Key to create the wallet account
@@ -200,10 +208,10 @@ fn wallet_creation() {
     ];
 
     let account_type = AccountType::RegularAccountImmutableCode;
-    let storage_type = AccountStorageType::OffChain;
+    let storage_mode = AccountStorageMode::Private;
 
     let (wallet, _) =
-        create_basic_wallet(init_seed, auth_scheme, account_type, storage_type).unwrap();
+        create_basic_wallet(init_seed, auth_scheme, account_type, storage_mode).unwrap();
 
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -215,5 +223,5 @@ fn wallet_creation() {
     assert!(wallet.is_regular_account());
     assert_eq!(wallet.code().commitment(), expected_code_commitment);
     let pub_key_word: Word = pub_key.into();
-    assert_eq!(wallet.storage().get_item(0).as_elements(), pub_key_word);
+    assert_eq!(wallet.storage().get_item(0).unwrap().as_elements(), pub_key_word);
 }

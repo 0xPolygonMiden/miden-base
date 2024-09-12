@@ -1,8 +1,9 @@
-use alloc::{collections::BTreeMap, string::ToString};
+use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
+        StorageSlot,
     },
     assets::TokenSymbol,
     AccountError, Felt, Word, ZERO,
@@ -34,7 +35,7 @@ pub fn create_basic_fungible_faucet(
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
-    account_storage_type: AccountStorageType,
+    account_storage_mode: AccountStorageMode,
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
@@ -66,23 +67,31 @@ pub fn create_basic_fungible_faucet(
         ));
     }
 
+    // newly created fungible faucets store an empty word in their reserved faucet
+    // data storage slot to track token issuance
+    let reserved_data = Word::default();
+
     // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as [a3, a2, a1, a0, ...]
     let metadata = [max_supply, Felt::from(decimals), symbol.into(), ZERO];
 
     // We store the authentication data and the token metadata in the account storage:
-    // - slot 0: authentication data
+    // - slot 0: reserved faucet data
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
-    let account_storage = AccountStorage::new(
-        vec![SlotItem::new_value(0, 0, auth_data), SlotItem::new_value(1, 0, metadata)],
-        BTreeMap::new(),
-    )?;
+    // - slot 2: any
+    // - slot 3: authentication data (must be at location 3 in storage)
+    let account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(reserved_data),
+        StorageSlot::Value(metadata),
+        StorageSlot::Value([ZERO, ZERO, ZERO, ZERO]),
+        StorageSlot::Value(auth_data),
+    ])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
         AccountType::FungibleFaucet,
-        account_storage_type,
+        account_storage_mode,
         account_code.commitment(),
-        account_storage.root(),
+        account_storage.commitment(),
     )?;
 
     Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
@@ -96,7 +105,7 @@ mod tests {
     use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
 
     use super::{
-        create_basic_fungible_faucet, AccountStorageType, AuthScheme, Felt, TokenSymbol, ZERO,
+        create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol, ZERO,
     };
 
     #[test]
@@ -114,21 +123,21 @@ mod tests {
         let token_symbol_string = "POL";
         let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
         let decimals = 2u8;
-        let storage_type = AccountStorageType::OffChain;
+        let storage_mode = AccountStorageMode::Private;
 
         let (faucet_account, _) = create_basic_fungible_faucet(
             init_seed,
             token_symbol,
             decimals,
             max_supply,
-            storage_type,
+            storage_mode,
             auth_scheme,
         )
         .unwrap();
 
         // check that max_supply (slot 1) is 123
         assert_eq!(
-            faucet_account.storage().get_item(1),
+            faucet_account.storage().get_item(1).unwrap(),
             [Felt::new(123), Felt::new(2), token_symbol.into(), ZERO].into()
         );
 

@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+use std::string::String;
 
 use miden_lib::transaction::memory::{
     NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
@@ -9,17 +10,23 @@ use miden_objects::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
-    assets::Asset,
+    assets::NonFungibleAsset,
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
+        NoteType,
     },
     testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word},
     transaction::{OutputNote, OutputNotes},
+    FieldElement,
 };
 
-use super::{Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
+use super::{Felt, ProcessState, Word, ONE, ZERO};
 use crate::{
-    testing::{executor::CodeExecutor, TransactionContextBuilder},
+    assert_execution_error,
+    errors::tx_kernel_errors::{
+        ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_OUTPUT_NOTES_OVERFLOW,
+    },
+    testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -46,7 +53,7 @@ fn test_create_note() {
             push.{aux}
             push.{tag}
 
-            exec.tx::create_note
+            call.tx::create_note
         end
         ",
         recipient = prepare_word(&recipient),
@@ -101,67 +108,75 @@ fn test_create_note() {
 fn test_create_note_with_invalid_tag() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let tag = Felt::new((NoteType::Public as u64) << 62);
+    let invalid_tag = Felt::new((NoteType::Public as u64) << 62);
+    let valid_tag: Felt = NoteTag::for_local_use_case(0, 0).unwrap().into();
 
-    let code = format!(
-        "
-        use.kernel::prologue
-        use.miden::tx
+    // Test invalid tag
+    assert!(tx_context.execute_code(&note_creation_script(invalid_tag)).is_err());
+    // Test valid tag
+    assert!(tx_context.execute_code(&note_creation_script(valid_tag)).is_ok());
 
-        begin
-            exec.prologue::prepare_transaction
-
-            push.{recipient}
-            push.{note_execution_hint}
-            push.{PUBLIC_NOTE}
-            push.{tag}
-
-            exec.tx::create_note
-        end
-        ",
-        recipient = prepare_word(&recipient),
-        note_execution_hint = Felt::from(NoteExecutionHint::always()),
-        PUBLIC_NOTE = NoteType::Public as u8,
-        tag = tag,
-    );
-
-    let process = tx_context.execute_code(&code);
-
-    assert!(process.is_err(), "Transaction should have failed because the tag is invalid");
+    fn note_creation_script(tag: Felt) -> String {
+        format!(
+            "
+            use.kernel::prologue
+            use.miden::tx
+    
+            begin
+                exec.prologue::prepare_transaction
+    
+                push.{recipient}
+                push.{execution_hint_always}
+                push.{PUBLIC_NOTE}
+                push.{aux}
+                push.{tag}
+    
+                call.tx::create_note
+            end
+            ",
+            recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
+            execution_hint_always = Felt::from(NoteExecutionHint::always()),
+            PUBLIC_NOTE = NoteType::Public as u8,
+            aux = Felt::ZERO,
+        )
+    }
 }
 
 #[test]
 fn test_create_note_too_many_notes() {
-    let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let tag = Felt::new(4);
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let code = format!(
         "
         use.kernel::constants
         use.kernel::memory
         use.miden::tx
+        use.kernel::prologue
 
         begin
             exec.constants::get_max_num_output_notes
             exec.memory::set_num_output_notes
-
+            exec.prologue::prepare_transaction
+            
             push.{recipient}
+            push.{execution_hint_always}
             push.{PUBLIC_NOTE}
+            push.{aux}
             push.{tag}
 
-            exec.tx::create_note
+            call.tx::create_note
         end
         ",
-        recipient = prepare_word(&recipient),
-        tag = tag,
+        tag = Felt::new(4),
+        recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
+        execution_hint_always = Felt::from(NoteExecutionHint::always()),
         PUBLIC_NOTE = NoteType::Public as u8,
+        aux = Felt::ZERO,
     );
 
-    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
+    let process = tx_context.execute_code(&code);
 
-    // assert the process failed
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_TX_OUTPUT_NOTES_OVERFLOW);
 }
 
 #[test]
@@ -232,11 +247,11 @@ fn test_get_output_notes_hash() {
             push.{PUBLIC_NOTE}
             push.{aux_1}
             push.{tag_1}
-            exec.tx::create_note
+            call.tx::create_note
             # => [note_idx]
 
             push.{asset_1}
-            exec.tx::add_asset_to_note
+            call.tx::add_asset_to_note
             # => [ASSET, note_idx]
             
             dropw drop
@@ -248,11 +263,11 @@ fn test_get_output_notes_hash() {
             push.{PUBLIC_NOTE}
             push.{aux_2}
             push.{tag_2}
-            exec.tx::create_note
+            call.tx::create_note
             # => [note_idx]
 
             push.{asset_2} 
-            exec.tx::add_asset_to_note
+            call.tx::add_asset_to_note
             # => [ASSET, note_idx]
 
             dropw drop
@@ -333,11 +348,11 @@ fn test_create_note_and_add_asset() {
             push.{aux}
             push.{tag}
 
-            exec.tx::create_note
+            call.tx::create_note
             # => [note_idx]
 
             push.{asset}
-            exec.tx::add_asset_to_note
+            call.tx::add_asset_to_note
             # => [ASSET, note_idx]
 
             dropw
@@ -378,10 +393,8 @@ fn test_create_note_and_add_multiple_assets() {
     let asset_3 = [Felt::new(30), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
     let asset_2_and_3 =
         [Felt::new(50), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
-    let non_fungible_asset = Asset::mock_non_fungible(
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        &NON_FUNGIBLE_ASSET_DATA_2,
-    );
+    let non_fungible_asset =
+        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA_2);
     let non_fungible_asset_encoded = Word::from(non_fungible_asset);
 
     let code = format!(
@@ -397,23 +410,23 @@ fn test_create_note_and_add_multiple_assets() {
             push.{aux}
             push.{tag}
 
-            exec.tx::create_note
+            call.tx::create_note
             # => [note_idx]
 
             push.{asset}
-            exec.tx::add_asset_to_note dropw
+            call.tx::add_asset_to_note dropw
             # => [note_idx]
 
             push.{asset_2}
-            exec.tx::add_asset_to_note dropw
+            call.tx::add_asset_to_note dropw
             # => [note_idx]
 
             push.{asset_3}
-            exec.tx::add_asset_to_note dropw
+            call.tx::add_asset_to_note dropw
             # => [note_idx]
 
             push.{nft}
-            exec.tx::add_asset_to_note dropw
+            call.tx::add_asset_to_note dropw
             # => [note_idx]
         end
         ",
@@ -460,42 +473,47 @@ fn test_create_note_and_add_same_nft_twice() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
     let non_fungible_asset =
-        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
+        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
     let encoded = Word::from(non_fungible_asset);
 
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::tx
+        use.test::account
+        use.miden::contracts::wallets::basic->wallet
 
         begin
             exec.prologue::prepare_transaction
 
             push.{recipient}
+            push.{execution_hint_always}
             push.{PUBLIC_NOTE}
+            push.{aux}
             push.{tag}
-            push.{nft}
 
-            exec.tx::create_note
+            call.wallet::create_note
             # => [note_idx]
 
-            push.{nft} movup.4
-            exec.tx::add_asset_to_note
+            push.{nft} 
+            call.account::add_asset_to_note
+            dropw dropw dropw
+
+            push.{nft} 
+            call.account::add_asset_to_note
             # => [note_idx]
         end
         ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
+        execution_hint_always = Felt::from(NoteExecutionHint::always()),
+        aux = Felt::new(0),
         tag = tag,
         nft = prepare_word(&encoded),
     );
 
     let process = tx_context.execute_code(&code);
 
-    assert!(
-        process.is_err(),
-        "Transaction should have failed because the same NFT is added twice"
-    );
+    assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS);
 }
 
 #[test]
@@ -527,13 +545,13 @@ fn test_build_recipient_hash() {
             push.{script_hash}
             # SERIAL_NUM
             push.{output_serial_no}
-            exec.tx::build_recipient_hash
+            call.tx::build_recipient_hash
 
             push.{execution_hint}
             push.{PUBLIC_NOTE}
             push.{aux}
             push.{tag}
-            exec.tx::create_note
+            call.tx::create_note
         end
         ",
         input_hash = input_hash,

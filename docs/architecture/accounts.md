@@ -29,13 +29,16 @@ A `~63` bits long identifier for the account ID (one field element `felt`).
 
 The four most significant bits specify the [account type](#account-types) - regular or faucet - and the account-storage-modes - public or private.
 
-### Account data storage
+### Account storage
 
-Storage for user-defined data that is composed of two components.
+The [storage of an account](../../objects/src/accounts/storage/mod.rs) is composed of a variable number of index-addressable [storage slots](../../objects/src/accounts/storage/slot/mod.rs), up to 255 slots in total.
 
-1. Storage slots: Users have access to `254` slots. Per slot, users can store a `word` (~32 bytes). Currently, we reserve slot `0` for the account owner's key and slot `255` for information about the storage layout.
+Each slot has a type which defines its size and structure. Currently, the following types are supported:
 
-2. Storage maps: Users requiring additional storage can use a `StorageMap`. A storage map is a key-value store where both keys and values are `word`s (~32 bytes). A single storage map can store huge amounts of data (e.g., up to $2^{256}$ words per map). The roots of the storage maps are stored in storage slots. So, a single account can contain up to 254 storage maps.
+ * `StorageSlot::Value`: contains a single `Word` of data (i.e., 32 bytes).
+ * `StorageSlot::Map`: contains a [StorageMap](../../objects/src/accounts/storage/map.rs) which is a key-value map where both keys and
+   values are `Word`s. The value of a storage slot containing a map is the commitment to the
+   underlying map.
 
 As described below, accounts can be stored off-chain (private) and on-chain (public). Accounts that store huge amounts of data, as it is possible using storage maps, are better designed as off-chain accounts.
 

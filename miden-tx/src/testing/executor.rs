@@ -37,7 +37,7 @@ impl<H: Host> CodeExecutor<H> {
 
     /// Compiles and runs the desired code in the host and returns the [Process] state
     pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
-        let program = TransactionKernel::assembler_testing().assemble_program(code).unwrap();
+        let program = TransactionKernel::testing_assembler().assemble_program(code).unwrap();
         self.execute_program(program)
     }
 
@@ -59,8 +59,10 @@ where
 {
     pub fn with_advice_provider(adv_provider: A) -> Self {
         let mut host = DefaultHost::new(adv_provider);
+
         let test_lib = TransactionKernel::kernel_as_library();
         host.load_mast_forest(test_lib.mast_forest().clone());
+
         CodeExecutor::new(host)
     }
 }

@@ -2,9 +2,17 @@
 
 ## 0.6.0 (TBD)
 
-### Changes
-
+- [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).
+- Implemented `Display`, `TryFrom<&str>` and `FromStr` for `AccountStorageMode` (#861).
+- Implemented offset based storage access (#843).
+- [BREAKING] `AccountStorageType` enum was renamed to `AccountStorageMode` along with its variants (#854).
+- [BREAKING] `AccountStub` structure was renamed to `AccountHeader` (#855).
+- Refactored `AccountStorage` from `Smt` to `sequential hash` (#846)
 - [BREAKING] Refactored batch/block note trees (#834).
+
+## 0.5.1 (2024-08-28) - `miden-objects` crate only
+
+- Implemented `PrettyPrint` and `Display` for `NoteScript`.
 
 ## 0.5.0 (2024-08-27)
 

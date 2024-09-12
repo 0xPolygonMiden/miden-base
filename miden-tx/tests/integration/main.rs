@@ -5,7 +5,6 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage,
-        SlotItem,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
@@ -15,7 +14,9 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
-use miden_tx::{TransactionProver, TransactionVerifier, TransactionVerifierError};
+use miden_tx::{
+    LocalTransactionProver, TransactionProver, TransactionVerifier, TransactionVerifierError,
+};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
@@ -30,8 +31,8 @@ pub fn prove_and_verify_transaction(
     // Prove the transaction
 
     let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+    let prover = LocalTransactionProver::new(proof_options);
+    let proven_transaction = prover.prove(executed_transaction).unwrap();
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 
@@ -72,15 +73,22 @@ pub fn get_account_with_default_account_code(
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    use std::collections::BTreeMap;
-
-    use miden_objects::testing::account_code::DEFAULT_ACCOUNT_CODE;
+    use miden_objects::{
+        accounts::{StorageMap, StorageSlot},
+        testing::account_code::DEFAULT_ACCOUNT_CODE,
+    };
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
+    let account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(public_key),
+        StorageSlot::Map(StorageMap::default()),
+    ])
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),
