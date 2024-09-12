@@ -2,8 +2,7 @@ use alloc::{string::String, vec::Vec};
 use core::fmt;
 
 use miden_objects::{
-    accounts::AccountStorage, notes::NoteMetadata, AccountDeltaError, AccountError, AssetError,
-    Digest, Felt, NoteError,
+    notes::NoteMetadata, AccountDeltaError, AccountError, AssetError, Digest, Felt, NoteError,
 };
 
 // TRANSACTION KERNEL ERROR
@@ -18,7 +17,7 @@ pub enum TransactionKernelError {
         got: Digest,
         data: Option<Vec<Felt>>,
     },
-    InvalidStorageSlotIndex(u64),
+    InvalidStorageSlotIndex(u64, u64),
     MalformedAccountId(AccountError),
     MalformedAsset(AssetError),
     MalformedAssetOnAccountVaultUpdate(AssetError),
@@ -34,6 +33,7 @@ pub enum TransactionKernelError {
     MissingStorageSlotValue(u8, String),
     TooFewElementsForNoteInputs,
     UnknownAccountProcedure(Digest),
+    MissingMemoryValue(u32),
 }
 
 impl fmt::Display for TransactionKernelError {
@@ -49,9 +49,8 @@ impl fmt::Display for TransactionKernelError {
                     expected, got, data
                 )
             },
-            TransactionKernelError::InvalidStorageSlotIndex(index) => {
-                let num_slots = AccountStorage::NUM_STORAGE_SLOTS;
-                write!(f, "Storage slot index {index} is invalid, must be smaller than {num_slots}")
+            TransactionKernelError::InvalidStorageSlotIndex(index, num_storage_slots) => {
+                write!(f, "Storage slot index: {index} is invalid, must be smaller than the number of account storage slots: {num_storage_slots}")
             },
             TransactionKernelError::MalformedAccountId(err) => {
                 write!( f, "Account id data extracted from the stack by the event handler is not well formed {err}")
@@ -103,6 +102,9 @@ impl fmt::Display for TransactionKernelError {
             },
             TransactionKernelError::AccountDeltaError(error) => {
                 write!(f, "Account delta error: {error}")
+            },
+            TransactionKernelError::MissingMemoryValue(location) => {
+                write!(f, "Value missing in memory at location: {location}")
             },
         }
     }

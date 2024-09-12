@@ -31,7 +31,7 @@ const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
 const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
 
 # Provided kernel procedure offset is out of bounds
-const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x0002004F
+const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020053
 
 # EVENTS
 # =================================================================================================
@@ -201,7 +201,7 @@ end
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
-#! - R' is the new storage root.
+#! - R' is the new storage commitment.
 export.set_account_item
     # drop the procedure's hash
     dropw
@@ -245,14 +245,14 @@ export.get_account_map_item
     dropw
     
     # check if storage type is map
-    dup exec.account::get_storage_slot_type_info drop
+    dup exec.account::get_storage_slot_type
     # => [slot_type, index, KEY, ...]
 
-    # fails if slot_type is not 1 = map
+    # check if type == map
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY, ...]
 
-     # authenticate that the procedure invocation originates from the account context
+    # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [storage_offset, index, KEY, ...]
 

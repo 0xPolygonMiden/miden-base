@@ -41,11 +41,13 @@ impl AccountCode {
     pub fn mock_library(assembler: Assembler) -> Library {
         let code = "
         use.miden::account
+        use.miden::faucet
         use.miden::tx
         export.::miden::contracts::wallets::basic::receive_asset
         export.::miden::contracts::wallets::basic::send_asset
         export.::miden::contracts::wallets::basic::create_note
         export.::miden::contracts::wallets::basic::move_asset_to_note
+
         export.incr_nonce
             push.0 swap
             # => [value, 0]
@@ -60,11 +62,20 @@ impl AccountCode {
             # => [R', V]
         end
 
+        export.get_item
+            exec.account::get_item
+            movup.8 drop movup.8 drop movup.8 drop
+        end
+
         export.set_map_item
             exec.account::set_map_item
             # => [R', V, 0, 0, 0]
             movup.8 drop movup.8 drop movup.8 drop
             # => [R', V]
+        end
+
+        export.get_map_item
+            exec.account::get_map_item
         end
 
         export.set_code
@@ -77,6 +88,10 @@ impl AccountCode {
         export.add_asset_to_note
             exec.tx::add_asset_to_note
             # => [ASSET, note_idx]
+        end
+
+        export.add_asset
+            exec.account::add_asset
         end
 
         export.remove_asset
@@ -92,6 +107,14 @@ impl AccountCode {
         export.account_procedure_2
             push.2.1
             sub
+        end
+
+        export.mint
+            exec.faucet::mint
+        end
+
+        export.burn
+            exec.faucet::burn
         end
         ";
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());

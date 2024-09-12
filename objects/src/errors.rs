@@ -38,11 +38,10 @@ pub enum AccountError {
     MapsUpdateToNonMapsSlot(u8, StorageSlotType),
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
-    StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
-    StorageSlotIsReserved(u8),
-    StorageSlotMapOrArrayNotAllowed(u8, StorageSlotType),
-    StorageMapNotFound(u8),
-    StorageMapTooManyMaps { expected: usize, actual: usize },
+    StorageSlotNotMap(u8),
+    StorageSlotNotValue(u8),
+    StorageIndexOutOfBounds(u8, u8),
+    StorageTooManySlots(u64),
 }
 
 impl fmt::Display for AccountError {
@@ -66,7 +65,6 @@ pub enum AccountDeltaError {
         this: i64,
         other: i64,
     },
-    ImmutableStorageSlot(usize),
     IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
     InconsistentNonceUpdate(String),
     NotAFungibleFaucetId(AccountId),

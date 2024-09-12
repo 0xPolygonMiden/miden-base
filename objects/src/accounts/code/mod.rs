@@ -39,9 +39,6 @@ pub struct AccountCode {
 }
 
 impl AccountCode {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
     /// The maximum number of account interface procedures.
     pub const MAX_NUM_PROCEDURES: usize = 256;
 
@@ -182,7 +179,7 @@ impl AccountCode {
 
     /// Converts procedure information in this [AccountCode] into a vector of field elements.
     ///
-    /// This is done by first converting each procedure into exactly 8 elements as follows:
+    /// This is done by first converting each procedure into 8 field elements as follows:
     /// ```text
     /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
     /// ```
@@ -254,7 +251,7 @@ mod tests {
     use crate::accounts::code::build_procedure_commitment;
 
     #[test]
-    fn test_serde() {
+    fn test_serde_account_code() {
         let code = AccountCode::mock();
         let serialized = code.to_bytes();
         let deserialized = AccountCode::read_from_bytes(&serialized).unwrap();

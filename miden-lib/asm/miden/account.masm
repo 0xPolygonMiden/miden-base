@@ -153,7 +153,7 @@ end
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
-#! - R' is the new storage root.
+#! - R' is the new storage commitment.
 export.set_item
     exec.kernel_proc_offsets::set_account_item_offset
     # => [offset, index, V']

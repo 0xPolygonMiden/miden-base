@@ -1,17 +1,15 @@
 extern crate alloc;
 
-use std::collections::BTreeMap;
-
 use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage, SlotItem,
+        AccountStorage, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::prepare_word,
-    Felt, Word,
+    Felt, Word, ZERO,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
@@ -171,13 +169,13 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
 
-    // check that max_supply (slot 1) is 200 and amount already issued (slot 255) is 100
+    // check that max_supply (slot 1) is 200 and amount already issued (slot 0) is 100
     assert_eq!(
-        faucet_account.storage().get_item(1),
+        faucet_account.storage().get_item(1).unwrap(),
         [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
     );
     assert_eq!(
-        faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT),
+        faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT).unwrap(),
         [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
     );
 
@@ -241,23 +239,22 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let assembler = TransactionKernel::assembler();
     let faucet_account_code = AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler).unwrap();
 
-    let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
-    let mut faucet_account_storage = AccountStorage::new(
-        vec![
-            SlotItem::new_value(0, 0, public_key),
-            SlotItem::new_value(1, 0, faucet_storage_slot_1),
-        ],
-        BTreeMap::new(),
-    )
-    .unwrap();
-
-    if total_issuance.is_some() {
-        let faucet_storage_slot_254 =
-            [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(total_issuance.unwrap())];
-        faucet_account_storage
-            .set_item(FAUCET_STORAGE_DATA_SLOT, faucet_storage_slot_254)
-            .unwrap();
+    let faucet_storage_slot_0 = match total_issuance {
+        Some(issuance) => StorageSlot::Value([ZERO, ZERO, ZERO, Felt::new(issuance)]),
+        None => StorageSlot::Value(Word::default()),
     };
+    let faucet_storage_slot_1 =
+        StorageSlot::Value([Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)]);
+    let faucet_storage_slot_2 =
+        StorageSlot::Value([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)]);
+    let faucet_storage_slot_3 = StorageSlot::Value(public_key);
+    let faucet_account_storage = AccountStorage::new(vec![
+        faucet_storage_slot_0,
+        faucet_storage_slot_1,
+        faucet_storage_slot_2,
+        faucet_storage_slot_3,
+    ])
+    .unwrap();
 
     Account::from_parts(
         faucet_account_id,

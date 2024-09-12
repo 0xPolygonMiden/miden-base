@@ -91,6 +91,9 @@ impl TransactionKernel {
         tx_args: &TransactionArgs,
         init_advice_inputs: Option<AdviceInputs>,
     ) -> (StackInputs, AdviceInputs) {
+        let (_, aboba, _) = Self::kernel().into_parts();
+        std::println!("{:?}", aboba);
+
         let account = tx_inputs.account();
 
         let stack_inputs = TransactionKernel::build_input_stack(
@@ -295,6 +298,7 @@ impl TransactionKernel {
     pub fn testing_assembler_with_mock_account() -> Assembler {
         let assembler = Self::testing_assembler();
         let library = AccountCode::mock_library(assembler.clone());
+
         assembler.with_library(library).expect("failed to add mock account code")
     }
 }

@@ -61,28 +61,19 @@ const.FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 # Specifies a minimum number of ones for a valid account ID.
 const.MIN_ACCOUNT_ONES=5
 
-# The depth of the account storage Sparse Merkle Tree
-const.STORAGE_TREE_DEPTH=8
-
-# The depth of the account code tree
-const.ACCOUNT_CODE_TREE_DEPTH=8
-
-# The account storage slot at which faucet data is stored.
-# Fungible faucet: The faucet data consists of [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, total_issuance]
-# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
-const.FAUCET_STORAGE_DATA_SLOT=254
-
-# The account storage slot at which the slot types commitment is stored.
-const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
-
-# The maximum storage slot index
-const.MAX_STORAGE_SLOT_INDEX=255
-
-# The maximum value a slot type can take (An array of depth 64).
-const.MAX_SLOT_TYPE=64
-
 # The maximum number of account interface procedures.
 const.MAX_NUM_PROCEDURES=256
+
+# The account storage slot at which faucet data is stored.
+# Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
+# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+const.FAUCET_STORAGE_DATA_SLOT=0
+
+# The maximum storage slot index
+const.MAX_STORAGE_SLOT_INDEX=254
+
+# The maximum number of account storage slots.
+const.MAX_NUM_STORAGE_SLOTS=MAX_STORAGE_SLOT_INDEX+1
 
 # EVENTS
 # =================================================================================================
@@ -110,7 +101,7 @@ const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131082
 # =================================================================================================
 
 #! Returns the account storage slot at which faucet data is stored.
-#! Fungible faucet: The faucet data consists of [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, total_issuance]
+#! Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
 #! Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
 #!
 #! Stack: []
@@ -121,25 +112,14 @@ export.get_faucet_storage_data_slot
     push.FAUCET_STORAGE_DATA_SLOT
 end
 
-#! Returns the account storage slot at which the slot types commitment is stored.
+#! Returns the maximum number of account storage slots.
 #!
 #! Stack: []
-#! Output: [slot_types_commitment_storage_slot]
+#! Output: [max_num_storage_slots]
 #!
-#! - slot_types_commitment_storage_slot is the account storage slot at which the slot types
-#!   commitment is stored.
-export.get_slot_types_commitment_storage_slot
-    push.SLOT_TYPES_COMMITMENT_STORAGE_SLOT
-end
-
-#! Returns the maximum value a slot type can take (An array of depth 64).
-#!
-#! Stack: []
-#! Output: [max_slot_type]
-#!
-#! - max_slot_type is the maximum value a slot type can take (An array of depth 64).
-export.get_max_slot_type
-    push.MAX_SLOT_TYPE
+#! - max_num_storage_slots is the maximum number of account storage slots.
+export.get_max_num_storage_slots
+    push.MAX_NUM_STORAGE_SLOTS
 end
 
 #! Returns the maximum number of account interface procedures.
@@ -343,37 +323,28 @@ export.set_code
     # => []
 end
 
-#! Returns the type info (slot type, entry arity) of the slot at the provided index.
-#!
-#! Stack: [idx]
-#! Output: [entry_arity, slot_type]
-#!
-#! - idx is the index of the slot to get the type info of.
-#! - slot_type is the type of the slot.
-#! - entry_arity is the arity of the slot.
-export.get_storage_slot_type_info
-    exec.memory::get_acct_storage_slot_type_data u32split
-end
-
 #! Applies offset to provided storage slot index for storage access
 #!
 #! Panics:
-#!   - slot index is out of bounds
-#!   - computed index is out of bounds
+#! - slot index is out of bounds
+#! - computed index is out of bounds
 #!
 #! Stack: [storage_offset, slot_index]
 #! Output: [offset_slot_index]
 export.apply_storage_offset
     # verify that slot_index is in bounds
-    dup.1 push.MAX_STORAGE_SLOT_INDEX lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-    # => [storage_offset, slot_index]
+    dup.1 exec.memory::get_num_storage_slots dup movdn.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [storage_offset, slot_index, num_storage_slots]
 
     # verify that the computed offset_slot_index is in bounds
-    add dup push.MAX_STORAGE_SLOT_INDEX lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    add dup movup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 
-#! Gets an item from the account storage. Panics if the index is out of bounds.
+#! Gets an item from the account storage
+#!
+#! Note:
+#! - We assume that index has been validated and is within bounds
 #!
 #! Stack: [index]
 #! Output: [VALUE]
@@ -381,16 +352,12 @@ end
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_item
-    # get the storage root
-    exec.memory::get_acct_storage_root
-    # => [STORAGE_ROOT, index]
+    # get account storage slots section offset
+    exec.memory::get_acct_storage_slots_section_offset
+    # => [acct_storage_slots_section_offset, index]
 
     # get the item from storage
-    movup.4 push.STORAGE_TREE_DEPTH mtree_get
-    # => [VALUE, ROOT]
-
-    # drop the root
-    swapw dropw
+    swap mul.2 add padw movup.4 mem_loadw
     # => [VALUE]
 end
 
@@ -402,25 +369,35 @@ end
 #! - index is the index of the item to set.
 #! - NEW_VALUE is the value to set.
 #! - OLD_VALUE is the previous value of the item.
-#! - OLD_ROOT is the old storage root.
-#! - NEW_ROOT is the new storage root.
 proc.set_item_raw
-    # get the storage root
-    exec.memory::get_acct_storage_root
-    # => [OLD_ROOT, index, NEW_VALUE]
+    # get old value from storage
+    dup movdn.5 exec.get_item
+    # => [OLD_VALUE, NEW_VALUE, index]
 
-    # set the item in storage
-    movup.4 push.STORAGE_TREE_DEPTH mtree_set
-    # => [OLD_VALUE, NEW_ROOT]
+    # arrange stack for storage update
+    swapw movup.8
+    # => [index, NEW_VALUE, OLD_VALUE]
 
-    # set the new storage root
-    swapw exec.memory::set_acct_storage_root dropw
+    # get account storage slots section offset
+    exec.memory::get_acct_storage_slots_section_offset
+    # => [acct_storage_slots_section_offset, index, NEW_VALUE, OLD_VALUE]
+
+    # update storage
+    swap mul.2 add mem_storew
+    # => [NEW_VALUE, OLD_VALUE]
+
+    # drop value
+    dropw
     # => [OLD_VALUE]
 end
 
-#! Sets an item in the account storage. Panics if
-#! - the index is out of bounds
-#! - the slot type is not value
+#! Sets an item in the account storage.
+#!
+#! Note:
+#! - We assume that index has been validated and is within bounds
+#!
+#! Panics:
+#! - storage slot type is not value
 #!
 #! Stack: [index, V']
 #! Output: [V]
@@ -433,16 +410,16 @@ export.set_item
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
     # => [index, V']
 
-    # check if storage type is slot
-    dup exec.memory::get_acct_storage_slot_type_data u32split drop
-    # => [slot_type, index, V', 0, 0, 0]
+    # get storage slot type
+    dup exec.get_storage_slot_type
+    # => [storage_slot_type, index, V']
 
-    # fails if slot_type is not 0 = value
+    # check if type == slot
     exec.constants::get_storage_slot_type_value eq assert.err=ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT
-    # => [index, V', 0, 0, 0]
+    # => [index, V']
 
-    # duplicate the index and the V' to be able to emit an event after an account storage item is
-    # being updated
+    # duplicate the index and the V' enabling emission of an
+    # event after an account storage item is being updated
     movdn.4 dupw dup.8
     # => [index, V', V', index]
 
@@ -459,6 +436,13 @@ end
 
 #! Sets an item in the specified account storage map.
 #!
+#! Note:
+#! - We assume that index has been validated and is within bounds
+#!
+#! Panics:
+#! - storage slot type is not map
+#! - no map is found for ROOT
+#!
 #! Stack: [index, KEY, NEW_VALUE, OLD_ROOT, ...]
 #! Output: [OLD_VALUE, NEW_ROOT, ...]
 #!
@@ -467,20 +451,16 @@ end
 #! - KEY is the key to set.
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
-#!
-#! Panics if
-#! - the slot type is not map
-#! - no map is found for ROOT
 export.set_map_item.3
     # store index for later
     dup loc_store.0
     # => [index, KEY, NEW_VALUE, ...]
 
     # check if storage type is map
-    dup exec.memory::get_acct_storage_slot_type_data u32split drop
+    dup exec.get_storage_slot_type
     # => [slot_type, index, KEY, NEW_VALUE, OLD_ROOT]
 
-    # fails if slot_type is not 1 = map
+    # check if slot_type == map
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
@@ -517,6 +497,30 @@ export.set_map_item.3
     # => [OLD_MAP_ROOT, OLD_VALUE, ...]
 end
 
+#! Returns the type of the requested storage slot
+#!
+#! Panics:
+#! - index is out of bounds
+#!
+#! Stack: [index, ...]
+#! Output: [slot_type, ...]
+#!
+#! - index is the location in memory of the storage slot.
+#! - slot_type is the type of the storage slot.
+export.get_storage_slot_type
+    # check that index is in bounds
+    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [index, V']
+
+    # get account storage slots section offset
+    exec.memory::get_acct_storage_slots_section_offset
+    # => [acct_storage_slots_section_offset, index]
+
+    # get storage slot type
+    swap mul.2 add add.1 mem_load
+    # => [slot_type]
+end
+
 #! Returns the procedure information
 #!
 #! Stack: [index, ...]
@@ -528,24 +532,17 @@ end
 #! Panics if
 #! - index is out of bounds
 export.get_procedure_info
-  # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-  # check if index == 255
-  dup push.255 neq
-  # => [is_255, index]
-
-  if.true
     # check that index < number of procedures contained in the account code
     dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
     # => [index]
 
     # get procedure section ptr
-    push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add
+    push.2 mul exec.memory::get_acct_procedures_section_offset add dup push.1 add
     # => [proc_ptr, offset_ptr]
 
     # load procedure information from memory
     mem_load swap padw movup.4 mem_loadw
     # => [PROC_ROOT, storage_offset]
-  end
  end
 
 #! Verifies that the procedure root is part of the account code
@@ -563,32 +560,19 @@ export.authenticate_procedure
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
     # => [index, PROC_ROOT]
 
-    # get procedure info (PROC_ELEMENTS, storage_offset) from memory stored at index
+    # get procedure info (PROC_ROOT, storage_offset) from memory stored at index
     exec.get_procedure_info
-    # In production:
-    # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
-    # During testing:
-    # => [255, PROC_ROOT]
+    # => [PROC_ROOT, storage_offset, PROC_ROOT]
 
-    # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-    # check if get_procedure_info returned 255
-    dup push.255 neq
-    # => [is_255, index, PROC_ROOT]
-
-    if.true
-      # verify that PROC_ROOT exists in memory at index
-      movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
-      # => [storage_offset]
-    else
-      # drop PROC_ROOT
-      movdn.4 dropw drop push.0
-    end
+    # verify that PROC_ROOT exists in memory at index
+    movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
+    # => [storage_offset]
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. compute the hash of (SEED, CODE_commitment, STORAGE_ROOT, 0, 0, 0, 0)
+#! 1. compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, 0, 0, 0, 0)
 #! 2. Assert the least significant element of the digest is equal to the account id of the account
 #!    the transaction is being executed against.
 #! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the account
@@ -599,7 +583,7 @@ end
 export.validate_seed
         # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
         padw exec.memory::get_acct_id push.0.0.0
-        adv.push_mapval push.15263 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
         adv_loadw
         # => [SEED, 0, 0, 0, 0]
 
@@ -615,8 +599,8 @@ export.validate_seed
         dropw dropw
         # => [PERM]
 
-        # perform second permutation perm(storage_root, 0, 0, 0, 0)
-        exec.memory::get_acct_storage_root padw hperm
+        # perform second permutation perm(storage_commitment, 0, 0, 0, 0)
+        exec.memory::get_acct_storage_commitment padw hperm
         # => [RATE, RATE, CAP]
 
         # extract digest

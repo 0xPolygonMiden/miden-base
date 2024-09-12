@@ -450,7 +450,7 @@ pub fn validate_account_seed(
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
             let account_id =
-                AccountId::new(seed, account.code().commitment(), account.storage().root())
+                AccountId::new(seed, account.code().commitment(), account.storage().commitment())
                     .map_err(TransactionInputError::InvalidAccountSeed)?;
             if account_id != account.id() {
                 return Err(TransactionInputError::InconsistentAccountSeed {

@@ -5,7 +5,7 @@ use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
         delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountType, AuthSecretKey,
-        SlotItem,
+        StorageSlot,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
@@ -328,13 +328,13 @@ impl MockChain {
             ZERO,
         ];
 
-        let faucet_metadata = SlotItem::new_value(1, 0, metadata);
+        let faucet_metadata = StorageSlot::Value(metadata);
 
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
-            .add_storage_item(faucet_metadata);
+            .add_storage_slot(faucet_metadata);
 
         let account = self.add_from_account_builder(auth_method, account_builder);
 
@@ -354,13 +354,13 @@ impl MockChain {
             ZERO,
         ];
 
-        let faucet_metadata = SlotItem::new_value(1, 0, metadata);
+        let faucet_metadata = StorageSlot::Value(metadata);
 
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .account_type(AccountType::FungibleFaucet)
-            .add_storage_item(faucet_metadata);
+            .add_storage_slot(faucet_metadata);
         MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
     }
 

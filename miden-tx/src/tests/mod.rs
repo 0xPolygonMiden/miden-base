@@ -286,9 +286,9 @@ fn executed_transaction_account_delta() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().slots().len(), 1);
+    assert_eq!(executed_transaction.account_delta().storage().values().len(), 1);
     assert_eq!(
-        executed_transaction.account_delta().storage().slots().get(&STORAGE_INDEX_0),
+        executed_transaction.account_delta().storage().values().get(&STORAGE_INDEX_0),
         Some(&updated_slot_value)
     );
 
@@ -396,7 +396,7 @@ fn test_empty_delta_nonce_update() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().slots().len(), 0);
+    assert_eq!(executed_transaction.account_delta().storage().values().len(), 0);
 
     assert_eq!(executed_transaction.account_delta().storage().maps().len(), 0);
 }
@@ -835,7 +835,7 @@ fn test_tx_script() {
         push.{key}
 
         # load the tx script input value from the map and read it onto the stack
-        adv.push_mapval push.16073 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        adv.push_mapval push.16073 drop         # TODO: remove line, see miden-vm/#1122
         adv_loadw
 
         # assert that the value is correct
