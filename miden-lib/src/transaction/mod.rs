@@ -91,9 +91,6 @@ impl TransactionKernel {
         tx_args: &TransactionArgs,
         init_advice_inputs: Option<AdviceInputs>,
     ) -> (StackInputs, AdviceInputs) {
-        let (_, aboba, _) = Self::kernel().into_parts();
-        std::println!("{:?}", aboba);
-
         let account = tx_inputs.account();
 
         let stack_inputs = TransactionKernel::build_input_stack(
