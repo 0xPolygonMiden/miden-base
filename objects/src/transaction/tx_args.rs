@@ -27,7 +27,7 @@ use crate::{
 ///   different from note inputs, as the user executing the transaction can specify arbitrary note
 ///   args.
 /// - Advice inputs: Provides data needed by the runtime, like the details of public output notes.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
@@ -145,6 +145,24 @@ impl TransactionArgs {
     }
 }
 
+impl Serializable for TransactionArgs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.tx_script.write_into(target);
+        self.note_args.write_into(target);
+        self.advice_inputs.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionArgs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let tx_script = Option::<TransactionScript>::read_from(source)?;
+        let note_args = BTreeMap::<NoteId, Word>::read_from(source)?;
+        let advice_inputs = AdviceInputs::read_from(source)?;
+
+        Ok(Self { tx_script, note_args, advice_inputs })
+    }
+}
+
 // TRANSACTION SCRIPT
 // ================================================================================================
 
@@ -243,5 +261,30 @@ impl Deserializable for TransactionScript {
         let inputs = BTreeMap::<Digest, Vec<Felt>>::read_from(source)?;
 
         Ok(Self::from_parts(Arc::new(mast), entrypoint, inputs))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vm_core::{utils::{Deserializable, Serializable}, Felt, Program, Word};
+    use vm_processor::{AdviceMap, Digest, MastNodeId};
+
+    use crate::{notes::NoteId, transaction::{TransactionArgs, TransactionScript}};
+
+    #[test]
+    fn test_tx_args_serialization() {
+        let tx_script = TransactionScript::new(
+            Program::new(Default::default(), MastNodeId::from_u32_safe(0, &Default::default()).unwrap()),
+            vec![(Word::from(Digest::new([Felt::new(1); 4])), vec![Felt::new(1)])],
+        );
+        let note_args = vec![(NoteId::new(Digest::new([Felt::new(1); 4]), Digest::new([Felt::new(1); 4])), Word::from(Digest::new([Felt::new(1); 4])))]
+            .into_iter()
+            .collect();
+
+        let args = TransactionArgs::new(Some(tx_script), Some(note_args), AdviceMap::default());
+        let bytes = args.to_bytes();
+        let decoded = TransactionArgs::read_from_bytes(&bytes).unwrap();
+
+        assert_eq!(args, decoded);
     }
 }
