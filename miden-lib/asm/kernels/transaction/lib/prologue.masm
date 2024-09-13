@@ -505,6 +505,9 @@ proc.process_account_data
         assert.err=ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO
         # => []
     end
+
+    # validate account procedure storage offsets
+    exec.account::validate_storage_offsets
 end
 
 # INPUT NOTES DATA

@@ -208,9 +208,11 @@ impl Account {
         initial_balance: Felt,
         assembler: Assembler,
     ) -> Self {
-        let account_storage =
-            AccountStorage::new(vec![StorageSlot::Value([ZERO, ZERO, ZERO, initial_balance])])
-                .unwrap();
+        let account_storage = AccountStorage::new(vec![
+            StorageSlot::Value([ZERO, ZERO, ZERO, initial_balance]),
+            StorageSlot::Value(Word::default()),
+        ])
+        .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
         let account_code = AccountCode::mock_account_code(assembler, true);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)

@@ -37,6 +37,9 @@ const.ERR_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
 # Provided storage slot index is out of bounds
 const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002004E
 
+# Storage offset is invalid for a faucet account (0 is prohibited being the faucet reserved data slot)
+const.ERR_INVALID_FAUCET_STORAGE_OFFSET=0x0002004F
+
 # CONSTANTS
 # =================================================================================================
 
@@ -341,6 +344,67 @@ export.apply_storage_offset
     # => [offset_slot_index]
 end
 
+#! Validate that all account procedures storage offsets are in bounds.
+#!
+#! Notes:
+#! - For faucets checks that no storage offset is 0 (preventing reserved storage slot access)
+#!
+#! Stack: []
+#! Output: []
+proc.validate_storage_offsets
+    # get number of account procedures 
+    exec.memory::get_num_procedures
+    # => [num_account_procedures]
+
+    # prepare stack for looping
+    push.0.1
+    # => [start_loop, index, num_account_procedures]
+
+    # check if the account is a faucet
+    exec.get_id exec.is_faucet
+    # => [is_faucet, start_loop, index, num_account_procedures]
+
+    # we do not check if num_account_procedures == 0 here because a valid
+    # account has between 1 and 256 procedures with associated offsets
+    if.true
+        while.true
+            # get storage offset from memory
+            dup exec.get_procedure_storage_offset
+            # => [storage_offset, index, num_account_procedures]
+
+            # assert that storage offset is not 0
+            dup push.0 neq assert.err=ERR_INVALID_FAUCET_STORAGE_OFFSET
+            # => [storage_offset, index, num_account_procedures]
+
+            # assert that storage offset is in bounds
+            exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [index, num_account_procedures]
+
+            # check if we should continue looping
+            add.1 dup dup.2 lt
+            # => [should_loop, index, num_account_procedures]
+        end
+    else
+        while.true
+            # get storage offset from memory
+            dup exec.get_procedure_storage_offset
+            # => [storage_offset, index, num_account_procedures]
+
+            # assert that storage offset is in bounds
+            exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [index, num_account_procedures]
+
+            # check if we should continue looping
+            add.1 dup dup.2 lt
+            # => [should_loop, index, num_account_procedures]
+        end
+    end
+
+    # clean stack
+    drop drop
+    # => []
+end
+
 #! Gets an item from the account storage
 #!
 #! Note:
@@ -533,17 +597,40 @@ end
 #! - index is out of bounds
 export.get_procedure_info
     # check that index < number of procedures contained in the account code
-    dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
+    dup exec.memory::get_num_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
     # => [index]
 
-    # get procedure section ptr
-    push.2 mul exec.memory::get_acct_procedures_section_offset add dup push.1 add
-    # => [proc_ptr, offset_ptr]
+    # get procedure pointer
+    mul.2 exec.memory::get_acct_procedures_section_offset add dup add.1
+    # => [offset_ptr, proc_ptr]
 
     # load procedure information from memory
     mem_load swap padw movup.4 mem_loadw
     # => [PROC_ROOT, storage_offset]
- end
+end
+
+#! Returns the procedure storage offset
+#!
+#! Stack: [index, ...]
+#! Output: [storage_offset, ...]
+#!
+#! - storage_offset is the procedure storage offset.
+#!
+#! Panics if
+#! - index is out of bounds
+export.get_procedure_storage_offset
+    # check that index < number of procedures contained in the account code
+    dup exec.memory::get_num_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
+    # => [index]
+
+    # get procedure storage offset pointer
+    mul.2 exec.memory::get_acct_procedures_section_offset add add.1
+    # => [storage_offset_ptr]
+
+    # load procedure storage offset from memory
+    mem_load
+    # => [storage_offset]
+end
 
 #! Verifies that the procedure root is part of the account code
 #!

@@ -63,11 +63,11 @@ impl AccountCode {
         // TODO: currently, offsets for all procedures are set to 0; instead they should be read
         // from the Library metadata
         let mut procedures: Vec<AccountProcedureInfo> = Vec::new();
+        // TODO: Remove this check. We offset all faucet procedures
+        // by 1 and other account procedures by 0.
+        let storage_offset = if is_faucet { 1 } else { 0 };
         for module in library.module_infos() {
             for proc_mast_root in module.procedure_digests() {
-                // TODO: Remove this check. We offset all faucet procedures
-                // by 1 and other account procedures by 0.
-                let storage_offset = if is_faucet { 1 } else { 0 };
                 procedures.push(AccountProcedureInfo::new(proc_mast_root, storage_offset));
             }
         }

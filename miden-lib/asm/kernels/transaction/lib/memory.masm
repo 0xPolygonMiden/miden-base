@@ -707,7 +707,7 @@ end
 #!
 #! Where:
 #! - num_procedures is the number of procedures contained in the account code.
-export.get_num_account_procedures
+export.get_num_procedures
     push.NUM_ACCT_PROCEDURES_PTR mem_load
 end
 
