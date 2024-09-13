@@ -437,7 +437,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             .get_mem_value(process.ctx(), NUM_ACCT_STORAGE_SLOTS_PTR)
             .ok_or(TransactionKernelError::MissingMemoryValue(NUM_ACCT_STORAGE_SLOTS_PTR))?;
 
-        Ok(num_storage_slots_word[3].as_int())
+        Ok(num_storage_slots_word[0].as_int())
     }
 }
 
