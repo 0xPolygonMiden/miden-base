@@ -53,7 +53,7 @@ pub mod utils {
         };
     }
 
-    /// Construct a new [Digest] from four `u64` values.
+    /// Construct a new `Digest` from four `u64` values.
     #[macro_export]
     macro_rules! digest {
         ($a:expr, $b:expr, $c:expr, $d:expr) => {
