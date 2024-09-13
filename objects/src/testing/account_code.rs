@@ -30,9 +30,9 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
 ";
 
 impl AccountCode {
-    /// Creates a mock [AccountCode] that exposes wallet interface
-    pub fn mock_wallet(assembler: Assembler) -> AccountCode {
-        AccountCode::new(Self::mock_library(assembler)).unwrap()
+    /// Creates a mock [AccountCode]
+    pub fn mock_account_code(assembler: Assembler, is_faucet: bool) -> AccountCode {
+        AccountCode::new(Self::mock_library(assembler), is_faucet).unwrap()
     }
 
     /// Creates a mock [Library] which can be used to assemble programs and as a library to create a
@@ -127,11 +127,11 @@ impl AccountCode {
 
     /// Creates a mock [AccountCode] with specific code and assembler
     pub fn mock_with_code(source_code: &str, assembler: Assembler) -> AccountCode {
-        Self::compile(source_code, assembler).unwrap()
+        Self::compile(source_code, assembler, false).unwrap()
     }
 
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        Self::compile(CODE, Assembler::default()).unwrap()
+        Self::compile(CODE, Assembler::default(), false).unwrap()
     }
 }

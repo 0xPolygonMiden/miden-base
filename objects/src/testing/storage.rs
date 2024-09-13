@@ -33,21 +33,24 @@ impl AccountStorageBuilder {
     pub fn new() -> Self {
         Self {
             slots: vec![
-                AccountStorage::mock_item_2().slot,
                 AccountStorage::mock_item_0().slot,
                 AccountStorage::mock_item_1().slot,
+                AccountStorage::mock_item_2().slot,
             ],
         }
     }
 
-    pub fn add_slot(&mut self, slot: StorageSlot) -> &mut Self {
-        self.slots.push(slot);
+    pub fn add_slot(&mut self, slot: StorageSlot, location: Option<usize>) -> &mut Self {
+        match location {
+            Some(location) => self.slots.insert(location, slot),
+            None => self.slots.push(slot),
+        }
         self
     }
 
     pub fn add_slots<I: IntoIterator<Item = StorageSlot>>(&mut self, slots: I) -> &mut Self {
         for slot in slots.into_iter() {
-            self.add_slot(slot);
+            self.add_slot(slot, None);
         }
         self
     }

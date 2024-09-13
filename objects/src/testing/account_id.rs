@@ -46,7 +46,7 @@ impl<T: Rng> AccountIdBuilder<T> {
     /// Compiles [DEFAULT_ACCOUNT_CODE] into [AccountCode] and sets it.
     pub fn default_code(mut self, assembler: Assembler) -> Self {
         self.code = Some(
-            AccountCode::compile(DEFAULT_ACCOUNT_CODE, assembler)
+            AccountCode::compile(DEFAULT_ACCOUNT_CODE, assembler, false)
                 .expect("Default account code should compile."),
         );
         self

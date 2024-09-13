@@ -65,7 +65,7 @@ fn test_mint_fungible_asset_succeeds() {
 
             # assert the faucet storage has been updated
             push.{FAUCET_STORAGE_DATA_SLOT}
-            call.account::get_item
+            exec.::kernel::account::get_item
             push.{expected_final_storage_amount}
             assert_eq
         end
@@ -328,7 +328,7 @@ fn test_burn_fungible_asset_succeeds() {
             
             # assert the faucet storage has been updated
             push.{FAUCET_STORAGE_DATA_SLOT}
-            call.account::get_item
+            exec.::kernel::account::get_item
             push.{expected_final_storage_amount}
             assert_eq
         end

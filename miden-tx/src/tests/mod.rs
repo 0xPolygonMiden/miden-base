@@ -115,7 +115,8 @@ fn executed_transaction_account_delta() {
     end
     ";
     let new_acct_code =
-        AccountCode::compile(new_acct_code_src, TransactionKernel::testing_assembler()).unwrap();
+        AccountCode::compile(new_acct_code_src, TransactionKernel::testing_assembler(), false)
+            .unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
