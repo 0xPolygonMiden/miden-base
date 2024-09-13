@@ -20,6 +20,9 @@ path = "src/lib.rs"
 name = "miden-tx-prover-service"
 path = "src/bin.rs"
 
+[features]
+default = ["async"]
+async = ["miden-tx/async"]
 
 [dependencies]
 miden-lib = { workspace = true }
