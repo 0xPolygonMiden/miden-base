@@ -19,7 +19,7 @@ use crate::utils::serde::{
 /// - `note_root` is a commitment to all notes created in the current block.
 /// - `tx_hash` is a commitment to a set of IDs of transactions which affected accounts in the
 ///   block.
-/// - `kernel_root` is an accumulative hash from all kernel hashes.
+/// - `kernel_root` a commitment to all transaction kernels supported by this block.
 /// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
 /// - `timestamp` is the time when the block was created, in seconds since UNIX epoch. Current
 ///   representation is sufficient to represent time up to year 2106.
