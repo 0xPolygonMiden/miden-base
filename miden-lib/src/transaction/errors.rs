@@ -17,7 +17,10 @@ pub enum TransactionKernelError {
         got: Digest,
         data: Option<Vec<Felt>>,
     },
-    InvalidStorageSlotIndex(u64, u64),
+    InvalidStorageSlotIndex {
+        max: u64,
+        actual: u64,
+    },
     MalformedAccountId(AccountError),
     MalformedAsset(AssetError),
     MalformedAssetOnAccountVaultUpdate(AssetError),
@@ -49,8 +52,8 @@ impl fmt::Display for TransactionKernelError {
                     expected, got, data
                 )
             },
-            TransactionKernelError::InvalidStorageSlotIndex(index, num_storage_slots) => {
-                write!(f, "Storage slot index: {index} is invalid, must be smaller than the number of account storage slots: {num_storage_slots}")
+            TransactionKernelError::InvalidStorageSlotIndex { max, actual } => {
+                write!(f, "Storage slot index: {actual} is invalid, must be smaller than the number of account storage slots: {max}")
             },
             TransactionKernelError::MalformedAccountId(err) => {
                 write!( f, "Account id data extracted from the stack by the event handler is not well formed {err}")
