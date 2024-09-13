@@ -1,3 +1,4 @@
+use miden_lib::transaction::memory::ACCT_STORAGE_SLOTS_SECTION_OFFSET;
 use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
@@ -14,7 +15,7 @@ use miden_objects::{
     },
     FieldElement,
 };
-use vm_processor::Felt;
+use vm_processor::{Felt, ProcessState};
 
 use super::ONE;
 use crate::{
@@ -62,18 +63,21 @@ fn test_mint_fungible_asset_succeeds() {
             push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.asset_vault::get_balance
             push.{FUNGIBLE_ASSET_AMOUNT} assert_eq
-
-            # assert the faucet storage has been updated
-            push.{FAUCET_STORAGE_DATA_SLOT}
-            exec.::kernel::account::get_item
-            push.{expected_final_storage_amount}
-            assert_eq
         end
-        ",
-        expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE + FUNGIBLE_ASSET_AMOUNT
+        "
     );
 
-    tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
+
+    let expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE + FUNGIBLE_ASSET_AMOUNT;
+    let faucet_reserved_slot_storage_location =
+        FAUCET_STORAGE_DATA_SLOT as u32 + ACCT_STORAGE_SLOTS_SECTION_OFFSET;
+
+    let faucet_memory_value_word = process
+        .get_mem_value(process.ctx(), faucet_reserved_slot_storage_location)
+        .unwrap();
+
+    assert_eq!(faucet_memory_value_word[3].as_int(), expected_final_storage_amount);
 }
 
 #[test]
@@ -325,19 +329,22 @@ fn test_burn_fungible_asset_succeeds() {
             exec.asset_vault::get_balance
             
             push.{final_input_vault_asset_amount} assert_eq
-            
-            # assert the faucet storage has been updated
-            push.{FAUCET_STORAGE_DATA_SLOT}
-            exec.::kernel::account::get_item
-            push.{expected_final_storage_amount}
-            assert_eq
         end
         ",
         final_input_vault_asset_amount = CONSUMED_ASSET_1_AMOUNT - FUNGIBLE_ASSET_AMOUNT,
-        expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE - FUNGIBLE_ASSET_AMOUNT
     );
 
-    tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
+
+    let expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE - FUNGIBLE_ASSET_AMOUNT;
+    let faucet_reserved_slot_storage_location =
+        FAUCET_STORAGE_DATA_SLOT as u32 + ACCT_STORAGE_SLOTS_SECTION_OFFSET;
+
+    let faucet_memory_value_word = process
+        .get_mem_value(process.ctx(), faucet_reserved_slot_storage_location)
+        .unwrap();
+
+    assert_eq!(faucet_memory_value_word[3].as_int(), expected_final_storage_amount);
 }
 
 #[test]
