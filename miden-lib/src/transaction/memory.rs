@@ -14,11 +14,12 @@ pub type StorageSlot = u8;
 // | -------------     | :------------:| :-----------:|
 // | Bookkeeping       | 0             | 4            |
 // | Global inputs     | 100           | 105          |
-// | Block header      | 200           | 207          |
+// | Block header      | 200           | 208          |
 // | Chain MMR         | 300           | 332?         |
 // | Account data      | 400           | 651?         |
 // | Account storage   | 499           | ?            |
 // | Account procedures| 1499          | ?            |
+// | Kernel data       | 9_999         | 10_028?      |
 // | Input notes       | 1_048_576     | ?            |
 // | Output notes      | 4_194_304     | ?            |
 
@@ -95,11 +96,14 @@ pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 203;
 /// The memory address at which the TX hash is stored
 pub const TX_HASH_PTR: MemoryAddress = 204;
 
+/// The memory address at which the kernel root is stored
+pub const KERNEL_ROOT_PTR: MemoryAddress = 205;
+
 /// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: MemoryAddress = 205;
+pub const PROOF_HASH_PTR: MemoryAddress = 206;
 
 /// The memory address at which the block number is stored
-pub const BLOCK_METADATA_PTR: MemoryAddress = 206;
+pub const BLOCK_METADATA_PTR: MemoryAddress = 207;
 
 /// The index of the block number within the block metadata
 pub const BLOCK_NUMBER_IDX: DataIndex = 0;
@@ -111,7 +115,7 @@ pub const PROTOCOL_VERSION_IDX: DataIndex = 1;
 pub const TIMESTAMP_IDX: DataIndex = 2;
 
 /// The memory address at which the note root is stored
-pub const NOTE_ROOT_PTR: MemoryAddress = 207;
+pub const NOTE_ROOT_PTR: MemoryAddress = 208;
 
 // CHAIN DATA
 // ------------------------------------------------------------------------------------------------
@@ -193,6 +197,16 @@ pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 1499;
 
 /// The memory address at which the account procedures section begins.
 pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1500;
+
+// KERNEL DATA
+// ------------------------------------------------------------------------------------------------
+
+/// The memory address at which the number of the procedures of the selected kernel is stored.
+pub const NUM_KERNEL_PROCEDURES_PTR: MemoryAddress = 9999;
+
+/// The memory address at which the section, where the hashes of the kernel procedures are stored,
+/// begins
+pub const KERNEL_PROCEDURES_PTR: MemoryAddress = 10000;
 
 // NOTES DATA
 // ================================================================================================
