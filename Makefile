@@ -52,6 +52,7 @@ doc-serve: ## Serves documentation site
 test-build: ## Build the test binary
 	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
 
+
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
 	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
@@ -81,6 +82,12 @@ build: ## By default we should build in release mode
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
 	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx
+
+
+.PHONY: build-no-std-testing
+build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing
+
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)

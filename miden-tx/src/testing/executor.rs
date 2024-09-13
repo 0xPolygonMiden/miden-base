@@ -1,5 +1,4 @@
 use miden_lib::transaction::TransactionKernel;
-#[cfg(feature = "std")]
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, Program, StackInputs,
 };
