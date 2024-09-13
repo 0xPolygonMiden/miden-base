@@ -1,14 +1,8 @@
 use alloc::vec::Vec;
 
-use miden_objects::{Digest, Felt, Hasher};
+use miden_objects::{digest, Digest, Felt, Hasher};
 
 use super::TransactionKernel;
-
-macro_rules! digest {
-    ($a:expr, $b:expr, $c:expr, $d:expr) => {
-        Digest::new([Felt::new($a), Felt::new($b), Felt::new($c), Felt::new($d)])
-    };
-}
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -18,10 +12,10 @@ impl TransactionKernel {
     // --------------------------------------------------------------------------------------------
 
     /// Number of currently used kernel versions.
-    pub const KERNEL_VERSION_NUMBER: usize = 1;
+    pub const NUM_VERSIONS: usize = 1;
 
     /// Array of all available kernels.
-    pub const PROCEDURES: [&'static [Digest]; Self::KERNEL_VERSION_NUMBER] = [&KERNEL0_PROCEDURES];
+    pub const PROCEDURES: [&'static [Digest]; Self::NUM_VERSIONS] = [&KERNEL0_PROCEDURES];
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------

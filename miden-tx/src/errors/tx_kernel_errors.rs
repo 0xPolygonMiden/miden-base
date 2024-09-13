@@ -70,11 +70,7 @@ pub const ERR_ASSET_NOT_FUNGIBLE_ID: u32 = 131137;
 pub const ERR_ASSET_INVALID_AMOUNT: u32 = 131138;
 pub const ERR_ASSET_NOT_NON_FUNGIBLE_ID: u32 = 131139;
 pub const ERR_INVALID_NOTE_TYPE: u32 = 131140;
-
-// TODO: fix the error values
 pub const ERR_NOTE_INVALID_TYPE_FOR_TAG: u32 = 131141;
-pub const ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE: u32 = 131141;
-
 pub const ERR_NOTE_TAG_MUST_BE_U32: u32 = 131142;
 pub const ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT: u32 = 131143;
 pub const ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 131144;
@@ -90,7 +86,7 @@ pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 131153;
 pub const ERR_INVALID_NOTE_IDX: u32 = 131154;
 pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 131155;
 
-pub const KERNEL_ERRORS: [(u32, &str); 84] = [
+pub const KERNEL_ERRORS: [(u32, &str); 83] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -164,7 +160,6 @@ pub const KERNEL_ERRORS: [(u32, &str); 84] = [
     (ERR_NOTE_INVALID_TYPE_FOR_TAG, "Provided note tag type is invalid"),
     (ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED, "Adding a fungible asset to a note cannot exceed the maximum_amount"),
     (ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, "Non-fungible asset that already exists in the note cannot be added again"),
-    (ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE, "The note's tag failed the most significant validation"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag high bits must be set to 0"),
     (ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT, "Setting a non-value item on a value slot"),
     (ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Setting a map item on a non-map slot"),

@@ -52,6 +52,14 @@ pub mod utils {
             ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         };
     }
+
+    /// Construct a new [Digest] from four `u64` values.
+    #[macro_export]
+    macro_rules! digest {
+        ($a:expr, $b:expr, $c:expr, $d:expr) => {
+            Digest::new([Felt::new($a), Felt::new($b), Felt::new($c), Felt::new($d)])
+        };
+    }
 }
 
 pub mod vm {

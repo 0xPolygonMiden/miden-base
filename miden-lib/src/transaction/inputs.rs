@@ -308,8 +308,8 @@ fn add_input_notes_to_advice_inputs(
 /// - The hash of the selected kernel |-> array of the kernel's procedure hashes.
 pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_version: u8) {
     let mut kernel_hashes: Vec<Felt> =
-        Vec::with_capacity(TransactionKernel::KERNEL_VERSION_NUMBER * WORD_SIZE);
-    for version in 0..TransactionKernel::KERNEL_VERSION_NUMBER {
+        Vec::with_capacity(TransactionKernel::NUM_VERSIONS * WORD_SIZE);
+    for version in 0..TransactionKernel::NUM_VERSIONS {
         kernel_hashes
             .extend_from_slice(TransactionKernel::kernel_hash(version as u8).as_elements());
     }
