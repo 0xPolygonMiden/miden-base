@@ -5,6 +5,7 @@ members = [
     "miden-lib",
     "miden-tx",
     "objects",
+    "miden-tx-prover",
 ]
 
 [workspace.package]

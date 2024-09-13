@@ -1,0 +1,13 @@
+service Api {
+    rpc ProveTransaction(ProveTransactionRequest) returns (ProveTransactionResponse) {}
+}
+
+package api;
+
+message ProveTransactionRequest {
+    required bytes transaction_witness = 1;
+}
+
+message ProveTransactionResponse {
+    required bytes proven_transaction = 1;
+}

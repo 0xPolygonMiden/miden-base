@@ -1,0 +1,47 @@
+[package]
+name = "miden-tx-prover"
+version = "0.6.0"
+description = "Miden rollup transaction prover"
+readme = "README.md"
+categories = ["no-std"]
+keywords = ["miden", "transaction"]
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "miden_tx_prover"
+path = "src/lib.rs"
+
+[[bin]]
+name = "miden-tx-prover-service"
+path = "src/bin.rs"
+
+
+[dependencies]
+miden-lib = { workspace = true }
+miden-objects = { workspace = true }
+miden-prover = { workspace = true }
+miden-verifier = { workspace = true }
+miden-tx = { workspace = true, features = [ "async" ] }
+rand = { workspace = true }
+rand_chacha = { version = "0.3", default-features = false, optional = true }
+vm-processor = { workspace = true }
+winter-maybe-async = { version = "0.10" }
+axum = "0.7.5"
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+tonic = "0.12.2"
+prost = "0.13.2"
+
+[build-dependencies]
+miette = { version = "7.2", features = ["fancy"] }
+prost = { version = "0.13" }
+prost-build = { version = "0.13" }
+protox = { version = "0.7" }
+tonic-build = { version = "0.12" }
