@@ -8,6 +8,7 @@
 - [BREAKING] `AccountStorageType` enum was renamed to `AccountStorageMode` along with its variants (#854).
 - [BREAKING] `AccountStub` structure was renamed to `AccountHeader` (#855).
 - [BREAKING] Refactored `AccountStorage` from `Smt` to `sequential hash` (#846)
+- Set all procedures storage offsets of faucet accounts to `1` (#875)
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 

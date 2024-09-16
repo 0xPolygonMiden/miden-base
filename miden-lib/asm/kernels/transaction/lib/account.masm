@@ -376,9 +376,23 @@ export.validate_storage_offsets
             dup push.0 neq assert.err=ERR_INVALID_FAUCET_STORAGE_OFFSET
             # => [storage_offset, index, num_account_procedures]
 
-            # assert that storage offset is in bounds
-            exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-            # => [index, num_account_procedures]
+            # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
+            # to prevent access to the reserved faucet data slot. When the assembler
+            # will support storage offsets remove this check.
+            # check if the storage offset and the number of storage slots are 1
+            dup exec.memory::get_num_storage_slots eq.1 swap eq.1 and
+            # => [not_both_1, storage_offset, index, num_account_procedures]
+
+            if.false
+                # assert that storage offset is in bounds
+                exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+                # => [index, num_account_procedures]
+            else
+                # TODO: Remove this drop with the check above
+                # skip bound check and drop storage_offset
+                drop
+                # => [index, num_account_procedures]
+            end
 
             # check if we should continue looping
             add.1 dup dup.2 lt
