@@ -12,8 +12,8 @@ use super::{AccountStorage, StorageSlotType, Word};
 /// only the [StorageSlotType] and associated values of the [super::StorageSlot]s
 /// contained in the storage.
 ///
-/// The use of a header is useful in the situation where the storage is heavy (i.g. multiple Mb's).
-/// And should be enough to execute most transactions.
+/// The use of a header is useful in the situation where the storage is heavy (i.g. multiple Mb's),
+/// and should be enough to execute most transactions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorageHeader {
     slots: Vec<(StorageSlotType, Word)>,
