@@ -46,9 +46,7 @@ fn main() -> miette::Result<()> {
     let file_descriptor_path = PathBuf::from(out).join("file_descriptor_set.bin");
 
     // Compile the proto file for all servers APIs
-    let protos = &[
-        proto_dir.join("api.proto"),
-    ];
+    let protos = &[proto_dir.join("api.proto")];
 
     println!("4");
 

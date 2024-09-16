@@ -29,7 +29,7 @@ miden-lib = { workspace = true }
 miden-objects = { workspace = true }
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
-miden-tx = { workspace = true, features = [ "async" ] }
+miden-tx = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { version = "0.3", default-features = false, optional = true }
 vm-processor = { workspace = true }

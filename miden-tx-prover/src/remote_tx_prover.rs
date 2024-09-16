@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use generated::api::{ProveTransactionRequest, ProveTransactionResponse};
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
-use miden_tx::{utils::{Deserializable, Serializable}, TransactionProver, TransactionProverError};
+use miden_tx::{
+    utils::{Deserializable, Serializable},
+    TransactionProver, TransactionProverError,
+};
 use tokio::sync::Mutex;
-use winter_maybe_async::{maybe_async, maybe_await};
 
-#[rustfmt::skip]
-pub mod generated;
+use crate::generated::api::{ProveTransactionRequest, ProveTransactionResponse};
 
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
@@ -45,11 +45,8 @@ impl RemoteTransactionProver {
 
         // Check if the response status is success
         if response.status().is_success() {
-            let ProveTransactionResponse {
-                proven_transaction,
-            } = response
-            .try_into()
-            .map_err(|_| TransactionProverError::DeserializationError)?;
+            let ProveTransactionResponse { proven_transaction } =
+                response.try_into().map_err(|_| TransactionProverError::DeserializationError)?;
 
             Ok(ProvenTransaction::read_from_bytes(&proven_transaction).unwrap())
         } else {

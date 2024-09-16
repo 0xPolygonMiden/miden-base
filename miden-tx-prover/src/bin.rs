@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::State, http::StatusCode, routing::{get, post}, Json, Router
+    extract::State,
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use miden_lib::transaction;
 use miden_objects::transaction::TransactionWitness;
@@ -28,10 +31,10 @@ async fn prove_transaction(
     prove_transaction_request: ProveTransactionRequest,
     State(prover): State<Arc<LocalTransactionProver>>,
 ) -> (StatusCode, ProveTransactionResponse) {
-    let transaction_witness = TransactionWitness::read_from_bytes(&prove_transaction_request.transaction_witness).unwrap();
-    let transaction_prove = prover
-        .prove(transaction_witness)
-        .unwrap();
+    let transaction_witness =
+        TransactionWitness::read_from_bytes(&prove_transaction_request.transaction_witness)
+            .unwrap();
+    let transaction_prove = prover.prove(transaction_witness).unwrap();
     (StatusCode::OK, transaction_prove.into())
 }
 
@@ -40,5 +43,5 @@ struct ProveTransactionRequest {
 }
 
 struct ProveTransactionResponse {
-    proven_transaction: Vec<u8>
+    proven_transaction: Vec<u8>,
 }
