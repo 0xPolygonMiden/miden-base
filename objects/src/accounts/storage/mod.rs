@@ -11,6 +11,8 @@ pub use slot::{StorageSlot, StorageSlotType};
 mod map;
 pub use map::StorageMap;
 
+pub mod header;
+
 // ACCOUNT STORAGE
 // ================================================================================================
 
