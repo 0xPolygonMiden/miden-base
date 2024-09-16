@@ -351,8 +351,8 @@ end
 #!
 #! Stack: []
 #! Output: []
-proc.validate_storage_offsets
-    # get number of account procedures 
+export.validate_storage_offsets
+    # get number of account procedures
     exec.memory::get_num_procedures
     # => [num_account_procedures]
 
