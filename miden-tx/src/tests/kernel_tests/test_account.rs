@@ -486,6 +486,11 @@ fn test_storage_offset() {
 
     let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .code(code)
+        .add_storage_slots([
+            AccountStorage::mock_item_2().slot,
+            AccountStorage::mock_item_0().slot,
+            AccountStorage::mock_item_1().slot,
+        ])
         .nonce(ONE)
         .build()
         .unwrap();

@@ -84,7 +84,7 @@ impl AccountDelta {
         &self.vault
     }
 
-    /// Returns the new nonce, if the nonce was changes.
+    /// Returns the new nonce, if the nonce was changed.
     pub fn nonce(&self) -> Option<Felt> {
         self.nonce
     }

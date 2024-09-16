@@ -4,17 +4,17 @@ use core::fmt;
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
-        delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountType, AuthSecretKey,
-        StorageSlot,
+        delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountStorage, AccountType,
+        AuthSecretKey, StorageSlot,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
     crypto::merkle::{Mmr, MmrError, PartialMmr, Smt},
     notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
-    testing::account::AccountBuilder,
+    testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
-        TransactionId, TransactionInputs,
+        TransactionId, TransactionInputs, TransactionScript,
     },
     AccountError, BlockHeader, FieldElement, NoteError, ACCOUNT_TREE_DEPTH,
 };
@@ -33,10 +33,21 @@ use crate::auth::BasicAuthenticator;
 
 /// Initial timestamp value
 const TIMESTAMP_START: u32 = 1693348223;
-/// Timestamp of timestamp on each new block
+/// Timestamp increment on each new block
 const TIMESTAMP_STEP: u32 = 10;
 
-pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
+// AUTH
+// ================================================================================================
+
+/// Specifies which authentication mechanism is desired for accounts
+pub enum Auth {
+    /// Creates a [SecretKey](miden_objects::crypto::dsa::rpo_falcon512::SecretKey) for the
+    /// account and creates a [BasicAuthenticator] that gets used for authenticating the account
+    BasicAuth,
+
+    /// Does not create any authentication mechanism for the account.
+    NoAuth,
+}
 
 // MOCK FUNGIBLE FAUCET
 // ================================================================================================
@@ -150,19 +161,6 @@ pub enum MockError {
     DuplicatedNote,
 }
 
-// AUTH
-// ================================================================================================
-
-/// Specifies which authentication mechanism is desired for accounts
-pub enum Auth {
-    /// Creates a [SecretKey](miden_objects::crypto::dsa::rpo_falcon512::SecretKey) for the
-    /// account and creates a [BasicAuthenticator] that gets used for authenticating the account
-    BasicAuth,
-
-    /// Does not create any authentication mechanism for the account.
-    NoAuth,
-}
-
 impl fmt::Display for MockError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
@@ -175,7 +173,43 @@ impl std::error::Error for MockError {}
 // MOCK CHAIN
 // ================================================================================================
 
-/// Structure chain data, used to build necessary openings and to construct [BlockHeader].
+/// [MockChain] simulates a simplified blockchain environment for testing purposes.
+/// It allows to create and manage accounts, mint assets, execute transactions, and apply state
+/// updates.
+///
+/// This struct is designed to mock transaction workflows, asset transfers, and
+/// note creation in a test setting. Once entities are set up, [TransactionContextBuilder] objects
+/// can be obtained in order to execute transactions accordingly.
+///
+/// # Examples
+///
+/// ## Create mock objects
+/// ```
+/// let mut mock_chain = MockChain::default();
+/// let faucet = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100_000);  // Create a USDT faucet
+/// let asset = faucet.mint(1000);  
+/// let note = mock_chain.add_p2id_note(asset, sender...);
+/// let sender = mock_chain.add_new_wallet(Auth::BasicAuth, vec![]);  
+///
+/// mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build().execute()
+/// ```
+///
+/// ## Executing a Simple Transaction
+///
+/// NOTE: Transaction script is defaulted to either [DEFAULT_AUTH_SCRIPT] if the account includes
+/// an authenticator.
+///
+/// ```
+/// let mut mock_chain = MockChain::default();
+/// let sender = mock_chain.add_new_wallet(Auth::BasicAuth, vec![asset]);  // Add a wallet with assets
+/// let receiver = mock_chain.add_new_wallet(Auth::BasicAuth, vec![]);  // Add a recipient wallet
+///
+/// let tx_context = mock_chain.build_tx_context(sender.id(), &[], &[]);
+/// let tx_script = TransactionScript::compile("...", vec![], TransactionKernel::testing_assembler()).unwrap();
+///
+/// let transaction = tx_context.tx_script(tx_script).build().execute().unwrap();
+/// mock_chain.apply_executed_transaction(&transaction);  // Apply transaction
+/// ```
 #[derive(Debug, Clone)]
 pub struct MockChain {
     /// An append-only structure used to represent the history of blocks produced for this chain.
@@ -205,20 +239,13 @@ pub struct MockChain {
     available_accounts: BTreeMap<AccountId, MockAccount>,
 
     removed_notes: Vec<NoteId>,
+
+    rng: ChaCha20Rng, // RNG field
 }
 
 impl Default for MockChain {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl MockChain {
-    // CONSTRUCTORS
-    // ----------------------------------------------------------------------------------------
-
-    pub fn new() -> Self {
-        Self {
+        MockChain {
             chain: Mmr::default(),
             blocks: vec![],
             nullifiers: Smt::default(),
@@ -227,10 +254,33 @@ impl MockChain {
             available_notes: BTreeMap::new(),
             available_accounts: BTreeMap::new(),
             removed_notes: vec![],
+            rng: ChaCha20Rng::from_seed(Default::default()), // Initialize RNG with default seed
         }
     }
+}
 
-    pub fn add_executed_transaction(&mut self, transaction: ExecutedTransaction) {
+impl MockChain {
+    // CONSTRUCTORS
+    // ----------------------------------------------------------------------------------------
+
+    /// Creates a new `MockChain` with default settings.
+    pub fn new() -> Self {
+        let mut chain = Self {
+            accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
+            ..Default::default()
+        };
+        chain.seal_block(None);
+        chain
+    }
+
+    /// Sets the seed for the internal RNG.
+    pub fn set_rng_seed(&mut self, seed: [u8; 32]) {
+        self.rng = ChaCha20Rng::from_seed(seed);
+    }
+
+    /// Applies the transaction, adding the entities to the mockchain.
+    /// Returns the resulting state of the executing account after executing the transaction.
+    pub fn apply_executed_transaction(&mut self, transaction: &ExecutedTransaction) -> Account {
         let mut account = transaction.initial_account().clone();
         account.apply_delta(transaction.account_delta()).unwrap();
 
@@ -257,15 +307,17 @@ impl MockChain {
         self.pending_objects
             .included_transactions
             .push((transaction.id(), transaction.account_id()));
+
+        account
     }
 
-    /// Add a public [Note] to the pending objects.
+    /// Adds a public [Note] to the pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_note(&mut self, note: Note) {
         self.pending_objects.output_note_batches.push(vec![OutputNote::Full(note)]);
     }
 
-    /// Add a P2ID [Note] to the pending objects and returns it.
+    /// Adds a P2ID [Note] to the pending objects and returns it.
     /// A block has to be created to finalize the new entity.
     pub fn add_p2id_note(
         &mut self,
@@ -290,31 +342,44 @@ impl MockChain {
         Ok(note)
     }
 
-    /// Mark a [Note] as consumed by inserting its nullifier into the block.
+    /// Marks a [Note] as consumed by inserting its nullifier into the block.
     /// A block has to be created to finalize the new entity.
     pub fn add_nullifier(&mut self, nullifier: Nullifier) {
         self.pending_objects.created_nullifiers.push(nullifier);
     }
 
     // OTHER IMPLEMENTATIONS
-    // ================================================================================================
+    // ----------------------------------------------------------------------------------------
 
+    /// Adds a new wallet with the specified authentication method and assets.
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+        let account_builder = AccountBuilder::new(self.rng.clone())
             .default_code(TransactionKernel::testing_assembler())
+            // TODO: These are added because the PUBLIC_KEY_SLOT is hardcoded to 3 on basic.masm.
+            // Once miden-base issue 864 is addressed, this should be changed back.
+            // See https://github.com/0xPolygonMiden/miden-base/pull/846/files#r1749401077 for more info
+            .add_storage_slots([AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot, AccountStorage::mock_item_2().slot])
             .nonce(Felt::ZERO)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
 
+    /// Adds an existing wallet with the specified authentication method and assets.
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+        let account_builder = AccountBuilder::new(self.rng.clone())
             .default_code(TransactionKernel::testing_assembler())
+            // TODO: These are added because the PUBLIC_KEY_SLOT is hardcoded to 3 on basic.masm.
+            // Once miden-base issue 864 is addressed, this should be changed back.
+            // See https://github.com/0xPolygonMiden/miden-base/pull/846/files#r1749401077 for more info
+            .add_storage_slots([AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot, AccountStorage::mock_item_2().slot])
             .nonce(Felt::ONE)
             .add_assets(assets);
+
         self.add_from_account_builder(auth_method, account_builder)
     }
 
+    /// Adds a new fungible faucet with the specified authentication method, token symbol, and max
+    /// supply.
     pub fn add_new_faucet(
         &mut self,
         auth_method: Auth,
@@ -330,7 +395,7 @@ impl MockChain {
 
         let faucet_metadata = StorageSlot::Value(metadata);
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+        let account_builder = AccountBuilder::new(self.rng.clone())
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
@@ -341,6 +406,8 @@ impl MockChain {
         MockFungibleFaucet(account)
     }
 
+    /// Adds an existing fungible faucet with the specified authentication method, token symbol, and
+    /// max supply.
     pub fn add_existing_faucet(
         &mut self,
         auth_method: Auth,
@@ -356,7 +423,7 @@ impl MockChain {
 
         let faucet_metadata = StorageSlot::Value(metadata);
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+        let account_builder = AccountBuilder::new(self.rng.clone())
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .account_type(AccountType::FungibleFaucet)
@@ -364,7 +431,7 @@ impl MockChain {
         MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
     }
 
-    /// Add a new [Account] from an [AccountBuilder] to the list of pending objects.
+    /// Adds a new [Account] from an [AccountBuilder] to the list of pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_from_account_builder(
         &mut self,
@@ -373,13 +440,11 @@ impl MockChain {
     ) -> Account {
         let (account, seed, authenticator) = match auth_method {
             Auth::BasicAuth => {
-                let mut rng = ChaCha20Rng::from_seed(Default::default());
+                let (acc, seed, auth) = account_builder.build_with_auth(&mut self.rng).unwrap();
 
-                let (acc, seed, auth) = account_builder.build_with_auth(&mut rng).unwrap();
-
-                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
+                let authenticator = BasicAuthenticator::new_with_rng(
                     &[(auth.public_key().into(), AuthSecretKey::RpoFalcon512(auth))],
-                    rng,
+                    self.rng.clone(),
                 );
 
                 (acc, seed, Some(authenticator))
@@ -398,7 +463,7 @@ impl MockChain {
         account
     }
 
-    /// Add a new [Account] to the list of pending objects.
+    /// Adds a new [Account] to the list of pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_account(&mut self, account: Account) {
         self.pending_objects.updated_accounts.push(BlockAccountUpdate::new(
@@ -409,35 +474,72 @@ impl MockChain {
         ));
     }
 
-    pub fn build_tx_context(&self, account_id: AccountId) -> TransactionContextBuilder {
-        let mock_account = self.available_accounts.get(&account_id).unwrap();
+    /// Initializes a [TransactionContextBuilder].
+    ///
+    /// This initializes the builder with the correct [TransactionInputs] based on what is
+    /// requested. The account's seed and authenticator are also introduced. Additionally, if
+    /// the account is set to authenticate with [Auth::BasicAuth], the executed transaction
+    /// script is initialized to [DEFAULT_AUTH_SCRIPT] (though this can be overridden in the
+    /// returned builder later).
+    pub fn build_tx_context(
+        &mut self,
+        account_id: AccountId,
+        note_ids: &[NoteId],
+        unauthenticated_notes: &[Note],
+    ) -> TransactionContextBuilder {
+        let mock_account = self.available_accounts.get(&account_id).unwrap().clone();
 
-        TransactionContextBuilder::new(mock_account.account().clone())
+        let tx_inputs = self.get_transaction_inputs(
+            mock_account.account.clone(),
+            mock_account.seed().cloned(),
+            note_ids,
+            unauthenticated_notes,
+        );
+
+        let mut tx_context_builder = TransactionContextBuilder::new(mock_account.account().clone())
             .authenticator(mock_account.authenticator().clone())
             .account_seed(mock_account.seed().cloned())
-            .mock_chain(self.clone())
+            .tx_inputs(tx_inputs);
+
+        if mock_account.authenticator.is_some() {
+            let tx_script = TransactionScript::compile(
+                DEFAULT_AUTH_SCRIPT,
+                vec![],
+                TransactionKernel::testing_assembler(),
+            )
+            .unwrap();
+            tx_context_builder = tx_context_builder.tx_script(tx_script);
+        }
+
+        tx_context_builder
     }
 
+    /// Returns a valid [TransactionInputs] for the specified entities.
     pub fn get_transaction_inputs(
-        &self,
+        &mut self,
         account: Account,
         account_seed: Option<Word>,
         notes: &[NoteId],
+        unauthenticated_notes: &[Note],
     ) -> TransactionInputs {
-        let block_header = self.blocks.last().unwrap().header();
+        let block = self.blocks.last().unwrap();
 
         let mut input_notes = vec![];
         let mut block_headers_map: BTreeMap<u32, BlockHeader> = BTreeMap::new();
         for note in notes {
-            let input_note = self.available_notes.get(note).unwrap().clone();
-            block_headers_map.insert(
-                input_note.location().unwrap().block_num(),
-                self.blocks
-                    .get(input_note.location().unwrap().block_num() as usize)
-                    .unwrap()
-                    .header(),
-            );
-            input_notes.push(input_note);
+            let input_note = self.available_notes.get(note).expect("Note not found").clone();
+            let note_block_num = input_note.location().unwrap().block_num();
+            if note_block_num != block.header().block_num() {
+                block_headers_map.insert(
+                    note_block_num,
+                    self.blocks.get(note_block_num as usize).unwrap().header(),
+                );
+                input_notes.push(input_note);
+            }
+        }
+
+        for note in unauthenticated_notes {
+            input_notes.push(InputNote::Unauthenticated { note: note.clone() })
         }
 
         let block_headers: Vec<BlockHeader> = block_headers_map.values().cloned().collect();
@@ -446,7 +548,7 @@ impl MockChain {
         TransactionInputs::new(
             account,
             account_seed,
-            block_header,
+            block.header(),
             mmr,
             InputNotes::new(input_notes).unwrap(),
         )
@@ -459,7 +561,7 @@ impl MockChain {
     /// Creates the next block.
     ///
     /// This will also make all the objects currently pending available for use.
-    /// If `block_num` is `Some(number)`, `number` will be used as the new block's number
+    /// If `block_num` is `Some(number)`, `number` will be used as the new block's number.
     pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
         let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num() + 1);
         let block_num: u32 = if let Some(input_block_num) = block_num {
@@ -584,66 +686,25 @@ impl MockChain {
     // ACCESSORS
     // =========================================================================================
 
-    /// Get the latest [ChainMmr].
+    /// Gets the latest [ChainMmr].
     pub fn chain(&self) -> ChainMmr {
         let block_headers: Vec<BlockHeader> = self.blocks.iter().map(|b| b.header()).collect();
         mmr_to_chain_mmr(&self.chain, &block_headers).unwrap()
     }
 
-    /// Get a reference to [BlockHeader] with `block_number`.
+    /// Gets a reference to [BlockHeader] with `block_number`.
     pub fn block_header(&self, block_number: usize) -> BlockHeader {
         self.blocks[block_number].header()
     }
 
-    /// Get a reference to the nullifier tree.
+    /// Gets a reference to the nullifier tree.
     pub fn nullifiers(&self) -> &Smt {
         &self.nullifiers
     }
 
+    /// Returns currently available notes.
     pub fn available_notes(&self) -> Vec<InputNote> {
         self.available_notes.values().cloned().collect()
-    }
-}
-
-// MOCK CHAIN BUILDER
-// ================================================================================================
-
-#[derive(Default)]
-pub struct MockChainBuilder {
-    accounts: Vec<Account>,
-    notes: Vec<Note>,
-    starting_block_num: u32,
-}
-
-impl MockChainBuilder {
-    pub fn accounts(mut self, accounts: Vec<Account>) -> Self {
-        self.accounts = accounts;
-        self
-    }
-
-    pub fn notes(mut self, notes: Vec<Note>) -> Self {
-        self.notes = notes;
-        self
-    }
-
-    pub fn starting_block_num(mut self, block_num: u32) -> Self {
-        self.starting_block_num = block_num;
-        self
-    }
-
-    /// Returns a [MockChain] with a single block
-    pub fn build(self) -> MockChain {
-        let mut chain = MockChain::new();
-        for account in self.accounts {
-            chain.add_account(account);
-        }
-
-        for note in self.notes {
-            chain.add_note(note);
-        }
-
-        chain.seal_block(Some(self.starting_block_num));
-        chain
     }
 }
 
