@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use assembly::{ast::Module, Assembler, Library, LibraryPath};
 

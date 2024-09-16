@@ -18,7 +18,7 @@ use miden_objects::{
     },
     AccountError, BlockHeader, FieldElement, NoteError, ACCOUNT_TREE_DEPTH,
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
     crypto::{RpoRandomCoin, SimpleSmt},
@@ -36,7 +36,7 @@ const TIMESTAMP_START: u32 = 1693348223;
 /// Timestamp of timestamp on each new block
 const TIMESTAMP_STEP: u32 = 10;
 
-pub type MockAuthenticator = BasicAuthenticator<StdRng>;
+pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 
 // MOCK FUNGIBLE FAUCET
 // ================================================================================================
@@ -64,14 +64,14 @@ impl MockFungibleFaucet {
 struct MockAccount {
     account: Account,
     seed: Option<Word>,
-    authenticator: Option<BasicAuthenticator<StdRng>>,
+    authenticator: Option<BasicAuthenticator<ChaCha20Rng>>,
 }
 
 impl MockAccount {
     pub fn new(
         account: Account,
         seed: Option<Word>,
-        authenticator: Option<BasicAuthenticator<StdRng>>,
+        authenticator: Option<BasicAuthenticator<ChaCha20Rng>>,
     ) -> Self {
         MockAccount { account, seed, authenticator }
     }
@@ -89,7 +89,7 @@ impl MockAccount {
         self.seed.as_ref()
     }
 
-    pub fn authenticator(&self) -> &Option<BasicAuthenticator<StdRng>> {
+    pub fn authenticator(&self) -> &Option<BasicAuthenticator<ChaCha20Rng>> {
         &self.authenticator
     }
 }
@@ -300,7 +300,7 @@ impl MockChain {
     // ================================================================================================
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .add_assets(assets);
@@ -308,7 +308,7 @@ impl MockChain {
     }
 
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .add_assets(assets);
@@ -330,7 +330,7 @@ impl MockChain {
 
         let faucet_metadata = StorageSlot::Value(metadata);
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
@@ -356,7 +356,7 @@ impl MockChain {
 
         let faucet_metadata = StorageSlot::Value(metadata);
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .account_type(AccountType::FungibleFaucet)
@@ -373,14 +373,14 @@ impl MockChain {
     ) -> Account {
         let (account, seed, authenticator) = match auth_method {
             Auth::BasicAuth => {
-                let mut rng = StdRng::from_entropy();
+                let mut rng = ChaCha20Rng::from_seed(Default::default());
 
                 let (acc, seed, auth) = account_builder.build_with_auth(&mut rng).unwrap();
 
-                let authenticator = BasicAuthenticator::<StdRng>::new(&[(
-                    auth.public_key().into(),
-                    AuthSecretKey::RpoFalcon512(auth),
-                )]);
+                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
+                    &[(auth.public_key().into(), AuthSecretKey::RpoFalcon512(auth))],
+                    rng,
+                );
 
                 (acc, seed, Some(authenticator))
             },
@@ -508,6 +508,9 @@ impl MockChain {
         let tx_hash =
             compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
 
+        // get the hash of all kernels
+        let kernel_root = TransactionKernel::kernel_root();
+
         // TODO: Set `proof_hash` to the correct value once the kernel is available.
         let proof_hash = Digest::default();
 
@@ -520,6 +523,7 @@ impl MockChain {
             nullifier_root,
             note_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
         );

@@ -2,45 +2,20 @@ use alloc::string::String;
 use core::fmt::{self, Display};
 
 use miden_objects::{
-    accounts::AccountId, notes::NoteId, AccountError, Digest, Felt, NoteError,
-    ProvenTransactionError, TransactionInputError, TransactionOutputError, TransactionScriptError,
+    accounts::AccountId, notes::NoteId, AccountError, Felt, ProvenTransactionError,
+    TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 use vm_processor::ExecutionError;
 
 pub mod tx_kernel_errors;
 
-// TRANSACTION COMPILER ERROR
-// ================================================================================================
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TransactionCompilerError {
-    AccountInterfaceNotFound(AccountId),
-    LoadAccountFailed(AccountError),
-    NoteIncompatibleWithAccountInterface(Digest),
-    NoteScriptError(NoteError),
-    NoTransactionDriver,
-    TxScriptIncompatibleWithAccountInterface(Digest),
-}
-
-impl fmt::Display for TransactionCompilerError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionCompilerError {}
-
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionExecutorError {
-    CompileTransactionScriptFailed(TransactionScriptError),
-    CompileTransactionFailed(TransactionCompilerError),
     ExecuteTransactionProgramFailed(ExecutionError),
-    FetchAccountCodeFailed(DataStoreError),
     FetchTransactionInputsFailed(DataStoreError),
     InconsistentAccountId {
         input_id: AccountId,
@@ -51,7 +26,6 @@ pub enum TransactionExecutorError {
         actual: Option<Felt>,
     },
     InvalidTransactionOutput(TransactionOutputError),
-    LoadAccountFailed(TransactionCompilerError),
     TransactionHostCreationFailed(TransactionHostError),
 }
 
@@ -86,7 +60,7 @@ impl Display for TransactionProverError {
                 write!(f, "Applying account delta failed: {}", account_error)
             },
             TransactionProverError::InvalidTransactionOutput(inner) => {
-                write!(f, "Transaction ouptut invalid: {}", inner)
+                write!(f, "Transaction output invalid: {}", inner)
             },
             TransactionProverError::ProvenTransactionError(inner) => {
                 write!(f, "Building proven transaction error: {}", inner)
