@@ -101,6 +101,111 @@ proc.process_global_inputs
     exec.memory::set_nullifier_commitment dropw
 end
 
+# KERNEL DATA
+# =================================================================================================
+
+
+#! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel root and kernel 
+#! hash match the sequential hash of all kernels and sequential hash of kernel procedures 
+#! respectively. 
+#! 
+#! Inputs:
+#!   Operand stack: []
+#!   Advice stack: [kernel_version]
+#!   Advice map: {
+#!     KERNEL_ROOT: [KERNEL_HASHES]
+#!     KERNEL_HASH: [KERNEL_PROCEDURE_HASHES]
+#!   }
+#! Outputs:
+#!   Operand stack: []
+#!   Advice stack: []
+#! 
+#! Where:
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
+#!   current transaction
+#! - KERNEL_ROOT, accumulative hash from all kernel hashes.
+#! - [KERNEL_HASHES], array of each kernel hash
+#! - [KERNEL_PROCEDURE_HASHES], array of procedure hashes of the current kernel
+proc.process_kernel_data
+    # move the kernel offset to the operand stack 
+    adv_push.1
+    # OS  => [kernel_version]
+    # AS => []
+
+    # load the kernel root from the memory
+    exec.memory::get_kernel_root
+    # OS  => [KERNEL_ROOT, kernel_version]
+    # AS => []
+
+    # push the kernel hashes from the advice map to the advice stack 
+    adv.push_mapvaln
+    # OS  => [KERNEL_ROOT, kernel_version]
+    # AS => [len_felts, [KERNEL_HASHES]]
+
+    # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the 
+    # number of Words from it
+    adv_push.1 div.4
+    # OS  => [len_words, KERNEL_ROOT, kernel_version]
+    # AS => [[KERNEL_HASHES]]
+
+    # get the pointer to the memory where kernel hashes will be stored
+    # Note: for now we use the same address for kernel hash and for kernel procedures since there is
+    # only one kernel and its hash will be overwritten by the procedures anyway. 
+    exec.memory::get_kernel_procedures_ptr swap
+    # OS  => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_version]
+    # AS => [[KERNEL_HASHES]]
+
+    # store the kernel hashes in memory
+    exec.mem::pipe_words_to_memory
+    # OS  => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
+    # AS => []
+
+    # assert that sequential hash matches the precomputed kernel root
+    movup.4 drop assert_eqw
+    # OS  => [kernel_version]
+    # AS => []
+
+    # get the hash of the kernel which will be used in the current transaction
+    exec.memory::get_kernel_procedures_ptr add 
+    # OS  => [kernel_ptr]
+    # AS => []
+
+    padw movup.4 mem_loadw
+    # OS  => [KERNEL_HASH]
+    # AS => []
+
+    # push the procedure hashes of the chosen kernel from the advice map to the advice stack    
+    adv.push_mapvaln
+    # OS  => [KERNEL_HASH]
+    # AS => [len_felts, [PROC_HASHES]]
+
+    # move the number of felt elements in the [PROC_HASHES] array to the stack and get the 
+    # number of Words from it
+    adv_push.1 div.4
+    # OS  => [len_words, KERNEL_HASH]
+    # AS => [[PROC_HASHES]]
+
+    # store the number of the procedures of the chosen kernel to the memory
+    dup exec.memory::set_num_kernel_procedures
+    # OS  => [len_words, KERNEL_HASH]
+    # AS => [[PROC_HASHES]]
+
+    # get the pointer to the memory where hashes of the kernel procedures will be stored
+    exec.memory::get_kernel_procedures_ptr swap
+    # OS  => [len_words, kernel_procs_ptr, KERNEL_HASH]
+    # AS => [[PROC_HASHES]]
+
+    # store the kernel procedures to the memory
+    exec.mem::pipe_words_to_memory
+    # OS  => [SEQ_HASH, kernel_procs_ptr', KERNEL_HASH]
+    # AS => []
+
+    # assert that the precomputed hash matches the computed one
+    movup.4 drop assert_eqw
+    # OS  => []
+    # AS => []
+end
+
 # BLOCK DATA
 # =================================================================================================
 
@@ -113,9 +218,9 @@ end
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_HASH,
+#!     KERNEL_ROOT
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
-#!     EMPTY_WORD,
 #!     NOTE_ROOT,
 #! ]
 #! Output: []
@@ -126,6 +231,7 @@ end
 #! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
+#! - KERNEL_ROOT, accumulative hash from all kernel hashes.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, current protocol version.
@@ -1054,17 +1160,23 @@ end
 #!  - The account data is invalid.
 #!  - Any of the input notes do note exist in the note db.
 #!
-#! Operand stack: [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Operand stack: [
+#!     BLOCK_HASH, 
+#!     account_id, 
+#!     INITIAL_ACCOUNT_HASH, 
+#!     INPUT_NOTES_COMMITMENT, 
+#!  ]
 #! Advice stack: [
 #!     PREVIOUS_BLOCK_HASH,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_HASH,
+#!     KERNEL_ROOT
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
-#!     EMPTY_WORD,
 #!     NOTE_ROOT,
+#!     kernel_version
 #!     [account_id, 0, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_COMMITMENT,
@@ -1075,6 +1187,8 @@ end
 #! Advice map: {
 #!      CHAIN_MMR_HASH: MMR_PEAKS,
 #!      INPUT_NOTES_COMMITMENT => NOTE_DATA,
+#!      KERNEL_ROOT => KERNEL_HASHES
+#!      KERNEL_HASH => KERNEL_PROCEDURE_HASHES
 #! }
 #! Output: []
 #!
@@ -1083,6 +1197,7 @@ end
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
+#! - KERNEL_ROOT, accumulative hash from all kernel hashes.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
@@ -1093,6 +1208,8 @@ end
 #! - version, the current protocol version.
 #! - timestamp, the current timestamp.
 #! - NOTE_ROOT, root of the tree with all notes created in the block.
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
+#!   current transaction.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_COMMITMENT, account's storage commitment.
@@ -1106,6 +1223,7 @@ export.prepare_transaction
     # => []
 
     exec.process_block_data
+    exec.process_kernel_data
     exec.process_chain_data
     exec.process_account_data
     exec.process_input_notes_data

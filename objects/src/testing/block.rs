@@ -35,34 +35,62 @@ impl BlockHeader {
                 .collect::<Vec<_>>(),
         )
         .expect("failed to create account db");
-        let acct_root = acct_db.root();
+        let account_root = acct_db.root();
 
         #[cfg(not(target_family = "wasm"))]
-        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
+        let (
+            prev_hash,
+            chain_root,
+            nullifier_root,
+            note_root,
+            tx_hash,
+            kernel_root,
+            proof_hash,
+            timestamp,
+        ) = {
             let prev_hash = rand_array::<Felt, 4>().into();
             let chain_root = chain_root.unwrap_or(rand_array::<Felt, 4>().into());
             let nullifier_root = rand_array::<Felt, 4>().into();
             let note_root = note_root.unwrap_or(rand_array::<Felt, 4>().into());
             let tx_hash = rand_array::<Felt, 4>().into();
+            let kernel_root = rand_array::<Felt, 4>().into();
             let proof_hash = rand_array::<Felt, 4>().into();
             let timestamp = rand_value();
 
-            (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp)
+            (
+                prev_hash,
+                chain_root,
+                nullifier_root,
+                note_root,
+                tx_hash,
+                kernel_root,
+                proof_hash,
+                timestamp,
+            )
         };
 
         #[cfg(target_family = "wasm")]
-        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) =
-            Default::default();
+        let (
+            prev_hash,
+            chain_root,
+            nullifier_root,
+            note_root,
+            tx_hash,
+            kernel_root,
+            proof_hash,
+            timestamp,
+        ) = Default::default();
 
         BlockHeader::new(
             0,
             prev_hash,
             block_num,
             chain_root,
-            acct_root,
+            account_root,
             nullifier_root,
             note_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
         )

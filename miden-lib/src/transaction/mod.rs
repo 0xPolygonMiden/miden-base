@@ -31,6 +31,8 @@ pub use errors::{
     TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
 };
 
+mod procedures;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -90,6 +92,7 @@ impl TransactionKernel {
         init_advice_inputs: Option<AdviceInputs>,
     ) -> (StackInputs, AdviceInputs) {
         let account = tx_inputs.account();
+
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
@@ -124,7 +127,14 @@ impl TransactionKernel {
     ///
     /// The initial stack is defined:
     ///
-    /// > [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+    /// ```text
+    /// [
+    ///     BLOCK_HASH,
+    ///     acct_id,
+    ///     INITIAL_ACCOUNT_HASH,
+    ///     INPUT_NOTES_COMMITMENT,
+    /// ]
+    /// ```
     ///
     /// Where:
     /// - BLOCK_HASH, reference block for the transaction execution.

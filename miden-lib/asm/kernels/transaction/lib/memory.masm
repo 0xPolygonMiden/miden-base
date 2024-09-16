@@ -70,14 +70,17 @@ const.NULLIFIER_ROOT_PTR=203
 # The memory address at which the tx hash is stored
 const.TX_HASH_PTR=204
 
+# The memory address at which the kernel root is stored
+const.KERNEL_ROOT_PTR=205
+
 # The memory address at which the proof hash is stored
-const.PROOF_HASH_PTR=205
+const.PROOF_HASH_PTR=206
 
 # The memory address at which the block metadata is stored [block_number, version, timestamp, 0]
-const.BLOCK_METADATA_PTR=206
+const.BLOCK_METADATA_PTR=207
 
 # The memory address at which the note root is stored
-const.NOTE_ROOT_PTR=207
+const.NOTE_ROOT_PTR=208
 
 # CHAIN MMR
 # -------------------------------------------------------------------------------------------------
@@ -131,6 +134,16 @@ const.NUM_ACCT_PROCEDURES_PTR=1499
 
 # The memory address at which the account procedures section begins
 const.ACCT_PROCEDURES_SECTION_OFFSET=1500
+
+# KERNEL DATA
+# -------------------------------------------------------------------------------------------------
+
+# The memory address at which the number of the procedures of the selected kernel is stored. 
+const.NUM_KERNEL_PROCEDURES_PTR=9999
+
+# The memory address at which the hashes of kernel procedures begin.
+# TODO: choose the proper memory location for the kernel procedures.
+const.KERNEL_PROCEDURES_PTR=10000
 
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
@@ -440,10 +453,10 @@ end
 #! Returns the previous block hash of the last known block.
 #!
 #! Stack: []
-#! Output: [PRV_BLK_HASH]
+#! Output: [PREV_BLOCK_HASH]
 #!
 #! Where:
-#! - PRV_BLK_HASH is the previous block hash of the last known block.
+#! - PREV_BLOCK_HASH is the previous block hash of the last known block.
 export.get_prv_blk_hash
     padw push.PREV_BLOCK_HASH_PTR mem_loadw
 end
@@ -480,7 +493,6 @@ end
 export.get_blk_timestamp
     padw push.BLOCK_METADATA_PTR mem_loadw drop movdn.2 drop drop
 end
-
 
 #! Returns the chain root of the last known block.
 #!
@@ -524,6 +536,17 @@ end
 #! - TX_HASH is the tx hash of the last known block.
 export.get_tx_hash
     padw push.TX_HASH_PTR mem_loadw
+end
+
+#! Returns the kernel root used in the last known block.
+#!
+#! Stack: []
+#! Output: [KERNEL_ROOT]
+#!
+#! Where:
+#! - KERNEL_ROOT is an accumulative hash from all kernel hashes.
+export.get_kernel_root
+    padw push.KERNEL_ROOT_PTR mem_loadw
 end
 
 #! Returns the proof hash of the last known block.
@@ -1213,11 +1236,11 @@ end
 #! Stack: [note_ptr, num_assets]
 #! Output: []
 #!
-#! Panics: if the number of assets exceeds the maximum allowed number of assets per note.
-#!
 #! Where:
 #! - note_ptr is the memory address at which the output note data begins.
 #! - num_assets is the number of assets in the output note.
+#!
+#! Panics: if the number of assets exceeds the maximum allowed number of assets per note.
 export.set_output_note_num_assets
     push.OUTPUT_NOTE_NUM_ASSETS_OFFSET add
     # => [note_ptr + offset, num_assets]
@@ -1251,4 +1274,40 @@ end
 export.set_output_note_assets_hash
     push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add
     mem_storew
+end
+
+# KERNEL DATA
+# -------------------------------------------------------------------------------------------------
+
+#! Sets the number of of the procedures of the selected kernel.
+#!
+#! Stack: [num_kernel_procedures]
+#! Output: []
+#!
+#! Where:
+#! - num_kernel_procedures is the number of the procedures of the selected kernel.
+export.set_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_store
+end
+
+#! Returns the number of the procedures of the selected kernel.
+#!
+#! Stack: []
+#! Output: [num_kernel_procedures]
+#!
+#! Where:
+#! - num_kernel_procedures is the number of the procedures of the selected kernel.
+export.get_num_kernel_procedures
+    push.NUM_KERNEL_PROCEDURES_PTR mem_load
+end
+
+#! Returns a pointer to the memory where hashes of the kernel procedures are stored. 
+#!
+#! Stack: []
+#! Output: [kernel_procedures_ptr]
+#!
+#! Where:
+#! - kernel_procedures_ptr is the memory address where the hashes of the kernel procedures are stored. 
+export.get_kernel_procedures_ptr
+    push.KERNEL_PROCEDURES_PTR
 end

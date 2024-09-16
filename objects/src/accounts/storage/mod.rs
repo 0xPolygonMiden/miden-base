@@ -77,7 +77,10 @@ impl AccountStorage {
     pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
         self.slots
             .get(index as usize)
-            .ok_or(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8))
+            .ok_or(AccountError::StorageIndexOutOfBounds {
+                max: self.slots.len() as u8,
+                actual: index,
+            })
             .map(|slot| slot.value().into())
     }
 
@@ -87,11 +90,10 @@ impl AccountStorage {
     /// - If the index is out of bounds
     /// - If the [StorageSlot] is not [StorageSlotType::Map]
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
-        match self
-            .slots
-            .get(index as usize)
-            .ok_or(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8))?
-        {
+        match self.slots.get(index as usize).ok_or(AccountError::StorageIndexOutOfBounds {
+            max: self.slots.len() as u8,
+            actual: index,
+        })? {
             StorageSlot::Map(ref map) => Ok(map.get_value(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
         }
@@ -105,14 +107,14 @@ impl AccountStorage {
     /// # Errors:
     /// - If the updates violate storage constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-        let len = self.slots().len() as u8;
+        let len = self.slots.len() as u8;
 
         // update storage maps
         for (&idx, map) in delta.maps().iter() {
             let storage_slot = self
                 .slots
                 .get_mut(idx as usize)
-                .ok_or(AccountError::StorageIndexOutOfBounds(idx, len))?;
+                .ok_or(AccountError::StorageIndexOutOfBounds { max: len, actual: idx })?;
 
             let storage_map = match storage_slot {
                 StorageSlot::Map(map) => map,
@@ -143,7 +145,10 @@ impl AccountStorage {
         let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
-            return Err(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8));
+            return Err(AccountError::StorageIndexOutOfBounds {
+                max: self.slots.len() as u8,
+                actual: index,
+            });
         }
 
         let old_value = match self.slots[index as usize] {
@@ -176,7 +181,10 @@ impl AccountStorage {
         let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
-            return Err(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8));
+            return Err(AccountError::StorageIndexOutOfBounds {
+                max: self.slots.len() as u8,
+                actual: index,
+            });
         }
 
         let storage_map = match self.slots[index as usize] {

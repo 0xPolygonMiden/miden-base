@@ -90,7 +90,7 @@ fn p2idr_script() {
     // consume the note.
     //
     // Case "reclaimable": block height is 4, reclaim block height is 3. Target and sender account
-    // can consume the note.  The malicious account should never be able to consume the note.
+    // can consume the note. The malicious account should never be able to consume the note.
     // --------------------------------------------------------------------------------------------
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Target Account Execution Success)
     // --------------------------------------------------------------------------------------------
@@ -233,7 +233,6 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
-
     let tx_context_6 = TransactionContextBuilder::new(malicious_account.clone())
         .input_notes(vec![note_reclaimable.clone()])
         .build();
