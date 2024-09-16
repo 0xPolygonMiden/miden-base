@@ -9,6 +9,7 @@
 - [BREAKING] `AccountStub` structure was renamed to `AccountHeader` (#855).
 - [BREAKING] Kernel procedures now have to be invoked using `dynexec` instruction (#803).
 - Refactored `AccountStorage` from `Smt` to `sequential hash` (#846)
+- Added `AccountStorageHeader` (#876)
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
