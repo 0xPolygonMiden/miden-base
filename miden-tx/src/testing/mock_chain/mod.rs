@@ -270,6 +270,10 @@ impl MockChain {
             ..Default::default()
         };
         chain.seal_block(None);
+        chain.seal_block(None);
+        chain.seal_block(None);
+        chain.seal_block(None);
+        chain.seal_block(None);
         chain
     }
 
@@ -358,7 +362,7 @@ impl MockChain {
             // TODO: These are added because the PUBLIC_KEY_SLOT is hardcoded to 3 on basic.masm.
             // Once miden-base issue 864 is addressed, this should be changed back.
             // See https://github.com/0xPolygonMiden/miden-base/pull/846/files#r1749401077 for more info
-            .add_storage_slots([AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot, AccountStorage::mock_item_2().slot])
+            .add_storage_slots([AccountStorage::mock_item_2().slot, AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot])
             .nonce(Felt::ZERO)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -371,7 +375,7 @@ impl MockChain {
             // TODO: These are added because the PUBLIC_KEY_SLOT is hardcoded to 3 on basic.masm.
             // Once miden-base issue 864 is addressed, this should be changed back.
             // See https://github.com/0xPolygonMiden/miden-base/pull/846/files#r1749401077 for more info
-            .add_storage_slots([AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot, AccountStorage::mock_item_2().slot])
+            .add_storage_slots([AccountStorage::mock_item_2().slot, AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot])
             .nonce(Felt::ONE)
             .add_assets(assets);
 
@@ -534,8 +538,8 @@ impl MockChain {
                     note_block_num,
                     self.blocks.get(note_block_num as usize).unwrap().header(),
                 );
-                input_notes.push(input_note);
             }
+            input_notes.push(input_note);
         }
 
         for note in unauthenticated_notes {

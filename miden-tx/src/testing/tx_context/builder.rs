@@ -604,6 +604,9 @@ impl TransactionContextBuilder {
                 }
 
                 mock_chain.seal_block(None);
+                mock_chain.seal_block(None);
+                mock_chain.seal_block(None);
+                mock_chain.seal_block(None);
 
                 let input_note_ids: Vec<NoteId> =
                     mock_chain.available_notes().iter().map(|n| n.id()).collect();

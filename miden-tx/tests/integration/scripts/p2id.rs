@@ -1,4 +1,3 @@
-
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
@@ -67,6 +66,7 @@ fn p2id_script_multiple_assets() {
         target_account.code().clone(),
         Felt::new(2),
     );
+
     assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
