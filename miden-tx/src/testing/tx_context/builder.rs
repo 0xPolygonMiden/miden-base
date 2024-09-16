@@ -98,7 +98,7 @@ impl TransactionContextBuilder {
             acct_id,
             nonce,
             initial_balance,
-            TransactionKernel::testing_assembler().with_debug_mode(true),
+            TransactionKernel::testing_assembler(),
         );
         let assembler = TransactionKernel::testing_assembler_with_mock_account();
 

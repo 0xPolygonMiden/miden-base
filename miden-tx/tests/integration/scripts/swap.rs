@@ -33,9 +33,6 @@ fn prove_swap_script() {
     let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
     let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
 
-    println!("sender storage: {:?}", sender_account.storage().slots().len());
-    println!("target storage: {:?}", target_account.storage().slots().len());
-
     // Create the note containing the SWAP script
     let (note, payback_note) = create_swap_note(
         sender_account.id(),

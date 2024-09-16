@@ -32,8 +32,6 @@ fn test_create_fungible_asset_succeeds() {
         begin
             exec.prologue::prepare_transaction
 
-            debug.stack
-
             # create fungible asset
             push.{FUNGIBLE_ASSET_AMOUNT}
             exec.asset::create_fungible_asset
