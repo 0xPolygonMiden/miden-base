@@ -32,7 +32,7 @@ pub struct AccountStorage {
 }
 
 impl AccountStorage {
-    /// The maximum number of storage slots allowed in an [AccountStorage]
+    /// The maximum number of storage slots allowed in an account storage.
     pub const MAX_NUM_STORAGE_SLOTS: usize = 255;
 
     // CONSTRUCTOR
@@ -62,7 +62,7 @@ impl AccountStorage {
         build_slots_commitment(&self.slots)
     }
 
-    /// Converts storage slots of this [AccountStorage] into a vector of field elements.
+    /// Converts storage slots of this account storage into a vector of field elements.
     ///
     /// This is done by first converting each procedure into exactly 8 elements as follows:
     /// ```text
@@ -102,7 +102,7 @@ impl AccountStorage {
         }
     }
 
-    /// Returns an [AccountStorageHeader] for this [AccountStorage].
+    /// Returns an [AccountStorageHeader] for this account storage.
     pub fn get_header(&self) -> AccountStorageHeader {
         AccountStorageHeader::new(
             self.slots.iter().map(|slot| (slot.slot_type(), slot.value())).collect(),
