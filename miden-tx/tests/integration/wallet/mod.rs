@@ -82,10 +82,8 @@ fn prove_receive_asset_via_wallet() {
 
     // clone account info
     let account_storage = AccountStorage::new(vec![
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
         StorageSlot::Value(target_pub_key),
+        StorageSlot::Value(Word::default()),
         StorageSlot::Map(StorageMap::default()),
     ])
     .unwrap();
@@ -166,10 +164,8 @@ fn prove_send_asset_via_wallet() {
 
     // clones account info
     let sender_account_storage = AccountStorage::new(vec![
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
         StorageSlot::Value(sender_pub_key),
+        StorageSlot::Value(Word::default()),
         StorageSlot::Map(StorageMap::default()),
     ])
     .unwrap();

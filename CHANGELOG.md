@@ -8,8 +8,9 @@
 - [BREAKING] `AccountStorageType` enum was renamed to `AccountStorageMode` along with its variants (#854).
 - [BREAKING] `AccountStub` structure was renamed to `AccountHeader` (#855).
 - [BREAKING] Kernel procedures now have to be invoked using `dynexec` instruction (#803).
-- Refactored `AccountStorage` from `Smt` to `sequential hash` (#846)
+- Refactored `AccountStorage` from `Smt` to `sequential hash` (#846).
 - [BREAKING] Refactored batch/block note trees (#834).
+- Set all procedures storage offsets of faucet accounts to `1` (#875).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
