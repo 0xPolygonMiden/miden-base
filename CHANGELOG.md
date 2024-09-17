@@ -2,6 +2,7 @@
 
 ## 0.6.0 (TBD)
 
+- Made note scripts public (#880).
 - [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).
 - Implemented `Display`, `TryFrom<&str>` and `FromStr` for `AccountStorageMode` (#861).
 - Implemented offset based storage access (#843).
