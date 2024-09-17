@@ -385,7 +385,7 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+    let (account, seed) = AccountBuilder::with_mock_storage(ChaCha20Rng::from_entropy())
         .default_code(TransactionKernel::testing_assembler())
         .build()
         .unwrap();

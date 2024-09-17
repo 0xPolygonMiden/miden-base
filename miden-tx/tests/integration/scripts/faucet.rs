@@ -169,14 +169,16 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
 
-    // check that max_supply (slot 1) is 200 and amount already issued (slot 0) is 100
-    assert_eq!(
-        faucet_account.storage().get_item(1).unwrap(),
-        [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
-    );
+    // check that the faucet reserved slot has been correctly initialised
     assert_eq!(
         faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT).unwrap(),
         [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
+    );
+
+    // check that max_supply (slot 2) is 200 and amount already issued (slot 0) is 100
+    assert_eq!(
+        faucet_account.storage().get_item(2).unwrap(),
+        [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
     );
 
     // need to create a note with the fungible asset to be burned
@@ -237,22 +239,26 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
 
     let assembler = TransactionKernel::assembler();
-    let faucet_account_code = AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler).unwrap();
+    let faucet_account_code =
+        AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler, true).unwrap();
 
+    // faucet reserved slot
     let faucet_storage_slot_0 = match total_issuance {
         Some(issuance) => StorageSlot::Value([ZERO, ZERO, ZERO, Felt::new(issuance)]),
         None => StorageSlot::Value(Word::default()),
     };
-    let faucet_storage_slot_1 =
-        StorageSlot::Value([Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)]);
+
+    // faucet pub_key
+    let faucet_storage_slot_1 = StorageSlot::Value(public_key);
+
+    // faucet metadata
     let faucet_storage_slot_2 =
-        StorageSlot::Value([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)]);
-    let faucet_storage_slot_3 = StorageSlot::Value(public_key);
+        StorageSlot::Value([Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)]);
+
     let faucet_account_storage = AccountStorage::new(vec![
         faucet_storage_slot_0,
         faucet_storage_slot_1,
         faucet_storage_slot_2,
-        faucet_storage_slot_3,
     ])
     .unwrap();
 

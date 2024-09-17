@@ -76,7 +76,7 @@ pub fn get_account_with_default_account_code(
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let assembler = TransactionKernel::assembler();
 
-    let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
+    let account_code = AccountCode::compile(account_code_src, assembler, false).unwrap();
     let account_storage = AccountStorage::new(vec![StorageSlot::Value(public_key)]).unwrap();
 
     let account_vault = match assets {
