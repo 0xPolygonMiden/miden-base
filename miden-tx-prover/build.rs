@@ -23,23 +23,15 @@ fn main() -> miette::Result<()> {
         env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set").into();
     let dst_dir = crate_root.join("src").join("generated");
 
-    println!("1");
-
     // Remove all existing files.
     fs::remove_dir_all(&dst_dir).into_diagnostic()?;
 
-    println!("1.1");
-
     fs::create_dir(&dst_dir).into_diagnostic()?;
-
-    println!("2");
 
     // Compute the directory of the `proto` definitions
     let cwd: PathBuf = env::current_dir().into_diagnostic()?;
 
     let proto_dir: PathBuf = cwd.join("proto");
-
-    println!("3");
 
     // Compute the compiler's target file path.
     let out = env::var("OUT_DIR").into_diagnostic()?;
@@ -47,8 +39,6 @@ fn main() -> miette::Result<()> {
 
     // Compile the proto file for all servers APIs
     let protos = &[proto_dir.join("api.proto")];
-
-    println!("4");
 
     let includes = &[proto_dir];
     let file_descriptors = protox::compile(protos, includes)?;
