@@ -21,7 +21,8 @@ name = "miden-tx-prover-service"
 path = "src/bin.rs"
 
 [features]
-default = ["async"]
+default = ["std"]
+std = []
 async = ["miden-tx/async"]
 
 [dependencies]
