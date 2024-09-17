@@ -11,7 +11,7 @@ pub struct NoteLocation {
     block_num: u32,
 
     /// The index of the note in the note Merkle tree of the block the note was created in.
-    node_index_in_block: u32,
+    node_index_in_block: u16,
 }
 
 impl NoteLocation {
@@ -24,9 +24,9 @@ impl NoteLocation {
     ///
     /// # Note
     ///
-    /// The height of the Merkle tree is [crate::constants::BLOCK_NOTES_TREE_DEPTH].
-    /// Thus, the maximum index is `2 ^ BLOCK_NOTES_TREE_DEPTH - 1`.
-    pub fn node_index_in_block(&self) -> u32 {
+    /// The height of the Merkle tree is [crate::constants::BLOCK_NOTE_TREE_DEPTH].
+    /// Thus, the maximum index is `2 ^ BLOCK_NOTE_TREE_DEPTH - 1`.
+    pub fn node_index_in_block(&self) -> u16 {
         self.node_index_in_block
     }
 }
@@ -46,7 +46,7 @@ impl NoteInclusionProof {
     /// Returns a new [NoteInclusionProof].
     pub fn new(
         block_num: u32,
-        node_index_in_block: u32,
+        node_index_in_block: u16,
         note_path: MerklePath,
     ) -> Result<Self, NoteError> {
         const HIGHEST_INDEX: usize = MAX_BATCHES_PER_BLOCK * MAX_NOTES_PER_BATCH - 1;
@@ -81,14 +81,14 @@ impl NoteInclusionProof {
 impl Serializable for NoteLocation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u32(self.block_num);
-        target.write_u32(self.node_index_in_block);
+        target.write_u16(self.node_index_in_block);
     }
 }
 
 impl Deserializable for NoteLocation {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let block_num = source.read_u32()?;
-        let node_index_in_block = source.read_u32()?;
+        let node_index_in_block = source.read_u16()?;
 
         Ok(Self { block_num, node_index_in_block })
     }
