@@ -265,7 +265,14 @@ mod tests {
     fn test_serde() {
         let chain_root: Word = rand_array();
         let note_root: Word = rand_array();
-        let header = BlockHeader::mock(0, Some(chain_root.into()), Some(note_root.into()), &[]);
+        let kernel_root: Word = rand_array();
+        let header = BlockHeader::mock(
+            0,
+            Some(chain_root.into()),
+            Some(note_root.into()),
+            &[],
+            kernel_root.into(),
+        );
         let serialized = header.to_bytes();
         let deserialized = BlockHeader::read_from_bytes(&serialized).unwrap();
 
