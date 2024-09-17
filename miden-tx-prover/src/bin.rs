@@ -1,35 +1,57 @@
-use axum::{
-    http::StatusCode,
-    routing::post,
-    Router,
-};
 use miden_objects::transaction::TransactionWitness;
-use miden_tx::{utils::Deserializable, LocalTransactionProver, TransactionProver};
-use miden_tx_prover::{ProveTransactionRequest, ProveTransactionResponse};
+use miden_tx::{
+    utils::{Deserializable, Serializable},
+    LocalTransactionProver, TransactionProver,
+};
+use miden_tx_prover::{
+    generated::api::api_server, ProveTransactionRequest, ProveTransactionResponse,
+};
+use tokio::net::TcpListener;
+use tokio_stream::wrappers::TcpListenerStream;
+use tonic::{Request, Response};
 use winter_maybe_async::maybe_await;
+
+pub struct Rpc {
+    pub(crate) api_service: api_server::ApiServer<RpcApi>,
+    pub(crate) listener: TcpListener,
+}
+#[derive(Clone)]
+struct RpcApi;
+
+#[tonic::async_trait]
+impl api_server::Api for RpcApi {
+    async fn prove_transaction(
+        &self,
+        request: Request<ProveTransactionRequest>,
+    ) -> Result<Response<ProveTransactionResponse>, tonic::Status> {
+        println!("Received request to prove transaction");
+        let prover = LocalTransactionProver::default();
+
+        let transaction_witness =
+            TransactionWitness::read_from_bytes(&request.get_ref().transaction_witness).unwrap();
+
+        let proof = maybe_await!(prover.prove(transaction_witness)).unwrap();
+
+        Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
+    }
+}
 
 #[tokio::main]
 async fn main() {
     // initialize tracing
     // tracing_subscriber::fmt::init();
+    let rpc = Rpc {
+        listener: tokio::net::TcpListener::bind("0.0.0.0:50051").await.unwrap(),
+        api_service: api_server::ApiServer::new(RpcApi),
+    };
+
+    println!("Server listening on {}", rpc.listener.local_addr().unwrap());
 
     // build our application with a route
-    let app = Router::new().route("/prove", post(prove_transaction));
-
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
-
-async fn prove_transaction(
-    prove_transaction_request: ProveTransactionRequest,
-) -> (StatusCode, ProveTransactionResponse) {
-    let prover = LocalTransactionProver::default();
-
-    let transaction_witness = TransactionWitness::read_from_bytes(
-        &prove_transaction_request.transaction_witness
-        ).unwrap();
-
-    let transaction_prove = maybe_await!(prover.prove(transaction_witness)).unwrap();
-    (StatusCode::OK, transaction_prove.into())
+    tonic::transport::Server::builder()
+        .accept_http1(true)
+        .add_service(tonic_web::enable(rpc.api_service))
+        .serve_with_incoming(TcpListenerStream::new(rpc.listener))
+        .await
+        .unwrap();
 }

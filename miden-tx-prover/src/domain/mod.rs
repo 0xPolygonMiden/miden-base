@@ -5,8 +5,6 @@ use crate::ProveTransactionResponse;
 
 impl From<ProvenTransaction> for ProveTransactionResponse {
     fn from(value: ProvenTransaction) -> Self {
-        ProveTransactionResponse {
-            proven_transaction: value.to_bytes(),
-        }
+        ProveTransactionResponse { proven_transaction: value.to_bytes() }
     }
 }

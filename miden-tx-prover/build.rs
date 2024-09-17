@@ -54,8 +54,7 @@ fn main() -> miette::Result<()> {
     let file_descriptors = protox::compile(protos, includes)?;
     fs::write(&file_descriptor_path, file_descriptors.encode_to_vec()).into_diagnostic()?;
 
-    let mut prost_config = prost_build::Config::new();
-    prost_config.skip_debug(["AccountId", "Digest"]);
+    let prost_config = prost_build::Config::new();
 
     // Generate the stub of the user facing server from its proto file
     tonic_build::configure()
