@@ -24,15 +24,18 @@ impl AccountStorageHeader {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    // Returns a new instance of account storage header initialized with the provided slots.
+    /// Returns a new instance of account storage header initialized with the provided slots.
+    ///
+    /// # Panics
+    /// - If the number of provided slots exceeds the allowed maximum number of storage slots
     pub fn new(slots: Vec<(StorageSlotType, Word)>) -> Self {
+        assert!(slots.len() <= AccountStorage::MAX_NUM_STORAGE_SLOTS);
         Self { slots }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a
     /// Returns an iterator over the storage header slots.
     pub fn slots(&self) -> impl Iterator<Item = &(StorageSlotType, Word)> {
         self.slots.iter()
