@@ -76,7 +76,7 @@ pub fn create_basic_fungible_faucet(
 
     // We store the authentication data and the token metadata in the account storage:
     // - slot 0: reserved faucet data
-    // - slot 1: authentication data (must be at location 3 in storage)
+    // - slot 1: authentication data
     // - slot 2: token metadata as [max_supply, decimals, token_symbol, 0]
     let account_storage = AccountStorage::new(vec![
         StorageSlot::Value(reserved_data),

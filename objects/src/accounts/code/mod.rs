@@ -60,11 +60,10 @@ impl AccountCode {
     ///   greater than 256.
     pub fn new(library: Library, is_faucet: bool) -> Result<Self, AccountError> {
         // extract procedure information from the library exports
-        // TODO: currently, offsets for all procedures are set to 0; instead they should be read
-        // from the Library metadata
+        // TODO: currently, offsets for all regular account procedures are set to 0
+        // and offsets for faucet accounts procedures are set to 1. Instead they should
+        // be read from the Library metadata.
         let mut procedures: Vec<AccountProcedureInfo> = Vec::new();
-        // TODO: Remove this check. We offset all faucet procedures
-        // by 1 and other account procedures by 0.
         let storage_offset = if is_faucet { 1 } else { 0 };
         for module in library.module_infos() {
             for proc_mast_root in module.procedure_digests() {
