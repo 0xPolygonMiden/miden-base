@@ -344,7 +344,9 @@ export.apply_storage_offset
     # => [offset_slot_index]
 end
 
-#! Validates all account procedures storage offsets
+#! Validates all account procedures storage offsets by checking that:
+#! - All storage offsets are in bounds
+#! - All storage offsets adhere to account type specific rules
 #!
 #! Notes:
 #! - For faucets checks that no storage offset is 0 (preventing reserved storage slot access)
