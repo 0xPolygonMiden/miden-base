@@ -9,12 +9,11 @@ use crate::AccountError;
 // ACCOUNT STORAGE HEADER
 // ================================================================================================
 
-/// Account storage header is a lighter version of the [AccountStorage] storing
-/// only the [StorageSlotType] and associated values of the [super::StorageSlot]s
-/// contained in the storage.
+/// Account storage header is a lighter version of the [AccountStorage] storing only the type and
+/// the top-level value for each storage slot.
 ///
-/// The use of a header is useful in the situation where the storage is heavy (i.g. multiple Mb's),
-/// and should be enough to execute most transactions.
+/// That is, for complex storage slots (e.g., storage maps), the header contains only the commitment
+/// to the underlying data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorageHeader {
     slots: Vec<(StorageSlotType, Word)>,
@@ -27,7 +26,7 @@ impl AccountStorageHeader {
     /// Returns a new instance of account storage header initialized with the provided slots.
     ///
     /// # Panics
-    /// - If the number of provided slots exceeds the allowed maximum number of storage slots
+    /// - If the number of provided slots is greater than [AccountStorage::MAX_NUM_STORAGE_SLOTS].
     pub fn new(slots: Vec<(StorageSlotType, Word)>) -> Self {
         assert!(slots.len() <= AccountStorage::MAX_NUM_STORAGE_SLOTS);
         Self { slots }
@@ -49,7 +48,7 @@ impl AccountStorageHeader {
     /// Returns a slot contained in the storage header at a given index.
     ///
     /// # Errors
-    /// - If the index is out of bounds
+    /// - If the index is out of bounds.
     pub fn slot(&self, index: usize) -> Result<&(StorageSlotType, Word), AccountError> {
         self.slots.get(index).ok_or(AccountError::StorageIndexOutOfBounds {
             max: self.slots.len() as u8,
@@ -79,7 +78,8 @@ impl Deserializable for AccountStorageHeader {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let len = source.read_u8()?;
         let slots = source.read_many(len as usize)?;
-        Ok(Self { slots })
+        // number of storage slots is guaranteed to be smaller than or equal to 255
+        Ok(Self::new(slots))
     }
 }
 
