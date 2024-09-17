@@ -1,5 +1,5 @@
 use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
+    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_NEW_CODE_COMMITMENT_PTR},
     TransactionKernel,
 };
 use miden_objects::{
@@ -44,13 +44,13 @@ pub fn test_set_code_is_not_immediate() {
     let process = tx_context.execute_code(code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
+        read_root_mem_value(&process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
         tx_context.account().code().commitment().as_elements(),
         "the code commitment must not change immediately",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_NEW_CODE_COMMITMENT_PTR),
+        read_root_mem_value(&process, NATIVE_ACCT_NEW_CODE_COMMITMENT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
         "the code commitment must be cached",
     );
@@ -91,7 +91,7 @@ pub fn test_set_code_succeeds() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
+        read_root_mem_value(&process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
         [ZERO, ONE, Felt::new(2), Felt::new(3)],
         "the code commitment must change after the epilogue",
     );

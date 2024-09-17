@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::{CURRENT_INPUT_NOTE_PTR, NUM_ACCT_STORAGE_SLOTS_PTR},
+    memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
     TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
@@ -434,8 +434,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// has not been initialised.
     fn get_num_storage_slots<S: ProcessState>(process: &S) -> Result<u64, TransactionKernelError> {
         let num_storage_slots_word = process
-            .get_mem_value(process.ctx(), NUM_ACCT_STORAGE_SLOTS_PTR)
-            .ok_or(TransactionKernelError::MissingMemoryValue(NUM_ACCT_STORAGE_SLOTS_PTR))?;
+            .get_mem_value(process.ctx(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR)
+            .ok_or(TransactionKernelError::MissingMemoryValue(NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR))?;
 
         Ok(num_storage_slots_word[0].as_int())
     }

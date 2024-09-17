@@ -25,6 +25,9 @@ const.INPUT_VAULT_ROOT_PTR=3
 # The memory address at which the output vault root is stored
 const.OUTPUT_VAULT_ROOT_PTR=4
 
+# The memory address at which the pointer to the data of the currently accessing account is stored
+const.CURRENT_ACCOUNT_DATA_OFFSET=5
+
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
@@ -46,7 +49,7 @@ const.INPUT_NOTES_COMMITMENT_PTR=103
 # The memory address at which the initial nonce is stored
 const.INIT_NONCE_PTR=104
 
-# The memory address at which the transaction script mast root is store
+# The memory address at which the transaction script mast root is stored
 const.TX_SCRIPT_ROOT_PTR=105
 
 # GLOBAL BLOCK DATA
@@ -94,56 +97,33 @@ const.CHAIN_MMR_NUM_LEAVES_PTR=300
 # The memory address at which the chain mmr peaks are stored
 const.CHAIN_MMR_PEAKS_PTR=301
 
-# ACCOUNT DATA
-# -------------------------------------------------------------------------------------------------
-
-# The memory address at which the account data section begins
-const.ACCT_DATA_SECTION_OFFSET=400
-
-# The memory address at which the account id and nonce is stored.
-# The account id is stored in the first element.
-# The account nonce is stored in the fourth element.
-const.ACCT_ID_AND_NONCE_PTR=400
-
-# The memory address at which the account vault root is stored
-const.ACCT_VAULT_ROOT_PTR=401
-
-# The memory address at which the account storage commitment is stored
-const.ACCT_STORAGE_COMMITMENT_PTR=402
-
-# The memory address at which the account code commitment is stored
-const.ACCT_CODE_COMMITMENT_PTR=403
-
-# The memory address at which the new account code commitment is stored
-const.ACCT_NEW_CODE_COMMITMENT_PTR=404
-
-# The memory offset at which the account data section ends (exclusive)
-const.ACCT_CORE_DATA_SECTION_END_OFFSET=404
-
-# The memory address at which the account storage slot type data begins
-const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
-
-# The memory address at which the number of storage slots contained in the account storage is stored
-const.NUM_ACCT_STORAGE_SLOTS_PTR=499
-
-# The memory address at which the account storage slots section begins
-const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=500
-
-# The memory address at which the number of procedures contained in the account code is stored
-const.NUM_ACCT_PROCEDURES_PTR=1499
-
-# The memory address at which the account procedures section begins
-const.ACCT_PROCEDURES_SECTION_OFFSET=1500
-
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the number of the procedures of the selected kernel is stored. 
-const.NUM_KERNEL_PROCEDURES_PTR=9999
+const.NUM_KERNEL_PROCEDURES_PTR=400
 
 # The memory address at which the hashes of kernel procedures begin.
 # TODO: choose the proper memory location for the kernel procedures.
-const.KERNEL_PROCEDURES_PTR=10000
+const.KERNEL_PROCEDURES_PTR=401
+
+# ACCOUNT DATA
+# -------------------------------------------------------------------------------------------------
+
+# The memory address at which the native account data is stored
+const.NATIVE_ACCOUNT_DATA_PTR=2048
+
+# The offsets at which the account data is stored relative to the start of the account data segment
+const.ACCT_ID_AND_NONCE_OFFSET=0
+const.ACCT_VAULT_ROOT_OFFSET=1
+const.ACCT_STORAGE_COMMITMENT_OFFSET=2
+const.ACCT_CODE_COMMITMENT_OFFSET=3
+const.ACCT_NEW_CODE_COMMITMENT_OFFSET=4
+const.ACCT_CORE_DATA_SECTION_END_OFFSET=4
+const.NUM_ACCT_PROCEDURES_OFFSET=7
+const.ACCT_PROCEDURES_SECTION_OFFSET=8
+const.NUM_ACCT_STORAGE_SLOTS_OFFSET=521
+const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=522
 
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
@@ -294,7 +274,6 @@ export.set_output_vault_root
     push.OUTPUT_VAULT_ROOT_PTR
     mem_storew
 end
-
 
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
@@ -622,26 +601,49 @@ end
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
-#! Returns a pointer to the account data.
+#! Sets the offset of the currently assessing account data to the native account (2048)
+#!
+#! Stack: []
+#! Output: [native_account_data_ptr]
+#!
+#! Where:
+#! - native_account_data_ptr is the memory address at which the native account data is stored.
+export.set_native_account_data_ptr
+    push.NATIVE_ACCOUNT_DATA_PTR
+    push.CURRENT_ACCOUNT_DATA_OFFSET mem_store
+end
+
+#! Returns a pointer to the data of the currently accessing account.
 #!
 #! Stack: []
 #! Output: [ptr]
 #!
 #! Where:
 #! - ptr is the memory address at which the account data begins.
-export.get_acct_data_ptr
-    push.ACCT_DATA_SECTION_OFFSET
+export.get_current_account_data_offset
+    push.CURRENT_ACCOUNT_DATA_OFFSET mem_load
 end
 
-#! Returns a pointer to the end of the account data section.
+#! Sets the offset of the currently assessing account data to the provided value.
+#!
+#! Stack: [curr_account_data_offset]
+#! Output: []
+#!
+#! Where:
+#! - curr_account_data_offset is the data offset of the currently accessing account.
+export.set_current_account_data_offset
+    push.CURRENT_ACCOUNT_DATA_OFFSET mem_store
+end
+
+#! Returns a pointer to the end of the core account data section.
 #!
 #! Stack: []
 #! Output: [ptr]
 #!
 #! Where:
-#! - ptr is the memory address at which the account data ends.
+#! - ptr is the memory address at which the core account data ends.
 export.get_core_acct_data_end_ptr
-    push.ACCT_CORE_DATA_SECTION_END_OFFSET
+    exec.get_current_account_data_offset push.ACCT_CORE_DATA_SECTION_END_OFFSET add
 end
 
 #! Returns the account id.
@@ -652,7 +654,8 @@ end
 #! Where:
 #! - acct_id is the account id.
 export.get_acct_id
-    push.ACCT_ID_AND_NONCE_PTR mem_load
+    exec.get_current_account_data_offset push.ACCT_ID_AND_NONCE_OFFSET add
+    mem_load
 end
 
 #! Returns the account nonce.
@@ -663,7 +666,9 @@ end
 #! Where:
 #! - acct_nonce is the account nonce.
 export.get_acct_nonce
-    padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
+    padw
+    exec.get_current_account_data_offset push.ACCT_ID_AND_NONCE_OFFSET add
+    mem_loadw
     movdn.3 drop drop drop
 end
 
@@ -675,85 +680,72 @@ end
 #! Where:
 #! - acct_nonce is the account nonce.
 export.set_acct_nonce
-    padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
-    drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
+    exec.get_current_account_data_offset push.ACCT_ID_AND_NONCE_OFFSET add
+    padw dup.4 
+    mem_loadw
+    # => [old_nonce, 0, 0, old_id, acct_id_and_nonce_ptr, new_nonce]
+
+    drop movup.4 movup.4 mem_storew dropw
 end
 
-#! Sets the number of storage slots contained in the account storage.
-#!
-#! Stack: [num_storage_slots]
-#! Output: []
-#!
-#! Where:
-#! - num_storage_slots is the number of storage slots contained in the account storage.
-export.set_num_storage_slots
-    push.NUM_ACCT_STORAGE_SLOTS_PTR mem_store
-end
-
-#! Returns the number of storage slots contained in the account storage.
+#! Returns the memory pointer to the account vault root.
 #!
 #! Stack: []
-#! Output: [num_storage_slots]
+#! Output: [acct_vault_root_ptr]
 #!
 #! Where:
-#! - num_storage_slots is the number of storage slots contained in the account storage.
-export.get_num_storage_slots
-    push.NUM_ACCT_STORAGE_SLOTS_PTR mem_load
+#! - acct_vault_root_ptr is the memory pointer to the account asset vault root.
+export.get_acct_vault_root_ptr
+    exec.get_current_account_data_offset push.ACCT_VAULT_ROOT_OFFSET add
 end
 
-#! Returns the account storage slots section offset.
+#! Returns the account vault root.
 #!
 #! Stack: []
-#! Output: [storage_slots_section_offset]
+#! Output: [ACCT_VAULT_ROOT]
 #!
 #! Where:
-#! - storage_slots_section_offset is the account storage slots section offset.
-export.get_acct_storage_slots_section_offset
-    push.ACCT_STORAGE_SLOTS_SECTION_OFFSET
+#! - ACCT_VAULT_ROOT is the account asset vault root.
+export.get_acct_vault_root
+    padw
+    exec.get_current_account_data_offset push.ACCT_VAULT_ROOT_OFFSET add
+    mem_loadw
 end
 
-#! Sets the number of procedures contained in the account code.
+#! Sets the account vault root.
 #!
-#! Stack: [num_procedures]
-#! Output: []
+#! Stack: [ACCT_VAULT_ROOT]
+#! Output: [ACCT_VAULT_ROOT]
 #!
 #! Where:
-#! - num_procedures is the number of procedures contained in the account code.
-export.set_num_account_procedures
-    push.NUM_ACCT_PROCEDURES_PTR mem_store
+#! - ACCT_VAULT_ROOT is the account vault root to be set.
+export.set_acct_vault_root
+    exec.get_current_account_data_offset push.ACCT_VAULT_ROOT_OFFSET add
+    mem_storew
 end
 
-#! Returns the number of procedures contained in the account code.
+#! Returns the account storage commitment.
 #!
 #! Stack: []
-#! Output: [num_procedures]
+#! Output: [STORAGE_COMMITMENT]
 #!
 #! Where:
-#! - num_procedures is the number of procedures contained in the account code.
-export.get_num_account_procedures
-    push.NUM_ACCT_PROCEDURES_PTR mem_load
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.get_acct_storage_commitment
+    padw
+    exec.get_current_account_data_offset push.ACCT_STORAGE_COMMITMENT_OFFSET add
+    mem_loadw
 end
 
-#! Returns the account procedures section offset.
+#! Sets the account storage commitment.
 #!
-#! Stack: []
-#! Output: [account_procedures_section_offset]
-#!
-#! Where:
-#! - account_procedures_section_offset is the account procedures section offset.
-export.get_acct_procedures_section_offset
-    push.ACCT_PROCEDURES_SECTION_OFFSET
-end
-
-#! Sets the code commitment of the account.
-#!
-#! Stack: [CODE_COMMITMENT]
-#! Output: [CODE_COMMITMENT]
+#! Stack: [STORAGE_COMMITMENT]
+#! Output: [STORAGE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_COMMITMENT is the code commitment to be set.
-export.set_acct_code_commitment
-    push.ACCT_CODE_COMMITMENT_PTR
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.set_acct_storage_commitment
+    exec.get_current_account_data_offset push.ACCT_STORAGE_COMMITMENT_OFFSET add
     mem_storew
 end
 
@@ -765,18 +757,20 @@ end
 #! Where:
 #! - CODE_COMMITMENT is the code commitment of the account.
 export.get_acct_code_commitment
-    padw push.ACCT_CODE_COMMITMENT_PTR mem_loadw
+    padw
+    exec.get_current_account_data_offset push.ACCT_CODE_COMMITMENT_OFFSET add
+    mem_loadw
 end
 
-#! Stores the new account code commitment in memory.
+#! Sets the code commitment of the account.
 #!
 #! Stack: [CODE_COMMITMENT]
 #! Output: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_COMMITMENT is the new account code commitment.
-export.set_new_acct_code_commitment
-    push.ACCT_NEW_CODE_COMMITMENT_PTR
+#! - CODE_COMMITMENT is the code commitment to be set.
+export.set_acct_code_commitment
+    exec.get_current_account_data_offset push.ACCT_CODE_COMMITMENT_OFFSET add
     mem_storew
 end
 
@@ -788,113 +782,91 @@ end
 #! Where:
 #! - CODE_COMMITMENT is the new account code commitment.
 export.get_new_acct_code_commitment
-    padw push.ACCT_NEW_CODE_COMMITMENT_PTR mem_loadw
+    padw
+    exec.get_current_account_data_offset push.ACCT_NEW_CODE_COMMITMENT_OFFSET add
+    mem_loadw
 end
 
-#! Returns the account storage commitment.
+#! Stores the new account code commitment in memory.
 #!
-#! Stack: []
-#! Output: [STORAGE_COMMITMENT]
-#!
-#! Where:
-#! - STORAGE_COMMITMENT is the account storage commitment.
-export.get_acct_storage_commitment
-    padw push.ACCT_STORAGE_COMMITMENT_PTR mem_loadw
-end
-
-#! Sets the account storage commitment.
-#!
-#! Stack: [STORAGE_COMMITMENT]
-#! Output: [STORAGE_COMMITMENT]
+#! Stack: [CODE_COMMITMENT]
+#! Output: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - STORAGE_COMMITMENT is the account storage commitment.
-export.set_acct_storage_commitment
-    push.ACCT_STORAGE_COMMITMENT_PTR mem_storew
-end
-
-#! Returns a pointer to the memory address at which the account vault root is stored.
-#!
-#! Stack: []
-#! Output: [output_vault_root_ptr]
-#!
-#! Where:
-#! - output_vault_root_ptr is a pointer to the memory address at which the account vault root is stored.
-export.get_acct_vault_root_ptr
-    push.ACCT_VAULT_ROOT_PTR
-end
-
-#! Returns the account vault root.
-#!
-#! Stack: []
-#! Output: [ACCT_VAULT_ROOT]
-#!
-#! Where:
-#! - ACCT_VAULT_ROOT is the account asset vault root.
-export.get_acct_vault_root
-    padw push.ACCT_VAULT_ROOT_PTR mem_loadw
-end
-
-#! Sets the account vault root.
-#!
-#! Stack: [ACCT_VAULT_ROOT]
-#! Output: [ACCT_VAULT_ROOT]
-#!
-#! Where:
-#! - ACCT_VAULT_ROOT is the account vault root to be set.
-export.set_acct_vault_root
-    push.ACCT_VAULT_ROOT_PTR
+#! - CODE_COMMITMENT is the new account code commitment.
+export.set_new_acct_code_commitment
+    exec.get_current_account_data_offset push.ACCT_NEW_CODE_COMMITMENT_OFFSET add
     mem_storew
 end
 
-#! Returns a pointer to the memory address at which the account storage slot type data begins.
+#! Returns the number of procedures contained in the account code.
 #!
 #! Stack: []
-#! Output: [ptr]
+#! Output: [num_procedures]
 #!
 #! Where:
-#! - ptr is a pointer to the memory address at which the account storage slot type data begins.
-export.get_acct_storage_slot_type_data_ptr
-    push.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET
+#! - num_procedures is the number of procedures contained in the account code.
+export.get_num_account_procedures
+    exec.get_current_account_data_offset push.NUM_ACCT_PROCEDURES_OFFSET add
+    mem_load
 end
 
-#! Returns the storage slot type info for the specified storage slot. This includes both the
-#! storage slot type and the entry arity.
+#! Sets the number of procedures contained in the account code.
 #!
-#! Stack: [idx]
-#! Output: [slot_type_info]
+#! Stack: [num_procedures]
+#! Output: []
 #!
 #! Where:
-#! - idx is the index of the storage slot.
-#! - slot_type_info contains the slot type and entry arity.
-export.get_acct_storage_slot_type_data
-    # assert the idx is a u32 value
-    u32assert
-    # => [idx]
+#! - num_procedures is the number of procedures contained in the account code.
+export.set_num_account_procedures
+    exec.get_current_account_data_offset push.NUM_ACCT_PROCEDURES_OFFSET add
+    mem_store
+end
 
-    # compute the word offset and element offset
-    exec.constants::get_word_size u32divmod
-    # => [element_offset, word_offset]
+#! Returns the memory pointer to the account procedures section.
+#!
+#! Stack: []
+#! Output: [account_procedures_section_ptr]
+#!
+#! Where:
+#! - account_procedures_section_ptr is the memory pointer to the account procedures section.
+export.get_acct_procedures_section_ptr
+    exec.get_current_account_data_offset push.ACCT_PROCEDURES_SECTION_OFFSET add
+end
 
-    # compute the memory address of the storage slot type info
-    swap exec.get_acct_storage_slot_type_data_ptr add
-    # => [word_ptr, element_offset]
+#! Returns the number of storage slots contained in the account storage.
+#!
+#! Stack: []
+#! Output: [num_storage_slots]
+#!
+#! Where:
+#! - num_storage_slots is the number of storage slots contained in the account storage.
+export.get_num_storage_slots
+    exec.get_current_account_data_offset push.NUM_ACCT_STORAGE_SLOTS_OFFSET add
+    mem_load
+end
 
-    # load the storage slot type info
-    padw movup.4 mem_loadw
-    # => [slot_type_info_i+3, slot_type_info_i+2, slot_type_info_i+1, slot_type_i, element_offset]
+#! Sets the number of storage slots contained in the account storage.
+#!
+#! Stack: [num_storage_slots]
+#! Output: []
+#!
+#! Where:
+#! - num_storage_slots is the number of storage slots contained in the account storage.
+export.set_num_storage_slots
+    exec.get_current_account_data_offset push.NUM_ACCT_STORAGE_SLOTS_OFFSET add
+    mem_store
+end
 
-    # check if element offset == 3 and filter accordingly
-    push.3 dup.5 eq cdrop
-    # => [slot_type_info_i+(3|2), slot_type_info_i+1, slot_type_info_i, element_offset]
-
-    # check if element offset == 1 and filter accordingly
-    swap push.1 dup.4 eq cdrop
-    # => [slot_type_info_i+(3|2|1), slot_type_info_i, element_offset]
-
-    # check if element offset == 0 and filter accordingly
-    swap push.0 movup.3 eq cdrop
-    # => [slot_type_info]
+#! Returns the memory pointer to the account storage slots section.
+#!
+#! Stack: []
+#! Output: [storage_slots_section_ptr]
+#!
+#! Where:
+#! - storage_slots_section_ptr is the memory pointer to the account storage slots section.
+export.get_acct_storage_slots_section_ptr
+    exec.get_current_account_data_offset push.ACCT_STORAGE_SLOTS_SECTION_OFFSET add
 end
 
 # INPUT NOTES
