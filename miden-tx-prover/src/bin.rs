@@ -9,6 +9,7 @@ use miden_tx_prover::{
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{Request, Response};
+use tracing::info;
 use winter_maybe_async::maybe_await;
 
 pub struct Rpc {
@@ -24,7 +25,7 @@ impl api_server::Api for RpcApi {
         &self,
         request: Request<ProveTransactionRequest>,
     ) -> Result<Response<ProveTransactionResponse>, tonic::Status> {
-        println!("Received request to prove transaction");
+        info!("Received request to prove transaction");
         let prover = LocalTransactionProver::default();
 
         let transaction_witness =
@@ -38,14 +39,12 @@ impl api_server::Api for RpcApi {
 
 #[tokio::main]
 async fn main() {
-    // initialize tracing
-    // tracing_subscriber::fmt::init();
     let rpc = Rpc {
         listener: tokio::net::TcpListener::bind("0.0.0.0:50051").await.unwrap(),
         api_service: api_server::ApiServer::new(RpcApi),
     };
 
-    println!("Server listening on {}", rpc.listener.local_addr().unwrap());
+    info!("Server listening on {}", rpc.listener.local_addr().unwrap());
 
     // build our application with a route
     tonic::transport::Server::builder()
