@@ -11,7 +11,8 @@ pub use slot::{StorageSlot, StorageSlotType};
 mod map;
 pub use map::StorageMap;
 
-pub mod header;
+mod header;
+pub use header::AccountStorageHeader;
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -99,6 +100,13 @@ impl AccountStorage {
             StorageSlot::Map(ref map) => Ok(map.get_value(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
         }
+    }
+
+    /// Returns an [AccountStorageHeader] for this [AccountStorage].
+    pub fn get_header(&self) -> AccountStorageHeader {
+        AccountStorageHeader::new(
+            self.slots.iter().map(|slot| (slot.slot_type(), slot.value())).collect(),
+        )
     }
 
     // DATA MUTATORS

@@ -4,6 +4,7 @@ use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{AccountStorage, StorageSlotType, Word};
+use crate::AccountError;
 
 // ACCOUNT STORAGE HEADER
 // ================================================================================================
@@ -20,21 +21,43 @@ pub struct AccountStorageHeader {
 }
 
 impl AccountStorageHeader {
-    /// Returns a reference to the storage header slots.
-    pub fn slots(&self) -> &Vec<(StorageSlotType, Word)> {
-        &self.slots
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    // Returns a new instance of account storage header initialized with the provided slots.
+    pub fn new(slots: Vec<(StorageSlotType, Word)>) -> Self {
+        Self { slots }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a
+    /// Returns an iterator over the storage header slots.
+    pub fn slots(&self) -> impl Iterator<Item = &(StorageSlotType, Word)> {
+        self.slots.iter()
+    }
+
+    /// Returns the number of slots contained in the storage header.
+    pub fn num_slots(&self) -> usize {
+        self.slots.len()
+    }
+
+    /// Returns a slot contained in the storage header at a given index.
+    ///
+    /// # Errors
+    /// - If the index is out of bounds
+    pub fn slot(&self, index: usize) -> Result<&(StorageSlotType, Word), AccountError> {
+        self.slots.get(index).ok_or(AccountError::StorageIndexOutOfBounds {
+            max: self.slots.len() as u8,
+            actual: index as u8,
+        })
     }
 }
 
 impl From<AccountStorage> for AccountStorageHeader {
     fn from(value: AccountStorage) -> Self {
-        let slots = value
-            .slots()
-            .iter()
-            .map(|storage_slot| (storage_slot.slot_type(), storage_slot.value()))
-            .collect();
-
-        AccountStorageHeader { slots }
+        value.get_header()
     }
 }
 
