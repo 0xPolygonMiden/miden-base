@@ -1,5 +1,4 @@
 use std::sync::Arc;
-
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{
     utils::{Deserializable, Serializable},
@@ -7,7 +6,7 @@ use miden_tx::{
 };
 use tokio::sync::Mutex;
 
-use crate::generated::api::{ProveTransactionRequest, ProveTransactionResponse};
+use crate::{ProveTransactionRequest, ProveTransactionResponse};
 
 #[derive(Clone)]
 pub struct RemoteTransactionProver {

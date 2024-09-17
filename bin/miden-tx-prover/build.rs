@@ -21,7 +21,7 @@ fn main() -> miette::Result<()> {
 
     let crate_root: PathBuf =
         env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set").into();
-    let dst_dir = crate_root.join("src").join("generated");
+    let dst_dir = crate_root.join("src").join("server").join("generated");
 
     // Remove all existing files.
     fs::remove_dir_all(&dst_dir).into_diagnostic()?;

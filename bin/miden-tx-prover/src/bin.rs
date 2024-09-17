@@ -3,9 +3,7 @@ use miden_tx::{
     utils::{Deserializable, Serializable},
     LocalTransactionProver, TransactionProver,
 };
-use miden_tx_prover::{
-    generated::api::api_server, ProveTransactionRequest, ProveTransactionResponse,
-};
+use miden_tx_prover::{server::generated::api::api_server, ProveTransactionRequest, ProveTransactionResponse};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{Request, Response};
