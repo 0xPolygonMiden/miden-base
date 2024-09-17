@@ -1,6 +1,7 @@
 use miden_objects::{
     accounts::AccountId,
-    notes::{NoteInputs, NoteRecipient, NoteScript},
+    assets::Asset,
+    notes::{NoteExecutionMode, NoteInputs, NoteRecipient, NoteScript, NoteTag, NoteType},
     utils::Deserializable,
     vm::Program,
     NoteError, Word,

@@ -6,10 +6,8 @@ use miden_objects::{
     crypto::rand::FeltRng,
     notes::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
-        NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
+        NoteMetadata, NoteRecipient, NoteTag, NoteType,
     },
-    utils::Deserializable,
-    vm::Program,
     Felt, NoteError, Word,
 };
 use utils::build_swap_tag;
