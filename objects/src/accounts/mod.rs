@@ -26,7 +26,7 @@ mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
-pub use storage::{AccountStorage, StorageMap, StorageSlot, StorageSlotType};
+pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
 
 mod header;
 pub use header::AccountHeader;
