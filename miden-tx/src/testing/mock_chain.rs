@@ -128,13 +128,13 @@ impl PendingObjects {
     /// The root of the tree is a commitment to all notes created in the block. The commitment
     /// is not for all fields of the [Note] struct, but only for note metadata + core fields of
     /// a note (i.e., vault, inputs, script, and serial number).
-    pub fn build_notes_tree(&self) -> BlockNoteTree {
+    pub fn build_note_tree(&self) -> BlockNoteTree {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
                 batch.iter().enumerate().map(move |(note_index, note)| {
                     (
-                        BlockNoteIndex::new(batch_index, note_index),
-                        note.id().into(),
+                        BlockNoteIndex::new(batch_index, note_index).unwrap(),
+                        note.id(),
                         *note.metadata(),
                     )
                 })
@@ -430,13 +430,9 @@ impl MockChain {
         let mut block_headers_map: BTreeMap<u32, BlockHeader> = BTreeMap::new();
         for note in notes {
             let input_note = self.available_notes.get(note).unwrap().clone();
-            block_headers_map.insert(
-                input_note.location().unwrap().block_num(),
-                self.blocks
-                    .get(input_note.location().unwrap().block_num() as usize)
-                    .unwrap()
-                    .header(),
-            );
+            let note_block_num = input_note.location().unwrap().block_num();
+            let block_header = self.blocks.get(note_block_num as usize).unwrap().header();
+            block_headers_map.insert(note_block_num, block_header);
             input_notes.push(input_note);
         }
 
@@ -497,7 +493,7 @@ impl MockChain {
         for nullifier in self.pending_objects.created_nullifiers.iter() {
             self.nullifiers.insert(nullifier.inner(), [block_num.into(), ZERO, ZERO, ZERO]);
         }
-        let notes_tree = self.pending_objects.build_notes_tree();
+        let notes_tree = self.pending_objects.build_note_tree();
 
         let version = 0;
         let previous = self.blocks.last();
@@ -546,11 +542,12 @@ impl MockChain {
                 // All note details should be OutputNote::Full at this point
                 match note {
                     OutputNote::Full(note) => {
-                        let block_note_index = BlockNoteIndex::new(batch_index, note_index);
-                        let note_path = notes_tree.get_note_path(block_note_index).unwrap();
+                        let block_note_index =
+                            BlockNoteIndex::new(batch_index, note_index).unwrap();
+                        let note_path = notes_tree.get_note_path(block_note_index);
                         let note_inclusion_proof = NoteInclusionProof::new(
                             block.header().block_num(),
-                            block_note_index.to_absolute_index(),
+                            block_note_index.leaf_index_value(),
                             note_path,
                         )
                         .unwrap();
