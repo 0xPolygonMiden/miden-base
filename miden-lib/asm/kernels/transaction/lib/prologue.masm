@@ -1076,7 +1076,7 @@ proc.process_input_notes_data
     # - Below the hasher state in the stack is the current note index. This number is used for two
     #   purposes:
     #   1. Compute the input note's memory addresses, the index works as an offset.
-    #   2. Determine the loop condition. The loop below runs until all inpute notes have been
+    #   2. Determine the loop condition. The loop below runs until all input notes have been
     #      processed.
     # - The num_notes is kept at position 13, because dup.13 is cheap.
     # - The [idx, num_notes] pair is kept in a word boundary, so that its word can be swapped with a
