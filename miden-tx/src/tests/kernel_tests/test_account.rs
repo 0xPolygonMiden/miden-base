@@ -484,15 +484,16 @@ fn test_storage_offset() {
     ];
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
 
-    // this manual setting of storage slot at location 2 is required because
-    // the default behaviour of [AccountBuilder::new] initialises a map at
-    // location 2 of storage where we need a value.
-    let storage_slot = StorageSlot::Value(Word::default());
+    let storage_slots = vec![
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+    ];
 
     let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .code(code)
         .nonce(ONE)
-        .add_storage_slot(storage_slot, Some(2))
+        .add_storage_slots(storage_slots)
         .build()
         .unwrap();
 

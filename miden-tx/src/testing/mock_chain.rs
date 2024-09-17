@@ -334,7 +334,7 @@ impl MockChain {
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
-            .add_storage_slot(faucet_metadata, Some(2));
+            .add_storage_slot(faucet_metadata);
 
         let account = self.add_from_account_builder(auth_method, account_builder);
 
@@ -360,7 +360,7 @@ impl MockChain {
             .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .account_type(AccountType::FungibleFaucet)
-            .add_storage_slot(faucet_metadata, Some(2));
+            .add_storage_slot(faucet_metadata);
         MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
     }
 

@@ -31,6 +31,10 @@ pub struct AccountStorageBuilder {
 /// Builder for an `AccountStorage`, the builder can be configured and used multiple times.
 impl AccountStorageBuilder {
     pub fn new() -> Self {
+        Self { slots: vec![] }
+    }
+
+    pub fn with_mock_data() -> Self {
         Self {
             slots: vec![
                 AccountStorage::mock_item_0().slot,
@@ -40,17 +44,14 @@ impl AccountStorageBuilder {
         }
     }
 
-    pub fn add_slot(&mut self, slot: StorageSlot, location: Option<usize>) -> &mut Self {
-        match location {
-            Some(location) => self.slots.insert(location, slot),
-            None => self.slots.push(slot),
-        }
+    pub fn add_slot(&mut self, slot: StorageSlot) -> &mut Self {
+        self.slots.push(slot);
         self
     }
 
     pub fn add_slots<I: IntoIterator<Item = StorageSlot>>(&mut self, slots: I) -> &mut Self {
         for slot in slots.into_iter() {
-            self.add_slot(slot, None);
+            self.add_slot(slot);
         }
         self
     }

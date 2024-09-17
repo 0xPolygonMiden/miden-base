@@ -47,6 +47,16 @@ impl<T: Rng> AccountBuilder<T> {
         }
     }
 
+    pub fn with_mock_storage(rng: T) -> Self {
+        Self {
+            assets: vec![],
+            storage_builder: AccountStorageBuilder::with_mock_data(),
+            code: None,
+            nonce: ZERO,
+            account_id_builder: AccountIdBuilder::new(rng),
+        }
+    }
+
     pub fn add_asset(mut self, asset: Asset) -> Self {
         self.assets.push(asset);
         self
@@ -59,8 +69,8 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_storage_slot(mut self, slot: StorageSlot, location: Option<usize>) -> Self {
-        self.storage_builder.add_slot(slot, location);
+    pub fn add_storage_slot(mut self, slot: StorageSlot) -> Self {
+        self.storage_builder.add_slot(slot);
         self
     }
 
@@ -153,7 +163,7 @@ impl<T: Rng> AccountBuilder<T> {
         let pub_key: Word = sec_key.public_key().into();
 
         let storage_slot = StorageSlot::Value(pub_key);
-        let (account, seed) = self.add_storage_slot(storage_slot, Some(0)).build()?;
+        let (account, seed) = self.add_storage_slot(storage_slot).build()?;
 
         Ok((account, seed, sec_key))
     }
