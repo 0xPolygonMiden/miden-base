@@ -64,9 +64,6 @@ proc.authenticate_account_origin
     # assert that the caller is from the user context
     exec.account::authenticate_procedure
     # => [storage_offset, storage_size]
-
-    # TODO: Remove
-    drop
 end
 
 # KERNEL PROCEDURES
@@ -180,7 +177,8 @@ export.get_account_item
     dropw
 
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    # TODO: remove swap drop and correctly impl apply_storage_offset
+    exec.authenticate_account_origin swap drop
     # => [storage_offset, storage_size, index, 0, 0, 0]
 
     # apply offset to storage slot index
@@ -217,7 +215,8 @@ export.set_account_item
     # => [index, V', 0, 0, 0]
 
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    # TODO: remove swap drop and correctly impl apply_storage_offset
+    exec.authenticate_account_origin swap drop
     # => [storage_offset, storage_size, index, V', 0, 0, 0]
 
     # apply offset to storage slot index
@@ -256,7 +255,8 @@ export.get_account_map_item
     # => [index, KEY, ...]
 
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    # TODO: remove swap drop and correctly impl apply_storage_offset
+    exec.authenticate_account_origin swap drop
     # => [storage_offset, storage_size, index, KEY, ...]
 
     # apply offset to storage slot index
@@ -296,7 +296,8 @@ export.set_account_map_item.1
     dropw
 
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    # TODO: remove swap drop and correctly impl apply_storage_offset
+    exec.authenticate_account_origin swap drop
     # => [storage_offset, storage_size, index, KEY, NEW_VALUE, ...]
 
     # apply offset to storage slot index
