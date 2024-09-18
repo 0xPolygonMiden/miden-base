@@ -568,12 +568,16 @@ export.get_procedure_info
     # => [index]
 
     # get procedure pointer
-    mul.2 exec.memory::get_acct_procedures_section_offset add dup add.1
-    # => [offset_ptr, proc_ptr]
+    mul.2 exec.memory::get_acct_procedures_section_offset add dup add.1 swap
+    # => [metadata_ptr, proc_ptr]
 
     # load procedure information from memory
-    mem_load swap padw movup.4 mem_loadw
-    # => [PROC_ROOT, storage_offset]
+    padw movup.4 mem_loadw padw movup.8 mem_loadw
+    # => [METADATA, PROC_ROOT]
+
+    # keep only relevant data
+    swap drop swap drop movdn.5 movdn.5
+    # => [PROC_ROOT, storage_offset, storage_size]
 end
 
 #! Verifies that the procedure root is part of the account code
@@ -591,13 +595,13 @@ export.authenticate_procedure
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
     # => [index, PROC_ROOT]
 
-    # get procedure info (PROC_ROOT, storage_offset) from memory stored at index
+    # get procedure info (PROC_ROOT, storage_offset, storage_size) from memory stored at index
     exec.get_procedure_info
-    # => [PROC_ROOT, storage_offset, PROC_ROOT]
+    # => [MEM_PROC_ROOT, storage_offset, storage_size, PROC_ROOT]
 
     # verify that PROC_ROOT exists in memory at index
-    movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
-    # => [storage_offset]
+    movup.4 movdn.9 movup.4 movdn.9 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
+    # => [storage_offset, storage_size]
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
