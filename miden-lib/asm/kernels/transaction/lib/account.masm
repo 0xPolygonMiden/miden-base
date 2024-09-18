@@ -352,7 +352,7 @@ export.validate_storage_offsets
     if.true
         while.true
             # get storage offset from memory
-            dup exec.get_procedure_storage_offset
+            dup exec.get_procedure_metadata swap drop
             # => [storage_offset, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is not 0
@@ -384,7 +384,7 @@ export.validate_storage_offsets
     else
         while.true
             # get storage offset from memory
-            dup exec.get_procedure_storage_offset
+            dup exec.get_procedure_storage_metadata swap drop
             # => [storage_offset, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is in bounds
@@ -395,6 +395,41 @@ export.validate_storage_offsets
             add.1 dup dup.3 lt
             # => [should_loop, index, num_storage_slots, num_account_procedures]
         end
+    end
+
+    # clean stack
+    drop drop drop
+    # => []
+end
+
+#! Validates all account procedures storage sizes by
+#! checking that all storage offsets are in bounds
+#!
+#! Stack: []
+#! Output: []
+export.validate_storage_sizes
+    # get number of account procedures and number of storage slots
+    exec.memory::get_num_account_procedures exec.memory::get_num_storage_slots
+    # => [num_storage_slots, num_account_procedures]
+
+    # prepare stack for looping
+    push.0.1
+    # => [start_loop, index, num_storage_slots, num_account_procedures]
+
+    # we do not check if num_account_procedures == 0 here because a valid
+    # account has between 1 and 256 procedures with associated offsets
+    while.true
+        # get storage size from memory
+        dup exec.get_procedure_metadata add
+        # => [storage_limit, index, num_storage_slots, num_account_procedures]
+
+        # assert that storage limit is in bounds
+        dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+        # => [index, num_storage_slots, get_num_account_procedures]
+
+        # check if we should continue looping
+        add.1 dup dup.3 lt
+        # => [should_loop, index, num_storage_slots, num_account_procedures]
     end
 
     # clean stack
@@ -718,21 +753,22 @@ proc.set_item_raw
     # => [OLD_VALUE]
 end
 
-#! Returns the procedure storage offset
+#! Returns the procedure metadata
 #!
 #! Note:
 #! - We assume that index has been validated and is within bounds
 #!
-#! Stack: [index, ...]
-#! Output: [storage_offset, ...]
+#! Stack: [index]
+#! Output: [storage_offset, storage_size]
 #!
 #! - storage_offset is the procedure storage offset.
-proc.get_procedure_storage_offset
-    # get procedure storage offset pointer
+#! - storage_size is the procedure storage size.
+proc.get_procedure_metadata
+    # get procedure storage metadata pointer
     mul.2 exec.memory::get_acct_procedures_section_offset add add.1
     # => [storage_offset_ptr]
 
-    # load procedure storage offset from memory
-    mem_load
-    # => [storage_offset]
+    # load procedure storage offset from memory and keep relevant data
+    mem_loadw swap drop swap drop
+    # => [storage_offset, storage_size]
 end

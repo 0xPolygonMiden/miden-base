@@ -105,10 +105,10 @@ end
 # =================================================================================================
 
 
-#! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel root and kernel 
-#! hash match the sequential hash of all kernels and sequential hash of kernel procedures 
-#! respectively. 
-#! 
+#! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel root and kernel
+#! hash match the sequential hash of all kernels and sequential hash of kernel procedures
+#! respectively.
+#!
 #! Inputs:
 #!   Operand stack: []
 #!   Advice stack: [kernel_version]
@@ -119,15 +119,15 @@ end
 #! Outputs:
 #!   Operand stack: []
 #!   Advice stack: []
-#! 
+#!
 #! Where:
-#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the
 #!   current transaction
 #! - KERNEL_ROOT, accumulative hash from all kernel hashes.
 #! - [KERNEL_HASHES], array of each kernel hash
 #! - [KERNEL_PROCEDURE_HASHES], array of procedure hashes of the current kernel
 proc.process_kernel_data
-    # move the kernel offset to the operand stack 
+    # move the kernel offset to the operand stack
     adv_push.1
     # OS  => [kernel_version]
     # AS => []
@@ -137,12 +137,12 @@ proc.process_kernel_data
     # OS  => [KERNEL_ROOT, kernel_version]
     # AS => []
 
-    # push the kernel hashes from the advice map to the advice stack 
+    # push the kernel hashes from the advice map to the advice stack
     adv.push_mapvaln
     # OS  => [KERNEL_ROOT, kernel_version]
     # AS => [len_felts, [KERNEL_HASHES]]
 
-    # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the 
+    # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the
     # number of Words from it
     adv_push.1 div.4
     # OS  => [len_words, KERNEL_ROOT, kernel_version]
@@ -150,7 +150,7 @@ proc.process_kernel_data
 
     # get the pointer to the memory where kernel hashes will be stored
     # Note: for now we use the same address for kernel hash and for kernel procedures since there is
-    # only one kernel and its hash will be overwritten by the procedures anyway. 
+    # only one kernel and its hash will be overwritten by the procedures anyway.
     exec.memory::get_kernel_procedures_ptr swap
     # OS  => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_version]
     # AS => [[KERNEL_HASHES]]
@@ -166,7 +166,7 @@ proc.process_kernel_data
     # AS => []
 
     # get the hash of the kernel which will be used in the current transaction
-    exec.memory::get_kernel_procedures_ptr add 
+    exec.memory::get_kernel_procedures_ptr add
     # OS  => [kernel_ptr]
     # AS => []
 
@@ -174,12 +174,12 @@ proc.process_kernel_data
     # OS  => [KERNEL_HASH]
     # AS => []
 
-    # push the procedure hashes of the chosen kernel from the advice map to the advice stack    
+    # push the procedure hashes of the chosen kernel from the advice map to the advice stack
     adv.push_mapvaln
     # OS  => [KERNEL_HASH]
     # AS => [len_felts, [PROC_HASHES]]
 
-    # move the number of felt elements in the [PROC_HASHES] array to the stack and get the 
+    # move the number of felt elements in the [PROC_HASHES] array to the stack and get the
     # number of Words from it
     adv_push.1 div.4
     # OS  => [len_words, KERNEL_HASH]
@@ -612,8 +612,9 @@ proc.process_account_data
         # => []
     end
 
-    # validate account procedure storage offsets
+    # validate account procedure metadata
     exec.account::validate_storage_offsets
+    exec.account::validate_storage_sizes
 end
 
 # INPUT NOTES DATA
@@ -1161,10 +1162,10 @@ end
 #!  - Any of the input notes do note exist in the note db.
 #!
 #! Operand stack: [
-#!     BLOCK_HASH, 
-#!     account_id, 
-#!     INITIAL_ACCOUNT_HASH, 
-#!     INPUT_NOTES_COMMITMENT, 
+#!     BLOCK_HASH,
+#!     account_id,
+#!     INITIAL_ACCOUNT_HASH,
+#!     INPUT_NOTES_COMMITMENT,
 #!  ]
 #! Advice stack: [
 #!     PREVIOUS_BLOCK_HASH,
@@ -1208,7 +1209,7 @@ end
 #! - version, the current protocol version.
 #! - timestamp, the current timestamp.
 #! - NOTE_ROOT, root of the tree with all notes created in the block.
-#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the
 #!   current transaction.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
