@@ -622,7 +622,7 @@ fn executed_transaction_output_notes() {
         aux3,
     )
     .unwrap();
-    let vault_3 = NoteAssets::new(vec![]).unwrap();
+    let vault_3 = unsafe { NoteAssets::new_unchecked(vec![]) };
     let recipient_3 = NoteRecipient::new(serial_num_3, note_script_3, inputs_3);
     let expected_output_note_3 = Note::new(vault_3, metadata_3, recipient_3);
 

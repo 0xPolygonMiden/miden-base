@@ -119,7 +119,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 84] = [
     (ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH, "Provided info about assets of an input do not match its commitment"),
     (ERR_PROLOGUE_TOO_MANY_INPUT_NOTES, "Number of input notes exceeded the kernel's maximum limit of 1023"),
     (ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH, "Commitment computed for input notes' from advice data doesn't match kernel inputs"),
-    (ERR_TX_OUTPUT_NOTES_OVERFLOW, "Output notes exceeded the maximum limit of 4096"),
+    (ERR_TX_OUTPUT_NOTES_OVERFLOW, "Output notes exceeded the maximum limit of 1023"),
     (ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW, "Distribute would cause the max supply to be exceeded"),
     (ERR_FAUCET_ISSUANCE_OVERFLOW, "Asset mint operation would cause an issuance overflow"),
     (ERR_FAUCET_BURN_OVER_ISSUANCE, "Asset burn can not exceed the existing supply"),

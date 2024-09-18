@@ -262,7 +262,7 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // │   NUM   │  NOTE 0   │  NOTE 1   │ ... │  NOTE n   │ PADDING │ NOTE 0 │ NOTE 1 │ ... │ NOTE n │
 // │  NOTES  │ NULLIFIER │ NULLIFIER │     │ NULLIFIER │         │  DATA  │  DATA  │     │  DATA  │
 // └─────────┴───────────┴───────────┴─────┴───────────┴─────────┴────────┴────────┴─────┴────────┘
-//  1_048_576  1_048_577   1_048_578        1_048_576+n      1_064_960   +512    +1024  +512n
+//  1_048_576  1_048_577   1_048_578        1_048_576+n          1_064_960   +512   +1024  +512n
 //
 // Each nullifier occupies a single word. A data section for each note consists of exactly 512
 // words and is laid out like so:
@@ -305,7 +305,7 @@ pub const INPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 //    ┌─────────────┬─────────────┬───────────────┬─────────────┐
 //    │ NOTE 0 DATA │ NOTE 1 DATA │      ...      │ NOTE n DATA │
 //    └─────────────┴─────────────┴───────────────┴─────────────┘
-// 4_194_304      +512          +1024           +512n
+//        4_194_304      +512          +1024           +512n
 //
 // The total number of output notes for a transaction is stored in the bookkeeping section of the
 // memory. Data section of each note is laid out like so:
@@ -315,7 +315,7 @@ pub const INPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 // ├─────────┼──────────┼───────────┼─────────────┼────────────┼─────────┼─────┼─────────┼─────────┤
 //      0          1          2            3            4           5             5 + n
 //
-// Even though NUM_ASSETS takes up a while word, the actual value of this variable is stored in the
+// Even though NUM_ASSETS takes up a whole word, the actual value of this variable is stored in the
 // first element of the word.
 
 /// The memory address at which the output notes section begins.

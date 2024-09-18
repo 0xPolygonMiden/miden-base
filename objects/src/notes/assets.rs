@@ -25,27 +25,33 @@ pub struct NoteAssets {
 impl NoteAssets {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
+
     /// The maximum number of assets which can be carried by a single note.
     pub const MAX_NUM_ASSETS: usize = MAX_ASSETS_PER_NOTE;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns new [NoteAssets] constructed from the provided list of assets.
     ///
     /// # Errors
     /// Returns an error if:
+    /// - The asset list is empty.
     /// - The list contains more than 256 assets.
     /// - There are duplicate assets in the list.
     pub fn new(assets: Vec<Asset>) -> Result<Self, NoteError> {
+        if assets.is_empty() {
+            return Err(NoteError::NoAssets);
+        }
         if assets.len() > Self::MAX_NUM_ASSETS {
             return Err(NoteError::too_many_assets(assets.len()));
         }
 
         // make sure all provided assets are unique
-        for (i, asset) in assets.iter().enumerate() {
-            // for all assets except the last one, check if the asset is the same as any other
+        for (i, asset) in assets.iter().enumerate().skip(1) {
+            // for all assets except the first one, check if the asset is the same as any other
             // asset in the list, and if so return an error
-            if i < assets.len() - 1 && assets[i + 1..].iter().any(|a| a.is_same(asset)) {
+            if assets[..i].iter().any(|a| a.is_same(asset)) {
                 return Err(match asset {
                     Asset::Fungible(a) => NoteError::duplicate_fungible_asset(a.faucet_id()),
                     Asset::NonFungible(a) => NoteError::duplicate_non_fungible_asset(*a),
@@ -53,8 +59,19 @@ impl NoteAssets {
             }
         }
 
+        Ok(unsafe { Self::new_unchecked(assets) })
+    }
+
+    /// Returns new [NoteAssets] constructed from the provided list of assets without checking.
+    /// This might be useful for tests.
+    ///
+    /// # Safety
+    /// This function requires all assets to be unique and number of assets must be in a range from
+    /// 1 to 256 (both ends included).
+    pub unsafe fn new_unchecked(assets: Vec<Asset>) -> Self {
         let hash = compute_asset_commitment(&assets);
-        Ok(Self { assets, hash })
+
+        Self { assets, hash }
     }
 
     // PUBLIC ACCESSORS
@@ -141,6 +158,7 @@ impl NoteAssets {
         }
 
         self.hash = compute_asset_commitment(&self.assets);
+
         Ok(())
     }
 }

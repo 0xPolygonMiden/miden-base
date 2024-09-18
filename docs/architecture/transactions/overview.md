@@ -34,7 +34,7 @@ There are two types of transactions in Miden: local transactions and network tra
 
 ## Transaction design
 
-Transactions describe the state-transition of a single account that takes chain data and `0 to 1023` notes as input and produces a `TransactionWitness` and `0 to 4096` notes as output.
+Transactions describe the state-transition of a single account that takes chain data and `0 to 1023` notes as input and produces a `TransactionWitness` and `0 to 1023` notes as output.
 
 <center>
 ![Transaction diagram](../../img/architecture/transaction/transaction-diagram.png){ width="75%" }

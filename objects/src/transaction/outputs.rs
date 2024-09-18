@@ -37,14 +37,11 @@ impl OutputNotes {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The total number of notes is greater than 1024.
+    /// - The total number of notes is greater than 1023.
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<OutputNote>) -> Result<Self, TransactionOutputError> {
         if notes.len() > MAX_OUTPUT_NOTES_PER_TX {
-            return Err(TransactionOutputError::TooManyOutputNotes {
-                max: MAX_OUTPUT_NOTES_PER_TX,
-                actual: notes.len(),
-            });
+            return Err(TransactionOutputError::TooManyOutputNotes(notes.len()));
         }
 
         let mut seen_notes = BTreeSet::new();

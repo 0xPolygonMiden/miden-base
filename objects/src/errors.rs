@@ -150,6 +150,7 @@ pub enum NoteError {
     InvalidStubDataLen(usize),
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
+    NoAssets,
     NoteDeserializationError(DeserializationError),
     NoteScriptAssemblyError(String), // TODO: use Report
     NoteScriptDeserializationError(DeserializationError),
@@ -277,7 +278,7 @@ pub enum TransactionOutputError {
     OutputNoteDataInvalid(NoteError),
     OutputNotesCommitmentInconsistent(Digest, Digest),
     OutputStackInvalid(String),
-    TooManyOutputNotes { max: usize, actual: usize },
+    TooManyOutputNotes(usize),
 }
 
 impl fmt::Display for TransactionOutputError {

@@ -93,6 +93,21 @@ impl TransactionKernel {
         tx_args: &TransactionArgs,
         init_advice_inputs: Option<AdviceInputs>,
     ) -> (StackInputs, AdviceInputs) {
+        let (_, module_info, _) = Self::kernel().into_parts();
+        module_info.procedures().for_each(|(_, proc_info)| {
+            std::println!("// {}", proc_info.name);
+            std::println!(
+                "{},",
+                format!("{:?}", proc_info.digest)
+                    .replace("RpoDigest([", "digest!(")
+                    .replace("])", ")")
+            );
+        });
+
+        module_info.procedures().for_each(|(index, proc_info)| {
+            std::println!("const.{}_OFFSET={}", proc_info.name.to_uppercase(), index.as_usize());
+        });
+
         let account = tx_inputs.account();
 
         let stack_inputs = TransactionKernel::build_input_stack(

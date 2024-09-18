@@ -14,7 +14,7 @@ pub const MAX_INPUTS_PER_NOTE: usize = 128;
 pub const MAX_INPUT_NOTES_PER_TX: usize = 1023;
 
 /// The maximum number of new notes created by a single transaction.
-pub const MAX_OUTPUT_NOTES_PER_TX: usize = 4096;
+pub const MAX_OUTPUT_NOTES_PER_TX: usize = MAX_INPUT_NOTES_PER_TX;
 
 /// The minimum proof security level used by the Miden prover & verifier.
 pub const MIN_PROOF_SECURITY_LEVEL: u32 = 96;
@@ -28,6 +28,11 @@ pub const BATCH_NOTE_TREE_DEPTH: u8 = 10;
 /// The maximum number of notes that can be created in a single batch.
 pub const MAX_NOTES_PER_BATCH: usize = 1 << BATCH_NOTE_TREE_DEPTH;
 
+/// The maximum number of transaction in a single batch.
+pub const MAX_TRANSACTIONS_PER_BATCH: usize = MAX_NOTES_PER_BATCH;
+
+const _: () = assert!(MAX_NOTES_PER_BATCH >= MAX_OUTPUT_NOTES_PER_TX);
+
 // BLOCK
 // ================================================================================================
 
@@ -39,6 +44,8 @@ pub const MAX_BATCHES_PER_BLOCK: usize = 1 << (BLOCK_NOTE_TREE_DEPTH - BATCH_NOT
 
 /// Maximum number of output notes that can be created in a single block.
 pub const MAX_NOTES_PER_BLOCK: usize = MAX_NOTES_PER_BATCH * MAX_BATCHES_PER_BLOCK;
+
+const _: () = assert!(MAX_NOTES_PER_BLOCK >= MAX_NOTES_PER_BATCH);
 
 /// The block height of the genesis block
 pub const GENESIS_BLOCK: u32 = 0;

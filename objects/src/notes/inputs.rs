@@ -24,17 +24,15 @@ pub struct NoteInputs {
 }
 
 impl NoteInputs {
-    /// Maximum number of input values associated with a single note.
-    const MAX_INPUTS_PER_NOTE: usize = MAX_INPUTS_PER_NOTE;
-
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns [NoteInputs] instantiated from the provided values.
     ///
     /// # Errors
     /// Returns an error if the number of provided inputs is greater than 128.
     pub fn new(values: Vec<Felt>) -> Result<Self, NoteError> {
-        if values.len() > Self::MAX_INPUTS_PER_NOTE {
+        if values.len() > MAX_INPUTS_PER_NOTE {
             return Err(NoteError::too_many_inputs(values.len()));
         }
 
@@ -54,7 +52,7 @@ impl NoteInputs {
     /// The returned value is guaranteed to be smaller than or equal to 128.
     pub fn num_values(&self) -> u8 {
         debug_assert!(
-            self.values.len() < 128,
+            self.values.len() < MAX_INPUTS_PER_NOTE,
             "The constructor should have checked the number of inputs"
         );
         self.values.len() as u8

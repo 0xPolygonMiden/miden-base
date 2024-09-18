@@ -19,8 +19,8 @@ const.NOTE_MEM_SIZE=512
 # The depth of the Merkle tree used to commit to notes produced in a block.
 const.NOTE_TREE_DEPTH=16
 
-# The maximum number of notes that can be created in a single transaction (2^12).
-const.MAX_OUTPUT_NOTES_PER_TX=4096
+# The maximum number of notes that can be created in a single transaction.
+const.MAX_OUTPUT_NOTES_PER_TX=1023
 
 # Specifies a modulus used to asses if an account seed digest has the required number of trailing
 # zeros for a regular account (2^23).
