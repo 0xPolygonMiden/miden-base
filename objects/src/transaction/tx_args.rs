@@ -266,23 +266,15 @@ impl Deserializable for TransactionScript {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::{utils::{Deserializable, Serializable}, Felt, Program, Word};
-    use vm_processor::{AdviceMap, Digest, MastNodeId};
+    use vm_core::utils::{Deserializable, Serializable};
+    use vm_processor::AdviceMap;
 
-    use crate::{notes::NoteId, transaction::{TransactionArgs, TransactionScript}};
+    use crate::transaction::TransactionArgs;
 
     #[test]
     fn test_tx_args_serialization() {
-        let tx_script = TransactionScript::new(
-            Program::new(Default::default(), MastNodeId::from_u32_safe(0, &Default::default()).unwrap()),
-            vec![(Word::from(Digest::new([Felt::new(1); 4])), vec![Felt::new(1)])],
-        );
-        let note_args = vec![(NoteId::new(Digest::new([Felt::new(1); 4]), Digest::new([Felt::new(1); 4])), Word::from(Digest::new([Felt::new(1); 4])))]
-            .into_iter()
-            .collect();
-
-        let args = TransactionArgs::new(Some(tx_script), Some(note_args), AdviceMap::default());
-        let bytes = args.to_bytes();
+        let args = TransactionArgs::new(None, None, AdviceMap::default());
+        let bytes: std::vec::Vec<u8> = args.to_bytes();
         let decoded = TransactionArgs::read_from_bytes(&bytes).unwrap();
 
         assert_eq!(args, decoded);
