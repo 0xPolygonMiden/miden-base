@@ -12,6 +12,7 @@
 - [BREAKING] Refactored batch/block note trees (#834).
 - Set all procedures storage offsets of faucet accounts to `1` (#875).
 - Added `AccountStorageHeader` (#876).
+- Implemented generation of transaction kernel procedure hashes and offsets in build.rs (#887).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
