@@ -1,5 +1,5 @@
 use miden_lib::transaction::{
-    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_NEW_CODE_COMMITMENT_PTR},
+    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
     TransactionKernel,
 };
 use miden_objects::{
@@ -50,7 +50,7 @@ pub fn test_set_code_is_not_immediate() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, NATIVE_ACCT_NEW_CODE_COMMITMENT_PTR),
+        read_root_mem_value(&process, NEW_CODE_ROOT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
         "the code commitment must be cached",
     );

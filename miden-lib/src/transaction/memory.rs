@@ -14,7 +14,7 @@ pub type StorageSlot = u8;
 //
 // | Section           | Start address |  End address |
 // | -------------     | :------------:| :-----------:|
-// | Bookkeeping       | 0             | 5            |
+// | Bookkeeping       | 0             | 6            |
 // | Global inputs     | 100           | 105          |
 // | Block header      | 200           | 208          |
 // | Chain MMR         | 300           | 332?         |
@@ -31,13 +31,12 @@ pub type StorageSlot = u8;
 // | Vault root        | 1             | 1            |
 // | Storage root      | 2             | 2            |
 // | Code root         | 3             | 3            |
-// | New code root     | 4             | 4            |
-// | Padding           | 5             | 6            |
-// | Procedures number | 7             | 7            |
-// | Procedures info   | 8             | 520          |
-// | Num slots         | 521           | 521          |
-// | Storage slot info | 522           | 1034         |
-// | Padding           | 1035          | 2047         |
+// | Padding           | 4             | 6            |
+// | Num procedures    | 7             | 7            |
+// | Procedures info   | 8             | 519          |
+// | Num storage slots | 520           | 520          |
+// | Storage slot info | 521           | 1030         |
+// | Padding           | 1031          | 2047         |
 
 // RESERVED ACCOUNT STORAGE SLOTS
 // ------------------------------------------------------------------------------------------------
@@ -68,7 +67,10 @@ pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 3;
 pub const OUTPUT_VAULT_ROOT_PTR: MemoryAddress = 4;
 
 /// The memory address at which the pointer to the data of the currently accessing account is stored
-pub const CURRENT_ACCOUNT_DATA_OFFSET: MemoryAddress = 5;
+pub const CURRENT_ACCOUNT_DATA_PTR: MemoryAddress = 5;
+
+/// The memory address at which the native account's new code commitment is stored.
+pub const NEW_CODE_ROOT_PTR: MemoryAddress = 6;
 
 // GLOBAL INPUTS
 // ------------------------------------------------------------------------------------------------
@@ -161,6 +163,9 @@ pub const KERNEL_PROCEDURES_PTR: MemoryAddress = 401;
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 
+/// Maximum number of the foreign accounts that can be loaded.
+pub const MAX_NUM_FOREIGN_ACCOUNTS: u8 = 64;
+
 /// The size of the memory segment allocated to core account data (excluding new code commitment)
 pub const ACCT_DATA_MEM_SIZE: MemSize = 4;
 
@@ -205,14 +210,6 @@ pub const ACCT_CODE_COMMITMENT_OFFSET: MemoryOffset = 3;
 pub const NATIVE_ACCT_CODE_COMMITMENT_PTR: MemoryAddress =
     NATIVE_ACCOUNT_DATA_PTR + ACCT_CODE_COMMITMENT_OFFSET;
 
-/// The offset at which the account's new code commitment is stored relative to the start of the
-/// account data segment.
-pub const ACCT_NEW_CODE_COMMITMENT_OFFSET: MemoryOffset = 4;
-
-/// The memory address at which the account's new code commitment is stored in the native account.
-pub const NATIVE_ACCT_NEW_CODE_COMMITMENT_PTR: MemoryAddress =
-    NATIVE_ACCOUNT_DATA_PTR + ACCT_NEW_CODE_COMMITMENT_OFFSET;
-
 /// The offset at which the number of procedures contained in the account code is stored relative to
 /// the start of the account data segment.
 pub const NUM_ACCT_PROCEDURES_OFFSET: MemoryAddress = 7;
@@ -232,7 +229,7 @@ pub const NATIVE_ACCT_PROCEDURES_SECTION_PTR: MemoryAddress =
 
 /// The offset at which the number of storage slots contained in the account storage is stored
 /// relative to the start of the account data segment.
-pub const NUM_ACCT_STORAGE_SLOTS_OFFSET: MemoryAddress = 521;
+pub const NUM_ACCT_STORAGE_SLOTS_OFFSET: MemoryAddress = 520;
 
 /// The memory address at which number of storage slots contained in the account storage is stored
 /// in the native account.
@@ -241,7 +238,7 @@ pub const NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR: MemoryAddress =
 
 /// The offset at which the account storage slots section begins relative to the start of the
 /// account data segment.
-pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 522;
+pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 521;
 
 /// The memory address at which the account storage slots section begins in the native account.
 pub const NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR: MemoryAddress =
