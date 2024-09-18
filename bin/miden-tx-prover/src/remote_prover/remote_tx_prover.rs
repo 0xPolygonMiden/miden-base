@@ -7,23 +7,47 @@ use miden_tx::{
 use tokio::sync::Mutex;
 
 use crate::{ProveTransactionRequest, ProveTransactionResponse};
+use crate::server::generated::api::api_client::ApiClient;
+use tonic::transport::Channel;
+use tokio::time::Duration;
+
+#[derive(Debug)]
+enum RpcError {
+    ConnectionError(String),
+}
 
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
-    pub url: String,
-    pub client: Arc<Mutex<reqwest::Client>>,
+    rpc_api: Option<ApiClient<Channel>>,
+    endpoint: String,
+    timeout_ms: u64,
 }
 
 impl RemoteTransactionProver {
-    pub fn new(url: String) -> Self {
+    pub fn new(endpoint: String, timeout_ms: u64) -> Self {
         Self {
-            url,
-            client: Arc::new(Mutex::new(reqwest::Client::new())),
+            rpc_api: None,
+            endpoint,
+            timeout_ms,
+        }
+    }
+
+    async fn rpc_api(&mut self) -> Result<&mut ApiClient<Channel>, RpcError> {
+        if self.rpc_api.is_some() {
+            Ok(self.rpc_api.as_mut().unwrap())
+        } else {
+            let endpoint = tonic::transport::Endpoint::try_from(self.endpoint.clone())
+                .map_err(|err| RpcError::ConnectionError(err.to_string()))?
+                .timeout(Duration::from_millis(self.timeout_ms));
+            let rpc_api = ApiClient::connect(endpoint)
+                .await
+                .map_err(|err| RpcError::ConnectionError(err.to_string()))?;
+            Ok(self.rpc_api.insert(rpc_api))
         }
     }
 
     pub(crate) async fn prove(
-        &self,
+        &mut self,
         transaction: impl Into<TransactionWitness>,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         let tx_witness: TransactionWitness = transaction.into();
@@ -32,25 +56,10 @@ impl RemoteTransactionProver {
             transaction_witness: tx_witness.to_bytes(),
         };
 
-        // Send the POST request
-        let client = self.client.lock().await;
-        let response = client
-            .post(&format!("{}/prove", self.url))
-            .header("Content-Type", "application/json")
-            .body(tx_witness_request.into())
-            .send()
-            .await
-            .map_err(|_| TransactionProverError::HttpRequestError)?;
+        let rpc_api = self.rpc_api().await.unwrap();
+        let proven_transaction: ProvenTransaction = rpc_api.prove_transaction(tx_witness_request).await.unwrap().into_inner().try_into().unwrap();
 
-        // Check if the response status is success
-        if response.status().is_success() {
-            let ProveTransactionResponse { proven_transaction } =
-                response.try_into().map_err(|_| TransactionProverError::DeserializationError)?;
-
-            Ok(ProvenTransaction::read_from_bytes(&proven_transaction).unwrap())
-        } else {
-            Err(TransactionProverError::HttpRequestError)
-        }
+        Ok(proven_transaction)
     }
 }
 
