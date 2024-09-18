@@ -2,6 +2,7 @@
 
 ## 0.6.0 (TBD)
 
+- Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
 - [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).
 - Implemented `Display`, `TryFrom<&str>` and `FromStr` for `AccountStorageMode` (#861).
 - Implemented offset based storage access (#843).
