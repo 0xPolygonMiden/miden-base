@@ -6,18 +6,19 @@ use miden_crypto::{
 };
 
 use crate::{
-    notes::NoteMetadata,
+    notes::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BLOCK_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH, MAX_NOTES_PER_BLOCK,
+    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    MAX_NOTES_PER_BLOCK,
 };
 
-/// Wrapper over [SimpleSmt<BLOCK_NOTES_TREE_DEPTH>] for notes tree.
+/// Wrapper over [SimpleSmt<BLOCK_NOTE_TREE_DEPTH>] for notes tree.
 ///
 /// Each note is stored as two adjacent leaves: odd leaf for id, even leaf for metadata hash.
 /// ID's leaf index is calculated as [(batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) * 2].
 /// Metadata hash leaf is stored the next after id leaf: [id_index + 1].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTES_TREE_DEPTH>);
+pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTE_TREE_DEPTH>);
 
 impl BlockNoteTree {
     /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided
@@ -25,21 +26,21 @@ impl BlockNoteTree {
     ///
     /// Entry format: (note_index, note_id, note_metadata).
     ///
+    /// Value of each leaf is computed as: `hash(note_id || note_metadata)`.
     /// All leaves omitted from the entries list are set to [crate::EMPTY_WORD].
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The number of entries exceeds the maximum notes tree capacity, that is 2^21.
+    /// - The number of entries exceeds the maximum notes tree capacity, that is 2^16.
     /// - The provided entries contain multiple values for the same key.
     pub fn with_entries(
-        entries: impl IntoIterator<Item = (BlockNoteIndex, RpoDigest, NoteMetadata)>,
+        entries: impl IntoIterator<Item = (BlockNoteIndex, NoteId, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
-        let interleaved = entries.into_iter().flat_map(|(index, note_id, metadata)| {
-            let id_index = index.leaf_index().into();
-            [(id_index, note_id.into()), (id_index + 1, metadata.into())]
+        let leaves = entries.into_iter().map(|(index, note_id, metadata)| {
+            (index.leaf_index_value() as u64, compute_note_hash(note_id, &metadata).into())
         });
 
-        SimpleSmt::with_leaves(interleaved).map(Self)
+        SimpleSmt::with_leaves(leaves).map(Self)
     }
 
     /// Returns the root of the tree
@@ -48,17 +49,9 @@ impl BlockNoteTree {
     }
 
     /// Returns merkle path for the note with specified batch/note indexes.
-    ///
-    /// The returned path is to the node which is the parent of both note and note metadata node.
-    pub fn get_note_path(&self, index: BlockNoteIndex) -> Result<MerklePath, MerkleError> {
-        // get the path to the leaf containing the note (path len = 21)
-        let leaf_index = LeafIndex::new(index.leaf_index().into())?;
-
-        // move up the path by removing the first node, this path now points to the parent of the
-        // note path
-        let note_path = self.0.open(&leaf_index).path[1..].to_vec();
-
-        Ok(note_path.into())
+    pub fn get_note_path(&self, index: BlockNoteIndex) -> MerklePath {
+        // get the path to the leaf containing the note (path len = 16)
+        self.0.open(&index.leaf_index()).path
     }
 }
 
@@ -77,8 +70,15 @@ pub struct BlockNoteIndex {
 
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
-    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Self {
-        Self { batch_idx, note_idx_in_batch }
+    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Result<Self, BlockError> {
+        if note_idx_in_batch >= MAX_NOTES_PER_BATCH {
+            return Err(BlockError::TooManyNotesInBatch(note_idx_in_batch));
+        }
+        if batch_idx >= MAX_BATCHES_PER_BLOCK {
+            return Err(BlockError::TooManyTransactionBatches(batch_idx));
+        }
+
+        Ok(Self { batch_idx, note_idx_in_batch })
     }
 
     /// Returns the batch index.
@@ -91,16 +91,23 @@ impl BlockNoteIndex {
         self.note_idx_in_batch
     }
 
-    /// Returns an index to the node which the parent of both the note and note metadata.
-    pub fn to_absolute_index(&self) -> u32 {
-        const _: () = assert!(MAX_NOTES_PER_BLOCK <= u32::MAX as usize);
-        (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u32
+    /// Returns the leaf index of the note in the note tree.
+    pub fn leaf_index(&self) -> LeafIndex<BLOCK_NOTE_TREE_DEPTH> {
+        LeafIndex::new((self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64)
+            .expect("Unreachable: Input values must be valid at this point")
     }
 
-    /// Returns an index of the leaf containing the note.
-    fn leaf_index(&self) -> u32 {
-        const _: () = assert!(MAX_NOTES_PER_BLOCK * 2 <= u32::MAX as usize);
-        self.to_absolute_index() * 2
+    /// Returns the leaf index value of the note in the note tree.
+    pub fn leaf_index_value(&self) -> u16 {
+        const _: () = assert!(
+            MAX_NOTES_PER_BLOCK <= u16::MAX as usize + 1,
+            "Any note index is expected to fit in `u16`"
+        );
+
+        self.leaf_index()
+            .value()
+            .try_into()
+            .expect("Unreachable: Input values must be valid at this point")
     }
 }
 

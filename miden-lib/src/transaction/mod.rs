@@ -1,7 +1,7 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountCode, AccountId},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
@@ -30,6 +30,8 @@ mod errors;
 pub use errors::{
     TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
 };
+
+mod procedures;
 
 // CONSTANTS
 // ================================================================================================
@@ -90,6 +92,7 @@ impl TransactionKernel {
         init_advice_inputs: Option<AdviceInputs>,
     ) -> (StackInputs, AdviceInputs) {
         let account = tx_inputs.account();
+
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
@@ -124,7 +127,14 @@ impl TransactionKernel {
     ///
     /// The initial stack is defined:
     ///
-    /// > [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+    /// ```text
+    /// [
+    ///     BLOCK_HASH,
+    ///     acct_id,
+    ///     INITIAL_ACCOUNT_HASH,
+    ///     INPUT_NOTES_COMMITMENT,
+    /// ]
+    /// ```
     ///
     /// Where:
     /// - BLOCK_HASH, reference block for the transaction execution.
@@ -267,7 +277,7 @@ impl TransactionKernel {
     /// The `kernel` library is added separately because even though the library (`api.masm`) and
     /// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding
     /// it separately, we can expose procedures from `/lib` and test them individually.
-    pub fn assembler_testing() -> Assembler {
+    pub fn testing_assembler() -> Assembler {
         let source_manager = Arc::new(DefaultSourceManager::default());
         let kernel_library = Self::kernel_as_library();
 
@@ -278,5 +288,14 @@ impl TransactionKernel {
             .expect("failed to load miden-lib")
             .with_library(kernel_library)
             .expect("failed to load kernel library (/lib)")
+    }
+
+    /// Returns the testing assembler, and additionally contains the library for
+    /// [AccountCode::mock_library()], which is a mock wallet used in tests.
+    pub fn testing_assembler_with_mock_account() -> Assembler {
+        let assembler = Self::testing_assembler();
+        let library = AccountCode::mock_library(assembler.clone());
+
+        assembler.with_library(library).expect("failed to add mock account code")
     }
 }

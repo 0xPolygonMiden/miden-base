@@ -5,7 +5,7 @@ use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
         delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountType, AuthSecretKey,
-        SlotItem,
+        StorageSlot,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
@@ -18,7 +18,7 @@ use miden_objects::{
     },
     AccountError, BlockHeader, FieldElement, NoteError, ACCOUNT_TREE_DEPTH,
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
     crypto::{RpoRandomCoin, SimpleSmt},
@@ -36,7 +36,7 @@ const TIMESTAMP_START: u32 = 1693348223;
 /// Timestamp of timestamp on each new block
 const TIMESTAMP_STEP: u32 = 10;
 
-pub type MockAuthenticator = BasicAuthenticator<StdRng>;
+pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 
 // MOCK FUNGIBLE FAUCET
 // ================================================================================================
@@ -64,14 +64,14 @@ impl MockFungibleFaucet {
 struct MockAccount {
     account: Account,
     seed: Option<Word>,
-    authenticator: Option<BasicAuthenticator<StdRng>>,
+    authenticator: Option<BasicAuthenticator<ChaCha20Rng>>,
 }
 
 impl MockAccount {
     pub fn new(
         account: Account,
         seed: Option<Word>,
-        authenticator: Option<BasicAuthenticator<StdRng>>,
+        authenticator: Option<BasicAuthenticator<ChaCha20Rng>>,
     ) -> Self {
         MockAccount { account, seed, authenticator }
     }
@@ -89,7 +89,7 @@ impl MockAccount {
         self.seed.as_ref()
     }
 
-    pub fn authenticator(&self) -> &Option<BasicAuthenticator<StdRng>> {
+    pub fn authenticator(&self) -> &Option<BasicAuthenticator<ChaCha20Rng>> {
         &self.authenticator
     }
 }
@@ -128,13 +128,13 @@ impl PendingObjects {
     /// The root of the tree is a commitment to all notes created in the block. The commitment
     /// is not for all fields of the [Note] struct, but only for note metadata + core fields of
     /// a note (i.e., vault, inputs, script, and serial number).
-    pub fn build_notes_tree(&self) -> BlockNoteTree {
+    pub fn build_note_tree(&self) -> BlockNoteTree {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
                 batch.iter().enumerate().map(move |(note_index, note)| {
                     (
-                        BlockNoteIndex::new(batch_index, note_index),
-                        note.id().into(),
+                        BlockNoteIndex::new(batch_index, note_index).unwrap(),
+                        note.id(),
                         *note.metadata(),
                     )
                 })
@@ -300,16 +300,16 @@ impl MockChain {
     // ================================================================================================
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
 
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -328,13 +328,13 @@ impl MockChain {
             ZERO,
         ];
 
-        let faucet_metadata = SlotItem::new_value(1, 0, metadata);
+        let faucet_metadata = StorageSlot::Value(metadata);
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
-            .add_storage_item(faucet_metadata);
+            .add_storage_slot(faucet_metadata);
 
         let account = self.add_from_account_builder(auth_method, account_builder);
 
@@ -354,13 +354,13 @@ impl MockChain {
             ZERO,
         ];
 
-        let faucet_metadata = SlotItem::new_value(1, 0, metadata);
+        let faucet_metadata = StorageSlot::Value(metadata);
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .account_type(AccountType::FungibleFaucet)
-            .add_storage_item(faucet_metadata);
+            .add_storage_slot(faucet_metadata);
         MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
     }
 
@@ -373,14 +373,14 @@ impl MockChain {
     ) -> Account {
         let (account, seed, authenticator) = match auth_method {
             Auth::BasicAuth => {
-                let mut rng = StdRng::from_entropy();
+                let mut rng = ChaCha20Rng::from_seed(Default::default());
 
                 let (acc, seed, auth) = account_builder.build_with_auth(&mut rng).unwrap();
 
-                let authenticator = BasicAuthenticator::<StdRng>::new(&[(
-                    auth.public_key().into(),
-                    AuthSecretKey::RpoFalcon512(auth),
-                )]);
+                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
+                    &[(auth.public_key().into(), AuthSecretKey::RpoFalcon512(auth))],
+                    rng,
+                );
 
                 (acc, seed, Some(authenticator))
             },
@@ -430,13 +430,9 @@ impl MockChain {
         let mut block_headers_map: BTreeMap<u32, BlockHeader> = BTreeMap::new();
         for note in notes {
             let input_note = self.available_notes.get(note).unwrap().clone();
-            block_headers_map.insert(
-                input_note.location().unwrap().block_num(),
-                self.blocks
-                    .get(input_note.location().unwrap().block_num() as usize)
-                    .unwrap()
-                    .header(),
-            );
+            let note_block_num = input_note.location().unwrap().block_num();
+            let block_header = self.blocks.get(note_block_num as usize).unwrap().header();
+            block_headers_map.insert(note_block_num, block_header);
             input_notes.push(input_note);
         }
 
@@ -497,7 +493,7 @@ impl MockChain {
         for nullifier in self.pending_objects.created_nullifiers.iter() {
             self.nullifiers.insert(nullifier.inner(), [block_num.into(), ZERO, ZERO, ZERO]);
         }
-        let notes_tree = self.pending_objects.build_notes_tree();
+        let notes_tree = self.pending_objects.build_note_tree();
 
         let version = 0;
         let previous = self.blocks.last();
@@ -512,6 +508,9 @@ impl MockChain {
         let tx_hash =
             compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
 
+        // get the hash of all kernels
+        let kernel_root = TransactionKernel::kernel_root();
+
         // TODO: Set `proof_hash` to the correct value once the kernel is available.
         let proof_hash = Digest::default();
 
@@ -524,6 +523,7 @@ impl MockChain {
             nullifier_root,
             note_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
         );
@@ -542,11 +542,12 @@ impl MockChain {
                 // All note details should be OutputNote::Full at this point
                 match note {
                     OutputNote::Full(note) => {
-                        let block_note_index = BlockNoteIndex::new(batch_index, note_index);
-                        let note_path = notes_tree.get_note_path(block_note_index).unwrap();
+                        let block_note_index =
+                            BlockNoteIndex::new(batch_index, note_index).unwrap();
+                        let note_path = notes_tree.get_note_path(block_note_index);
                         let note_inclusion_proof = NoteInclusionProof::new(
                             block.header().block_num(),
-                            block_note_index.to_absolute_index(),
+                            block_note_index.leaf_index_value(),
                             note_path,
                         )
                         .unwrap();

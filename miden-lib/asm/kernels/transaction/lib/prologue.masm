@@ -18,9 +18,6 @@ const.ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH=0x0002000B
 # The account storage data does not match its commitment
 const.ERR_PROLOGUE_ACCT_STORAGE_MISMATCH=0x0002000C
 
-# Data store in account's storage exceeds the maximum capacity of 256 elements
-const.ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH=0x0002000D
-
 # Data store in account's storage contains invalid type discriminant
 const.ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID=0x0002000E
 
@@ -72,11 +69,17 @@ const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 # Cannot compute matching nullifier commitment using the provided input note data
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 
-# Computed account code hash does not match recorded account code hash
-const.ERR_ACCT_CODE_HASH_MISMATCH=0x0002004C
+# Computed account code commitment does not match recorded account code commitment
+const.ERR_ACCT_CODE_COMMITMENT_MISMATCH=0x0002004C
 
 # Number of account procedures exceeded the maximum limit of 256
 const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
+
+# Number of account storage slots exceeded the maximum limit of 255
+const.ERR_ACCT_TOO_MANY_STORAGE_SLOTS=0x0002004F
+
+# Computed account storage commitment does not match recorded account storage commitment
+const.ERR_ACCT_STORAGE_COMMITMENT_MISMATCH=0x00020050
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -98,6 +101,111 @@ proc.process_global_inputs
     exec.memory::set_nullifier_commitment dropw
 end
 
+# KERNEL DATA
+# =================================================================================================
+
+
+#! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel root and kernel 
+#! hash match the sequential hash of all kernels and sequential hash of kernel procedures 
+#! respectively. 
+#! 
+#! Inputs:
+#!   Operand stack: []
+#!   Advice stack: [kernel_version]
+#!   Advice map: {
+#!     KERNEL_ROOT: [KERNEL_HASHES]
+#!     KERNEL_HASH: [KERNEL_PROCEDURE_HASHES]
+#!   }
+#! Outputs:
+#!   Operand stack: []
+#!   Advice stack: []
+#! 
+#! Where:
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
+#!   current transaction
+#! - KERNEL_ROOT, accumulative hash from all kernel hashes.
+#! - [KERNEL_HASHES], array of each kernel hash
+#! - [KERNEL_PROCEDURE_HASHES], array of procedure hashes of the current kernel
+proc.process_kernel_data
+    # move the kernel offset to the operand stack 
+    adv_push.1
+    # OS  => [kernel_version]
+    # AS => []
+
+    # load the kernel root from the memory
+    exec.memory::get_kernel_root
+    # OS  => [KERNEL_ROOT, kernel_version]
+    # AS => []
+
+    # push the kernel hashes from the advice map to the advice stack 
+    adv.push_mapvaln
+    # OS  => [KERNEL_ROOT, kernel_version]
+    # AS => [len_felts, [KERNEL_HASHES]]
+
+    # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the 
+    # number of Words from it
+    adv_push.1 div.4
+    # OS  => [len_words, KERNEL_ROOT, kernel_version]
+    # AS => [[KERNEL_HASHES]]
+
+    # get the pointer to the memory where kernel hashes will be stored
+    # Note: for now we use the same address for kernel hash and for kernel procedures since there is
+    # only one kernel and its hash will be overwritten by the procedures anyway. 
+    exec.memory::get_kernel_procedures_ptr swap
+    # OS  => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_version]
+    # AS => [[KERNEL_HASHES]]
+
+    # store the kernel hashes in memory
+    exec.mem::pipe_words_to_memory
+    # OS  => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
+    # AS => []
+
+    # assert that sequential hash matches the precomputed kernel root
+    movup.4 drop assert_eqw
+    # OS  => [kernel_version]
+    # AS => []
+
+    # get the hash of the kernel which will be used in the current transaction
+    exec.memory::get_kernel_procedures_ptr add 
+    # OS  => [kernel_ptr]
+    # AS => []
+
+    padw movup.4 mem_loadw
+    # OS  => [KERNEL_HASH]
+    # AS => []
+
+    # push the procedure hashes of the chosen kernel from the advice map to the advice stack    
+    adv.push_mapvaln
+    # OS  => [KERNEL_HASH]
+    # AS => [len_felts, [PROC_HASHES]]
+
+    # move the number of felt elements in the [PROC_HASHES] array to the stack and get the 
+    # number of Words from it
+    adv_push.1 div.4
+    # OS  => [len_words, KERNEL_HASH]
+    # AS => [[PROC_HASHES]]
+
+    # store the number of the procedures of the chosen kernel to the memory
+    dup exec.memory::set_num_kernel_procedures
+    # OS  => [len_words, KERNEL_HASH]
+    # AS => [[PROC_HASHES]]
+
+    # get the pointer to the memory where hashes of the kernel procedures will be stored
+    exec.memory::get_kernel_procedures_ptr swap
+    # OS  => [len_words, kernel_procs_ptr, KERNEL_HASH]
+    # AS => [[PROC_HASHES]]
+
+    # store the kernel procedures to the memory
+    exec.mem::pipe_words_to_memory
+    # OS  => [SEQ_HASH, kernel_procs_ptr', KERNEL_HASH]
+    # AS => []
+
+    # assert that the precomputed hash matches the computed one
+    movup.4 drop assert_eqw
+    # OS  => []
+    # AS => []
+end
+
 # BLOCK DATA
 # =================================================================================================
 
@@ -110,9 +218,9 @@ end
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_HASH,
+#!     KERNEL_ROOT
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
-#!     EMPTY_WORD,
 #!     NOTE_ROOT,
 #! ]
 #! Output: []
@@ -123,6 +231,7 @@ end
 #! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
+#! - KERNEL_ROOT, accumulative hash from all kernel hashes.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, current protocol version.
@@ -196,91 +305,6 @@ end
 # ACCOUNT DATA
 # =================================================================================================
 
-#! Ingests the account storage slot type data and stores it in memory at the appropriate memory
-#! addresses.
-#!
-#! This is achieved by reading the storage type commitment from storage slot 255 and then reading
-#! the storage type data from the advice provider.
-#!
-#! Stack: []
-#! Merkle Store: { ACCT_STORAGE[slot_255] -> TYPES_COM }
-#! Advice Map: { TYPES_COM: [slot_0_type, slot_1_type, ..., slot_255_type] }
-#! Output: []
-proc.ingest_acct_storage_types
-    # get the storage slot types commitment
-    exec.account::get_slot_types_commitment_storage_slot exec.account::get_item
-    # => [TYPES_COM]
-
-    adv.push_mapval push.15683 drop             # FIX: wrap the decorator to ensure MAST uniqueness
-    # => [TYPES_COM]
-
-    # get the storage slot types data pointer
-    exec.memory::get_acct_storage_slot_type_data_ptr
-    # => [slot_type_data_ptr, TYPES_COM]
-
-    # prepare the stack for reading storage slot types
-    padw padw padw
-    # => [PERM, PERM, PERM, slot_type_data_ptr, TYPES_COM]
-
-    # read slot types and compute its digest. See `Advice Map` above for details.
-    repeat.32
-        adv_pipe hperm
-        # => [PERM, PERM, PERM, slot_type_data_ptr', TYPES_COM]
-    end
-
-    # extract the digest and drop the memory pointer
-    exec.native::state_to_digest movup.4 drop
-    # => [DIGEST, TYPES_COM]
-
-    # assert the digest matches the commitment
-    assert_eqw.err=ERR_PROLOGUE_ACCT_STORAGE_MISMATCH
-    # => []
-end
-
-#! Validates that storage slot types are well formed.
-#!
-#! This is achieved by reading the storage slot types from memory and asserting that they are
-#! well formed. Currently we only support scalar slots with an entry of maximum arity of 256.
-#!
-#! Stack: []
-#! Output: []
-proc.validate_storage_slot_types
-    # get the pointer at which the storage slot type data begins
-    exec.memory::get_acct_storage_slot_type_data_ptr
-    # => [slot_type_data_ptr]
-
-    repeat.32
-        # read the storage slot types from memory
-        padw dup.4 mem_loadw
-        # => [slot_i_type, slot_i+1_type, slot_i+2_type, slot_i+3_type, slot_type_data_ptr]
-
-        repeat.4
-            # split the type to get the slot type and entry arity
-            u32split
-            # => [arity, type, ...]
-
-            # assert the entry arity is less than or equal to 255
-            u32split assertz.err=ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH
-            push.255 u32lte assert.err=ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH
-            # => [type, ...]
-
-            # assert the slot type is valid
-            u32split assertz.err=ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID
-            exec.account::get_max_slot_type u32lte assert.err=ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID
-            # => [...]
-        end
-        # => [slot_type_data_ptr]
-
-        # increment the slot type data pointer
-        add.1
-        # => [slot_type_data_ptr']
-    end
-
-    # drop the slot type data pointer
-    drop
-    # => []
-end
-
 #! Validates that the account the transaction is being executed against satisfies the criteria
 #! for a new account.
 #!
@@ -289,10 +313,10 @@ end
 #!
 #!
 #! Apply the following validation to the new account:
-#!   * assert that the account id is valid.
-#!   * assert that the account vault is empty.
-#!   * assert that the account nonce is set to 0.
-#!   * read the account seed from the advice provider and assert it satisfies seed requirements.
+#!   - assert that the account id is valid.
+#!   - assert that the account vault is empty.
+#!   - assert that the account nonce is set to 0.
+#!   - read the account seed from the advice provider and assert it satisfies seed requirements.
 proc.validate_new_account
     # Assert the account id of the account is valid
     exec.memory::get_acct_id exec.account::validate_id
@@ -315,25 +339,6 @@ proc.validate_new_account
     assert_eqw.err=ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY
     # => []
 
-    # Assert storage slot types are well formed
-    # ---------------------------------------------------------------------------------------------
-    # validate storage slot types
-    exec.validate_storage_slot_types
-    # => []
-
-    # Assert slot types reserved slot is correctly initialized
-    # ---------------------------------------------------------------------------------------------
-    exec.account::get_slot_types_commitment_storage_slot exec.account::get_storage_slot_type_info
-    # => [entry_arity, storage_type]
-
-    # assert the slot type is a scalar of arity 64
-    push.64
-    assert_eq.err=ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE
-    assertz.err=ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE
-    # => []
-
-    drop drop
-
     # Assert faucet reserved slot is correctly initialized
     # ---------------------------------------------------------------------------------------------
     # check if the account is a faucet
@@ -352,30 +357,30 @@ proc.validate_new_account
 
         if.true
             # assert the fungible faucet reserved slot is initialized correctly (EMPTY_WORD)
-            or or or assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
+            # TODO: Switch to standard library implementation when available (miden-vm/#1483)
+            exec.is_empty_word_dropped not assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
             # => []
 
-            # get the faucet reserved storage data slot type and entry arity
-            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type_info
-            # => [entry_arity, storage_type]
+            # get the faucet reserved storage data slot type
+            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type
+            # => [slot_type]
 
-            # assert the fungible faucet reserved slot type is a scalar of arity 0
-            assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT
-            assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
+            # assert the fungible faucet reserved slot type == value
+            exec.constants::get_storage_slot_type_value eq assert.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
             # => []
         else
             # assert the non-fungible faucet reserved slot is initialized correctly (root of
             # empty SMT)
             exec.constants::get_empty_smt_root assert_eqw.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT
             # => []
+            push.1001 drop                              # TODO: remove line, see miden-vm/#1122
 
-            # get the faucet reserved storage data slot type and entry arity
-            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type_info
-            # => [entry_arity, storage_type]
+            # get the faucet reserved storage data slot type
+            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type
+            # => [slot_type]
 
-            # assert the non-fungible faucet reserved slot type is a map of arity 0
-            assertz.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT
-            assert.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
+            # assert the non-fungible faucet reserved slot type == map
+            exec.constants::get_storage_slot_type_map eq assert.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
             # => []
         end
     else
@@ -390,10 +395,72 @@ proc.validate_new_account
     # => []
 end
 
+#! Validates that storage slots match storage commitment and saves storage slots into memory.
+#!
+#! This is achieved by reading the storage slots from the advice map, saving them into memory,
+#! and sequentially hashing them before comparing the final hash to the storage commitment.
+#!
+#! Stack: [STORAGE_COMMITMENT]
+#! Advice stack: [num_storage_slots, STORAGE_SLOT_VALUE_0, storage_slot_type_0, 0, 0, 0, ..., STORAGE_SLOT_VALUE_N, storage_slot_type_n, 0, 0, 0]
+#! Output: []
+proc.validate_account_storage_slots
+    # move storage slot data from the advice map to the advice stack
+    adv.push_mapval push.15160 drop                # TODO: remove line, see miden-vm/#1122
+
+    # push the number of storage slots onto the operand stack before storing it into memory
+    adv_push.1
+    # => [num_storage_slots, STORAGE_COMMITMENT]
+
+    # assert that account does not exceed allowed maximum number of storage slots
+    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCT_TOO_MANY_STORAGE_SLOTS
+    # => [num_storage_slots, STORAGE_COMMITMENT]
+
+    # store number of storage slots in memory
+    dup exec.memory::set_num_storage_slots
+    # => [num_storage_slots, STORAGE_COMMITMENT]
+
+    # setup acct_storage_slots_offset and end_ptr for reading from advice stack
+    mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
+    # => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
+
+    # pad stack before reading from advice stack
+    padw padw padw
+    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, STORAGE_COMMITMENT]
+
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # => [PERM, PERM, PERM, end_ptr, STORAGE_COMMITMENT]
+
+    # extract the digest
+    exec.native::state_to_digest
+    # => [DIGEST, end_ptr, STORAGE_COMMITMENT]
+
+    # drop end_ptr
+    movup.4 drop
+    # => [DIGEST, STORAGE_COMMITMENT]
+
+    # verify hashed account storage slots match account storage commitment
+    assert_eqw.err=ERR_ACCT_STORAGE_COMMITMENT_MISMATCH
+    # => []
+end
+
+#! Returns whether the input word is equal to EMPTY_WORD as a boolean value.
+#!
+#! This procedure drops the input word.
+#! Stack: [INPUT_WORD]
+#! Output: [is_empty]
+#!
+#! Where:
+#! - INPUT_WORD is the word is compared with EMPTY_WORD.
+#! - is_empty is a boolean value that is 1 if INPUT_WORD is equal to EMPTY_WORD, and 0 otherwise.
+proc.is_empty_word_dropped
+    eq.0 swap eq.0 and swap eq.0 and swap eq.0 and
+end
+
 #! Validates that account procedures match account code commitment and saves procedure information
 #! into memory.
 #!
-#! This is achieved by reading account procedure information from the advice map, saving it into
+#! This is achieved by reading account procedure information from the advice map, saving them into
 #! memory, and sequentially hashing them before comparing the final hash to the account code
 #! commitment.
 #!
@@ -401,46 +468,47 @@ end
 #! offset associated with this procedure.
 #!
 #! Stack: [CODE_COMMITMENT]
+#! Advice stack: [num_account_procedures, PROC_0, storage_offset_0, 0, 0, 0, ..., PROC_N, storage_offset_n, 0, 0, 0]
 #! Output: []
 proc.validate_account_procedures
-  # move procedure data from the advice map to the advice stack 
-  adv.push_mapval push.15161 drop               # FIX: wrap the decorator to ensure MAST uniqueness
-  
-  # push the number of procedures onto the operand stack before storing it in memory
-  adv_push.1
-  # => [num_procs, CODE_COMMITMENT]
+    # move procedure data from the advice map to the advice stack
+    adv.push_mapval push.15161 drop               # TODO: remove line, see miden-vm/#1122
 
-  # assert that account does not exceed allowed maximum number of procedures
-  dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
-  # => [num_procs, CODE_COMMITMENT]
+    # push the number of procedures onto the operand stack before storing it in memory
+    adv_push.1
+    # => [num_procs, CODE_COMMITMENT]
 
-  # store number of procedures in memory
-  dup exec.memory::set_num_account_procedures
-  # => [num_procs, CODE_COMMITMENT]
+    # assert that account does not exceed allowed maximum number of procedures
+    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+    # => [num_procs, CODE_COMMITMENT]
 
-  # setup acct_proc_offset and end_ptr for reading from advice stack
-  mul.2 exec.memory::get_account_procedures_section_offset dup movdn.2 add swap
-  # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # store number of procedures in memory
+    dup exec.memory::set_num_account_procedures
+    # => [num_procs, CODE_COMMITMENT]
 
-  # pad stack before reading from advice stack
-  padw padw padw
-  # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # setup acct_proc_offset and end_ptr for reading from advice stack
+    mul.2 exec.memory::get_acct_procedures_section_offset dup movdn.2 add swap
+    # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
-  # read the data from advice stack to memory and hash
-  exec.mem::pipe_double_words_to_memory
-  # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
+    # pad stack before reading from advice stack
+    padw padw padw
+    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
-  # extract the digest
-  exec.native::state_to_digest
-  # => [DIGEST, end_ptr, CODE_COMMITMENT]
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
 
-  # drop end_ptr
-  movup.4 drop
-  # => [DIGEST, CODE_COMMITMENT]
+    # extract the digest
+    exec.native::state_to_digest
+    # => [DIGEST, end_ptr, CODE_COMMITMENT]
 
-  # verify hashed account procedures match account code commitment
-  assert_eqw.err=ERR_ACCT_CODE_HASH_MISMATCH
-  # => []
+    # drop end_ptr
+    movup.4 drop
+    # => [DIGEST, CODE_COMMITMENT]
+
+    # verify hashed account procedures match account code commitment
+    assert_eqw.err=ERR_ACCT_CODE_COMMITMENT_MISMATCH
+    # => []
 end
 
 #! Saves the account data to memory and validates it.
@@ -455,17 +523,17 @@ end
 #!   and the account nonce is not zero
 #!
 #! Stack: []
-#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_COMMITMENT]
+#! Advice stack: [account_id, 0, 0, account_nonce, ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_COMMITMENT, ACCOUNT_CODE_COMMITMENT]
 #! Output: []
 #!
 #! Where:
 #! - account_id, the account that the transaction is being executed against.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
-#! - ACCOUNT_STORAGE_ROOT, account's storage root.
+#! - ACCOUNT_STORAGE_COMMITMENT, account's storage commitment.
 #! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
-    # Copy the account data from the advice stack to memory and hash it
+    # Copy the account data from the advice provider to memory and hash it
     # ---------------------------------------------------------------------------------------------
 
     exec.memory::get_acct_data_ptr
@@ -481,6 +549,37 @@ proc.process_account_data
     movup.4 drop
     # => [ACCT_HASH]
 
+    # assert the account id matches the account id in global inputs
+    exec.memory::get_global_acct_id
+    exec.memory::get_acct_id
+    assert_eq.err=ERR_PROLOGUE_ACCT_ID_MISMATCH
+    # => [ACCT_HASH]
+
+    # store a copy of the initial nonce in global inputs
+    exec.memory::get_acct_nonce
+    exec.memory::set_init_nonce
+    # => [ACCT_HASH]
+
+    # validates and stores account storage slots in memory.
+    exec.memory::get_acct_storage_commitment
+    exec.validate_account_storage_slots
+    # => [ACCT_HASH]
+
+    # set the new account code commitment to the initial account code root this is used for managing
+    # code commitment updates
+    exec.memory::get_acct_code_commitment
+    exec.memory::set_new_acct_code_commitment
+    # => [ACCOUNT_CODE_COMMITMENT, ACCT_HASH]
+
+    # validates and stores account procedures in memory.
+    exec.validate_account_procedures
+    # => [ACCT_HASH]
+
+    # copy the initial account vault hash to the input vault hash to support transaction asset
+    # invariant checking
+    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root dropw
+    # => [ACCT_HASH]
+
     # Validate the account
     # ---------------------------------------------------------------------------------------------
 
@@ -490,10 +589,6 @@ proc.process_account_data
 
     # clean the stack
     movdn.8 dropw dropw
-    # => [is_new, ACCT_HASH]
-
-    # ingest storage slot type data
-    exec.ingest_acct_storage_types
     # => [is_new, ACCT_HASH]
 
     # process conditional logic depending on whether the account is new or existing
@@ -517,33 +612,8 @@ proc.process_account_data
         # => []
     end
 
-    # Set the account storage, vault, code, and nonce memory locations
-    # ---------------------------------------------------------------------------------------------
-
-    # assert the account id matches the account id in global inputs
-    exec.memory::get_global_acct_id
-    exec.memory::get_acct_id
-    assert_eq.err=ERR_PROLOGUE_ACCT_ID_MISMATCH
-    # => []
-
-    # store a copy of the initial nonce in global inputs
-    exec.memory::get_acct_nonce
-    exec.memory::set_init_nonce
-    # => []
-
-    # set the new account code commitment to the initial account code root this is used for managing
-    # code commitment updates
-    exec.memory::get_acct_code_commitment
-    exec.memory::set_new_acct_code_commitment
-
-    # validates and stores account procedures in memory.
-    exec.validate_account_procedures
-    # => []
-
-    # copy the initial account vault hash to the input vault hash to support transaction asset
-    # invariant checking
-    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root dropw
-    # => []
+    # validate account procedure storage offsets
+    exec.account::validate_storage_offsets
 end
 
 # INPUT NOTES DATA
@@ -986,8 +1056,8 @@ proc.process_input_notes_data
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
-        exec.memory::get_input_notes_commitment 
-        adv.push_mapval push.15787 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        exec.memory::get_input_notes_commitment
+        adv.push_mapval push.15787 drop         # TODO: remove line, see miden-vm/#1122
         dropw
     end
     # => [num_notes]
@@ -1006,7 +1076,7 @@ proc.process_input_notes_data
     # - Below the hasher state in the stack is the current note index. This number is used for two
     #   purposes:
     #   1. Compute the input note's memory addresses, the index works as an offset.
-    #   2. Determine the loop condition. The loop below runs until all inpute notes have been
+    #   2. Determine the loop condition. The loop below runs until all input notes have been
     #      processed.
     # - The num_notes is kept at position 13, because dup.13 is cheap.
     # - The [idx, num_notes] pair is kept in a word boundary, so that its word can be swapped with a
@@ -1090,20 +1160,26 @@ end
 #!  - The account data is invalid.
 #!  - Any of the input notes do note exist in the note db.
 #!
-#! Operand stack: [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Operand stack: [
+#!     BLOCK_HASH, 
+#!     account_id, 
+#!     INITIAL_ACCOUNT_HASH, 
+#!     INPUT_NOTES_COMMITMENT, 
+#!  ]
 #! Advice stack: [
 #!     PREVIOUS_BLOCK_HASH,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_HASH,
+#!     KERNEL_ROOT
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
-#!     EMPTY_WORD,
 #!     NOTE_ROOT,
+#!     kernel_version
 #!     [account_id, 0, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
-#!     ACCOUNT_STORAGE_ROOT,
+#!     ACCOUNT_STORAGE_COMMITMENT,
 #!     ACCOUNT_CODE_COMMITMENT,
 #!     number_of_input_notes,
 #!     TX_SCRIPT_ROOT,
@@ -1111,6 +1187,8 @@ end
 #! Advice map: {
 #!      CHAIN_MMR_HASH: MMR_PEAKS,
 #!      INPUT_NOTES_COMMITMENT => NOTE_DATA,
+#!      KERNEL_ROOT => KERNEL_HASHES
+#!      KERNEL_HASH => KERNEL_PROCEDURE_HASHES
 #! }
 #! Output: []
 #!
@@ -1119,6 +1197,7 @@ end
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
+#! - KERNEL_ROOT, accumulative hash from all kernel hashes.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
@@ -1129,9 +1208,11 @@ end
 #! - version, the current protocol version.
 #! - timestamp, the current timestamp.
 #! - NOTE_ROOT, root of the tree with all notes created in the block.
+#! - kernel_version, index of the desired kernel in the array of all kernels available for the 
+#!   current transaction.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
-#! - ACCOUNT_STORAGE_ROOT, account's storage root.
+#! - ACCOUNT_STORAGE_COMMITMENT, account's storage commitment.
 #! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 #! - number_of_input_notes, number of input notes.
 #! - TX_SCRIPT_ROOT, the transaction's script root.
@@ -1142,6 +1223,7 @@ export.prepare_transaction
     # => []
 
     exec.process_block_data
+    exec.process_kernel_data
     exec.process_chain_data
     exec.process_account_data
     exec.process_input_notes_data

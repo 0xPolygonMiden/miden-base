@@ -14,10 +14,12 @@ pub type StorageSlot = u8;
 // | -------------     | :------------:| :-----------:|
 // | Bookkeeping       | 0             | 4            |
 // | Global inputs     | 100           | 105          |
-// | Block header      | 200           | 207          |
+// | Block header      | 200           | 208          |
 // | Chain MMR         | 300           | 332?         |
 // | Account data      | 400           | 651?         |
-// | Account procedures| 999           | ?            |
+// | Account storage   | 499           | ?            |
+// | Account procedures| 1499          | ?            |
+// | Kernel data       | 9_999         | 10_028?      |
 // | Input notes       | 1_048_576     | ?            |
 // | Output notes      | 4_194_304     | ?            |
 
@@ -29,10 +31,7 @@ pub type StorageSlot = u8;
 /// - Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance].
 /// - Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible
 ///   assets.
-pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 254;
-
-/// The account storage slot at which the slot types commitment is stored.
-pub const SLOT_TYPES_COMMITMENT_STORAGE_SLOT: StorageSlot = 255;
+pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 0;
 
 // BOOKKEEPING
 // ------------------------------------------------------------------------------------------------
@@ -97,11 +96,14 @@ pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 203;
 /// The memory address at which the TX hash is stored
 pub const TX_HASH_PTR: MemoryAddress = 204;
 
+/// The memory address at which the kernel root is stored
+pub const KERNEL_ROOT_PTR: MemoryAddress = 205;
+
 /// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: MemoryAddress = 205;
+pub const PROOF_HASH_PTR: MemoryAddress = 206;
 
 /// The memory address at which the block number is stored
-pub const BLOCK_METADATA_PTR: MemoryAddress = 206;
+pub const BLOCK_METADATA_PTR: MemoryAddress = 207;
 
 /// The index of the block number within the block metadata
 pub const BLOCK_NUMBER_IDX: DataIndex = 0;
@@ -113,7 +115,7 @@ pub const PROTOCOL_VERSION_IDX: DataIndex = 1;
 pub const TIMESTAMP_IDX: DataIndex = 2;
 
 /// The memory address at which the note root is stored
-pub const NOTE_ROOT_PTR: MemoryAddress = 207;
+pub const NOTE_ROOT_PTR: MemoryAddress = 208;
 
 // CHAIN DATA
 // ------------------------------------------------------------------------------------------------
@@ -159,13 +161,13 @@ pub const ACCT_VAULT_ROOT_OFFSET: MemoryOffset = 1;
 /// The memory address at which the account vault root is stored.
 pub const ACCT_VAULT_ROOT_PTR: MemoryAddress = ACCT_DATA_SECTION_OFFSET + ACCT_VAULT_ROOT_OFFSET;
 
-/// The offset at which the account storage root is stored relative to the start of the account
-/// data segment.
-pub const ACCT_STORAGE_ROOT_OFFSET: MemoryOffset = 2;
+/// The offset at which the account storage commitment is stored relative to the start of the
+/// account data segment.
+pub const ACCT_STORAGE_COMMITMENT_OFFSET: MemoryOffset = 2;
 
-/// The memory address at which the account storage root is stored.
-pub const ACCT_STORAGE_ROOT_PTR: MemoryAddress =
-    ACCT_DATA_SECTION_OFFSET + ACCT_STORAGE_ROOT_OFFSET;
+/// The memory address at which the account storage commitment is stored.
+pub const ACCT_STORAGE_COMMITMENT_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_STORAGE_COMMITMENT_OFFSET;
 
 /// The offset at which the account code commitment is stored relative to the start of the account
 /// data segment.
@@ -183,14 +185,28 @@ pub const ACCT_NEW_CODE_COMMITMENT_OFFSET: MemoryOffset = 4;
 pub const ACCT_NEW_CODE_COMMITMENT_PTR: MemoryAddress =
     ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_COMMITMENT_OFFSET;
 
-/// The memory address at which the account storage slot type data begins
-pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
+/// The memory address at which the number of storage slots contained in the account storage is
+/// stored
+pub const NUM_ACCT_STORAGE_SLOTS_PTR: MemoryAddress = 499;
+
+/// The memory address at which the account storage slots section begins.
+pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 500;
 
 /// The memory address at which the number of procedures contained in the account code is stored
-pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 999;
+pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 1499;
 
 /// The memory address at which the account procedures section begins.
-pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1000;
+pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1500;
+
+// KERNEL DATA
+// ------------------------------------------------------------------------------------------------
+
+/// The memory address at which the number of the procedures of the selected kernel is stored.
+pub const NUM_KERNEL_PROCEDURES_PTR: MemoryAddress = 9999;
+
+/// The memory address at which the section, where the hashes of the kernel procedures are stored,
+/// begins
+pub const KERNEL_PROCEDURES_PTR: MemoryAddress = 10000;
 
 // NOTES DATA
 // ================================================================================================

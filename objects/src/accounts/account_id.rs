@@ -2,7 +2,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::fmt;
+use core::{fmt, str::FromStr};
 
 use super::{
     get_account_seed, AccountError, ByteReader, Deserializable, DeserializationError, Digest, Felt,
@@ -85,6 +85,43 @@ pub enum AccountStorageMode {
     Private = PRIVATE,
 }
 
+impl fmt::Display for AccountStorageMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AccountStorageMode::Public => write!(f, "public"),
+            AccountStorageMode::Private => write!(f, "private"),
+        }
+    }
+}
+
+impl TryFrom<&str> for AccountStorageMode {
+    type Error = AccountError;
+
+    fn try_from(value: &str) -> Result<Self, AccountError> {
+        match value.to_lowercase().as_str() {
+            "public" => Ok(AccountStorageMode::Public),
+            "private" => Ok(AccountStorageMode::Private),
+            _ => Err(AccountError::InvalidAccountStorageMode),
+        }
+    }
+}
+
+impl TryFrom<String> for AccountStorageMode {
+    type Error = AccountError;
+
+    fn try_from(value: String) -> Result<Self, AccountError> {
+        AccountStorageMode::from_str(&value)
+    }
+}
+
+impl FromStr for AccountStorageMode {
+    type Err = AccountError;
+
+    fn from_str(input: &str) -> Result<AccountStorageMode, AccountError> {
+        AccountStorageMode::try_from(input)
+    }
+}
+
 // ACCOUNT ID
 // ================================================================================================
 
@@ -123,15 +160,16 @@ impl AccountId {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new account ID derived from the specified seed, code commitment and storage root.
+    /// Returns a new account ID derived from the specified seed, code commitment and storage
+    /// commitment.
     ///
-    /// The account ID is computed by hashing the seed, code commitment and storage root and using 1
-    /// element of the resulting digest to form the ID. Specifically we take element 0. We also
-    /// require that the last element of the seed digest has at least `23` trailing zeros if it
-    /// is a regular account, or `31` trailing zeros if it is a faucet account.
+    /// The account ID is computed by hashing the seed, code commitment and storage commitment and
+    /// using 1 element of the resulting digest to form the ID. Specifically we take element 0.
+    /// We also require that the last element of the seed digest has at least `23` trailing
+    /// zeros if it is a regular account, or `31` trailing zeros if it is a faucet account.
     ///
     /// The seed digest is computed using a sequential hash over
-    /// hash(SEED, CODE_COMMITMENT, STORAGE_ROOT, ZERO).  This takes two permutations.
+    /// hash(SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ZERO).  This takes two permutations.
     ///
     /// # Errors
     /// Returns an error if the resulting account ID does not comply with account ID rules:
@@ -142,9 +180,9 @@ impl AccountId {
     pub fn new(
         seed: Word,
         code_commitment: Digest,
-        storage_root: Digest,
+        storage_commitment: Digest,
     ) -> Result<Self, AccountError> {
-        let seed_digest = compute_digest(seed, code_commitment, storage_root);
+        let seed_digest = compute_digest(seed, code_commitment, storage_commitment);
 
         Self::validate_seed_digest(&seed_digest)?;
         seed_digest[0].try_into()
@@ -162,18 +200,18 @@ impl AccountId {
     #[cfg(any(feature = "testing", test))]
     pub fn new_dummy(init_seed: [u8; 32], account_type: AccountType) -> Self {
         let code_commitment = Digest::default();
-        let storage_root = Digest::default();
+        let storage_commitment = Digest::default();
 
         let seed = get_account_seed(
             init_seed,
             account_type,
             AccountStorageMode::Public,
             code_commitment,
-            storage_root,
+            storage_commitment,
         )
         .unwrap();
 
-        Self::new(seed, code_commitment, storage_root).unwrap()
+        Self::new(seed, code_commitment, storage_commitment).unwrap()
     }
 
     // PUBLIC ACCESSORS
@@ -219,9 +257,9 @@ impl AccountId {
         account_type: AccountType,
         storage_mode: AccountStorageMode,
         code_commitment: Digest,
-        storage_root: Digest,
+        storage_commitment: Digest,
     ) -> Result<Word, AccountError> {
-        get_account_seed(init_seed, account_type, storage_mode, code_commitment, storage_root)
+        get_account_seed(init_seed, account_type, storage_mode, code_commitment, storage_commitment)
     }
 
     /// Creates an Account Id from a hex string. Assumes the string starts with "0x" and
@@ -399,13 +437,17 @@ fn parse_felt(bytes: &[u8]) -> Result<Felt, AccountError> {
     Felt::try_from(bytes).map_err(|err| AccountError::AccountIdInvalidFieldElement(err.to_string()))
 }
 
-/// Returns the digest of two hashing permutations over the seed, code commitment, storage root and
-/// padding.
-pub(super) fn compute_digest(seed: Word, code_commitment: Digest, storage_root: Digest) -> Digest {
+/// Returns the digest of two hashing permutations over the seed, code commitment, storage
+/// commitment and padding.
+pub(super) fn compute_digest(
+    seed: Word,
+    code_commitment: Digest,
+    storage_commitment: Digest,
+) -> Digest {
     let mut elements = Vec::with_capacity(16);
     elements.extend(seed);
     elements.extend(*code_commitment);
-    elements.extend(*storage_root);
+    elements.extend(*storage_commitment);
     elements.resize(16, ZERO);
     Hasher::hash_elements(&elements)
 }

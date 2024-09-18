@@ -10,14 +10,14 @@ use super::{hash_account, Account, AccountId, Digest, Felt};
 /// - id: the account id ([AccountId]) of the account.
 /// - nonce: the nonce of the account.
 /// - vault_root: a commitment to the account's vault ([super::AssetVault]).
-/// - storage_root: accounts storage root ([super::AccountStorage]).
+/// - storage_commitment: a commitment to the account's storage ([super::AccountStorage]).
 /// - code_commitment: a commitment to the account's code ([super::AccountCode]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountHeader {
     id: AccountId,
     nonce: Felt,
     vault_root: Digest,
-    storage_root: Digest,
+    storage_commitment: Digest,
     code_commitment: Digest,
 }
 
@@ -29,14 +29,14 @@ impl AccountHeader {
         id: AccountId,
         nonce: Felt,
         vault_root: Digest,
-        storage_root: Digest,
+        storage_commitment: Digest,
         code_commitment: Digest,
     ) -> Self {
         Self {
             id,
             nonce,
             vault_root,
-            storage_root,
+            storage_commitment,
             code_commitment,
         }
     }
@@ -45,11 +45,17 @@ impl AccountHeader {
     // --------------------------------------------------------------------------------------------
     /// Returns hash of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root,
+    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
     /// code_commitment). Computing the account hash requires 2 permutations of the hash
     /// function.
     pub fn hash(&self) -> Digest {
-        hash_account(self.id, self.nonce, self.vault_root, self.storage_root, self.code_commitment)
+        hash_account(
+            self.id,
+            self.nonce,
+            self.vault_root,
+            self.storage_commitment,
+            self.code_commitment,
+        )
     }
 
     /// Returns the id of this account.
@@ -67,9 +73,9 @@ impl AccountHeader {
         self.vault_root
     }
 
-    /// Returns the storage root of this account.
-    pub fn storage_root(&self) -> Digest {
-        self.storage_root
+    /// Returns the storage commitment of this account.
+    pub fn storage_commitment(&self) -> Digest {
+        self.storage_commitment
     }
 
     /// Returns the code commitment of this account.
@@ -90,7 +96,7 @@ impl From<&Account> for AccountHeader {
             id: account.id(),
             nonce: account.nonce(),
             vault_root: account.vault().commitment(),
-            storage_root: account.storage().root(),
+            storage_commitment: account.storage().commitment(),
             code_commitment: account.code().commitment(),
         }
     }

@@ -44,3 +44,5 @@ jobs:
           rustup update --no-self-update
           rustup target add wasm32-unknown-unknown
           make build-no-std
+          make build-no-std-testing
+
