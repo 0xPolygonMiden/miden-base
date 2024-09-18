@@ -39,6 +39,7 @@ miden-prover = { version = "0.10", default-features = false }
 miden-stdlib = { version = "0.10", default-features = false }
 miden-tx = { path = "miden-tx", version = "0.6" }
 miden-verifier = { version = "0.10", default-features = false }
+once_cell = { version = "=1.19.0", default-features = false, features = ["critical-section"] }
 rand = { version = "0.8", default-features = false }
 vm-core = { package = "miden-core", version = "0.10", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.10", default-features = false }

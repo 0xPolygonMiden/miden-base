@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
-use std::sync::LazyLock;
 
 use miden_objects::{utils::Deserializable, Digest, Felt, Hasher};
+use once_cell::sync::OnceCell;
 
 use super::TransactionKernel;
 
@@ -11,12 +11,11 @@ use super::TransactionKernel;
 /// Number of currently used kernel versions.
 const NUM_VERSIONS: usize = 1;
 
-// Include file with kernel 0 procedure hashes generated in build.rs
-const PROCEDURES_V0: &[u8] = include_bytes!("../../kernel_procs_v0.bin");
+/// Include file with kernel 0 procedure hashes generated in build.rs
+const PROCEDURES_RAW: [&[u8]; NUM_VERSIONS] = [include_bytes!("../../kernel_procs_v0.bin")];
 
 /// Array of all available kernels.
-pub static PROCEDURES: [LazyLock<Vec<Felt>>; NUM_VERSIONS] =
-    [LazyLock::new(|| Vec::read_from_bytes(PROCEDURES_V0).unwrap())];
+pub static PROCEDURES: [OnceCell<Vec<Felt>>; NUM_VERSIONS] = [OnceCell::new()];
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -36,6 +35,10 @@ impl TransactionKernel {
         PROCEDURES
             .get(kernel_version as usize)
             .expect("provided kernel index is out of bounds")
+            .get_or_init(|| {
+                Vec::read_from_bytes(PROCEDURES_RAW[kernel_version as usize])
+                    .expect("failed to deserialize kernel procedures")
+            })
             .to_vec()
     }
 

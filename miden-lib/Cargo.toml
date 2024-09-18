@@ -17,7 +17,7 @@ edition.workspace = true
 [features]
 concurrent = ["miden-objects/concurrent", "std"]
 default = ["std"]
-std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std"]
+std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std", "once_cell/std"]
 # the testing feature is required to enable the account creation pow patch
 testing = ["miden-objects/testing"]
 with-debug-info = ["miden-stdlib/with-debug-info"]
@@ -25,6 +25,7 @@ with-debug-info = ["miden-stdlib/with-debug-info"]
 [dependencies]
 miden-objects = { workspace = true }
 miden-stdlib = { workspace = true }
+once_cell = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { workspace = true, features = ["testing"] }
