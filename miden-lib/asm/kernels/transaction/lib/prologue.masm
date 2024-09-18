@@ -319,7 +319,7 @@ end
 #!   - read the account seed from the advice provider and assert it satisfies seed requirements.
 proc.validate_new_account
     # Assert the account id of the account is valid
-    exec.memory::get_current_account_id exec.account::validate_id
+    exec.memory::get_account_id exec.account::validate_id
     # => []
 
     # Assert the account nonce is 0
@@ -535,12 +535,12 @@ end
 proc.process_account_data
     # Initialize the current account data pointer in the bookkeeping section with the native offset 
     # (2048)
-    exec.memory::set_current_account_data_offset_to_native_account
+    exec.memory::set_current_account_data_ptr_to_native_account
 
     # Copy the account data from the advice provider to memory and hash it
     # ---------------------------------------------------------------------------------------------
 
-    exec.memory::get_current_account_data_offset
+    exec.memory::get_current_account_data_ptr
     # => [acct_data_ptr]
 
     # read account details and compute its digest. See `Advice stack` above for details.
@@ -555,7 +555,7 @@ proc.process_account_data
 
     # assert the account id matches the account id in global inputs
     exec.memory::get_global_acct_id
-    exec.memory::get_current_account_id
+    exec.memory::get_account_id
     assert_eq.err=ERR_PROLOGUE_ACCT_ID_MISMATCH
     # => [ACCT_HASH]
 

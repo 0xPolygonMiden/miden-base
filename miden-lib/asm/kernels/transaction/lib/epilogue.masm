@@ -246,7 +246,7 @@ export.finalize_transaction
     # => [acct_data_end_ptr, INIT_ACCT_HASH]
 
     # get the offset for the start of the account data section
-    exec.memory::get_current_account_data_offset
+    exec.memory::get_current_account_data_ptr
     # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # compute the final account hash

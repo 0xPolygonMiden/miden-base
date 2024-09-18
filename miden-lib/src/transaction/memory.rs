@@ -34,9 +34,10 @@ pub type StorageSlot = u8;
 // | Padding           | 4             | 6            |
 // | Num procedures    | 7             | 7            |
 // | Procedures info   | 8             | 519          |
-// | Num storage slots | 520           | 520          |
-// | Storage slot info | 521           | 1030         |
-// | Padding           | 1031          | 2047         |
+// | Padding           | 520           | 520          |
+// | Num storage slots | 521           | 521          |
+// | Storage slot info | 522           | 1031         |
+// | Padding           | 1032          | 2047         |
 
 // RESERVED ACCOUNT STORAGE SLOTS
 // ------------------------------------------------------------------------------------------------
@@ -229,7 +230,7 @@ pub const NATIVE_ACCT_PROCEDURES_SECTION_PTR: MemoryAddress =
 
 /// The offset at which the number of storage slots contained in the account storage is stored
 /// relative to the start of the account data segment.
-pub const NUM_ACCT_STORAGE_SLOTS_OFFSET: MemoryAddress = 520;
+pub const NUM_ACCT_STORAGE_SLOTS_OFFSET: MemoryAddress = 521;
 
 /// The memory address at which number of storage slots contained in the account storage is stored
 /// in the native account.
@@ -238,7 +239,7 @@ pub const NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR: MemoryAddress =
 
 /// The offset at which the account storage slots section begins relative to the start of the
 /// account data segment.
-pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 521;
+pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 522;
 
 /// The memory address at which the account storage slots section begins in the native account.
 pub const NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR: MemoryAddress =

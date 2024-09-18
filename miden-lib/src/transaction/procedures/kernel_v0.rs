@@ -18,9 +18,9 @@ pub const KERNEL0_PROCEDURES: [Digest; 28] = [
     // get_account_id
     digest!(0x386549d4435f79c1, 0x4a7add2e3b9f1b9e, 0x91c0af1138c14e77, 0xee8a5630e31bc74d),
     // get_account_item
-    digest!(0xaafc15211ebe8151, 0x734bfa9fc3033657, 0xd813a2ae0cea4dda, 0x817cdb80fd0180c0),
+    digest!(0x29cfe0b5f97a3388, 0x3510774653258915, 0x6fe83ea3152b49ec, 0x7dc1830125de0b96),
     // get_account_map_item
-    digest!(0x4df6a73cd5bafeb2, 0xf05f19d9363ebad, 0x93f26352c751c913, 0xef5cc598562672fa),
+    digest!(0xfc989de557bf4cb8, 0x2e7443984efebb87, 0x698e04baf103ec41, 0x4c5c4cd14cfdd7a4),
     // get_account_nonce
     digest!(0x64d14d80f9eff37a, 0x7587e273b2d8a416, 0x3c041064332c03d3, 0xc327341072f4f1e8),
     // get_account_vault_commitment
@@ -34,15 +34,15 @@ pub const KERNEL0_PROCEDURES: [Digest; 28] = [
     // set_account_code
     digest!(0xe9298c26dfbae789, 0x138b90862b76ee94, 0x7b0b6310201bc335, 0xc2c61533d23e7097),
     // set_account_item
-    digest!(0x2055d55cf78ea46, 0xe73da87a01a5d437, 0x31b527a4c4f48c55, 0xede3ef86378c0262),
+    digest!(0xd770bb5ffb63c2be, 0x16820b76c13b35e1, 0x2beabb0b905bbaa3, 0xe6dd743e224761c2),
     // set_account_map_item
-    digest!(0x9b2ddfd24446392a, 0x6ed782dd2c6f5a2b, 0xfc3e8651a10c2a75, 0x349249c2469de4f5),
+    digest!(0x24512467a27766b6, 0x47ce176fe030cb78, 0x7f4297fd9972f5ae, 0xf169926b100ad3c9),
     // burn_asset
-    digest!(0x81066bce7bd3b9be, 0x89549ed51130b7d, 0x237ae88a25226588, 0x7e665561b815a8dc),
+    digest!(0x321fd17501dd1b7b, 0x5e41674206ccf93c, 0xf718f75b335577a6, 0x939db3229595dc7c),
     // get_fungible_faucet_total_issuance
-    digest!(0x63048fad32337b42, 0xe5ab0a8ee42eeb8f, 0x483fe976afb64a6a, 0x564e95ca90346901),
+    digest!(0xd9310aaf087d0dc4, 0xdc834fff6ea325d2, 0x2c9d90a33b9a6d8a, 0xa381c27e49c538a8),
     // mint_asset
-    digest!(0x117af560e924f9e9, 0xa043fb481b3796c2, 0x797e4a64b06c7379, 0x63059ab8a14c55ca),
+    digest!(0x8e9e6fa1d929e282, 0x4d448e22a956c710, 0x7d974ad69840a5ca, 0x19d0b2fa6fb22c02),
     // add_asset_to_note
     digest!(0x9966ff7b788ce776, 0x73d99392aaed14ad, 0xc43c42876448ee5e, 0x7eafd4b6043375f4),
     // create_note

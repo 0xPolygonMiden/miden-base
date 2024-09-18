@@ -26,7 +26,7 @@ const.INPUT_VAULT_ROOT_PTR=3
 const.OUTPUT_VAULT_ROOT_PTR=4
 
 # The memory address at which the pointer to the data of the currently accessing account is stored
-const.CURRENT_ACCOUNT_DATA_OFFSET=5
+const.CURRENT_ACCOUNT_DATA_PTR=5
 
 # The memory address at which the native account's new code commitment is stored.
 const.NEW_CODE_ROOT_PTR=6
@@ -127,8 +127,8 @@ const.ACCT_CODE_COMMITMENT_OFFSET=3
 const.ACCT_CORE_DATA_SECTION_END_OFFSET=4
 const.NUM_ACCT_PROCEDURES_OFFSET=7
 const.ACCT_PROCEDURES_SECTION_OFFSET=8
-const.NUM_ACCT_STORAGE_SLOTS_OFFSET=520
-const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=521
+const.NUM_ACCT_STORAGE_SLOTS_OFFSET=521
+const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=522
 
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
@@ -606,38 +606,38 @@ end
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
-#! Sets the offset of the current account data to the native account (2048).
+#! Sets the memory pointer of the current account data to the native account (2048).
 #!
 #! Stack: []
 #! Output: [native_account_data_ptr]
 #!
 #! Where:
 #! - native_account_data_ptr is the memory address at which the native account data is stored.
-export.set_current_account_data_offset_to_native_account
+export.set_current_account_data_ptr_to_native_account
     push.NATIVE_ACCOUNT_DATA_PTR
-    push.CURRENT_ACCOUNT_DATA_OFFSET mem_store
+    push.CURRENT_ACCOUNT_DATA_PTR mem_store
 end
 
-#! Returns the offset of the current account data.
+#! Returns the memory pointer of the current account data.
 #!
 #! Stack: []
 #! Output: [ptr]
 #!
 #! Where:
 #! - ptr is the memory address at which the account data begins.
-export.get_current_account_data_offset
-    push.CURRENT_ACCOUNT_DATA_OFFSET mem_load
+export.get_current_account_data_ptr
+    push.CURRENT_ACCOUNT_DATA_PTR mem_load
 end
 
-#! Sets the offset of the current account data to the provided value.
+#! Sets the memory pointer of the current account data to the provided value.
 #!
-#! Stack: [curr_account_data_offset]
+#! Stack: [curr_account_data_ptr]
 #! Output: []
 #!
 #! Where:
-#! - curr_account_data_offset is the data offset of the currently accessing account.
-export.set_current_account_data_offset
-    push.CURRENT_ACCOUNT_DATA_OFFSET mem_store
+#! - curr_account_data_ptr is the memory pointer to the currently accessing account data.
+export.set_current_account_data_ptr
+    push.CURRENT_ACCOUNT_DATA_PTR mem_store
 end
 
 #! Returns a pointer to the end of the core account data section.
@@ -648,7 +648,7 @@ end
 #! Where:
 #! - ptr is the memory address at which the core account data ends.
 export.get_core_acct_data_end_ptr
-    exec.get_current_account_data_offset push.ACCT_CORE_DATA_SECTION_END_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_CORE_DATA_SECTION_END_OFFSET add
 end
 
 #! Returns the id of the current account.
@@ -658,8 +658,8 @@ end
 #!
 #! Where:
 #! - curr_acct_id is the account id of the currently accessing account.
-export.get_current_account_id
-    exec.get_current_account_data_offset push.ACCT_ID_AND_NONCE_OFFSET add
+export.get_account_id
+    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
     mem_load
 end
 
@@ -684,7 +684,7 @@ end
 #! - acct_nonce is the account nonce.
 export.get_acct_nonce
     padw
-    exec.get_current_account_data_offset push.ACCT_ID_AND_NONCE_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
     mem_loadw
     movdn.3 drop drop drop
 end
@@ -697,7 +697,7 @@ end
 #! Where:
 #! - acct_nonce is the account nonce.
 export.set_acct_nonce
-    exec.get_current_account_data_offset push.ACCT_ID_AND_NONCE_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
     padw dup.4 
     mem_loadw
     # => [old_nonce, 0, 0, old_id, acct_id_and_nonce_ptr, new_nonce]
@@ -713,7 +713,7 @@ end
 #! Where:
 #! - acct_vault_root_ptr is the memory pointer to the account asset vault root.
 export.get_acct_vault_root_ptr
-    exec.get_current_account_data_offset push.ACCT_VAULT_ROOT_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_VAULT_ROOT_OFFSET add
 end
 
 #! Returns the account vault root.
@@ -725,7 +725,7 @@ end
 #! - ACCT_VAULT_ROOT is the account asset vault root.
 export.get_acct_vault_root
     padw
-    exec.get_current_account_data_offset push.ACCT_VAULT_ROOT_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_VAULT_ROOT_OFFSET add
     mem_loadw
 end
 
@@ -737,7 +737,7 @@ end
 #! Where:
 #! - ACCT_VAULT_ROOT is the account vault root to be set.
 export.set_acct_vault_root
-    exec.get_current_account_data_offset push.ACCT_VAULT_ROOT_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_VAULT_ROOT_OFFSET add
     mem_storew
 end
 
@@ -750,7 +750,7 @@ end
 #! - STORAGE_COMMITMENT is the account storage commitment.
 export.get_acct_storage_commitment
     padw
-    exec.get_current_account_data_offset push.ACCT_STORAGE_COMMITMENT_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
     mem_loadw
 end
 
@@ -762,7 +762,7 @@ end
 #! Where:
 #! - STORAGE_COMMITMENT is the account storage commitment.
 export.set_acct_storage_commitment
-    exec.get_current_account_data_offset push.ACCT_STORAGE_COMMITMENT_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
     mem_storew
 end
 
@@ -775,7 +775,7 @@ end
 #! - CODE_COMMITMENT is the code commitment of the account.
 export.get_acct_code_commitment
     padw
-    exec.get_current_account_data_offset push.ACCT_CODE_COMMITMENT_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_CODE_COMMITMENT_OFFSET add
     mem_loadw
 end
 
@@ -787,7 +787,7 @@ end
 #! Where:
 #! - CODE_COMMITMENT is the code commitment to be set.
 export.set_acct_code_commitment
-    exec.get_current_account_data_offset push.ACCT_CODE_COMMITMENT_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_CODE_COMMITMENT_OFFSET add
     mem_storew
 end
 
@@ -824,7 +824,7 @@ end
 #! Where:
 #! - num_procedures is the number of procedures contained in the account code.
 export.get_num_account_procedures
-    exec.get_current_account_data_offset push.NUM_ACCT_PROCEDURES_OFFSET add
+    exec.get_current_account_data_ptr push.NUM_ACCT_PROCEDURES_OFFSET add
     mem_load
 end
 
@@ -836,7 +836,7 @@ end
 #! Where:
 #! - num_procedures is the number of procedures contained in the account code.
 export.set_num_account_procedures
-    exec.get_current_account_data_offset push.NUM_ACCT_PROCEDURES_OFFSET add
+    exec.get_current_account_data_ptr push.NUM_ACCT_PROCEDURES_OFFSET add
     mem_store
 end
 
@@ -848,7 +848,7 @@ end
 #! Where:
 #! - account_procedures_section_ptr is the memory pointer to the account procedures section.
 export.get_acct_procedures_section_ptr
-    exec.get_current_account_data_offset push.ACCT_PROCEDURES_SECTION_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_PROCEDURES_SECTION_OFFSET add
 end
 
 #! Returns the number of storage slots contained in the account storage.
@@ -859,7 +859,7 @@ end
 #! Where:
 #! - num_storage_slots is the number of storage slots contained in the account storage.
 export.get_num_storage_slots
-    exec.get_current_account_data_offset push.NUM_ACCT_STORAGE_SLOTS_OFFSET add
+    exec.get_current_account_data_ptr push.NUM_ACCT_STORAGE_SLOTS_OFFSET add
     mem_load
 end
 
@@ -871,7 +871,7 @@ end
 #! Where:
 #! - num_storage_slots is the number of storage slots contained in the account storage.
 export.set_num_storage_slots
-    exec.get_current_account_data_offset push.NUM_ACCT_STORAGE_SLOTS_OFFSET add
+    exec.get_current_account_data_ptr push.NUM_ACCT_STORAGE_SLOTS_OFFSET add
     mem_store
 end
 
@@ -883,7 +883,7 @@ end
 #! Where:
 #! - storage_slots_section_ptr is the memory pointer to the account storage slots section.
 export.get_acct_storage_slots_section_ptr
-    exec.get_current_account_data_offset push.ACCT_STORAGE_SLOTS_SECTION_OFFSET add
+    exec.get_current_account_data_ptr push.ACCT_STORAGE_SLOTS_SECTION_OFFSET add
 end
 
 # INPUT NOTES
