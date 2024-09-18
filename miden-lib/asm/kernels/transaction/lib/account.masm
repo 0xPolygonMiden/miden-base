@@ -384,7 +384,7 @@ export.validate_storage_offsets
     else
         while.true
             # get storage offset from memory
-            dup exec.get_procedure_storage_metadata swap drop
+            dup exec.get_procedure_metadata swap drop
             # => [storage_offset, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is in bounds
