@@ -18,7 +18,7 @@ use.kernel::tx
 # the memory.                                                                                     #
 # =================================================================================================
 
-# ERRORS
+# ERRORS
 # =================================================================================================
 
 # For faucets the slot FAUCET_STORAGE_DATA_SLOT is reserved and can not be used with set_account_item
@@ -33,7 +33,7 @@ const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
 # Provided kernel procedure offset is out of bounds
 const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020053
 
-# EVENTS
+# EVENTS
 # =================================================================================================
 
 # Event emitted before an asset is added to the account vault.
@@ -460,7 +460,7 @@ export.account_vault_remove_asset
     exec.asset_vault::remove_asset
     # => [ASSET]
 
-    # emit event to signal that an asset is being removed from the account vault
+    # emit event to signal that an asset is being removed from the account vault
     push.20149 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
     # => [ASSET]
@@ -535,7 +535,7 @@ export.get_block_number
     exec.tx::get_block_number
     # => [num, 0]
 
-    # organize the stack for return
+    # organize the stack for return
     swap drop
     # => [num]
 end
@@ -687,7 +687,7 @@ export.mint_asset
     exec.authenticate_account_origin drop drop
     # => [ASSET]
 
-    # mint the asset
+    # mint the asset
     exec.faucet::mint
     # => [ASSET]
 end
