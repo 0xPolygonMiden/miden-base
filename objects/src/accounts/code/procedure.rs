@@ -19,7 +19,7 @@ use crate::AccountError;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AccountProcedureInfo {
     mast_root: Digest,
-    storage_offset: u16,
+    storage_offset: u8,
 }
 
 impl AccountProcedureInfo {
@@ -27,7 +27,7 @@ impl AccountProcedureInfo {
     pub const NUM_ELEMENTS_PER_PROC: usize = 8;
 
     /// Returns a new instance of an [AccountProcedureInfo].
-    pub fn new(mast_root: Digest, storage_offset: u16) -> Self {
+    pub fn new(mast_root: Digest, storage_offset: u8) -> Self {
         Self { mast_root, storage_offset }
     }
 
@@ -37,7 +37,7 @@ impl AccountProcedureInfo {
     }
 
     /// Returns a reference to the procedure's storage_offset.
-    pub fn storage_offset(&self) -> u16 {
+    pub fn storage_offset(&self) -> u8 {
         self.storage_offset
     }
 }
@@ -64,7 +64,7 @@ impl TryFrom<[Felt; 8]> for AccountProcedureInfo {
         let mast_root = Digest::from(<[Felt; 4]>::try_from(&value[0..4]).unwrap());
 
         // get storage_offset form value[4]
-        let storage_offset: u16 = value[4]
+        let storage_offset: u8 = value[4]
             .try_into()
             .map_err(|_| AccountError::AccountCodeProcedureInvalidStorageOffset)?;
 
@@ -80,14 +80,14 @@ impl TryFrom<[Felt; 8]> for AccountProcedureInfo {
 impl Serializable for AccountProcedureInfo {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(self.mast_root());
-        target.write_u16(self.storage_offset());
+        target.write_u8(self.storage_offset());
     }
 }
 
 impl Deserializable for AccountProcedureInfo {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let mast_root: Digest = source.read()?;
-        let storage_offset = source.read_u16()?;
+        let storage_offset = source.read_u8()?;
 
         Ok(Self::new(mast_root, storage_offset))
     }
