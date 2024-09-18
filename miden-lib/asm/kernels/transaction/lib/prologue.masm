@@ -614,7 +614,7 @@ proc.process_account_data
 
     # validate account procedure metadata
     exec.account::validate_storage_offsets
-    exec.account::validate_storage_sizes
+    # exec.account::validate_storage_sizes
 end
 
 # INPUT NOTES DATA

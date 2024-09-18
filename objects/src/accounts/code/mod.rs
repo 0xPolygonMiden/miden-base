@@ -62,7 +62,7 @@ impl AccountCode {
         // be read from the Library metadata.
         let mut procedures: Vec<AccountProcedureInfo> = Vec::new();
         let storage_offset = if is_faucet { 1 } else { 0 };
-        let storage_size = 5;
+        let storage_size = 0;
         for module in library.module_infos() {
             for proc_mast_root in module.procedure_digests() {
                 procedures.push(AccountProcedureInfo::new(

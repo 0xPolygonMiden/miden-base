@@ -611,7 +611,7 @@ export.get_procedure_info
     # => [METADATA, PROC_ROOT]
 
     # keep only relevant data
-    swap drop swap drop movdn.5 movdn.5
+    swap drop swap drop swap movdn.5 movdn.5
     # => [PROC_ROOT, storage_offset, storage_size]
 end
 
@@ -769,6 +769,6 @@ proc.get_procedure_metadata
     # => [storage_offset_ptr]
 
     # load procedure storage offset from memory and keep relevant data
-    mem_loadw swap drop swap drop
+    padw movup.4 mem_loadw swap drop swap drop swap
     # => [storage_offset, storage_size]
 end
