@@ -157,12 +157,12 @@ impl AccountStorage {
 
     pub fn mock_item_2() -> SlotWithIndex {
         SlotWithIndex {
-            slot: StorageSlot::Map(Self::mock_map_2()),
+            slot: StorageSlot::Map(Self::mock_map()),
             index: STORAGE_INDEX_2,
         }
     }
 
-    pub fn mock_map_2() -> StorageMap {
+    pub fn mock_map() -> StorageMap {
         StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
     }
 }

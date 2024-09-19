@@ -177,8 +177,7 @@ export.get_account_item
     dropw
 
     # authenticate that the procedure invocation originates from the account context
-    # TODO: remove swap drop and correctly impl apply_storage_offset
-    exec.authenticate_account_origin swap drop
+    exec.authenticate_account_origin
     # => [storage_offset, storage_size, index, 0, 0, 0]
 
     # apply offset to storage slot index
@@ -215,8 +214,7 @@ export.set_account_item
     # => [index, V', 0, 0, 0]
 
     # authenticate that the procedure invocation originates from the account context
-    # TODO: remove swap drop and correctly impl apply_storage_offset
-    exec.authenticate_account_origin swap drop
+    exec.authenticate_account_origin
     # => [storage_offset, storage_size, index, V', 0, 0, 0]
 
     # apply offset to storage slot index
@@ -255,8 +253,7 @@ export.get_account_map_item
     # => [index, KEY, ...]
 
     # authenticate that the procedure invocation originates from the account context
-    # TODO: remove swap drop and correctly impl apply_storage_offset
-    exec.authenticate_account_origin swap drop
+    exec.authenticate_account_origin
     # => [storage_offset, storage_size, index, KEY, ...]
 
     # apply offset to storage slot index
@@ -296,8 +293,7 @@ export.set_account_map_item.1
     dropw
 
     # authenticate that the procedure invocation originates from the account context
-    # TODO: remove swap drop and correctly impl apply_storage_offset
-    exec.authenticate_account_origin swap drop
+    exec.authenticate_account_origin
     # => [storage_offset, storage_size, index, KEY, NEW_VALUE, ...]
 
     # apply offset to storage slot index
