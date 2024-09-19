@@ -1,7 +1,7 @@
 # OFFSET CONSTANTS
 # -------------------------------------------------------------------------------------------------
 
-# Current account
+# Current account 
 const.ACCOUNT_VAULT_ADD_ASSET_OFFSET=0
 const.ACCOUNT_VAULT_GET_BALANCE_OFFSET=1
 const.ACCOUNT_VAULT_HAS_NON_FUNGIBLE_ASSET_OFFSET=2
@@ -46,7 +46,7 @@ const.GET_BLOCK_NUMBER_OFFSET=27
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_account_id` kernel procedure required to get the address
+#! - proc_offset is the offset of the `get_account_id` kernel procedure required to get the address 
 #! where this procedure is stored.
 export.get_account_id_offset
     push.GET_ACCOUNT_ID_OFFSET
@@ -58,7 +58,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_account_nonce` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_account_nonce` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_account_nonce_offset
     push.GET_ACCOUNT_NONCE_OFFSET
@@ -70,7 +70,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_initial_account_hash` kernel procedure required to get
+#! - proc_offset is the offset of the `get_initial_account_hash` kernel procedure required to get 
 #! the address where this procedure is stored.
 export.get_initial_account_hash_offset
     push.GET_INITIAL_ACCOUNT_HASH_OFFSET
@@ -82,7 +82,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_current_account_hash` kernel procedure required to get
+#! - proc_offset is the offset of the `get_current_account_hash` kernel procedure required to get 
 #! the address where this procedure is stored.
 export.get_current_account_hash_offset
     push.GET_CURRENT_ACCOUNT_HASH_OFFSET
@@ -94,7 +94,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `incr_account_nonce` kernel procedure required to get the
+#! - proc_offset is the offset of the `incr_account_nonce` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.incr_account_nonce_offset
     push.INCR_ACCOUNT_NONCE_OFFSET
@@ -106,7 +106,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_account_item` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_account_item` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_account_item_offset
     push.GET_ACCOUNT_ITEM_OFFSET
@@ -118,7 +118,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `set_account_item` kernel procedure required to get the
+#! - proc_offset is the offset of the `set_account_item` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.set_account_item_offset
     push.SET_ACCOUNT_ITEM_OFFSET
@@ -130,7 +130,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_account_map_item` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_account_map_item` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_account_map_item_offset
     push.GET_ACCOUNT_MAP_ITEM_OFFSET
@@ -142,7 +142,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `set_account_map_item` kernel procedure required to get the
+#! - proc_offset is the offset of the `set_account_map_item` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.set_account_map_item_offset
     push.SET_ACCOUNT_MAP_ITEM_OFFSET
@@ -154,7 +154,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `set_account_code` kernel procedure required to get the
+#! - proc_offset is the offset of the `set_account_code` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.set_account_code_offset
     push.SET_ACCOUNT_CODE_OFFSET
@@ -166,7 +166,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_vault_get_balance` kernel procedure required to get
+#! - proc_offset is the offset of the `account_vault_get_balance` kernel procedure required to get 
 #! the address where this procedure is stored.
 export.account_vault_get_balance_offset
     push.ACCOUNT_VAULT_GET_BALANCE_OFFSET
@@ -178,7 +178,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_vault_has_non_fungible_asset` kernel procedure
+#! - proc_offset is the offset of the `account_vault_has_non_fungible_asset` kernel procedure 
 #! required to get the address where this procedure is stored.
 export.account_vault_has_non_fungible_asset_offset
     push.ACCOUNT_VAULT_HAS_NON_FUNGIBLE_ASSET_OFFSET
@@ -202,7 +202,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_vault_remove_asset` kernel procedure required to get
+#! - proc_offset is the offset of the `account_vault_remove_asset` kernel procedure required to get 
 #! the address where this procedure is stored.
 export.account_vault_remove_asset_offset
     push.ACCOUNT_VAULT_REMOVE_ASSET_OFFSET
@@ -214,7 +214,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_note_assets_info` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_note_assets_info` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_note_assets_info_offset
     push.GET_NOTE_ASSETS_INFO_OFFSET
@@ -226,7 +226,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_note_inputs_hash` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_note_inputs_hash` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_note_inputs_hash_offset
     push.GET_NOTE_INPUTS_HASH_OFFSET
@@ -250,7 +250,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_block_number` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_block_number` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_block_number_offset
     push.GET_BLOCK_NUMBER_OFFSET
@@ -262,7 +262,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_block_hash` kernel procedure required to get the address
+#! - proc_offset is the offset of the `get_block_hash` kernel procedure required to get the address 
 #! where this procedure is stored.
 export.get_block_hash_offset
     push.GET_BLOCK_HASH_OFFSET
@@ -274,7 +274,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_input_notes_commitment` kernel procedure required to get
+#! - proc_offset is the offset of the `get_input_notes_commitment` kernel procedure required to get 
 #! the address where this procedure is stored.
 export.get_input_notes_commitment_offset
     push.GET_INPUT_NOTES_COMMITMENT_OFFSET
@@ -286,7 +286,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_output_notes_hash` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_output_notes_hash` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_output_notes_hash_offset
     push.GET_OUTPUT_NOTES_HASH_OFFSET
@@ -298,7 +298,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `create_note` kernel procedure required to get the address
+#! - proc_offset is the offset of the `create_note` kernel procedure required to get the address 
 #! where this procedure is stored.
 export.create_note_offset
     push.CREATE_NOTE_OFFSET
@@ -310,7 +310,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `add_asset_to_note` kernel procedure required to get the
+#! - proc_offset is the offset of the `add_asset_to_note` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.add_asset_to_note_offset
     push.ADD_ASSET_TO_NOTE_OFFSET
@@ -322,7 +322,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_account_vault_commitment` kernel procedure required to
+#! - proc_offset is the offset of the `get_account_vault_commitment` kernel procedure required to 
 #! get the address where this procedure is stored.
 export.get_account_vault_commitment_offset
     push.GET_ACCOUNT_VAULT_COMMITMENT_OFFSET
@@ -334,7 +334,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `mint_asset` kernel procedure required to get the address
+#! - proc_offset is the offset of the `mint_asset` kernel procedure required to get the address 
 #! where this procedure is stored.
 export.mint_asset_offset
     push.MINT_ASSET_OFFSET
@@ -346,7 +346,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `burn_asset` kernel procedure required to get the address
+#! - proc_offset is the offset of the `burn_asset` kernel procedure required to get the address 
 #! where this procedure is stored.
 export.burn_asset_offset
     push.BURN_ASSET_OFFSET
@@ -370,7 +370,7 @@ end
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_note_serial_number` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_note_serial_number` kernel procedure required to get the 
 #! address where this procedure is stored.
 export.get_note_serial_number_offset
     push.GET_NOTE_SERIAL_NUMBER_OFFSET
