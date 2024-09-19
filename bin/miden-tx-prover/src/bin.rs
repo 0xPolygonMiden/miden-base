@@ -1,9 +1,13 @@
+use std::env;
+
 use miden_objects::transaction::TransactionWitness;
 use miden_tx::{
     utils::{Deserializable, Serializable},
     LocalTransactionProver, TransactionProver,
 };
-use miden_tx_prover::{server::generated::api::api_server, ProveTransactionRequest, ProveTransactionResponse};
+use miden_tx_prover::{
+    server::generated::api::api_server, ProveTransactionRequest, ProveTransactionResponse,
+};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{Request, Response};
@@ -37,8 +41,15 @@ impl api_server::Api for RpcApi {
 
 #[tokio::main]
 async fn main() {
+    // Initialize tracing subscriber with default settings for console output
+    tracing_subscriber::fmt::init();
+
+    let host = env::var("PROVER_SERVICE_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let port = env::var("PROVER_SERVICE_PORT").unwrap_or_else(|_| "50051".to_string());
+    let addr = format!("{}:{}", host, port);
+
     let rpc = Rpc {
-        listener: tokio::net::TcpListener::bind("0.0.0.0:50051").await.unwrap(),
+        listener: tokio::net::TcpListener::bind(addr).await.unwrap(),
         api_service: api_server::ApiServer::new(RpcApi),
     };
 

@@ -12,10 +12,6 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-[lib]
-name = "miden_tx_prover"
-path = "src/lib.rs"
-
 [[bin]]
 name = "miden-tx-prover-service"
 path = "src/bin.rs"
@@ -23,7 +19,6 @@ path = "src/bin.rs"
 [features]
 default = ["std"]
 std = []
-async = ["miden-tx/async"]
 
 [dependencies]
 miden-lib = { workspace = true }

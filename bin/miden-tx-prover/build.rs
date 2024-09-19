@@ -6,8 +6,6 @@ use std::{
 use miette::IntoDiagnostic;
 use protox::prost::Message;
 
-const TONIC_CLIENT_PROTO_OUT_DIR: &str = "src/remote_prover/generated";
-
 /// Generates Rust protobuf bindings from .proto files in the root directory.
 ///
 /// This is done only if BUILD_PROTO environment variable is set to `1` to avoid running the script
@@ -17,12 +15,11 @@ fn main() -> miette::Result<()> {
     println!("cargo::rerun-if-env-changed=BUILD_PROTO");
 
     // Skip this build script in BUILD_PROTO environment variable is not set to `1`.
-    // if env::var("BUILD_PROTO").unwrap_or("0".to_string()) == "0" {
-    //     return Ok(());
-    // }
+    if env::var("BUILD_PROTO").unwrap_or("0".to_string()) == "0" {
+        return Ok(());
+    }
 
     compile_tonic_server_proto()?;
-    compile_tonic_client_proto()?;
 
     Ok(())
 }
@@ -96,33 +93,4 @@ fn generate_mod_rs(directory: impl AsRef<Path>) -> std::io::Result<()> {
         .collect::<String>();
 
     fs::write(mod_filepath, contents)
-}
-
-// Compiles the protobuf files into a file descriptor used to generate Rust types
-fn compile_tonic_client_proto() -> miette::Result<()> {
-    let crate_root: PathBuf =
-        env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set").into();
-    let proto_dir = crate_root.join("proto");
-
-    // Compute the compiler's target file path.
-    let out = env::var("OUT_DIR").into_diagnostic()?;
-    let file_descriptor_path = PathBuf::from(out).join("file_descriptor_set.bin");
-
-    // Compile the proto file
-    let protos = &[proto_dir.join("api.proto")];
-    let includes = &[proto_dir];
-    let file_descriptors = protox::compile(protos, includes)?;
-    fs::write(&file_descriptor_path, file_descriptors.encode_to_vec()).into_diagnostic()?;
-
-    let prost_config = prost_build::Config::new();
-
-    tonic_build::configure()
-        .build_server(false)
-        .file_descriptor_set_path(&file_descriptor_path)
-        .skip_protoc_run()
-        .out_dir(TONIC_CLIENT_PROTO_OUT_DIR)
-        .compile_with_config(prost_config, protos, includes)
-        .into_diagnostic()?;
-
-    Ok(())
 }
