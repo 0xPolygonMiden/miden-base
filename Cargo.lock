@@ -827,6 +827,7 @@ dependencies = [
  "miden-objects",
  "miden-processor",
  "miden-stdlib",
+ "regex",
 ]
 
 [[package]]

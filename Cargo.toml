@@ -40,5 +40,6 @@ miden-stdlib = { version = "0.10", default-features = false }
 miden-tx = { path = "miden-tx", version = "0.6" }
 miden-verifier = { version = "0.10", default-features = false }
 rand = { version = "0.8", default-features = false }
+regex = { version = "1.10.6", default-features = false }
 vm-core = { package = "miden-core", version = "0.10", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.10", default-features = false }

@@ -1,8 +1,6 @@
 use std::{
-    collections::BTreeSet,
-    env,
-    fmt::Write as FmtWrite,
-    fs,
+    collections::{BTreeMap, BTreeSet},
+    env, fs,
     fs::File,
     io::{self, BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -14,6 +12,7 @@ use assembly::{
     utils::Serializable,
     Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace,
 };
+use regex::Regex;
 // CONSTANTS
 // ================================================================================================
 
@@ -83,7 +82,6 @@ fn main() -> Result<()> {
 /// - {target_dir}/tx_kernel.masl           -> contains kernel library compiled from api.masm.
 /// - {target_dir}/tx_kernel.masb           -> contains the executable compiled from main.masm.
 /// - src/transaction/procedures_v0.rs      -> contains the kernel procedures table.
-/// - asm/miden/kernel_proc_offsets.masm    -> contains the kernel procedures offset table.
 ///
 /// When the `testing` feature is enabled, the POW requirements for account ID generation are
 /// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
@@ -122,8 +120,8 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
         assembler,
     )?;
 
-    // generate `procedures_v0.rs` and `kernel_proc_offsets.masm`
-    generate_kernel_proc_hash_files(kernel_lib.clone())?;
+    // generate `procedures_v0.rs` file
+    generate_kernel_proc_hash_file(kernel_lib.clone())?;
 
     let output_file = target_dir.join("tx_kernel").with_extension(Library::LIBRARY_EXTENSION);
     kernel_lib.write_to_file(output_file).into_diagnostic()?;
@@ -172,52 +170,52 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
     Ok(line)
 }
 
-/// Generates `procedures_v0.rs` and `kernel_proc_offsets.masm` files based on the kernel library
-fn generate_kernel_proc_hash_files(kernel: KernelLibrary) -> Result<()> {
+/// Generates `procedures_v0.rs` file based on the kernel library
+fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
+    const PROC_FILENAME: &str = "src/transaction/procedures_v0.rs";
+
     let (_, module_info, _) = kernel.into_parts();
 
     let to_exclude = BTreeSet::from_iter(["exec_kernel_proc"]);
-    let mut generated_procs = String::new();
-    let mut generated_consts = String::new();
-    let mut generated_accessors = String::new();
-
-    let proc_count = module_info
+    let offsets_filename = Path::new(ASM_DIR).join(ASM_MIDEN_DIR).join("kernel_proc_offsets.masm");
+    let offsets = parse_proc_offsets(&offsets_filename)?;
+    let generated_procs: BTreeMap<usize, String> = module_info
         .procedures()
         .filter(|(_, proc_info)| !to_exclude.contains::<str>(proc_info.name.as_ref()))
-        .enumerate()
-        .map(|(offset, (_, proc_info))| {
+        .map(|(_, proc_info)| {
             let name = proc_info.name.to_string();
-            let const_name = format!("{}_OFFSET", name.to_uppercase());
 
-            std::writeln!(&mut generated_procs, "    // {}", name).unwrap();
-            std::writeln!(
-                &mut generated_procs,
-                "    {},",
-                format!("{:?}", proc_info.digest)
-                    .replace("RpoDigest([", "digest!(")
-                    .replace("])", ")")
-            )
-            .unwrap();
+            let Some(&offset) = offsets.get(&name) else {
+                panic!("Offset constant for function `{name}` not found in `{offsets_filename:?}`");
+            };
 
-            std::writeln!(&mut generated_consts, "const.{const_name}={offset}").unwrap();
-            std::writeln!(
-                &mut generated_accessors,
-                "\n#! Returns an offset of the `{name}` kernel procedure.\n\
-                #!\n\
-                #! Stack: []\n\
-                #! Output: [proc_offset]\n\
-                #!\n\
-                #! Where:\n\
-                #! - `proc_offset` is the offset of the `{name}` kernel procedure\n\
-                #! required to get the address where this procedure is stored.\n\
-                export.{name}_offset\n    push.{const_name}\nend"
+            (
+                offset,
+                format!(
+                    "    // {name}\n    digest!({}),",
+                    proc_info
+                        .digest
+                        .as_elements()
+                        .iter()
+                        .map(|v| format!("{:#016x}", v.as_int()))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                ),
             )
-            .unwrap();
         })
-        .count();
+        .collect();
+
+    let proc_count = generated_procs.len();
+    let generated_procs: String = generated_procs.into_iter().enumerate().map(|(index, (offset, txt))| {
+        if index != offset {
+            panic!("Offset constants in the file `{offsets_filename:?}` are not contiguous (missing offset: {index})");
+        }
+
+        txt
+    }).collect::<Vec<_>>().join("\n");
 
     fs::write(
-        "src/transaction/procedures_v0.rs",
+        PROC_FILENAME,
         format!(
             r#"/// This file is generated by build.rs, do not modify
 
@@ -228,28 +226,27 @@ use miden_objects::{{digest, Digest, Felt}};
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; {proc_count}] = [
-{generated_procs}];
-"#
-        ),
-    )
-    .into_diagnostic()?;
-
-    fs::write(
-        "asm/miden/kernel_proc_offsets.masm",
-        format!(
-            r#"#! This file is generated by build.rs, do not modify
-
-# OFFSET CONSTANTS
-# ================================================================================================
-
-{generated_consts}
-
-# ACCESSORS
-# ================================================================================================
-{generated_accessors}"#
+{generated_procs}
+];
+"#,
         ),
     )
     .into_diagnostic()
+}
+
+fn parse_proc_offsets(filename: impl AsRef<Path>) -> Result<BTreeMap<String, usize>> {
+    let regex: Regex = Regex::new(r"^const\.(?P<name>\w+)_OFFSET\s*=\s*(?P<offset>\d+)").unwrap();
+    let mut result = BTreeMap::new();
+    for line in fs::read_to_string(filename).into_diagnostic()?.lines() {
+        if let Some(captures) = regex.captures(line) {
+            result.insert(
+                captures["name"].to_string().to_lowercase(),
+                captures["offset"].parse().into_diagnostic()?,
+            );
+        }
+    }
+
+    Ok(result)
 }
 
 // COMPILE MIDEN LIB
