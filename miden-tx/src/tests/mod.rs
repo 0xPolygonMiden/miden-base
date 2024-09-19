@@ -10,7 +10,7 @@ use miden_objects::{
         },
         AccountCode, AccountProcedureInfo, AccountStorage,
     },
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
@@ -109,6 +109,7 @@ fn transaction_executor_witness() {
 fn executed_transaction_account_delta() {
     let account_code =
         AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false);
+    let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
 
     // modify procedure storage sizes
     // TODO: We manually modify the sizes here to 3 because they are hardcoded as 1.
@@ -127,6 +128,7 @@ fn executed_transaction_account_delta() {
             AccountStorage::mock_item_2().slot,
         ])
         .code(account_code)
+        .add_assets(account_assets)
         .nonce(ONE)
         .build()
         .unwrap();
