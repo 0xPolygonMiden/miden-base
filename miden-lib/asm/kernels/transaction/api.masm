@@ -66,6 +66,21 @@ proc.authenticate_account_origin
     # => [storage_offset, ...]
 end
 
+#! Checks that the invocation of a procedure originates from the native account.
+#! This procedure will prevent usage of the account procedures which can mutate the account state 
+#! with the foreign accounts.
+#!
+#! Panics:
+#!   - if the invocation of the account procedure does not originate from the native account.
+#!
+#! Stack: []
+#! Output: []
+proc.check_native_account
+    exec.memory::get_account_id
+    exec.memory::get_native_account_id
+    assert_eq
+end
+
 # KERNEL PROCEDURES
 # =================================================================================================
 
@@ -149,6 +164,9 @@ end
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 export.incr_account_nonce
+    # check that this procedure was executed against the native account
+    exec.check_native_account
+
     # drop the procedure's hash
     dropw
     
@@ -203,6 +221,9 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage commitment.
 export.set_account_item
+    # check that this procedure was executed against the native account
+    exec.check_native_account
+
     # drop the procedure's hash
     dropw
     
@@ -289,6 +310,9 @@ end
 #! - OLD_MAP_ROOT is the root of the old map before insertion
 #! - NEW_MAP_ROOT is the root of the new map after insertion.
 export.set_account_map_item.1
+    # check that this procedure was executed against the native account
+    exec.check_native_account
+
     # drop the procedure's hash
     dropw
     
@@ -325,6 +349,9 @@ end
 #!
 #! - CODE_COMMITMENT is the hash of the code to set.
 export.set_account_code
+    # check that this procedure was executed against the native account
+    exec.check_native_account
+
     # drop the procedure's hash
     dropw
     
@@ -399,6 +426,9 @@ end
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
 export.account_vault_add_asset
+    # check that this procedure was executed against the native account
+    exec.check_native_account
+
     # drop the procedure's hash
     dropw
     
@@ -441,6 +471,9 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
+    # check that this procedure was executed against the native account
+    exec.check_native_account
+
     # drop the procedure's hash
     dropw
     
@@ -765,6 +798,26 @@ export.get_note_serial_number
     # drop the padding
     swapw dropw
     # => [SERIAL_NUMBER]
+end
+
+#! Tells the transaction kernel that we are about to execute a procedure on a foreign account.
+#!
+#! Panics if we are already in a foreign context.
+#!
+#! Inputs:  [foreign_account_id, pad(15)]
+#! Outputs: [pad(16)]
+export.start_foreign_context
+    drop # unimplemented!
+end
+
+#! Tells the transaction kernel that we are done executing a procedure on a foreign account.
+#!
+#! Panics if we are not in a foreign context.
+#!
+#! Inputs:  [...]
+#! Outputs: [...]
+export.end_foreign_context
+    exec.memory::set_current_account_data_ptr_to_native_account
 end
 
 #! Executes a kernel procedure specified by its offset.

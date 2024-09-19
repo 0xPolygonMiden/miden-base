@@ -6,15 +6,15 @@ use miden_objects::{digest, Digest, Felt};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 28] = [
+pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     // account_vault_add_asset
-    digest!(0xa88b432804b96a9b, 0xd4de8a729879217f, 0xd7836c70f0da3c45, 0xd88d7bbcdc3f0ec0),
+    digest!(0x8e14028dc2b66552, 0x3578ba0229c01221, 0xe3abf2f8ee61f6f8, 0x86a8f9d42cd1f0da),
     // account_vault_get_balance
     digest!(0x92b81d20684fa47, 0x4920ee53425609b9, 0x2f8c32c56898141c, 0x9e4542839e34452f),
     // account_vault_has_non_fungible_asset
     digest!(0x1b1e6ec92fabca80, 0xbb3847ce15f98cac, 0x7152391739b5e0b3, 0x696aaf2c879c4fde),
     // account_vault_remove_asset
-    digest!(0xa576b016b3b1aa51, 0x1976dabeb7702394, 0xb9e3398d3bde26a2, 0x50f2a6618e551048),
+    digest!(0x61a32bf1196cebb8, 0xd2efcfcae9b76e8b, 0x852ea9c64957517b, 0x5afa1631df475790),
     // get_account_id
     digest!(0x386549d4435f79c1, 0x4a7add2e3b9f1b9e, 0x91c0af1138c14e77, 0xee8a5630e31bc74d),
     // get_account_item
@@ -30,13 +30,13 @@ pub const KERNEL0_PROCEDURES: [Digest; 28] = [
     // get_initial_account_hash
     digest!(0xe239391d2c860c53, 0x7a9d09c3015d7417, 0x111e9be3640d3848, 0xf2d442cf1e685a89),
     // incr_account_nonce
-    digest!(0xbb19b4993d572cfe, 0x56d5b90528efa5a3, 0x9a40c3e06717de22, 0x1027e64feb45c850),
+    digest!(0x12602399108259ec, 0xb0ddbfee256f2133, 0xa58ea59059d3f095, 0x6cc32449c738f9b7),
     // set_account_code
-    digest!(0xe9298c26dfbae789, 0x138b90862b76ee94, 0x7b0b6310201bc335, 0xc2c61533d23e7097),
+    digest!(0x6cc9d43670ab6e58, 0xef63fbb3ec8cfb9, 0xf63a09ff599ea458, 0x286cd41056278cf6),
     // set_account_item
-    digest!(0xd770bb5ffb63c2be, 0x16820b76c13b35e1, 0x2beabb0b905bbaa3, 0xe6dd743e224761c2),
+    digest!(0x6e0ca46fee3e6d20, 0x597e818173bada3e, 0x6da40e8a22241f9b, 0x8cc6088acbbbced3),
     // set_account_map_item
-    digest!(0x24512467a27766b6, 0x47ce176fe030cb78, 0x7f4297fd9972f5ae, 0xf169926b100ad3c9),
+    digest!(0xf38170b0aa74e599, 0x1b653fb69b163132, 0x96f6204cd7d7815a, 0x8286a29095513621),
     // burn_asset
     digest!(0x321fd17501dd1b7b, 0x5e41674206ccf93c, 0xf718f75b335577a6, 0x939db3229595dc7c),
     // get_fungible_faucet_total_issuance
@@ -63,4 +63,8 @@ pub const KERNEL0_PROCEDURES: [Digest; 28] = [
     digest!(0xd826d2ff59b30896, 0xbb1efaf300456f50, 0x4b0d12b7a0f9fe86, 0xc0d832c9f1c15fab),
     // get_block_number
     digest!(0xd483c8edceb956d, 0xf9f8d62043fcf072, 0xb917fc68b6e01ad1, 0x3ef8d736e7331692),
+    // start_foreign_context
+    digest!(0xe582ebc575b345ef, 0xc20d93bd625e27f7, 0x2d9f55dab6a3a5c0, 0x1c909bab7058b161),
+    // end_foreign_context
+    digest!(0x762a57ec60063da5, 0x8c0af14f9bfa3e09, 0xad2f9174a8025e67, 0xc546519a880db80a),
 ];

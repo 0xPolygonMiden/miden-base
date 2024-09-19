@@ -609,7 +609,7 @@ end
 #! Sets the memory pointer of the current account data to the native account (2048).
 #!
 #! Stack: []
-#! Output: [native_account_data_ptr]
+#! Output: []
 #!
 #! Where:
 #! - native_account_data_ptr is the memory address at which the native account data is stored.
