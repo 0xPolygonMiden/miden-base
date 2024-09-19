@@ -191,7 +191,7 @@ impl<T: ToInputNoteCommitments> InputNotes<T> {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The total number of notes is greater than 1023.
+    /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<T>) -> Result<Self, TransactionInputError> {
         if notes.len() > MAX_INPUT_NOTES_PER_TX {

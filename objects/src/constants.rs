@@ -11,7 +11,7 @@ pub const MAX_ASSETS_PER_NOTE: usize = 256;
 pub const MAX_INPUTS_PER_NOTE: usize = 128;
 
 /// The maximum number of notes that can be consumed by a single transaction.
-pub const MAX_INPUT_NOTES_PER_TX: usize = 1023;
+pub const MAX_INPUT_NOTES_PER_TX: usize = 1024;
 
 /// The maximum number of new notes created by a single transaction.
 pub const MAX_OUTPUT_NOTES_PER_TX: usize = MAX_INPUT_NOTES_PER_TX;

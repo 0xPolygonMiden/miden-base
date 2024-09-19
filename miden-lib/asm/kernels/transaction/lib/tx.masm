@@ -18,7 +18,7 @@ const.TWO_POW_38=274877906944
 # ERRORS
 # =================================================================================================
 
-# Output notes exceeded the maximum limit of 1023
+# Output notes exceeded the maximum limit of 1024
 const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
 
 # Invalid note type
@@ -304,7 +304,7 @@ end
 #! - the note_type is not valid.
 #! - the note_tag is not an u32.
 #! - if note_tag starts with anything but 0b11 and note_type is not public.
-#! - the number of output notes exceeds the maximum limit of 1023.
+#! - the number of output notes exceeds the maximum limit of 1024.
 export.create_note
     push.20983 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.NOTE_BEFORE_CREATED_EVENT

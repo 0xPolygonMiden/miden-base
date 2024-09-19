@@ -37,7 +37,7 @@ impl OutputNotes {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The total number of notes is greater than 1023.
+    /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<OutputNote>) -> Result<Self, TransactionOutputError> {
         if notes.len() > MAX_OUTPUT_NOTES_PER_TX {
