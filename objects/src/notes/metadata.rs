@@ -16,7 +16,6 @@ use super::{
 /// - For public notes, the second most significant bit of the tag must be 0.
 /// - For encrypted notes, two most significant bits of the tag must be 00.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteMetadata {
     /// The ID of the account which created the note.
     sender: AccountId,

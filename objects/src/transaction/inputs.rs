@@ -344,7 +344,6 @@ const UNAUTHENTICATED: u8 = 1;
 
 /// An input note for a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum InputNote {
     /// Input notes whose existences in the chain is verified by the transaction kernel.
     Authenticated { note: Note, proof: NoteInclusionProof },
