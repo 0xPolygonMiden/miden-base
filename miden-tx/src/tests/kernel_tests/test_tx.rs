@@ -154,7 +154,7 @@ fn test_create_note_too_many_notes() {
         use.kernel::prologue
 
         begin
-            push.4097
+            exec.constants::get_max_num_output_notes
             exec.memory::set_num_output_notes
             exec.prologue::prepare_transaction
             
