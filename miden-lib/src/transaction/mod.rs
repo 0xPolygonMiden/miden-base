@@ -35,10 +35,6 @@ pub use errors::{
 
 mod procedures;
 
-// Include procedure hashes generated in build.rs
-#[rustfmt::skip]
-mod procedures_v0;
-
 // CONSTANTS
 // ================================================================================================
 

@@ -1,8 +1,13 @@
 use alloc::vec::Vec;
 
+use kernel_v0::KERNEL0_PROCEDURES;
 use miden_objects::{Digest, Felt, Hasher};
 
 use super::TransactionKernel;
+
+// Include procedure hashes generated in build.rs
+#[rustfmt::skip]
+mod kernel_v0;
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -15,8 +20,7 @@ impl TransactionKernel {
     pub const NUM_VERSIONS: usize = 1;
 
     /// Array of all available kernels.
-    pub const PROCEDURES: [&'static [Digest]; Self::NUM_VERSIONS] =
-        [&super::procedures_v0::KERNEL0_PROCEDURES];
+    pub const PROCEDURES: [&'static [Digest]; Self::NUM_VERSIONS] = [&KERNEL0_PROCEDURES];
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
