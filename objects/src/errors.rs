@@ -8,7 +8,8 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    MAX_NOTES_PER_BLOCK,
 };
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
@@ -353,6 +354,8 @@ impl std::error::Error for ProvenTransactionError {}
 pub enum BlockError {
     DuplicateNoteFound(NoteId),
     TooManyNotesInBatch(usize),
+    TooManyNotesInBlock(usize),
+    TooManyNullifiersInBlock(usize),
     TooManyTransactionBatches(usize),
 }
 
@@ -364,6 +367,15 @@ impl fmt::Display for BlockError {
             },
             BlockError::TooManyNotesInBatch(actual) => {
                 write!(f, "Too many notes in a batch. Max: {MAX_NOTES_PER_BATCH}, actual: {actual}")
+            },
+            BlockError::TooManyNotesInBlock(actual) => {
+                write!(f, "Too many notes in a block. Max: {MAX_NOTES_PER_BLOCK}, actual: {actual}")
+            },
+            BlockError::TooManyNullifiersInBlock(actual) => {
+                write!(
+                    f,
+                    "Too many nullifiers in a block. Max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {actual}"
+                )
             },
             BlockError::TooManyTransactionBatches(actual) => {
                 write!(

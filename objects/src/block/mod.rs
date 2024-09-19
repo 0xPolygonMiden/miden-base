@@ -1,6 +1,9 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 
-use super::{Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH, ZERO};
+use super::{
+    Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    MAX_NOTES_PER_BLOCK, ZERO,
+};
 
 mod header;
 pub use header::BlockHeader;
@@ -55,6 +58,9 @@ pub struct Block {
 
 impl Block {
     /// Returns a new [Block] instantiated from the provided components.
+    ///
+    /// # Errors
+    /// Returns an error if block didn't pass validation.
     ///
     /// Note: consistency of the provided components is not validated.
     pub fn new(
@@ -151,19 +157,29 @@ impl Block {
             return Err(BlockError::TooManyTransactionBatches(batch_count));
         }
 
+        // We can't check input notes here because they're not stored in the block,
+        // so we check that nullifier count is not bigger than maximum input notes per block.
+        let nullifier_count = self.nullifiers.len();
+        if nullifier_count > MAX_INPUT_NOTES_PER_BLOCK {
+            return Err(BlockError::TooManyNullifiersInBlock(nullifier_count));
+        }
+
+        let mut output_notes = BTreeSet::new();
+        let mut output_note_count = 0;
         for batch in self.output_note_batches.iter() {
             if batch.len() > MAX_NOTES_PER_BATCH {
                 return Err(BlockError::TooManyNotesInBatch(batch.len()));
             }
-        }
-
-        let mut notes = BTreeSet::new();
-        for batch in self.output_note_batches.iter() {
+            output_note_count += batch.len();
             for note in batch.iter() {
-                if !notes.insert(note.id()) {
+                if !output_notes.insert(note.id()) {
                     return Err(BlockError::DuplicateNoteFound(note.id()));
                 }
             }
+        }
+
+        if output_note_count > MAX_NOTES_PER_BLOCK {
+            return Err(BlockError::TooManyNotesInBlock(output_note_count));
         }
 
         Ok(())
