@@ -37,6 +37,9 @@ const.ERR_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
 # Provided storage slot index is out of bounds
 const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002004E
 
+# Storage offset is invalid for a faucet account (0 is prohibited being the faucet reserved data slot)
+const.ERR_INVALID_FAUCET_STORAGE_OFFSET=0x0002004F
+
 # CONSTANTS
 # =================================================================================================
 
@@ -201,25 +204,6 @@ export.memory::get_acct_nonce->get_nonce
 #! - H is the initial account hash.
 export.memory::get_init_acct_hash->get_initial_hash
 
-#! Returns the most significant half with the account type bits masked out.
-#!
-#! The account type can be defined by comparing this value with the following constants:
-#!
-#! - REGULAR_ACCOUNT_UPDATABLE_CODE
-#! - REGULAR_ACCOUNT_IMMUTABLE_CODE
-#! - FUNGIBLE_FAUCET_ACCOUNT
-#! - NON_FUNGIBLE_FAUCET_ACCOUNT
-#!
-#! Stack: [acct_id]
-#! Output: [acct_type]
-#!
-#! - acct_id is the account id.
-#! - acct_type is the account type.
-proc.type
-    u32split swap drop push.ACCOUNT_TYPE_U32MASK u32and
-    # => [acct_type]
-end
-
 #! Returns a boolean indicating whether the account is a fungible faucet.
 #!
 #! Stack: [acct_id]
@@ -341,6 +325,83 @@ export.apply_storage_offset
     # => [offset_slot_index]
 end
 
+#! Validates all account procedures storage offsets by checking that:
+#! - All storage offsets are in bounds
+#! - All storage offsets adhere to account type specific rules
+#!
+#! Notes:
+#! - For faucets checks that no storage offset is 0 (preventing reserved storage slot access)
+#!
+#! Stack: []
+#! Output: []
+export.validate_storage_offsets
+    # get number of account procedures and number of storage slots
+    exec.memory::get_num_account_procedures exec.memory::get_num_storage_slots
+    # => [num_storage_slots, num_account_procedures]
+
+    # prepare stack for looping
+    push.0.1
+    # => [start_loop, index, num_storage_slots, num_account_procedures]
+
+    # check if the account is a faucet
+    exec.get_id exec.is_faucet
+    # => [is_faucet, start_loop, index, num_storage_slots, num_account_procedures]
+
+    # we do not check if num_account_procedures == 0 here because a valid
+    # account has between 1 and 256 procedures with associated offsets
+    if.true
+        while.true
+            # get storage offset from memory
+            dup exec.get_procedure_storage_offset
+            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+
+            # assert that storage offset is not 0
+            dup push.0 neq assert.err=ERR_INVALID_FAUCET_STORAGE_OFFSET
+            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+
+            # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
+            # to prevent access to the reserved faucet data slot. When the assembler
+            # will support storage offsets remove this check.
+            # check if the storage offset and the number of storage slots are 1
+            dup dup.3 eq.1 swap eq.1 and
+            # => [not_both_1, storage_offset, index, num_storage_slots, num_account_procedures]
+
+            if.false
+                # assert that storage offset is in bounds
+                dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+                # => [index, num_storage_slots, num_account_procedures]
+            else
+                # TODO: Remove this drop with the check above
+                # skip bound check and drop storage_offset
+                drop
+                # => [index, num_storage_slots, num_account_procedures]
+            end
+
+            # check if we should continue looping
+            add.1 dup dup.3 lt
+            # => [should_loop, index, num_storage_slots, num_account_procedures]
+        end
+    else
+        while.true
+            # get storage offset from memory
+            dup exec.get_procedure_storage_offset
+            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+
+            # assert that storage offset is in bounds
+            dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [index, num_storage_slots, num_account_procedures]
+
+            # check if we should continue looping
+            add.1 dup dup.3 lt
+            # => [should_loop, index, num_storage_slots, num_account_procedures]
+        end
+    end
+
+    # clean stack
+    drop drop drop
+    # => []
+end
+
 #! Gets an item from the account storage
 #!
 #! Note:
@@ -359,36 +420,6 @@ export.get_item
     # get the item from storage
     swap mul.2 add padw movup.4 mem_loadw
     # => [VALUE]
-end
-
-#! Sets an item in the account storage. Doesn't emit any events.
-#!
-#! Stack: [index, NEW_VALUE]
-#! Output: [OLD_VALUE]
-#!
-#! - index is the index of the item to set.
-#! - NEW_VALUE is the value to set.
-#! - OLD_VALUE is the previous value of the item.
-proc.set_item_raw
-    # get old value from storage
-    dup movdn.5 exec.get_item
-    # => [OLD_VALUE, NEW_VALUE, index]
-
-    # arrange stack for storage update
-    swapw movup.8
-    # => [index, NEW_VALUE, OLD_VALUE]
-
-    # get account storage slots section offset
-    exec.memory::get_acct_storage_slots_section_offset
-    # => [acct_storage_slots_section_offset, index, NEW_VALUE, OLD_VALUE]
-
-    # update storage
-    swap mul.2 add mem_storew
-    # => [NEW_VALUE, OLD_VALUE]
-
-    # drop value
-    dropw
-    # => [OLD_VALUE]
 end
 
 #! Sets an item in the account storage.
@@ -536,14 +567,14 @@ export.get_procedure_info
     dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
     # => [index]
 
-    # get procedure section ptr
-    push.2 mul exec.memory::get_acct_procedures_section_offset add dup push.1 add
-    # => [proc_ptr, offset_ptr]
+    # get procedure pointer
+    mul.2 exec.memory::get_acct_procedures_section_offset add dup add.1
+    # => [offset_ptr, proc_ptr]
 
     # load procedure information from memory
     mem_load swap padw movup.4 mem_loadw
     # => [PROC_ROOT, storage_offset]
- end
+end
 
 #! Verifies that the procedure root is part of the account code
 #!
@@ -629,4 +660,75 @@ export.validate_seed
         # assert that the pow is valid
         u32split drop swap u32divmod assertz.err=ERR_ACCOUNT_INVALID_POW drop
         # => []
+end
+
+# HELPER PROCEDURES
+# =================================================================================================
+
+#! Returns the most significant half with the account type bits masked out.
+#!
+#! The account type can be defined by comparing this value with the following constants:
+#!
+#! - REGULAR_ACCOUNT_UPDATABLE_CODE
+#! - REGULAR_ACCOUNT_IMMUTABLE_CODE
+#! - FUNGIBLE_FAUCET_ACCOUNT
+#! - NON_FUNGIBLE_FAUCET_ACCOUNT
+#!
+#! Stack: [acct_id]
+#! Output: [acct_type]
+#!
+#! - acct_id is the account id.
+#! - acct_type is the account type.
+proc.type
+    u32split swap drop push.ACCOUNT_TYPE_U32MASK u32and
+    # => [acct_type]
+end
+
+#! Sets an item in the account storage. Doesn't emit any events.
+#!
+#! Stack: [index, NEW_VALUE]
+#! Output: [OLD_VALUE]
+#!
+#! - index is the index of the item to set.
+#! - NEW_VALUE is the value to set.
+#! - OLD_VALUE is the previous value of the item.
+proc.set_item_raw
+    # get old value from storage
+    dup movdn.5 exec.get_item
+    # => [OLD_VALUE, NEW_VALUE, index]
+
+    # arrange stack for storage update
+    swapw movup.8
+    # => [index, NEW_VALUE, OLD_VALUE]
+
+    # get account storage slots section offset
+    exec.memory::get_acct_storage_slots_section_offset
+    # => [acct_storage_slots_section_offset, index, NEW_VALUE, OLD_VALUE]
+
+    # update storage
+    swap mul.2 add mem_storew
+    # => [NEW_VALUE, OLD_VALUE]
+
+    # drop value
+    dropw
+    # => [OLD_VALUE]
+end
+
+#! Returns the procedure storage offset
+#!
+#! Note:
+#! - We assume that index has been validated and is within bounds
+#!
+#! Stack: [index, ...]
+#! Output: [storage_offset, ...]
+#!
+#! - storage_offset is the procedure storage offset.
+proc.get_procedure_storage_offset
+    # get procedure storage offset pointer
+    mul.2 exec.memory::get_acct_procedures_section_offset add add.1
+    # => [storage_offset_ptr]
+
+    # load procedure storage offset from memory
+    mem_load
+    # => [storage_offset]
 end

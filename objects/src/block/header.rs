@@ -26,7 +26,6 @@ use crate::utils::serde::{
 /// - `sub_hash` is a sequential hash of all fields except the note_root.
 /// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
     version: u32,
     prev_hash: Digest,
@@ -265,7 +264,14 @@ mod tests {
     fn test_serde() {
         let chain_root: Word = rand_array();
         let note_root: Word = rand_array();
-        let header = BlockHeader::mock(0, Some(chain_root.into()), Some(note_root.into()), &[]);
+        let kernel_root: Word = rand_array();
+        let header = BlockHeader::mock(
+            0,
+            Some(chain_root.into()),
+            Some(note_root.into()),
+            &[],
+            kernel_root.into(),
+        );
         let serialized = header.to_bytes();
         let deserialized = BlockHeader::read_from_bytes(&serialized).unwrap();
 

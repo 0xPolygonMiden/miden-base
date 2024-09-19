@@ -80,13 +80,13 @@ pub const ERR_PROC_INDEX_OUT_OF_BOUNDS: u32 = 131147;
 pub const ERR_ACCT_CODE_HASH_MISMATCH: u32 = 131148;
 pub const ERR_ACCT_TOO_MANY_PROCEDURES: u32 = 131149;
 pub const ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 131150;
-
+pub const ERR_INVALID_FAUCET_STORAGE_OFFSET: u32 = 131151;
 pub const ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED: u32 = 131152;
 pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 131153;
 pub const ERR_INVALID_NOTE_IDX: u32 = 131154;
 pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 131155;
 
-pub const KERNEL_ERRORS: [(u32, &str); 83] = [
+pub const KERNEL_ERRORS: [(u32, &str); 84] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -169,5 +169,6 @@ pub const KERNEL_ERRORS: [(u32, &str); 83] = [
     (ERR_ACCT_CODE_HASH_MISMATCH, "Provided account hash does not match stored account hash"),
     (ERR_ACCT_TOO_MANY_PROCEDURES, "Number of account procedures exceeded the maximum limit of 256"),
     (ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
-    (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
+    (ERR_INVALID_FAUCET_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited being the reserved faucet data slot)"),
+    (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds")
 ];

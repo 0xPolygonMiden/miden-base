@@ -10,7 +10,7 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType,
+        AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType, StorageSlot,
     },
     testing::{account::AccountBuilder, prepare_word, storage::STORAGE_LEAVES_2},
     transaction::TransactionScript,
@@ -471,7 +471,7 @@ fn test_storage_offset() {
         end
     ";
     // Setup account
-    let code = AccountCode::compile(source_code, assembler.clone()).unwrap();
+    let code = AccountCode::compile(source_code, assembler.clone(), false).unwrap();
 
     // modify procedure offsets
     // TODO: We manually set the offsets here because we do not have the ability to set the
@@ -484,9 +484,16 @@ fn test_storage_offset() {
     ];
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
 
+    let storage_slots = vec![
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+    ];
+
     let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .code(code)
         .nonce(ONE)
+        .add_storage_slots(storage_slots)
         .build()
         .unwrap();
 
@@ -560,7 +567,7 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let account_code = AccountCode::mock_wallet(TransactionKernel::assembler());
+    let account_code = AccountCode::mock_account_code(TransactionKernel::assembler(), false);
 
     let tc_0: [Felt; 4] =
         account_code.procedures()[0].mast_root().as_elements().try_into().unwrap();

@@ -1,3 +1,6 @@
+use vm_core::utils::{ByteReader, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{AdviceInputs, TransactionArgs, TransactionInputs};
 
 // TRANSACTION WITNESS
@@ -20,8 +23,29 @@ use super::{AdviceInputs, TransactionArgs, TransactionInputs};
 /// TODO: currently, the advice witness contains redundant and irrelevant data (e.g., tx inputs
 /// and tx outputs). we should optimize it to contain only the minimum data required for
 /// executing/proving the transaction.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransactionWitness {
     pub tx_inputs: TransactionInputs,
     pub tx_args: TransactionArgs,
     pub advice_witness: AdviceInputs,
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for TransactionWitness {
+    fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
+        self.tx_inputs.write_into(target);
+        self.tx_args.write_into(target);
+        self.advice_witness.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionWitness {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let tx_inputs = TransactionInputs::read_from(source)?;
+        let tx_args = TransactionArgs::read_from(source)?;
+        let advice_witness = AdviceInputs::read_from(source)?;
+        Ok(Self { tx_inputs, tx_args, advice_witness })
+    }
 }

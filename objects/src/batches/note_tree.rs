@@ -12,7 +12,6 @@ use crate::{
 ///
 /// Value of each leaf is computed as: `hash(note_id || note_metadata)`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BatchNoteTree(SimpleSmt<BATCH_NOTE_TREE_DEPTH>);
 
 impl BatchNoteTree {

@@ -47,6 +47,16 @@ impl<T: Rng> AccountBuilder<T> {
         }
     }
 
+    pub fn with_mock_storage(rng: T) -> Self {
+        Self {
+            assets: vec![],
+            storage_builder: AccountStorageBuilder::with_mock_data(),
+            code: None,
+            nonce: ZERO,
+            account_id_builder: AccountIdBuilder::new(rng),
+        }
+    }
+
     pub fn add_asset(mut self, asset: Asset) -> Self {
         self.assets.push(asset);
         self
@@ -76,7 +86,7 @@ impl<T: Rng> AccountBuilder<T> {
 
     /// Compiles [DEFAULT_ACCOUNT_CODE] into [AccountCode] and sets it.
     pub fn default_code(self, assembler: Assembler) -> Self {
-        let default_account_code = AccountCode::compile(DEFAULT_ACCOUNT_CODE, assembler)
+        let default_account_code = AccountCode::compile(DEFAULT_ACCOUNT_CODE, assembler, false)
             .expect("Default account code should compile.");
         self.code(default_account_code)
     }
@@ -196,7 +206,7 @@ impl Account {
             AssetVault::mock()
         };
 
-        let account_code = AccountCode::mock_wallet(assembler);
+        let account_code = AccountCode::mock_account_code(assembler, false);
 
         let account_id = AccountId::try_from(account_id).unwrap();
         Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
@@ -212,7 +222,7 @@ impl Account {
             AccountStorage::new(vec![StorageSlot::Value([ZERO, ZERO, ZERO, initial_balance])])
                 .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
-        let account_code = AccountCode::mock_wallet(assembler);
+        let account_code = AccountCode::mock_account_code(assembler, true);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
     }
 
@@ -237,7 +247,7 @@ impl Account {
 
         let account_storage = AccountStorage::new(vec![StorageSlot::Map(nft_storage_map)]).unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
-        let account_code = AccountCode::mock_wallet(assembler);
+        let account_code = AccountCode::mock_account_code(assembler, true);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
     }
 }

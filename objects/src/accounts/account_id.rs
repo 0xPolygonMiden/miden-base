@@ -30,7 +30,6 @@ pub const NON_FUNGIBLE_FAUCET: u64 = 0b11;
 pub const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
 pub const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
 
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u64)]
 pub enum AccountType {
@@ -79,7 +78,6 @@ impl From<u64> for AccountType {
 pub const PUBLIC: u64 = 0b00;
 pub const PRIVATE: u64 = 0b10;
 
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u64)]
 pub enum AccountStorageMode {
@@ -137,8 +135,6 @@ impl FromStr for AccountStorageMode {
 /// [FUNGIBLE_FAUCET], [NON_FUNGIBLE_FAUCET], [REGULAR_ACCOUNT_IMMUTABLE_CODE], and
 /// [REGULAR_ACCOUNT_UPDATABLE_CODE] encode the account's type.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct AccountId(Felt);
 
 impl AccountId {

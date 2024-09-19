@@ -49,7 +49,7 @@ pub fn create_basic_wallet(
     );
 
     let assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::compile(source_code, assembler)?;
+    let account_code = AccountCode::compile(source_code, assembler, false)?;
 
     let account_storage = AccountStorage::new(vec![StorageSlot::Value(storage_slot_0_data)])?;
 

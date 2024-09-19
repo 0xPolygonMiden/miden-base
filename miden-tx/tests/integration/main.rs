@@ -80,12 +80,10 @@ pub fn get_account_with_default_account_code(
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
+    let account_code = AccountCode::compile(account_code_src, assembler, false).unwrap();
     let account_storage = AccountStorage::new(vec![
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
         StorageSlot::Value(public_key),
+        StorageSlot::Value(Word::default()),
         StorageSlot::Map(StorageMap::default()),
     ])
     .unwrap();

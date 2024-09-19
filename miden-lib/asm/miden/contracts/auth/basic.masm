@@ -6,7 +6,7 @@ use.std::crypto::dsa::rpo_falcon512
 # =================================================================================================
 
 # Slot in account storage at which the public key is stored.
-const.PUBLIC_KEY_SLOT=3
+const.PUBLIC_KEY_SLOT=0
 
 #! Authenticate a transaction using the Falcon signature scheme
 #! Stack: []
