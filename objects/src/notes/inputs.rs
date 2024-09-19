@@ -51,6 +51,7 @@ impl NoteInputs {
     ///
     /// The returned value is guaranteed to be smaller than or equal to 128.
     pub fn num_values(&self) -> u8 {
+        const _: () = assert!(MAX_INPUTS_PER_NOTE <= u8::MAX as usize);
         debug_assert!(
             self.values.len() < MAX_INPUTS_PER_NOTE,
             "The constructor should have checked the number of inputs"
