@@ -1,21 +1,8 @@
 use alloc::vec::Vec;
 
-use miden_objects::{utils::Deserializable, Digest, Felt, Hasher};
-use once_cell::sync::OnceCell;
+use miden_objects::{Digest, Felt, Hasher};
 
 use super::TransactionKernel;
-
-// CONSTANTS
-// ================================================================================================
-
-/// Number of currently used kernel versions.
-const NUM_VERSIONS: usize = 1;
-
-/// Include file with kernel 0 procedure hashes generated in build.rs
-const PROCEDURES_RAW: [&[u8]; NUM_VERSIONS] = [include_bytes!("../../kernel_procs_v0.bin")];
-
-/// Array of all available kernels.
-pub static PROCEDURES: [OnceCell<Vec<Felt>>; NUM_VERSIONS] = [OnceCell::new()];
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -25,21 +12,25 @@ impl TransactionKernel {
     // --------------------------------------------------------------------------------------------
 
     /// Number of currently used kernel versions.
-    pub const NUM_VERSIONS: usize = NUM_VERSIONS;
+    pub const NUM_VERSIONS: usize = 1;
+
+    /// Array of all available kernels.
+    pub const PROCEDURES: [&'static [Digest]; Self::NUM_VERSIONS] =
+        [&super::procedures_v0::KERNEL0_PROCEDURES];
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns procedures of the kernel specified by the `kernel_version` as vector of Felts.
     pub fn procedures_as_elements(kernel_version: u8) -> Vec<Felt> {
-        PROCEDURES
-            .get(kernel_version as usize)
-            .expect("provided kernel index is out of bounds")
-            .get_or_init(|| {
-                Vec::read_from_bytes(PROCEDURES_RAW[kernel_version as usize])
-                    .expect("failed to deserialize kernel procedures")
-            })
-            .to_vec()
+        Digest::digests_as_elements(
+            Self::PROCEDURES
+                .get(kernel_version as usize)
+                .expect("provided kernel index is out of bounds")
+                .iter(),
+        )
+        .cloned()
+        .collect::<Vec<Felt>>()
     }
 
     /// Computes the accumulative hash of all procedures of the kernel specified by the
