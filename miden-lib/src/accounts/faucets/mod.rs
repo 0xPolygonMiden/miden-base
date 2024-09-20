@@ -54,7 +54,7 @@ pub fn create_basic_fungible_faucet(
     );
 
     let assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::compile(source_code, assembler)?;
+    let account_code = AccountCode::compile(source_code, assembler, true)?;
 
     // First check that the metadata is valid.
     if decimals > MAX_DECIMALS {
@@ -76,14 +76,12 @@ pub fn create_basic_fungible_faucet(
 
     // We store the authentication data and the token metadata in the account storage:
     // - slot 0: reserved faucet data
-    // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
-    // - slot 2: any
-    // - slot 3: authentication data (must be at location 3 in storage)
+    // - slot 1: authentication data
+    // - slot 2: token metadata as [max_supply, decimals, token_symbol, 0]
     let account_storage = AccountStorage::new(vec![
         StorageSlot::Value(reserved_data),
-        StorageSlot::Value(metadata),
-        StorageSlot::Value([ZERO, ZERO, ZERO, ZERO]),
         StorageSlot::Value(auth_data),
+        StorageSlot::Value(metadata),
     ])?;
 
     let account_seed = AccountId::get_account_seed(
@@ -137,7 +135,7 @@ mod tests {
 
         // check that max_supply (slot 1) is 123
         assert_eq!(
-            faucet_account.storage().get_item(1).unwrap(),
+            faucet_account.storage().get_item(2).unwrap(),
             [Felt::new(123), Felt::new(2), token_symbol.into(), ZERO].into()
         );
 

@@ -1,7 +1,9 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
+#[cfg(feature = "testing")]
+use miden_objects::accounts::AccountCode;
 use miden_objects::{
-    accounts::{AccountCode, AccountId},
+    accounts::AccountId,
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,

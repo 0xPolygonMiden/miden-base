@@ -19,7 +19,8 @@ pub const CODE: &str = "
 
 pub const DEFAULT_ACCOUNT_CODE: &str = "
     export.::miden::contracts::wallets::basic::receive_asset
-    export.::miden::contracts::wallets::basic::send_asset
+    export.::miden::contracts::wallets::basic::create_note
+    export.::miden::contracts::wallets::basic::move_asset_to_note
     export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
@@ -30,9 +31,9 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
 ";
 
 impl AccountCode {
-    /// Creates a mock [AccountCode] that exposes wallet interface
-    pub fn mock_wallet(assembler: Assembler) -> AccountCode {
-        AccountCode::new(Self::mock_library(assembler)).unwrap()
+    /// Creates a mock [AccountCode]
+    pub fn mock_account_code(assembler: Assembler, is_faucet: bool) -> AccountCode {
+        AccountCode::new(Self::mock_library(assembler), is_faucet).unwrap()
     }
 
     /// Creates a mock [Library] which can be used to assemble programs and as a library to create a
@@ -43,8 +44,8 @@ impl AccountCode {
         use.miden::account
         use.miden::faucet
         use.miden::tx
+
         export.::miden::contracts::wallets::basic::receive_asset
-        export.::miden::contracts::wallets::basic::send_asset
         export.::miden::contracts::wallets::basic::create_note
         export.::miden::contracts::wallets::basic::move_asset_to_note
         export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
@@ -129,11 +130,11 @@ impl AccountCode {
 
     /// Creates a mock [AccountCode] with specific code and assembler
     pub fn mock_with_code(source_code: &str, assembler: Assembler) -> AccountCode {
-        Self::compile(source_code, assembler).unwrap()
+        Self::compile(source_code, assembler, false).unwrap()
     }
 
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        Self::compile(CODE, Assembler::default()).unwrap()
+        Self::compile(CODE, Assembler::default(), false).unwrap()
     }
 }

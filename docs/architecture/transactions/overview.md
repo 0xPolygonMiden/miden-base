@@ -50,7 +50,7 @@ Transferring assets between accounts requires two transactions as shown in the d
 ![Transaction flow](../../img/architecture/transaction/transaction-flow.png)
 </center>
 
-The first transaction invokes a function on `account_a` (e.g. a `send_asset` function) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g. a `receive_asset` function) which updates the internal state of `account_b`.
+The first transaction invokes some functions on `account_a` (e.g. `create_note` and `move_asset_to_note` functions) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g. a `receive_asset` function) which updates the internal state of `account_b`.
 
 ### Asynchronous execution
 

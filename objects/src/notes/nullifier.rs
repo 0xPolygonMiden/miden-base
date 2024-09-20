@@ -22,7 +22,6 @@ use crate::utils::{hex_to_bytes, HexParseError};
 /// - To compute the nullifier we must know all components of the note: serial_num, script_hash,
 ///   input_hash and asset_hash.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Nullifier(Digest);
 
 impl Nullifier {

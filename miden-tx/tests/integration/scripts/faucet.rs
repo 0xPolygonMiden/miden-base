@@ -145,14 +145,16 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
 
-    // check that max_supply (slot 1) is 200 and amount already issued (slot 0) is 100
-    assert_eq!(
-        faucet_account.storage().get_item(1).unwrap(),
-        [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
-    );
+    // check that the faucet reserved slot has been correctly initialised
     assert_eq!(
         faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT).unwrap(),
         [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
+    );
+
+    // check that max_supply (slot 2) is 200 and amount already issued (slot 0) is 100
+    assert_eq!(
+        faucet_account.storage().get_item(2).unwrap(),
+        [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
     );
 
     // need to create a note with the fungible asset to be burned
@@ -196,7 +198,8 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     total_issuance: Option<u64>,
 ) -> AccountBuilder<ChaCha20Rng> {
     let assembler = TransactionKernel::assembler();
-    let faucet_account_code = AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler).unwrap();
+    let faucet_account_code =
+        AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler, true).unwrap();
 
     let faucet_storage_slot_0 = match total_issuance {
         Some(issuance) => StorageSlot::Value([ZERO, ZERO, ZERO, Felt::new(issuance)]),

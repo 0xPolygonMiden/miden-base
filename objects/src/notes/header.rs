@@ -13,7 +13,6 @@ use crate::Hasher;
 ///
 /// See [NoteId] and [NoteMetadata] for additional details.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteHeader {
     note_id: NoteId,
     note_metadata: NoteMetadata,

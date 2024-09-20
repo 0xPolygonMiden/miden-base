@@ -11,6 +11,9 @@ pub use slot::{StorageSlot, StorageSlotType};
 mod map;
 pub use map::StorageMap;
 
+mod header;
+pub use header::AccountStorageHeader;
+
 // ACCOUNT STORAGE
 // ================================================================================================
 
@@ -29,7 +32,7 @@ pub struct AccountStorage {
 }
 
 impl AccountStorage {
-    /// The maximum number of storage slots allowed in an [AccountStorage]
+    /// The maximum number of storage slots allowed in an account storage.
     pub const MAX_NUM_STORAGE_SLOTS: usize = 255;
 
     // CONSTRUCTOR
@@ -59,7 +62,7 @@ impl AccountStorage {
         build_slots_commitment(&self.slots)
     }
 
-    /// Converts storage slots of this [AccountStorage] into a vector of field elements.
+    /// Converts storage slots of this account storage into a vector of field elements.
     ///
     /// This is done by first converting each procedure into exactly 8 elements as follows:
     /// ```text
@@ -97,6 +100,13 @@ impl AccountStorage {
             StorageSlot::Map(ref map) => Ok(map.get_value(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
         }
+    }
+
+    /// Returns an [AccountStorageHeader] for this account storage.
+    pub fn get_header(&self) -> AccountStorageHeader {
+        AccountStorageHeader::new(
+            self.slots.iter().map(|slot| (slot.slot_type(), slot.value())).collect(),
+        )
     }
 
     // DATA MUTATORS

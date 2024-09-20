@@ -23,7 +23,6 @@ pub const EMPTY_STORAGE_MAP_ROOT: Word = [
 /// Account storage map is a Sparse Merkle Tree of depth 64. It can be used to store more data as
 /// there is in plain usage of the storage slots. The root of the SMT consumes one account storage
 /// slot.
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StorageMap {
     map: Smt,

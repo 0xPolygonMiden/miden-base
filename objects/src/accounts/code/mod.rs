@@ -50,17 +50,24 @@ impl AccountCode {
     /// All procedures exported from the provided library will become members of the account's
     /// public interface.
     ///
+    /// # Notes
+    /// - A `faucet` flag has been temporarly added to this procedure enabling correct storage
+    ///   offset of faucet procedures. This is needed because of the faucet reserved storage slot at
+    ///   location 0.
+    ///
     /// # Errors
-    /// Returns an error if the number of procedures exported from the provided library is smaller
-    /// than 1 or greater than 256.
-    pub fn new(library: Library) -> Result<Self, AccountError> {
+    /// - If the number of procedures exported from the provided library is smaller than 1 or
+    ///   greater than 256.
+    pub fn new(library: Library, is_faucet: bool) -> Result<Self, AccountError> {
         // extract procedure information from the library exports
-        // TODO: currently, offsets for all procedures are set to 0; instead they should be read
-        // from the Library metadata
+        // TODO: currently, offsets for all regular account procedures are set to 0
+        // and offsets for faucet accounts procedures are set to 1. Instead they should
+        // be read from the Library metadata.
         let mut procedures: Vec<AccountProcedureInfo> = Vec::new();
+        let storage_offset = if is_faucet { 1 } else { 0 };
         for module in library.module_infos() {
             for proc_mast_root in module.procedure_digests() {
-                procedures.push(AccountProcedureInfo::new(proc_mast_root, 0));
+                procedures.push(AccountProcedureInfo::new(proc_mast_root, storage_offset));
             }
         }
 
@@ -92,12 +99,16 @@ impl AccountCode {
     /// - Compilation of the provided source code fails.
     /// - The number of procedures exported from the provided library is smaller than 1 or greater
     ///   than 256.
-    pub fn compile(source_code: impl Compile, assembler: Assembler) -> Result<Self, AccountError> {
+    pub fn compile(
+        source_code: impl Compile,
+        assembler: Assembler,
+        is_faucet: bool,
+    ) -> Result<Self, AccountError> {
         let library = assembler
             .assemble_library([source_code])
             .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
 
-        Self::new(library)
+        Self::new(library, is_faucet)
     }
 
     /// Returns a new [AccountCode] deserialized from the provided bytes.

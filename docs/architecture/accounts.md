@@ -91,17 +91,18 @@ There is a standard for a basic user account. It exposes three functions via its
     use.miden::contracts::auth::basic
 
     export.basic_wallet::receive_asset
-    export.basic_wallet::send_asset
+    export.basic_wallet::create_note
+    export.basic_wallet::move_asset_to_note
     export.basic::auth_tx_rpo_falcon512
   ```
 </details>
 
-[Note scripts](notes.md#the-note-script) or transaction scripts can call `receive_asset` and `send_asset`. 
+[Note scripts](notes.md#the-note-script) or transaction scripts can call `receive_asset`, `create_note` and `move_asset_to_note` procedures.
 
-Transaction scripts can also call `auth_tx_rpo_falcon512` and authenticate the transaction. 
+Transaction scripts can also call `auth_tx_rpo_falcon512` and authenticate the transaction.
 
 !!! warning
-    Without correct authentication, i.e. knowing the correct private key, a note cannot successfully invoke `receive_asset` or `send_asset`. 
+    Without correct authentication, i.e. knowing the correct private key, a note cannot successfully invoke `receive_asset`, `create_note` or `move_asset_to_note`.
 
 ##### Basic fungible faucet (faucet for fungible assets)
 

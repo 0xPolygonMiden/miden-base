@@ -44,7 +44,6 @@ Description of this crate's feature:
 | ------------ | --------------------------------------------------------------------------------------------- |
 | `std`        | Enable usage of Rust's `std`, use `--no-default-features` for `no-std` support.               |
 | `concurrent` | Enables concurrent code to speed up runtime execution.                                        |
-| `serde`      | Enables serialization of most objects via `serde`.                                            |
 | `testing`    | Enables testing utilities and reduces proof-of-work requirements to speed up tests' runtimes. |
 
 ## License

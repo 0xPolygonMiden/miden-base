@@ -1,5 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
+use vm_core::utils::{Deserializable, Serializable};
+
 use crate::{
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     BlockHeader, ChainMmrError,
@@ -113,11 +115,37 @@ impl ChainMmr {
     }
 }
 
+impl Serializable for ChainMmr {
+    fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
+        self.mmr.write_into(target);
+        self.blocks.len().write_into(target);
+        for block in self.blocks.values() {
+            block.write_into(target);
+        }
+    }
+}
+
+impl Deserializable for ChainMmr {
+    fn read_from<R: miden_crypto::utils::ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, miden_crypto::utils::DeserializationError> {
+        let mmr = PartialMmr::read_from(source)?;
+        let block_count = usize::read_from(source)?;
+        let mut blocks = BTreeMap::new();
+        for _ in 0..block_count {
+            let block = BlockHeader::read_from(source)?;
+            blocks.insert(block.block_num(), block);
+        }
+        Ok(Self { mmr, blocks })
+    }
+}
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
+    use vm_core::utils::{Deserializable, Serializable};
+
     use super::ChainMmr;
     use crate::{
         alloc::vec::Vec,
@@ -168,6 +196,23 @@ mod tests {
             mmr.open(block_num as usize, mmr.forest()).unwrap(),
             chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
         );
+    }
+
+    #[test]
+    fn tst_chain_mmr_serialization() {
+        // create chain MMR with 3 blocks - i.e., 2 peaks
+        let mut mmr = Mmr::default();
+        for i in 0..3 {
+            let block_header = int_to_block_header(i);
+            mmr.add(block_header.hash());
+        }
+        let partial_mmr: PartialMmr = mmr.peaks(mmr.forest()).unwrap().into();
+        let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
+
+        let bytes = chain_mmr.to_bytes();
+        let deserialized = ChainMmr::read_from_bytes(&bytes).unwrap();
+
+        assert_eq!(chain_mmr, deserialized);
     }
 
     fn int_to_block_header(block_num: u32) -> BlockHeader {

@@ -33,3 +33,4 @@ vm-processor = { workspace = true, features = ["testing"] }
 [build-dependencies]
 assembly = { workspace = true }
 miden-stdlib = { workspace = true }
+regex = { version = "1.10" }

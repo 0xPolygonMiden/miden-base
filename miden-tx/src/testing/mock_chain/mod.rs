@@ -144,8 +144,8 @@ impl PendingObjects {
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
                 batch.iter().enumerate().map(move |(note_index, note)| {
                     (
-                        BlockNoteIndex::new(batch_index, note_index),
-                        note.id().into(),
+                        BlockNoteIndex::new(batch_index, note_index).unwrap(),
+                        note.id(),
                         *note.metadata(),
                     )
                 })
@@ -652,11 +652,12 @@ impl MockChain {
                 // All note details should be OutputNote::Full at this point
                 match note {
                     OutputNote::Full(note) => {
-                        let block_note_index = BlockNoteIndex::new(batch_index, note_index);
-                        let note_path = notes_tree.get_note_path(block_note_index).unwrap();
+                        let block_note_index =
+                            BlockNoteIndex::new(batch_index, note_index).unwrap();
+                        let note_path = notes_tree.get_note_path(block_note_index);
                         let note_inclusion_proof = NoteInclusionProof::new(
                             block.header().block_num(),
-                            block_note_index.to_absolute_index(),
+                            block_note_index.leaf_index_value(),
                             note_path,
                         )
                         .unwrap();

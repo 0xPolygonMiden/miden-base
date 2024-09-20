@@ -34,6 +34,16 @@ impl AccountStorageBuilder {
         Self { slots: vec![] }
     }
 
+    pub fn with_mock_data() -> Self {
+        Self {
+            slots: vec![
+                AccountStorage::mock_item_0().slot,
+                AccountStorage::mock_item_1().slot,
+                AccountStorage::mock_item_2().slot,
+            ],
+        }
+    }
+
     pub fn add_slot(&mut self, slot: StorageSlot) -> &mut Self {
         self.slots.push(slot);
         self
