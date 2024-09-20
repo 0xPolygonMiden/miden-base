@@ -78,7 +78,6 @@ pub use file::NoteFile;
 /// and the kernel only verifies the source account has the assets necessary for the note creation.
 /// See [NoteRecipient] for more details.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
     header: NoteHeader,
     details: NoteDetails,

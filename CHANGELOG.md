@@ -2,6 +2,8 @@
 
 ## 0.6.0 (TBD)
 
+- Made note scripts public (#880).
+- Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
 - [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).
 - Implemented `Display`, `TryFrom<&str>` and `FromStr` for `AccountStorageMode` (#861).
 - Implemented offset based storage access (#843).
@@ -12,6 +14,7 @@
 - [BREAKING] Refactored batch/block note trees (#834).
 - Set all procedures storage offsets of faucet accounts to `1` (#875).
 - Added `AccountStorageHeader` (#876).
+- Implemented generation of transaction kernel procedure hashes in build.rs (#887).
 - Implemented `storage_size`, updated storage bounds (#886).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
@@ -45,6 +48,7 @@
 - Added serialization and equality comparison for `TransactionScript` (#824).
 - [BREAKING] Migrated to Miden VM v0.10 (#826).
 - Added conversions for `NoteExecutionHint` (#827).
+- [BREAKING] Removed `serde`-based serialization from `miden-object` structs (#838).
 
 ## 0.4.0 (2024-07-03)
 

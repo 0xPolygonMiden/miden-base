@@ -26,8 +26,6 @@ const FAUCET_ID_POS: usize = 1;
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
 /// [NonFungibleAssetDetails] struct.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NonFungibleAsset(Word);
 
 impl PartialOrd for NonFungibleAsset {
@@ -204,7 +202,6 @@ impl Deserializable for NonFungibleAsset {
 ///
 /// Unlike [NonFungibleAsset] struct, this struct contains full details of a non-fungible asset.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NonFungibleAssetDetails {
     faucet_id: AccountId,
     asset_data: Vec<u8>,
