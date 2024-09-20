@@ -393,6 +393,11 @@ proc.validate_new_account
     # ---------------------------------------------------------------------------------------------
     exec.account::validate_seed
     # => []
+
+    # Assert the provided storage offsets and sizes satisfy storage requirements
+    # ---------------------------------------------------------------------------------------------
+    exec.account::validate_storage_offsets
+    exec.account::validate_storage_sizes
 end
 
 #! Validates that storage slots match storage commitment and saves storage slots into memory.
@@ -611,10 +616,6 @@ proc.process_account_data
         assert.err=ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO
         # => []
     end
-
-    # validate account procedure metadata
-    exec.account::validate_storage_offsets
-    exec.account::validate_storage_sizes
 end
 
 # INPUT NOTES DATA
