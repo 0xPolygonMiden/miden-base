@@ -8,13 +8,13 @@ use miden_objects::{digest, Digest, Felt};
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     // account_vault_add_asset
-    digest!(0x8e14028dc2b66552, 0x3578ba0229c01221, 0xe3abf2f8ee61f6f8, 0x86a8f9d42cd1f0da),
+    digest!(0xb8815bfacbdcb4c2, 0x6c7e694cf4f6a517, 0xf6233da2865ca264, 0xe51463cd0df6e896),
     // account_vault_get_balance
     digest!(0x92b81d20684fa47, 0x4920ee53425609b9, 0x2f8c32c56898141c, 0x9e4542839e34452f),
     // account_vault_has_non_fungible_asset
     digest!(0x1b1e6ec92fabca80, 0xbb3847ce15f98cac, 0x7152391739b5e0b3, 0x696aaf2c879c4fde),
     // account_vault_remove_asset
-    digest!(0x61a32bf1196cebb8, 0xd2efcfcae9b76e8b, 0x852ea9c64957517b, 0x5afa1631df475790),
+    digest!(0xff01966b06c569b, 0x99fc26250c155461, 0xe0293966a4c4c7ae, 0xdec4ef96fca23f11),
     // get_account_id
     digest!(0x386549d4435f79c1, 0x4a7add2e3b9f1b9e, 0x91c0af1138c14e77, 0xee8a5630e31bc74d),
     // get_account_item
@@ -30,13 +30,13 @@ pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     // get_initial_account_hash
     digest!(0xe239391d2c860c53, 0x7a9d09c3015d7417, 0x111e9be3640d3848, 0xf2d442cf1e685a89),
     // incr_account_nonce
-    digest!(0x12602399108259ec, 0xb0ddbfee256f2133, 0xa58ea59059d3f095, 0x6cc32449c738f9b7),
+    digest!(0xb35351c9b87abeb5, 0x3f2607993a20eb41, 0xf50ef0e64bc386e, 0x265ad79a05151c58),
     // set_account_code
-    digest!(0x6cc9d43670ab6e58, 0xef63fbb3ec8cfb9, 0xf63a09ff599ea458, 0x286cd41056278cf6),
+    digest!(0x6072f5e975697e09, 0x3384af10c011d5f4, 0x93d87a6c749002f2, 0x76b70654a4ac6025),
     // set_account_item
-    digest!(0x6e0ca46fee3e6d20, 0x597e818173bada3e, 0x6da40e8a22241f9b, 0x8cc6088acbbbced3),
+    digest!(0xd3402811a9171d13, 0xbaea0a2fe8b11ff6, 0xaeefcd9fc67b86af, 0xbaa253e9beb95c01),
     // set_account_map_item
-    digest!(0xf38170b0aa74e599, 0x1b653fb69b163132, 0x96f6204cd7d7815a, 0x8286a29095513621),
+    digest!(0x3894ffa4dce29ab3, 0xe571cc3c85e40e6e, 0x709275d311d1dc86, 0xa2efbe0b3980e95c),
     // burn_asset
     digest!(0x321fd17501dd1b7b, 0x5e41674206ccf93c, 0xf718f75b335577a6, 0x939db3229595dc7c),
     // get_fungible_faucet_total_issuance

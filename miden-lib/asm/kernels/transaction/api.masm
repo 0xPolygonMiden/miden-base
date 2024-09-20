@@ -70,15 +70,13 @@ end
 #! This procedure will prevent usage of the account procedures which can mutate the account state 
 #! with the foreign accounts.
 #!
-#! Panics:
-#!   - if the invocation of the account procedure does not originate from the native account.
+#! Panics if
+#!   - the invocation of the account procedure does not originate from the native account.
 #!
 #! Stack: []
 #! Output: []
-proc.check_native_account
-    exec.memory::get_account_id
-    exec.memory::get_native_account_id
-    assert_eq
+proc.assert_native_account
+    exec.memory::assert_native_account
 end
 
 # KERNEL PROCEDURES
@@ -158,14 +156,16 @@ end
 
 #! Increments the account nonce by the provided value.
 #!
+#! Panics if
+#!   - the invocation of this procedure does not originate from the native account.
+#!   - the value is greater than 2^32 - 1
 #! Stack: [KERNEL_PROCEDURE_HASH, value]
 #! Output: [0]
 #!
-#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
-#!   procedure panics.
+#! - value is the value to increment the nonce by.
 export.incr_account_nonce
     # check that this procedure was executed against the native account
-    exec.check_native_account
+    exec.assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -213,6 +213,9 @@ end
 
 #! Sets an item in the account storage. Panics if the index is out of bounds.
 #!
+#! Panics if
+#!   - the invocation of this procedure does not originate from the native account.
+#!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, V', 0, 0, 0]
 #! Output: [R', V]
 #!
@@ -222,7 +225,7 @@ end
 #! - R' is the new storage commitment.
 export.set_account_item
     # check that this procedure was executed against the native account
-    exec.check_native_account
+    exec.assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -253,8 +256,8 @@ end
 
 #! Returns VALUE located under specified KEY in map in specified account storage slot.
 #! Panics if
-#! - the index is out of bounds (>255).
-#! - the requested storage slot type is not map
+#!   - the index is out of bounds (>255).
+#!   - the requested storage slot type is not map
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, KEY, ...]
 #! Output: [VALUE, 0]
@@ -296,9 +299,10 @@ end
 
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
 #! Panics if
-#! - the index is out of bounds (>255).
-#! - the requested storage slot type is not map
-#! - the procedure is called from a non-account context
+#!   - the index is out of bounds (>255).
+#!   - the requested storage slot type is not map
+#!   - the procedure is called from a non-account context
+#!   - the invocation of this procedure does not originate from the native account.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, KEY, NEW_VALUE, ...]
 #! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
@@ -311,7 +315,7 @@ end
 #! - NEW_MAP_ROOT is the root of the new map after insertion.
 export.set_account_map_item.1
     # check that this procedure was executed against the native account
-    exec.check_native_account
+    exec.assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -344,13 +348,16 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
+#! Panics if
+#!   - the invocation of this procedure does not originate from the native account.
+#!
 #! Stack: [KERNEL_PROCEDURE_HASH, CODE_COMMITMENT]
 #! Output: [0, 0, 0, 0]
 #!
 #! - CODE_COMMITMENT is the hash of the code to set.
 export.set_account_code
     # check that this procedure was executed against the native account
-    exec.check_native_account
+    exec.assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -412,10 +419,12 @@ end
 
 #! Add the specified asset to the vault.
 #!
-#! Panics:
-#! - If the asset is not valid.
-#! - If the total value of two fungible assets is greater than or equal to 2^63.
-#! - If the vault already contains the same non-fungible asset.
+#! Panics if
+#! - the asset is not valid.
+#! - the total value of two fungible assets is greater than or equal to 2^63.
+#! - the vault already contains the same non-fungible asset.
+#! - the invocation of this procedure does not originate from the native account.
+#!
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
 #! Output: [ASSET']
@@ -427,7 +436,7 @@ end
 #!     after ASSET was added to it.
 export.account_vault_add_asset
     # check that this procedure was executed against the native account
-    exec.check_native_account
+    exec.assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -461,10 +470,11 @@ end
 
 #! Remove the specified asset from the vault.
 #!
-#! Panics:
-#! - The fungible asset is not found in the vault.
-#! - The amount of the fungible asset in the vault is less than the amount to be removed.
-#! - The non-fungible asset is not found in the vault.
+#! Panics if
+#!   - the fungible asset is not found in the vault.
+#!   - the amount of the fungible asset in the vault is less than the amount to be removed.
+#!   - the non-fungible asset is not found in the vault.
+#!   - the invocation of this procedure does not originate from the native account.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
 #! Output: [ASSET]
@@ -472,7 +482,7 @@ end
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
     # check that this procedure was executed against the native account
-    exec.check_native_account
+    exec.assert_native_account
 
     # drop the procedure's hash
     dropw
