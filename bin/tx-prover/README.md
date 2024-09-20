@@ -17,7 +17,7 @@ This step will also generate the necessary protobuf-related files.
 Once installed, you can run the service with:
 
 ```bash
-RUST_LOG=info miden-tx-prover-service
+RUST_LOG=info miden-tx-prover
 ```
 
 By default, the server will start on `0.0.0.0:50051`. You can change this and the log level by setting the following environment variables:

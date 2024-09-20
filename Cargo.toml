@@ -5,7 +5,7 @@ members = [
     "miden-tx",
     "objects",
     "bin/bench-tx",
-    "bin/miden-tx-prover",
+    "bin/tx-prover",
 ]
 
 [workspace.package]

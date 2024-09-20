@@ -1,4 +1,4 @@
-use generated::api::api_server;
+use generated::api::{api_server, ProveTransactionRequest, ProveTransactionResponse};
 use miden_objects::transaction::TransactionWitness;
 use miden_tx::{
     utils::{Deserializable, Serializable},
@@ -8,8 +8,6 @@ use tokio::net::TcpListener;
 use tonic::{Request, Response, Status};
 use tracing::info;
 use winter_maybe_async::maybe_await;
-
-use crate::{ProveTransactionRequest, ProveTransactionResponse};
 
 pub mod generated;
 

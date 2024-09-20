@@ -101,8 +101,9 @@ build-async: ## Build with the `async` feature enabled (only libraries)
 bench-tx: ## Run transaction benchmarks
 	cargo run --bin bench-tx
 
+
 # --- installing ----------------------------------------------------------------------------------
 
 .PHONY: install-prover
 install-prover: ## Installs prover
-	${BUILD_PROTO} cargo install --path bin/miden-tx-prover --locked
+	${BUILD_PROTO} cargo install --path bin/tx-prover --locked
