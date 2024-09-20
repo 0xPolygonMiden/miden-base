@@ -1,3 +1,4 @@
+use.miden::kernel_proc_offsets
 use.std::crypto::hashes::native
 use.std::mem
 
@@ -45,15 +46,22 @@ end
 #! - dest_ptr is the memory address to write the assets.
 #! - num_assets is the number of assets in the currently executing note.
 export.get_assets
-    padw push.0
-    # => [0, 0, 0, 0, 0, dest_ptr]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15), dest_ptr]
 
-    # get the current input note assets info
-    syscall.get_note_assets_info
+    exec.kernel_proc_offsets::get_note_assets_info_offset
+    # => [offset, PAD(15), dest_ptr]
+
+    syscall.exec_kernel_proc
+    # => [ASSETS_HASH, num_assets, PAD(11), dest_ptr]
+
+    # clean the stack
+    swapdw dropw dropw movup.7 movup.7 movup.7 drop drop drop
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # load the asset data from the advice map to the advice stack
-    adv.push_mapval push.15887 drop             # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.push_mapval push.15887 drop             # TODO: remove line, see miden-vm/#1122
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # calculate number of assets rounded up to an even number
@@ -83,11 +91,22 @@ end
 #! - inputs_len, the note's input count.
 #! - INPUTS, the data corresponding to the note's inputs.
 export.get_inputs
-    padw syscall.get_note_inputs_hash
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15), dest_ptr]
+
+    exec.kernel_proc_offsets::get_note_inputs_hash_offset
+    # => [offset, PAD(15), dest_ptr]
+
+    syscall.exec_kernel_proc
+    # => [INPUTS_HASH, PAD(12), dest_ptr]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [INPUTS_HASH, dest_ptr]
 
     # load the inputs from the advice map to the advice stack
-    adv.push_mapval push.15973 drop             # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.push_mapval push.15973 drop             # TODO: remove line, see miden-vm/#1122
     # => [INPUTS_HASH, dest_ptr]
 
     adv_push.1
@@ -122,10 +141,18 @@ end
 #!
 #! - sender is the sender of the note currently being processed.
 export.get_sender
-    push.0
-    # => [0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    syscall.get_note_sender
+    exec.kernel_proc_offsets::get_note_sender_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [sender, PAD(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [sender]
 end
 
@@ -137,10 +164,18 @@ end
 #!
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
 export.get_serial_number
-    padw
-    # => [0, 0, 0, 0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    syscall.get_note_serial_number
+    exec.kernel_proc_offsets::get_note_serial_number_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [SERIAL_NUMBER, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [SERIAL_NUMBER]
 end
 

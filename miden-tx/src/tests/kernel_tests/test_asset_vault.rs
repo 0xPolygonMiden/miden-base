@@ -16,7 +16,16 @@ use miden_objects::{
 };
 
 use super::{Felt, Word, ONE, ZERO};
-use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_mem_value};
+use crate::{
+    assert_execution_error,
+    errors::tx_kernel_errors::{
+        ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW, ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
+        ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE, ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTS,
+        ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET,
+    },
+    testing::TransactionContextBuilder,
+    tests::kernel_tests::read_root_mem_value,
+};
 
 #[test]
 fn test_get_balance() {
@@ -62,7 +71,7 @@ fn test_get_balance_non_fungible_fails() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE);
 }
 
 #[test]
@@ -106,7 +115,7 @@ fn test_add_fungible_asset_success() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
@@ -143,7 +152,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
@@ -151,7 +160,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED);
     assert!(account_vault.add_asset(add_fungible_asset).is_err());
 }
 
@@ -175,7 +184,7 @@ fn test_add_non_fungible_asset_success() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
@@ -212,7 +221,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
         begin
             exec.prologue::prepare_transaction
             push.{NON_FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
         end
         ",
         NON_FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
@@ -220,7 +229,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTS);
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
 }
 
@@ -239,7 +248,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
         begin
             exec.::kernel::prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.::miden::account::remove_asset
+            call.::miden::account::remove_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -274,7 +283,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -282,7 +291,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW);
 }
 
 #[test]
@@ -303,7 +312,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -347,7 +356,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&non_existent_non_fungible_asset.into())
@@ -355,7 +364,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET);
     assert_eq!(
         account_vault.remove_asset(non_existent_non_fungible_asset),
         Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
@@ -381,7 +390,7 @@ fn test_remove_non_fungible_asset_success() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())

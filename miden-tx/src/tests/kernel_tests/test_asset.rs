@@ -2,7 +2,7 @@ use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
-    assets::Asset,
+    assets::NonFungibleAsset,
     testing::{
         constants::{
             FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
@@ -62,7 +62,7 @@ fn test_create_non_fungible_asset_succeeds() {
     .build();
 
     let non_fungible_asset =
-        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
 
     let code = format!(
         "
@@ -95,7 +95,7 @@ fn test_validate_non_fungible_asset() {
     .build();
 
     let non_fungible_asset =
-        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
+        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
     let encoded = Word::from(non_fungible_asset);
 
     let code = format!(

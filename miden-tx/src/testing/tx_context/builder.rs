@@ -1,7 +1,7 @@
 // TRANSACTION CONTEXT BUILDER
 // ================================================================================================
 
-use std::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -14,10 +14,9 @@ use miden_objects::{
         Account, AccountId,
     },
     assembly::Assembler,
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, FungibleAsset, NonFungibleAsset},
     notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
-        account_code::ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
         constants::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
@@ -53,7 +52,7 @@ pub struct TransactionContextBuilder {
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
         Self {
-            assembler: TransactionKernel::assembler_testing(),
+            assembler: TransactionKernel::testing_assembler(),
             account,
             account_seed: None,
             input_notes: Vec::new(),
@@ -69,12 +68,14 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_standard_account(nonce: Felt) -> Self {
-        let assembler = TransactionKernel::assembler_testing();
+        // Build standard account with normal assembler because the testing one already contains it
         let account = Account::mock(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             nonce,
-            assembler.clone(),
+            TransactionKernel::testing_assembler(),
         );
+
+        let assembler = TransactionKernel::testing_assembler_with_mock_account();
 
         Self {
             assembler: assembler.clone(),
@@ -93,9 +94,13 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
-        let assembler = TransactionKernel::assembler_testing();
-        let account =
-            Account::mock_fungible_faucet(acct_id, nonce, initial_balance, assembler.clone());
+        let account = Account::mock_fungible_faucet(
+            acct_id,
+            nonce,
+            initial_balance,
+            TransactionKernel::testing_assembler(),
+        );
+        let assembler = TransactionKernel::testing_assembler_with_mock_account();
 
         Self {
             assembler,
@@ -114,13 +119,13 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
-        let assembler = TransactionKernel::assembler_testing();
         let account = Account::mock_non_fungible_faucet(
             acct_id,
             nonce,
             empty_reserved_slot,
-            assembler.clone(),
+            TransactionKernel::testing_assembler(),
         );
+        let assembler = TransactionKernel::testing_assembler_with_mock_account();
 
         Self {
             assembler,
@@ -215,6 +220,7 @@ impl TransactionContextBuilder {
         let var_name = format!(
             "
             use.miden::contracts::wallets::basic->wallet
+            use.test::account
 
             begin
                 # NOTE
@@ -227,7 +233,7 @@ impl TransactionContextBuilder {
                 call.wallet::create_note
 
                 push.{asset}
-                call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+                call.account::add_asset_to_note
                 dropw dropw dropw
             end
             ",
@@ -260,6 +266,7 @@ impl TransactionContextBuilder {
         let code = format!(
             "
             use.miden::contracts::wallets::basic->wallet
+            use.test::account
 
             begin
 
@@ -272,11 +279,10 @@ impl TransactionContextBuilder {
                 push.{aux0}
                 push.{tag0}
 
-
                 call.wallet::create_note
 
                 push.{asset0}
-                call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+                call.account::add_asset_to_note
                 dropw dropw dropw
 
                 # NOTE 1
@@ -289,7 +295,7 @@ impl TransactionContextBuilder {
                 call.wallet::create_note
 
                 push.{asset1}
-                call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+                call.account::add_asset_to_note
                 dropw dropw dropw
             end
             ",
@@ -441,7 +447,7 @@ impl TransactionContextBuilder {
             FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
-        let nonfungible_asset_1: Asset = Asset::mock_non_fungible(
+        let nonfungible_asset_1: Asset = NonFungibleAsset::mock(
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             &NON_FUNGIBLE_ASSET_DATA_2,
         );
@@ -526,7 +532,7 @@ impl TransactionContextBuilder {
             FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
-        let nonfungible_asset_1: Asset = Asset::mock_non_fungible(
+        let nonfungible_asset_1: Asset = NonFungibleAsset::mock(
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             &NON_FUNGIBLE_ASSET_DATA_2,
         );

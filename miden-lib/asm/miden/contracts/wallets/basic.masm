@@ -21,44 +21,6 @@ export.receive_asset
     padw swapw dropw
 end
 
-#! Creates a note which sends the specified asset out of the current account
-#! to the specified recipient.
-#!
-#! Inputs: [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, ...]
-#! Outputs: [note_idx, EMPTY_WORD, EMPTY_WORD, 0, 0, 0, ...]
-#!
-#! - ASSET is the non-fungible asset of interest.
-#! - tag is the tag to be included in the note.
-#! - aux is the auxiliary data to be included in the note.
-#! - note_type is the note's storage type
-#! - execution_hint is the note's execution hint
-#! - RECIPIENT is the recipient of the note, i.e.,
-#!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
-#! - note_idx is the index of the output note.
-#!   This cannot directly be accessed from another context.
-#!
-#! Panics:
-#! - The fungible asset is not found in the vault.
-#! - The amount of the fungible asset in the vault is less than the amount to be removed.
-#! - The non-fungible asset is not found in the vault.
-export.send_asset.1
-    exec.account::remove_asset
-    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, PAD(4)]
-
-    # Store the ASSET for later
-    loc_storew.0 dropw
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
-
-    exec.tx::create_note
-    # => [note_idx, PAD(15)]
-
-    movdn.4 loc_loadw.0
-    # => [ASSET, note_idx, PAD(11)]
-
-    exec.tx::add_asset_to_note movup.4
-    # => [note_idx, PAD(15)]
-end
-
 #! Creates a new note.
 #! 
 #! The created note will not have any assets attached to it. To add assets to this note use the
@@ -81,7 +43,6 @@ export.create_note
     exec.tx::create_note
     # => [note_idx, PAD(15) ...]
 end
-
 
 #! Removes the specified asset from the account and adds it to the output note with the specified
 #! index.

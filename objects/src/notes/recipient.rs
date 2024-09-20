@@ -103,19 +103,3 @@ impl Deserializable for NoteRecipient {
         Ok(Self::new(serial_num, script, inputs))
     }
 }
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for NoteRecipient {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let bytes = self.to_bytes();
-        serializer.serialize_bytes(&bytes)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for NoteRecipient {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-        Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
-    }
-}

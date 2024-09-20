@@ -20,6 +20,7 @@ impl BlockHeader {
         chain_root: Option<Digest>,
         note_root: Option<Digest>,
         accounts: &[Account],
+        kernel_root: Digest,
     ) -> Self {
         let acct_db = SimpleSmt::<ACCOUNT_TREE_DEPTH>::with_leaves(
             accounts
@@ -35,7 +36,7 @@ impl BlockHeader {
                 .collect::<Vec<_>>(),
         )
         .expect("failed to create account db");
-        let acct_root = acct_db.root();
+        let account_root = acct_db.root();
 
         #[cfg(not(target_family = "wasm"))]
         let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
@@ -59,10 +60,11 @@ impl BlockHeader {
             prev_hash,
             block_num,
             chain_root,
-            acct_root,
+            account_root,
             nullifier_root,
             note_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
         )

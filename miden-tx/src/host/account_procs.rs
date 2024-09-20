@@ -4,7 +4,7 @@ use miden_lib::transaction::TransactionKernelError;
 use miden_objects::accounts::{AccountCode, AccountProcedureInfo};
 
 use super::{AdviceProvider, BTreeMap, Digest, Felt, ProcessState};
-use crate::error::TransactionHostError;
+use crate::errors::TransactionHostError;
 
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
@@ -88,12 +88,6 @@ impl AccountProcedureIndexMap {
         process: &impl ProcessState,
     ) -> Result<u8, TransactionKernelError> {
         let proc_root = process.get_stack_word(0).into();
-
-        // mock account method for testing from root context
-        // TODO: figure out if we can get rid of this
-        if proc_root == Digest::default() {
-            return Ok(255);
-        }
 
         self.0
             .get(&proc_root)

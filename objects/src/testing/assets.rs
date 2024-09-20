@@ -1,7 +1,7 @@
 use rand::{distributions::Standard, Rng};
 
 use crate::{
-    accounts::{AccountId, AccountType},
+    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, AccountId, AccountType},
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     AssetError,
 };
@@ -84,8 +84,8 @@ impl FungibleAssetBuilder {
     }
 }
 
-impl Asset {
-    pub fn mock_non_fungible(account_id: u64, asset_data: &[u8]) -> Asset {
+impl NonFungibleAsset {
+    pub fn mock(account_id: u64, asset_data: &[u8]) -> Asset {
         let non_fungible_asset_details = NonFungibleAssetDetails::new(
             AccountId::try_from(account_id).unwrap(),
             asset_data.to_vec(),
@@ -93,5 +93,17 @@ impl Asset {
         .unwrap();
         let non_fungible_asset = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
         Asset::NonFungible(non_fungible_asset)
+    }
+}
+
+impl FungibleAsset {
+    pub fn mock(amount: u64) -> Asset {
+        Asset::Fungible(
+            FungibleAsset::new(
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+                amount,
+            )
+            .expect("asset is valid"),
+        )
     }
 }

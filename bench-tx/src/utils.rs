@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AuthSecretKey, SlotItem},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AuthSecretKey, StorageSlot},
     assets::{Asset, AssetVault},
     crypto::dsa::rpo_falcon512::SecretKey,
     transaction::TransactionMeasurements,
@@ -76,9 +76,8 @@ pub fn get_account_with_default_account_code(
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let assembler = TransactionKernel::assembler();
 
-    let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
+    let account_code = AccountCode::compile(account_code_src, assembler, false).unwrap();
+    let account_storage = AccountStorage::new(vec![StorageSlot::Value(public_key)]).unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),
@@ -109,14 +108,14 @@ pub fn write_bench_results_to_json(
     let benchmark_file = read_to_string(path).map_err(|e| e.to_string())?;
     let mut benchmark_json: Value = from_str(&benchmark_file).map_err(|e| e.to_string())?;
 
-    // fill becnhmarks JSON with results of each benchmark
+    // fill benchmarks JSON with results of each benchmark
     for (bench_type, tx_progress) in tx_benchmarks {
         let tx_benchmark_json = serde_json::to_value(tx_progress).map_err(|e| e.to_string())?;
 
         benchmark_json[bench_type.to_string()] = tx_benchmark_json;
     }
 
-    // write the becnhmarks JSON to the results file
+    // write the benchmarks JSON to the results file
     write(
         path,
         to_string_pretty(&benchmark_json).expect("failed to convert json to String"),

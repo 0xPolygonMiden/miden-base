@@ -22,8 +22,8 @@ let executed_transaction = executor.execute_transaction(account_id, block_ref, n
 With the transaction execution done, it is then possible to create a proof:
 
 ```rust
-let prover = TransactionProver::new(ProvingOptions::default());
-let proven_transaction = prover.prove_transaction(executed_transaction);
+let prover = LocalTransactionProver::new(ProvingOptions::default());
+let proven_transaction = prover.prove(executed_transaction);
 ```
 
 And to verify a proof:

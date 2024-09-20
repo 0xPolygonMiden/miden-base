@@ -1,3 +1,5 @@
+use.miden::kernel_proc_offsets
+
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
 #! Panics:
@@ -14,7 +16,18 @@
 #!
 #! - ASSET is the asset that was minted.
 export.mint
-    syscall.mint_asset
+    exec.kernel_proc_offsets::mint_asset_offset
+    # => [offset, ASSET]
+
+    # pad the stack
+    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
+    # => [offset, ASSET, PAD(11)]
+
+    syscall.exec_kernel_proc
+    # => [ASSET, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [ASSET]
 end
 
@@ -35,7 +48,18 @@ end
 #!
 #! - ASSET is the asset that was burned.
 export.burn
-    syscall.burn_asset
+    exec.kernel_proc_offsets::burn_asset_offset
+    # => [offset, ASSET]
+
+    # pad the stack
+    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
+    # => [offset, ASSET, PAD(11)]
+
+    syscall.exec_kernel_proc
+    # => [ASSET, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [ASSET]
 end
 
@@ -50,11 +74,17 @@ end
 #! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
 #!   against.
 export.get_total_issuance
-    # add padding to the stack for kernel invocation
-    push.0
-    # => [0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    # invoke the `get_fungible_faucet_total_issuance` kernel procedure
-    syscall.get_fungible_faucet_total_issuance
+    exec.kernel_proc_offsets::get_fungible_faucet_total_issuance_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [total_issuance, PAD(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [total_issuance]
 end

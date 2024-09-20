@@ -134,6 +134,28 @@ impl TransactionInputs {
     }
 }
 
+impl Serializable for TransactionInputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.account.write_into(target);
+        self.account_seed.write_into(target);
+        self.block_header.write_into(target);
+        self.block_chain.write_into(target);
+        self.input_notes.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let account = Account::read_from(source)?;
+        let account_seed = source.read()?;
+        let block_header = BlockHeader::read_from(source)?;
+        let block_chain = ChainMmr::read_from(source)?;
+        let input_notes = InputNotes::read_from(source)?;
+        Self::new(account, account_seed, block_header, block_chain, input_notes)
+            .map_err(|err| DeserializationError::InvalidValue(format!("{}", err)))
+    }
+}
+
 // TO INPUT NOTE COMMITMENT
 // ================================================================================================
 
@@ -322,7 +344,6 @@ const UNAUTHENTICATED: u8 = 1;
 
 /// An input note for a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum InputNote {
     /// Input notes whose existences in the chain is verified by the transaction kernel.
     Authenticated { note: Note, proof: NoteInclusionProof },
@@ -450,7 +471,7 @@ pub fn validate_account_seed(
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
             let account_id =
-                AccountId::new(seed, account.code().commitment(), account.storage().root())
+                AccountId::new(seed, account.code().commitment(), account.storage().commitment())
                     .map_err(TransactionInputError::InvalidAccountSeed)?;
             if account_id != account.id() {
                 return Err(TransactionInputError::InconsistentAccountSeed {

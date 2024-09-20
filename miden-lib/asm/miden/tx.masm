@@ -1,3 +1,5 @@
+use.miden::kernel_proc_offsets
+
 #! Returns the block number of the last known block at the time of transaction execution.
 #!
 #! Inputs: []
@@ -5,10 +7,18 @@
 #!
 #! num is the last known block number.
 export.get_block_number
-    push.0
-    # => [0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    syscall.get_block_number
+    exec.kernel_proc_offsets::get_block_number_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [num, PAD(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [num]
 end
 
@@ -20,7 +30,18 @@ end
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 export.get_block_hash
-    padw syscall.get_block_hash
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
+
+    exec.kernel_proc_offsets::get_block_hash_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [BLOCK_HASH, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [BLOCK_HASH]
 end
 
@@ -34,8 +55,19 @@ end
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
 export.get_input_notes_commitment
-    padw syscall.get_input_notes_commitment
-    # => [INPUT_NOTES_COMMITMENT]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
+
+    exec.kernel_proc_offsets::get_input_notes_commitment_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [INPUT_NOTES_COMMITMENT, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
+    # => [INPUT_NOTES_COMMITMENT]    
 end
 
 #! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
@@ -46,11 +78,19 @@ end
 #!
 #! COM is the output notes hash.
 export.get_output_notes_hash
-    padw
-    # => [0, 0, 0, 0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    syscall.get_output_notes_hash
-    # => [COM]
+    exec.kernel_proc_offsets::get_output_notes_hash_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [COM, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
+    # => [COM]        
 end
 
 #! Creates a new note and returns the index of the note.
@@ -67,10 +107,13 @@ end
 export.create_note
     # pad the stack before the syscall to prevent accidental modification of the deeper stack 
     # elements 
-    padw padw swapdw
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+    padw padw swapdw movup.8 drop
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(7)]
 
-    syscall.create_note
+    exec.kernel_proc_offsets::create_note_offset
+    # => [offset, tag, aux, note_type, execution_hint, RECIPIENT, PAD(7)]
+
+    syscall.exec_kernel_proc
     # => [note_idx, PAD(15)]
 
     # remove excess PADs from the stack 
@@ -86,12 +129,15 @@ end
 #! note_idx is the index of the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
+    movup.4 exec.kernel_proc_offsets::add_asset_to_note_offset
+    # => [offset, note_idx, ASSET]
+
     # pad the stack before the syscall to prevent accidental modification of the deeper stack 
     # elements 
-    push.0.0.0 padw padw swapdw movup.7 swapw movup.4
-    # => [note_idx, ASSET, PAD(11)]
+    push.0.0 movdn.7 movdn.7 padw padw swapdw
+    # => [offset, note_idx, ASSET, PAD(10)]
 
-    syscall.add_asset_to_note 
+    syscall.exec_kernel_proc
     # => [note_idx, ASSET, PAD(11)]
 
     # remove excess PADs from the stack 

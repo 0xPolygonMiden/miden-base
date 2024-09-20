@@ -4,6 +4,8 @@ use.kernel::constants
 use.kernel::memory
 use.kernel::note
 
+use.std::crypto::hashes::native
+
 # ERRORS
 # =================================================================================================
 
@@ -41,7 +43,7 @@ proc.copy_output_notes_to_advice_map
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
         # insert created data into the advice map
-        adv.insert_mem push.15511 drop          # FIX: wrap the decorator to ensure MAST uniqueness
+        adv.insert_mem push.15511 drop          # TODO: remove line, see miden-vm/#1122
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
         # drop output note pointers
@@ -161,6 +163,56 @@ proc.update_account_code
     # => []
 end
 
+
+# ACCOUNT STORAGE UPDATE
+# =================================================================================================
+
+#! Updates the account storage commitment by hashing the storage slots and setting the storage
+#! commitment to the newly computed storage hash.
+#!
+#! Stack: []
+#! Output: []
+proc.update_account_storage_commitment
+    # get number of storage slots
+    exec.memory::get_num_storage_slots
+    # => [num_storage_slots]
+
+    # check if there are storage slots
+    dup push.0 neq
+    # => [storage_slots_is_not_empty, num_storage_slots]
+
+    # only loop and hash over storage if there are storage slots
+    if.true
+        # setup start and end ptr
+        mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
+        # => [start_ptr, end_ptr]
+
+        # pad stack to read and hash from memory
+        padw padw padw
+        # => [PAD, PAD, PAD, start_ptr, end_ptr]
+
+        # hash elements from memory
+        exec.native::hash_memory_even
+        # => [PERM, PERM, PERM, start_ptr, end_ptr]
+
+        # extract the digest
+        exec.native::state_to_digest
+        # => [DIGEST, end_ptr, end_ptr]
+
+        # clean stack
+        movup.4 drop movup.4 drop
+        # => [DIGEST]
+
+        # set new account storage commitment
+        exec.memory::set_acct_storage_commitment dropw
+        # => []
+    else
+        # drop number of storage slots
+        drop
+        # => []
+    end
+end
+
 # TRANSACTION EPILOGUE PROCEDURE
 # =================================================================================================
 
@@ -181,6 +233,10 @@ export.finalize_transaction
     exec.update_account_code
     # => []
 
+    # update account storage commitment
+    exec.update_account_storage_commitment
+    # => []
+
     # get the initial account hash
     exec.memory::get_init_acct_hash
     # => [INIT_ACCT_HASH]
@@ -198,7 +254,7 @@ export.finalize_transaction
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # insert final account data into the advice map
-    adv.insert_mem push.15619 drop              # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.insert_mem push.15619 drop              # TODO: remove line, see miden-vm/#1122
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # drop account data section pointers
@@ -218,6 +274,8 @@ export.finalize_transaction
         # get current nonce from memory
         exec.memory::get_acct_nonce
         # => [current_nonce, init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
+
+        push.1005 drop                              # TODO: remove line, see miden-vm/#1122
 
         # assert that initial nonce is less than current nonce
         lt assert.err=ERR_NONCE_DID_NOT_INCREASE

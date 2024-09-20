@@ -119,7 +119,7 @@ export.add_fungible_asset
     # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
     # significant element with the faucet_id to construct the CUR_ASSET.
     padw dup.10 mem_loadw swapw
-    adv.push_smtpeek push.15329 drop            # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.push_smtpeek push.15329 drop            # TODO: remove line, see miden-vm/#1122
     adv_loadw swapw dupw.1 drop movup.11
     # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
 
@@ -241,7 +241,7 @@ export.remove_fungible_asset
     # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
     # significant element with the faucet_id to construct the CUR_ASSET.
     padw dup.14 mem_loadw swapw
-    adv.push_smtpeek push.15413 drop            # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.push_smtpeek push.15413 drop            # TODO: remove line, see miden-vm/#1122
     adv_loadw dupw movdnw.2 drop movup.11
     # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, ASSET, vault_root_ptr]
 

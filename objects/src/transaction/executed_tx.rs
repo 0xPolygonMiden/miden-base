@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use core::cell::OnceCell;
 
 use super::{
-    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNote,
+    Account, AccountDelta, AccountHeader, AccountId, AdviceInputs, BlockHeader, InputNote,
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionWitness,
 };
@@ -80,7 +80,7 @@ impl ExecutedTransaction {
     }
 
     /// Returns description of the account after the transaction was executed.
-    pub fn final_account(&self) -> &AccountStub {
+    pub fn final_account(&self) -> &AccountHeader {
         &self.tx_outputs.account
     }
 

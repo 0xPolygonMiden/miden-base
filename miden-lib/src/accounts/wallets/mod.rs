@@ -1,11 +1,9 @@
-use alloc::{
-    collections::BTreeMap,
-    string::{String, ToString},
-};
+use alloc::string::{String, ToString};
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
+        StorageSlot,
     },
     AccountError, Word,
 };
@@ -18,19 +16,20 @@ use super::{AuthScheme, TransactionKernel};
 /// Creates a new account with basic wallet interface, the specified authentication scheme and the
 /// account storage type. Basic wallets can be specified to have either mutable or immutable code.
 ///
-/// The basic wallet interface exposes two procedures:
+/// The basic wallet interface exposes three procedures:
 /// - `receive_asset`, which can be used to add an asset to the account.
-/// - `send_asset`, which can be used to remove an asset from the account and put into a note
-///   addressed to the specified recipient.
+/// - `create_note`, which can be used to create a new note without any assets attached to it.
+/// - `move_asset_to_note`, which can be used to remove the specified asset from the account and add
+///   it to the output note with the specified index.
 ///
-/// Both methods require authentication. The authentication procedure is defined by the specified
+/// All methods require authentication. The authentication procedure is defined by the specified
 /// authentication scheme. Public key information for the scheme is stored in the account storage
 /// at slot 0.
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,
     account_type: AccountType,
-    account_storage_type: AccountStorageType,
+    account_storage_mode: AccountStorageMode,
 ) -> Result<(Account, Word), AccountError> {
     if matches!(account_type, AccountType::FungibleFaucet | AccountType::NonFungibleFaucet) {
         return Err(AccountError::AccountIdInvalidFieldElement(
@@ -45,23 +44,23 @@ pub fn create_basic_wallet(
     let source_code: String = format!(
         "
         export.::miden::contracts::wallets::basic::receive_asset
-        export.::miden::contracts::wallets::basic::send_asset
+        export.::miden::contracts::wallets::basic::create_note
+        export.::miden::contracts::wallets::basic::move_asset_to_note
         export.::miden::contracts::auth::basic::{auth_scheme_procedure}
     "
     );
 
     let assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::compile(source_code, assembler)?;
+    let account_code = AccountCode::compile(source_code, assembler, false)?;
 
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, storage_slot_0_data)], BTreeMap::new())?;
+    let account_storage = AccountStorage::new(vec![StorageSlot::Value(storage_slot_0_data)])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
         account_type,
-        account_storage_type,
+        account_storage_mode,
         account_code.commitment(),
-        account_storage.root(),
+        account_storage.commitment(),
     )?;
 
     Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
@@ -76,7 +75,7 @@ mod tests {
     use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
     use vm_processor::utils::{Deserializable, Serializable};
 
-    use super::{create_basic_wallet, Account, AccountStorageType, AccountType, AuthScheme};
+    use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
 
     #[test]
     fn test_create_basic_wallet() {
@@ -85,7 +84,7 @@ mod tests {
             [1; 32],
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
-            AccountStorageType::OnChain,
+            AccountStorageMode::Public,
         );
 
         wallet.unwrap_or_else(|err| {
@@ -100,7 +99,7 @@ mod tests {
             [1; 32],
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
-            AccountStorageType::OnChain,
+            AccountStorageMode::Public,
         )
         .unwrap()
         .0;

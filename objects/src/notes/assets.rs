@@ -17,7 +17,6 @@ use crate::MAX_ASSETS_PER_NOTE;
 /// sequentially hashing the assets. Note that the same list of assets can result in two different
 /// commitments if the asset ordering is different.
 #[derive(Debug, Default, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteAssets {
     assets: Vec<Asset>,
     hash: Digest,

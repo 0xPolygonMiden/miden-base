@@ -1,11 +1,13 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::Account,
+    accounts::{Account, StorageSlot},
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
-    Felt, FieldElement, Word, EMPTY_WORD, ZERO,
+    Digest, Felt, FieldElement, Word, EMPTY_WORD, WORD_SIZE, ZERO,
 };
+
+use super::TransactionKernel;
 
 // ADVICE INPUTS
 // ================================================================================================
@@ -21,9 +23,13 @@ pub(super) fn extend_advice_inputs(
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
 ) {
-    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
+    // TODO: remove this value and use a user input instead
+    let kernel_version = 0;
+
+    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs, kernel_version);
 
     // build the advice map and Merkle store for relevant components
+    add_kernel_hashes_to_advice_inputs(advice_inputs, kernel_version);
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
@@ -43,13 +49,14 @@ pub(super) fn extend_advice_inputs(
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_HASH,
+///     KERNEL_ROOT
 ///     PROOF_HASH,
 ///     [block_num, version, timestamp, 0],
-///     ZERO,
 ///     NOTE_ROOT,
+///     kernel_version
 ///     [account_id, 0, 0, account_nonce],
 ///     ACCOUNT_VAULT_ROOT,
-///     ACCOUNT_STORAGE_ROOT,
+///     ACCOUNT_STORAGE_COMMITMENT,
 ///     ACCOUNT_CODE_COMMITMENT,
 ///     number_of_input_notes,
 ///     TX_SCRIPT_ROOT,
@@ -58,15 +65,18 @@ fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
     inputs: &mut AdviceInputs,
+    kernel_version: u8,
 ) {
+    let header = tx_inputs.block_header();
+
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
-    let header = tx_inputs.block_header();
     inputs.extend_stack(header.prev_hash());
     inputs.extend_stack(header.chain_root());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
     inputs.extend_stack(header.tx_hash());
+    inputs.extend_stack(header.kernel_root());
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([
         header.block_num().into(),
@@ -74,15 +84,18 @@ fn build_advice_stack(
         header.timestamp().into(),
         ZERO,
     ]);
-    inputs.extend_stack(EMPTY_WORD);
     inputs.extend_stack(header.note_root());
+
+    // push the version of the kernel which will be used for this transaction
+    // Note: keep in sync with the process_kernel_data kernel procedure
+    inputs.extend_stack([Felt::from(kernel_version)]);
 
     // push core account items onto the stack
     // Note: keep in sync with the process_account_data kernel procedure
     let account = tx_inputs.account();
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
-    inputs.extend_stack(account.storage().root());
+    inputs.extend_stack(account.storage().commitment());
     inputs.extend_stack(account.code().commitment());
 
     // push the number of input notes onto the stack
@@ -127,13 +140,12 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// Inserts core account data into the provided advice inputs.
 ///
 /// Inserts the following items into the Merkle store:
-/// - The Merkle nodes associated with the storage slots tree.
 /// - The Merkle nodes associated with the account vault tree.
 /// - If present, the Merkle nodes associated with the account storage maps.
 ///
 /// Inserts the following entries into the advice map:
-/// - The storage types commitment |-> storage slot types vector.
-/// - The account code commitment |-> procedures as elements and length.
+/// - The account storage commitment |-> length, storage slots and types vector.
+/// - The account code commitment |-> length and procedures vector.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
@@ -145,25 +157,20 @@ fn add_account_to_advice_inputs(
     // --- account storage ----------------------------------------------------
     let storage = account.storage();
 
-    // extend the merkle store with the storage items
-    inputs.extend_merkle_store(account.storage().slots().inner_nodes());
-
-    // extend advice map with storage types commitment |-> storage types
-    inputs.extend_map([(
-        storage.layout_commitment(),
-        storage.layout().iter().map(Felt::from).collect(),
-    )]);
-
-    // If there are storage maps, we populate the merkle store and advice map
-    if !account.storage().maps().is_empty() {
-        for map in account.storage().maps().values() {
+    for slot in storage.slots() {
+        // if there are storage maps, we populate the merkle store and advice map
+        if let StorageSlot::Map(map) = slot {
             // extend the merkle store and map with the storage maps
             inputs.extend_merkle_store(map.inner_nodes());
-
             // populate advice map with Sparse Merkle Tree leaf nodes
             inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
         }
     }
+
+    // extend advice map with storage commitment |-> length, storage slots and types vector
+    let mut storage_slots: Vec<Felt> = vec![(storage.slots().len() as u8).into()];
+    storage_slots.append(&mut storage.as_elements());
+    inputs.extend_map([(storage.commitment(), storage_slots)]);
 
     // --- account vault ------------------------------------------------------
     let vault = account.vault();
@@ -178,10 +185,10 @@ fn add_account_to_advice_inputs(
     // --- account code -------------------------------------------------------
     let code = account.code();
 
-    // extend the advice_map with the account code data and number of procedures
-    let mut proc_elements: Vec<Felt> = vec![(code.num_procedures() as u32).into()];
-    proc_elements.append(&mut code.as_elements());
-    inputs.extend_map([(code.commitment(), proc_elements)]);
+    // extend the advice map with the account code data and number of procedures
+    let mut procedures: Vec<Felt> = vec![(code.num_procedures() as u8).into()];
+    procedures.append(&mut code.as_elements());
+    inputs.extend_map([(code.commitment(), procedures)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {
@@ -289,4 +296,34 @@ fn add_input_notes_to_advice_inputs(
 
     // NOTE: keep map in sync with the `prologue::process_input_notes_data` kernel procedure
     inputs.extend_map([(tx_inputs.input_notes().commitment(), note_data)]);
+}
+
+// KERNEL HASHES INJECTOR
+// ------------------------------------------------------------------------------------------------
+
+/// Inserts kernel hashes and hashes of their procedures into the provided advice inputs.
+///
+/// Inserts the following entries into the advice map:
+/// - The accumulative hash of all kernels |-> array of each kernel hash.
+/// - The hash of the selected kernel |-> array of the kernel's procedure hashes.
+pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_version: u8) {
+    let mut kernel_hashes: Vec<Felt> =
+        Vec::with_capacity(TransactionKernel::NUM_VERSIONS * WORD_SIZE);
+    for version in 0..TransactionKernel::NUM_VERSIONS {
+        kernel_hashes
+            .extend_from_slice(TransactionKernel::kernel_hash(version as u8).as_elements());
+    }
+
+    // insert the selected kernel hash with its procedure hashes into the advice map
+    inputs.extend_map([(
+        Digest::new(
+            kernel_hashes[kernel_version as usize..kernel_version as usize + WORD_SIZE]
+                .try_into()
+                .expect("invalid kernel offset"),
+        ),
+        TransactionKernel::procedures_as_elements(kernel_version),
+    )]);
+
+    // insert kernels root with kernel hashes into the advice map
+    inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
 }
