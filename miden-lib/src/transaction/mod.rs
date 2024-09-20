@@ -95,11 +95,6 @@ impl TransactionKernel {
     ) -> (StackInputs, AdviceInputs) {
         let account = tx_inputs.account();
 
-        // let (_, module_info, _) = Self::kernel().into_parts();
-        // module_info.procedures().for_each(|(idx, proc_info)| {
-        //     std::println!("{}. {}: {:?}", idx.as_usize(), proc_info.name, proc_info.digest)
-        // });
-
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),

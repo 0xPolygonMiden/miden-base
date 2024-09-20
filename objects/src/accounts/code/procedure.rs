@@ -39,7 +39,14 @@ impl AccountProcedureInfo {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new instance of an [AccountProcedureInfo].
+    ///
+    /// # Panics
+    /// Panics if `storage_size` is 0 and `storage_offset` is not 0.
     pub fn new(mast_root: Digest, storage_offset: u8, storage_size: u8) -> Self {
+        if storage_size == 0 && storage_offset != 0 {
+            panic!("storage_offset must be 0 when storage_size is 0");
+        }
+
         Self { mast_root, storage_offset, storage_size }
     }
 
