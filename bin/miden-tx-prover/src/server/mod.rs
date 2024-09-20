@@ -5,7 +5,7 @@ use miden_tx::{
     LocalTransactionProver, TransactionProver,
 };
 use tokio::net::TcpListener;
-use tonic::{Request, Response};
+use tonic::{Request, Response, Status};
 use tracing::info;
 use winter_maybe_async::maybe_await;
 
@@ -39,9 +39,11 @@ impl api_server::Api for RpcApi {
         let prover = LocalTransactionProver::default();
 
         let transaction_witness =
-            TransactionWitness::read_from_bytes(&request.get_ref().transaction_witness).unwrap();
+            TransactionWitness::read_from_bytes(&request.get_ref().transaction_witness)
+                .map_err(|err| invalid_argument(err.to_string()))?;
 
-        let proof = maybe_await!(prover.prove(transaction_witness)).unwrap();
+        let proof =
+            maybe_await!(prover.prove(transaction_witness)).map_err(|err| internal_error(err))?;
 
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
     }
@@ -56,4 +58,16 @@ impl api_server::Api for RpcApi {
     ) -> Result<Response<ProveTransactionResponse>, tonic::Status> {
         unimplemented!()
     }
+}
+
+// UTILITIES
+// ================================================================================================
+
+/// Formats an error
+fn internal_error<E: core::fmt::Debug>(err: E) -> Status {
+    Status::internal(format!("{:?}", err))
+}
+
+fn invalid_argument<E: core::fmt::Debug>(err: E) -> Status {
+    Status::invalid_argument(format!("{:?}", err))
 }
