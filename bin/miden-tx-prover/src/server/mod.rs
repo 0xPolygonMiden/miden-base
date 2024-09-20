@@ -28,6 +28,7 @@ impl Rpc {
 #[derive(Clone)]
 pub struct RpcApi;
 
+#[cfg(not(feature = "async"))]
 #[tonic::async_trait]
 impl api_server::Api for RpcApi {
     async fn prove_transaction(
@@ -43,5 +44,16 @@ impl api_server::Api for RpcApi {
         let proof = maybe_await!(prover.prove(transaction_witness)).unwrap();
 
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
+    }
+}
+
+#[cfg(feature = "async")]
+#[tonic::async_trait]
+impl api_server::Api for RpcApi {
+    async fn prove_transaction(
+        &self,
+        _request: Request<ProveTransactionRequest>,
+    ) -> Result<Response<ProveTransactionResponse>, tonic::Status> {
+        unimplemented!()
     }
 }
