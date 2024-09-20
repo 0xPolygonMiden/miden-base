@@ -40,10 +40,9 @@ impl api_server::Api for RpcApi {
 
         let transaction_witness =
             TransactionWitness::read_from_bytes(&request.get_ref().transaction_witness)
-                .map_err(|err| invalid_argument(err.to_string()))?;
+                .map_err(invalid_argument)?;
 
-        let proof =
-            maybe_await!(prover.prove(transaction_witness)).map_err(|err| internal_error(err))?;
+        let proof = maybe_await!(prover.prove(transaction_witness)).map_err(internal_error)?;
 
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
     }
