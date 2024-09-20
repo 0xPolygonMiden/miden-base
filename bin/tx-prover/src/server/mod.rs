@@ -1,15 +1,13 @@
 use generated::api::{api_server, ProveTransactionRequest, ProveTransactionResponse};
-use miden_objects::transaction::TransactionWitness;
+use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{
     utils::{Deserializable, Serializable},
-    LocalTransactionProver, TransactionProver,
+    LocalTransactionProver, TransactionProver, TransactionProverError,
 };
 use tokio::net::TcpListener;
 use tonic::{Request, Response, Status};
 use tracing::info;
 use winter_maybe_async::maybe_await;
-use miden_objects::transaction::ProvenTransaction;
-use miden_tx::TransactionProverError;
 
 pub mod generated;
 
@@ -59,10 +57,8 @@ impl api_server::Api for RpcApi {
     }
 }
 
-
 // CONVERSIONS
 // ================================================================================================
-
 
 impl From<ProvenTransaction> for ProveTransactionResponse {
     fn from(value: ProvenTransaction) -> Self {
@@ -78,7 +74,6 @@ impl TryFrom<ProveTransactionResponse> for ProvenTransaction {
             .map_err(|_err| TransactionProverError::DeserializationError)
     }
 }
-
 
 // UTILITIES
 // ================================================================================================

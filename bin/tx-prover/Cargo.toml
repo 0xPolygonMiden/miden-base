@@ -18,25 +18,19 @@ testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
 async = []
 
 [dependencies]
+axum = "0.7.5"
 miden-lib = { workspace = true }
 miden-objects = { workspace = true }
 miden-prover = { workspace = true }
-miden-verifier = { workspace = true }
 miden-tx = { workspace = true }
-rand = { workspace = true }
-rand_chacha = { version = "0.3", default-features = false, optional = true }
-vm-processor = { workspace = true }
-winter-maybe-async = { version = "0.10" }
-axum = "0.7.5"
-reqwest = { version = "0.11", features = ["json"] }
-serde = { version = "1.0", features = ["derive"] }
+prost = "0.12"
 tokio = { version = "1.38", features = ["full"] }
 tonic = "0.11"
-prost = "0.12"
 tonic-web = { version = "0.11" }
 tokio-stream = { version = "0.1", features = [ "net" ]}
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
+winter-maybe-async = { version = "0.10" }
 
 [build-dependencies]
 miette = { version = "7.2", features = ["fancy"] }
