@@ -82,12 +82,12 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	${BUILD_PROTO} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx
+	${BUILD_PROTO} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	${BUILD_PROTO} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing
+	${BUILD_PROTO} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
 
 
 .PHONY: build-async
