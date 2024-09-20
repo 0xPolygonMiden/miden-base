@@ -15,7 +15,6 @@ edition.workspace = true
 default = ["std"]
 std = []
 testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
-async = []
 
 [dependencies]
 axum = "0.7.5"
