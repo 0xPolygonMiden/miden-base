@@ -16,12 +16,13 @@ use super::{AuthScheme, TransactionKernel};
 /// Creates a new account with basic wallet interface, the specified authentication scheme and the
 /// account storage type. Basic wallets can be specified to have either mutable or immutable code.
 ///
-/// The basic wallet interface exposes two procedures:
+/// The basic wallet interface exposes three procedures:
 /// - `receive_asset`, which can be used to add an asset to the account.
-/// - `send_asset`, which can be used to remove an asset from the account and put into a note
-///   addressed to the specified recipient.
+/// - `create_note`, which can be used to create a new note without any assets attached to it.
+/// - `move_asset_to_note`, which can be used to remove the specified asset from the account and add
+///   it to the output note with the specified index.
 ///
-/// Both methods require authentication. The authentication procedure is defined by the specified
+/// All methods require authentication. The authentication procedure is defined by the specified
 /// authentication scheme. Public key information for the scheme is stored in the account storage
 /// at slot 0.
 pub fn create_basic_wallet(
@@ -43,7 +44,8 @@ pub fn create_basic_wallet(
     let source_code: String = format!(
         "
         export.::miden::contracts::wallets::basic::receive_asset
-        export.::miden::contracts::wallets::basic::send_asset
+        export.::miden::contracts::wallets::basic::create_note
+        export.::miden::contracts::wallets::basic::move_asset_to_note
         export.::miden::contracts::auth::basic::{auth_scheme_procedure}
     "
     );

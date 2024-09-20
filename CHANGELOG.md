@@ -15,6 +15,7 @@
 - Set all procedures storage offsets of faucet accounts to `1` (#875).
 - Added `AccountStorageHeader` (#876).
 - Implemented generation of transaction kernel procedure hashes in build.rs (#887).
+- [BREAKING] `send_asset` procedure was removed from the basic wallet (#829).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
