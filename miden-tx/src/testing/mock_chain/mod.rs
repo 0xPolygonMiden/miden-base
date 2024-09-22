@@ -4,12 +4,15 @@ use core::fmt;
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
-        delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountStorage, AccountType,
-        AuthSecretKey, StorageSlot,
+        delta::AccountUpdateDetails, Account, AccountCode, AccountDelta, AccountId, AccountType,
+        AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
-    crypto::merkle::{Mmr, MmrError, PartialMmr, Smt},
+    crypto::{
+        dsa::rpo_falcon512::SecretKey,
+        merkle::{Mmr, MmrError, PartialMmr, Smt},
+    },
     notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
     transaction::{
@@ -357,29 +360,83 @@ impl MockChain {
 
     /// Adds a new wallet with the specified authentication method and assets.
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(self.rng.clone())
-            .default_code(TransactionKernel::testing_assembler())
-            // TODO: These are added because the PUBLIC_KEY_SLOT is hardcoded to 3 on basic.masm.
-            // Once miden-base issue 864 is addressed, this should be changed back.
-            // See https://github.com/0xPolygonMiden/miden-base/pull/846/files#r1749401077 for more info
-            .add_storage_slots([AccountStorage::mock_item_2().slot, AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot])
-            .nonce(Felt::ZERO)
-            .add_assets(assets);
-        self.add_from_account_builder(auth_method, account_builder)
+        self.add_wallet_account(auth_method, assets, Felt::ZERO)
     }
 
     /// Adds an existing wallet with the specified authentication method and assets.
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(self.rng.clone())
-            .default_code(TransactionKernel::testing_assembler())
-            // TODO: These are added because the PUBLIC_KEY_SLOT is hardcoded to 3 on basic.masm.
-            // Once miden-base issue 864 is addressed, this should be changed back.
-            // See https://github.com/0xPolygonMiden/miden-base/pull/846/files#r1749401077 for more info
-            .add_storage_slots([AccountStorage::mock_item_2().slot, AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot])
-            .nonce(Felt::ONE)
+        self.add_wallet_account(auth_method, assets, Felt::ONE)
+    }
+    /// Helper method to build a wallet account
+    fn add_wallet_account(
+        &mut self,
+        auth_method: Auth,
+        assets: Vec<Asset>,
+        nonce: Felt,
+    ) -> Account {
+        let mut account_builder = AccountBuilder::new(self.rng.clone())
+            .default_code(TransactionKernel::testing_assembler(), false)
+            .nonce(nonce)
             .add_assets(assets);
 
-        self.add_from_account_builder(auth_method, account_builder)
+        let auth_secret_key = {
+            // Generate a secret key and get the public key
+            let secret_key = SecretKey::with_rng(&mut self.rng);
+            let public_key = secret_key.public_key();
+
+            // Configure storage slots using the new method on AccountBuilder
+            account_builder = account_builder.with_wallet_storage(public_key);
+
+            AuthSecretKey::RpoFalcon512(secret_key)
+        };
+
+        self.add_from_account_builder(account_builder, auth_method, auth_secret_key)
+    }
+
+    /// Helper method to build a faucet account
+    fn add_faucet_account(
+        &mut self,
+        auth_method: Auth,
+        token_symbol_str: &str,
+        max_supply: u64,
+        total_issuance: Option<u64>,
+        nonce: Felt,
+    ) -> MockFungibleFaucet {
+        let token_symbol = TokenSymbol::new(token_symbol_str).unwrap();
+
+        let fungible_faucet = "export.::miden::contracts::faucets::basic_fungible::distribute
+        export.::miden::contracts::faucets::basic_fungible::burn
+        export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512";
+
+        let code =
+            AccountCode::compile(fungible_faucet, TransactionKernel::testing_assembler(), true)
+                .unwrap();
+
+        let mut account_builder = AccountBuilder::new(self.rng.clone())
+            .code(code)
+            .nonce(nonce)
+            .account_type(AccountType::FungibleFaucet);
+
+        // Handle authentication
+        let auth_secret_key = {
+            // Generate a secret key and get the public key
+            let secret_key = SecretKey::with_rng(&mut self.rng);
+            let public_key = secret_key.public_key();
+
+            // Configure storage slots using the new method on AccountBuilder
+            account_builder = account_builder.with_faucet_storage(
+                public_key,
+                token_symbol,
+                max_supply,
+                total_issuance,
+            );
+
+            AuthSecretKey::RpoFalcon512(secret_key)
+        };
+
+        let account = self.add_from_account_builder(account_builder, auth_method, auth_secret_key);
+
+        MockFungibleFaucet(account)
     }
 
     /// Adds a new fungible faucet with the specified authentication method, token symbol, and max
@@ -389,25 +446,9 @@ impl MockChain {
         auth_method: Auth,
         token_symbol: &str,
         max_supply: u64,
+        total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        let metadata: [Felt; 4] = [
-            max_supply.try_into().unwrap(),
-            Felt::new(10),
-            TokenSymbol::new(token_symbol).unwrap().into(),
-            ZERO,
-        ];
-
-        let faucet_metadata = StorageSlot::Value(metadata);
-
-        let account_builder = AccountBuilder::new(self.rng.clone())
-            .default_code(TransactionKernel::testing_assembler())
-            .nonce(Felt::ZERO)
-            .account_type(AccountType::FungibleFaucet)
-            .add_storage_slot(faucet_metadata);
-
-        let account = self.add_from_account_builder(auth_method, account_builder);
-
-        MockFungibleFaucet(account)
+        self.add_faucet_account(auth_method, token_symbol, max_supply, total_issuance, Felt::ZERO)
     }
 
     /// Adds an existing fungible faucet with the specified authentication method, token symbol, and
@@ -417,57 +458,44 @@ impl MockChain {
         auth_method: Auth,
         token_symbol: &str,
         max_supply: u64,
+        total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        let metadata: [Felt; 4] = [
-            max_supply.try_into().unwrap(),
-            Felt::new(10),
-            TokenSymbol::new(token_symbol).unwrap().into(),
-            ZERO,
-        ];
-
-        let faucet_metadata = StorageSlot::Value(metadata);
-
-        let account_builder = AccountBuilder::new(self.rng.clone())
-            .default_code(TransactionKernel::testing_assembler())
-            .nonce(Felt::ONE)
-            .account_type(AccountType::FungibleFaucet)
-            .add_storage_slot(faucet_metadata);
-        MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
+        self.add_faucet_account(auth_method, token_symbol, max_supply, total_issuance, Felt::ONE)
     }
 
-    /// Adds a new [Account] from an [AccountBuilder] to the list of pending objects.
+    /// Adds a new `Account` from an `AccountBuilder` to the list of pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_from_account_builder(
         &mut self,
-        auth_method: Auth,
         account_builder: AccountBuilder<ChaCha20Rng>,
+        auth_method: Auth,
+        secret_key: AuthSecretKey,
     ) -> Account {
-        let (account, seed, authenticator) = match auth_method {
+        let (account, seed) = account_builder.build().unwrap();
+
+        let authenticator = match auth_method {
             Auth::BasicAuth => {
-                let (acc, seed, auth) = account_builder.build_with_auth(&mut self.rng).unwrap();
-
-                let authenticator = BasicAuthenticator::new_with_rng(
-                    &[(auth.public_key().into(), AuthSecretKey::RpoFalcon512(auth))],
+                let public_key = match &secret_key {
+                    AuthSecretKey::RpoFalcon512(secret_key) => secret_key.public_key(),
+                };
+                Some(BasicAuthenticator::new_with_rng(
+                    &[(public_key.into(), secret_key)],
                     self.rng.clone(),
-                );
-
-                (acc, seed, Some(authenticator))
+                ))
             },
-            Auth::NoAuth => {
-                let (account, seed) = account_builder.build().unwrap();
-                (account, seed, None)
-            },
+            Auth::NoAuth => None,
         };
 
         let seed = account.is_new().then_some(seed);
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
+
         self.add_account(account.clone());
 
         account
     }
 
-    /// Adds a new [Account] to the list of pending objects.
+    /// Adds a new `Account` to the list of pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_account(&mut self, account: Account) {
         self.pending_objects.updated_accounts.push(BlockAccountUpdate::new(

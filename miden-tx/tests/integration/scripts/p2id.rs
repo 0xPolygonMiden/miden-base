@@ -252,8 +252,10 @@ fn test_create_consume_multiple_notes() {
                 push.{note_type_1}
                 push.0              # aux
                 push.{tag_1}
+                call.::miden::contracts::wallets::basic::create_note
+
                 push.{asset_1}
-                call.::miden::contracts::wallets::basic::send_asset
+                call.::miden::contracts::wallets::basic::move_asset_to_note
                 dropw dropw dropw dropw
 
                 push.{recipient_2}
@@ -261,8 +263,10 @@ fn test_create_consume_multiple_notes() {
                 push.{note_type_2}
                 push.0              # aux
                 push.{tag_2}
+                call.::miden::contracts::wallets::basic::create_note
+
                 push.{asset_2}
-                call.::miden::contracts::wallets::basic::send_asset
+                call.::miden::contracts::wallets::basic::move_asset_to_note
                 dropw dropw dropw dropw
                 call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
             end
@@ -280,7 +284,8 @@ fn test_create_consume_multiple_notes() {
     );
 
     let tx_script =
-        TransactionScript::compile(tx_script_src, vec![], TransactionKernel::testing_assembler()).unwrap();
+        TransactionScript::compile(tx_script_src, vec![], TransactionKernel::testing_assembler())
+            .unwrap();
 
     let tx_context = mock_chain
         .build_tx_context(account.id(), &[input_note_1.id(), input_note_2.id()], &[])

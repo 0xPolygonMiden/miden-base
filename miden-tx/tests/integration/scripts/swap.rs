@@ -16,7 +16,8 @@ use crate::prove_and_verify_transaction;
 #[test]
 pub fn prove_send_swap_note() {
     let mut mock_chain = MockChain::new();
-    let offered_asset = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64).mint(2000);
+    let offered_asset =
+        mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64, None).mint(2000);
     let requested_asset =
         NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
     let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![offered_asset]);
@@ -34,8 +35,10 @@ pub fn prove_send_swap_note() {
             push.{note_type}
             push.0              # aux
             push.{tag}
+            call.::miden::contracts::wallets::basic::create_note
+
             push.{asset}
-            call.::miden::contracts::wallets::basic::send_asset
+            call.::miden::contracts::wallets::basic::move_asset_to_note
             dropw dropw dropw dropw
             call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
         end
@@ -73,7 +76,8 @@ pub fn prove_send_swap_note() {
 #[test]
 fn prove_consume_swap_note() {
     let mut mock_chain = MockChain::new();
-    let offered_asset = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64).mint(2000);
+    let offered_asset =
+        mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64, None).mint(2000);
     let requested_asset =
         NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
     let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![offered_asset]);

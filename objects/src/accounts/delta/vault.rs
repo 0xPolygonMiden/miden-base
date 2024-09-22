@@ -455,12 +455,13 @@ mod tests {
             AccountId,
         },
         assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-        testing::storage::build_assets,
     };
 
     #[test]
     fn test_serde_account_vault() {
-        let (asset_0, asset_1) = build_assets();
+        let asset_0 = FungibleAsset::mock(100);
+        let asset_1 =
+            NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, &[10, 21, 32, 43]);
         let delta = AccountVaultDelta::from_iters([asset_0], [asset_1]);
 
         let serialized = delta.to_bytes();

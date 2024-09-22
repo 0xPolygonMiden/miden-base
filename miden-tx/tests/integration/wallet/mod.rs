@@ -1,8 +1,5 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
-use miden_objects::{
-    accounts::AccountId,
-    crypto::dsa::rpo_falcon512::SecretKey, Word,
-};
+use miden_objects::{accounts::AccountId, crypto::dsa::rpo_falcon512::SecretKey, Word};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::get_account_with_default_account_code;
