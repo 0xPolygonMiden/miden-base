@@ -44,8 +44,8 @@ const TIMESTAMP_STEP: u32 = 10;
 
 /// Specifies which authentication mechanism is desired for accounts
 pub enum Auth {
-    /// Creates a [SecretKey](miden_objects::crypto::dsa::rpo_falcon512::SecretKey) for the
-    /// account and creates a [BasicAuthenticator] that gets used for authenticating the account
+    /// Creates a [SecretKey] for theaccount and creates a [BasicAuthenticator] that gets used for
+    /// authenticating the account.
     BasicAuth,
 
     /// Does not create any authentication mechanism for the account.
