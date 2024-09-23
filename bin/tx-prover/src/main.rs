@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod test {
-    use std::{sync::Arc, time::Duration};
+    use std::time::Duration;
 
     use miden_lib::transaction::TransactionKernel;
     use miden_objects::{
@@ -47,21 +47,19 @@ mod test {
         utils::Serializable,
     };
     use server::{
-        generated::api::{
-            api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest,
-            ProveTransactionResponse,
-        },
+        generated::api::{api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest},
         RpcApi,
     };
-    use tokio::{net::TcpListener, sync::Semaphore};
-    use tonic::{Request, Response};
+    use tokio::net::TcpListener;
+    use tonic::Request;
 
     use super::*;
-    #[tokio::test]
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
-        let api_service = ApiServer::new(RpcApi::new(Arc::new(Semaphore::new(1))));
+        let api_service = ApiServer::new(RpcApi::default());
 
         // Spawn the server as a background task
         tokio::spawn(async move {
@@ -78,6 +76,7 @@ mod test {
 
         // Set up a gRPC client to send the request
         let mut client = ApiClient::connect("http://127.0.0.1:50052").await.unwrap();
+        let mut client_2 = ApiClient::connect("http://127.0.0.1:50052").await.unwrap();
 
         // Create a mock transaction to send to the server
         let mut mock_chain = MockChain::new();
@@ -109,19 +108,32 @@ mod test {
 
         let transaction_witness = TransactionWitness::from(executed_transaction);
 
-        let request = Request::new(ProveTransactionRequest {
+        let request_1 = Request::new(ProveTransactionRequest {
             transaction_witness: transaction_witness.to_bytes(),
         });
 
-        // Send the request to the server
-        let response: Response<ProveTransactionResponse> =
-            client.prove_transaction(request).await.unwrap();
+        let request_2 = Request::new(ProveTransactionRequest {
+            transaction_witness: transaction_witness.to_bytes(),
+        });
 
-        // Check the response
-        assert!(!response.get_ref().proven_transaction.is_empty(), "Proof generation failed");
+        // Send both requests concurrently
+        let (t1, t2) = (
+            tokio::spawn(async move { client.prove_transaction(request_1).await }),
+            tokio::spawn(async move { client_2.prove_transaction(request_2).await }),
+        );
+
+        let (response_1, response_2) = (t1.await.unwrap(), t2.await.unwrap());
+
+        // Check the success response
+        assert!(response_1.is_ok() || response_2.is_ok());
+
+        // Check the failure response
+        assert!(response_1.is_err() || response_2.is_err());
+
+        let response_success = response_1.or(response_2).unwrap();
 
         // Cast into a ProvenTransaction
         let _proven_transaction: ProvenTransaction =
-            response.into_inner().try_into().expect("Failed to convert response");
+            response_success.into_inner().try_into().expect("Failed to convert response");
     }
 }
