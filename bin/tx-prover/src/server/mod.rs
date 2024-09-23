@@ -71,7 +71,7 @@ impl TryFrom<ProveTransactionResponse> for ProvenTransaction {
 
     fn try_from(response: ProveTransactionResponse) -> Result<Self, Self::Error> {
         ProvenTransaction::read_from_bytes(&response.proven_transaction)
-            .map_err(|_err| TransactionProverError::DeserializationError)
+            .map_err(|err| TransactionProverError::DeserializationError(err.to_string()))
     }
 }
 
