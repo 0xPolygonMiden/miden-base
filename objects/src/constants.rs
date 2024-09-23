@@ -29,6 +29,10 @@ pub const BATCH_NOTE_TREE_DEPTH: u8 = 10;
 pub const MAX_NOTES_PER_BATCH: usize = 1 << BATCH_NOTE_TREE_DEPTH;
 const _: () = assert!(MAX_NOTES_PER_BATCH >= MAX_OUTPUT_NOTES_PER_TX);
 
+/// The maximum number of input notes that can be consumed in a single batch.
+pub const MAX_INPUT_NOTES_PER_BATCH: usize = MAX_NOTES_PER_BATCH;
+const _: () = assert!(MAX_INPUT_NOTES_PER_BATCH >= MAX_INPUT_NOTES_PER_TX);
+
 /// The maximum number of transaction in a single batch.
 pub const MAX_TRANSACTIONS_PER_BATCH: usize = MAX_NOTES_PER_BATCH;
 
