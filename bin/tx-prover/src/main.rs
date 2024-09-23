@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod test {
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
     use miden_lib::transaction::TransactionKernel;
     use miden_objects::{
@@ -53,7 +53,7 @@ mod test {
         },
         RpcApi,
     };
-    use tokio::net::TcpListener;
+    use tokio::{net::TcpListener, sync::Semaphore};
     use tonic::{Request, Response};
 
     use super::*;
@@ -61,7 +61,7 @@ mod test {
     async fn test_prove_transaction() {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
-        let api_service = ApiServer::new(RpcApi); // Assuming RpcApi implements Default
+        let api_service = ApiServer::new(RpcApi::new(Arc::new(Semaphore::new(1))));
 
         // Spawn the server as a background task
         tokio::spawn(async move {
