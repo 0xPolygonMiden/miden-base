@@ -1,5 +1,7 @@
 # Changelog
 
+- Updated roadmap for docs (#877)
+
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
 - Implemented `PrettyPrint` and `Display` for `NoteScript`.
