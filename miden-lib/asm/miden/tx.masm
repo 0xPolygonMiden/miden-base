@@ -161,7 +161,11 @@ export.build_recipient_hash
   # [RECIPIENT]
 end
 
-#! Executes the provided procedure against the foreign account. 
+#! Executes the provided procedure against the foreign account.
+#!
+#! WARNING: the procedure to be invoked can not have more than 12 inputs and it can not return more 
+#! than 12 elements back. Otherwise exceeding elements will not be provided to the procedure and 
+#! will not be returned from it.
 #!
 #! Inputs:  [foreign_account_id, FOREIGN_PROC_ROOT, ...]
 #! Outputs: [<values returned from the foreign procedure>]
@@ -184,8 +188,6 @@ export.execute_foreign_procedure
     # => [<values returned from the foreign procedure>]
 
     # reset the current account data offset to the native offset (2048)
-    # WARNING: to be able to return the output of the foreign procedure its length should not exceed
-    # 12 elements.
     exec.kernel_proc_offsets::end_foreign_context_offset
     # => [offset, <values returned from the foreign procedure>]
     

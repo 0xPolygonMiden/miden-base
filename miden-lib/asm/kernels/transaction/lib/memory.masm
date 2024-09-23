@@ -638,6 +638,8 @@ export.set_current_account_data_ptr
 end
 
 #! Asserts that current account data pointer matches the data pointer of the native account (2048).
+#! It is used to prevent usage of the account procedures which can mutate the account state with the
+#! foreign accounts.
 #!
 #! Stack: []
 #! Output: []

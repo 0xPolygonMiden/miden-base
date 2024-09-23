@@ -66,19 +66,6 @@ proc.authenticate_account_origin
     # => [storage_offset, ...]
 end
 
-#! Checks that the invocation of a procedure originates from the native account.
-#! This procedure will prevent usage of the account procedures which can mutate the account state 
-#! with the foreign accounts.
-#!
-#! Panics if
-#!   - the invocation of the account procedure does not originate from the native account.
-#!
-#! Stack: []
-#! Output: []
-proc.assert_native_account
-    exec.memory::assert_native_account
-end
-
 # KERNEL PROCEDURES
 # =================================================================================================
 
@@ -165,7 +152,7 @@ end
 #! - value is the value to increment the nonce by.
 export.incr_account_nonce
     # check that this procedure was executed against the native account
-    exec.assert_native_account
+    exec.memory::assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -225,7 +212,7 @@ end
 #! - R' is the new storage commitment.
 export.set_account_item
     # check that this procedure was executed against the native account
-    exec.assert_native_account
+    exec.memory::assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -315,7 +302,7 @@ end
 #! - NEW_MAP_ROOT is the root of the new map after insertion.
 export.set_account_map_item.1
     # check that this procedure was executed against the native account
-    exec.assert_native_account
+    exec.memory::assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -357,7 +344,7 @@ end
 #! - CODE_COMMITMENT is the hash of the code to set.
 export.set_account_code
     # check that this procedure was executed against the native account
-    exec.assert_native_account
+    exec.memory::assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -436,7 +423,7 @@ end
 #!     after ASSET was added to it.
 export.account_vault_add_asset
     # check that this procedure was executed against the native account
-    exec.assert_native_account
+    exec.memory::assert_native_account
 
     # drop the procedure's hash
     dropw
@@ -482,7 +469,7 @@ end
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
     # check that this procedure was executed against the native account
-    exec.assert_native_account
+    exec.memory::assert_native_account
 
     # drop the procedure's hash
     dropw
