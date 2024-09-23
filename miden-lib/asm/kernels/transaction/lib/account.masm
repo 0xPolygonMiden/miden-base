@@ -146,7 +146,7 @@ end
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_hash
     # prepare the stack for computing the account hash
-    exec.memory::get_acct_data_ptr padw padw padw
+    exec.memory::get_current_account_data_ptr padw padw padw
 
     # stream account data and compute sequential hash. We perform two `mem_stream` operations
     # because account data consists of exactly 4 words.
@@ -186,7 +186,7 @@ end
 #! Output: [acct_id]
 #!
 #! - acct_id is the account id.
-export.memory::get_acct_id->get_id
+export.memory::get_account_id->get_id
 
 #! Returns the account nonce.
 #!
@@ -295,7 +295,7 @@ end
 #! - CODE_COMMITMENT is the hash of the code to set.
 export.set_code
     # get the account id
-    exec.memory::get_acct_id
+    exec.memory::get_account_id
     # => [acct_id, CODE_COMMITMENT]
 
     # assert the account is an updatable regular account
@@ -414,7 +414,7 @@ end
 #! - VALUE is the value of the item.
 export.get_item
     # get account storage slots section offset
-    exec.memory::get_acct_storage_slots_section_offset
+    exec.memory::get_acct_storage_slots_section_ptr
     # => [acct_storage_slots_section_offset, index]
 
     # get the item from storage
@@ -544,7 +544,7 @@ export.get_storage_slot_type
     # => [index, V']
 
     # get account storage slots section offset
-    exec.memory::get_acct_storage_slots_section_offset
+    exec.memory::get_acct_storage_slots_section_ptr
     # => [acct_storage_slots_section_offset, index]
 
     # get storage slot type
@@ -568,7 +568,7 @@ export.get_procedure_info
     # => [index]
 
     # get procedure pointer
-    mul.2 exec.memory::get_acct_procedures_section_offset add dup add.1
+    mul.2 exec.memory::get_acct_procedures_section_ptr add dup add.1
     # => [offset_ptr, proc_ptr]
 
     # load procedure information from memory
@@ -613,7 +613,7 @@ end
 #! Output: []
 export.validate_seed
         # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
-        padw exec.memory::get_acct_id push.0.0.0
+        padw exec.memory::get_account_id push.0.0.0
         adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
         adv_loadw
         # => [SEED, 0, 0, 0, 0]
@@ -640,14 +640,14 @@ export.validate_seed
 
         # assert the account id matches the account id of the new account and extract pow
         # element
-        movdn.3 drop drop exec.memory::get_acct_id eq assert.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
+        movdn.3 drop drop exec.memory::get_account_id eq assert.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
         # => [pow]
 
         # get acct and faucet modulus to check the min number of trailing zeros required in the pow
         exec.constants::get_regular_account_seed_digest_modulus exec.constants::get_faucet_seed_digest_modulus
         # => [faucet_modulus, acct_modulus, pow]
 
-        exec.memory::get_acct_id
+        exec.memory::get_account_id
         # => [acct_id, faucet_modulus, acct_modulus, pow]
 
         exec.is_faucet
@@ -702,7 +702,7 @@ proc.set_item_raw
     # => [index, NEW_VALUE, OLD_VALUE]
 
     # get account storage slots section offset
-    exec.memory::get_acct_storage_slots_section_offset
+    exec.memory::get_acct_storage_slots_section_ptr
     # => [acct_storage_slots_section_offset, index, NEW_VALUE, OLD_VALUE]
 
     # update storage
@@ -725,7 +725,7 @@ end
 #! - storage_offset is the procedure storage offset.
 proc.get_procedure_storage_offset
     # get procedure storage offset pointer
-    mul.2 exec.memory::get_acct_procedures_section_offset add add.1
+    mul.2 exec.memory::get_acct_procedures_section_ptr add add.1
     # => [storage_offset_ptr]
 
     # load procedure storage offset from memory

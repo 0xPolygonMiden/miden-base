@@ -184,7 +184,7 @@ proc.update_account_storage_commitment
     # only loop and hash over storage if there are storage slots
     if.true
         # setup start and end ptr
-        mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
+        mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
         # => [start_ptr, end_ptr]
 
         # pad stack to read and hash from memory
@@ -246,7 +246,7 @@ export.finalize_transaction
     # => [acct_data_end_ptr, INIT_ACCT_HASH]
 
     # get the offset for the start of the account data section
-    exec.memory::get_acct_data_ptr
+    exec.memory::get_current_account_data_ptr
     # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # compute the final account hash

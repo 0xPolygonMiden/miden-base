@@ -2,16 +2,17 @@ use alloc::collections::BTreeMap;
 
 use miden_lib::transaction::{
     memory::{
-        MemoryOffset, ACCT_CODE_COMMITMENT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR,
-        ACCT_ID_PTR, ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_PTR,
-        ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
+        MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
         BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
         INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
         INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
         INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET,
         INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET,
-        KERNEL_ROOT_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, NUM_ACCT_PROCEDURES_PTR,
-        NUM_ACCT_STORAGE_SLOTS_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
+        KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
+        NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
+        NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
+        NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
+        NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
         TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
@@ -230,38 +231,38 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Transa
 
 fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_value(process, ACCT_ID_AND_NONCE_PTR),
+        read_root_mem_value(process, NATIVE_ACCT_ID_AND_NONCE_PTR),
         [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()],
-        "The account id should be stored at ACCT_ID_AND_NONCE_PTR[0]"
+        "The account id should be stored at NATIVE_ACCT_ID_AND_NONCE_PTR[0]"
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(process, NATIVE_ACCT_VAULT_ROOT_PTR),
         inputs.account().vault().commitment().as_elements(),
-        "The account vault root commitment should be stored at ACCT_VAULT_ROOT_PTR"
+        "The account vault root commitment should be stored at NATIVE_ACCT_VAULT_ROOT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_STORAGE_COMMITMENT_PTR),
+        read_root_mem_value(process, NATIVE_ACCT_STORAGE_COMMITMENT_PTR),
         Word::from(inputs.account().storage().commitment()),
-        "The account storage commitment should be stored at ACCT_STORAGE_COMMITMENT_PTR"
+        "The account storage commitment should be stored at NATIVE_ACCT_STORAGE_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_CODE_COMMITMENT_PTR),
+        read_root_mem_value(process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
         inputs.account().code().commitment().as_elements(),
-        "account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)"
+        "account code commitment should be stored at NATIVE_ACCT_CODE_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(process, NUM_ACCT_STORAGE_SLOTS_PTR),
+        read_root_mem_value(process, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR),
         [
             u16::try_from(inputs.account().storage().slots().len()).unwrap().into(),
             ZERO,
             ZERO,
             ZERO
         ],
-        "The number of initialised storage slots should be stored at NUM_ACCT_PROCEDURES_PTR"
+        "The number of initialised storage slots should be stored at NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR"
     );
 
     for (i, elements) in inputs
@@ -272,20 +273,21 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_value(process, ACCT_STORAGE_SLOTS_SECTION_OFFSET + i as u32),
-            Word::try_from(elements).unwrap()
+            read_root_mem_value(process, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + i as u32),
+            Word::try_from(elements).unwrap(),
+            "The account storage slots should be stored starting at NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR"
         )
     }
 
     assert_eq!(
-        read_root_mem_value(process, NUM_ACCT_PROCEDURES_PTR),
+        read_root_mem_value(process, NATIVE_NUM_ACCT_PROCEDURES_PTR),
         [
             u16::try_from(inputs.account().code().procedures().len()).unwrap().into(),
             ZERO,
             ZERO,
             ZERO
         ],
-        "The number of procedures should be stored at NUM_ACCT_PROCEDURES_PTR"
+        "The number of procedures should be stored at NATIVE_NUM_ACCT_PROCEDURES_PTR"
     );
 
     for (i, elements) in inputs
@@ -296,9 +298,9 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_value(process, ACCT_PROCEDURES_SECTION_OFFSET + i as u32),
+            read_root_mem_value(process, NATIVE_ACCT_PROCEDURES_SECTION_PTR + i as u32),
             Word::try_from(elements).unwrap(),
-            "The account procedures and storage offsets should be stored starting at ACCT_PROCEDURES_SECTION_OFFSET"
+            "The account procedures and storage offsets should be stored starting at NATIVE_ACCT_PROCEDURES_SECTION_PTR"
         );
     }
 }
