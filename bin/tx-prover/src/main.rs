@@ -40,7 +40,7 @@ mod test {
         assets::{Asset, FungibleAsset},
         notes::NoteType,
         testing::account_code::DEFAULT_AUTH_SCRIPT,
-        transaction::{TransactionScript, TransactionWitness},
+        transaction::{ProvenTransaction, TransactionScript, TransactionWitness},
     };
     use miden_tx::{
         testing::mock_chain::{Auth, MockChain},
@@ -119,5 +119,9 @@ mod test {
 
         // Check the response
         assert!(!response.get_ref().proven_transaction.is_empty(), "Proof generation failed");
+
+        // Cast into a ProvenTransaction
+        let _proven_transaction: ProvenTransaction =
+            response.into_inner().try_into().expect("Failed to convert response");
     }
 }
