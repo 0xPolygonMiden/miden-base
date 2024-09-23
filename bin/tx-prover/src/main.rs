@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod test {
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
     use miden_lib::transaction::TransactionKernel;
     use miden_objects::{
@@ -53,15 +53,16 @@ mod test {
         },
         RpcApi,
     };
-    use tokio::net::TcpListener;
+    use tokio::{net::TcpListener, sync::Semaphore};
     use tonic::{Request, Response};
 
     use super::*;
+
     #[tokio::test]
     async fn test_prove_transaction() {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
-        let api_service = ApiServer::new(RpcApi); // Assuming RpcApi implements Default
+        let api_service = ApiServer::new(RpcApi::new(Arc::new(Semaphore::new(1)))); // Assuming RpcApi implements Default
 
         // Spawn the server as a background task
         tokio::spawn(async move {
@@ -109,19 +110,38 @@ mod test {
 
         let transaction_witness = TransactionWitness::from(executed_transaction);
 
-        let request = Request::new(ProveTransactionRequest {
+        let request_1 = Request::new(ProveTransactionRequest {
             transaction_witness: transaction_witness.to_bytes(),
         });
 
-        // Send the request to the server
-        let response: Response<ProveTransactionResponse> =
-            client.prove_transaction(request).await.unwrap();
+        let request_2 = Request::new(ProveTransactionRequest {
+            transaction_witness: transaction_witness.to_bytes(),
+        });
 
-        // Check the response
-        assert!(!response.get_ref().proven_transaction.is_empty(), "Proof generation failed");
+        let request_3 = Request::new(ProveTransactionRequest {
+            transaction_witness: transaction_witness.to_bytes(),
+        });
+
+        let mut client_2 = client.clone();
+        let mut client_3 = client.clone();
+        // Send both requests concurrently
+        let (response_success, response_fail, response_fail_2) = tokio::join!(
+            client.prove_transaction(request_1),
+            client_2.prove_transaction(request_2),
+            client_3.prove_transaction(request_3),
+        );
+
+        // Check the success response
+        let response_success = response_success.unwrap();
+        assert!(!response_success.get_ref().proven_transaction.is_empty(), "Proof generation failed");
 
         // Cast into a ProvenTransaction
         let _proven_transaction: ProvenTransaction =
-            response.into_inner().try_into().expect("Failed to convert response");
+            response_success.into_inner().try_into().expect("Failed to convert response");
+
+        // Check the failure response
+        let response_fail_2 = response_fail_2.unwrap();
+        println!("{:?}", response_fail_2);
+        assert!(false);
     }
 }
