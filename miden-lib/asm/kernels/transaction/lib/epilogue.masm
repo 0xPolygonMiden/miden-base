@@ -229,6 +229,9 @@ end
 #! - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
+    # make sure that the context was switched back to the native account
+    exec.memory::assert_native_account
+
     # update account code
     exec.update_account_code
     # => []

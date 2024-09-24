@@ -3,6 +3,7 @@ use.kernel::constants
 # ERRORS
 # =================================================================================================
 const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
+const.ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE=0x00020054
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
@@ -649,7 +650,7 @@ end
 export.assert_native_account
     push.CURRENT_ACCOUNT_DATA_PTR mem_load
     push.NATIVE_ACCOUNT_DATA_PTR
-    assert_eq
+    assert_eq.err=ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE
 end
 
 #! Returns a pointer to the end of the core account data section.

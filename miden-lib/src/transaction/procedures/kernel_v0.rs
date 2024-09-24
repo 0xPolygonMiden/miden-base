@@ -38,15 +38,15 @@ pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     // set_account_map_item
     digest!(0x3894ffa4dce29ab3, 0xe571cc3c85e40e6e, 0x709275d311d1dc86, 0xa2efbe0b3980e95c),
     // burn_asset
-    digest!(0x321fd17501dd1b7b, 0x5e41674206ccf93c, 0xf718f75b335577a6, 0x939db3229595dc7c),
+    digest!(0x5d002cae26ebec39, 0x3f28bdfee3fc9000, 0xa143e738227e6be0, 0xddf6b123ae89e852),
     // get_fungible_faucet_total_issuance
     digest!(0xd9310aaf087d0dc4, 0xdc834fff6ea325d2, 0x2c9d90a33b9a6d8a, 0xa381c27e49c538a8),
     // mint_asset
-    digest!(0x8e9e6fa1d929e282, 0x4d448e22a956c710, 0x7d974ad69840a5ca, 0x19d0b2fa6fb22c02),
+    digest!(0x3ba0deb8e089051c, 0x437139a5f81cb683, 0xa6951db7d21804b9, 0x41f71cfba44faa2b),
     // add_asset_to_note
-    digest!(0x9966ff7b788ce776, 0x73d99392aaed14ad, 0xc43c42876448ee5e, 0x7eafd4b6043375f4),
+    digest!(0xc016f1979f92c6a6, 0xd8b9abc6a769eca3, 0x766663e785a06a85, 0x7c7c16433193e65d),
     // create_note
-    digest!(0x6e8b59f7520789c7, 0x9a5fa97d5f326bb8, 0xe040150e93b9e066, 0x406bf52182af0fc3),
+    digest!(0x1a6ad19d597d6c57, 0x37177d49505b7da0, 0xa933c37ee40f4501, 0xd165814717b3f9b7),
     // get_input_notes_commitment
     digest!(0x1c078486abf976f5, 0xfce31a9f4b9687cd, 0xb1edb2edc115a619, 0xf1bb8c1bd9c7148b),
     // get_note_assets_info
@@ -64,7 +64,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     // get_block_number
     digest!(0xd483c8edceb956d, 0xf9f8d62043fcf072, 0xb917fc68b6e01ad1, 0x3ef8d736e7331692),
     // start_foreign_context
-    digest!(0xe582ebc575b345ef, 0xc20d93bd625e27f7, 0x2d9f55dab6a3a5c0, 0x1c909bab7058b161),
+    digest!(0x9d231f21bd27ff27, 0x5cc4476fad12b66d, 0x82f40fd18e7abb0a, 0xc09c240f2a1d82af),
     // end_foreign_context
-    digest!(0x762a57ec60063da5, 0x8c0af14f9bfa3e09, 0xad2f9174a8025e67, 0xc546519a880db80a),
+    digest!(0x3770db711ce9aaf1, 0xb6f3c929151a5d52, 0x3ed145ec5dbee85f, 0xf979d975d7951bf6),
 ];
