@@ -1,10 +1,35 @@
-# miden-tx-prover-service
+# Miden transaction prover
 
-A service that generates proofs on-demand.
+A service for generating Miden transaction proofs on-demand.
 
 ## Installation
 
-To install the prover service, run:
+Install the prover binary for production using `cargo`:
+
+```sh
+cargo install miden-tx-prover --locked
+```
+
+This will install the latest official version of the prover. You can install a specific version using `--version <x.y.z>`:
+
+```sh
+cargo install miden-tx-prover --locked --version x.y.z
+```
+
+You can also use `cargo` to compile the prover service from the source code if for some reason you need a specific git revision. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only. The incantation is a little different as you'll be targetting this repo instead:
+
+```sh
+# Install from a specific branch
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --branch <branch> --bin miden-tx-prover
+
+# Install a specific tag
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --tag <tag> --bin miden-tx-prover
+
+# Install a specific git revision
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --rev <git-sha> --bin miden-tx-prover
+```
+
+If you want to build the prover from a local version, you can run:
 
 ```bash
 make install-prover
