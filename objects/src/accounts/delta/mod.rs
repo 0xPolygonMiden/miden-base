@@ -17,13 +17,13 @@ pub use vault::{
 };
 
 /// The serialized size of a [`Felt`] which is serialized as a [`u64`].
-const FELT_SERIALIZED_SIZE: usize = std::mem::size_of::<u64>();
+const FELT_SERIALIZED_SIZE: usize = core::mem::size_of::<u64>();
 /// The serialized size of a [`Word`].
 const WORD_SERIALIZED_SIZE: usize = FELT_SERIALIZED_SIZE * WORD_SIZE;
 /// The serialized size of a [`u8`].
-const U8_SERIALIZED_SIZE: usize = std::mem::size_of::<u8>();
+const U8_SERIALIZED_SIZE: usize = core::mem::size_of::<u8>();
 /// The serialized size of a [`u64`].
-const U64_SERIALIZED_SIZE: usize = std::mem::size_of::<u64>();
+const U64_SERIALIZED_SIZE: usize = core::mem::size_of::<u64>();
 /// The serialized size of a [`Digest`].
 /// This is a copy of `miden_crypto::hash::rescue::DIGEST_BYTES`.
 const DIGEST_SERIALIZED_SIZE: usize = 32;
