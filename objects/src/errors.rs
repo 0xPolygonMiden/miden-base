@@ -68,6 +68,7 @@ pub enum AccountDeltaError {
     IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
     InconsistentNonceUpdate(String),
     NotAFungibleFaucetId(AccountId),
+    SizeLimitExceeded,
 }
 
 #[cfg(feature = "std")]
