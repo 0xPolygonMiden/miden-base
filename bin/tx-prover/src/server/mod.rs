@@ -7,7 +7,6 @@ use miden_tx::{
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
 use tracing::info;
-use winter_maybe_async::maybe_await;
 
 pub mod generated;
 
@@ -51,7 +50,7 @@ impl api_server::Api for RpcApi {
             TransactionWitness::read_from_bytes(&request.get_ref().transaction_witness)
                 .map_err(invalid_argument)?;
 
-        let proof = maybe_await!(prover.prove(transaction_witness)).map_err(internal_error)?;
+        let proof = prover.prove(transaction_witness).map_err(internal_error)?;
 
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
     }

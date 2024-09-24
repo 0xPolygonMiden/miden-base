@@ -12,21 +12,19 @@ rust-version.workspace = true
 edition.workspace = true
 
 [features]
-default = ["std"]
-std = []
 testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
 
 [dependencies]
-axum = "0.7.5"
+axum = "0.7"
 miden-lib = { workspace = true }
 miden-objects = { workspace = true }
 miden-prover = { workspace = true }
 miden-tx = { workspace = true }
 prost = "0.12"
 tokio = { version = "1.38", features = ["full"] }
+tokio-stream = { version = "0.1", features = [ "net" ]}
 tonic = "0.11"
 tonic-web = { version = "0.11" }
-tokio-stream = { version = "0.1", features = [ "net" ]}
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
 winter-maybe-async = { version = "0.10" }

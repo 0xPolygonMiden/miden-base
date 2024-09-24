@@ -9,7 +9,6 @@ help:
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
-BUILD_PROTO=BUILD_PROTO=1
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -71,28 +70,28 @@ test: test-default test-prove ## Run all tests
 
 .PHONY: check
 check: ## Check all targets and features for errors without code generation
-	${BUILD_PROTO} cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+	cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
 
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
 build: ## By default we should build in release mode
-	${BUILD_PROTO} cargo build --release
+	cargo build --release
 
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	${BUILD_PROTO} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	${BUILD_PROTO} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
 
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)
-	${BUILD_PROTO} cargo build --lib --release --features async
+	cargo build --lib --release --features async
 
 
 # --- benchmarking --------------------------------------------------------------------------------
@@ -106,4 +105,4 @@ bench-tx: ## Run transaction benchmarks
 
 .PHONY: install-prover
 install-prover: ## Installs prover
-	${BUILD_PROTO} cargo install --path bin/tx-prover --locked
+	cargo install --path bin/tx-prover --locked
