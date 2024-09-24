@@ -1,5 +1,7 @@
 use alloc::string::ToString;
 
+use vm_core::WORD_SIZE;
+
 use super::{
     Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
     Word, ZERO,
@@ -13,6 +15,18 @@ mod vault;
 pub use vault::{
     AccountVaultDelta, FungibleAssetDelta, NonFungibleAssetDelta, NonFungibleDeltaAction,
 };
+
+/// The serialized size of a [`Felt`] which is serialized as a [`u64`].
+const FELT_SERIALIZED_SIZE: usize = std::mem::size_of::<u64>();
+/// The serialized size of a [`Word`].
+const WORD_SERIALIZED_SIZE: usize = FELT_SERIALIZED_SIZE * WORD_SIZE;
+/// The serialized size of a [`u8`].
+const U8_SERIALIZED_SIZE: usize = std::mem::size_of::<u8>();
+/// The serialized size of a [`u64`].
+const U64_SERIALIZED_SIZE: usize = std::mem::size_of::<u64>();
+/// The serialized size of a [`Digest`].
+/// This is a copy of `miden_crypto::hash::rescue::DIGEST_BYTES`.
+const DIGEST_SERIALIZED_SIZE: usize = 32;
 
 // ACCOUNT DELTA
 // ================================================================================================
@@ -153,6 +167,14 @@ impl Serializable for AccountDelta {
         self.vault.write_into(target);
         self.nonce.write_into(target);
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.storage.get_size_hint()
+            + self.vault.get_size_hint()
+            // An option's tag is serialized as a bool which is always 1 byte.
+            + 1
+            + self.nonce.map(|_nonce| FELT_SERIALIZED_SIZE).unwrap_or(0)
+    }
 }
 
 impl Deserializable for AccountDelta {
@@ -232,13 +254,29 @@ fn validate_nonce(
     Ok(())
 }
 
+/// Returns the length of `value` in vint64 encoding.
+/// Copy from winter-utils.
+pub(super) fn usize_encoded_len(value: usize) -> usize {
+    // winter-utils casts the usize to a u64 during encoding.
+    let value = value as u64;
+    let zeros = value.leading_zeros() as usize;
+    let len = zeros.saturating_sub(1) / 7;
+    9 - core::cmp::min(len, 8)
+}
+
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
+    use vm_core::utils::Serializable;
+
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
-    use crate::{ONE, ZERO};
+    use crate::{
+        accounts::{AccountId, AccountType, StorageMapDelta},
+        assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        ONE, ZERO,
+    };
 
     #[test]
     fn account_delta_nonce_validation() {
@@ -255,5 +293,49 @@ mod tests {
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ZERO)).is_err());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
+    }
+
+    #[test]
+    fn account_delta_size_hint() {
+        let storage_delta = AccountStorageDelta::default();
+        let vault_delta = AccountVaultDelta::default();
+        assert_eq!(storage_delta.to_bytes().len(), storage_delta.get_size_hint());
+        assert_eq!(vault_delta.to_bytes().len(), vault_delta.get_size_hint());
+
+        let account_delta = AccountDelta::new(storage_delta, vault_delta, None).unwrap();
+        assert_eq!(account_delta.to_bytes().len(), account_delta.get_size_hint());
+
+        let storage_delta = AccountStorageDelta::from_iters(
+            [1],
+            [(2, [ONE, ONE, ONE, ONE]), (3, [ONE, ONE, ZERO, ONE])],
+            [(
+                4,
+                StorageMapDelta::from_iters(
+                    [[ONE, ONE, ONE, ZERO], [ZERO, ONE, ONE, ONE]],
+                    [([ONE, ONE, ONE, ONE], [ONE, ONE, ONE, ONE])],
+                ),
+            )],
+        );
+
+        let non_fungible: Asset = NonFungibleAsset::new(
+            &NonFungibleAssetDetails::new(
+                AccountId::new_dummy([10; 32], AccountType::NonFungibleFaucet),
+                vec![6],
+            )
+            .unwrap(),
+        )
+        .unwrap()
+        .into();
+        let fungible_2: Asset =
+            FungibleAsset::new(AccountId::new_dummy([10; 32], AccountType::FungibleFaucet), 10)
+                .unwrap()
+                .into();
+        let vault_delta = AccountVaultDelta::from_iters([non_fungible], [fungible_2]);
+
+        assert_eq!(storage_delta.to_bytes().len(), storage_delta.get_size_hint());
+        assert_eq!(vault_delta.to_bytes().len(), vault_delta.get_size_hint());
+
+        let account_delta = AccountDelta::new(storage_delta, vault_delta, Some(ONE)).unwrap();
+        assert_eq!(account_delta.to_bytes().len(), account_delta.get_size_hint());
     }
 }

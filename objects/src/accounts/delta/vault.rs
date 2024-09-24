@@ -8,7 +8,12 @@ use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
 use crate::{
-    accounts::{AccountId, AccountType},
+    accounts::{
+        delta::{
+            usize_encoded_len, FELT_SERIALIZED_SIZE, U64_SERIALIZED_SIZE, WORD_SERIALIZED_SIZE,
+        },
+        AccountId, AccountType,
+    },
     assets::{Asset, FungibleAsset, NonFungibleAsset},
 };
 
@@ -153,6 +158,10 @@ impl Serializable for AccountVaultDelta {
         target.write(&self.fungible);
         target.write(&self.non_fungible);
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.fungible.get_size_hint() + self.non_fungible.get_size_hint()
+    }
 }
 
 impl Deserializable for AccountVaultDelta {
@@ -287,6 +296,12 @@ impl Serializable for FungibleAssetDelta {
         //   integers.
         target.write_many(self.0.iter().map(|(&faucet_id, &delta)| (faucet_id, delta as u64)));
     }
+
+    fn get_size_hint(&self) -> usize {
+        usize_encoded_len(self.0.len()) +
+        // An AccountId is a Felt.
+        self.0.len() * (FELT_SERIALIZED_SIZE + U64_SERIALIZED_SIZE)
+    }
 }
 
 impl Deserializable for FungibleAssetDelta {
@@ -411,6 +426,16 @@ impl Serializable for NonFungibleAssetDelta {
 
         target.write_usize(removed.len());
         target.write_many(removed.iter());
+    }
+
+    fn get_size_hint(&self) -> usize {
+        let added = self.filter_by_action(NonFungibleDeltaAction::Add).count();
+        let removed = self.filter_by_action(NonFungibleDeltaAction::Remove).count();
+
+        usize_encoded_len(added) + usize_encoded_len(removed) +
+        // NonFungibleAsset is serialized as a word.
+        added * WORD_SERIALIZED_SIZE +
+        removed * WORD_SERIALIZED_SIZE
     }
 }
 
