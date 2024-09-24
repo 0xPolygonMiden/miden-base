@@ -205,12 +205,12 @@ mod log {
 
     /// Given a [Digest] returns its hex representation.
     pub fn digest_hex(digest: Digest) -> String {
-        to_hex(&digest.as_bytes()).expect("hex formatting failed")
+        to_hex(&digest.as_bytes())
     }
 
     /// Given a [Word] returns its hex representation.
     pub fn word_hex(word: Word) -> String {
-        to_hex(FieldElement::elements_as_bytes(&word)).expect("hex formatting failed")
+        to_hex(FieldElement::elements_as_bytes(&word))
     }
 
     impl Log {
