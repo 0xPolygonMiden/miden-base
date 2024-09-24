@@ -4,6 +4,8 @@ use.kernel::constants
 # =================================================================================================
 const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
 const.ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE=0x00020054
+const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020055
+const.ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED=0x00020056
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
@@ -114,11 +116,17 @@ const.KERNEL_PROCEDURES_PTR=401
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
+# The largest memory address which can be used to load the foreign account data
+const.MAX_FOREIGN_ACCOUNT_PTR=131072
+
 # Maximum number of the foreign accounts that can be loaded.
 const.MAX_NUM_FOREIGN_ACCOUNTS=64
 
 # The memory address at which the native account data is stored.
 const.NATIVE_ACCOUNT_DATA_PTR=2048
+
+# The length of the memory interval that the account data occupies. 
+const.ACCOUNT_DATA_LENGTH=2048
 
 # The offsets at which the account data is stored relative to the start of the account data segment.
 const.ACCT_ID_AND_NONCE_OFFSET=0
@@ -607,6 +615,72 @@ end
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
+#! Returns the pointer to the next vacant memory slot if the account was not loaded before, and the 
+#! pointer to the account data otherwise.
+#!
+#! Stack:  [foreign_account_id]
+#! Output: [was_loaded, ptr, foreign_account_id]
+#!
+#! Where: 
+#! - foreign_account_id is the ID of the foreign account whose procedure is going to be executed.
+#! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the 
+#!   memory.
+#! - ptr is the memory pointer to the next empty memory slot or the memory pointer to the account 
+#!   data, depending on the value of the was_loaded flag.
+export.get_foreign_account_ptr
+    # check that foreign account id is not equal zero
+    dup neq.0 assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
+    # => [foreign_account_id]
+
+    # push the initial account data pointer
+    push.NATIVE_ACCOUNT_DATA_PTR
+    # => [curr_account_ptr, foreign_account_id]
+
+    # push the flag to enter the loop
+    push.1
+
+    while.true
+        # drop the flag left from the previous loop
+        movup.2 drop
+        # => [curr_account_ptr, foreign_account_id]
+
+        # move the current account pointer to the next account data block
+        push.ACCOUNT_DATA_LENGTH add
+        # => [curr_account_ptr', foreign_account_id]
+
+        # load the first data word at the current account pointer
+        dup mem_loadw
+        # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id]
+
+        # check whether the first data words is an empty word, preserve the first value in this word
+        dup movdn.4 padw eqw movdn.8 dropw dropw
+        # => [is_empty_word, first_data_value, curr_account_ptr', foreign_account_id]
+
+        # check whether the current id matches the foreign id 
+        swap dup.3 eq
+        # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id]
+
+        # get the sum of the flags to obtain the loop flag
+        dup movdn.4 add
+        # => [flags_sum, curr_account_ptr', foreign_account_id, is_equal_id]
+
+        # get the loop flag
+        # it equals 0 if both `is_equal_id` and `is_empty_word` flags equal 0, so we should continue 
+        # iterating
+        eq.0
+        # => [loop_flag, curr_account_ptr', foreign_account_id, is_equal_id]
+    end
+
+    # check that the loading of one more account won't exceed the maximum number of the foreign 
+    # accounts which can be loaded.
+    dup push.MAX_FOREIGN_ACCOUNT_PTR lte assert.err=ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED
+    # => [curr_account_ptr, foreign_account_id, is_equal_id]
+
+    # the resulting `was_loaded` flag is essentially equal to the `is_equal_id` flag
+    movup.2
+    # => [was_loaded, curr_account_ptr, foreign_account_id]
+end
+
 #! Sets the memory pointer of the current account data to the native account (2048).
 #!
 #! Stack: []
@@ -664,6 +738,8 @@ export.get_core_acct_data_end_ptr
     exec.get_current_account_data_ptr push.ACCT_CORE_DATA_SECTION_END_OFFSET add
 end
 
+### ACCOUNT ID AND NONCE #################################################
+
 #! Returns the id of the current account.
 #!
 #! Stack: []
@@ -674,6 +750,19 @@ end
 export.get_account_id
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
     mem_load
+end
+
+#! Sets the account id and nonce.
+#!
+#! Stack: [account_id, 0, 0, account_nonce]
+#! Output: []
+#!
+#! Where:
+#! - account_id is the id of the currently accessing account.
+#! - account_nonce is the nonce of the currently accessing account.
+export.set_acct_id_and_nonce
+    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
+    mem_storew
 end
 
 #! Returns the id of the native account.
@@ -718,6 +807,8 @@ export.set_acct_nonce
     drop movup.4 movup.4 mem_storew dropw
 end
 
+### ACCOUNT VAULT #################################################
+
 #! Returns the memory pointer to the account vault root.
 #!
 #! Stack: []
@@ -754,30 +845,7 @@ export.set_acct_vault_root
     mem_storew
 end
 
-#! Returns the account storage commitment.
-#!
-#! Stack: []
-#! Output: [STORAGE_COMMITMENT]
-#!
-#! Where:
-#! - STORAGE_COMMITMENT is the account storage commitment.
-export.get_acct_storage_commitment
-    padw
-    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
-    mem_loadw
-end
-
-#! Sets the account storage commitment.
-#!
-#! Stack: [STORAGE_COMMITMENT]
-#! Output: [STORAGE_COMMITMENT]
-#!
-#! Where:
-#! - STORAGE_COMMITMENT is the account storage commitment.
-export.set_acct_storage_commitment
-    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
-    mem_storew
-end
+### ACCOUNT CODE #################################################
 
 #! Returns the code commitment of the account.
 #!
@@ -862,6 +930,33 @@ end
 #! - account_procedures_section_ptr is the memory pointer to the account procedures section.
 export.get_acct_procedures_section_ptr
     exec.get_current_account_data_ptr push.ACCT_PROCEDURES_SECTION_OFFSET add
+end
+
+### ACCOUNT STORAGE #################################################
+
+#! Returns the account storage commitment.
+#!
+#! Stack: []
+#! Output: [STORAGE_COMMITMENT]
+#!
+#! Where:
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.get_acct_storage_commitment
+    padw
+    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
+    mem_loadw
+end
+
+#! Sets the account storage commitment.
+#!
+#! Stack: [STORAGE_COMMITMENT]
+#! Output: [STORAGE_COMMITMENT]
+#!
+#! Where:
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.set_acct_storage_commitment
+    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
+    mem_storew
 end
 
 #! Returns the number of storage slots contained in the account storage.
