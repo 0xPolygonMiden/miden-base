@@ -205,7 +205,7 @@ mod log {
 
     /// Given a [Digest] returns its hex representation.
     pub fn digest_hex(digest: Digest) -> String {
-        to_hex(&digest.as_bytes())
+        to_hex(digest.as_bytes())
     }
 
     /// Given a [Word] returns its hex representation.

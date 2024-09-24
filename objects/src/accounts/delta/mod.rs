@@ -53,10 +53,9 @@ impl AccountDelta {
     ///
     /// # Errors
     ///
-    /// - Returns an error if storage or vault were updated, but the nonce was either not updated
-    /// or set to 0.
-    /// - Returns an error if the serialized size of the delta exceeds the maximum allowed
-    ///   size.
+    /// - Returns an error if storage or vault were updated, but the nonce was either not updated or
+    ///   set to 0.
+    /// - Returns an error if the serialized size of the delta exceeds the maximum allowed size.
     pub fn new(
         storage: AccountStorageDelta,
         vault: AccountVaultDelta,
