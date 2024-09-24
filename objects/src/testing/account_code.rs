@@ -117,6 +117,10 @@ impl AccountCode {
         export.burn
             exec.faucet::burn
         end
+
+        export.execute_foreign_procedure
+            exec.tx::execute_foreign_procedure
+        end
         ";
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module = Module::parser(assembly::ast::ModuleKind::Library)
