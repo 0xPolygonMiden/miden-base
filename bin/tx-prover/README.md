@@ -20,13 +20,13 @@ You can also use `cargo` to compile the prover service from the source code if f
 
 ```sh
 # Install from a specific branch
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --branch <branch> --bin miden-tx-prover
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --branch <branch>
 
 # Install a specific tag
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --tag <tag> --bin miden-tx-prover
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --tag <tag>
 
 # Install a specific git revision
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --rev <git-sha> --bin miden-tx-prover
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --rev <git-sha>
 ```
 
 If you want to build the prover from a local version, you can run:
