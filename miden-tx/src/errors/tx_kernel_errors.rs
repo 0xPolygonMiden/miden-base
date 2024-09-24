@@ -174,7 +174,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 87] = [
     (ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
     (ERR_INVALID_FAUCET_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited being the reserved faucet data slot)"),
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
-    (ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE, "Invoked procedure was executed against the foreign account"),
+    (ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE, "Procedure can be called only for the native account"),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "Provided ID of the foreign account equals zero"),
     (ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED, "Maximum number of the foreign accounts (64) was exceeded"),
 ];
