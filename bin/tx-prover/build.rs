@@ -22,9 +22,7 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     let _ = fs::remove_file(dst_dir.join("api.rs")).into_diagnostic();
 
     // Compute the directory of the `proto` definitions
-    let cwd: PathBuf = env::current_dir().into_diagnostic()?;
-
-    let proto_dir: PathBuf = cwd.join("proto");
+    let proto_dir: PathBuf = crate_root.join("proto");
 
     // Compute the compiler's target file path.
     let out = env::var("OUT_DIR").into_diagnostic()?;
