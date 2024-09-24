@@ -172,5 +172,5 @@ pub const KERNEL_ERRORS: [(u32, &str); 85] = [
     (ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
     (ERR_INVALID_FAUCET_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited being the reserved faucet data slot)"),
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
-    (ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE, "Invoked procedure was executed against the foreign account"),
+    (ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE, "Procedure can be called only for the native account"),
 ];
