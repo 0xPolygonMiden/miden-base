@@ -27,7 +27,6 @@ tonic = "0.11"
 tonic-web = { version = "0.11" }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
-winter-maybe-async = { version = "0.10" }
 
 [build-dependencies]
 miette = { version = "7.2", features = ["fancy"] }
