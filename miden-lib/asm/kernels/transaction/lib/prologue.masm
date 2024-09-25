@@ -1,13 +1,11 @@
 use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::native
-use.std::collections::smt
 
 use.kernel::account
 use.kernel::asset_vault
 use.kernel::constants
 use.kernel::memory
-use.kernel::utils
 
 # ERRORS
 # =================================================================================================
@@ -68,18 +66,6 @@ const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
 # Cannot compute matching nullifier commitment using the provided input note data
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
-
-# Computed account code commitment does not match recorded account code commitment
-const.ERR_ACCT_CODE_COMMITMENT_MISMATCH=0x0002004C
-
-# Number of account procedures exceeded the maximum limit of 256
-const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
-
-# Number of account storage slots exceeded the maximum limit of 255
-const.ERR_ACCT_TOO_MANY_STORAGE_SLOTS=0x0002004F
-
-# Computed account storage commitment does not match recorded account storage commitment
-const.ERR_ACCT_STORAGE_COMMITMENT_MISMATCH=0x00020050
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -395,55 +381,6 @@ proc.validate_new_account
     # => []
 end
 
-#! Validates that storage slots match storage commitment and saves storage slots into memory.
-#!
-#! This is achieved by reading the storage slots from the advice map, saving them into memory,
-#! and sequentially hashing them before comparing the final hash to the storage commitment.
-#!
-#! Stack: [STORAGE_COMMITMENT]
-#! Advice stack: [num_storage_slots, STORAGE_SLOT_VALUE_0, storage_slot_type_0, 0, 0, 0, ..., STORAGE_SLOT_VALUE_N, storage_slot_type_n, 0, 0, 0]
-#! Output: []
-proc.validate_account_storage_slots
-    # move storage slot data from the advice map to the advice stack
-    adv.push_mapval push.15160 drop                # TODO: remove line, see miden-vm/#1122
-
-    # push the number of storage slots onto the operand stack before storing it into memory
-    adv_push.1
-    # => [num_storage_slots, STORAGE_COMMITMENT]
-
-    # assert that account does not exceed allowed maximum number of storage slots
-    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCT_TOO_MANY_STORAGE_SLOTS
-    # => [num_storage_slots, STORAGE_COMMITMENT]
-
-    # store number of storage slots in memory
-    dup exec.memory::set_num_storage_slots
-    # => [num_storage_slots, STORAGE_COMMITMENT]
-
-    # setup acct_storage_slots_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
-    # => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
-
-    # pad stack before reading from advice stack
-    padw padw padw
-    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, STORAGE_COMMITMENT]
-
-    # read the data from advice stack to memory and hash
-    exec.mem::pipe_double_words_to_memory
-    # => [PERM, PERM, PERM, end_ptr, STORAGE_COMMITMENT]
-
-    # extract the digest
-    exec.native::state_to_digest
-    # => [DIGEST, end_ptr, STORAGE_COMMITMENT]
-
-    # drop end_ptr
-    movup.4 drop
-    # => [DIGEST, STORAGE_COMMITMENT]
-
-    # verify hashed account storage slots match account storage commitment
-    assert_eqw.err=ERR_ACCT_STORAGE_COMMITMENT_MISMATCH
-    # => []
-end
-
 #! Returns whether the input word is equal to EMPTY_WORD as a boolean value.
 #!
 #! This procedure drops the input word.
@@ -455,60 +392,6 @@ end
 #! - is_empty is a boolean value that is 1 if INPUT_WORD is equal to EMPTY_WORD, and 0 otherwise.
 proc.is_empty_word_dropped
     eq.0 swap eq.0 and swap eq.0 and swap eq.0 and
-end
-
-#! Validates that account procedures match account code commitment and saves procedure information
-#! into memory.
-#!
-#! This is achieved by reading account procedure information from the advice map, saving them into
-#! memory, and sequentially hashing them before comparing the final hash to the account code
-#! commitment.
-#!
-#! Information for each saved procedure consists of the procedure's MAST root and the storage
-#! offset associated with this procedure.
-#!
-#! Stack: [CODE_COMMITMENT]
-#! Advice stack: [num_account_procedures, PROC_0, storage_offset_0, 0, 0, 0, ..., PROC_N, storage_offset_n, 0, 0, 0]
-#! Output: []
-proc.validate_account_procedures
-    # move procedure data from the advice map to the advice stack
-    adv.push_mapval push.15161 drop               # TODO: remove line, see miden-vm/#1122
-
-    # push the number of procedures onto the operand stack before storing it in memory
-    adv_push.1
-    # => [num_procs, CODE_COMMITMENT]
-
-    # assert that account does not exceed allowed maximum number of procedures
-    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
-    # => [num_procs, CODE_COMMITMENT]
-
-    # store number of procedures in memory
-    dup exec.memory::set_num_account_procedures
-    # => [num_procs, CODE_COMMITMENT]
-
-    # setup acct_proc_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
-    # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
-
-    # pad stack before reading from advice stack
-    padw padw padw
-    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
-
-    # read the data from advice stack to memory and hash
-    exec.mem::pipe_double_words_to_memory
-    # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
-
-    # extract the digest
-    exec.native::state_to_digest
-    # => [DIGEST, end_ptr, CODE_COMMITMENT]
-
-    # drop end_ptr
-    movup.4 drop
-    # => [DIGEST, CODE_COMMITMENT]
-
-    # verify hashed account procedures match account code commitment
-    assert_eqw.err=ERR_ACCT_CODE_COMMITMENT_MISMATCH
-    # => []
 end
 
 #! Saves the account data to memory and validates it.
@@ -566,17 +449,17 @@ proc.process_account_data
 
     # validates and stores account storage slots in memory.
     exec.memory::get_acct_storage_commitment
-    exec.validate_account_storage_slots
+    exec.memory::save_account_storage_data
     # => [ACCT_HASH]
 
-    # set the new account code commitment to the initial account code root this is used for managing
-    # code commitment updates
+    # set the new account code commitment to the initial account code root 
+    # this is used for managing code commitment updates
     exec.memory::get_acct_code_commitment
     exec.memory::set_new_acct_code_commitment
     # => [ACCOUNT_CODE_COMMITMENT, ACCT_HASH]
 
     # validates and stores account procedures in memory.
-    exec.validate_account_procedures
+    exec.memory::save_account_procedure_data
     # => [ACCT_HASH]
 
     # copy the initial account vault hash to the input vault hash to support transaction asset

@@ -1,10 +1,33 @@
+use.std::mem
+use.std::crypto::hashes::native
+
+use.kernel::account
 use.kernel::constants
 
 # ERRORS
 # =================================================================================================
+# Computed account code commitment does not match recorded account code commitment
+const.ERR_ACCT_CODE_COMMITMENT_MISMATCH=0x0002004C
+
+# Number of account procedures exceeded the maximum limit of 256
+const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
+
+# Number of account storage slots exceeded the maximum limit of 255
+const.ERR_ACCT_TOO_MANY_STORAGE_SLOTS=0x0002004F
+
+# Computed account storage commitment does not match recorded account storage commitment
+const.ERR_ACCT_STORAGE_COMMITMENT_MISMATCH=0x00020050
+
+# Number of assets exceeds the maximum allowed number of assets per note.
 const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
+
+# Current account data pointer is not equal to native account data pointer (2048).
 const.ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE=0x00020054
+
+# ID of the provided foreign account equals zero.
 const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020055
+
+# Maximum allowed number of foreign account to be loaded (64) was exceeded.
 const.ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED=0x00020056
 
 # MEMORY ADDRESS CONSTANTS
@@ -118,9 +141,6 @@ const.KERNEL_PROCEDURES_PTR=401
 
 # The largest memory address which can be used to load the foreign account data
 const.MAX_FOREIGN_ACCOUNT_PTR=131072
-
-# Maximum number of the foreign accounts that can be loaded.
-const.MAX_NUM_FOREIGN_ACCOUNTS=64
 
 # The memory address at which the native account data is stored.
 const.NATIVE_ACCOUNT_DATA_PTR=2048
@@ -627,6 +647,10 @@ end
 #!   memory.
 #! - ptr is the memory pointer to the next empty memory slot or the memory pointer to the account 
 #!   data, depending on the value of the was_loaded flag.
+#!
+#! Panics if:
+#! - the ID of the provided foreign account equals zero.
+#! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
 export.get_foreign_account_ptr
     # check that foreign account id is not equal zero
     dup neq.0 assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
@@ -1407,4 +1431,145 @@ end
 #! - kernel_procedures_ptr is the memory address where the hashes of the kernel procedures are stored. 
 export.get_kernel_procedures_ptr
     push.KERNEL_PROCEDURES_PTR
+end
+
+# ACCOUNT DATA LOADERS
+# =================================================================================================
+
+#! Saves storage slots data into memory and validates that the storage commitment matches the 
+#! sequential storage hash.
+#!
+#! Inputs:
+#!   Operand stack: [STORAGE_COMMITMENT]
+#!   Advice map: {
+#!     STORAGE_COMMITMENT: [num_storage_slots, [STORAGE_SLOT_DATA]],
+#!   }
+#! Outputs:
+#!   Operand stack: []
+#! 
+#! Where:
+#! - STORAGE_COMMITMENT is the commitment of the foreign account's storage.
+#! - num_storage_slots is the number of foreign account's storage slots.
+#! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows: 
+#!   [SLOT_VALUE, slot_type, 0, 0, 0]
+#!
+#! Panics if:
+#! - the number of account storage slots exceeded the maximum limit of 255.
+#! - the computed account storage commitment does not match the provided account storage commitment
+export.save_account_storage_data
+    # move storage slot data from the advice map to the advice stack
+    adv.push_mapval push.15160 drop                # TODO: remove line, see miden-vm/#1122
+    # OS => [STORAGE_COMMITMENT]
+    # AS => [num_storage_slots, [STORAGE_SLOT_DATA]]
+
+    # push the number of storage slots onto the operand stack before storing it into memory
+    adv_push.1
+    # OS => [num_storage_slots, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # assert that account does not exceed allowed maximum number of storage slots
+    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCT_TOO_MANY_STORAGE_SLOTS
+    # OS => [num_storage_slots, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # store number of storage slots in memory
+    dup exec.set_num_storage_slots
+    # OS => [num_storage_slots, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # setup acct_storage_slots_offset and end_ptr for reading from advice stack
+    mul.2 exec.get_acct_storage_slots_section_ptr dup movdn.2 add swap
+    # OS => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # pad stack before reading from advice stack
+    padw padw padw
+    # OS => [PAD, PAD, PAD, acct_proc_offset, end_ptr, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # OS => [PERM, PERM, PERM, end_ptr', STORAGE_COMMITMENT]
+    # AS => []
+
+    # extract the digest
+    exec.native::state_to_digest
+    # OS => [DIGEST, end_ptr', STORAGE_COMMITMENT]
+
+    # drop end_ptr
+    movup.4 drop
+    # OS => [DIGEST, STORAGE_COMMITMENT]
+
+    # verify hashed account storage slots match account storage commitment
+    assert_eqw.err=ERR_ACCT_STORAGE_COMMITMENT_MISMATCH
+    # OS => []
+end
+
+#! Saves account procedure data into memory and validates that the code commitment matches the 
+#! sequential procedure hash.
+#!
+#! Inputs:
+#!   Operand stack: [CODE_COMMITMENT]
+#!   Advice map: {
+#!     CODE_COMMITMENT: [num_procs, [ACCOUNT_PROCEDURE_DATA]],
+#!   }
+#! Outputs:
+#!   Operand stack: []
+#! 
+#! Where:
+#! - CODE_COMMITMENT is the commitment of the foreign account's code.
+#! - num_procs is the number of foreign account's procedures.
+#! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as 
+#!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+#!
+#! Panics if:
+#! - the number of account procedures exceeded the maximum limit of 256
+#! - the computed account code commitment does not match the provided account code commitment
+export.save_account_procedure_data
+    # move procedure data from the advice map to the advice stack
+    adv.push_mapval push.15161 drop               # TODO: remove line, see miden-vm/#1122
+    # OS => [CODE_COMMITMENT]
+    # AS => [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+
+    # push the number of procedures onto the operand stack before storing it in memory
+    adv_push.1
+    # OS => [num_procs, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # assert that account does not exceed allowed maximum number of procedures
+    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+    # OS => [num_procs, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # store number of procedures in memory
+    dup exec.set_num_account_procedures
+    # OS => [num_procs, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # setup acct_proc_offset and end_ptr for reading from advice stack
+    mul.2 exec.get_acct_procedures_section_ptr dup movdn.2 add swap
+    # OS => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # pad stack before reading from advice stack
+    padw padw padw
+    # OS => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # OS => [PERM, PERM, PERM, end_ptr', CODE_COMMITMENT]
+    # AS => []
+
+    # extract the digest
+    exec.native::state_to_digest
+    # OS => [DIGEST, end_ptr', CODE_COMMITMENT]
+
+    # drop end_ptr
+    movup.4 drop
+    # OS => [DIGEST, CODE_COMMITMENT]
+
+    # verify hashed account procedures match account code commitment
+    assert_eqw.err=ERR_ACCT_CODE_COMMITMENT_MISMATCH
+    # OS => []
 end

@@ -892,7 +892,7 @@ end
 #!
 #! Panics if:
 #! - the current context is not a native context.
-export.start_foreign_context.1
+export.start_foreign_context
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
     # OS => [KERNEL_PROCEDURE_HASH, foreign_account_id]
@@ -931,85 +931,28 @@ export.start_foreign_context.1
         # OS => []
         # AS => [STORAGE_ROOT, CODE_ROOT]
 
-        ####
-        # This two chunks of code bellow are essentially doing the same thing, the problem why I 
-        # can't create a dedicated procedure for them is that they're using different memory 
-        # procedures. I can create two new procedures in memory and move the corresponding code 
-        # there, although I'm not sure which approach will be better.
-        ####
+        # move the storage root and the code root to the operand stack 
+        adv_loadw adv_loadw
+        # OS => [CODE_ROOT, STORAGE_ROOT]
+        # AS => []
 
-        ### PROCEDURE DATA
-
-        # store the storage root to the local memory to use it later
-        adv_loadw loc_storew.0
-        # OS => []
-        # AS => [CODE_ROOT]
-
-        # move the code root to the operand stack and load the account procedure data to the advice 
-        # stack
-        adv_loadw adv.push_mapvaln
-        # OS => [CODE_ROOT]
-        # AS => [account_procedure_data_len, [ACCOUNT_PROCEDURE_DATA]]
-
-        # store the code root to the memory
+        # store the code root into the memory
         exec.memory::set_acct_code_commitment
-        # OS => [CODE_ROOT]
-        # AS => [account_procedure_data_len, [ACCOUNT_PROCEDURE_DATA]]
-
-        # set the number of account procedures
-        adv_push.1 div.8 dup exec.memory::set_num_account_procedures mul.2
-        # OS => [proc_data_num_words, CODE_ROOT]
-        # AS => [[ACCOUNT_PROCEDURE_DATA]]
-
-        # get the memory pointer to the account procedures section
-        exec.memory::get_acct_procedures_section_ptr swap
-        # OS => [proc_data_num_words, proc_section_ptr, CODE_ROOT]
-        # AS => [[ACCOUNT_PROCEDURE_DATA]]
-
-        # store the account procedure data to the memory
-        exec.mem::pipe_words_to_memory
-        # OS => [ACCUMULATIVE_HASH, proc_section_ptr', CODE_ROOT]
+        # OS => [CODE_ROOT, STORAGE_ROOT]
         # AS => []
 
-        # assert that accumulative hash matches the code root
-        movup.4 drop assert_eqw
-        # OS => []
-        # AS => []
-
-        ### STORAGE DATA
-
-        # load the storage root from the local memory
-        loc_loadw.0
+        # save the account procedure data into the memory
+        exec.memory::save_account_procedure_data
         # OS => [STORAGE_ROOT]
         # AS => []
-
-        # load the storage slot data to the advice stack
-        adv_loadw adv.push_mapvaln
-        # OS => [STORAGE_ROOT]
-        # AS => [storage_slot_data_len, [STORAGE_SLOT_DATA]]
 
         # store the storage root to the memory
         exec.memory::set_acct_storage_commitment
         # OS => [STORAGE_ROOT]
-        # AS => [storage_slot_data_len, [STORAGE_SLOT_DATA]]
-
-        # set the number of storage slots
-        adv_push.1 div.8 dup exec.memory::set_num_storage_slots mul.2
-        # OS => [storage_slots_data_num_words, STORAGE_ROOT]
-        # AS => [[STORAGE_SLOT_DATA]]
-
-        # get the memory pointer to the storage slots section
-        exec.memory::get_acct_storage_slots_section_ptr swap
-        # OS => [storage_slots_data_num_words, slots_section_ptr, STORAGE_ROOT]
-        # AS => [[STORAGE_SLOT_DATA]]
-
-        # store the storage slot data to the memory
-        exec.mem::pipe_words_to_memory
-        # OS => [ACCUMULATIVE_HASH, slots_section_ptr', STORAGE_ROOT]
         # AS => []
 
-        # assert that accumulative hash matches the storage root
-        movup.4 drop assert_eqw
+        # save the storage slots data into the memory
+        exec.memory::save_account_storage_data
         # OS => []
         # AS => []
     end

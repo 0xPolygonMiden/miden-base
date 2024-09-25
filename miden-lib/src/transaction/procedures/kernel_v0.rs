@@ -64,7 +64,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     // get_block_number
     digest!(0xd483c8edceb956d, 0xf9f8d62043fcf072, 0xb917fc68b6e01ad1, 0x3ef8d736e7331692),
     // start_foreign_context
-    digest!(0x27bd00a38154a5de, 0xdf93751c69821cac, 0x89ef01e80f83cd6a, 0x51135261eba7317d),
+    digest!(0xfe0f7fed0cba2c4d, 0x4b95c1474dccf6f6, 0xb9c6cebe52048acf, 0x233b123a8c4446ce),
     // end_foreign_context
     digest!(0x3770db711ce9aaf1, 0xb6f3c929151a5d52, 0x3ed145ec5dbee85f, 0xf979d975d7951bf6),
 ];
