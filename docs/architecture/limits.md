@@ -21,9 +21,6 @@ The following are the current limits enforced in the `miden-base` and `miden-nod
 - Max input notes per transaction: **1024**.
 - Max output notes per transaction: **1024**.
 - Max code size of tx script: **no limit** (but we plan to enforce code size limit in the future).
-
-## VM Cycles
-- Min number of VM cycles: **$2^{10}$**.
 - Max number of VM cycles: **$2^{30}$**.
 
 ## Batches
