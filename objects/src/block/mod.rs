@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 
 use super::{
-    Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
+    Digest, Felt, Hasher, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK, ZERO,
 };
 
@@ -152,6 +152,11 @@ impl Block {
     // --------------------------------------------------------------------------------------------
 
     fn validate(&self) -> Result<(), BlockError> {
+        let account_count = self.updated_accounts.len();
+        if account_count > MAX_ACCOUNTS_PER_BLOCK {
+            return Err(BlockError::TooManyAccountsUpdated(account_count));
+        }
+
         let batch_count = self.output_note_batches.len();
         if batch_count > MAX_BATCHES_PER_BLOCK {
             return Err(BlockError::TooManyTransactionBatches(batch_count));
