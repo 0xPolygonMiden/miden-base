@@ -3,10 +3,7 @@ use std::{env, fs, path::PathBuf};
 use miette::IntoDiagnostic;
 use protox::prost::Message;
 
-/// Generates Rust protobuf bindings from .proto files in the root directory.
-///
-/// This is done only if BUILD_PROTO environment variable is set to `1` to avoid running the script
-/// on crates.io where repo-level .proto files are not available.
+/// Generates Rust protobuf bindings from .proto files.
 fn main() -> miette::Result<()> {
     compile_tonic_server_proto()?;
 
