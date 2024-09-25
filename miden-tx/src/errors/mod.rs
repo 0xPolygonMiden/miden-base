@@ -48,7 +48,6 @@ pub enum TransactionProverError {
     InvalidTransactionOutput(TransactionOutputError),
     ProvenTransactionError(ProvenTransactionError),
     TransactionHostCreationFailed(TransactionHostError),
-    DeserializationError(String),
 }
 
 impl Display for TransactionProverError {
@@ -68,9 +67,6 @@ impl Display for TransactionProverError {
             },
             TransactionProverError::TransactionHostCreationFailed(inner) => {
                 write!(f, "Failed to create the transaction host: {}", inner)
-            },
-            TransactionProverError::DeserializationError(inner) => {
-                write!(f, "Deserialization error: {}", inner)
             },
         }
     }

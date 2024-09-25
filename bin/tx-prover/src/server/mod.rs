@@ -1,8 +1,9 @@
 use generated::api::{api_server, ProveTransactionRequest, ProveTransactionResponse};
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
+use miden_prover::DeserializationError;
 use miden_tx::{
     utils::{Deserializable, Serializable},
-    LocalTransactionProver, TransactionProver, TransactionProverError,
+    LocalTransactionProver, TransactionProver,
 };
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
@@ -66,11 +67,10 @@ impl From<ProvenTransaction> for ProveTransactionResponse {
 }
 
 impl TryFrom<ProveTransactionResponse> for ProvenTransaction {
-    type Error = TransactionProverError;
+    type Error = DeserializationError;
 
     fn try_from(response: ProveTransactionResponse) -> Result<Self, Self::Error> {
         ProvenTransaction::read_from_bytes(&response.proven_transaction)
-            .map_err(|err| TransactionProverError::DeserializationError(err.to_string()))
     }
 }
 
