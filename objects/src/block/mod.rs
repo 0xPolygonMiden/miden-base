@@ -1,8 +1,8 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 
 use super::{
-    Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK, MAX_NOTES_PER_BATCH,
-    MAX_NOTES_PER_BLOCK, ZERO,
+    Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
+    MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK, ZERO,
 };
 
 mod header;
@@ -167,7 +167,7 @@ impl Block {
         let mut output_notes = BTreeSet::new();
         let mut output_note_count = 0;
         for batch in self.output_note_batches.iter() {
-            if batch.len() > MAX_NOTES_PER_BATCH {
+            if batch.len() > MAX_OUTPUT_NOTES_PER_BATCH {
                 return Err(BlockError::TooManyNotesInBatch(batch.len()));
             }
             output_note_count += batch.len();
@@ -178,7 +178,7 @@ impl Block {
             }
         }
 
-        if output_note_count > MAX_NOTES_PER_BLOCK {
+        if output_note_count > MAX_OUTPUT_NOTES_PER_BLOCK {
             return Err(BlockError::TooManyNotesInBlock(output_note_count));
         }
 

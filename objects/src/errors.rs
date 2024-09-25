@@ -8,8 +8,8 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK, MAX_NOTES_PER_BATCH,
-    MAX_NOTES_PER_BLOCK,
+    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
@@ -151,7 +151,6 @@ pub enum NoteError {
     InvalidStubDataLen(usize),
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
-    NoAssets,
     NoteDeserializationError(DeserializationError),
     NoteScriptAssemblyError(String), // TODO: use Report
     NoteScriptDeserializationError(DeserializationError),
@@ -366,10 +365,10 @@ impl fmt::Display for BlockError {
                 write!(f, "Duplicate note {id} found in the block")
             },
             BlockError::TooManyNotesInBatch(actual) => {
-                write!(f, "Too many notes in a batch. Max: {MAX_NOTES_PER_BATCH}, actual: {actual}")
+                write!(f, "Too many notes in a batch. Max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {actual}")
             },
             BlockError::TooManyNotesInBlock(actual) => {
-                write!(f, "Too many notes in a block. Max: {MAX_NOTES_PER_BLOCK}, actual: {actual}")
+                write!(f, "Too many notes in a block. Max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {actual}")
             },
             BlockError::TooManyNullifiersInBlock(actual) => {
                 write!(

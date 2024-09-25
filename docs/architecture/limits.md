@@ -10,7 +10,7 @@ The following are the current limits enforced in the `miden-base` and `miden-nod
   at least for public accounts).
 
 ## Notes
-- Min assets per note: **1**.
+- Min assets per note: **0**.
 - Max assets per note: **256**.
 - Max inputs per note: **128**. The value can be represented using as a single byte while being 
   evenly divisible by 8.
@@ -20,23 +20,21 @@ The following are the current limits enforced in the `miden-base` and `miden-nod
 ## Transactions
 - Max input notes per transaction: **1024**.
 - Max output notes per transaction: **1024**.
-- Max code size of tx script: **no limit** (but we plan to enforce code size limit in the future,
-  at least for public notes).
+- Max code size of tx script: **no limit** (but we plan to enforce code size limit in the future).
 
 ## VM Cycles
-- Max number of VM cycles: technically **no limit**, but practically a single transaction cannot take 
-  more than $2^{29}$ cycles. Even more practically, anything above $2^{20}$ cycles will require 10GB+ 
-  of RAM (e.g., $2^{24}$ cycles will require ~256GB of RAM, though, with optimizations, we can bring 
-  it down to ~128GB).
+- Min number of VM cycles: **$2^{10}$**.
+- Max number of VM cycles: **$2^{30}$**.
 
 ## Batches
 - Max number of input notes: **1024**.
 - Max number of output notes: **1024**.
-- Max number of transactions: **1024**.
+- Max number of accounts: **1024**.
+- Max number of VM cycles: **no limit**.
 
 ## Blocks
 - Max batches per block: **64**.
-- Max number of transactions: **65536** (*max transactions per batch × max number of batches*).
+- Max number of accounts: **65536** (*max accounts per batch × max number of batches*).
 - Max number of input notes: **65536** (*max notes per batch × max number of batches*).
 - Max number of output notes: **65536** (*max notes per batch × max number of batches*).
-
+- Max public data size (for both notes and accounts): **no limit**.

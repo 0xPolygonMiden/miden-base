@@ -36,13 +36,9 @@ impl NoteAssets {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The asset list is empty.
     /// - The list contains more than 256 assets.
     /// - There are duplicate assets in the list.
     pub fn new(assets: Vec<Asset>) -> Result<Self, NoteError> {
-        if assets.is_empty() {
-            return Err(NoteError::NoAssets);
-        }
         if assets.len() > Self::MAX_NUM_ASSETS {
             return Err(NoteError::too_many_assets(assets.len()));
         }
@@ -59,19 +55,8 @@ impl NoteAssets {
             }
         }
 
-        Ok(unsafe { Self::new_unchecked(assets) })
-    }
-
-    /// Returns new [NoteAssets] constructed from the provided list of assets without checking.
-    /// This might be useful for tests.
-    ///
-    /// # Safety
-    /// This function requires all assets to be unique and number of assets must be in a range from
-    /// 1 to 256 (both ends included).
-    pub unsafe fn new_unchecked(assets: Vec<Asset>) -> Self {
         let hash = compute_asset_commitment(&assets);
-
-        Self { assets, hash }
+        Ok(Self { assets, hash })
     }
 
     // PUBLIC ACCESSORS
