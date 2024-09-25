@@ -75,7 +75,8 @@ impl TransactionContextBuilder {
             TransactionKernel::testing_assembler(),
         );
 
-        let assembler = TransactionKernel::testing_assembler_with_mock_account();
+        let assembler =
+            TransactionKernel::testing_assembler_with_mock_account().with_debug_mode(true);
 
         Self {
             assembler: assembler.clone(),

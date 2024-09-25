@@ -164,14 +164,14 @@ pub const KERNEL_PROCEDURES_PTR: MemoryAddress = 401;
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 
-/// Maximum number of the foreign accounts that can be loaded.
-pub const MAX_NUM_FOREIGN_ACCOUNTS: u8 = 64;
-
 /// The size of the memory segment allocated to core account data (excluding new code commitment)
 pub const ACCT_DATA_MEM_SIZE: MemSize = 4;
 
 /// The memory address at which the native account is stored.
 pub const NATIVE_ACCOUNT_DATA_PTR: MemoryAddress = 2048;
+
+/// The length of the memory interval that the account data occupies.
+pub const ACCOUNT_DATA_LENGTH: MemSize = 2048;
 
 /// The offset at which the account id and nonce are stored relative to the start of
 /// the account data segment.

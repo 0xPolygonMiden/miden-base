@@ -913,16 +913,17 @@ export.start_foreign_context
         # OS => [foreign_account_id]
 
         # construct the word with account ID to load the core account data from the advice map
-        push.0.0.0 movup.3
-        # OS => [foreign_account_id, 0, 0, 0]
+        push.0.0.0
+        # OS => [0, 0, 0, foreign_account_id]
 
         # move the core account data to the advice stack
         adv.push_mapval
-        # OS => [foreign_account_id, 0, 0, 0]
+        # OS => [0, 0, 0, foreign_account_id]
         # AS => [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the id and nonce of the foreign account to the memory
-        dropw adv_loadw exec.memory::set_acct_id_and_nonce dropw
+        dropw adv_loadw 
+        exec.memory::set_acct_id_and_nonce dropw
         # OS => []
         # AS => [VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
@@ -932,7 +933,7 @@ export.start_foreign_context
         # AS => [STORAGE_ROOT, CODE_ROOT]
 
         # move the storage root and the code root to the operand stack 
-        adv_loadw adv_loadw
+        adv_loadw padw adv_loadw
         # OS => [CODE_ROOT, STORAGE_ROOT]
         # AS => []
 

@@ -673,7 +673,7 @@ export.get_foreign_account_ptr
         # => [curr_account_ptr', foreign_account_id]
 
         # load the first data word at the current account pointer
-        dup mem_loadw
+        padw dup.4 mem_loadw
         # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id]
 
         # check whether the first data words is an empty word, preserve the first value in this word
@@ -778,7 +778,7 @@ end
 
 #! Sets the account id and nonce.
 #!
-#! Stack: [account_id, 0, 0, account_nonce]
+#! Stack: [account_nonce, 0, 0, account_id]
 #! Output: []
 #!
 #! Where:
