@@ -3,6 +3,7 @@ use.kernel::constants
 # ERRORS
 # =================================================================================================
 const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
+const.ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE=0x00020054
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
@@ -609,10 +610,7 @@ end
 #! Sets the memory pointer of the current account data to the native account (2048).
 #!
 #! Stack: []
-#! Output: [native_account_data_ptr]
-#!
-#! Where:
-#! - native_account_data_ptr is the memory address at which the native account data is stored.
+#! Output: []
 export.set_current_account_data_ptr_to_native_account
     push.NATIVE_ACCOUNT_DATA_PTR
     push.CURRENT_ACCOUNT_DATA_PTR mem_store
@@ -638,6 +636,21 @@ end
 #! - curr_account_data_ptr is the memory pointer to the currently accessing account data.
 export.set_current_account_data_ptr
     push.CURRENT_ACCOUNT_DATA_PTR mem_store
+end
+
+#! Asserts that current account data pointer matches the data pointer of the native account (2048).
+#! It is used to prevent usage of the account procedures which can mutate the account state with the
+#! foreign accounts.
+#!
+#! Stack: []
+#! Output: []
+#!
+#! Panics:
+#!   - if the current account data pointer is not equal to native account data pointer (2048).
+export.assert_native_account
+    push.CURRENT_ACCOUNT_DATA_PTR mem_load
+    push.NATIVE_ACCOUNT_DATA_PTR
+    assert_eq.err=ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE
 end
 
 #! Returns a pointer to the end of the core account data section.

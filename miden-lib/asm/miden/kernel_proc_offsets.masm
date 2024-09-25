@@ -36,6 +36,8 @@ const.GET_OUTPUT_NOTES_HASH_OFFSET=25
 # Transaction
 const.GET_BLOCK_HASH_OFFSET=26
 const.GET_BLOCK_NUMBER_OFFSET=27
+const.START_FOREIGN_CONTEXT_OFFSET=28
+const.END_FOREIGN_CONTEXT_OFFSET=29
 
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
@@ -374,4 +376,28 @@ end
 #! address where this procedure is stored.
 export.get_note_serial_number_offset
     push.GET_NOTE_SERIAL_NUMBER_OFFSET
+end
+
+#! Returns an offset of the `start_foreign_context` kernel procedure.
+#!
+#! Stack:  []
+#! Output: [proc_offset]
+#!
+#! Where:
+#! - proc_offset is the offset of the `start_foreign_context` kernel procedure required to get the 
+#! address where this procedure is stored.
+export.start_foreign_context_offset
+    push.START_FOREIGN_CONTEXT_OFFSET
+end
+
+#! Returns an offset of the `end_foreign_context` kernel procedure.
+#!
+#! Stack:  []
+#! Output: [proc_offset]
+#!
+#! Where:
+#! - proc_offset is the offset of the `end_foreign_context` kernel procedure required to get the 
+#! address where this procedure is stored.
+export.end_foreign_context_offset
+    push.END_FOREIGN_CONTEXT_OFFSET
 end
