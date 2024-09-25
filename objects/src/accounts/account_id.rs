@@ -421,6 +421,10 @@ impl Serializable for AccountId {
     fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
         self.0.write_into(target);
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.0.get_size_hint()
+    }
 }
 
 impl Deserializable for AccountId {

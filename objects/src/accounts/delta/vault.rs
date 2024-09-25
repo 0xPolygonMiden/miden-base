@@ -8,12 +8,7 @@ use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
 use crate::{
-    accounts::{
-        delta::{
-            usize_encoded_len, FELT_SERIALIZED_SIZE, U64_SERIALIZED_SIZE, WORD_SERIALIZED_SIZE,
-        },
-        AccountId, AccountType,
-    },
+    accounts::{AccountId, AccountType},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
 };
 
@@ -291,24 +286,23 @@ impl FungibleAssetDelta {
 impl Serializable for FungibleAssetDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_usize(self.0.len());
-        // TODO: We save `i64` as `u64` since winter utils only support unsigned integers for now.
-        //   We should update this code (and deserialization as well) once it support signed
+        // TODO: We save `i64` as `u64` since winter utils only supports unsigned integers for now.
+        //   We should update this code (and deserialization as well) once it supports signed
         //   integers.
         target.write_many(self.0.iter().map(|(&faucet_id, &delta)| (faucet_id, delta as u64)));
     }
 
     fn get_size_hint(&self) -> usize {
-        usize_encoded_len(self.0.len()) +
-        // An AccountId is a Felt.
-        self.0.len() * (FELT_SERIALIZED_SIZE + U64_SERIALIZED_SIZE)
+        self.0.len().get_size_hint() + self.0.len() * FungibleAsset::SERIALIZED_SIZE
     }
 }
 
 impl Deserializable for FungibleAssetDelta {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_fungible_assets = source.read_usize()?;
-        // TODO: We save `i64` as `u64` since winter utils only support unsigned integers for now.
-        //   We should update this code (and serialization as well) once it support signed integers.
+        // TODO: We save `i64` as `u64` since winter utils only supports unsigned integers for now.
+        //   We should update this code (and serialization as well) once it support signeds
+        // integers.
         let map = source
             .read_many::<(AccountId, u64)>(num_fungible_assets)?
             .into_iter()
@@ -432,10 +426,10 @@ impl Serializable for NonFungibleAssetDelta {
         let added = self.filter_by_action(NonFungibleDeltaAction::Add).count();
         let removed = self.filter_by_action(NonFungibleDeltaAction::Remove).count();
 
-        usize_encoded_len(added) + usize_encoded_len(removed) +
-        // NonFungibleAsset is serialized as a word.
-        added * WORD_SERIALIZED_SIZE +
-        removed * WORD_SERIALIZED_SIZE
+        added.get_size_hint()
+            + removed.get_size_hint()
+            + added * NonFungibleAsset::SERIALIZED_SIZE
+            + removed * NonFungibleAsset::SERIALIZED_SIZE
     }
 }
 

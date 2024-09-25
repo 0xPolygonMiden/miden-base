@@ -1,7 +1,5 @@
 use alloc::string::ToString;
 
-use vm_core::WORD_SIZE;
-
 use super::{
     Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
     Word, ZERO,
@@ -15,18 +13,6 @@ mod vault;
 pub use vault::{
     AccountVaultDelta, FungibleAssetDelta, NonFungibleAssetDelta, NonFungibleDeltaAction,
 };
-
-/// The serialized size of a [`Felt`] which is serialized as a [`u64`].
-const FELT_SERIALIZED_SIZE: usize = core::mem::size_of::<u64>();
-/// The serialized size of a [`Word`].
-const WORD_SERIALIZED_SIZE: usize = FELT_SERIALIZED_SIZE * WORD_SIZE;
-/// The serialized size of a [`u8`].
-const U8_SERIALIZED_SIZE: usize = core::mem::size_of::<u8>();
-/// The serialized size of a [`u64`].
-const U64_SERIALIZED_SIZE: usize = core::mem::size_of::<u64>();
-/// The serialized size of a [`Digest`].
-/// This is a copy of `miden_crypto::hash::rescue::DIGEST_BYTES`.
-const DIGEST_SERIALIZED_SIZE: usize = 32;
 
 // ACCOUNT DELTA
 // ================================================================================================
@@ -187,11 +173,12 @@ impl Serializable for AccountDelta {
     }
 
     fn get_size_hint(&self) -> usize {
-        self.storage.get_size_hint()
-            + self.vault.get_size_hint()
-            // An option's tag is serialized as a bool which is always 1 byte.
-            + 1
-            + self.nonce.map(|_nonce| FELT_SERIALIZED_SIZE).unwrap_or(0)
+        self.storage.get_size_hint() + self.vault.get_size_hint() +
+        // Uncomment once winter-math has been updated so that the felt size does not return 0.
+        // self.nonce.get_size_hint()
+        // An option's tag is serialized as a bool which is always 1 byte.
+        1
+        + self.nonce.map(|_nonce| 8).unwrap_or(0)
     }
 }
 
@@ -272,16 +259,6 @@ fn validate_nonce(
     Ok(())
 }
 
-/// Returns the length of `value` in vint64 encoding.
-/// Copy from winter-utils.
-pub(super) fn usize_encoded_len(value: usize) -> usize {
-    // winter-utils casts the usize to a u64 during encoding.
-    let value = value as u64;
-    let zeros = value.leading_zeros() as usize;
-    let len = zeros.saturating_sub(1) / 7;
-    9 - core::cmp::min(len, 8)
-}
-
 // TESTS
 // ================================================================================================
 
@@ -294,7 +271,7 @@ mod tests {
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
-        accounts::{delta::WORD_SERIALIZED_SIZE, AccountId, AccountType, StorageMapDelta},
+        accounts::{AccountId, AccountType, StorageMapDelta},
         assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
         AccountDeltaError, ACCOUNT_DELTA_MAX_SIZE, ONE, ZERO,
     };
@@ -372,7 +349,8 @@ mod tests {
 
         let mut map = BTreeMap::new();
         // The number of entries in the map required to exceed the limit.
-        let required_entries = ACCOUNT_DELTA_MAX_SIZE / (2 * WORD_SERIALIZED_SIZE as u16);
+        let required_entries =
+            ACCOUNT_DELTA_MAX_SIZE / (2 * NonFungibleAsset::SERIALIZED_SIZE as u16);
         for _ in 0..required_entries {
             map.insert(
                 Digest::new([

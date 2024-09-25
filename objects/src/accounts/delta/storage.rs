@@ -10,12 +10,7 @@ use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
     Word,
 };
-use crate::{
-    accounts::delta::{
-        usize_encoded_len, DIGEST_SERIALIZED_SIZE, U8_SERIALIZED_SIZE, WORD_SERIALIZED_SIZE,
-    },
-    Digest,
-};
+use crate::Digest;
 
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
@@ -148,19 +143,24 @@ impl Serializable for AccountStorageDelta {
     }
 
     fn get_size_hint(&self) -> usize {
+        let u8_size = 0u8.get_size_hint();
+        // Uncomment once winter-math has been updated so that this does not return 0.
+        // let word_size = [ZERO; WORD_SIZE].get_size_hint();
+        let word_size = 32;
+
         let mut storage_map_delta_size = 0;
         for (_slot, storage_map_delta) in self.maps.iter() {
             // The serialized size of each entry is the combination of slot (key) and the delta
             // (value).
-            storage_map_delta_size += U8_SERIALIZED_SIZE + storage_map_delta.get_size_hint();
+            storage_map_delta_size += u8_size + storage_map_delta.get_size_hint();
         }
 
         // Length Prefixes
-        U8_SERIALIZED_SIZE * 3 +
+        u8_size * 3 +
         // Cleared Slots
-        self.cleared_slots().count() * U8_SERIALIZED_SIZE +
+        self.cleared_slots().count() * u8_size +
         // Updated Slots
-        self.updated_slots().count() * (U8_SERIALIZED_SIZE + WORD_SERIALIZED_SIZE) +
+        self.updated_slots().count() * (u8_size + word_size) +
         // Storage Map Delta
         storage_map_delta_size
     }
@@ -266,16 +266,20 @@ impl Serializable for StorageMapDelta {
     }
 
     fn get_size_hint(&self) -> usize {
+        // Uncomment once winter-math has been updated so that this does not return 0.
+        // let word_size = [ZERO; WORD_SIZE].get_size_hint();
+        let word_size = 32;
+
         let cleared_keys_count = self.cleared_keys().count();
         let updated_entries_count = self.updated_entries().count();
 
         // Cleared Keys
-        usize_encoded_len(cleared_keys_count) +
-        cleared_keys_count * DIGEST_SERIALIZED_SIZE +
+        cleared_keys_count.get_size_hint() +
+        cleared_keys_count * Digest::SERIALIZED_SIZE +
 
         // Updated Entries
-        usize_encoded_len(updated_entries_count) +
-        updated_entries_count * (DIGEST_SERIALIZED_SIZE + WORD_SERIALIZED_SIZE)
+        updated_entries_count.get_size_hint() +
+        updated_entries_count * (Digest::SERIALIZED_SIZE + word_size)
     }
 }
 
