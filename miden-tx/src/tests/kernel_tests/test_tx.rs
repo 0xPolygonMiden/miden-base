@@ -600,8 +600,7 @@ fn test_load_foreign_account() {
         TransactionKernel::testing_assembler(),
     );
     let foreign_id_root = Digest::from([foreign_account.id().into(), ZERO, ZERO, ZERO]);
-    let foreign_id_and_nonce =
-        [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce().into()];
+    let foreign_id_and_nonce = [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()];
     let foreign_vault_root = foreign_account.vault().commitment();
     let foreign_storage_root = foreign_account.storage().commitment();
     let foreign_code_root = foreign_account.code().commitment();
@@ -610,7 +609,7 @@ fn test_load_foreign_account() {
         // ACCOUNT_ID |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
         (
             foreign_id_root,
-            vec![
+            [
                 &foreign_id_and_nonce,
                 foreign_vault_root.as_elements(),
                 foreign_storage_root.as_elements(),
@@ -621,7 +620,7 @@ fn test_load_foreign_account() {
         // STORAGE_ROOT |-> [num_storage_slots, [STORAGE_SLOT_DATA]]
         (
             foreign_storage_root,
-            vec![
+            [
                 vec![Felt::try_from(foreign_account.storage().slots().len()).unwrap()],
                 foreign_account.storage().as_elements(),
             ]
@@ -630,7 +629,7 @@ fn test_load_foreign_account() {
         // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
         (
             foreign_code_root,
-            vec![
+            [
                 vec![Felt::try_from(foreign_account.code().procedures().len()).unwrap()],
                 foreign_account.code().as_elements(),
             ]
@@ -678,7 +677,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
 
     assert_eq!(
         read_root_mem_value(process, foreign_account_data_ptr + ACCT_ID_AND_NONCE_OFFSET),
-        [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce().into()],
+        [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()],
     );
 
     assert_eq!(
