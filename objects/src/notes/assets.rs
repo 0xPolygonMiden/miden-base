@@ -199,15 +199,16 @@ fn compute_asset_commitment(assets: &[Asset]) -> Digest {
 
 impl Serializable for NoteAssets {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        const _: () = assert!(NoteAssets::MAX_NUM_ASSETS <= u8::MAX as usize);
         debug_assert!(self.assets.len() <= NoteAssets::MAX_NUM_ASSETS);
-        target.write_u8((self.assets.len() - 1) as u8);
+        target.write_u8(self.assets.len().try_into().expect("Asset number must fit into `u8`"));
         target.write_many(&self.assets);
     }
 }
 
 impl Deserializable for NoteAssets {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let count = source.read_u8()? + 1;
+        let count = source.read_u8()?;
         let assets = source.read_many::<Asset>(count.into())?;
         Self::new(assets).map_err(|e| DeserializationError::InvalidValue(format!("{e:?}")))
     }

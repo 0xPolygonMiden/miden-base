@@ -154,7 +154,7 @@ impl Block {
     fn validate(&self) -> Result<(), BlockError> {
         let account_count = self.updated_accounts.len();
         if account_count > MAX_ACCOUNTS_PER_BLOCK {
-            return Err(BlockError::TooManyAccountsUpdated(account_count));
+            return Err(BlockError::TooManyAccountsUpdates(account_count));
         }
 
         let batch_count = self.output_note_batches.len();
@@ -172,6 +172,9 @@ impl Block {
         let mut output_notes = BTreeSet::new();
         let mut output_note_count = 0;
         for batch in self.output_note_batches.iter() {
+            // TODO: We should construct blocks from something like `TransactionBatch` structs.
+            //       Then, we'll check that transaction batches have the right number of
+            //       nullifiers/output notes and we won't need to do such checks here.
             if batch.len() > MAX_OUTPUT_NOTES_PER_BATCH {
                 return Err(BlockError::TooManyNotesInBatch(batch.len()));
             }

@@ -2,7 +2,7 @@
 pub const ACCOUNT_TREE_DEPTH: u8 = 64;
 
 /// The maximum number of assets that can be stored in a single note.
-pub const MAX_ASSETS_PER_NOTE: usize = 256;
+pub const MAX_ASSETS_PER_NOTE: usize = 255;
 
 /// The maximum number of inputs that can accompany a single note.
 ///
@@ -40,7 +40,7 @@ pub const MAX_INPUT_NOTES_PER_BATCH: usize = MAX_OUTPUT_NOTES_PER_BATCH;
 const _: () = assert!(MAX_INPUT_NOTES_PER_BATCH >= MAX_INPUT_NOTES_PER_TX);
 
 /// The maximum number of accounts that can be updated in a single batch.
-pub const MAX_ACCOUNTS_PER_BATCH: usize = MAX_OUTPUT_NOTES_PER_BATCH;
+pub const MAX_ACCOUNTS_PER_BATCH: usize = 1024;
 
 // BLOCK
 // ================================================================================================
@@ -55,6 +55,7 @@ pub const MAX_BATCHES_PER_BLOCK: usize = 1 << (BLOCK_NOTE_TREE_DEPTH - BATCH_NOT
 pub const MAX_OUTPUT_NOTES_PER_BLOCK: usize = MAX_OUTPUT_NOTES_PER_BATCH * MAX_BATCHES_PER_BLOCK;
 const _: () = assert!(MAX_OUTPUT_NOTES_PER_BLOCK >= MAX_OUTPUT_NOTES_PER_BATCH);
 
+/// Maximum number of input notes that can be consumed in a single block.
 pub const MAX_INPUT_NOTES_PER_BLOCK: usize = MAX_OUTPUT_NOTES_PER_BLOCK;
 
 /// The maximum number of accounts that can be updated in a single block.
