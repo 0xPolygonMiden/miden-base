@@ -52,6 +52,11 @@ impl Serializable for StorageSlotType {
             Self::Map => target.write_u8(1),
         }
     }
+
+    fn get_size_hint(&self) -> usize {
+        // The serialized size of a slot type.
+        0u8.get_size_hint()
+    }
 }
 
 impl Deserializable for StorageSlotType {

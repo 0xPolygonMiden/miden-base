@@ -14,6 +14,7 @@ use super::{
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
     notes::NoteType,
+    ACCOUNT_UPDATE_MAX_SIZE,
 };
 
 // ACCOUNT ERROR
@@ -304,6 +305,7 @@ pub enum ProvenTransactionError {
     NewOnChainAccountRequiresFullDetails(AccountId),
     ExistingOnChainAccountRequiresDeltaDetails(AccountId),
     OutputNotesError(TransactionOutputError),
+    AccountUpdateSizeLimitExceeded(AccountId, usize),
 }
 
 impl fmt::Display for ProvenTransactionError {
@@ -338,6 +340,9 @@ impl fmt::Display for ProvenTransactionError {
             },
             ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
                 write!(f, "Existing on-chain account {account_id} should only provide deltas")
+            },
+            ProvenTransactionError::AccountUpdateSizeLimitExceeded(account_id, size) => {
+                write!(f, "Update on account {account_id} of size {size} exceeds the allowed limit of {ACCOUNT_UPDATE_MAX_SIZE}")
             },
         }
     }
