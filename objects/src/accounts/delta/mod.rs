@@ -173,12 +173,7 @@ impl Serializable for AccountDelta {
     }
 
     fn get_size_hint(&self) -> usize {
-        self.storage.get_size_hint() + self.vault.get_size_hint() +
-        // Uncomment once winter-math has been updated so that the felt size does not return 0.
-        // self.nonce.get_size_hint()
-        // An option's tag is serialized as a bool which is always 1 byte.
-        1
-        + self.nonce.map(|_nonce| 8).unwrap_or(0)
+        self.storage.get_size_hint() + self.vault.get_size_hint() + self.nonce.get_size_hint()
     }
 }
 

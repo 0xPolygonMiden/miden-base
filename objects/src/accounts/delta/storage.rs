@@ -5,6 +5,7 @@ use alloc::{
 };
 
 use miden_crypto::EMPTY_WORD;
+use vm_core::{WORD_SIZE, ZERO};
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
@@ -144,9 +145,7 @@ impl Serializable for AccountStorageDelta {
 
     fn get_size_hint(&self) -> usize {
         let u8_size = 0u8.get_size_hint();
-        // Uncomment once winter-math has been updated so that this does not return 0.
-        // let word_size = [ZERO; WORD_SIZE].get_size_hint();
-        let word_size = 32;
+        let word_size = [ZERO; WORD_SIZE].get_size_hint();
 
         let mut storage_map_delta_size = 0;
         for (_slot, storage_map_delta) in self.maps.iter() {
@@ -266,9 +265,7 @@ impl Serializable for StorageMapDelta {
     }
 
     fn get_size_hint(&self) -> usize {
-        // Uncomment once winter-math has been updated so that this does not return 0.
-        // let word_size = [ZERO; WORD_SIZE].get_size_hint();
-        let word_size = 32;
+        let word_size = [ZERO; WORD_SIZE].get_size_hint();
 
         let cleared_keys_count = self.cleared_keys().count();
         let updated_entries_count = self.updated_entries().count();
