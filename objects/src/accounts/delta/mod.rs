@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn account_delta_size_hint() {
+    fn account_update_details_size_hint() {
         // AccountDelta
 
         let storage_delta = AccountStorageDelta::default();

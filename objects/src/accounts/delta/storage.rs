@@ -145,13 +145,13 @@ impl Serializable for AccountStorageDelta {
 
     fn get_size_hint(&self) -> usize {
         let u8_size = 0u8.get_size_hint();
-        let word_size = [ZERO; WORD_SIZE].get_size_hint();
+        let word_size = EMPTY_WORD.get_size_hint();
 
         let mut storage_map_delta_size = 0;
-        for (_slot, storage_map_delta) in self.maps.iter() {
+        for (slot, storage_map_delta) in self.maps.iter() {
             // The serialized size of each entry is the combination of slot (key) and the delta
             // (value).
-            storage_map_delta_size += u8_size + storage_map_delta.get_size_hint();
+            storage_map_delta_size += slot.get_size_hint() + storage_map_delta.get_size_hint();
         }
 
         // Length Prefixes
@@ -265,7 +265,7 @@ impl Serializable for StorageMapDelta {
     }
 
     fn get_size_hint(&self) -> usize {
-        let word_size = [ZERO; WORD_SIZE].get_size_hint();
+        let word_size = EMPTY_WORD.get_size_hint();
 
         let cleared_keys_count = self.cleared_keys().count();
         let updated_entries_count = self.updated_entries().count();
