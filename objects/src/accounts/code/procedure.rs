@@ -82,6 +82,10 @@ impl Serializable for AccountProcedureInfo {
         target.write(self.mast_root());
         target.write_u16(self.storage_offset());
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.mast_root.get_size_hint() + self.storage_offset.get_size_hint()
+    }
 }
 
 impl Deserializable for AccountProcedureInfo {

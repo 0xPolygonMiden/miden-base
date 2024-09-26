@@ -1,6 +1,8 @@
 use alloc::{string::ToString, vec::Vec};
 use core::fmt;
 
+use vm_core::{FieldElement, WORD_SIZE};
+
 use super::{
     parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
     ACCOUNT_ISFAUCET_MASK,
@@ -41,6 +43,14 @@ impl Ord for NonFungibleAsset {
 }
 
 impl NonFungibleAsset {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// The serialized size of a [`NonFungibleAsset`] in bytes.
+    ///
+    /// Currently represented as a word.
+    pub const SERIALIZED_SIZE: usize = Felt::ELEMENT_BYTES * WORD_SIZE;
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -184,6 +194,10 @@ impl fmt::Display for NonFungibleAsset {
 impl Serializable for NonFungibleAsset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(self.0)
+    }
+
+    fn get_size_hint(&self) -> usize {
+        Self::SERIALIZED_SIZE
     }
 }
 
