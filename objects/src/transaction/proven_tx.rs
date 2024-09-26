@@ -503,10 +503,9 @@ impl Deserializable for InputNoteCommitment {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use alloc::collections::BTreeMap;
 
-    use vm_core::{utils::Serializable, Felt, EMPTY_WORD, ONE, ZERO};
-    use vm_processor::Digest;
+    use winter_rand_utils::rand_array;
 
     use super::ProvenTransaction;
     use crate::{
@@ -516,7 +515,8 @@ mod tests {
             AccountVaultDelta, StorageMapDelta,
         },
         transaction::TxAccountUpdate,
-        ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE,
+        utils::Serializable,
+        Digest, Felt, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
     };
 
     fn check_if_sync<T: Sync>() {}
@@ -565,20 +565,7 @@ mod tests {
         // 32 bytes in size.
         let required_entries = ACCOUNT_UPDATE_MAX_SIZE / (2 * 32);
         for _ in 0..required_entries {
-            map.insert(
-                Digest::new([
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                ]),
-                [
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                ],
-            );
+            map.insert(Digest::new(rand_array()), rand_array());
         }
         let storage_delta = StorageMapDelta::new(map);
 
