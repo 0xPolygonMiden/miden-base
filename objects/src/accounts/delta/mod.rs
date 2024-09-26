@@ -4,7 +4,7 @@ use super::{
     Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
     Word, ZERO,
 };
-use crate::{AccountDeltaError, ACCOUNT_DELTA_MAX_SIZE};
+use crate::AccountDeltaError;
 
 mod storage;
 pub use storage::{AccountStorageDelta, StorageMapDelta};
@@ -41,7 +41,6 @@ impl AccountDelta {
     ///
     /// - Returns an error if storage or vault were updated, but the nonce was either not updated or
     ///   set to 0.
-    /// - Returns an error if the serialized size of the delta exceeds the maximum allowed size.
     pub fn new(
         storage: AccountStorageDelta,
         vault: AccountVaultDelta,
@@ -50,11 +49,7 @@ impl AccountDelta {
         // nonce must be updated if either account storage or vault were updated
         validate_nonce(nonce, &storage, &vault)?;
 
-        let account_delta = Self { storage, vault, nonce };
-
-        account_delta.validate_max_size()?;
-
-        Ok(account_delta)
+        Ok(Self { storage, vault, nonce })
     }
 
     /// Merge another [AccountDelta] into this one.
@@ -98,18 +93,6 @@ impl AccountDelta {
     /// Converts this storage delta into individual delta components.
     pub fn into_parts(self) -> (AccountStorageDelta, AccountVaultDelta, Option<Felt>) {
         (self.storage, self.vault, self.nonce)
-    }
-
-    // VALIDATION
-    // --------------------------------------------------------------------------------------------
-
-    /// Validates that the delta's size does not exceed the maximum allowed size.
-    fn validate_max_size(&self) -> Result<(), AccountDeltaError> {
-        if self.get_size_hint() > ACCOUNT_DELTA_MAX_SIZE as usize {
-            Err(AccountDeltaError::SizeLimitExceeded)
-        } else {
-            Ok(())
-        }
     }
 }
 
@@ -270,10 +253,8 @@ fn validate_nonce(
 
 #[cfg(test)]
 mod tests {
-    use alloc::collections::BTreeMap;
 
     use vm_core::{utils::Serializable, Felt, FieldElement};
-    use vm_processor::Digest;
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
@@ -283,7 +264,7 @@ mod tests {
             AccountType, StorageMapDelta,
         },
         assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-        AccountDeltaError, ACCOUNT_DELTA_MAX_SIZE, ONE, ZERO,
+        ONE, ZERO,
     };
 
     #[test]
@@ -376,44 +357,5 @@ mod tests {
 
         let update_details_new = AccountUpdateDetails::New(account);
         assert_eq!(update_details_new.to_bytes().len(), update_details_new.get_size_hint());
-    }
-
-    #[test]
-    fn account_delta_size_limit() {
-        // A small delta does not exceed the limit.
-        let storage_delta = AccountStorageDelta::from_iters(
-            [1, 2, 3, 4],
-            [(2, [ONE, ONE, ONE, ONE]), (3, [ONE, ONE, ZERO, ONE])],
-            [],
-        );
-        AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
-
-        let mut map = BTreeMap::new();
-        // The number of entries in the map required to exceed the limit.
-        let required_entries =
-            ACCOUNT_DELTA_MAX_SIZE / (2 * NonFungibleAsset::SERIALIZED_SIZE as u16);
-        for _ in 0..required_entries {
-            map.insert(
-                Digest::new([
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                ]),
-                [
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                    Felt::new(rand::random()),
-                ],
-            );
-        }
-        let storage_delta = StorageMapDelta::new(map);
-
-        // A delta that exceeds the limit returns an error.
-        let storage_delta = AccountStorageDelta::from_iters([], [], [(4, storage_delta)]);
-        let err =
-            AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap_err();
-        assert!(matches!(err, AccountDeltaError::SizeLimitExceeded));
     }
 }
