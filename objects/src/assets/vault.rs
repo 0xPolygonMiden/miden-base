@@ -260,10 +260,7 @@ impl Serializable for AssetVault {
         // TODO: determine total number of assets in the vault without allocating the vector
         let assets = self.assets().collect::<Vec<_>>();
 
-        // TODO: either enforce that number of assets in the vault is never greater than
-        // u32::MAX or use variable-length encoding for the number of assets
-        assert!(assets.len() <= u32::MAX as usize, "too many assets in the vault");
-        target.write_u32(assets.len() as u32);
+        target.write_usize(assets.len());
         target.write_many(&assets);
     }
 
@@ -276,9 +273,7 @@ impl Serializable for AssetVault {
             count += 1;
         }
 
-        // TODO: See TODO above.
-        assert!(count <= u32::MAX as usize, "too many assets in the vault");
-        size += (count as u32).get_size_hint();
+        size += count.get_size_hint();
 
         size
     }
@@ -286,7 +281,7 @@ impl Serializable for AssetVault {
 
 impl Deserializable for AssetVault {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num_assets = source.read_u32()? as usize;
+        let num_assets = source.read_usize()?;
         let assets = source.read_many::<Asset>(num_assets)?;
         Self::new(&assets).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
