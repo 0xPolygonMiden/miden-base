@@ -6,7 +6,7 @@ use miden_objects::{
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
-    EXPECTED_VM_EXECUTION_CYCLES, MAX_VM_EXECUTION_CYCLES, ZERO,
+    MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
 use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -50,15 +50,15 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and
     /// [TransactionAuthenticator].
     pub fn new(data_store: D, authenticator: Option<Rc<A>>) -> Self {
-        const _: () = assert!(EXPECTED_VM_EXECUTION_CYCLES <= MAX_VM_EXECUTION_CYCLES);
+        const _: () = assert!(MIN_TX_EXECUTION_CYCLES <= MAX_TX_EXECUTION_CYCLES);
 
         Self {
             data_store,
             mast_store: Rc::new(TransactionMastStore::new()),
             authenticator,
             exec_options: ExecutionOptions::new(
-                Some(MAX_VM_EXECUTION_CYCLES),
-                EXPECTED_VM_EXECUTION_CYCLES,
+                Some(MAX_TX_EXECUTION_CYCLES),
+                MIN_TX_EXECUTION_CYCLES,
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),

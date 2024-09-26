@@ -19,11 +19,11 @@ pub const MAX_OUTPUT_NOTES_PER_TX: usize = MAX_INPUT_NOTES_PER_TX;
 /// The minimum proof security level used by the Miden prover & verifier.
 pub const MIN_PROOF_SECURITY_LEVEL: u32 = 96;
 
-/// The maximum number of VM execution cycles allowed.
-pub const MAX_VM_EXECUTION_CYCLES: u32 = 1 << 30;
+/// The maximum number of VM cycles a transaction is allowed to take.
+pub const MAX_TX_EXECUTION_CYCLES: u32 = 1 << 30;
 
-/// The expected VM execution cycles number for each transaction execution.
-pub const EXPECTED_VM_EXECUTION_CYCLES: u32 = 1 << 12;
+/// The minimum number of VM cycles a transaction needs to execute.
+pub const MIN_TX_EXECUTION_CYCLES: u32 = 1 << 12;
 
 // TRANSACTION BATCH
 // ================================================================================================

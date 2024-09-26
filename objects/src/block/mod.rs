@@ -154,7 +154,7 @@ impl Block {
     fn validate(&self) -> Result<(), BlockError> {
         let account_count = self.updated_accounts.len();
         if account_count > MAX_ACCOUNTS_PER_BLOCK {
-            return Err(BlockError::TooManyAccountsUpdates(account_count));
+            return Err(BlockError::TooManyAccountUpdates(account_count));
         }
 
         let batch_count = self.output_note_batches.len();

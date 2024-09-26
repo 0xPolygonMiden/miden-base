@@ -352,7 +352,7 @@ impl std::error::Error for ProvenTransactionError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlockError {
     DuplicateNoteFound(NoteId),
-    TooManyAccountsUpdates(usize),
+    TooManyAccountUpdates(usize),
     TooManyNotesInBatch(usize),
     TooManyNotesInBlock(usize),
     TooManyNullifiersInBlock(usize),
@@ -365,7 +365,7 @@ impl fmt::Display for BlockError {
             BlockError::DuplicateNoteFound(id) => {
                 write!(f, "Duplicate note {id} found in the block")
             },
-            BlockError::TooManyAccountsUpdates(actual) => {
+            BlockError::TooManyAccountUpdates(actual) => {
                 write!(f, "Too many accounts updated in a block. Max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {actual}")
             },
             BlockError::TooManyNotesInBatch(actual) => {
