@@ -2,6 +2,7 @@
 
 ## 0.6.0 (TBD)
 
+- Created a proving service that receives `TransactionWitness` and returns the proof using gRPC (#881).
 - Made note scripts public (#880).
 - Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
 - [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).

@@ -81,12 +81,12 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
 
 
 .PHONY: build-async
@@ -99,3 +99,10 @@ build-async: ## Build with the `async` feature enabled (only libraries)
 .PHONY: bench-tx
 bench-tx: ## Run transaction benchmarks
 	cargo run --bin bench-tx
+
+
+# --- installing ----------------------------------------------------------------------------------
+
+.PHONY: install-prover
+install-prover: ## Installs prover
+	cargo install --path bin/tx-prover --locked
