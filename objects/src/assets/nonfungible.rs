@@ -195,6 +195,10 @@ impl Serializable for NonFungibleAsset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(self.0)
     }
+
+    fn get_size_hint(&self) -> usize {
+        Self::SERIALIZED_SIZE
+    }
 }
 
 impl Deserializable for NonFungibleAsset {

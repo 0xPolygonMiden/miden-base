@@ -266,6 +266,22 @@ impl Serializable for AssetVault {
         target.write_u32(assets.len() as u32);
         target.write_many(&assets);
     }
+
+    fn get_size_hint(&self) -> usize {
+        let mut size = 0;
+        let mut count: usize = 0;
+
+        for asset in self.assets() {
+            size += asset.get_size_hint();
+            count += 1;
+        }
+
+        // TODO: See TODO above.
+        assert!(count <= u32::MAX as usize, "too many assets in the vault");
+        size += (count as u32).get_size_hint();
+
+        size
+    }
 }
 
 impl Deserializable for AssetVault {
