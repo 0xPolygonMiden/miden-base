@@ -5,7 +5,6 @@ use alloc::{
 };
 
 use miden_crypto::EMPTY_WORD;
-use vm_core::{WORD_SIZE, ZERO};
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
