@@ -36,14 +36,14 @@ pub use mast_store::TransactionMastStore;
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
 /// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
 /// can then be used to by the prover to generate a proof transaction execution.
-pub struct TransactionExecutor<D, A> {
-    data_store: D,
-    mast_store: Rc<TransactionMastStore>,
-    authenticator: Option<Rc<A>>,
+pub struct TransactionExecutor {
+    data_store: Arc<dyn DataStore>,
+    mast_store: Arc<TransactionMastStore>,
+    authenticator: Option<Box<Rc<dyn TransactionAuthenticator>>>,
     exec_options: ExecutionOptions,
 }
 
-impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
+impl TransactionExecutor {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
