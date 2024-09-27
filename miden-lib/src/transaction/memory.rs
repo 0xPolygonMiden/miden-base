@@ -315,7 +315,7 @@ pub const INPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 // ├─────────┼──────────┼───────────┼─────────────┼────────────┼─────────┼─────┼─────────┼─────────┤
 //      0          1          2            3            4           5             5 + n
 //
-// Even though NUM_ASSETS takes up a while word, the actual value of this variable is stored in the
+// Even though NUM_ASSETS takes up a whole word, the actual value of this variable is stored in the
 // first element of the word.
 
 /// The memory address at which the output notes section begins.

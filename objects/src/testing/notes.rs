@@ -106,6 +106,7 @@ impl NoteBuilder {
         )?;
         let inputs = NoteInputs::new(self.inputs)?;
         let recipient = NoteRecipient::new(self.serial_num, note_script, inputs);
+
         Ok(Note::new(vault, metadata, recipient))
     }
 }

@@ -17,6 +17,7 @@
 - Added `AccountStorageHeader` (#876).
 - Implemented generation of transaction kernel procedure hashes in build.rs (#887).
 - [BREAKING] `send_asset` procedure was removed from the basic wallet (#829).
+- [BREAKING] Updated limits, introduced additional limits (#889).
 - Introduced `AccountDelta` maximum size limit of 32 KiB (#889).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only

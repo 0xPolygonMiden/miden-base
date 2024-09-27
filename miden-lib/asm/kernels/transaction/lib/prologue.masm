@@ -63,7 +63,7 @@ const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
 # Provided info about assets of an input do not match its commitment
 const.ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH=0x0002001D
 
-# Number of input notes exceeded the kernel's maximum limit of 1023
+# Number of input notes exceeded the kernel's maximum limit of 1024
 const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
 # Cannot compute matching nullifier commitment using the provided input note data

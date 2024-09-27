@@ -46,7 +46,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     // add_asset_to_note
     digest!(0xc016f1979f92c6a6, 0xd8b9abc6a769eca3, 0x766663e785a06a85, 0x7c7c16433193e65d),
     // create_note
-    digest!(0x1a6ad19d597d6c57, 0x37177d49505b7da0, 0xa933c37ee40f4501, 0xd165814717b3f9b7),
+    digest!(0xfe30556c1b5cacc0, 0x625572ae47e0ed1c, 0x16fa16a25e468940, 0x4497a71681f81937),
     // get_input_notes_commitment
     digest!(0x1c078486abf976f5, 0xfce31a9f4b9687cd, 0xb1edb2edc115a619, 0xf1bb8c1bd9c7148b),
     // get_note_assets_info

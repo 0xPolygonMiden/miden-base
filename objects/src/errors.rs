@@ -8,7 +8,8 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    Digest, Word, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
+    MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
@@ -278,7 +279,7 @@ pub enum TransactionOutputError {
     OutputNoteDataInvalid(NoteError),
     OutputNotesCommitmentInconsistent(Digest, Digest),
     OutputStackInvalid(String),
-    TooManyOutputNotes { max: usize, actual: usize },
+    TooManyOutputNotes(usize),
 }
 
 impl fmt::Display for TransactionOutputError {
@@ -356,7 +357,10 @@ impl std::error::Error for ProvenTransactionError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlockError {
     DuplicateNoteFound(NoteId),
+    TooManyAccountUpdates(usize),
     TooManyNotesInBatch(usize),
+    TooManyNotesInBlock(usize),
+    TooManyNullifiersInBlock(usize),
     TooManyTransactionBatches(usize),
 }
 
@@ -366,8 +370,20 @@ impl fmt::Display for BlockError {
             BlockError::DuplicateNoteFound(id) => {
                 write!(f, "Duplicate note {id} found in the block")
             },
+            BlockError::TooManyAccountUpdates(actual) => {
+                write!(f, "Too many accounts updated in a block. Max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {actual}")
+            },
             BlockError::TooManyNotesInBatch(actual) => {
-                write!(f, "Too many notes in a batch. Max: {MAX_NOTES_PER_BATCH}, actual: {actual}")
+                write!(f, "Too many notes in a batch. Max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {actual}")
+            },
+            BlockError::TooManyNotesInBlock(actual) => {
+                write!(f, "Too many notes in a block. Max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {actual}")
+            },
+            BlockError::TooManyNullifiersInBlock(actual) => {
+                write!(
+                    f,
+                    "Too many nullifiers in a block. Max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {actual}"
+                )
             },
             BlockError::TooManyTransactionBatches(actual) => {
                 write!(
