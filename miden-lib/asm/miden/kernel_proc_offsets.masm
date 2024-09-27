@@ -38,7 +38,8 @@ const.GET_BLOCK_HASH_OFFSET=26
 const.GET_BLOCK_NUMBER_OFFSET=27
 const.START_FOREIGN_CONTEXT_OFFSET=28
 const.END_FOREIGN_CONTEXT_OFFSET=29
-const.SET_TX_EXPIRATION_DELTA_OFFSET=30
+const.UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=30
+const.GET_EXPIRATION_DELTA_OFFSET=31
 
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
@@ -259,7 +260,7 @@ export.get_block_number_offset
     push.GET_BLOCK_NUMBER_OFFSET
 end
 
-#! Returns an offset of the `set_tx_expiration_delta` kernel procedure.
+#! Returns an offset of the `update_expiration_block_num` kernel procedure.
 #!
 #! Stack: []
 #! Output: [proc_offset]
@@ -267,8 +268,20 @@ end
 #! Where:
 #! - proc_offset is the offset of the `set_tx_expiration_delta` kernel procedure required to get the 
 #! address where this procedure is stored.
-export.set_tx_expiration_delta
-    push.SET_TX_EXPIRATION_DELTA_OFFSET
+export.update_expiration_block_num_offset
+    push.UPDATE_EXPIRATION_BLOCK_NUM_OFFSET
+end
+
+#! Returns an offset of the `get_expiration_delta` kernel procedure.
+#!
+#! Stack: []
+#! Output: [proc_offset]
+#!
+#! Where:
+#! - proc_offset is the offset of the `set_tx_expiration_delta` kernel procedure required to get the 
+#! address where this procedure is stored.
+export.get_expiration_block_delta_offset
+    push.GET_EXPIRATION_DELTA_OFFSET
 end
 
 #! Returns an offset of the `get_block_hash` kernel procedure.

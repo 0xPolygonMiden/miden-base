@@ -208,9 +208,12 @@ fn test_block_expiration_height_monotonically_decreases() {
         begin
             exec.prologue::prepare_transaction
             push.{value_1}
-            exec.tx::set_expiration_block_num
+            exec.tx::update_expiration_block_num
             push.{value_2}
-            exec.tx::set_expiration_block_num
+            exec.tx::update_expiration_block_num
+
+            push.{min_value} exec.tx::get_expiration_delta assert_eq
+
             exec.epilogue::finalize_transaction
         end
         ";
@@ -218,7 +221,8 @@ fn test_block_expiration_height_monotonically_decreases() {
     for (v1, v2) in test_pairs {
         let code = &code_template
             .replace("{value_1}", &v1.to_string())
-            .replace("{value_2}", &v2.to_string());
+            .replace("{value_2}", &v2.to_string())
+            .replace("{min_value}", &v2.min(v1).to_string());
 
         let process = tx_context.execute_code(code).unwrap();
 
@@ -239,7 +243,7 @@ fn test_invalid_expiration_deltas() {
 
         begin
             push.{value_1}
-            exec.tx::set_expiration_block_num
+            exec.tx::update_expiration_block_num
         end
         ";
 

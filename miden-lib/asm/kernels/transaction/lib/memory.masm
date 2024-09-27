@@ -848,7 +848,6 @@ export.get_expiration_block_num
     push.TX_EXPIRATION_BLOCK_NUM_PTR mem_load
 end
 
-
 #! Returns the number of procedures contained in the account code.
 #!
 #! Stack: []
