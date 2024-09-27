@@ -7,12 +7,6 @@ use.kernel::tx
 
 use.std::crypto::hashes::native
 
-# CONSTS
-# =================================================================================================
-
-# Max U32 value. This is the default value for transaction expiration delta
-const.U32_MAX=0xFFFFFFFF
-
 # ERRORS
 # =================================================================================================
 
