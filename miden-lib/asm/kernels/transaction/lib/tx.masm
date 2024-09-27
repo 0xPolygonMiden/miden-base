@@ -197,7 +197,7 @@ end
 #! - block_height_delta is the desired expiration time delta (1 to 256).
 #! - tx_block_height_delta is the updated (or unchanged) transaction expiration time delta.
 export.set_expiration_block_num
-    # Ensure block_height_delta is between 1 and 255 (inclusive)
+    # Ensure block_height_delta is between 1 and 0xFFFF (inclusive)
     dup neq.0 assert.err=ERR_INVALID_TX_EXPIRATION_DELTA
     dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_INVALID_TX_EXPIRATION_DELTA
     # => [block_height_delta]
