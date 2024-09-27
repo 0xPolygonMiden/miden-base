@@ -32,6 +32,9 @@ const.CURRENT_ACCOUNT_DATA_PTR=5
 # The memory address at which the native account's new code commitment is stored.
 const.NEW_CODE_ROOT_PTR=6
 
+# The memory address at which the absolute expiration block number is stored.
+const.TX_EXPIRATION_BLOCK_NUM_PTR=7
+
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
@@ -828,6 +831,23 @@ export.set_new_acct_code_commitment
     push.NEW_CODE_ROOT_PTR
     mem_storew
 end
+
+#! Sets the transaction expiration block number.
+#!
+#! Inputs: [tx_expiration_block_num, ...]
+#! Output: [...]
+export.set_expiration_block_num
+    push.TX_EXPIRATION_BLOCK_NUM_PTR mem_store
+end
+
+#! Gets the transaction expiration block number.
+#!
+#! Inputs: []
+#! Output: [tx_expiration_block_num]
+export.get_expiration_block_num
+    push.TX_EXPIRATION_BLOCK_NUM_PTR mem_load
+end
+
 
 #! Returns the number of procedures contained in the account code.
 #!

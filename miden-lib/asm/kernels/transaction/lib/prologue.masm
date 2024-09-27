@@ -9,6 +9,12 @@ use.kernel::constants
 use.kernel::memory
 use.kernel::utils
 
+# CONSTS
+# =================================================================================================
+
+# Max U32 value, used for initializing the expiration block delta
+const.U32_MAX=0xFFFFFFFF
+
 # ERRORS
 # =================================================================================================
 
@@ -1233,4 +1239,6 @@ export.prepare_transaction
     exec.process_input_notes_data
     exec.process_tx_script_root
     # => []
+
+    push.U32_MAX exec.memory::set_expiration_block_num
 end

@@ -36,6 +36,9 @@ pub struct ProvenTransaction {
     /// The block hash of the last known block at the time the transaction was executed.
     block_ref: Digest,
 
+    /// The block number by which the transaction will expire, as defined by the executed scripts.
+    expiration_block_num: u32,
+
     /// A STARK proof that attests to the correct execution of the transaction.
     proof: ExecutionProof,
 }
@@ -145,6 +148,7 @@ impl Serializable for ProvenTransaction {
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
         self.block_ref.write_into(target);
+        self.expiration_block_num.write_into(target);
         self.proof.write_into(target);
     }
 }
@@ -157,6 +161,7 @@ impl Deserializable for ProvenTransaction {
         let output_notes = OutputNotes::read_from(source)?;
 
         let block_ref = Digest::read_from(source)?;
+        let expiration_block_num = u32::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
@@ -172,6 +177,7 @@ impl Deserializable for ProvenTransaction {
             input_notes,
             output_notes,
             block_ref,
+            expiration_block_num,
             proof,
         };
 
@@ -208,6 +214,9 @@ pub struct ProvenTransactionBuilder {
     /// Block [Digest] of the transaction's reference block.
     block_ref: Digest,
 
+    /// The block number by which the transaction will expire, as defined by the executed scripts.
+    expiration_block_num: u32,
+
     /// A STARK proof that attests to the correct execution of the transaction.
     proof: ExecutionProof,
 }
@@ -222,6 +231,7 @@ impl ProvenTransactionBuilder {
         initial_account_hash: Digest,
         final_account_hash: Digest,
         block_ref: Digest,
+        expiration_block_num: u32,
         proof: ExecutionProof,
     ) -> Self {
         Self {
@@ -232,6 +242,7 @@ impl ProvenTransactionBuilder {
             input_notes: Vec::new(),
             output_notes: Vec::new(),
             block_ref,
+            expiration_block_num,
             proof,
         }
     }
@@ -294,6 +305,7 @@ impl ProvenTransactionBuilder {
             input_notes,
             output_notes,
             block_ref: self.block_ref,
+            expiration_block_num: self.expiration_block_num,
             proof: self.proof,
         };
 

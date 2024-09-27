@@ -2,6 +2,7 @@
 
 ## 0.6.0 (TBD)
 
+- Implemented kernel procedure to set transaction expiration block delta (#897).
 - Created a proving service that receives `TransactionWitness` and returns the proof using gRPC (#881).
 - Made note scripts public (#880).
 - Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
