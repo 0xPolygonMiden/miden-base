@@ -903,7 +903,7 @@ end
 #! Output: [tx_block_height_delta, ...]
 #!
 #! Where:
-#! - block_height_delta is the desired expiration time delta (1 to 256).
+#! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
 #! - tx_block_height_delta is the updated (or unchanged) transaction expiration time delta.
 export.set_tx_expiration_delta
     exec.tx::set_expiration_block_num

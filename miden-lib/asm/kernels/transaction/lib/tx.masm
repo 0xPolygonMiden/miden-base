@@ -194,7 +194,7 @@ end
 #! Output: [...]
 #!
 #! Where:
-#! - block_height_delta is the desired expiration time delta (1 to 256).
+#! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
 #! - tx_block_height_delta is the updated (or unchanged) transaction expiration time delta.
 export.set_expiration_block_num
     # Ensure block_height_delta is between 1 and 0xFFFF (inclusive)
