@@ -302,6 +302,10 @@ export.finalize_transaction
     exec.copy_output_notes_to_advice_map
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
+    # truncate stack
+    swapdw dropw dropw
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+
     # assert no net creation or destruction of assets over the transaction
     exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_EPILOGUE_ASSETS_DONT_ADD_UP
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]

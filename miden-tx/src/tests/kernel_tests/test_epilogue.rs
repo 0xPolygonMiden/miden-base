@@ -8,7 +8,7 @@ use miden_objects::{
     accounts::Account,
     transaction::{OutputNote, OutputNotes},
 };
-use vm_processor::{ProcessState, ONE};
+use vm_processor::{Felt, ProcessState, ONE};
 
 use super::{output_notes_data_procedure, ZERO};
 use crate::{
@@ -72,7 +72,8 @@ fn test_epilogue() {
     let mut expected_stack = Vec::with_capacity(16);
     expected_stack.extend(output_notes.commitment().as_elements().iter().rev());
     expected_stack.extend(final_account.hash().as_elements().iter().rev());
-    expected_stack.extend((8..16).map(|_| ZERO));
+    expected_stack.push(Felt::from(u32::MAX)); // Value for tx expiration block number
+    expected_stack.extend((9..16).map(|_| ZERO));
 
     assert_eq!(
         process.stack.build_stack_outputs().stack(),
