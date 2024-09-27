@@ -64,7 +64,7 @@ const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020051
 # Note idx must be within [0, num_of_notes]
 const.ERR_INVALID_NOTE_IDX=0x00020052
 
-# Input transaction expiration block delta is not within 1 and 255.
+# Input transaction expiration block delta is not within 0x1 and 0xFFFF.
 const.ERR_INVALID_TX_EXPIRATION_DELTA=0x00020055
 
 # EVENTS
