@@ -161,8 +161,13 @@ impl TransactionKernel {
             .expect("Invalid stack input")
     }
 
-    pub fn build_output_stack(final_acct_hash: Digest, output_notes_hash: Digest) -> StackOutputs {
+    pub fn build_output_stack(
+        final_acct_hash: Digest,
+        output_notes_hash: Digest,
+        expiration_block_num: u32,
+    ) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
+        outputs.push(Felt::new(expiration_block_num as u64));
         outputs.extend(final_acct_hash);
         outputs.extend(output_notes_hash);
         outputs.reverse();

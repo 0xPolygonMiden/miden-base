@@ -201,25 +201,20 @@ export.update_expiration_block_num
     dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_INVALID_TX_EXPIRATION_DELTA
     # => [block_height_delta]
 
-    exec.get_block_number u32overflowing_add
-    # => [is_higher_than_u32max, absolute_expiration_num]
+    exec.get_block_number add
+    # => [absolute_expiration_num]
 
-    if.false 
-        # Load the current stored delta from memory
-        dup exec.memory::get_expiration_block_num  
-        # => [stored_expiration_block_num, absolute_expiration_num, absolute_expiration_num]
+    # Load the current stored delta from memory
+    dup exec.memory::get_expiration_block_num  
+    # => [stored_expiration_block_num, absolute_expiration_num, absolute_expiration_num]
 
-        # Check if block_height_delta is greater
-        u32lt
-        if.true
-            # Set new expiration delta
-            exec.memory::set_expiration_block_num 
-        else
-            drop                           
-        end
+    # Check if block_height_delta is greater
+    u32lt
+    if.true
+        # Set new expiration delta
+        exec.memory::set_expiration_block_num 
     else
-        # If the addition is higher than the highest block number, no need to compare 
-        drop
+        drop                           
     end
 end
 

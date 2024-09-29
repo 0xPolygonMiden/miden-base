@@ -84,6 +84,11 @@ impl ProvenTransaction {
         self.input_notes.iter().filter_map(|note| note.header())
     }
 
+    /// Returns the block number at which the transaction will expire.
+    pub fn expiration_block_num(&self) -> u32 {
+        self.expiration_block_num
+    }
+
     /// Returns an iterator over the nullifiers of all input notes in this transaction.
     ///
     /// This includes both authenticated and unauthenticated notes.
