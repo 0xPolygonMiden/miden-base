@@ -1239,6 +1239,6 @@ export.prepare_transaction
     exec.process_input_notes_data
     exec.process_tx_script_root
     # => []
-
+    
     push.MAX_BLOCK_NUM exec.memory::set_expiration_block_num
 end

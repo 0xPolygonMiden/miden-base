@@ -908,7 +908,7 @@ export.update_expiration_block_num
     exec.tx::update_expiration_block_num
 end
 
-#! Gets the transaction expiration block number.
+#! Gets the transaction expiration delta.
 #!
 #! Inputs: [...]
 #! Output: [block_height_delta, ...]
