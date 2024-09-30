@@ -161,13 +161,28 @@ impl TransactionKernel {
             .expect("Invalid stack input")
     }
 
+    /// Builds the stack for expected transaction execution outputs.
+    /// The transaction kernel's output stack is formed like so:
+    ///
+    /// ```text
+    /// [
+    ///     expiration_block_num,
+    ///     OUTPUT_NOTES_COMMITMENT,
+    ///     FINAL_ACCOUNT_HASH,
+    /// ]
+    /// ```
+    ///
+    /// Where:
+    /// - OUTPUT_NOTES_COMMITMENT is a commitment to the output notes.
+    /// - FINAL_ACCOUNT_HASH is a hash of the account's final state.
+    /// - expiration_block_num is the block number at which the transaction will expire.
     pub fn build_output_stack(
         final_acct_hash: Digest,
         output_notes_hash: Digest,
         expiration_block_num: u32,
     ) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
-        outputs.push(Felt::new(expiration_block_num as u64));
+        outputs.push(Felt::from(expiration_block_num));
         outputs.extend(final_acct_hash);
         outputs.extend(output_notes_hash);
         outputs.reverse();
@@ -213,7 +228,7 @@ impl TransactionKernel {
 
         let expiration_block_num = u32::try_from(expiration_block_num.as_int()).map_err(|_| {
             TransactionOutputError::OutputStackInvalid(
-                "Expiration block number should be lower than u32::MAX".into(),
+                "Expiration block number should be smaller than u32::MAX".into(),
             )
         })?;
 

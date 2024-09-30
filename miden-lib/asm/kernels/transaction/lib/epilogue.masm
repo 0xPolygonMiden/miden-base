@@ -313,4 +313,5 @@ export.finalize_transaction
     swapdw
     exec.memory::get_expiration_block_num
     swap drop swapdw
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 end
