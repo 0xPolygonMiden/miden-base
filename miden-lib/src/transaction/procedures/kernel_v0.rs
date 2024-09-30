@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest, Felt};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 30] = [
+pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     // account_vault_add_asset
     digest!(0xb8815bfacbdcb4c2, 0x6c7e694cf4f6a517, 0xf6233da2865ca264, 0xe51463cd0df6e896),
     // account_vault_get_balance
@@ -67,4 +67,8 @@ pub const KERNEL0_PROCEDURES: [Digest; 30] = [
     digest!(0x9d231f21bd27ff27, 0x5cc4476fad12b66d, 0x82f40fd18e7abb0a, 0xc09c240f2a1d82af),
     // end_foreign_context
     digest!(0x3770db711ce9aaf1, 0xb6f3c929151a5d52, 0x3ed145ec5dbee85f, 0xf979d975d7951bf6),
+    // update_expiration_block_num
+    digest!(0xb5b796c8143e57de, 0x43d6914fb889f3ba, 0xf65308f85c7c73b7, 0xe86bfcaccebe6b49),
+    // get_expiration_delta
+    digest!(0x2d93af519fa32359, 0x14275beadcb2ab9c, 0x68f9336f45c32c86, 0x75ee8ba0f3c11c83),
 ];

@@ -15,8 +15,12 @@ use crate::{
 /// Describes the result of executing a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionOutputs {
+    /// Information related to the account's final state.
     pub account: AccountHeader,
+    /// Set of output notes created by the transaction.
     pub output_notes: OutputNotes,
+    /// Defines up to which block the transaction is considered valid.
+    pub expiration_block_num: u32,
 }
 
 // OUTPUT NOTES

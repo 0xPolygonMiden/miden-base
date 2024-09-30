@@ -108,6 +108,7 @@ impl TransactionProver for LocalTransactionProver {
             account.init_hash(),
             tx_outputs.account.hash(),
             block_hash,
+            tx_outputs.expiration_block_num,
             proof,
         )
         .add_input_notes(input_notes)

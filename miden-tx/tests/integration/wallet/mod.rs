@@ -152,7 +152,7 @@ fn prove_send_note_without_asset_via_wallet() {
         .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    prove_and_verify_transaction(executed_transaction.clone()).unwrap();
 
     // clones account info
     let sender_account_storage = AccountStorage::new(vec![
