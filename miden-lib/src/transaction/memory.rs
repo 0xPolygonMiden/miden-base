@@ -14,7 +14,7 @@ pub type StorageSlot = u8;
 //
 // | Section           | Start address |  End address |
 // | -------------     | :------------:| :-----------:|
-// | Bookkeeping       | 0             | 6            |
+// | Bookkeeping       | 0             | 7            |
 // | Global inputs     | 100           | 105          |
 // | Block header      | 200           | 208          |
 // | Chain MMR         | 300           | 332?         |
@@ -72,6 +72,9 @@ pub const CURRENT_ACCOUNT_DATA_PTR: MemoryAddress = 5;
 
 /// The memory address at which the native account's new code commitment is stored.
 pub const NEW_CODE_ROOT_PTR: MemoryAddress = 6;
+
+/// The memory address at which the transaction expiration block number is stored.
+pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 7;
 
 // GLOBAL INPUTS
 // ------------------------------------------------------------------------------------------------
@@ -315,7 +318,7 @@ pub const INPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 // ├─────────┼──────────┼───────────┼─────────────┼────────────┼─────────┼─────┼─────────┼─────────┤
 //      0          1          2            3            4           5             5 + n
 //
-// Even though NUM_ASSETS takes up a while word, the actual value of this variable is stored in the
+// Even though NUM_ASSETS takes up a whole word, the actual value of this variable is stored in the
 // first element of the word.
 
 /// The memory address at which the output notes section begins.

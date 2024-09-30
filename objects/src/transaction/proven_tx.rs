@@ -10,7 +10,7 @@ use crate::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    ProvenTransactionError,
+    ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE,
 };
 
 // PROVEN TRANSACTION
@@ -35,6 +35,9 @@ pub struct ProvenTransaction {
 
     /// The block hash of the last known block at the time the transaction was executed.
     block_ref: Digest,
+
+    /// The block number by which the transaction will expire, as defined by the executed scripts.
+    expiration_block_num: u32,
 
     /// A STARK proof that attests to the correct execution of the transaction.
     proof: ExecutionProof,
@@ -81,6 +84,11 @@ impl ProvenTransaction {
         self.input_notes.iter().filter_map(|note| note.header())
     }
 
+    /// Returns the block number at which the transaction will expire.
+    pub fn expiration_block_num(&self) -> u32 {
+        self.expiration_block_num
+    }
+
     /// Returns an iterator over the nullifiers of all input notes in this transaction.
     ///
     /// This includes both authenticated and unauthenticated notes.
@@ -93,6 +101,8 @@ impl ProvenTransaction {
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
         if self.account_id().is_public() {
+            self.account_update.validate()?;
+
             let is_new_account = self.account_update.init_state_hash() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
@@ -143,6 +153,7 @@ impl Serializable for ProvenTransaction {
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
         self.block_ref.write_into(target);
+        self.expiration_block_num.write_into(target);
         self.proof.write_into(target);
     }
 }
@@ -155,6 +166,7 @@ impl Deserializable for ProvenTransaction {
         let output_notes = OutputNotes::read_from(source)?;
 
         let block_ref = Digest::read_from(source)?;
+        let expiration_block_num = u32::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
@@ -170,6 +182,7 @@ impl Deserializable for ProvenTransaction {
             input_notes,
             output_notes,
             block_ref,
+            expiration_block_num,
             proof,
         };
 
@@ -206,6 +219,9 @@ pub struct ProvenTransactionBuilder {
     /// Block [Digest] of the transaction's reference block.
     block_ref: Digest,
 
+    /// The block number by which the transaction will expire, as defined by the executed scripts.
+    expiration_block_num: u32,
+
     /// A STARK proof that attests to the correct execution of the transaction.
     proof: ExecutionProof,
 }
@@ -220,6 +236,7 @@ impl ProvenTransactionBuilder {
         initial_account_hash: Digest,
         final_account_hash: Digest,
         block_ref: Digest,
+        expiration_block_num: u32,
         proof: ExecutionProof,
     ) -> Self {
         Self {
@@ -230,6 +247,7 @@ impl ProvenTransactionBuilder {
             input_notes: Vec::new(),
             output_notes: Vec::new(),
             block_ref,
+            expiration_block_num,
             proof,
         }
     }
@@ -292,6 +310,7 @@ impl ProvenTransactionBuilder {
             input_notes,
             output_notes,
             block_ref: self.block_ref,
+            expiration_block_num: self.expiration_block_num,
             proof: self.proof,
         };
 
@@ -364,6 +383,21 @@ impl TxAccountUpdate {
     /// Returns `true` if the account update details are for a private account.
     pub fn is_private(&self) -> bool {
         self.details.is_private()
+    }
+
+    /// Validates the following properties of the account update:
+    ///
+    /// - The size of the serialized account update does not exceed [`ACCOUNT_UPDATE_MAX_SIZE`].
+    pub fn validate(&self) -> Result<(), ProvenTransactionError> {
+        let account_update_size = self.details().get_size_hint();
+        if account_update_size > ACCOUNT_UPDATE_MAX_SIZE as usize {
+            Err(ProvenTransactionError::AccountUpdateSizeLimitExceeded(
+                self.account_id(),
+                account_update_size,
+            ))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -486,7 +520,21 @@ impl Deserializable for InputNoteCommitment {
 
 #[cfg(test)]
 mod tests {
+    use alloc::collections::BTreeMap;
+
+    use winter_rand_utils::rand_array;
+
     use super::ProvenTransaction;
+    use crate::{
+        accounts::{
+            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            delta::AccountUpdateDetails, AccountDelta, AccountId, AccountStorageDelta,
+            AccountVaultDelta, StorageMapDelta,
+        },
+        transaction::TxAccountUpdate,
+        utils::Serializable,
+        Digest, Felt, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
+    };
 
     fn check_if_sync<T: Sync>() {}
     fn check_if_send<T: Send>() {}
@@ -503,5 +551,59 @@ mod tests {
     #[test]
     fn test_proven_transaction_is_send() {
         check_if_send::<ProvenTransaction>();
+    }
+
+    #[test]
+    fn account_update_size_limit_not_exceeded() {
+        // A small delta does not exceed the limit.
+        let storage_delta = AccountStorageDelta::from_iters(
+            [1, 2, 3, 4],
+            [(2, [ONE, ONE, ONE, ONE]), (3, [ONE, ONE, ZERO, ONE])],
+            [],
+        );
+        let delta =
+            AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
+        let details = AccountUpdateDetails::Delta(delta);
+        TxAccountUpdate::new(
+            AccountId::new_unchecked(Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)),
+            Digest::new(EMPTY_WORD),
+            Digest::new(EMPTY_WORD),
+            details,
+        )
+        .validate()
+        .unwrap();
+    }
+
+    #[test]
+    fn account_update_size_limit_exceeded() {
+        let mut map = BTreeMap::new();
+        // The number of entries in the map required to exceed the limit.
+        // We divide by each entry's size which consists of a key (digest) and a value (word), both
+        // 32 bytes in size.
+        let required_entries = ACCOUNT_UPDATE_MAX_SIZE / (2 * 32);
+        for _ in 0..required_entries {
+            map.insert(Digest::new(rand_array()), rand_array());
+        }
+        let storage_delta = StorageMapDelta::new(map);
+
+        // A delta that exceeds the limit returns an error.
+        let storage_delta = AccountStorageDelta::from_iters([], [], [(4, storage_delta)]);
+        let delta =
+            AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
+        let details = AccountUpdateDetails::Delta(delta);
+        let details_size = details.get_size_hint();
+
+        let err = TxAccountUpdate::new(
+            AccountId::new_unchecked(Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)),
+            Digest::new(EMPTY_WORD),
+            Digest::new(EMPTY_WORD),
+            details,
+        )
+        .validate()
+        .unwrap_err();
+
+        assert!(
+            matches!(err, ProvenTransactionError::AccountUpdateSizeLimitExceeded(_, size) if size == details_size)
+        );
     }
 }

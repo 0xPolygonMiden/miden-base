@@ -7,6 +7,12 @@ use.kernel::asset_vault
 use.kernel::constants
 use.kernel::memory
 
+# CONSTS
+# =================================================================================================
+
+# Max U32 value, used for initializing the expiration block number
+const.MAX_BLOCK_NUM=0xFFFFFFFF
+
 # ERRORS
 # =================================================================================================
 
@@ -61,7 +67,7 @@ const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
 # Provided info about assets of an input do not match its commitment
 const.ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH=0x0002001D
 
-# Number of input notes exceeded the kernel's maximum limit of 1023
+# Number of input notes exceeded the kernel's maximum limit of 1024
 const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
 # Cannot compute matching nullifier commitment using the provided input note data
@@ -1116,4 +1122,6 @@ export.prepare_transaction
     exec.process_input_notes_data
     exec.process_tx_script_root
     # => []
+    
+    push.MAX_BLOCK_NUM exec.memory::set_expiration_block_num
 end

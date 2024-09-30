@@ -1063,6 +1063,32 @@ export.end_foreign_context
     dropw
 end
 
+#! Updates the transaction expiration time delta.
+#! Once set, the delta can be decreased but not increased. 
+#!
+#! The input block height delta is added to the reference block in order to output an upper limit
+#! up until which the transaction will be considered valid (not expired).
+#!
+#! Inputs: [block_height_delta, ...]
+#! Output: [...]
+#!
+#! Where:
+#! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
+export.update_expiration_block_num
+    exec.tx::update_expiration_block_num
+end
+
+#! Gets the transaction expiration delta.
+#!
+#! Inputs: [...]
+#! Output: [block_height_delta, ...]
+#!
+#! Where:
+#! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
+export.get_expiration_delta
+    exec.tx::get_expiration_delta
+end
+
 #! Executes a kernel procedure specified by its offset.
 #!
 #! Inputs: [procedure_offset, <procedure_inputs>, <pad>]

@@ -1,0 +1,40 @@
+[package]
+name = "miden-tx-prover"
+version = "0.6.0"
+description = "Miden rollup transaction prover"
+readme = "README.md"
+keywords = ["miden", "transaction"]
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[features]
+testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
+
+[dependencies]
+axum = "0.7"
+miden-lib = { workspace = true }
+miden-objects = { workspace = true }
+miden-prover = { workspace = true }
+miden-tx = { workspace = true }
+prost = "0.12"
+tokio = { version = "1.38", features = ["full"] }
+tokio-stream = { version = "0.1", features = [ "net" ]}
+tonic = "0.11"
+tonic-web = { version = "0.11" }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
+
+[build-dependencies]
+miette = { version = "7.2", features = ["fancy"] }
+prost = { version = "0.12" }
+prost-build = { version = "0.12" }
+protox = { version = "0.6" }
+tonic-build = { version = "0.11" }
+
+[dev-dependencies]
+tokio = { version = "1.38", features = ["full"] }
+tonic = "0.11"

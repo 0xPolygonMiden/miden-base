@@ -15,10 +15,13 @@ const.ENCRYPTED_NOTE=3  # 0b11
 # Two raised to the power of 38 (2^38), used for shifting the note type value
 const.TWO_POW_38=274877906944
 
+# Max value for U16, used as the upper limit for expiration block delta
+const.EXPIRY_UPPER_LIMIT=0xFFFF+1
+
 # ERRORS
 # =================================================================================================
 
-# Output notes exceeded the maximum limit of 4096
+# Output notes exceeded the maximum limit of 1024
 const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
 
 # Invalid note type
@@ -61,6 +64,9 @@ const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020051
 # Note idx must be within [0, num_of_notes]
 const.ERR_INVALID_NOTE_IDX=0x00020052
 
+# Input transaction expiration block delta is not within 0x1 and 0xFFFF.
+const.ERR_INVALID_TX_EXPIRATION_DELTA=0x00020055
+
 # EVENTS
 # =================================================================================================
 
@@ -73,7 +79,7 @@ const.NOTE_AFTER_CREATED_EVENT=131084
 const.NOTE_BEFORE_ADD_ASSET_EVENT=131085
 # Event emitted after an ASSET is added to a note
 const.NOTE_AFTER_ADD_ASSET_EVENT=131086
-
+ 
 #! Returns the block hash of the reference block to memory.
 #!
 #! Stack: []
@@ -177,6 +183,53 @@ proc.add_non_fungible_asset_to_note
     swap add.1 dup.1 exec.memory::set_output_note_num_assets
     # => [note_ptr, note_idx]
 end
+
+#! Updates the transaction expiration block number.
+#!
+#! The input block_height_delta is added to the block reference number in order to output an upper
+#! limit at which the transaction will be considered valid (not expired).
+#! This value can be later decreased, but not increased. 
+#!
+#! Inputs: [block_height_delta, ...]
+#! Output: [...]
+#!
+#! Where:
+#! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
+export.update_expiration_block_num
+    # Ensure block_height_delta is between 1 and 0xFFFF (inclusive)
+    dup neq.0 assert.err=ERR_INVALID_TX_EXPIRATION_DELTA
+    dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_INVALID_TX_EXPIRATION_DELTA
+    # => [block_height_delta]
+
+    exec.get_block_number add
+    # => [absolute_expiration_num]
+
+    # Load the current stored delta from memory
+    dup exec.memory::get_expiration_block_num  
+    # => [stored_expiration_block_num, absolute_expiration_num, absolute_expiration_num]
+
+    # Check if block_height_delta is greater
+    u32lt
+    if.true
+        # Set new expiration delta
+        exec.memory::set_expiration_block_num 
+    else
+        drop                           
+    end
+end
+
+#! Gets the transaction expiration delta.
+#!
+#! Inputs: [...]
+#! Output: [block_height_delta, ...]
+#!
+#! Where:
+#! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
+export.get_expiration_delta
+    exec.memory::get_expiration_block_num exec.get_block_number
+    sub
+end
+
 
 #! Adds a fungible asset to a note. If the note already holds an asset issued by the
 #! same faucet id the two quantities are summed up and the new quantity is stored at the
@@ -304,7 +357,7 @@ end
 #! - the note_type is not valid.
 #! - the note_tag is not an u32.
 #! - if note_tag starts with anything but 0b11 and note_type is not public.
-#! - the number of output notes exceeds the maximum limit of 4096.
+#! - the number of output notes exceeds the maximum limit of 1024.
 export.create_note
     push.20983 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.NOTE_BEFORE_CREATED_EVENT

@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest, Felt};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 32] = [
+pub const KERNEL0_PROCEDURES: [Digest; 34] = [
     // account_vault_add_asset
     digest!(0xb8815bfacbdcb4c2, 0x6c7e694cf4f6a517, 0xf6233da2865ca264, 0xe51463cd0df6e896),
     // account_vault_get_balance
@@ -50,7 +50,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     // add_asset_to_note
     digest!(0xc016f1979f92c6a6, 0xd8b9abc6a769eca3, 0x766663e785a06a85, 0x7c7c16433193e65d),
     // create_note
-    digest!(0x1a6ad19d597d6c57, 0x37177d49505b7da0, 0xa933c37ee40f4501, 0xd165814717b3f9b7),
+    digest!(0xfe30556c1b5cacc0, 0x625572ae47e0ed1c, 0x16fa16a25e468940, 0x4497a71681f81937),
     // get_input_notes_commitment
     digest!(0x1c078486abf976f5, 0xfce31a9f4b9687cd, 0xb1edb2edc115a619, 0xf1bb8c1bd9c7148b),
     // get_note_assets_info
@@ -71,4 +71,8 @@ pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     digest!(0xab1819477203527a, 0x5a91109f6791d2d9, 0x60ac7e49d3f3e35c, 0x70deab90343c8a12),
     // end_foreign_context
     digest!(0x3770db711ce9aaf1, 0xb6f3c929151a5d52, 0x3ed145ec5dbee85f, 0xf979d975d7951bf6),
+    // update_expiration_block_num
+    digest!(0xb5b796c8143e57de, 0x43d6914fb889f3ba, 0xf65308f85c7c73b7, 0xe86bfcaccebe6b49),
+    // get_expiration_delta
+    digest!(0x2d93af519fa32359, 0x14275beadcb2ab9c, 0x68f9336f45c32c86, 0x75ee8ba0f3c11c83),
 ];

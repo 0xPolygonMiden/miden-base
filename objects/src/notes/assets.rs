@@ -25,11 +25,13 @@ pub struct NoteAssets {
 impl NoteAssets {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
+
     /// The maximum number of assets which can be carried by a single note.
     pub const MAX_NUM_ASSETS: usize = MAX_ASSETS_PER_NOTE;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns new [NoteAssets] constructed from the provided list of assets.
     ///
     /// # Errors
@@ -42,10 +44,10 @@ impl NoteAssets {
         }
 
         // make sure all provided assets are unique
-        for (i, asset) in assets.iter().enumerate() {
-            // for all assets except the last one, check if the asset is the same as any other
+        for (i, asset) in assets.iter().enumerate().skip(1) {
+            // for all assets except the first one, check if the asset is the same as any other
             // asset in the list, and if so return an error
-            if i < assets.len() - 1 && assets[i + 1..].iter().any(|a| a.is_same(asset)) {
+            if assets[..i].iter().any(|a| a.is_same(asset)) {
                 return Err(match asset {
                     Asset::Fungible(a) => NoteError::duplicate_fungible_asset(a.faucet_id()),
                     Asset::NonFungible(a) => NoteError::duplicate_non_fungible_asset(*a),
@@ -141,6 +143,7 @@ impl NoteAssets {
         }
 
         self.hash = compute_asset_commitment(&self.assets);
+
         Ok(())
     }
 }
@@ -196,15 +199,16 @@ fn compute_asset_commitment(assets: &[Asset]) -> Digest {
 
 impl Serializable for NoteAssets {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        const _: () = assert!(NoteAssets::MAX_NUM_ASSETS <= u8::MAX as usize);
         debug_assert!(self.assets.len() <= NoteAssets::MAX_NUM_ASSETS);
-        target.write_u8((self.assets.len() - 1) as u8);
+        target.write_u8(self.assets.len().try_into().expect("Asset number must fit into `u8`"));
         target.write_many(&self.assets);
     }
 }
 
 impl Deserializable for NoteAssets {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let count = source.read_u8()? + 1;
+        let count = source.read_u8()?;
         let assets = source.read_many::<Asset>(count.into())?;
         Self::new(assets).map_err(|e| DeserializationError::InvalidValue(format!("{e:?}")))
     }

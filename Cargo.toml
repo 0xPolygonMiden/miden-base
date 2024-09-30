@@ -1,10 +1,11 @@
 [workspace]
 resolver = "2"
 members = [ 
-    "bench-tx",
     "miden-lib",
     "miden-tx",
     "objects",
+    "bin/bench-tx",
+    "bin/tx-prover",
 ]
 
 [workspace.package]

@@ -25,10 +25,10 @@ const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
 const.ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE=0x00020054
 
 # ID of the provided foreign account equals zero.
-const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020055
+const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020056
 
 # Maximum allowed number of foreign account to be loaded (64) was exceeded.
-const.ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED=0x00020056
+const.ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED=0x00020057
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
@@ -56,6 +56,9 @@ const.CURRENT_ACCOUNT_DATA_PTR=5
 
 # The memory address at which the native account's new code commitment is stored.
 const.NEW_CODE_ROOT_PTR=6
+
+# The memory address at which the absolute expiration block number is stored.
+const.TX_EXPIRATION_BLOCK_NUM_PTR=7
 
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
@@ -920,6 +923,22 @@ end
 export.set_new_acct_code_commitment
     push.NEW_CODE_ROOT_PTR
     mem_storew
+end
+
+#! Sets the transaction expiration block number.
+#!
+#! Inputs: [tx_expiration_block_num, ...]
+#! Output: [...]
+export.set_expiration_block_num
+    push.TX_EXPIRATION_BLOCK_NUM_PTR mem_store
+end
+
+#! Gets the transaction expiration block number.
+#!
+#! Inputs: []
+#! Output: [tx_expiration_block_num]
+export.get_expiration_block_num
+    push.TX_EXPIRATION_BLOCK_NUM_PTR mem_load
 end
 
 #! Returns the number of procedures contained in the account code.

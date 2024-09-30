@@ -86,10 +86,11 @@ pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 131153;
 pub const ERR_INVALID_NOTE_IDX: u32 = 131154;
 pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 131155;
 pub const ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE: u32 = 131156;
-pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 131157;
-pub const ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED: u32 = 131158;
+pub const ERR_INVALID_TX_EXPIRATION_DELTA: u32 = 131157;
+pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 131158;
+pub const ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED: u32 = 131159;
 
-pub const KERNEL_ERRORS: [(u32, &str); 87] = [
+pub const KERNEL_ERRORS: [(u32, &str); 88] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -120,9 +121,9 @@ pub const KERNEL_ERRORS: [(u32, &str); 87] = [
     (ERR_NOTE_TOO_MANY_INPUTS, "Number of note inputs exceeded the maximum limit of 128"),
     (ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS, "Number of note assets exceeded the maximum limit of 256"),
     (ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH, "Provided info about assets of an input do not match its commitment"),
-    (ERR_PROLOGUE_TOO_MANY_INPUT_NOTES, "Number of input notes exceeded the kernel's maximum limit of 1023"),
+    (ERR_PROLOGUE_TOO_MANY_INPUT_NOTES, "Number of input notes exceeded the kernel's maximum limit of 1024"),
     (ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH, "Commitment computed for input notes' from advice data doesn't match kernel inputs"),
-    (ERR_TX_OUTPUT_NOTES_OVERFLOW, "Output notes exceeded the maximum limit of 4096"),
+    (ERR_TX_OUTPUT_NOTES_OVERFLOW, "Output notes exceeded the maximum limit of 1024"),
     (ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW, "Distribute would cause the max supply to be exceeded"),
     (ERR_FAUCET_ISSUANCE_OVERFLOW, "Asset mint operation would cause an issuance overflow"),
     (ERR_FAUCET_BURN_OVER_ISSUANCE, "Asset burn can not exceed the existing supply"),
@@ -175,6 +176,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 87] = [
     (ERR_INVALID_FAUCET_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited being the reserved faucet data slot)"),
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
     (ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE, "Procedure can be called only for the native account"),
+    (ERR_INVALID_TX_EXPIRATION_DELTA, "Invalid transaction expiration block delta was set."),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "Provided ID of the foreign account equals zero"),
     (ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED, "Maximum number of the foreign accounts (64) was exceeded"),
 ];
