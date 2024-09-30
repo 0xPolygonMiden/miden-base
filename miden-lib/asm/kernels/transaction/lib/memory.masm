@@ -676,9 +676,10 @@ export.get_foreign_account_ptr
         padw dup.4 mem_loadw
         # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id]
 
-        # check whether the first data words is an empty word, preserve the first value in this word
-        dup movdn.4 padw eqw movdn.8 dropw dropw
-        # => [is_empty_word, first_data_value, curr_account_ptr', foreign_account_id]
+        # check whether the first data words is an empty word, preserve the last value in this word 
+        # (account id)
+        dup.3 movdn.4 padw eqw movdn.8 dropw dropw
+        # => [is_empty_word, last_data_value, curr_account_ptr', foreign_account_id]
 
         # check whether the current id matches the foreign id 
         swap dup.3 eq
@@ -779,7 +780,7 @@ end
 #! Sets the account id and nonce.
 #!
 #! Stack: [account_nonce, 0, 0, account_id]
-#! Output: []
+#! Output: [account_nonce, 0, 0, account_id]
 #!
 #! Where:
 #! - account_id is the id of the currently accessing account.
@@ -1468,7 +1469,7 @@ export.save_account_storage_data
     # AS => [[STORAGE_SLOT_DATA]]
 
     # assert that account does not exceed allowed maximum number of storage slots
-    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCT_TOO_MANY_STORAGE_SLOTS
+    dup exec.account::get_max_num_storage_slots lte assert.err=ERR_ACCT_TOO_MANY_STORAGE_SLOTS
     # OS => [num_storage_slots, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
@@ -1537,7 +1538,7 @@ export.save_account_procedure_data
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
     # assert that account does not exceed allowed maximum number of procedures
-    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+    dup exec.account::get_max_num_procedures lte assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
     # OS => [num_procs, CODE_COMMITMENT]
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 

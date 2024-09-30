@@ -26,7 +26,11 @@ use miden_objects::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
     },
-    testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word},
+    testing::{
+        constants::NON_FUNGIBLE_ASSET_DATA_2,
+        prepare_word,
+        storage::{STORAGE_LEAVES_2, STORAGE_VALUE_1},
+    },
     transaction::{OutputNote, OutputNotes},
     Digest, FieldElement,
 };
@@ -39,7 +43,7 @@ use crate::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_OUTPUT_NOTES_OVERFLOW,
     },
     testing::{MockHost, TransactionContextBuilder},
-    tests::kernel_tests::read_root_mem_value,
+    tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
 };
 
 #[test]
@@ -593,19 +597,201 @@ fn test_build_recipient_hash() {
 }
 
 #[test]
-fn test_load_foreign_account() {
+fn test_load_foreign_account_basic() {
     let foreign_account = Account::mock(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2,
         ONE,
         TransactionKernel::testing_assembler(),
     );
+    let advice_inputs = get_mock_advice_inputs(&foreign_account);
+
+    // GET ITEM
+    // --------------------------------------------------------------------------------------------
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .advice_inputs(advice_inputs.clone())
+        .build();
+
+    let code = format!(
+        "
+        use.kernel::prologue
+        use.miden::tx
+        use.miden::account
+        use.miden::kernel_proc_offsets
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw padw push.0.0.0
+            # => [pad(11)]
+
+            # push the index of desired storage item
+            push.1
+
+            # get the hash of the `get_item_foreign` account procedure
+            procref.account::get_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+
+            exec.tx::execute_foreign_procedure
+            # => [STORAGE_VALUE_1]
+        end
+        ",
+        account_id = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2
+    );
+
+    let process = tx_context.execute_code(&code).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        STORAGE_VALUE_1,
+        "Value at the top of the stack (value in the storage at index 1) should be equal [5, 6, 7, 8]",
+    );
+
+    foreign_account_data_memory_assertions(&foreign_account, &process);
+
+    // GET MAP ITEM
+    // --------------------------------------------------------------------------------------------
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .advice_inputs(advice_inputs)
+        .build();
+
+    let code = format!(
+        "
+        use.kernel::prologue
+        use.miden::tx
+        use.miden::account
+        use.miden::kernel_proc_offsets
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw push.0.0.0
+            # => [pad(7)]
+
+            # push the key of desired storage item
+            push.{map_key}
+
+            # push the index of desired storage item
+            push.2
+
+            # get the hash of the `get_item_foreign` account procedure
+            procref.account::get_map_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+
+            exec.tx::execute_foreign_procedure
+            # => [MAP_VALUE]
+        end
+        ",
+        map_key = STORAGE_LEAVES_2[0].0,
+        account_id = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2
+    );
+
+    let process = tx_context.execute_code(&code).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        STORAGE_LEAVES_2[0].1,
+        "Value at the top of the stack should be equal [1, 2, 3, 4]",
+    );
+
+    foreign_account_data_memory_assertions(&foreign_account, &process);
+}
+
+/// This test checks that invoking two foreign procedures from the same account results in reuse of
+/// the loaded account.
+#[test]
+fn test_load_foreign_account_twice() {
+    let foreign_account = Account::mock(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2,
+        ONE,
+        TransactionKernel::testing_assembler(),
+    );
+    let advice_inputs = get_mock_advice_inputs(&foreign_account);
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .advice_inputs(advice_inputs.clone())
+        .build();
+
+    let code = format!(
+        "
+        use.kernel::prologue
+        use.miden::tx
+        use.miden::account
+        use.miden::kernel_proc_offsets
+
+        begin
+            exec.prologue::prepare_transaction
+
+            ### Get the storage item at index 1 #####################
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw padw push.0.0.0
+            # => [pad(11)]
+
+            # push the index of desired storage item
+            push.1
+
+            # get the hash of the `get_item_foreign` account procedure
+            procref.account::get_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+
+            exec.tx::execute_foreign_procedure dropw
+            # => []
+
+            ### Get the storage item at index 3 #####################
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw push.0.0.0
+            # => [pad(7)]
+
+            # push the key of desired storage item
+            push.{map_key}
+
+            # push the index of desired storage item
+            push.2
+
+            # get the hash of the `get_item_foreign` account procedure
+            procref.account::get_map_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+
+            exec.tx::execute_foreign_procedure
+        end
+        ",
+        map_key = STORAGE_LEAVES_2[0].0,
+        account_id = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2
+    );
+
+    let process = tx_context.execute_code(&code).unwrap();
+
+    assert_eq!(
+        try_read_root_mem_value(&process, NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2),
+        None,
+        "Memory starting from 6144 should stay uninitialized"
+    );
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn get_mock_advice_inputs(foreign_account: &Account) -> AdviceInputs {
     let foreign_id_root = Digest::from([foreign_account.id().into(), ZERO, ZERO, ZERO]);
     let foreign_id_and_nonce = [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()];
     let foreign_vault_root = foreign_account.vault().commitment();
     let foreign_storage_root = foreign_account.storage().commitment();
     let foreign_code_root = foreign_account.code().commitment();
 
-    let advice_inputs = AdviceInputs::default().with_map([
+    AdviceInputs::default().with_map([
         // ACCOUNT_ID |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
         (
             foreign_id_root,
@@ -635,41 +821,7 @@ fn test_load_foreign_account() {
             ]
             .concat(),
         ),
-    ]);
-
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .advice_inputs(advice_inputs)
-        .build();
-
-    let code = format!(
-        "
-        use.kernel::prologue
-        use.miden::tx
-        use.miden::account
-        use.miden::kernel_proc_offsets
-
-        begin
-            exec.prologue::prepare_transaction
-
-            # get the hash of the `get_nonce` account procedure
-            procref.account::get_nonce
-            push.{account_id}
-
-            exec.tx::execute_foreign_procedure
-        end
-        ",
-        account_id = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2
-    );
-
-    let process = tx_context.execute_code(&code).unwrap();
-
-    assert_eq!(
-        process.stack.get(0),
-        ONE,
-        "top item on the stack is the nonce of the foreign account"
-    );
-
-    foreign_account_data_memory_assertions(&foreign_account, &process);
+    ])
 }
 
 fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process<MockHost>) {

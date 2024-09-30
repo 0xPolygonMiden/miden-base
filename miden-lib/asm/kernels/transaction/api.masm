@@ -67,6 +67,19 @@ proc.authenticate_account_origin
     # => [storage_offset, ...]
 end
 
+#! Authenticates that the invocation of a kernel procedure originates from the account context.
+#!
+#! Stack: [FOREIGN_PROC_ROOT]
+#! Output: [storage_offset, ...]
+#!
+#! Panics if:
+#! - the invocation of the kernel procedure does not originate from the account context.
+proc.authenticate_account_origin_foreign
+    # assert that the caller is from the user context
+    exec.account::authenticate_procedure
+    # => [storage_offset, ...]
+end
+
 # KERNEL PROCEDURES
 # =================================================================================================
 
@@ -209,6 +222,37 @@ export.get_account_item
     # => [VALUE]
 end
 
+#! Gets an item from the account storage.
+#!
+#! Stack: [KERNEL_PROCEDURE_HASH, FOREIGN_PROC_ROOT, index, pad(10)]
+#! Output: [VALUE, pad(10)]
+#!
+#! Where:
+#! - KERNEL_PROCEDURE_HASH is the hash of this procedure.
+#! - FOREIGN_PROC_ROOT is the hash of the foreign procedure which called this procedure. 
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index is out of bounds.
+export.get_account_item_foreign
+    # drop the kernel procedure's hash
+    dropw
+    # => [FOREIGN_PROC_ROOT, index, pad(10)]
+
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin_foreign
+    # => [storage_offset, index, pad(10)]
+
+    # apply offset to storage slot index
+    exec.account::apply_storage_offset
+    # => [index_with_offset, pad(10)]
+
+    # fetch the account storage item
+    exec.account::get_item
+    # => [VALUE, pad(10)]
+end
+
 #! Sets an item in the account storage.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, V', 0, 0, 0]
@@ -297,6 +341,52 @@ export.get_account_map_item
     # prepare the stack for return
     swapw dropw
     # => [VALUE, 0]
+end
+
+#! Returns VALUE located under specified KEY in map in specified account storage slot.
+#!
+#! Stack: [KERNEL_PROCEDURE_HASH, FOREIGN_PROC_ROOT, index, KEY, pad(6)]
+#! Output: [VALUE, pad(6)]
+#!
+#! Where:
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index is out of bounds (>255).
+#! - the requested storage slot type is not map
+export.get_account_map_item_foreign    
+    # drop the procedure's hash
+    dropw
+    # => [FOREIGN_PROC_ROOT, index, KEY, pad(6)]
+
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin_foreign swap
+    # => [index, storage_offset, KEY, pad(6)]
+
+    # check if storage type is map
+    dup exec.account::get_storage_slot_type
+    # => [slot_type, index, storage_offset, KEY, pad(6)]
+
+    # check if type == map
+    exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
+    # => [index, storage_offset, KEY, pad(6)]
+
+    # apply offset to storage slot index
+    swap exec.account::apply_storage_offset
+    # => [index_with_offset, KEY, pad(6)]
+
+    # fetch the account storage item, which is ROOT of the map
+    exec.account::get_item swapw
+    # => [KEY, ROOT pad(6)]
+
+    # fetch the VALUE located under KEY in the tree
+    exec.smt::get
+    # => [VALUE, ROOT, pad(6)]
+
+    # prepare the stack for return
+    swapw dropw
+    # => [VALUE, pad(6)]
 end
 
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
@@ -992,7 +1082,7 @@ export.exec_kernel_proc
     # check that the provided procedure offset is within expected bounds
     dup exec.memory::get_num_kernel_procedures 
     lt assert.err=ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS
-    # => [procedure_pointer, <procedure_inputs>, <pad>]
+    # => [procedure_offset, <procedure_inputs>, <pad>]
 
     # compute the memory pointer at which desired procedure is stored
     exec.memory::get_kernel_procedures_ptr add
