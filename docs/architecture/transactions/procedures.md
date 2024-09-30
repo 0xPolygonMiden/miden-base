@@ -8,7 +8,8 @@ There are user-facing procedures and kernel procedures. Users don't directly inv
 
 These procedures can be used to create smart contract/account code, note scripts, or account scripts. They basically serve as an API for the underlying kernel procedures. If a procedure can be called in the current context, an `exec` is sufficient. Otherwise the context procedures must be invoked by `call`. Users never need to invoke `syscall` procedures themselves.
 
-!!! tip - If capitalized, a variable representing a `word`, e.g., `ACCT_HASH` consists of four `felts`. If lowercase, the variable is represented by a single `felt`.
+!!! tip
+    If capitalized, a variable representing a `word`, e.g., `ACCT_HASH` consists of four `felts`. If lowercase, the variable is represented by a single `felt`.
 
 ### Account
 

@@ -27,7 +27,8 @@ The data store defines the interface that transaction objects use to fetch the d
 - `InputNotes` consumed by the transaction that include the corresponding note data, e.g. the [note script](../notes.md#the-note-script) and serial number.
 
 !!! note
-    - `InputNotes` must be already recorded on-chain in order for the transaction to succeed. - There is no nullifier-check during a transaction. Nullifiers are checked by the Miden operator during transaction verification. So at the transaction level, there is "double spending".
+    - `InputNotes` must be already recorded on-chain in order for the transaction to succeed.
+    - There is no nullifier-check during a transaction. Nullifiers are checked by the Miden operator during transaction verification. So at the transaction level, there is "double spending".
 
 ## Transaction compiler
 
