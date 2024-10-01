@@ -23,8 +23,8 @@ use crate::{
     prove_and_verify_transaction,
 };
 
-#[test]
 // Testing the basic Miden wallet - receiving an asset
+#[test]
 fn prove_receive_asset_via_wallet() {
     // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
@@ -99,9 +99,86 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
+/// Testing sending a note without assets from the basic wallet
 #[test]
-/// Testing the basic Miden wallet - sending an asset
-fn prove_send_asset_via_wallet() {
+fn prove_send_note_without_asset_via_wallet() {
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
+    let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
+    let sender_account =
+        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
+
+    // CONSTRUCT AND EXECUTE TX (Success)
+    // --------------------------------------------------------------------------------------------
+    let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
+
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
+    let tag = NoteTag::for_local_use_case(0, 0).unwrap();
+    let note_type = NoteType::Private;
+
+    assert_eq!(tag.validate(note_type), Ok(tag));
+
+    let tx_script_src = &format!(
+        "
+        begin
+            padw padw
+            push.{recipient}
+            push.{note_execution_hint}
+            push.{note_type}
+            push.{aux}
+            push.{tag}
+            call.::miden::contracts::wallets::basic::create_note
+            dropw dropw dropw dropw
+        end
+        ",
+        recipient = prepare_word(&recipient),
+        note_type = note_type as u8,
+        tag = tag,
+        note_execution_hint = Felt::from(NoteExecutionHint::always())
+    );
+    let tx_args = build_tx_args_from_script(tx_script_src);
+
+    let executed_transaction = executor
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
+        .unwrap();
+
+    prove_and_verify_transaction(executed_transaction.clone()).unwrap();
+
+    // clones account info
+    let sender_account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(sender_pub_key),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Map(StorageMap::default()),
+    ])
+    .unwrap();
+    let sender_account_code = sender_account.code().clone();
+
+    // vault delta
+    let sender_account_after: Account = Account::from_parts(
+        tx_context.account().id(),
+        AssetVault::new(&[]).unwrap(),
+        sender_account_storage,
+        sender_account_code,
+        // state of the account did not change, so nonce should remain the same
+        Felt::new(1),
+    );
+
+    assert_eq!(executed_transaction.final_account().hash(), sender_account_after.hash());
+}
+
+/// Testing the basic Miden wallet - creating a note and moving asset to it
+#[test]
+fn prove_send_note_with_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
@@ -137,14 +214,20 @@ fn prove_send_asset_via_wallet() {
     let tx_script_src = &format!(
         "
         begin
+            padw padw
             push.{recipient}
             push.{note_execution_hint}
             push.{note_type}
             push.{aux}
             push.{tag}
+            call.::miden::contracts::wallets::basic::create_note
+            # => [note_idx, PAD(15)]
+
+            swapw dropw 
             push.{asset}
-            call.::miden::contracts::wallets::basic::send_asset
+            call.::miden::contracts::wallets::basic::move_asset_to_note
             dropw dropw dropw dropw
+            
             call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
         end
         ",

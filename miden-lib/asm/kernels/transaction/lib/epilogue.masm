@@ -3,6 +3,7 @@ use.kernel::asset_vault
 use.kernel::constants
 use.kernel::memory
 use.kernel::note
+use.kernel::tx
 
 use.std::crypto::hashes::native
 
@@ -184,7 +185,7 @@ proc.update_account_storage_commitment
     # only loop and hash over storage if there are storage slots
     if.true
         # setup start and end ptr
-        mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
+        mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
         # => [start_ptr, end_ptr]
 
         # pad stack to read and hash from memory
@@ -224,11 +225,14 @@ end
 #! - asserts that the input and output vault roots are equal
 #!
 #! Stack: []
-#! Output: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Output: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 #!
 #! - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
+    # make sure that the context was switched back to the native account
+    exec.memory::assert_native_account
+
     # update account code
     exec.update_account_code
     # => []
@@ -246,7 +250,7 @@ export.finalize_transaction
     # => [acct_data_end_ptr, INIT_ACCT_HASH]
 
     # get the offset for the start of the account data section
-    exec.memory::get_acct_data_ptr
+    exec.memory::get_current_account_data_ptr
     # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # compute the final account hash
@@ -305,4 +309,9 @@ export.finalize_transaction
     # assert no net creation or destruction of assets over the transaction
     exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_EPILOGUE_ASSETS_DONT_ADD_UP
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+
+    swapdw
+    exec.memory::get_expiration_block_num
+    swap drop swapdw
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 end

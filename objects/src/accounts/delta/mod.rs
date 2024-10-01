@@ -38,8 +38,9 @@ impl AccountDelta {
     /// Returns new [AccountDelta] instantiated from the provided components.
     ///
     /// # Errors
-    /// Returns an error if storage or vault were updated, but the nonce was either not updated
-    /// or set to 0.
+    ///
+    /// - Returns an error if storage or vault were updated, but the nonce was either not updated or
+    ///   set to 0.
     pub fn new(
         storage: AccountStorageDelta,
         vault: AccountVaultDelta,
@@ -153,6 +154,10 @@ impl Serializable for AccountDelta {
         self.vault.write_into(target);
         self.nonce.write_into(target);
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.storage.get_size_hint() + self.vault.get_size_hint() + self.nonce.get_size_hint()
+    }
 }
 
 impl Deserializable for AccountDelta {
@@ -182,6 +187,17 @@ impl Serializable for AccountUpdateDetails {
                 2_u8.write_into(target);
                 delta.write_into(target);
             },
+        }
+    }
+
+    fn get_size_hint(&self) -> usize {
+        // Size of the serialized enum tag.
+        let u8_size = 0u8.get_size_hint();
+
+        match self {
+            AccountUpdateDetails::Private => u8_size,
+            AccountUpdateDetails::New(account) => u8_size + account.get_size_hint(),
+            AccountUpdateDetails::Delta(account_delta) => u8_size + account_delta.get_size_hint(),
         }
     }
 }
@@ -237,8 +253,19 @@ fn validate_nonce(
 
 #[cfg(test)]
 mod tests {
+
+    use vm_core::{utils::Serializable, Felt, FieldElement};
+
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
-    use crate::{ONE, ZERO};
+    use crate::{
+        accounts::{
+            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            delta::AccountUpdateDetails, Account, AccountCode, AccountId, AccountStorage,
+            AccountType, StorageMapDelta,
+        },
+        assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        ONE, ZERO,
+    };
 
     #[test]
     fn account_delta_nonce_validation() {
@@ -255,5 +282,80 @@ mod tests {
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ZERO)).is_err());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
+    }
+
+    #[test]
+    fn account_update_details_size_hint() {
+        // AccountDelta
+
+        let storage_delta = AccountStorageDelta::default();
+        let vault_delta = AccountVaultDelta::default();
+        assert_eq!(storage_delta.to_bytes().len(), storage_delta.get_size_hint());
+        assert_eq!(vault_delta.to_bytes().len(), vault_delta.get_size_hint());
+
+        let account_delta = AccountDelta::new(storage_delta, vault_delta, None).unwrap();
+        assert_eq!(account_delta.to_bytes().len(), account_delta.get_size_hint());
+
+        let storage_delta = AccountStorageDelta::from_iters(
+            [1],
+            [(2, [ONE, ONE, ONE, ONE]), (3, [ONE, ONE, ZERO, ONE])],
+            [(
+                4,
+                StorageMapDelta::from_iters(
+                    [[ONE, ONE, ONE, ZERO], [ZERO, ONE, ONE, ONE]],
+                    [([ONE, ONE, ONE, ONE], [ONE, ONE, ONE, ONE])],
+                ),
+            )],
+        );
+
+        let non_fungible: Asset = NonFungibleAsset::new(
+            &NonFungibleAssetDetails::new(
+                AccountId::new_dummy([10; 32], AccountType::NonFungibleFaucet),
+                vec![6],
+            )
+            .unwrap(),
+        )
+        .unwrap()
+        .into();
+        let fungible_2: Asset =
+            FungibleAsset::new(AccountId::new_dummy([10; 32], AccountType::FungibleFaucet), 10)
+                .unwrap()
+                .into();
+        let vault_delta = AccountVaultDelta::from_iters([non_fungible], [fungible_2]);
+
+        assert_eq!(storage_delta.to_bytes().len(), storage_delta.get_size_hint());
+        assert_eq!(vault_delta.to_bytes().len(), vault_delta.get_size_hint());
+
+        let account_delta = AccountDelta::new(storage_delta, vault_delta, Some(ONE)).unwrap();
+        assert_eq!(account_delta.to_bytes().len(), account_delta.get_size_hint());
+
+        // Account
+
+        let account_id =
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+
+        let asset_vault = AssetVault::mock();
+        assert_eq!(asset_vault.to_bytes().len(), asset_vault.get_size_hint());
+
+        let account_storage = AccountStorage::mock();
+        assert_eq!(account_storage.to_bytes().len(), account_storage.get_size_hint());
+
+        let account_code = AccountCode::mock();
+        assert_eq!(account_code.to_bytes().len(), account_code.get_size_hint());
+
+        let account =
+            Account::from_parts(account_id, asset_vault, account_storage, account_code, Felt::ZERO);
+        assert_eq!(account.to_bytes().len(), account.get_size_hint());
+
+        // AccountUpdateDetails
+
+        let update_details_private = AccountUpdateDetails::Private;
+        assert_eq!(update_details_private.to_bytes().len(), update_details_private.get_size_hint());
+
+        let update_details_delta = AccountUpdateDetails::Delta(account_delta);
+        assert_eq!(update_details_delta.to_bytes().len(), update_details_delta.get_size_hint());
+
+        let update_details_new = AccountUpdateDetails::New(account);
+        assert_eq!(update_details_new.to_bytes().len(), update_details_new.get_size_hint());
     }
 }

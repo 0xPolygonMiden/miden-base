@@ -17,6 +17,9 @@ pub const OUTPUT_NOTES_COMMITMENT_WORD_IDX: usize = 0;
 /// The index of the word at which the final account hash is stored on the output stack.
 pub const FINAL_ACCOUNT_HASH_WORD_IDX: usize = 1;
 
+/// The index of the item at which the expiration block height is stored on the output stack.
+pub const EXPIRATION_BLOCK_ELEMENT_IDX: usize = 8;
+
 // ACCOUNT HEADER EXTRACTOR
 // ================================================================================================
 

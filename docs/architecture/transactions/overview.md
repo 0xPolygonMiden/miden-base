@@ -34,7 +34,7 @@ There are two types of transactions in Miden: local transactions and network tra
 
 ## Transaction design
 
-Transactions describe the state-transition of a single account that takes chain data and `0 to 1023` notes as input and produces a `TransactionWitness` and `0 to 4096` notes as output.
+Transactions describe the state-transition of a single account that takes chain data and `0 to 1024` notes as input and produces a `TransactionWitness` and `0 to 1024` notes as output.
 
 <center>
 ![Transaction diagram](../../img/architecture/transaction/transaction-diagram.png){ width="75%" }
@@ -50,7 +50,7 @@ Transferring assets between accounts requires two transactions as shown in the d
 ![Transaction flow](../../img/architecture/transaction/transaction-flow.png)
 </center>
 
-The first transaction invokes a function on `account_a` (e.g. a `send_asset` function) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g. a `receive_asset` function) which updates the internal state of `account_b`.
+The first transaction invokes some functions on `account_a` (e.g. `create_note` and `move_asset_to_note` functions) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g. a `receive_asset` function) which updates the internal state of `account_b`.
 
 ### Asynchronous execution
 

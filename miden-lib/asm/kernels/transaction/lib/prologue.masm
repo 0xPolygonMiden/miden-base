@@ -9,6 +9,12 @@ use.kernel::constants
 use.kernel::memory
 use.kernel::utils
 
+# CONSTS
+# =================================================================================================
+
+# Max U32 value, used for initializing the expiration block number
+const.MAX_BLOCK_NUM=0xFFFFFFFF
+
 # ERRORS
 # =================================================================================================
 
@@ -63,7 +69,7 @@ const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
 # Provided info about assets of an input do not match its commitment
 const.ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH=0x0002001D
 
-# Number of input notes exceeded the kernel's maximum limit of 1023
+# Number of input notes exceeded the kernel's maximum limit of 1024
 const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
 # Cannot compute matching nullifier commitment using the provided input note data
@@ -291,7 +297,7 @@ proc.process_chain_data
     exec.memory::get_chain_mmr_ptr dup
     # => [chain_mmr_ptr, chain_mmr_ptr]
 
-    # save the MMR peaks to memory and verify it mathes the block's CHAIN_ROOT
+    # save the MMR peaks to memory and verify it matches the block's CHAIN_ROOT
     exec.memory::get_chain_root
     exec.mmr::unpack
     # => [chain_mmr_ptr]
@@ -319,7 +325,7 @@ end
 #!   - read the account seed from the advice provider and assert it satisfies seed requirements.
 proc.validate_new_account
     # Assert the account id of the account is valid
-    exec.memory::get_acct_id exec.account::validate_id
+    exec.memory::get_account_id exec.account::validate_id
     # => []
 
     # Assert the account nonce is 0
@@ -425,7 +431,7 @@ proc.validate_account_storage_slots
     # => [num_storage_slots, STORAGE_COMMITMENT]
 
     # setup acct_storage_slots_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
+    mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
     # => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
 
     # pad stack before reading from advice stack
@@ -492,7 +498,7 @@ proc.validate_account_procedures
     # => [num_procs, CODE_COMMITMENT]
 
     # setup acct_proc_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_procedures_section_offset dup movdn.2 add swap
+    mul.2 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
     # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
     # pad stack before reading from advice stack
@@ -538,10 +544,14 @@ end
 #! - ACCOUNT_STORAGE_COMMITMENT, account's storage commitment.
 #! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
+    # Initialize the current account data pointer in the bookkeeping section with the native offset 
+    # (2048)
+    exec.memory::set_current_account_data_ptr_to_native_account
+
     # Copy the account data from the advice provider to memory and hash it
     # ---------------------------------------------------------------------------------------------
 
-    exec.memory::get_acct_data_ptr
+    exec.memory::get_current_account_data_ptr
     # => [acct_data_ptr]
 
     # read account details and compute its digest. See `Advice stack` above for details.
@@ -556,7 +566,7 @@ proc.process_account_data
 
     # assert the account id matches the account id in global inputs
     exec.memory::get_global_acct_id
-    exec.memory::get_acct_id
+    exec.memory::get_account_id
     assert_eq.err=ERR_PROLOGUE_ACCT_ID_MISMATCH
     # => [ACCT_HASH]
 
@@ -1082,7 +1092,7 @@ proc.process_input_notes_data
     #      processed.
     # - The num_notes is kept at position 13, because dup.13 is cheap.
     # - The [idx, num_notes] pair is kept in a word boundary, so that its word can be swapped with a
-    #   cheap swapw.3 intruction to update the `idx` counter.
+    #   cheap swapw.3 instruction to update the `idx` counter.
 
     push.0 padw padw padw
     # => [PERM, PERM, PERM, idx, num_notes]
@@ -1231,4 +1241,6 @@ export.prepare_transaction
     exec.process_input_notes_data
     exec.process_tx_script_root
     # => []
+    
+    push.MAX_BLOCK_NUM exec.memory::set_expiration_block_num
 end

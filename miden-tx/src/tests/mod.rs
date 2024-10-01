@@ -174,18 +174,58 @@ fn executed_transaction_account_delta() {
     .unwrap();
     let tag2 = NoteTag::for_local_use_case(0, 0).unwrap();
     let tag3 = NoteTag::for_local_use_case(0, 0).unwrap();
+    let tags = [tag1, tag2, tag3];
 
-    let aux1 = Felt::new(27);
-    let aux2 = Felt::new(28);
-    let aux3 = Felt::new(29);
+    let aux_array = [Felt::new(27), Felt::new(28), Felt::new(29)];
 
-    let note_type1 = NoteType::Private;
-    let note_type2 = NoteType::Private;
-    let note_type3 = NoteType::Private;
+    let note_types = [NoteType::Private; 3];
 
-    assert_eq!(tag1.validate(note_type1), Ok(tag1));
-    assert_eq!(tag2.validate(note_type2), Ok(tag2));
-    assert_eq!(tag3.validate(note_type3), Ok(tag3));
+    assert_eq!(tag1.validate(NoteType::Private), Ok(tag1));
+    assert_eq!(tag2.validate(NoteType::Private), Ok(tag2));
+    assert_eq!(tag3.validate(NoteType::Private), Ok(tag3));
+
+    let execution_hint_1 = Felt::from(NoteExecutionHint::always());
+    let execution_hint_2 = Felt::from(NoteExecutionHint::none());
+    let execution_hint_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1));
+    let hints = [execution_hint_1, execution_hint_2, execution_hint_3];
+
+    let mut send_asset_script = String::new();
+    for i in 0..3 {
+        send_asset_script.push_str(&format!(
+            "
+            ### note {i}
+            # prepare the stack for a new note creation 
+            push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT} # note_execution_hint
+            push.{NOTETYPE}        # note_type
+            push.{aux}             # aux
+            push.{tag}             # tag
+            # => [tag, aux, note_type, execution_hint, RECIPIENT]
+
+            # pad the stack before calling the `create_note`
+            padw padw swapdw
+            # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+
+            # create the note
+            call.::miden::contracts::wallets::basic::create_note
+            # => [note_idx, PAD(15)]
+
+            # move an asset to the created note to partially deplete fungible asset balance
+            swapw dropw push.{REMOVED_ASSET}
+            call.::miden::contracts::wallets::basic::move_asset_to_note
+            # => [ASSET, note_idx, PAD(11)]
+
+            # clear the stack
+            dropw dropw dropw dropw
+
+        ",
+            EXECUTION_HINT = hints[i],
+            NOTETYPE = note_types[i] as u8,
+            aux = aux_array[i],
+            tag = tags[i],
+            REMOVED_ASSET = prepare_word(&Word::from(removed_assets[i]))
+        ));
+    }
 
     let tx_script_src = format!(
         "\
@@ -227,41 +267,7 @@ fn executed_transaction_account_delta() {
 
             ## Send some assets from the account vault
             ## ------------------------------------------------------------------------------------
-            # partially deplete fungible asset balance
-            push.0.1.2.3            # recipient
-            push.{EXECUTION_HINT_1} # note_execution_hint
-            push.{NOTETYPE1}        # note_type
-            push.{aux1}             # aux
-            push.{tag1}             # tag
-            push.{REMOVED_ASSET_1}  # asset
-            # => [ASSET, tag, aux, note_type, RECIPIENT]
-
-            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
-            # => []
-
-            # totally deplete fungible asset balance
-            push.0.1.2.3            # recipient
-            push.{EXECUTION_HINT_2} # note_execution_hint
-            push.{NOTETYPE2}        # note_type
-            push.{aux2}             # aux
-            push.{tag2}             # tag
-            push.{REMOVED_ASSET_2}  # asset
-            # => [ASSET, tag, aux, note_type, RECIPIENT]
-
-            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
-            # => []
-
-            # send non-fungible asset
-            push.0.1.2.3            # recipient
-            push.{EXECUTION_HINT_3} # note_execution_hint
-            push.{NOTETYPE3}        # note_type
-            push.{aux3}             # aux
-            push.{tag3}             # tag
-            push.{REMOVED_ASSET_3}  # asset
-            # => [ASSET, tag, aux, note_type, RECIPIENT]
-
-            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
-            # => []
+            {send_asset_script}
 
             ## Update account code
             ## ------------------------------------------------------------------------------------
@@ -278,15 +284,6 @@ fn executed_transaction_account_delta() {
         UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
         UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
         UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
-        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
-        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
-        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
-        NOTETYPE1 = note_type1 as u8,
-        NOTETYPE2 = note_type2 as u8,
-        NOTETYPE3 = note_type3 as u8,
-        EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
-        EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
-        EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
     );
 
     let tx_script = TransactionScript::compile(

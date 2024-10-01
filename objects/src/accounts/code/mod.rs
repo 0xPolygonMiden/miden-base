@@ -225,6 +225,22 @@ impl Serializable for AccountCode {
         target.write_u8((self.procedures.len() - 1) as u8);
         target.write_many(self.procedures());
     }
+
+    fn get_size_hint(&self) -> usize {
+        // TODO: Replace with proper calculation.
+        let mut mast_forest_target = Vec::new();
+        self.mast.write_into(&mut mast_forest_target);
+
+        // Size of the serialized procedures length.
+        let u8_size = 0u8.get_size_hint();
+        let mut size = u8_size + mast_forest_target.len();
+
+        for procedure in self.procedures() {
+            size += procedure.get_size_hint();
+        }
+
+        size
+    }
 }
 
 impl Deserializable for AccountCode {

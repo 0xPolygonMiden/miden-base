@@ -2,6 +2,8 @@
 
 ## 0.6.0 (TBD)
 
+- Implemented kernel procedure to set transaction expiration block delta (#897).
+- Created a proving service that receives `TransactionWitness` and returns the proof using gRPC (#881).
 - Made note scripts public (#880).
 - Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
 - [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).
@@ -15,6 +17,9 @@
 - Set all procedures storage offsets of faucet accounts to `1` (#875).
 - Added `AccountStorageHeader` (#876).
 - Implemented generation of transaction kernel procedure hashes in build.rs (#887).
+- [BREAKING] `send_asset` procedure was removed from the basic wallet (#829).
+- [BREAKING] Updated limits, introduced additional limits (#889).
+- Introduced `AccountDelta` maximum size limit of 32 KiB (#889).
 - Implemented `storage_size`, updated storage bounds (#886).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only

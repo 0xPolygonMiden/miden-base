@@ -51,11 +51,11 @@ const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
 
 #! Authenticates that the invocation of a kernel procedure originates from the account context.
 #!
-#! Panics:
-#!   - if the invocation of the kernel procedure does not originate from the account context.
-#!
 #! Stack: []
 #! Output: [storage_offset, storage_size]
+#!
+#! Panics if:
+#! - the invocation of the kernel procedure does not originate from the account context.
 proc.authenticate_account_origin
     # get the hash of the caller
     padw caller
@@ -74,6 +74,7 @@ end
 #! Stack: [KERNEL_PROCEDURE_HASH, 0]
 #! Output: [acct_id]
 #!
+#! Where:
 #! - acct_id is the account id.
 export.get_account_id
     # drop the procedure's hash
@@ -92,6 +93,7 @@ end
 #! Stack: [KERNEL_PROCEDURE_HASH, 0]
 #! Output: [nonce]
 #!
+#! Where:
 #! - nonce is the account nonce.
 export.get_account_nonce
     # drop the procedure's hash
@@ -110,6 +112,7 @@ end
 #! Stack: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
 #! Output: [H]
 #!
+#! Where:
 #! - H is the initial account hash.
 export.get_initial_account_hash
     # drop the procedure's hash
@@ -128,6 +131,7 @@ end
 #! Stack: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
 #! Output: [ACCT_HASH]
 #!
+#! Where:
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_account_hash
     # drop the procedure's hash
@@ -146,9 +150,16 @@ end
 #! Stack: [KERNEL_PROCEDURE_HASH, value]
 #! Output: [0]
 #!
-#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
-#!   procedure panics.
+#! Where:
+#! - value is the value to increment the nonce by.
+#!
+#! Panics if:
+#! - the invocation of this procedure does not originate from the native account.
+#! - the value is greater than 2^32 - 1
 export.incr_account_nonce
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -165,13 +176,17 @@ export.incr_account_nonce
     # => [0]
 end
 
-#! Gets an item from the account storage. Panics if the index is out of bounds.
+#! Gets an item from the account storage.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, 0, 0, 0]
 #! Output: [VALUE]
 #!
+#! Where:
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index is out of bounds.
 export.get_account_item
     # drop the procedure's hash
     dropw
@@ -193,16 +208,24 @@ export.get_account_item
     # => [VALUE]
 end
 
-#! Sets an item in the account storage. Panics if the index is out of bounds.
+#! Sets an item in the account storage.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, V', 0, 0, 0]
 #! Output: [R', V]
 #!
+#! Where:
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 #! - R' is the new storage commitment.
+#!
+#! Panics if:
+#! - the index is out of bounds.
+#! - the invocation of this procedure does not originate from the native account.
 export.set_account_item
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -231,15 +254,17 @@ export.set_account_item
 end
 
 #! Returns VALUE located under specified KEY in map in specified account storage slot.
-#! Panics if
-#! - the index is out of bounds (>255).
-#! - the requested storage slot type is not map
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, KEY, ...]
 #! Output: [VALUE, 0]
 #!
+#! Where:
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index is out of bounds (>255).
+#! - the requested storage slot type is not map
 export.get_account_map_item
     # drop the procedure's hash
     dropw
@@ -274,21 +299,27 @@ export.get_account_map_item
 end
 
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
-#! Panics if
-#! - the index is out of bounds (>255).
-#! - the requested storage slot type is not map
-#! - the procedure is called from a non-account context
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, KEY, NEW_VALUE, ...]
 #! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
 #!
+#! Where:
 #! - index is the index of the item to get.
 #! - NEW_VALUE is the value of the new map item for the respective KEY.
 #! - OLD_VALUE is the value of the old map item for the respective KEY.
 #! - KEY is the key of the new item.
 #! - OLD_MAP_ROOT is the root of the old map before insertion
 #! - NEW_MAP_ROOT is the root of the new map after insertion.
+#!
+#! Panics if:
+#! - the index is out of bounds (>255).
+#! - the requested storage slot type is not map
+#! - the procedure is called from a non-account context
+#! - the invocation of this procedure does not originate from the native account.
 export.set_account_map_item.1
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -317,14 +348,22 @@ export.set_account_map_item.1
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0, ...]
 end
 
-#! Sets the code of the account the transaction is being executed against. This procedure can only
-#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#! Sets the code of the account the transaction is being executed against.
+#! This procedure can only be executed on regular accounts with updatable code. Otherwise, this
+#! procedure fails.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, CODE_COMMITMENT]
 #! Output: [0, 0, 0, 0]
 #!
+#! Where:
 #! - CODE_COMMITMENT is the hash of the code to set.
+#!
+#! Panics if:
+#! - the invocation of this procedure does not originate from the native account.
 export.set_account_code
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -342,13 +381,16 @@ export.set_account_code
 end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
-#! Panics if the asset is not a fungible asset.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, faucet_id]
 #! Output: [balance]
 #!
+#! Where:
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
+#!
+#! Panics if:
+#! - the asset is not a fungible asset.
 export.account_vault_get_balance
     # drop the procedure's hash
     dropw
@@ -363,13 +405,16 @@ export.account_vault_get_balance
 end
 
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
-#! Panics if the ASSET is a fungible asset.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
 #! Output: [has_asset, 0, 0, 0]
 #!
+#! Where:
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
+#!
+#! Panics if:
+#! - the ASSET is a fungible asset.
 export.account_vault_has_non_fungible_asset
     # drop the procedure's hash
     dropw
@@ -385,20 +430,25 @@ end
 
 #! Add the specified asset to the vault.
 #!
-#! Panics:
-#! - If the asset is not valid.
-#! - If the total value of two fungible assets is greater than or equal to 2^63.
-#! - If the vault already contains the same non-fungible asset.
-#!
 #! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
 #! Output: [ASSET']
 #!
+#! Where:
 #! - ASSET is the asset to add to the vault.
 #! - ASSET' final asset in the account vault defined as follows:
 #!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
+#!
+#! Panics if:
+#! - the asset is not valid.
+#! - the total value of two fungible assets is greater than or equal to 2^63.
+#! - the vault already contains the same non-fungible asset.
+#! - the invocation of this procedure does not originate from the native account.
 export.account_vault_add_asset
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -431,16 +481,21 @@ end
 
 #! Remove the specified asset from the vault.
 #!
-#! Panics:
-#! - The fungible asset is not found in the vault.
-#! - The amount of the fungible asset in the vault is less than the amount to be removed.
-#! - The non-fungible asset is not found in the vault.
-#!
 #! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
 #! Output: [ASSET]
 #!
+#! Where:
 #! - ASSET is the asset to remove from the vault.
+#!
+#! Panics if:
+#! - the fungible asset is not found in the vault.
+#! - the amount of the fungible asset in the vault is less than the amount to be removed.
+#! - the non-fungible asset is not found in the vault.
+#! - the invocation of this procedure does not originate from the native account.
 export.account_vault_remove_asset
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -466,14 +521,17 @@ export.account_vault_remove_asset
     # => [ASSET]
 end
 
-#! Returns the number of assets and the assets hash of the note currently being processed. Panics
-#! if a note is not being processed.
+#! Returns the number of assets and the assets hash of the note currently being processed.
 #!
 #! Inputs: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0, 0]
 #! Outputs: [ASSETS_HASH, num_assets]
 #!
+#! Where:
 #! - num_assets is the number of assets in the note currently being processed.
 #! - ASSETS_HASH is the assets hash of the note currently being processed.
+#!
+#! Panics if:
+#! - a note is not being processed.
 export.get_note_assets_info
     # drop the procedure's hash
     dropw
@@ -493,7 +551,7 @@ end
 #! Outputs: [NOTE_INPUTS_HASH]
 #!
 #! Where:
-#! - NOTE_INPUTS_HASH, is the current note's inputs hash.
+#! - NOTE_INPUTS_HASH is the current note's inputs hash.
 export.get_note_inputs_hash
     # drop the procedure's hash
     dropw
@@ -505,14 +563,16 @@ export.get_note_inputs_hash
     # => [NOTE_INPUTS_HASH]
 end
 
-#! Returns the sender of the note currently being processed. Panics if a note is not being
-#! processed.
+#! Returns the sender of the note currently being processed.
 #!
 #! Inputs: [KERNEL_PROCEDURE_HASH, 0]
 #! Outputs: [sender]
 #!
 #! Where:
 #! - sender is the sender of the note currently being processed.
+#!
+#! Panics if:
+#! - a note is not being processed.
 export.get_note_sender
     # drop the procedure's hash
     dropw
@@ -526,7 +586,8 @@ end
 #! Inputs: [KERNEL_PROCEDURE_HASH, 0]
 #! Outputs: [num]
 #!
-#! num is the last known block number.
+#! Where:
+#! - num is the last known block number.
 export.get_block_number
     # drop the procedure's hash
     dropw
@@ -546,7 +607,7 @@ end
 #! Output: [BLOCK_HASH]
 #!
 #! Where:
-#! - BLOCK_HASH, reference block for the transaction execution.
+#! - BLOCK_HASH is the reference block for the transaction execution.
 export.get_block_hash
     # drop the procedure's hash
     dropw
@@ -585,7 +646,8 @@ end
 #! Inputs: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
 #! Outputs: [COM]
 #!
-#! COM is the output notes hash.
+#! Where:
+#! - COM is the output notes hash.
 export.get_output_notes_hash
     # drop the procedure's hash
     dropw
@@ -604,13 +666,21 @@ end
 #! Inputs: [KERNEL_PROCEDURE_HASH, tag, aux, note_type, execution_hint, RECIPIENT, pad(4)]
 #! Outputs: [note_idx, pad(15)]
 #!
-#! tag is the tag to be included in the note.
-#! aux is the auxiliary metadata to be included in the note.
-#! note_type is the note storage type.
-#! execution_hint is the note execution hint tag and payload.
-#! RECIPIENT is the recipient of the note.
-#! note_idx is the index of the crated note.
+#! Where:
+#! - tag is the tag to be included in the note.
+#! - aux is the auxiliary metadata to be included in the note.
+#! - note_type is the note storage type.
+#! - execution_hint is the note execution hint tag and payload.
+#! - RECIPIENT is the recipient of the note.
+#! - note_idx is the index of the crated note.
+#!
+#! Panics if:
+#! - the procedure is called from a non-account context.
+#! - the invocation of this procedure does not originate from the native account.
 export.create_note
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -627,9 +697,17 @@ end
 #! Inputs:  [KERNEL_PROCEDURE_HASH, note_idx, ASSET, pad(7)]
 #! Outputs: [note_idx, ASSET, pad(11)]
 #!
-#! note_idx is the index of the the note to which the asset is added.
-#! ASSET can be a fungible or non-fungible asset.
+#! Where:
+#! - note_idx is the index of the the note to which the asset is added.
+#! - ASSET can be a fungible or non-fungible asset.
+#!
+#! Panics if:
+#! - the procedure is called from a non-account context.
+#! - the invocation of this procedure does not originate from the native account.
 export.add_asset_to_note
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -650,6 +728,7 @@ end
 #! Stack: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
 #! Outputs: [COM]
 #!
+#! Where:
 #! - COM is the commitment to the account vault.
 export.get_account_vault_commitment
     # drop the procedure's hash
@@ -666,20 +745,26 @@ end
 
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a faucet.
-#! - If the asset being minted is not associated with the faucet the transaction is being executed
-#!   against.
-#! - If the asset is not well formed.
-#! - For fungible faucets if the total issuance after minting is greater than the maximum amount
-#!   allowed.
-#! - For non-fungible faucets if the non-fungible asset being minted already exists.
-#!
 #! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
 #! Outputs: [ASSET]
 #!
+#! Where:
 #! - ASSET is the asset that was minted.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a faucet.
+#! - the invocation of this procedure does not originate from the native account.
+#! - the asset being minted is not associated with the faucet the transaction is being executed
+#!   against.
+#! - the asset is not well formed.
+#! - For fungible faucets:
+#!   - if the total issuance after minting is greater than the maximum amount allowed.
+#! - For non-fungible faucets:
+#!   - if the non-fungible asset being minted already exists.
 export.mint_asset
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -694,21 +779,27 @@ end
 
 #! Burn an asset from the faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a faucet.
-#! - If the asset being burned is not associated with the faucet the transaction is being executed
-#!   against.
-#! - If the asset is not well formed.
-#! - For fungible faucets if the amount being burned is greater than the total input to the
-#!   transaction.
-#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
-#!   provided as input to the transaction via a note or the accounts vault.
-#!
 #! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
 #! Outputs: [ASSET]
 #!
+#! Where:
 #! - ASSET is the asset that was burned.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a faucet.
+#! - the invocation of this procedure does not originate from the native account.
+#! - the asset being burned is not associated with the faucet the transaction is being executed
+#!   against.
+#! - the asset is not well formed.
+#! - For fungible faucets:
+#!   - if the amount being burned is greater than the total input to the transaction.
+#! - For non-fungible faucets:
+#!   - if the non-fungible asset being burned does not exist or was not provided as input to the
+#!     transaction via a note or the accounts vault.
 export.burn_asset
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
     # drop the procedure's hash
     dropw
 
@@ -723,14 +814,15 @@ end
 
 #! Returns the total issuance of the fungible faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a fungible faucet.
-#!
 #! Stack: [KERNEL_PROCEDURE_HASH, 0]
 #! Outputs: [total_issuance]
 #!
+#! Where:
 #! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
 #!   against.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a fungible faucet.
 export.get_fungible_faucet_total_issuance
     # drop the procedure's hash
     dropw
@@ -749,12 +841,15 @@ export.get_fungible_faucet_total_issuance
 end
 
 #! Returns the serial number of the note currently being processed.
-#! Panics if no note is not being processed.
 #!
 #! Inputs: [KERNEL_PROCEDURE_HASH]
 #! Outputs: [SERIAL_NUMBER]
 #!
+#! Where:
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
+#!
+#! Panics if:
+#! - no note is not being processed.
 export.get_note_serial_number
     # drop the procedure's hash
     dropw
@@ -765,6 +860,63 @@ export.get_note_serial_number
     # drop the padding
     swapw dropw
     # => [SERIAL_NUMBER]
+end
+
+#! Tells the transaction kernel that we are about to execute a procedure on a foreign account.
+#!
+#! Inputs:  [KERNEL_PROCEDURE_HASH, foreign_account_id, pad(11)]
+#! Outputs: [pad(16)]
+#!
+#! Where:
+#! - foreign_account_id is the ID of the foreign account whose procedure is going to be executed.
+#!
+#! Panics if:
+#! - the current context is not a native context.
+export.start_foreign_context
+    # check that this procedure was executed against the native account
+    exec.memory::assert_native_account
+
+    dropw drop # unimplemented!
+end
+
+#! Tells the transaction kernel that we are done executing a procedure on a foreign account.
+#!
+#! Inputs:  [KERNEL_PROCEDURE_HASH, ...]
+#! Outputs: [...]
+#!
+#! Panics if:
+#! - the current context is a native context.
+export.end_foreign_context
+    exec.memory::set_current_account_data_ptr_to_native_account
+
+    # drop the procedure's hash
+    dropw
+end
+
+#! Updates the transaction expiration time delta.
+#! Once set, the delta can be decreased but not increased.
+#!
+#! The input block height delta is added to the reference block in order to output an upper limit
+#! up until which the transaction will be considered valid (not expired).
+#!
+#! Inputs: [block_height_delta, ...]
+#! Output: [...]
+#!
+#! Where:
+#! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
+export.update_expiration_block_num
+    exec.tx::update_expiration_block_num
+end
+
+#! Gets the transaction expiration delta.
+#!
+#! Inputs: [...]
+#! Output: [block_height_delta, ...]
+#!
+#! Where:
+#! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
+export.get_expiration_delta
+    exec.tx::get_expiration_delta
 end
 
 #! Executes a kernel procedure specified by its offset.
@@ -779,6 +931,9 @@ end
 #!   procedure_offset. Note that the length of this inputs cannot exceed 12 elements, since the
 #!   first word on the stack will be occupied by the procedure hash.
 #! - procedure_outputs are the outputs of the procedure to be executed.
+#!
+#! Panics if:
+#! - the provided procedure offset exceeds the number of kernel procedures.
 export.exec_kernel_proc
     # check that the provided procedure offset is within expected bounds
     dup exec.memory::get_num_kernel_procedures

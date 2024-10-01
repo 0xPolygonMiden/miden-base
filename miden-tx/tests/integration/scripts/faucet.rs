@@ -100,7 +100,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    prove_and_verify_transaction(executed_transaction.clone()).unwrap();
 
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
