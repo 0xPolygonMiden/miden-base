@@ -164,9 +164,6 @@ pub const KERNEL_PROCEDURES_PTR: MemoryAddress = 401;
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 
-/// Maximum number of the foreign accounts that can be loaded.
-pub const MAX_NUM_FOREIGN_ACCOUNTS: u8 = 64;
-
 /// The size of the memory segment allocated to core account data (excluding new code commitment)
 pub const ACCT_DATA_MEM_SIZE: MemSize = 4;
 
