@@ -1,4 +1,4 @@
-use alloc::{rc::Rc, vec::Vec};
+use alloc::{sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -39,7 +39,7 @@ pub trait TransactionProver {
 ///
 /// Local Transaction Prover implements the [TransactionProver] trait.
 pub struct LocalTransactionProver {
-    mast_store: Rc<TransactionMastStore>,
+    mast_store: Arc<TransactionMastStore>,
     proof_options: ProvingOptions,
 }
 
@@ -49,7 +49,7 @@ impl LocalTransactionProver {
     /// Creates a new [LocalTransactionProver] instance.
     pub fn new(proof_options: ProvingOptions) -> Self {
         Self {
-            mast_store: Rc::new(TransactionMastStore::new()),
+            mast_store: Arc::new(TransactionMastStore::new()),
             proof_options,
         }
     }
@@ -58,7 +58,7 @@ impl LocalTransactionProver {
 impl Default for LocalTransactionProver {
     fn default() -> Self {
         Self {
-            mast_store: Rc::new(TransactionMastStore::new()),
+            mast_store: Arc::new(TransactionMastStore::new()),
             proof_options: Default::default(),
         }
     }
@@ -85,7 +85,7 @@ impl TransactionProver for LocalTransactionProver {
         // load the store with account/note/tx_script MASTs
         self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
-        let mut host: TransactionHost<_, ()> =
+        let mut host: TransactionHost<_> =
             TransactionHost::new(account.into(), advice_provider, self.mast_store.clone(), None)
                 .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =

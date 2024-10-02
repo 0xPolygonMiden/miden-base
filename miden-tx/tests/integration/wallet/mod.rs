@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{
@@ -56,7 +58,8 @@ fn prove_receive_asset_via_wallet() {
         .input_notes(vec![note])
         .build();
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(target_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -111,7 +114,8 @@ fn prove_send_note_without_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(sender_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -194,7 +198,8 @@ fn prove_send_note_with_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(sender_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context

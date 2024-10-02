@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
@@ -19,14 +19,14 @@ use miden_objects::{
     Felt, FieldElement,
 };
 use miden_tx::{
-    auth::BasicAuthenticator,
+    auth::TransactionAuthenticator,
     testing::{
         mock_chain::{Auth, MockChain},
         TransactionContextBuilder,
     },
     TransactionExecutor,
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
 
@@ -72,7 +72,8 @@ fn prove_p2id_script() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -116,8 +117,10 @@ fn prove_p2id_script() {
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
         .build();
-    let executor_2 =
-        TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
+    let executor_2 = TransactionExecutor::new(
+        Arc::new(tx_context_malicious_account.clone()),
+        Some(malicious_falcon_auth),
+    );
 
     let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
@@ -179,7 +182,7 @@ fn p2id_script_multiple_assets() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -220,8 +223,10 @@ fn p2id_script_multiple_assets() {
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
         .build();
-    let executor_2 =
-        TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
+    let executor_2 = TransactionExecutor::new(
+        Arc::new(tx_context_malicious_account.clone()),
+        Some(malicious_falcon_auth),
+    );
     let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
@@ -269,7 +274,7 @@ fn prove_consume_note_with_new_account() {
 
     assert!(target_account.is_new());
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -352,7 +357,7 @@ fn prove_consume_multiple_notes() {
 // HELPER FUNCTIONS
 // ===============================================================================================
 
-fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
+fn create_new_account() -> (Account, Word, Arc<dyn TransactionAuthenticator>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
     let storage_slot = StorageSlot::Value(pub_key);
