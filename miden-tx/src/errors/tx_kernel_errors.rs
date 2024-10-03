@@ -89,8 +89,10 @@ pub const ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE: u32 = 131156;
 pub const ERR_INVALID_TX_EXPIRATION_DELTA: u32 = 131157;
 pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 131158;
 pub const ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED: u32 = 131159;
+pub const ERR_ACCT_TOO_MANY_STORAGE_SLOTS: u32 = 131160;
+pub const ERR_FOREIGN_ACCT_ID_EQUALS_NATIVE_ACCT_ID: u32 = 131161;
 
-pub const KERNEL_ERRORS: [(u32, &str); 88] = [
+pub const KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -179,4 +181,6 @@ pub const KERNEL_ERRORS: [(u32, &str); 88] = [
     (ERR_INVALID_TX_EXPIRATION_DELTA, "Invalid transaction expiration block delta was set."),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "Provided ID of the foreign account equals zero"),
     (ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED, "Maximum number of the foreign accounts (64) was exceeded"),
+    (ERR_ACCT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeded the maximum limit of 255"),
+    (ERR_FOREIGN_ACCT_ID_EQUALS_NATIVE_ACCT_ID, "Provided foreign account ID is equal to the native account ID")
 ];

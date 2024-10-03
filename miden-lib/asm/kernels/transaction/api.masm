@@ -992,7 +992,7 @@ export.start_foreign_context
     # OS => [foreign_account_id]
 
     # get the memory address and a flag whether this account was already loaded.
-    exec.memory::get_foreign_account_ptr
+    exec.account::get_foreign_account_ptr
     # OS => [was_loaded, ptr, foreign_account_id]
 
     if.true
@@ -1033,7 +1033,7 @@ export.start_foreign_context
         # AS => []
 
         # save the account procedure data into the memory
-        exec.memory::save_account_procedure_data
+        exec.account::save_account_procedure_data
         # OS => [STORAGE_ROOT]
         # AS => []
 
@@ -1043,7 +1043,7 @@ export.start_foreign_context
         # AS => []
 
         # save the storage slots data into the memory
-        exec.memory::save_account_storage_data
+        exec.account::save_account_storage_data
         # OS => []
         # AS => []
     end

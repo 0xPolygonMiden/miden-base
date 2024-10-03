@@ -168,7 +168,7 @@ fn add_account_to_advice_inputs(
     }
 
     // extend advice map with storage commitment |-> length, storage slots and types vector
-    let mut storage_slots: Vec<Felt> = vec![(storage.slots().len() as u8).into()];
+    let mut storage_slots = Vec::<Felt>::new();
     storage_slots.append(&mut storage.as_elements());
     inputs.extend_map([(storage.commitment(), storage_slots)]);
 

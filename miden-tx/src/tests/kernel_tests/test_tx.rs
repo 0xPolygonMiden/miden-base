@@ -678,7 +678,7 @@ fn test_load_foreign_account_basic() {
             # push the index of desired storage item
             push.2
 
-            # get the hash of the `get_item_foreign` account procedure
+            # get the hash of the `get_map_item_foreign` account procedure
             procref.account::get_map_item_foreign
 
             # push the foreign account id
@@ -803,15 +803,8 @@ fn get_mock_advice_inputs(foreign_account: &Account) -> AdviceInputs {
             ]
             .concat(),
         ),
-        // STORAGE_ROOT |-> [num_storage_slots, [STORAGE_SLOT_DATA]]
-        (
-            foreign_storage_root,
-            [
-                vec![Felt::try_from(foreign_account.storage().slots().len()).unwrap()],
-                foreign_account.storage().as_elements(),
-            ]
-            .concat(),
-        ),
+        // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
+        (foreign_storage_root, foreign_account.storage().as_elements()),
         // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
         (
             foreign_code_root,
