@@ -402,8 +402,8 @@ proc.validate_new_account
 
     # Assert the provided storage offsets and sizes satisfy storage requirements
     # ---------------------------------------------------------------------------------------------
-    exec.account::validate_storage_offsets
-    exec.account::validate_storage_sizes
+    exec.account::validate_storage_metadata
+    # => []
 end
 
 #! Validates that storage slots match storage commitment and saves storage slots into memory.
@@ -544,7 +544,7 @@ end
 #! - ACCOUNT_STORAGE_COMMITMENT, account's storage commitment.
 #! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
-    # Initialize the current account data pointer in the bookkeeping section with the native offset 
+    # Initialize the current account data pointer in the bookkeeping section with the native offset
     # (2048)
     exec.memory::set_current_account_data_ptr_to_native_account
 
@@ -1241,6 +1241,6 @@ export.prepare_transaction
     exec.process_input_notes_data
     exec.process_tx_script_root
     # => []
-    
+
     push.MAX_BLOCK_NUM exec.memory::set_expiration_block_num
 end

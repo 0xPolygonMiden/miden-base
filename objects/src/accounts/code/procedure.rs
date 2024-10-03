@@ -24,6 +24,7 @@ use crate::AccountError;
 /// The size is used to limit how many storage slots a given procedure can access in the associated
 /// account's storage. For example, if storage size for a procedure is set to 3, the procedure will
 /// be bounded to access storage slots in the range [storage_offset, storage_offset + 3 - 1].
+/// Furthermore storage_size = 0 indicates that a procedure does not need to access storage.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AccountProcedureInfo {
     mast_root: Digest,
@@ -122,7 +123,7 @@ impl Serializable for AccountProcedureInfo {
     fn get_size_hint(&self) -> usize {
         self.mast_root.get_size_hint()
             + self.storage_offset.get_size_hint()
-            + self.storage_size().get_size_hint()
+            + self.storage_size.get_size_hint()
     }
 }
 

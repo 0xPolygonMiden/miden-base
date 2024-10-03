@@ -327,16 +327,17 @@ export.apply_storage_offset
     # => [offset_slot_index]
 end
 
-#! Validates all account procedures storage offsets by checking that:
-#! - All storage offsets are in bounds
+#! Validates all account procedures storage metadata by checking that:
+#! - All storage offsets and sizes are in bounds
 #! - All storage offsets adhere to account type specific rules
+#! - All procedures not accessing storage have offset and size set to 0
 #!
 #! Notes:
 #! - For faucets checks that no storage offset is 0 (preventing reserved storage slot access)
 #!
 #! Stack: []
 #! Output: []
-export.validate_storage_offsets
+export.validate_storage_metadata
     # get number of account procedures and number of storage slots
     exec.memory::get_num_account_procedures exec.memory::get_num_storage_slots
     # => [num_storage_slots, num_account_procedures]
@@ -353,30 +354,33 @@ export.validate_storage_offsets
     # account has between 1 and 256 procedures with associated offsets
     if.true
         while.true
-            # get storage offset from memory
-            dup exec.get_procedure_metadata swap drop
-            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+            # get storage offset and size from memory
+            dup exec.get_procedure_metadata
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is not 0
             dup push.0 neq assert.err=ERR_INVALID_FAUCET_STORAGE_OFFSET
-            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
             # to prevent access to the reserved faucet data slot. When the assembler
-            # will support storage offsets remove this check.
+            # will support storage offsets and sizes remove this check.
             # check if the storage offset and the number of storage slots are 1
-            dup dup.3 eq.1 swap eq.1 and
-            # => [not_both_1, storage_offset, index, num_storage_slots, num_account_procedures]
+            dup dup.4 eq.1 swap eq.1 and
+            # => [both_1, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            if.false
+            if.true
+                # clean stack
+                drop drop
+                # => [index, num_storage_slots, get_num_account_procedures]
+            else
                 # assert that storage offset is in bounds
                 dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
                 # => [index, num_storage_slots, num_account_procedures]
-            else
-                # TODO: Remove this drop with the check above
-                # skip bound check and drop storage_offset
-                drop
-                # => [index, num_storage_slots, num_account_procedures]
+
+                # assert that storage limit is in bounds
+                add sub.1 dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+                # => [index, num_storage_slots, get_num_account_procedures]
             end
 
             # check if we should continue looping
@@ -385,76 +389,29 @@ export.validate_storage_offsets
         end
     else
         while.true
-            # get storage offset from memory
-            dup exec.get_procedure_metadata swap drop
-            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+            # get storage offset and size from memory
+            dup exec.get_procedure_metadata
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is in bounds
-            dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-            # => [index, num_storage_slots, num_account_procedures]
+            dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+            # assert that if size is 0 then offset is 0
+            dup.1 eq.0
+            if.true
+                dup eq.0 assert.err=ERR_INVALID_STORAGE_OFFSET_FOR_SIZE
+            end
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+            # assert that the storage limit is in bounds
+            add sub.1 dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [index, num_storage_slots, get_num_account_procedures]
 
             # check if we should continue looping
             add.1 dup dup.3 lt
             # => [should_loop, index, num_storage_slots, num_account_procedures]
         end
-    end
-
-    # clean stack
-    drop drop drop
-    # => []
-end
-
-#! Validates all account procedures sizes by checking that:
-#! - All storage sizes are in bounds
-#! - All procedures not accessing storage have offset and size set to 0
-#!
-#! Stack: []
-#! Output: []
-export.validate_storage_sizes
-    # get number of account procedures and number of storage slots
-    exec.memory::get_num_account_procedures exec.memory::get_num_storage_slots
-    # => [num_storage_slots, num_account_procedures]
-
-    # prepare stack for looping
-    push.0.1
-    # => [start_loop, index, num_storage_slots, num_account_procedures]
-
-    # we do not check if num_account_procedures == 0 here because a valid
-    # account has between 1 and 256 procedures with associated offsets
-    while.true
-        # get storage offset and size from memory
-        dup exec.get_procedure_metadata
-        # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
-
-        # check if size is 0
-        dup.1 eq.0
-        if.true
-            # assert that a procedure not accessing storage has offset and size 0
-            dup eq.0 assert.err=ERR_INVALID_STORAGE_OFFSET_FOR_SIZE
-            drop drop
-            # => [index, num_storage_slots, get_num_account_procedures]
-        else
-            # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
-            # to prevent access to the reserved faucet data slot. When the assembler
-            # will support storage offsets remove this check.
-            # check if the storage offset and the number of storage slots are 1
-            dup dup.4 eq.1 swap eq.1 and
-            # => [not_both_1, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
-
-            if.false
-                # assert that storage limit is in bounds
-                add sub.1 dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-                # => [index, num_storage_slots, get_num_account_procedures]
-            else
-                # clean stack
-                drop drop
-                # => [index, num_storage_slots, get_num_account_procedures]
-            end
-        end
-
-        # check if we should continue looping
-        add.1 dup dup.3 lt
-        # => [should_loop, index, num_storage_slots, num_account_procedures]
     end
 
     # clean stack
