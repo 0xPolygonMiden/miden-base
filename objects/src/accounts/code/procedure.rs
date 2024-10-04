@@ -1,4 +1,4 @@
-use std::string::ToString;
+use alloc::string::ToString;
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
