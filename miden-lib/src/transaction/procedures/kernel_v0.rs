@@ -18,9 +18,9 @@ pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     // get_account_id
     digest!(0x386549d4435f79c1, 0x4a7add2e3b9f1b9e, 0x91c0af1138c14e77, 0xee8a5630e31bc74d),
     // get_account_item
-    digest!(0x9afb3c813c39cdba, 0x9bc4f37538512aed, 0xcc592e7820104593, 0x59a7fedcd9c30dc9),
+    digest!(0x614250d8c36af706, 0x46d39fb65480d1f3, 0xe0ebb7d5f46a6f32, 0x2bc18e17712bbbc5),
     // get_account_map_item
-    digest!(0x48cbbd91d5802b3d, 0x5a06de9f28e00bf3, 0xe4b05cb4d042df1d, 0x76a54f245408615d),
+    digest!(0xe055cca34d15fc7f, 0x815734bce550acd4, 0x50a827f81176640b, 0xb426738c7e29fb23),
     // get_account_nonce
     digest!(0x64d14d80f9eff37a, 0x7587e273b2d8a416, 0x3c041064332c03d3, 0xc327341072f4f1e8),
     // get_account_vault_commitment
@@ -34,9 +34,9 @@ pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     // set_account_code
     digest!(0x90bc1f541f7adc63, 0xffa3daf2197fe496, 0xc72c5cedeb3482b, 0x5d6eac8e22abda40),
     // set_account_item
-    digest!(0xb60120026fe7a801, 0xe096b187ad23ebec, 0x86464c57975dd88, 0xe20e396dbc8a9649),
+    digest!(0xe77cd2a1c02ad66a, 0xa18d96ecd20c7ca8, 0x7114ec61e4db0bea, 0xe6b97475f1f4dcbc),
     // set_account_map_item
-    digest!(0xe085d5a90510c979, 0x9bd95341f0f07fb0, 0x4caf05f9ba8a5662, 0xd04560419bee4c83),
+    digest!(0x49092f6ea0d561f, 0x11528bb53882af83, 0x228c1352560481a, 0x79667f86e9a32dd),
     // burn_asset
     digest!(0x58e53cf050c1218e, 0x498f9b3f9904c03f, 0xbc341b7737247115, 0x3ea366d3bc90fe32),
     // get_fungible_faucet_total_issuance

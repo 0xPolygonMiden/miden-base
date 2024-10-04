@@ -69,7 +69,7 @@ impl AccountCode {
                     proc_mast_root,
                     storage_offset,
                     storage_size,
-                ));
+                )?);
             }
         }
 

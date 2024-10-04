@@ -323,7 +323,7 @@ export.apply_storage_offset
     # => [offset_slot_index, storage_offset, storage_size]
 
     # verify that slot_index is in bounds
-    movdn.2 add sub.1 dup.1 gte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    movdn.2 add dup.1 gt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 
@@ -572,10 +572,11 @@ end
 #! Returns the procedure information
 #!
 #! Stack: [index, ...]
-#! Output: [PROC_ROOT, storage_offset, ...]
+#! Output: [PROC_ROOT, storage_offset, storage_size]
 #!
 #! - PROC_ROOT is the hash of the procedure.
 #! - storage_offset is the procedure storage offset.
+#! - storage_size is the number of storage slots the procedure is allowed to access.
 #!
 #! Panics if
 #! - index is out of bounds
@@ -600,9 +601,11 @@ end
 #! Verifies that the procedure root is part of the account code
 #!
 #! Stack: [PROC_ROOT]
-#! Output: [storage_offset]
+#! Output: [storage_offset, storage_size]
 #!
 #! - PROC_ROOT is the hash of the procedure to authenticate.
+#! - storage_offset is the procedure storage offset.
+#! - storage_size is the number of storage slots the procedure is allowed to access.
 #!
 #! Panics if
 #! - procedure root is not part of the account code.
@@ -744,7 +747,7 @@ end
 #! Output: [storage_offset, storage_size]
 #!
 #! - storage_offset is the procedure storage offset.
-#! - storage_size is the procedure storage size.
+#! - storage_size is the number of storage slots the procedure is allowed to access.
 proc.get_procedure_metadata
     # get procedure storage metadata pointer
     mul.2 exec.memory::get_acct_procedures_section_ptr add add.1

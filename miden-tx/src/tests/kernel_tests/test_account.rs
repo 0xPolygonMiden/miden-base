@@ -492,10 +492,10 @@ fn test_storage_offset() {
     // TODO: We manually set the offsets here because we do not have the ability to set the
     // offsets through MASM for now. Remove this code when we enable this functionality.
     let procedures_with_offsets = vec![
-        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2, 1),
-        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2, 1),
-        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1, 1),
-        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1, 1),
+        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2, 1).unwrap(),
+        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2, 1).unwrap(),
+        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1, 1).unwrap(),
+        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1, 1).unwrap(),
     ];
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
 

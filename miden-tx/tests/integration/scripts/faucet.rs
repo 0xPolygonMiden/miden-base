@@ -36,7 +36,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
         .code()
         .procedures()
         .iter()
-        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 2))
+        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 2).unwrap())
         .collect();
     let account_code = AccountCode::from_parts(faucet_account.code().mast(), procedures);
     let faucet_account = Account::from_parts(

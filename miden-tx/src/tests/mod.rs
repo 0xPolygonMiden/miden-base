@@ -118,7 +118,7 @@ fn executed_transaction_account_delta() {
     let procedures = account_code
         .procedures()
         .iter()
-        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 3))
+        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 3).unwrap())
         .collect();
     let account_code = AccountCode::from_parts(account_code.mast(), procedures);
     let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
@@ -194,7 +194,7 @@ fn executed_transaction_account_delta() {
         send_asset_script.push_str(&format!(
             "
             ### note {i}
-            # prepare the stack for a new note creation 
+            # prepare the stack for a new note creation
             push.0.1.2.3            # recipient
             push.{EXECUTION_HINT} # note_execution_hint
             push.{NOTETYPE}        # note_type

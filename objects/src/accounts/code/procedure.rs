@@ -1,10 +1,12 @@
+use std::string::ToString;
+
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     FieldElement,
 };
 use vm_processor::DeserializationError;
 
-use super::{Digest, Felt};
+use super::{AccountCode, Digest, Felt};
 use crate::AccountError;
 
 // ACCOUNT PROCEDURE INFO
@@ -43,12 +45,20 @@ impl AccountProcedureInfo {
     ///
     /// # Panics
     /// Panics if `storage_size` is 0 and `storage_offset` is not 0.
-    pub fn new(mast_root: Digest, storage_offset: u8, storage_size: u8) -> Self {
+    pub fn new(
+        mast_root: Digest,
+        storage_offset: u8,
+        storage_size: u8,
+    ) -> Result<Self, AccountError> {
         if storage_size == 0 && storage_offset != 0 {
-            panic!("storage_offset must be 0 when storage_size is 0");
+            return Err(AccountError::ProcedureNotAccessingStorageHasOffsets);
         }
 
-        Self { mast_root, storage_offset, storage_size }
+        if (storage_offset + storage_size) as usize > AccountCode::MAX_NUM_PROCEDURES {
+            return Err(AccountError::StorageLimitOutOfBounds);
+        }
+
+        Ok(Self { mast_root, storage_offset, storage_size })
     }
 
     // PUBLIC ACCESSORS
@@ -132,8 +142,8 @@ impl Deserializable for AccountProcedureInfo {
         let mast_root: Digest = source.read()?;
         let storage_offset = source.read_u8()?;
         let storage_size = source.read_u8()?;
-
-        Ok(Self::new(mast_root, storage_offset, storage_size))
+        Self::new(mast_root, storage_offset, storage_size)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
