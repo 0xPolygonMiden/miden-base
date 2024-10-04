@@ -8,20 +8,20 @@ use.kernel::memory
 # ERRORS
 # =================================================================================================
 
-# Asset mint operation would cause an issuance overflow
-const.ERR_FAUCET_ISSUANCE_OVERFLOW=0x00020022
+# Asset mint operation would cause the new total supply to exceed the maximum allowed asset amount
+const.ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT=0x00020022
 
-# Asset burn can not exceed the existing supply
-const.ERR_FAUCET_BURN_OVER_ISSUANCE=0x00020023
+# Asset amount to burn can not exceed the existing total supply
+const.ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY=0x00020023
 
-# Non-fungible token already exists, it can be issued only once
-const.ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS=0x00020024
+# Failed to mint new non-fungible asset because it was already issued
+const.ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED=0x00020024
 
-# Non-fungible burn called on the wrong faucet type
-const.ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE=0x00020025
+# The burn_non_fungible_asset procedure can only be called on a non-fungible faucet
+const.ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET=0x00020025
 
-# Burn called on nonexistent token
-const.ERR_FAUCET_NONEXISTING_TOKEN=0x00020026
+# Failed to burn non-existent non-fungible asset in the vault
+const.ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND=0x00020026
 
 # FUNGIBLE ASSETS
 # ==================================================================================================
@@ -56,7 +56,7 @@ export.mint_fungible_asset
     # => [total_issuance, max_allowed_issuance, amount, amount, TOTAL_ISSUANCE, ASSET]
 
     # compute difference to ensure that the total issuance will not exceed the maximum
-    sub lte assert.err=ERR_FAUCET_ISSUANCE_OVERFLOW
+    sub lte assert.err=ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT
     # => [amount, TOTAL_ISSUANCE, ASSET]
 
     # update the total issuance
@@ -93,7 +93,7 @@ proc.burn_fungible_asset
     # => [TOTAL_ISSUANCE, ASSET]
 
     # assert that the asset amount being burned is less or equal to the total issuance
-    dup.7 dup dup.2 lte assert.err=ERR_FAUCET_BURN_OVER_ISSUANCE
+    dup.7 dup dup.2 lte assert.err=ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY
     # => [amount, TOTAL_ISSUANCE, ASSET]
 
     # compute new total issuance
@@ -158,7 +158,7 @@ proc.mint_non_fungible_asset
 
     # assert the `OLD_VAL` is EMPTY_WORD, indicating that the non-fungible asset did not already exist
     # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
-    drop drop eq.0 assert.err=ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS drop
+    drop drop eq.0 assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED drop
     # => [SMT_ROOT', ASSET]
 
     # update the root of the SMT containing the non-fungible assets
@@ -186,7 +186,7 @@ end
 #! - ASSET is the asset that was burned.
 proc.burn_non_fungible_asset
     # assert that we are executing a transaction against the non-fungible faucet (access checks)
-    exec.account::get_id exec.account::is_non_fungible_faucet assert.err=ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE
+    exec.account::get_id exec.account::is_non_fungible_faucet assert.err=ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
     # => [ASSET]
 
     # duplicate asset
@@ -207,7 +207,7 @@ proc.burn_non_fungible_asset
 
     # assert the `OLD_VAL` is not EMPTY_WORD, indicating that the non-fungible asset exists.
     # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
-    drop drop eq.0 not assert.err=ERR_FAUCET_NONEXISTING_TOKEN drop
+    drop drop eq.0 not assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND drop
     # => [SMT_ROOT', ASSET]
 
     # update the root of the SMT containing the non-fungible assets
