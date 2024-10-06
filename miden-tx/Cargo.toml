@@ -32,7 +32,7 @@ miden-verifier = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { version = "0.3", default-features = false, optional = true }
 vm-processor = { workspace = true }
-winter-maybe-async = { git = "https://github.com/lambdaclass/winterfell", branch = "igamigo-maybe-async-trait-updated" }
+winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]
 miden-tx = { path = ".", features = ["testing"] }
