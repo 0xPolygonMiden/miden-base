@@ -45,8 +45,8 @@ pub enum AccountError {
     StorageSlotNotValue(u8),
     StorageIndexOutOfBounds { max: u8, actual: u8 },
     StorageTooManySlots(u64),
-    StorageLimitOutOfBounds,
-    ProcedureNotAccessingStorageHasOffsets,
+    StorageOffsetOutOfBounds { max: u8, actual: u8 },
+    PureProcedureWithStorageOffset,
 }
 
 impl fmt::Display for AccountError {

@@ -400,9 +400,9 @@ proc.validate_new_account
     exec.account::validate_seed
     # => []
 
-    # Assert the provided storage offsets and sizes satisfy storage requirements
+    # Assert the provided procedures offsets and sizes satisfy storage requirements
     # ---------------------------------------------------------------------------------------------
-    exec.account::validate_storage_metadata
+    exec.account::validate_procedure_metadata
     # => []
 end
 

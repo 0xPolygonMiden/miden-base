@@ -53,14 +53,15 @@ impl AccountCode {
     ///   location 0.
     ///
     /// # Errors
-    /// - If the number of procedures exported from the provided library is smaller than 1 or
-    ///   greater than 256.
+    /// - If the number of procedures exported from the provided library is 0.
+    /// - If the number of procedures exported from the provided library is greater than 256.
+    /// - If the creation of a new `AccountProcedureInfo` fails.
     pub fn new(library: Library, is_faucet: bool) -> Result<Self, AccountError> {
         // extract procedure information from the library exports
         // TODO: currently, offsets for all regular account procedures are set to 0
         // and offsets for faucet accounts procedures are set to 1. Furthermore sizes
         // are set to 1 for all accounts. Instead they should be read from the Library metadata.
-        let mut procedures: Vec<AccountProcedureInfo> = Vec::new();
+        let mut procedures = Vec::new();
         let storage_offset = if is_faucet { 1 } else { 0 };
         let storage_size = 1;
         for module in library.module_infos() {

@@ -337,7 +337,7 @@ end
 #!
 #! Stack: []
 #! Output: []
-export.validate_storage_metadata
+export.validate_procedure_metadata
     # get number of account procedures and number of storage slots
     exec.memory::get_num_account_procedures exec.memory::get_num_storage_slots
     # => [num_storage_slots, num_account_procedures]
@@ -372,15 +372,15 @@ export.validate_storage_metadata
             if.true
                 # clean stack
                 drop drop
-                # => [index, num_storage_slots, get_num_account_procedures]
+                # => [index, num_storage_slots, num_account_procedures]
             else
                 # assert that storage offset is in bounds
-                dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-                # => [index, num_storage_slots, num_account_procedures]
+                dup dup.3 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+                # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
                 # assert that storage limit is in bounds
-                add sub.1 dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-                # => [index, num_storage_slots, get_num_account_procedures]
+                add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+                # => [index, num_storage_slots, num_account_procedures]
             end
 
             # check if we should continue looping
@@ -397,6 +397,7 @@ export.validate_storage_metadata
             dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
+            # TODO: Find a way to remove this `if` statement
             # assert that if size is 0 then offset is 0
             dup.1 eq.0
             if.true
@@ -404,9 +405,9 @@ export.validate_storage_metadata
             end
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # assert that the storage limit is in bounds
-            add sub.1 dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-            # => [index, num_storage_slots, get_num_account_procedures]
+            # assert that storage limit is in bounds
+            add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [index, num_storage_slots, num_account_procedures]
 
             # check if we should continue looping
             add.1 dup dup.3 lt
@@ -593,8 +594,8 @@ export.get_procedure_info
     padw movup.4 mem_loadw padw movup.8 mem_loadw
     # => [METADATA, PROC_ROOT]
 
-    # keep only relevant data
-    swap drop swap drop swap movdn.5 movdn.5
+    # keep relevant data
+    drop drop swap movdn.5 movdn.5
     # => [PROC_ROOT, storage_offset, storage_size]
 end
 
@@ -753,7 +754,7 @@ proc.get_procedure_metadata
     mul.2 exec.memory::get_acct_procedures_section_ptr add add.1
     # => [storage_offset_ptr]
 
-    # load procedure storage offset from memory and keep relevant data
-    padw movup.4 mem_loadw swap drop swap drop swap
+    # load procedure metadata from memory and keep relevant data
+    padw movup.4 mem_loadw drop drop swap
     # => [storage_offset, storage_size]
 end

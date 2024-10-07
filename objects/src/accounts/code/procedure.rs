@@ -6,8 +6,8 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::{AccountCode, Digest, Felt};
-use crate::AccountError;
+use super::{Digest, Felt};
+use crate::{accounts::AccountStorage, AccountError};
 
 // ACCOUNT PROCEDURE INFO
 // ================================================================================================
@@ -43,19 +43,23 @@ impl AccountProcedureInfo {
 
     /// Returns a new instance of an [AccountProcedureInfo].
     ///
-    /// # Panics
-    /// Panics if `storage_size` is 0 and `storage_offset` is not 0.
+    /// # Errors
+    /// - If `storage_size` is 0 and `storage_offset` is not 0.
+    /// - If `storage_size + storage_offset` is greater than `MAX_NUM_STORAGE_SLOTS`.
     pub fn new(
         mast_root: Digest,
         storage_offset: u8,
         storage_size: u8,
     ) -> Result<Self, AccountError> {
         if storage_size == 0 && storage_offset != 0 {
-            return Err(AccountError::ProcedureNotAccessingStorageHasOffsets);
+            return Err(AccountError::PureProcedureWithStorageOffset);
         }
 
-        if (storage_offset + storage_size) as usize > AccountCode::MAX_NUM_PROCEDURES {
-            return Err(AccountError::StorageLimitOutOfBounds);
+        if (storage_offset + storage_size) as usize > AccountStorage::MAX_NUM_STORAGE_SLOTS {
+            return Err(AccountError::StorageOffsetOutOfBounds {
+                max: AccountStorage::MAX_NUM_STORAGE_SLOTS as u8,
+                actual: storage_offset + storage_size,
+            });
         }
 
         Ok(Self { mast_root, storage_offset, storage_size })
@@ -91,7 +95,7 @@ impl From<AccountProcedureInfo> for [Felt; 8] {
         result[4] = Felt::from(value.storage_offset);
 
         // copy the storage size into value[7]
-        result[7] = Felt::from(value.storage_size);
+        result[5] = Felt::from(value.storage_size);
 
         result
     }
@@ -109,15 +113,15 @@ impl TryFrom<[Felt; 8]> for AccountProcedureInfo {
             .try_into()
             .map_err(|_| AccountError::AccountCodeProcedureInvalidStorageOffset)?;
 
-        // Check if the next two elements are zero
-        if value[5] != Felt::ZERO || value[6] != Felt::ZERO {
-            return Err(AccountError::AccountCodeProcedureInvalidPadding);
-        }
-
-        // get storage_size form value[7]
-        let storage_size: u8 = value[7]
+        // get storage_size form value[5]
+        let storage_size: u8 = value[5]
             .try_into()
             .map_err(|_| AccountError::AccountCodeProcedureInvalidStorageSize)?;
+
+        // Check if the remaining values are 0
+        if value[6] != Felt::ZERO || value[7] != Felt::ZERO {
+            return Err(AccountError::AccountCodeProcedureInvalidPadding);
+        }
 
         Ok(Self { mast_root, storage_offset, storage_size })
     }
