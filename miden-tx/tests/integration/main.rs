@@ -1,3 +1,5 @@
+extern crate alloc;
+
 mod scripts;
 mod wallet;
 
@@ -49,7 +51,7 @@ pub fn prove_and_verify_transaction(
 #[cfg(test)]
 pub fn get_new_pk_and_authenticator(
 ) -> (Word, std::sync::Arc<dyn miden_tx::auth::TransactionAuthenticator>) {
-    use std::sync::Arc;
+    use alloc::sync::Arc;
 
     use miden_objects::accounts::AuthSecretKey;
     use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};

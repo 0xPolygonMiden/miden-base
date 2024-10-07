@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use miden_lib::notes::create_p2idr_note;
 use miden_objects::{

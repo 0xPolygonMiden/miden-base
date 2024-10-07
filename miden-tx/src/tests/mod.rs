@@ -1,5 +1,4 @@
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
-use std::sync::Arc;
+use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
