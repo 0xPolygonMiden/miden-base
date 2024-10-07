@@ -1,3 +1,5 @@
+use alloc::sync::Arc;
+
 use miden_lib::notes::create_p2idr_note;
 use miden_objects::{
     accounts::{
@@ -98,7 +100,7 @@ fn p2idr_script() {
         .input_notes(vec![note_in_time.clone()])
         .build();
     let executor_1 =
-        TransactionExecutor::new(tx_context_1.clone(), Some(target_falcon_auth.clone()));
+        TransactionExecutor::new(Arc::new(tx_context_1.clone()), Some(target_falcon_auth.clone()));
 
     let block_ref_1 = tx_context_1.tx_inputs().block_header().block_num();
     let note_ids = tx_context_1.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -127,7 +129,7 @@ fn p2idr_script() {
         .input_notes(vec![note_in_time.clone()])
         .build();
     let executor_2 =
-        TransactionExecutor::new(tx_context_2.clone(), Some(sender_falcon_auth.clone()));
+        TransactionExecutor::new(Arc::new(tx_context_2.clone()), Some(sender_falcon_auth.clone()));
     let tx_script_sender = build_default_auth_script();
     let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
@@ -151,8 +153,10 @@ fn p2idr_script() {
     let tx_context_3 = TransactionContextBuilder::new(malicious_account.clone())
         .input_notes(vec![note_in_time.clone()])
         .build();
-    let executor_3 =
-        TransactionExecutor::new(tx_context_3.clone(), Some(malicious_falcon_auth.clone()));
+    let executor_3 = TransactionExecutor::new(
+        Arc::new(tx_context_3.clone()),
+        Some(malicious_falcon_auth.clone()),
+    );
 
     let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
@@ -177,7 +181,8 @@ fn p2idr_script() {
     let tx_context_4 = TransactionContextBuilder::new(target_account.clone())
         .input_notes(vec![note_reclaimable.clone()])
         .build();
-    let executor_4 = TransactionExecutor::new(tx_context_4.clone(), Some(target_falcon_auth));
+    let executor_4 =
+        TransactionExecutor::new(Arc::new(tx_context_4.clone()), Some(target_falcon_auth));
 
     let block_ref_4 = tx_context_4.tx_inputs().block_header().block_num();
     let note_ids_4 = tx_context_4.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -207,7 +212,8 @@ fn p2idr_script() {
     let tx_context_5 = TransactionContextBuilder::new(sender_account.clone())
         .input_notes(vec![note_reclaimable.clone()])
         .build();
-    let executor_5 = TransactionExecutor::new(tx_context_5.clone(), Some(sender_falcon_auth));
+    let executor_5 =
+        TransactionExecutor::new(Arc::new(tx_context_5.clone()), Some(sender_falcon_auth));
 
     let block_ref_5 = tx_context_5.tx_inputs().block_header().block_num();
     let note_ids_5 = tx_context_5.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -237,7 +243,8 @@ fn p2idr_script() {
         .input_notes(vec![note_reclaimable.clone()])
         .build();
 
-    let executor_6 = TransactionExecutor::new(tx_context_6.clone(), Some(malicious_falcon_auth));
+    let executor_6 =
+        TransactionExecutor::new(Arc::new(tx_context_6.clone()), Some(malicious_falcon_auth));
 
     let block_ref_6 = tx_context_6.tx_inputs().block_header().block_num();
     let note_ids_6 = tx_context_6.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();

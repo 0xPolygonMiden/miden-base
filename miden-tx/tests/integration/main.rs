@@ -1,3 +1,5 @@
+extern crate alloc;
+
 mod scripts;
 mod wallet;
 
@@ -48,11 +50,11 @@ pub fn prove_and_verify_transaction(
 
 #[cfg(test)]
 pub fn get_new_pk_and_authenticator(
-) -> (Word, std::rc::Rc<miden_tx::auth::BasicAuthenticator<rand::rngs::StdRng>>) {
-    use std::rc::Rc;
+) -> (Word, std::sync::Arc<dyn miden_tx::auth::TransactionAuthenticator>) {
+    use alloc::sync::Arc;
 
     use miden_objects::accounts::AuthSecretKey;
-    use miden_tx::auth::BasicAuthenticator;
+    use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
     use rand::rngs::StdRng;
 
     let seed = [0_u8; 32];
@@ -64,7 +66,7 @@ pub fn get_new_pk_and_authenticator(
     let authenticator =
         BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
 
-    (pub_key, Rc::new(authenticator))
+    (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }
 
 #[cfg(test)]

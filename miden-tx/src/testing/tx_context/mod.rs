@@ -1,3 +1,5 @@
+#[cfg(feature = "async")]
+use alloc::boxed::Box;
 use alloc::{rc::Rc, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
@@ -8,7 +10,7 @@ use miden_objects::{
     transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
 };
 use vm_processor::{AdviceInputs, ExecutionError, Process};
-use winter_maybe_async::{maybe_async, maybe_await};
+use winter_maybe_async::*;
 
 use super::{
     executor::CodeExecutor,
@@ -16,7 +18,8 @@ use super::{
     MockHost,
 };
 use crate::{
-    DataStore, DataStoreError, TransactionExecutor, TransactionExecutorError, TransactionMastStore,
+    auth::TransactionAuthenticator, DataStore, DataStoreError, TransactionExecutor,
+    TransactionExecutorError, TransactionMastStore,
 };
 
 mod builder;
@@ -39,6 +42,7 @@ pub struct TransactionContext {
     authenticator: Option<MockAuthenticator>,
     assembler: Assembler,
 }
+
 impl TransactionContext {
     /// Executes arbitrary code within the context of a mocked transaction environment and returns
     /// the resulting [Process].
@@ -79,8 +83,10 @@ impl TransactionContext {
 
         let account_id = self.account().id();
         let block_num = mock_data_store.tx_inputs.block_header().block_num();
-        let tx_executor =
-            TransactionExecutor::new(mock_data_store, self.authenticator.map(Rc::new));
+        let authenticator = self
+            .authenticator
+            .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
+        let tx_executor = TransactionExecutor::new(Arc::new(mock_data_store), authenticator);
         let notes: Vec<NoteId> = self.tx_inputs.input_notes().into_iter().map(|n| n.id()).collect();
 
         maybe_await!(tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args))
@@ -115,6 +121,10 @@ impl TransactionContext {
     }
 }
 
+unsafe impl Send for TransactionContext {}
+unsafe impl Sync for TransactionContext {}
+
+#[maybe_async_trait]
 impl DataStore for TransactionContext {
     #[maybe_async]
     fn get_transaction_inputs(

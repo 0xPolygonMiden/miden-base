@@ -24,6 +24,7 @@ std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier
 testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/testing", "dep:rand_chacha"]
 
 [dependencies]
+async-trait = "0.1"
 miden-lib = { workspace = true }
 miden-objects = { workspace = true }
 miden-prover = { workspace = true }
