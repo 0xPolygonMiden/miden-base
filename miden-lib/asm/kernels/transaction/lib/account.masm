@@ -62,6 +62,9 @@ const.ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED=0x00020057
 # Provided foreign account ID is equal to the native account ID. 
 const.ERR_FOREIGN_ACCT_ID_EQUALS_NATIVE_ACCT_ID=0x00020059
 
+# Storage offset is invalid for 0 storage size (should be 0)
+const.ERR_INVALID_STORAGE_OFFSET_FOR_SIZE=0x0002005A
+
 # CONSTANTS
 # =================================================================================================
 
@@ -329,34 +332,34 @@ export.set_code
     # => []
 end
 
-#! Applies offset to provided storage slot index for storage access
+#! Applies storage offset to provided storage slot index for storage access
 #!
 #! Panics:
-#! - slot index is out of bounds
 #! - computed index is out of bounds
 #!
-#! Stack: [storage_offset, slot_index]
+#! Stack: [storage_offset, storage_size, slot_index]
 #! Output: [offset_slot_index]
 export.apply_storage_offset
-    # verify that slot_index is in bounds
-    dup.1 exec.memory::get_num_storage_slots dup movdn.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-    # => [storage_offset, slot_index, num_storage_slots]
+    # offset index
+    dup movup.3 add
+    # => [offset_slot_index, storage_offset, storage_size]
 
-    # verify that the computed offset_slot_index is in bounds
-    add dup movup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # verify that slot_index is in bounds
+    movdn.2 add dup.1 gt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 
-#! Validates all account procedures storage offsets by checking that:
-#! - All storage offsets are in bounds
+#! Validates all account procedures storage metadata by checking that:
+#! - All storage offsets and sizes are in bounds
 #! - All storage offsets adhere to account type specific rules
+#! - All procedures not accessing storage have offset and size set to 0
 #!
 #! Notes:
 #! - For faucets checks that no storage offset is 0 (preventing reserved storage slot access)
 #!
 #! Stack: []
 #! Output: []
-export.validate_storage_offsets
+export.validate_procedure_metadata
     # get number of account procedures and number of storage slots
     exec.memory::get_num_account_procedures exec.memory::get_num_storage_slots
     # => [num_storage_slots, num_account_procedures]
@@ -373,29 +376,32 @@ export.validate_storage_offsets
     # account has between 1 and 256 procedures with associated offsets
     if.true
         while.true
-            # get storage offset from memory
-            dup exec.get_procedure_storage_offset
-            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+            # get storage offset and size from memory
+            dup exec.get_procedure_metadata
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is not 0
             dup push.0 neq assert.err=ERR_INVALID_FAUCET_STORAGE_OFFSET
-            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
             # to prevent access to the reserved faucet data slot. When the assembler
-            # will support storage offsets remove this check.
+            # will support storage offsets and sizes remove this check.
             # check if the storage offset and the number of storage slots are 1
-            dup dup.3 eq.1 swap eq.1 and
-            # => [not_both_1, storage_offset, index, num_storage_slots, num_account_procedures]
+            dup dup.4 eq.1 swap eq.1 and
+            # => [both_1, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            if.false
-                # assert that storage offset is in bounds
-                dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            if.true
+                # clean stack
+                drop drop
                 # => [index, num_storage_slots, num_account_procedures]
             else
-                # TODO: Remove this drop with the check above
-                # skip bound check and drop storage_offset
-                drop
+                # assert that storage offset is in bounds
+                dup dup.3 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+                # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+                # assert that storage limit is in bounds
+                add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
                 # => [index, num_storage_slots, num_account_procedures]
             end
 
@@ -405,12 +411,24 @@ export.validate_storage_offsets
         end
     else
         while.true
-            # get storage offset from memory
-            dup exec.get_procedure_storage_offset
-            # => [storage_offset, index, num_storage_slots, num_account_procedures]
+            # get storage offset and size from memory
+            dup exec.get_procedure_metadata
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is in bounds
-            dup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+            # TODO: Find a way to remove this `if` statement
+            # assert that if size is 0 then offset is 0
+            dup.1 eq.0
+            if.true
+                dup eq.0 assert.err=ERR_INVALID_STORAGE_OFFSET_FOR_SIZE
+            end
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+            # assert that storage limit is in bounds
+            add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [index, num_storage_slots, num_account_procedures]
 
             # check if we should continue looping
@@ -577,10 +595,11 @@ end
 #! Returns the procedure information
 #!
 #! Stack: [index, ...]
-#! Output: [PROC_ROOT, storage_offset, ...]
+#! Output: [PROC_ROOT, storage_offset, storage_size]
 #!
 #! - PROC_ROOT is the hash of the procedure.
 #! - storage_offset is the procedure storage offset.
+#! - storage_size is the number of storage slots the procedure is allowed to access.
 #!
 #! Panics if
 #! - index is out of bounds
@@ -590,20 +609,26 @@ export.get_procedure_info
     # => [index]
 
     # get procedure pointer
-    mul.2 exec.memory::get_acct_procedures_section_ptr add dup add.1
-    # => [offset_ptr, proc_ptr]
+    mul.2 exec.memory::get_acct_procedures_section_ptr add dup add.1 swap
+    # => [metadata_ptr, proc_ptr]
 
     # load procedure information from memory
-    mem_load swap padw movup.4 mem_loadw
-    # => [PROC_ROOT, storage_offset]
+    padw movup.4 mem_loadw padw movup.8 mem_loadw
+    # => [METADATA, PROC_ROOT]
+
+    # keep relevant data
+    drop drop swap movdn.5 movdn.5
+    # => [PROC_ROOT, storage_offset, storage_size]
 end
 
 #! Verifies that the procedure root is part of the account code
 #!
 #! Stack: [PROC_ROOT]
-#! Output: [storage_offset]
+#! Output: [storage_offset, storage_size]
 #!
 #! - PROC_ROOT is the hash of the procedure to authenticate.
+#! - storage_offset is the procedure storage offset.
+#! - storage_size is the number of storage slots the procedure is allowed to access.
 #!
 #! Panics if
 #! - procedure root is not part of the account code.
@@ -613,13 +638,13 @@ export.authenticate_procedure
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
     # => [index, PROC_ROOT]
 
-    # get procedure info (PROC_ROOT, storage_offset) from memory stored at index
+    # get procedure info (PROC_ROOT, storage_offset, storage_size) from memory stored at index
     exec.get_procedure_info
-    # => [PROC_ROOT, storage_offset, PROC_ROOT]
+    # => [MEM_PROC_ROOT, storage_offset, storage_size, PROC_ROOT]
 
     # verify that PROC_ROOT exists in memory at index
-    movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
-    # => [storage_offset]
+    movup.4 movdn.9 movup.4 movdn.9 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
+    # => [storage_offset, storage_size]
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
@@ -877,23 +902,24 @@ proc.set_item_raw
     # => [OLD_VALUE]
 end
 
-#! Returns the procedure storage offset
+#! Returns the procedure metadata
 #!
 #! Note:
 #! - We assume that index has been validated and is within bounds
 #!
-#! Stack: [index, ...]
-#! Output: [storage_offset, ...]
+#! Stack: [index]
+#! Output: [storage_offset, storage_size]
 #!
 #! - storage_offset is the procedure storage offset.
-proc.get_procedure_storage_offset
-    # get procedure storage offset pointer
+#! - storage_size is the number of storage slots the procedure is allowed to access.
+proc.get_procedure_metadata
+    # get procedure storage metadata pointer
     mul.2 exec.memory::get_acct_procedures_section_ptr add add.1
     # => [storage_offset_ptr]
 
-    # load procedure storage offset from memory
-    mem_load
-    # => [storage_offset]
+    # load procedure metadata from memory and keep relevant data
+    padw movup.4 mem_loadw drop drop swap
+    # => [storage_offset, storage_size]
 end
 
 #! Returns the pointer to the next vacant memory slot if the account was not loaded before, and the 

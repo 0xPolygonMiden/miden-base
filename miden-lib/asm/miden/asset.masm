@@ -4,7 +4,7 @@ use.miden::account
 # =================================================================================================
 
 # Can not build the fungible asset because provided id is not a fungible id
-const.ERR_ASSET_NOT_FUNGIBLE_ID=0x00020041
+const.ERR_ASSET_NOT_FUNGIBLE_ID=0x0002002B
 
 # Can not build the asset because amount exceeds the maximum
 const.ERR_ASSET_INVALID_AMOUNT=0x00020042

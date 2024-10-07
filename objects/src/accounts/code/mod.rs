@@ -19,17 +19,14 @@ use procedure::AccountProcedureInfo;
 /// Account's public interface consists of a set of account procedures, each procedure being a
 /// Miden VM program. Thus, MAST root of each procedure commits to the underlying program.
 ///
-/// Each exported procedure is associated with a storage offset. This offset is applied to any
-/// accesses made from within the procedure to the associated account's storage. For example, if
-/// storage offset for a procedure is set ot 1, a call to the account::get_item(storage_slot=4)
-/// made from this procedure would actually access storage slot with index 5.
+/// Each exported procedure is associated with a storage offset and a storage size.
 ///
 /// We commit to the entire account interface by building a sequential hash of all procedure MAST
 /// roots and associated storage_offset's. Specifically, each procedure contributes exactly 8 field
 /// elements to the sequence of elements to be hashed. These elements are defined as follows:
 ///
 /// ```text
-/// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+/// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, storage_size]
 /// ```
 #[derive(Debug, Clone)]
 pub struct AccountCode {
@@ -56,18 +53,24 @@ impl AccountCode {
     ///   location 0.
     ///
     /// # Errors
-    /// - If the number of procedures exported from the provided library is smaller than 1 or
-    ///   greater than 256.
+    /// - If the number of procedures exported from the provided library is 0.
+    /// - If the number of procedures exported from the provided library is greater than 256.
+    /// - If the creation of a new `AccountProcedureInfo` fails.
     pub fn new(library: Library, is_faucet: bool) -> Result<Self, AccountError> {
         // extract procedure information from the library exports
-        // TODO: currently, offsets for all regular account procedures are set to 0
-        // and offsets for faucet accounts procedures are set to 1. Instead they should
-        // be read from the Library metadata.
-        let mut procedures: Vec<AccountProcedureInfo> = Vec::new();
+        // TODO: currently, offsets for all regular account procedures are set to 0 and offsets for
+        // faucet accounts procedures are set to 1. Furthermore sizes are set to 1 for all
+        // procedures. Instead they should be read from the Library metadata.
+        let mut procedures = Vec::new();
         let storage_offset = if is_faucet { 1 } else { 0 };
+        let storage_size = 1;
         for module in library.module_infos() {
             for proc_mast_root in module.procedure_digests() {
-                procedures.push(AccountProcedureInfo::new(proc_mast_root, storage_offset));
+                procedures.push(AccountProcedureInfo::new(
+                    proc_mast_root,
+                    storage_offset,
+                    storage_size,
+                )?);
             }
         }
 
@@ -192,7 +195,7 @@ impl AccountCode {
     ///
     /// This is done by first converting each procedure into 8 field elements as follows:
     /// ```text
-    /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+    /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, storage_size]
     /// ```
     /// And then concatenating the resulting elements into a single vector.
     pub fn as_elements(&self) -> Vec<Felt> {

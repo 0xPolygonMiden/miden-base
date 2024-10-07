@@ -4,7 +4,7 @@ use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage, StorageSlot,
+        AccountProcedureInfo, AccountStorage, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
@@ -32,6 +32,20 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
+    let procedures = faucet_account
+        .code()
+        .procedures()
+        .iter()
+        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 2).unwrap())
+        .collect();
+    let account_code = AccountCode::from_parts(faucet_account.code().mast(), procedures);
+    let faucet_account = Account::from_parts(
+        faucet_account.id(),
+        faucet_account.vault().clone(),
+        faucet_account.storage().clone(),
+        account_code,
+        faucet_account.nonce(),
+    );
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------

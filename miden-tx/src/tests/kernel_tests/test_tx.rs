@@ -17,9 +17,8 @@ use miden_objects::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2,
         },
-        Account, AccountProcedureInfo, StorageSlot,
+        Account, AccountCode, AccountProcedureInfo, AccountStorage, StorageSlot,
     },
     assets::NonFungibleAsset,
     notes::{
@@ -27,13 +26,14 @@ use miden_objects::{
         NoteType,
     },
     testing::{
-        constants::NON_FUNGIBLE_ASSET_DATA_2,
-        prepare_word,
-        storage::{STORAGE_LEAVES_2, STORAGE_VALUE_1},
+        account::AccountBuilder, constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word,
+        storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes},
     Digest, FieldElement,
 };
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
 
 use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
@@ -598,11 +598,15 @@ fn test_build_recipient_hash() {
 
 #[test]
 fn test_load_foreign_account_basic() {
-    let foreign_account = Account::mock(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2,
-        ONE,
-        TransactionKernel::testing_assembler(),
-    );
+    let storage_slot = AccountStorage::mock_item_0().slot;
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot.clone())
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
+    let account_id = foreign_account.id();
+
     let advice_inputs = get_mock_advice_inputs(&foreign_account);
 
     // GET ITEM
@@ -626,7 +630,7 @@ fn test_load_foreign_account_basic() {
             # => [pad(11)]
 
             # push the index of desired storage item
-            push.1
+            push.0
 
             # get the hash of the `get_item_foreign` account procedure
             procref.account::get_item_foreign
@@ -638,22 +642,33 @@ fn test_load_foreign_account_basic() {
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
         end
-        ",
-        account_id = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2
+        "
     );
 
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
-        STORAGE_VALUE_1,
-        "Value at the top of the stack (value in the storage at index 1) should be equal [5, 6, 7, 8]",
+        storage_slot.value(),
+        "Value at the top of the stack (value in the storage at index 0) should be equal [1, 2, 3, 4]",
     );
 
     foreign_account_data_memory_assertions(&foreign_account, &process);
 
     // GET MAP ITEM
     // --------------------------------------------------------------------------------------------
+    let storage_slot = AccountStorage::mock_item_2().slot;
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot.clone())
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
+
+    let account_id = foreign_account.id();
+
+    let advice_inputs = get_mock_advice_inputs(&foreign_account);
+
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .advice_inputs(advice_inputs)
         .build();
@@ -676,7 +691,7 @@ fn test_load_foreign_account_basic() {
             push.{map_key}
 
             # push the index of desired storage item
-            push.2
+            push.0
 
             # get the hash of the `get_map_item_foreign` account procedure
             procref.account::get_map_item_foreign
@@ -690,7 +705,6 @@ fn test_load_foreign_account_basic() {
         end
         ",
         map_key = STORAGE_LEAVES_2[0].0,
-        account_id = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -708,11 +722,15 @@ fn test_load_foreign_account_basic() {
 /// the loaded account.
 #[test]
 fn test_load_foreign_account_twice() {
-    let foreign_account = Account::mock(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2,
-        ONE,
-        TransactionKernel::testing_assembler(),
-    );
+    let storage_slot = AccountStorage::mock_item_0().slot;
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot)
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
+    let account_id = foreign_account.id();
+
     let advice_inputs = get_mock_advice_inputs(&foreign_account);
 
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
@@ -729,13 +747,13 @@ fn test_load_foreign_account_twice() {
         begin
             exec.prologue::prepare_transaction
 
-            ### Get the storage item at index 1 #####################
+            ### Get the storage item at index 0 #####################
             # pad the stack for the `execute_foreign_procedure`execution
             padw padw push.0.0.0
             # => [pad(11)]
 
             # push the index of desired storage item
-            push.1
+            push.0
 
             # get the hash of the `get_item_foreign` account procedure
             procref.account::get_item_foreign
@@ -747,19 +765,16 @@ fn test_load_foreign_account_twice() {
             exec.tx::execute_foreign_procedure dropw
             # => []
 
-            ### Get the storage item at index 3 #####################
+            ### Get the storage item at index 0 again ###############
             # pad the stack for the `execute_foreign_procedure`execution
             padw push.0.0.0
             # => [pad(7)]
 
-            # push the key of desired storage item
-            push.{map_key}
-
             # push the index of desired storage item
-            push.2
+            push.0
 
             # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_map_item_foreign
+            procref.account::get_item_foreign
 
             # push the foreign account id
             push.{account_id}
@@ -768,8 +783,6 @@ fn test_load_foreign_account_twice() {
             exec.tx::execute_foreign_procedure
         end
         ",
-        map_key = STORAGE_LEAVES_2[0].0,
-        account_id = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2
     );
 
     let process = tx_context.execute_code(&code).unwrap();
