@@ -27,6 +27,7 @@ pub enum AccountError {
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountCodeProcedureInvalidStorageOffset,
+    AccountCodeProcedureInvalidStorageSize,
     AccountCodeProcedureInvalidPadding,
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
@@ -44,6 +45,8 @@ pub enum AccountError {
     StorageSlotNotValue(u8),
     StorageIndexOutOfBounds { max: u8, actual: u8 },
     StorageTooManySlots(u64),
+    StorageOffsetOutOfBounds { max: u8, actual: u8 },
+    PureProcedureWithStorageOffset,
 }
 
 impl fmt::Display for AccountError {

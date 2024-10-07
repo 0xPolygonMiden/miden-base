@@ -8,14 +8,15 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        AccountCode,
+        AccountCode, AccountProcedureInfo, AccountStorage,
     },
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
+        account::AccountBuilder,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
         prepare_word,
@@ -25,6 +26,8 @@ use miden_objects::{
     Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
 use vm_processor::{
     utils::{Deserializable, Serializable},
     Digest, MemAdviceProvider, ONE,
@@ -104,7 +107,33 @@ fn transaction_executor_witness() {
 
 #[test]
 fn executed_transaction_account_delta() {
-    let mut tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    let account_code =
+        AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false);
+    let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
+
+    // modify procedure storage sizes
+    // TODO: We manually modify the sizes here to 3 because they are hardcoded as 1.
+    // Though we are accessing multiple storage slots up to 2 in this test.
+    // Remove this manual modification once we have the ability to set sizes using the assembler.
+    let procedures = account_code
+        .procedures()
+        .iter()
+        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 3).unwrap())
+        .collect();
+    let account_code = AccountCode::from_parts(account_code.mast(), procedures);
+    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slots([
+            AccountStorage::mock_item_0().slot,
+            AccountStorage::mock_item_1().slot,
+            AccountStorage::mock_item_2().slot,
+        ])
+        .code(account_code)
+        .add_assets(account_assets)
+        .nonce(ONE)
+        .build()
+        .unwrap();
+
+    let mut tx_context = TransactionContextBuilder::new(account)
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
@@ -165,7 +194,7 @@ fn executed_transaction_account_delta() {
         send_asset_script.push_str(&format!(
             "
             ### note {i}
-            # prepare the stack for a new note creation 
+            # prepare the stack for a new note creation
             push.0.1.2.3            # recipient
             push.{EXECUTION_HINT} # note_execution_hint
             push.{NOTETYPE}        # note_type

@@ -21,6 +21,7 @@
 - [BREAKING] Updated limits, introduced additional limits (#889).
 - Introduced `AccountDelta` maximum size limit of 32 KiB (#889).
 - [BREAKING] Moved `MAX_NUM_FOREIGN_ACCOUNTS` into `miden-objects` (#904).
+- Implemented `storage_size`, updated storage bounds (#886).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
