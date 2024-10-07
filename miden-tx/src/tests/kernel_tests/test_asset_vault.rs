@@ -19,9 +19,11 @@ use super::{Felt, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
     errors::tx_kernel_errors::{
-        ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW, ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
-        ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE, ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTS,
-        ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET,
+        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
+        ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
+        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND,
     },
     testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
@@ -71,7 +73,10 @@ fn test_get_balance_non_fungible_fails() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE);
+    assert_execution_error!(
+        process,
+        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
+    );
 }
 
 #[test]
@@ -229,7 +234,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTS);
+    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS);
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
 }
 
@@ -291,7 +296,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW);
+    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW);
 }
 
 #[test]
@@ -364,7 +369,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET);
+    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND);
     assert_eq!(
         account_vault.remove_asset(non_existent_non_fungible_asset),
         Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),

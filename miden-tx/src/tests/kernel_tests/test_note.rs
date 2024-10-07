@@ -9,7 +9,7 @@ use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 use super::{Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
-    errors::tx_kernel_errors::ERR_NOTE_INVALID_INPUTS,
+    errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT,
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
@@ -38,7 +38,7 @@ fn test_get_sender_no_sender() {
 
     let process = tx_context.execute_code(code);
 
-    assert_execution_error!(process, ERR_NOTE_INVALID_INPUTS);
+    assert_execution_error!(process, ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT);
 }
 
 #[test]

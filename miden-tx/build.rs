@@ -127,7 +127,7 @@ fn generate_kernel_errors(errors: BTreeMap<String, (String, String)>) -> Result<
     for (error_name, (error_code, _)) in errors.iter() {
         writeln!(output, "pub const ERR_{error_name}: u32 = 0x{error_code};").into_diagnostic()?;
     }
-    writeln!(output, "").into_diagnostic()?;
+    writeln!(output).into_diagnostic()?;
 
     writeln!(output, "pub const KERNEL_ERRORS: [(u32, &str); {}] = [", errors.len())
         .into_diagnostic()?;

@@ -14,8 +14,8 @@ use super::{output_notes_data_procedure, ZERO};
 use crate::{
     assert_execution_error,
     errors::tx_kernel_errors::{
-        ERR_EPILOGUE_ASSETS_DONT_ADD_UP, ERR_INVALID_TX_EXPIRATION_DELTA,
-        ERR_NONCE_DID_NOT_INCREASE,
+        ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE,
+        ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_INVALID_TX_EXPIRATION_DELTA,
     },
     testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
@@ -160,7 +160,7 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
     );
 
     let process = tx_context.execute_code(&code);
-    assert_execution_error!(process, ERR_EPILOGUE_ASSETS_DONT_ADD_UP);
+    assert_execution_error!(process, ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME);
 }
 
 #[test]
@@ -192,7 +192,7 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_EPILOGUE_ASSETS_DONT_ADD_UP);
+    assert_execution_error!(process, ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME);
 }
 
 #[test]
@@ -344,5 +344,5 @@ fn test_epilogue_increment_nonce_violation() {
     );
 
     let process = tx_context.execute_code(&code);
-    assert_execution_error!(process, ERR_NONCE_DID_NOT_INCREASE)
+    assert_execution_error!(process, ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE)
 }
