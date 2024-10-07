@@ -121,6 +121,9 @@ impl TransactionContext {
     }
 }
 
+unsafe impl Send for TransactionContext {}
+unsafe impl Sync for TransactionContext {}
+
 #[maybe_async_trait]
 impl DataStore for TransactionContext {
     #[maybe_async]
