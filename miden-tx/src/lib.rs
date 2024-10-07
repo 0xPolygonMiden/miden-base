@@ -22,7 +22,7 @@ pub use verifier::TransactionVerifier;
 
 mod errors;
 pub use errors::{
-    tx_kernel_errors::KERNEL_ERRORS, AuthenticationError, DataStoreError, TransactionExecutorError,
+    tx_kernel_errors::VM_ERRORS, AuthenticationError, DataStoreError, TransactionExecutorError,
     TransactionProverError, TransactionVerifierError,
 };
 

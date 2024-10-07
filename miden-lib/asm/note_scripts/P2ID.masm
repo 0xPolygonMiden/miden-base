@@ -5,7 +5,7 @@ use.miden::contracts::wallets::basic->wallet
 # ERRORS
 # =================================================================================================
 
-# P2ID scripts expect exactly 1 note input
+# P2ID script expects exactly 1 note input
 const.ERR_P2ID_WRONG_NUMBER_OF_INPUTS=0x00020002
 
 # P2ID's target account address and transaction address do not match

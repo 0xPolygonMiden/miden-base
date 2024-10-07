@@ -28,7 +28,7 @@ const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
 const.ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT=0x00020020
 
 # Invalid note type
-const.ERR_INVALID_NOTE_TYPE=0x00020044
+const.ERR_NOTE_INVALID_TYPE=0x00020044
 
 # The 2 highest bits in the u32 tag have the following meaning:
 #
@@ -63,10 +63,10 @@ const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x00020050
 const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020051
 
 # Failed to find note at the given index; index must be within [0, num_of_notes]
-const.ERR_INVALID_NOTE_IDX=0x00020052
+const.ERR_NOTE_INVALID_INDEX=0x00020052
 
-# Input transaction expiration block delta is not within 0x1 and 0xFFFF.
-const.ERR_INVALID_TX_EXPIRATION_DELTA=0x00020055
+# Transaction expiration block delta must be within 0x1 and 0xFFFF.
+const.ERR_TX_INVALID_EXPIRATION_DELTA=0x00020055
 
 # EVENTS
 # =================================================================================================
@@ -198,8 +198,8 @@ end
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
 export.update_expiration_block_num
     # Ensure block_height_delta is between 1 and 0xFFFF (inclusive)
-    dup neq.0 assert.err=ERR_INVALID_TX_EXPIRATION_DELTA
-    dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_INVALID_TX_EXPIRATION_DELTA
+    dup neq.0 assert.err=ERR_TX_INVALID_EXPIRATION_DELTA
+    dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_TX_INVALID_EXPIRATION_DELTA
     # => [block_height_delta]
 
     exec.get_block_number add
@@ -316,7 +316,7 @@ end
 proc.build_note_metadata
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
-    dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_NOTE_INVALID_TYPE
     # => [tag, aux, note_type, execution_hint]
 
     # copy data to validate the tag
@@ -405,7 +405,7 @@ end
 #! - the total number of ASSETs exceeds the maximum of 256.
 export.add_asset_to_note
     # check if the note exists, it must be within [0, num_of_notes]
-    dup exec.memory::get_num_output_notes lte assert.err=ERR_INVALID_NOTE_IDX
+    dup exec.memory::get_num_output_notes lte assert.err=ERR_NOTE_INVALID_INDEX
     # => [note_idx, ASSET]
 
     # get a pointer to the memory address of the note at which the asset will be stored

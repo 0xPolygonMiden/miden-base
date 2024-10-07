@@ -15,7 +15,7 @@ use crate::{
     assert_execution_error,
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE,
-        ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_INVALID_TX_EXPIRATION_DELTA,
+        ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_TX_INVALID_EXPIRATION_DELTA,
     },
     testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
@@ -251,7 +251,7 @@ fn test_invalid_expiration_deltas() {
         let code = &code_template.replace("{value_1}", &value.to_string());
         let process = tx_context.execute_code(code);
 
-        assert_execution_error!(process, ERR_INVALID_TX_EXPIRATION_DELTA);
+        assert_execution_error!(process, ERR_TX_INVALID_EXPIRATION_DELTA);
     }
 }
 
