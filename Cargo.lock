@@ -1374,9 +1374,9 @@ dependencies = [
  "miden-verifier",
  "rand",
  "rand_chacha",
- "winter-maybe-async 0.10.1",
  "regex",
  "walkdir",
+ "winter-maybe-async 0.10.1",
 ]
 
 [[package]]

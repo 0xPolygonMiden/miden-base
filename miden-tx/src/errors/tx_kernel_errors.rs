@@ -13,6 +13,7 @@
 pub const ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH: u32 = 0x0002004c;
 pub const ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE: u32 = 0x0002003d;
 pub const ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES: u32 = 0x0002003c;
+pub const ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x00020056;
 pub const ERR_ACCOUNT_IS_NOT_NATIVE: u32 = 0x00020054;
 pub const ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE: u32 = 0x00020009;
 pub const ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32: u32 = 0x0002003b;
@@ -46,16 +47,8 @@ pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO: u32 = 0x00020033;
 pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x00020035;
 pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO: u32 = 0x00020034;
 pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS: u32 = 0x00020036;
-<<<<<<< HEAD
-pub const ERR_INVALID_FAUCET_STORAGE_OFFSET: u32 = 0x0002004f;
-pub const ERR_INVALID_NOTE_IDX: u32 = 0x00020052;
-pub const ERR_INVALID_NOTE_TYPE: u32 = 0x00020044;
-pub const ERR_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x00020056;
-pub const ERR_INVALID_TX_EXPIRATION_DELTA: u32 = 0x00020055;
-=======
 pub const ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x00020041;
 
->>>>>>> 6acc61a (feat(tx): Include all errors in `asm` dir, group errors by category)
 pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 0x00020053;
 
 pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x00020051;
@@ -119,14 +112,11 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002002f;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x00020032;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x00020031;
 
-<<<<<<< HEAD
-pub const KERNEL_ERRORS: [(u32, &str); 70] = [
-=======
-pub const VM_ERRORS: [(u32, &str); 82] = [
->>>>>>> 6acc61a (feat(tx): Include all errors in `asm` dir, group errors by category)
+pub const VM_ERRORS: [(u32, &str); 83] = [
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
     (ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES, "Account ID must contain at least MIN_ACCOUNT_ONES number of ones"),
+    (ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage offset is invalid for 0 storage size (should be 0)"),
     (ERR_ACCOUNT_IS_NOT_NATIVE, "The current account is not native"),
     (ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE, "Account nonce did not increase after a state changing transaction"),
     (ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32, "Account nonce cannot be increased by a greater than u32 value"),
@@ -159,16 +149,8 @@ pub const VM_ERRORS: [(u32, &str); 82] = [
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset: ASSET[3] must be a valide fungible faucet id"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO, "Malformed fungible asset: ASSET[2] must be 0"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS, "Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount"),
-<<<<<<< HEAD
-    (ERR_INVALID_FAUCET_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)"),
-    (ERR_INVALID_NOTE_IDX, "Failed to find note at the given index; index must be within [0, num_of_notes]"),
-    (ERR_INVALID_NOTE_TYPE, "Invalid note type"),
-    (ERR_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage offset is invalid for 0 storage size (should be 0)"),
-    (ERR_INVALID_TX_EXPIRATION_DELTA, "Input transaction expiration block delta is not within 0x1 and 0xFFFF."),
-=======
     (ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "Failed to build the fungible asset because the provided faucet id is not from a fungible faucet"),
 
->>>>>>> 6acc61a (feat(tx): Include all errors in `asm` dir, group errors by category)
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
 
     (ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, "Non-fungible asset that already exists in the note cannot be added again"),

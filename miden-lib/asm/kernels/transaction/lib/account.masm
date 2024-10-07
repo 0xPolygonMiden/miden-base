@@ -41,7 +41,7 @@ const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002004E
 const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x0002004F
 
 # Storage offset is invalid for 0 storage size (should be 0)
-const.ERR_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020056
+const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020056
 
 # CONSTANTS
 # =================================================================================================
@@ -401,7 +401,7 @@ export.validate_procedure_metadata
             # assert that if size is 0 then offset is 0
             dup.1 eq.0
             if.true
-                dup eq.0 assert.err=ERR_INVALID_STORAGE_OFFSET_FOR_SIZE
+                dup eq.0 assert.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             end
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
