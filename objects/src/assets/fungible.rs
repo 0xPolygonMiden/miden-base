@@ -1,6 +1,8 @@
 use alloc::string::ToString;
 use core::fmt;
 
+use vm_core::FieldElement;
+
 use super::{
     is_not_a_non_fungible_asset, parse_word, AccountId, AccountType, Asset, AssetError, Felt, Word,
     ZERO,
@@ -23,6 +25,11 @@ impl FungibleAsset {
     // --------------------------------------------------------------------------------------------
     /// Specifies a maximum amount value for fungible assets which can be at most a 63-bit value.
     pub const MAX_AMOUNT: u64 = (1_u64 << 63) - 1;
+
+    /// The serialized size of a [`FungibleAsset`] in bytes.
+    ///
+    /// Currently an account id (felt) plus an amount (u64).
+    pub const SERIALIZED_SIZE: usize = Felt::ELEMENT_BYTES + core::mem::size_of::<u64>();
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------

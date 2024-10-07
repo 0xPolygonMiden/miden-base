@@ -128,6 +128,10 @@ impl Serializable for StorageMap {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.map.write_into(target)
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.map.get_size_hint()
+    }
 }
 
 impl Deserializable for StorageMap {

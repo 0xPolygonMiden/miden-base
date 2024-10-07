@@ -234,6 +234,18 @@ impl Serializable for AccountStorage {
         target.write_u8(self.slots().len() as u8);
         target.write_many(self.slots());
     }
+
+    fn get_size_hint(&self) -> usize {
+        // Size of the serialized slot length.
+        let u8_size = 0u8.get_size_hint();
+        let mut size = u8_size;
+
+        for slot in self.slots() {
+            size += slot.get_size_hint();
+        }
+
+        size
+    }
 }
 
 impl Deserializable for AccountStorage {

@@ -95,6 +95,19 @@ impl AccountStorageDelta {
 
         Ok(())
     }
+
+    /// Returns an iterator of all the cleared storage slots.
+    fn cleared_slots(&self) -> impl Iterator<Item = u8> + '_ {
+        self.values
+            .iter()
+            .filter(|&(_, value)| (value == &EMPTY_WORD))
+            .map(|(slot, _)| *slot)
+    }
+
+    /// Returns an iterator of all the updated storage slots.
+    fn updated_slots(&self) -> impl Iterator<Item = (&u8, &Word)> + '_ {
+        self.values.iter().filter(|&(_, value)| value != &EMPTY_WORD)
+    }
 }
 
 #[cfg(any(feature = "testing", test))]
@@ -116,14 +129,8 @@ impl AccountStorageDelta {
 
 impl Serializable for AccountStorageDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let cleared: Vec<u8> = self
-            .values
-            .iter()
-            .filter(|&(_, value)| (value == &EMPTY_WORD))
-            .map(|(slot, _)| *slot)
-            .collect();
-        let updated: Vec<_> =
-            self.values.iter().filter(|&(_, value)| value != &EMPTY_WORD).collect();
+        let cleared: Vec<u8> = self.cleared_slots().collect();
+        let updated: Vec<(&u8, &Word)> = self.updated_slots().collect();
 
         target.write_u8(cleared.len() as u8);
         target.write_many(cleared.iter());
@@ -133,6 +140,27 @@ impl Serializable for AccountStorageDelta {
 
         target.write_u8(self.maps.len() as u8);
         target.write_many(self.maps.iter());
+    }
+
+    fn get_size_hint(&self) -> usize {
+        let u8_size = 0u8.get_size_hint();
+        let word_size = EMPTY_WORD.get_size_hint();
+
+        let mut storage_map_delta_size = 0;
+        for (slot, storage_map_delta) in self.maps.iter() {
+            // The serialized size of each entry is the combination of slot (key) and the delta
+            // (value).
+            storage_map_delta_size += slot.get_size_hint() + storage_map_delta.get_size_hint();
+        }
+
+        // Length Prefixes
+        u8_size * 3 +
+        // Cleared Slots
+        self.cleared_slots().count() * u8_size +
+        // Updated Slots
+        self.updated_slots().count() * (u8_size + word_size) +
+        // Storage Map Delta
+        storage_map_delta_size
     }
 }
 
@@ -195,6 +223,16 @@ impl StorageMapDelta {
         // Aggregate the changes into a map such that `other` overwrites self.
         self.0.extend(other.0);
     }
+
+    /// Returns an iterator of all the cleared keys in the storage map.
+    fn cleared_keys(&self) -> impl Iterator<Item = &Digest> + '_ {
+        self.0.iter().filter(|&(_, value)| value == &EMPTY_WORD).map(|(key, _)| key)
+    }
+
+    /// Returns an iterator of all the updated entries in the storage map.
+    fn updated_entries(&self) -> impl Iterator<Item = (&Digest, &Word)> + '_ {
+        self.0.iter().filter(|&(_, value)| value != &EMPTY_WORD)
+    }
 }
 
 #[cfg(any(feature = "testing", test))]
@@ -215,20 +253,29 @@ impl StorageMapDelta {
 
 impl Serializable for StorageMapDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let cleared: Vec<&Digest> = self
-            .0
-            .iter()
-            .filter(|&(_, value)| value == &EMPTY_WORD)
-            .map(|(key, _)| key)
-            .collect();
-
-        let updated: Vec<_> = self.0.iter().filter(|&(_, value)| value != &EMPTY_WORD).collect();
+        let cleared: Vec<&Digest> = self.cleared_keys().collect();
+        let updated: Vec<(&Digest, &Word)> = self.updated_entries().collect();
 
         target.write_usize(cleared.len());
         target.write_many(cleared.iter());
 
         target.write_usize(updated.len());
         target.write_many(updated.iter());
+    }
+
+    fn get_size_hint(&self) -> usize {
+        let word_size = EMPTY_WORD.get_size_hint();
+
+        let cleared_keys_count = self.cleared_keys().count();
+        let updated_entries_count = self.updated_entries().count();
+
+        // Cleared Keys
+        cleared_keys_count.get_size_hint() +
+        cleared_keys_count * Digest::SERIALIZED_SIZE +
+
+        // Updated Entries
+        updated_entries_count.get_size_hint() +
+        updated_entries_count * (Digest::SERIALIZED_SIZE + word_size)
     }
 }
 

@@ -153,6 +153,10 @@ impl Serializable for AccountVaultDelta {
         target.write(&self.fungible);
         target.write(&self.non_fungible);
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.fungible.get_size_hint() + self.non_fungible.get_size_hint()
+    }
 }
 
 impl Deserializable for AccountVaultDelta {
@@ -282,18 +286,23 @@ impl FungibleAssetDelta {
 impl Serializable for FungibleAssetDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_usize(self.0.len());
-        // TODO: We save `i64` as `u64` since winter utils only support unsigned integers for now.
-        //   We should update this code (and deserialization as well) once it support signed
+        // TODO: We save `i64` as `u64` since winter utils only supports unsigned integers for now.
+        //   We should update this code (and deserialization as well) once it supports signed
         //   integers.
         target.write_many(self.0.iter().map(|(&faucet_id, &delta)| (faucet_id, delta as u64)));
+    }
+
+    fn get_size_hint(&self) -> usize {
+        self.0.len().get_size_hint() + self.0.len() * FungibleAsset::SERIALIZED_SIZE
     }
 }
 
 impl Deserializable for FungibleAssetDelta {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_fungible_assets = source.read_usize()?;
-        // TODO: We save `i64` as `u64` since winter utils only support unsigned integers for now.
-        //   We should update this code (and serialization as well) once it support signed integers.
+        // TODO: We save `i64` as `u64` since winter utils only supports unsigned integers for now.
+        //   We should update this code (and serialization as well) once it support signeds
+        // integers.
         let map = source
             .read_many::<(AccountId, u64)>(num_fungible_assets)?
             .into_iter()
@@ -411,6 +420,16 @@ impl Serializable for NonFungibleAssetDelta {
 
         target.write_usize(removed.len());
         target.write_many(removed.iter());
+    }
+
+    fn get_size_hint(&self) -> usize {
+        let added = self.filter_by_action(NonFungibleDeltaAction::Add).count();
+        let removed = self.filter_by_action(NonFungibleDeltaAction::Remove).count();
+
+        added.get_size_hint()
+            + removed.get_size_hint()
+            + added * NonFungibleAsset::SERIALIZED_SIZE
+            + removed * NonFungibleAsset::SERIALIZED_SIZE
     }
 }
 

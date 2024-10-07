@@ -1,7 +1,7 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, Serializable,
 };
-use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH};
+use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH};
 
 /// Contains information about the location of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,7 +47,7 @@ impl NoteInclusionProof {
         node_index_in_block: u16,
         note_path: MerklePath,
     ) -> Result<Self, NoteError> {
-        const HIGHEST_INDEX: usize = MAX_BATCHES_PER_BLOCK * MAX_NOTES_PER_BATCH - 1;
+        const HIGHEST_INDEX: usize = MAX_BATCHES_PER_BLOCK * MAX_OUTPUT_NOTES_PER_BATCH - 1;
         if node_index_in_block as usize > HIGHEST_INDEX {
             return Err(NoteError::InvalidLocationIndex(format!(
                 "Node index ({node_index_in_block}) is out of bounds (0..={HIGHEST_INDEX})."

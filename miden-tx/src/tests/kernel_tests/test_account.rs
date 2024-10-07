@@ -1,5 +1,5 @@
 use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
+    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
     TransactionKernel,
 };
 use miden_objects::{
@@ -44,13 +44,13 @@ pub fn test_set_code_is_not_immediate() {
     let process = tx_context.execute_code(code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
+        read_root_mem_value(&process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
         tx_context.account().code().commitment().as_elements(),
         "the code commitment must not change immediately",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_NEW_CODE_COMMITMENT_PTR),
+        read_root_mem_value(&process, NEW_CODE_ROOT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
         "the code commitment must be cached",
     );
@@ -91,7 +91,7 @@ pub fn test_set_code_succeeds() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
+        read_root_mem_value(&process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
         [ZERO, ONE, Felt::new(2), Felt::new(3)],
         "the code commitment must change after the epilogue",
     );
@@ -248,9 +248,16 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+    let storage_slot = AccountStorage::mock_item_2().slot;
+    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot)
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
 
-    let storage_item = AccountStorage::mock_item_2();
+    let tx_context = TransactionContextBuilder::new(account).build();
+
     for (key, value) in STORAGE_LEAVES_2 {
         let code = format!(
             "
@@ -265,7 +272,7 @@ fn test_get_map_item() {
                 call.::test::account::get_map_item
             end
             ",
-            item_index = storage_item.index,
+            item_index = 0,
             map_key = prepare_word(&key),
         );
         let process = tx_context.execute_code(&code).unwrap();
@@ -378,7 +385,15 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+    let storage_slot = AccountStorage::mock_item_2().slot;
+    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot)
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
+
+    let tx_context = TransactionContextBuilder::new(account).build();
     let storage_item = AccountStorage::mock_item_2();
 
     let code = format!(
@@ -400,14 +415,14 @@ fn test_set_map_item() {
             call.account::get_item
         end
         ",
-        item_index = storage_item.index,
+        item_index = 0,
         new_key = prepare_word(&new_key),
         new_value = prepare_word(&new_value),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
 
-    let mut new_storage_map = AccountStorage::mock_map_2();
+    let mut new_storage_map = AccountStorage::mock_map();
     new_storage_map.insert(new_key, new_value);
 
     assert_eq!(
@@ -473,14 +488,14 @@ fn test_storage_offset() {
     // Setup account
     let code = AccountCode::compile(source_code, assembler.clone(), false).unwrap();
 
-    // modify procedure offsets
+    // modify procedure storage offsets
     // TODO: We manually set the offsets here because we do not have the ability to set the
     // offsets through MASM for now. Remove this code when we enable this functionality.
     let procedures_with_offsets = vec![
-        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
-        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
+        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2, 1).unwrap(),
+        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2, 1).unwrap(),
+        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1, 1).unwrap(),
+        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1, 1).unwrap(),
     ];
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
 

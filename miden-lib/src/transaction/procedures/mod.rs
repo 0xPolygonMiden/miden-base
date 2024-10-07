@@ -5,7 +5,7 @@ use miden_objects::{Digest, Felt, Hasher};
 
 use super::TransactionKernel;
 
-// Include procedure hashes generated in build.rs
+// Include kernel v0 procedure hashes generated in build.rs
 #[rustfmt::skip]
 mod kernel_v0;
 

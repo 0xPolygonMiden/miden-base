@@ -13,6 +13,7 @@ use miden_objects::{
     Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
+use outputs::EXPIRATION_BLOCK_ELEMENT_IDX;
 
 use super::MidenLib;
 
@@ -160,8 +161,28 @@ impl TransactionKernel {
             .expect("Invalid stack input")
     }
 
-    pub fn build_output_stack(final_acct_hash: Digest, output_notes_hash: Digest) -> StackOutputs {
+    /// Builds the stack for expected transaction execution outputs.
+    /// The transaction kernel's output stack is formed like so:
+    ///
+    /// ```text
+    /// [
+    ///     expiration_block_num,
+    ///     OUTPUT_NOTES_COMMITMENT,
+    ///     FINAL_ACCOUNT_HASH,
+    /// ]
+    /// ```
+    ///
+    /// Where:
+    /// - OUTPUT_NOTES_COMMITMENT is a commitment to the output notes.
+    /// - FINAL_ACCOUNT_HASH is a hash of the account's final state.
+    /// - expiration_block_num is the block number at which the transaction will expire.
+    pub fn build_output_stack(
+        final_acct_hash: Digest,
+        output_notes_hash: Digest,
+        expiration_block_num: u32,
+    ) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
+        outputs.push(Felt::from(expiration_block_num));
         outputs.extend(final_acct_hash);
         outputs.extend(output_notes_hash);
         outputs.reverse();
@@ -174,12 +195,15 @@ impl TransactionKernel {
     ///
     /// The data on the stack is expected to be arranged as follows:
     ///
-    /// Stack: [CNC, FAH]
+    /// Stack: [CNC, FAH, tx_expiration_block_num]
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
     /// - FAH is the final account hash of the account that the transaction is being executed
     ///   against.
+    /// - tx_expiration_block_num is the block height at which the transaction will become expired,
+    ///   defined by the sum of the execution block ref and the transaction's block expiration delta
+    ///   (if set during transaction execution).
     ///
     /// # Errors
     /// Returns an error if:
@@ -187,22 +211,27 @@ impl TransactionKernel {
     /// - Overflow addresses are not empty.
     pub fn parse_output_stack(
         stack: &StackOutputs,
-    ) -> Result<(Digest, Digest), TransactionOutputError> {
+    ) -> Result<(Digest, Digest, u32), TransactionOutputError> {
         let output_notes_hash = stack
             .get_stack_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX * 4)
             .expect("first word missing")
             .into();
+
         let final_account_hash = stack
             .get_stack_word(FINAL_ACCOUNT_HASH_WORD_IDX * 4)
             .expect("second word missing")
             .into();
 
-        // make sure that the stack has been properly cleaned
-        if stack.get_stack_word(8).expect("third word missing") != EMPTY_WORD {
-            return Err(TransactionOutputError::OutputStackInvalid(
-                "Third word on output stack should consist only of ZEROs".into(),
-            ));
-        }
+        let expiration_block_num = stack
+            .get_stack_item(EXPIRATION_BLOCK_ELEMENT_IDX)
+            .expect("element on index 8 missing");
+
+        let expiration_block_num = u32::try_from(expiration_block_num.as_int()).map_err(|_| {
+            TransactionOutputError::OutputStackInvalid(
+                "Expiration block number should be smaller than u32::MAX".into(),
+            )
+        })?;
+
         if stack.get_stack_word(12).expect("fourth word missing") != EMPTY_WORD {
             return Err(TransactionOutputError::OutputStackInvalid(
                 "Fourth word on output stack should consist only of ZEROs".into(),
@@ -214,7 +243,7 @@ impl TransactionKernel {
             ));
         }
 
-        Ok((final_account_hash, output_notes_hash))
+        Ok((final_account_hash, output_notes_hash, expiration_block_num))
     }
 
     // TRANSACTION OUTPUT PARSER
@@ -224,12 +253,15 @@ impl TransactionKernel {
     ///
     /// The output stack is expected to be arrange as follows:
     ///
-    /// Stack: [CNC, FAH]
+    /// Stack: [CNC, FAH, tx_expiration_block_num]
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
     /// - FAH is the final account hash of the account that the transaction is being executed
     ///   against.
+    /// - tx_expiration_block_num is the block height at which the transaction will become expired,
+    ///   defined by the sum of the execution block ref and the transaction's block expiration delta
+    ///   (if set during transaction execution).
     ///
     /// The actual data describing the new account state and output notes is expected to be located
     /// in the provided advice map under keys CNC and FAH.
@@ -238,7 +270,8 @@ impl TransactionKernel {
         adv_map: &AdviceMap,
         output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
-        let (final_acct_hash, output_notes_hash) = Self::parse_output_stack(stack)?;
+        let (final_acct_hash, output_notes_hash, expiration_block_num) =
+            Self::parse_output_stack(stack)?;
 
         // parse final account state
         let final_account_data: &[Word] = group_slice_elements(
@@ -258,7 +291,11 @@ impl TransactionKernel {
             ));
         }
 
-        Ok(TransactionOutputs { account, output_notes })
+        Ok(TransactionOutputs {
+            account,
+            output_notes,
+            expiration_block_num,
+        })
     }
 }
 

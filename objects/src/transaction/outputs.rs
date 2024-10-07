@@ -15,8 +15,12 @@ use crate::{
 /// Describes the result of executing a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionOutputs {
+    /// Information related to the account's final state.
     pub account: AccountHeader,
+    /// Set of output notes created by the transaction.
     pub output_notes: OutputNotes,
+    /// Defines up to which block the transaction is considered valid.
+    pub expiration_block_num: u32,
 }
 
 // OUTPUT NOTES
@@ -41,10 +45,7 @@ impl OutputNotes {
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<OutputNote>) -> Result<Self, TransactionOutputError> {
         if notes.len() > MAX_OUTPUT_NOTES_PER_TX {
-            return Err(TransactionOutputError::TooManyOutputNotes {
-                max: MAX_OUTPUT_NOTES_PER_TX,
-                actual: notes.len(),
-            });
+            return Err(TransactionOutputError::TooManyOutputNotes(notes.len()));
         }
 
         let mut seen_notes = BTreeSet::new();

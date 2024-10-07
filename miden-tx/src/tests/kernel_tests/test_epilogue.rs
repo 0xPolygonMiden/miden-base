@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
@@ -8,12 +8,15 @@ use miden_objects::{
     accounts::Account,
     transaction::{OutputNote, OutputNotes},
 };
-use vm_processor::ONE;
+use vm_processor::{Felt, ProcessState, ONE};
 
 use super::{output_notes_data_procedure, ZERO};
 use crate::{
     assert_execution_error,
-    errors::tx_kernel_errors::{ERR_EPILOGUE_ASSETS_DONT_ADD_UP, ERR_NONCE_DID_NOT_INCREASE},
+    errors::tx_kernel_errors::{
+        ERR_EPILOGUE_ASSETS_DONT_ADD_UP, ERR_INVALID_TX_EXPIRATION_DELTA,
+        ERR_NONCE_DID_NOT_INCREASE,
+    },
     testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
 };
@@ -69,7 +72,8 @@ fn test_epilogue() {
     let mut expected_stack = Vec::with_capacity(16);
     expected_stack.extend(output_notes.commitment().as_elements().iter().rev());
     expected_stack.extend(final_account.hash().as_elements().iter().rev());
-    expected_stack.extend((8..16).map(|_| ZERO));
+    expected_stack.push(Felt::from(u32::MAX)); // Value for tx expiration block number
+    expected_stack.extend((9..16).map(|_| ZERO));
 
     assert_eq!(
         process.stack.build_stack_outputs().stack(),
@@ -189,6 +193,84 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
     let process = tx_context.execute_code(&code);
 
     assert_execution_error!(process, ERR_EPILOGUE_ASSETS_DONT_ADD_UP);
+}
+
+#[test]
+fn test_block_expiration_height_monotonically_decreases() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    let test_pairs: [(u64, u64); 3] = [(9, 12), (18, 3), (20, 20)];
+    let code_template = "
+        use.kernel::prologue
+        use.kernel::tx
+        use.kernel::epilogue
+
+        begin
+            exec.prologue::prepare_transaction
+            push.{value_1}
+            exec.tx::update_expiration_block_num
+            push.{value_2}
+            exec.tx::update_expiration_block_num
+
+            push.{min_value} exec.tx::get_expiration_delta assert_eq
+
+            exec.epilogue::finalize_transaction
+        end
+        ";
+
+    for (v1, v2) in test_pairs {
+        let code = &code_template
+            .replace("{value_1}", &v1.to_string())
+            .replace("{value_2}", &v2.to_string())
+            .replace("{min_value}", &v2.min(v1).to_string());
+
+        let process = tx_context.execute_code(code).unwrap();
+
+        // Expiry block should be set to transaction's block + the stored expiration delta
+        // (which can only decrease, not increase)
+        let expected_expiry = v1.min(v2) + tx_context.tx_inputs().block_header().block_num() as u64;
+        assert_eq!(process.get_stack_item(8).as_int(), expected_expiry);
+    }
+}
+
+#[test]
+fn test_invalid_expiration_deltas() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    let test_values = [0u64, u16::MAX as u64 + 1, u32::MAX as u64];
+    let code_template = "
+        use.kernel::tx
+
+        begin
+            push.{value_1}
+            exec.tx::update_expiration_block_num
+        end
+        ";
+
+    for value in test_values {
+        let code = &code_template.replace("{value_1}", &value.to_string());
+        let process = tx_context.execute_code(code);
+
+        assert_execution_error!(process, ERR_INVALID_TX_EXPIRATION_DELTA);
+    }
+}
+
+#[test]
+fn test_no_expiration_delta_set() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    let code_template = "
+    use.kernel::prologue
+    use.kernel::epilogue
+
+    begin
+        exec.prologue::prepare_transaction
+        exec.epilogue::finalize_transaction
+    end
+    ";
+    let process = tx_context.execute_code(code_template).unwrap();
+    // Default value should be equal to u32::max, set in the prologue
+    assert_eq!(process.get_stack_item(8).as_int() as u32, u32::MAX);
 }
 
 #[test]

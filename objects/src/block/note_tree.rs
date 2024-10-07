@@ -8,8 +8,8 @@ use miden_crypto::{
 use crate::{
     notes::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
-    MAX_NOTES_PER_BLOCK,
+    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 
 /// Wrapper over [SimpleSmt<BLOCK_NOTE_TREE_DEPTH>] for notes tree.
@@ -71,7 +71,7 @@ pub struct BlockNoteIndex {
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
     pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Result<Self, BlockError> {
-        if note_idx_in_batch >= MAX_NOTES_PER_BATCH {
+        if note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
             return Err(BlockError::TooManyNotesInBatch(note_idx_in_batch));
         }
         if batch_idx >= MAX_BATCHES_PER_BLOCK {
@@ -93,14 +93,16 @@ impl BlockNoteIndex {
 
     /// Returns the leaf index of the note in the note tree.
     pub fn leaf_index(&self) -> LeafIndex<BLOCK_NOTE_TREE_DEPTH> {
-        LeafIndex::new((self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64)
-            .expect("Unreachable: Input values must be valid at this point")
+        LeafIndex::new(
+            (self.batch_idx() * MAX_OUTPUT_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64,
+        )
+        .expect("Unreachable: Input values must be valid at this point")
     }
 
     /// Returns the leaf index value of the note in the note tree.
     pub fn leaf_index_value(&self) -> u16 {
         const _: () = assert!(
-            MAX_NOTES_PER_BLOCK <= u16::MAX as usize + 1,
+            MAX_OUTPUT_NOTES_PER_BLOCK <= u16::MAX as usize + 1,
             "Any note index is expected to fit in `u16`"
         );
 

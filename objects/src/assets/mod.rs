@@ -70,6 +70,12 @@ pub enum Asset {
 }
 
 impl Asset {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// The serialized size of an [`Asset`] in bytes.
+    pub const SERIALIZED_SIZE: usize = 32;
+
     /// Creates a new [Asset] without checking its validity.
     pub(crate) fn new_unchecked(value: Word) -> Asset {
         if is_not_a_non_fungible_asset(value) {
@@ -146,7 +152,7 @@ impl From<&Asset> for Word {
     }
 }
 
-impl From<Asset> for [u8; 32] {
+impl From<Asset> for [u8; Asset::SERIALIZED_SIZE] {
     fn from(asset: Asset) -> Self {
         match asset {
             Asset::Fungible(asset) => asset.into(),
@@ -155,7 +161,7 @@ impl From<Asset> for [u8; 32] {
     }
 }
 
-impl From<&Asset> for [u8; 32] {
+impl From<&Asset> for [u8; Asset::SERIALIZED_SIZE] {
     fn from(value: &Asset) -> Self {
         (*value).into()
     }
@@ -181,18 +187,18 @@ impl TryFrom<Word> for Asset {
     }
 }
 
-impl TryFrom<[u8; 32]> for Asset {
+impl TryFrom<[u8; Asset::SERIALIZED_SIZE]> for Asset {
     type Error = AssetError;
 
-    fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
+    fn try_from(value: [u8; Asset::SERIALIZED_SIZE]) -> Result<Self, Self::Error> {
         parse_word(value)?.try_into()
     }
 }
 
-impl TryFrom<&[u8; 32]> for Asset {
+impl TryFrom<&[u8; Asset::SERIALIZED_SIZE]> for Asset {
     type Error = AssetError;
 
-    fn try_from(value: &[u8; 32]) -> Result<Self, Self::Error> {
+    fn try_from(value: &[u8; Asset::SERIALIZED_SIZE]) -> Result<Self, Self::Error> {
         (*value).try_into()
     }
 }
@@ -202,15 +208,20 @@ impl TryFrom<&[u8; 32]> for Asset {
 
 impl Serializable for Asset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let data: [u8; 32] = self.into();
+        let data: [u8; Asset::SERIALIZED_SIZE] = self.into();
         target.write_bytes(&data);
+    }
+
+    fn get_size_hint(&self) -> usize {
+        Asset::SERIALIZED_SIZE
     }
 }
 
 impl Deserializable for Asset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let data_vec = source.read_vec(32)?;
-        let data_array: [u8; 32] = data_vec.try_into().expect("Vec must be of size 32");
+        let data_vec = source.read_vec(Asset::SERIALIZED_SIZE)?;
+        let data_array: [u8; Asset::SERIALIZED_SIZE] =
+            data_vec.try_into().expect("Vec must be of size 32");
 
         let asset = Asset::try_from(&data_array)
             .map_err(|error| DeserializationError::InvalidValue(format!("{error}")))?;
@@ -221,7 +232,7 @@ impl Deserializable for Asset {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn parse_word(bytes: [u8; 32]) -> Result<Word, AssetError> {
+fn parse_word(bytes: [u8; Asset::SERIALIZED_SIZE]) -> Result<Word, AssetError> {
     Ok([
         parse_felt(&bytes[..8])?,
         parse_felt(&bytes[8..16])?,

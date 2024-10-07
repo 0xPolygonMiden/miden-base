@@ -85,6 +85,17 @@ impl Serializable for StorageSlot {
             Self::Map(map) => target.write(map),
         }
     }
+
+    fn get_size_hint(&self) -> usize {
+        let mut size = self.slot_type().get_size_hint();
+
+        size += match self {
+            StorageSlot::Value(word) => word.get_size_hint(),
+            StorageSlot::Map(storage_map) => storage_map.get_size_hint(),
+        };
+
+        size
+    }
 }
 
 impl Deserializable for StorageSlot {

@@ -251,6 +251,14 @@ impl Serializable for Account {
         code.write_into(target);
         nonce.write_into(target);
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.id.get_size_hint()
+            + self.vault.get_size_hint()
+            + self.storage.get_size_hint()
+            + self.code.get_size_hint()
+            + self.nonce.get_size_hint()
+    }
 }
 
 impl Deserializable for Account {
