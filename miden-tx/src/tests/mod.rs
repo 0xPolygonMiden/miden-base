@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, rc::Rc, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -50,7 +50,7 @@ fn transaction_executor_witness() {
         .with_mock_notes_preserved()
         .build();
 
-    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
 
     let account_id = tx_context.account().id();
 
@@ -78,10 +78,10 @@ fn transaction_executor_witness() {
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
 
     // load account/note/tx_script MAST to the mast_store
-    let mast_store = Rc::new(TransactionMastStore::new());
+    let mast_store = Arc::new(TransactionMastStore::new());
     mast_store.load_transaction_code(tx_inputs, tx_args);
 
-    let mut host: TransactionHost<MemAdviceProvider, ()> =
+    let mut host: TransactionHost<MemAdviceProvider> =
         TransactionHost::new(tx_inputs.account().into(), mem_advice_provider, mast_store, None)
             .unwrap();
     let result = vm_processor::execute(
@@ -374,7 +374,7 @@ fn executed_transaction_account_delta() {
 fn test_empty_delta_nonce_update() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
     let account_id = tx_context.tx_inputs().account().id();
 
     let tx_script_src = "
@@ -434,8 +434,8 @@ fn test_send_note_proc() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None).with_debug_mode(true);
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode(true);
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -580,8 +580,8 @@ fn executed_transaction_output_notes() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None).with_debug_mode(true);
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode(true);
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -815,7 +815,7 @@ fn prove_witness_and_verify() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .unwrap();
@@ -841,7 +841,7 @@ fn test_tx_script() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
-    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
 
     let account_id = tx_context.tx_inputs().account().id();
 

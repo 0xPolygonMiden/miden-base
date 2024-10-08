@@ -6,17 +6,17 @@ use.kernel::memory
 # ERRORS
 # =================================================================================================
 
-# Trying to access note sender from incorrect context
-const.ERR_NOTE_INVALID_SENDER=0x00020027
+# Attempted to access note sender from incorrect context
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT=0x00020031
 
-# Trying to access note assets from incorrect context
-const.ERR_NOTE_INVALID_ASSETS=0x00020028
+# Attempted to access note assets from incorrect context
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT=0x00020032
 
-# Trying to access note inputs from incorrect context
-const.ERR_NOTE_INVALID_INPUTS=0x00020029
+# Attempted to access note inputs from incorrect context
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT=0x00020033
 
-# Assets in a note must fit in a u8 value
-const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
+# Number of assets in a note exceed 255
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002F
 
 # CONSTANTS
 # =================================================================================================
@@ -42,7 +42,7 @@ export.get_sender
 
     # assert the pointer is not zero - this would suggest the procedure has been called from an
     # incorrect context
-    dup neq.0 assert.err=ERR_NOTE_INVALID_SENDER
+    dup neq.0 assert.err=ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT
     # => [ptr]
 
     # get the sender from the note pointer
@@ -65,7 +65,7 @@ export.get_assets_info
 
     # assert the pointer is not zero - this would suggest the procedure has been called from an
     # incorrect context
-    dup neq.0 assert.err=ERR_NOTE_INVALID_ASSETS
+    dup neq.0 assert.err=ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT
     # => [ptr]
 
     # get the number of assets in the note
@@ -93,7 +93,7 @@ export.get_note_inputs_hash
     # The kernel memory is initialized by prologue::process_input_notes_data, and reset by
     # note_processing_teardown before running the tx_script. If the value is `0` it is likely this
     # procedure is being called outside of the kernel context.
-    dup neq.0 assert.err=ERR_NOTE_INVALID_INPUTS
+    dup neq.0 assert.err=ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT
     # => [ptr]
 
     exec.memory::get_input_note_inputs_hash
@@ -174,7 +174,7 @@ proc.compute_output_note_assets_hash
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
     add.1
-    u32assert.err=ERR_NOTE_TOO_MANY_ASSETS
+    u32assert.err=ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT
     u32div.2
     # => [num_asset_pairs, note_data_ptr, note_data_ptr]
 

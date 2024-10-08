@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
@@ -31,7 +31,7 @@ pub use tx_progress::TransactionProgress;
 
 use crate::{
     auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
-    KERNEL_ERRORS,
+    TX_KERNEL_ERRORS,
 };
 
 // TRANSACTION HOST
@@ -39,16 +39,16 @@ use crate::{
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
 ///
-/// Transaction hosts are created on per-transaction basis. That is a transaction host is meant to
-/// support execution of a single transaction, and is discarded after the transaction finishes
+/// Transaction hosts are created on a per-transaction basis. That is, a transaction host is meant
+/// to support execution of a single transaction and is discarded after the transaction finishes
 /// execution.
-pub struct TransactionHost<A, T> {
+pub struct TransactionHost<A> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
 
     /// MAST store which contains the code required to execute the transaction.
-    mast_store: Rc<TransactionMastStore>,
+    mast_store: Arc<TransactionMastStore>,
 
     /// Account state changes accumulated during transaction execution.
     ///
@@ -65,7 +65,7 @@ pub struct TransactionHost<A, T> {
 
     /// Serves signature generation requests from the transaction runtime for signatures which are
     /// not present in the `generated_signatures` field.
-    authenticator: Option<Rc<T>>,
+    authenticator: Option<Arc<dyn TransactionAuthenticator>>,
 
     /// Contains previously generated signatures (as a message |-> signature map) required for
     /// transaction execution.
@@ -85,17 +85,17 @@ pub struct TransactionHost<A, T> {
     error_messages: BTreeMap<u32, &'static str>,
 }
 
-impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
+impl<A: AdviceProvider> TransactionHost<A> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
     pub fn new(
         account: AccountHeader,
         adv_provider: A,
-        mast_store: Rc<TransactionMastStore>,
-        authenticator: Option<Rc<T>>,
+        mast_store: Arc<TransactionMastStore>,
+        authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     ) -> Result<Self, TransactionHostError> {
         let proc_index_map =
             AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider)?;
-        let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
+        let kernel_assertion_errors = BTreeMap::from(TX_KERNEL_ERRORS);
         Ok(Self {
             adv_provider,
             mast_store,
@@ -109,8 +109,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         })
     }
 
-    /// Consumes `self` and returns the advice provider, account vault delta, output notes and
-    /// signatures generated during the transaction execution.
+    /// Consumes `self` and returns the advice provider, account delta, output notes, generated
+    /// signatures, and transaction progress.
     pub fn into_parts(
         self,
     ) -> (
@@ -139,7 +139,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
-    /// Crates a new [OutputNoteBuilder] from the data on the operand stack and stores it into the
+    /// Creates a new [OutputNoteBuilder] from the data on the operand stack and stores it into the
     /// `output_notes` field of this [TransactionHost].
     ///
     /// Expected stack state: `[NOTE_METADATA, RECIPIENT, ...]`
@@ -228,7 +228,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
 
-        // get number of storage slots initialised by the account
+        // get number of storage slots initialized by the account
         let num_storage_slot = Self::get_num_storage_slots(process)?;
 
         if slot_index.as_int() >= num_storage_slot {
@@ -274,7 +274,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
 
-        // get number of storage slots initialised by the account
+        // get number of storage slots initialized by the account
         let num_storage_slot = Self::get_num_storage_slots(process)?;
 
         if slot_index.as_int() >= num_storage_slot {
@@ -376,9 +376,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             let account_delta = self.account_delta.clone().into_delta();
 
             let signature: Vec<Felt> = match &self.authenticator {
-                None => Err(ExecutionError::FailedSignatureGeneration(
-                    "No authenticator assigned to transaction host",
-                )),
+                None => {
+                    return Err(ExecutionError::FailedSignatureGeneration(
+                        "No authenticator assigned to transaction host",
+                    ))
+                },
                 Some(authenticator) => {
                     authenticator.get_signature(pub_key, msg, &account_delta).map_err(|_| {
                         ExecutionError::FailedSignatureGeneration("Error generating signature")
@@ -427,11 +429,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         }
     }
 
-    /// Returns the number of storage slots initialised for the current account.
+    /// Returns the number of storage slots initialized for the current account.
     ///
     /// # Errors
     /// Returns an error if the memory location supposed to contain the account storage slot number
-    /// has not been initialised.
+    /// has not been initialized.
     fn get_num_storage_slots<S: ProcessState>(process: &S) -> Result<u64, TransactionKernelError> {
         let num_storage_slots_word = process
             .get_mem_value(process.ctx(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR)
@@ -444,7 +446,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 // HOST IMPLEMENTATION FOR TRANSACTION HOST
 // ================================================================================================
 
-impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A, T> {
+impl<A: AdviceProvider> Host for TransactionHost<A> {
     fn get_advice<S: ProcessState>(
         &mut self,
         process: &S,
@@ -538,8 +540,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
             NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
             NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
             NoteExecutionStart => {
-                let note_id = Self::get_current_note_id(process)?
-                    .expect("Note execution interval measurement is incorrect: check the placement of the start and the end of the interval");
+                let note_id = Self::get_current_note_id(process)?.expect(
+                    "Note execution interval measurement is incorrect: check the placement of the start and the end of the interval",
+                );
                 self.tx_progress.start_note_execution(process.clk(), note_id);
             },
             NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),

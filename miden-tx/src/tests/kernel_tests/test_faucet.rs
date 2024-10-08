@@ -21,10 +21,12 @@ use super::ONE;
 use crate::{
     assert_execution_error,
     errors::tx_kernel_errors::{
-        ERR_FAUCET_ISSUANCE_OVERFLOW, ERR_FAUCET_NONEXISTING_TOKEN,
-        ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS, ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE,
-        ERR_FUNGIBLE_ASSET_MISMATCH, ERR_NON_FUNGIBLE_ASSET_MISMATCH,
-        ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW,
+        ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET,
+        ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT,
+        ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED,
+        ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN,
+        ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN,
+        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
     },
     testing::TransactionContextBuilder,
 };
@@ -99,7 +101,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_MISMATCH);
+    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
 
 #[test]
@@ -121,7 +123,7 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_MISMATCH);
+    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
 
 #[test]
@@ -149,7 +151,7 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FAUCET_ISSUANCE_OVERFLOW);
+    assert_execution_error!(process, ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT);
 }
 
 // NON-FUNGIBLE FAUCET MINT TESTS
@@ -233,7 +235,7 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_MISMATCH);
+    assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
 
 #[test]
@@ -259,7 +261,7 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_MISMATCH);
+    assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
 
 #[test]
@@ -290,7 +292,7 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS);
+    assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED);
 }
 
 // FUNGIBLE FAUCET BURN TESTS
@@ -366,7 +368,7 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_MISMATCH);
+    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
 
 #[test]
@@ -393,7 +395,7 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_MISMATCH);
+    assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
 
 #[test]
@@ -421,7 +423,7 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW);
+    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW);
 }
 
 // NON-FUNGIBLE FAUCET BURN TESTS
@@ -516,7 +518,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FAUCET_NONEXISTING_TOKEN);
+    assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND);
 }
 
 #[test]
@@ -547,7 +549,10 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE);
+    assert_execution_error!(
+        process,
+        ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
+    );
 }
 
 #[test]
@@ -583,7 +588,7 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_FAUCET_NONEXISTING_TOKEN);
+    assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND);
 }
 
 // GET TOTAL ISSUANCE TESTS

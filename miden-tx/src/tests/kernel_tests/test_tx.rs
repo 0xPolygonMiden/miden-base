@@ -40,7 +40,7 @@ use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
     errors::tx_kernel_errors::{
-        ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_OUTPUT_NOTES_OVERFLOW,
+        ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
     testing::{
         mock_chain::{MockChain, MockChainBuilder},
@@ -195,7 +195,7 @@ fn test_create_note_too_many_notes() {
 
     let process = tx_context.execute_code(&code);
 
-    assert_execution_error!(process, ERR_TX_OUTPUT_NOTES_OVERFLOW);
+    assert_execution_error!(process, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT);
 }
 
 #[test]

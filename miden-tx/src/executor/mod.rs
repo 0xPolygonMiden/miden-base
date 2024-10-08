@@ -1,4 +1,4 @@
-use alloc::rc::Rc;
+use alloc::sync::Arc;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -30,31 +30,30 @@ pub use mast_store::TransactionMastStore;
 /// - Load the code associated with the transaction into the [TransactionMastStore].
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
-/// The transaction executor is generic over the [DataStore] which allows it to be used with
-/// different data backend implementations.
-///
-/// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
-/// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
-/// can then be used to by the prover to generate a proof transaction execution.
-pub struct TransactionExecutor<D, A> {
-    data_store: D,
-    mast_store: Rc<TransactionMastStore>,
-    authenticator: Option<Rc<A>>,
+/// The transaction executor uses dynamic dispatch with trait objects for the [DataStore] and
+/// [TransactionAuthenticator], allowing it to be used with different backend implementations.
+pub struct TransactionExecutor {
+    data_store: Arc<dyn DataStore>,
+    mast_store: Arc<TransactionMastStore>,
+    authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     exec_options: ExecutionOptions,
 }
 
-impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
+impl TransactionExecutor {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and
     /// [TransactionAuthenticator].
-    pub fn new(data_store: D, authenticator: Option<Rc<A>>) -> Self {
+    pub fn new(
+        data_store: Arc<dyn DataStore>,
+        authenticator: Option<Arc<dyn TransactionAuthenticator>>,
+    ) -> Self {
         const _: () = assert!(MIN_TX_EXECUTION_CYCLES <= MAX_TX_EXECUTION_CYCLES);
 
         Self {
             data_store,
-            mast_store: Rc::new(TransactionMastStore::new()),
+            mast_store: Arc::new(TransactionMastStore::new()),
             authenticator,
             exec_options: ExecutionOptions::new(
                 Some(MAX_TX_EXECUTION_CYCLES),
@@ -155,11 +154,11 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
 // ================================================================================================
 
 /// Creates a new [ExecutedTransaction] from the provided data.
-fn build_executed_transaction<A: TransactionAuthenticator>(
+fn build_executed_transaction(
     tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
-    host: TransactionHost<RecAdviceProvider, A>,
+    host: TransactionHost<RecAdviceProvider>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
     let (advice_recorder, account_delta, output_notes, generated_signatures, tx_progress) =
         host.into_parts();
@@ -197,7 +196,7 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
         });
     }
 
-    // introduce generated signature into the witness inputs
+    // introduce generated signatures into the witness inputs
     advice_witness.extend_map(generated_signatures);
 
     Ok(ExecutedTransaction::new(
