@@ -4,8 +4,8 @@ use core::fmt;
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
-        delta::AccountUpdateDetails, Account, AccountCode, AccountDelta, AccountId, AccountType,
-        AuthSecretKey,
+        delta::AccountUpdateDetails, Account, AccountCode, AccountDelta, AccountId,
+        AccountProcedureInfo, AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
@@ -412,8 +412,18 @@ impl MockChain {
             AccountCode::compile(fungible_faucet, TransactionKernel::testing_assembler(), true)
                 .unwrap();
 
+        // TODO: Remove this once sizes are set automatically
+        let procedures = code
+            .procedures()
+            .iter()
+            .map(|proc| {
+                AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 2).unwrap()
+            })
+            .collect();
+        let account_code = AccountCode::from_parts(code.mast(), procedures);
+
         let mut account_builder = AccountBuilder::new(self.rng.clone())
-            .code(code)
+            .code(account_code)
             .nonce(nonce)
             .account_type(AccountType::FungibleFaucet);
 
