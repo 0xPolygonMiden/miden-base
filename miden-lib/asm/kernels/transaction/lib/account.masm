@@ -38,7 +38,7 @@ const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
 const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002004E
 
 # Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)
-const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x0002004F
+const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x00020057
 
 # Storage offset is invalid for 0 storage size (should be 0)
 const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020056
