@@ -31,7 +31,7 @@ pub use tx_progress::TransactionProgress;
 
 use crate::{
     auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
-    KERNEL_ERRORS,
+    TX_KERNEL_ERRORS,
 };
 
 // TRANSACTION HOST
@@ -95,7 +95,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     ) -> Result<Self, TransactionHostError> {
         let proc_index_map =
             AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider)?;
-        let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
+        let kernel_assertion_errors = BTreeMap::from(TX_KERNEL_ERRORS);
         Ok(Self {
             adv_provider,
             mast_store,

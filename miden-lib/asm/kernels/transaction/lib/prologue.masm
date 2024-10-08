@@ -18,74 +18,59 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # ERRORS
 # =================================================================================================
 
-# The global inputs provided do not match the block hash commitment
-const.ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH=0x0002000B
-
-# The account storage data does not match its commitment
-const.ERR_PROLOGUE_ACCT_STORAGE_MISMATCH=0x0002000C
-
-# Data store in account's storage contains invalid type discriminant
-const.ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID=0x0002000E
+# The provided global inputs do not match the block hash commitment
+const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x0002000B
 
 # New account must have an empty vault
-const.ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY=0x0002000F
-
-# New account must have valid slot types
-const.ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE=0x00020010
+const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x0002000F
 
 # Reserved slot for new fungible faucet is not empty
-const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT=0x00020011
-
-# Reserved slot for new fungible faucet has a non-zero arity
-const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT=0x00020012
+const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY=0x00020011
 
 # Reserved slot for new fungible faucet has an invalid type
-const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT=0x00020013
+const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020013
 
 # Reserved slot for non-fungible faucet is not a valid empty SMT
-const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT=0x00020014
-
-# Reserved slot for new non-fungible faucet has a non-zero arity
-const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT=0x00020015
+const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT=0x00020014
 
 # Reserved slot for new non-fungible faucet has an invalid type
-const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT=0x00020016
+const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020016
 
 # Account data provided does not match the commitment recorded on-chain
-const.ERR_PROLOGUE_ACCT_HASH_MISMATCH=0x00020017
+const.ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT=0x00020017
 
-# Existing account must have a non-zero nonce
-const.ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO=0x00020018
+# Existing accounts must have a non-zero nonce
+const.ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE=0x00020018
 
-# Provided account ids via global inputs and advice provider do not match
-const.ERR_PROLOGUE_ACCT_ID_MISMATCH=0x00020019
+# Account IDs provided via global inputs and advice provider do not match
+const.ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER=0x00020019
 
 # Reference block MMR and note's authentication MMR must match
-const.ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH=0x0002001A
+const.ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR=0x0002001A
 
-# Number of note assets exceeded the maximum limit of 256
-const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
+# Number of note assets exceeds the maximum limit of 256
+const.ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT=0x0002001C
 
-# Provided info about assets of an input do not match its commitment
-const.ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH=0x0002001D
+# Provided info about assets of an input does not match its commitment
+const.ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT=0x0002001D
 
-# Number of input notes exceeded the kernel's maximum limit of 1024
-const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
+# Number of input notes exceeds the kernel's maximum limit of 1024
+const.ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT=0x0002001E
 
-# Cannot compute matching nullifier commitment using the provided input note data
+# Note commitment computed from the input note data does not match given note commitment
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 
 # Computed account code commitment does not match recorded account code commitment
-const.ERR_ACCT_CODE_COMMITMENT_MISMATCH=0x0002004C
+const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH=0x0002004C
 
-# Number of account procedures exceeded the maximum limit of 256
-const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
+# Number of account procedures exceeds the maximum limit of 256
+const.ERR_ACCOUNT_TOO_MANY_PROCEDURES=0x0002004D
 
-# Number of account storage slots exceeded the maximum limit of 255
-const.ERR_ACCT_TOO_MANY_STORAGE_SLOTS=0x0002004F
+# Number of account storage slots exceeds the maximum limit of 255
+const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS=0x0002004F
 
 # Computed account storage commitment does not match recorded account storage commitment
-const.ERR_ACCT_STORAGE_COMMITMENT_MISMATCH=0x00020050
+const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH=0x00020058
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -267,7 +252,7 @@ proc.process_block_data
 
     # assert that the block hash matches the hash in global inputs
     exec.memory::get_block_hash
-    assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH
+    assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT
     # => [block_data_ptr']
 
     drop
@@ -342,7 +327,7 @@ proc.validate_new_account
     exec.constants::get_empty_smt_root
     # => [EMPTY_VAULT_ROOT, ACCT_VAULT_ROOT]
 
-    assert_eqw.err=ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY
+    assert_eqw.err=ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY
     # => []
 
     # Assert faucet reserved slot is correctly initialized
@@ -364,7 +349,7 @@ proc.validate_new_account
         if.true
             # assert the fungible faucet reserved slot is initialized correctly (EMPTY_WORD)
             # TODO: Switch to standard library implementation when available (miden-vm/#1483)
-            exec.is_empty_word_dropped not assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
+            exec.is_empty_word_dropped not assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY
             # => []
 
             # get the faucet reserved storage data slot type
@@ -372,12 +357,12 @@ proc.validate_new_account
             # => [slot_type]
 
             # assert the fungible faucet reserved slot type == value
-            exec.constants::get_storage_slot_type_value eq assert.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
+            exec.constants::get_storage_slot_type_value eq assert.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE
             # => []
         else
             # assert the non-fungible faucet reserved slot is initialized correctly (root of
             # empty SMT)
-            exec.constants::get_empty_smt_root assert_eqw.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT
+            exec.constants::get_empty_smt_root assert_eqw.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT
             # => []
             push.1001 drop                              # TODO: remove line, see miden-vm/#1122
 
@@ -386,7 +371,7 @@ proc.validate_new_account
             # => [slot_type]
 
             # assert the non-fungible faucet reserved slot type == map
-            exec.constants::get_storage_slot_type_map eq assert.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
+            exec.constants::get_storage_slot_type_map eq assert.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE
             # => []
         end
     else
@@ -423,7 +408,7 @@ proc.validate_account_storage_slots
     # => [num_storage_slots, STORAGE_COMMITMENT]
 
     # assert that account does not exceed allowed maximum number of storage slots
-    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCT_TOO_MANY_STORAGE_SLOTS
+    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS
     # => [num_storage_slots, STORAGE_COMMITMENT]
 
     # store number of storage slots in memory
@@ -451,7 +436,7 @@ proc.validate_account_storage_slots
     # => [DIGEST, STORAGE_COMMITMENT]
 
     # verify hashed account storage slots match account storage commitment
-    assert_eqw.err=ERR_ACCT_STORAGE_COMMITMENT_MISMATCH
+    assert_eqw.err=ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH
     # => []
 end
 
@@ -490,7 +475,7 @@ proc.validate_account_procedures
     # => [num_procs, CODE_COMMITMENT]
 
     # assert that account does not exceed allowed maximum number of procedures
-    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCOUNT_TOO_MANY_PROCEDURES
     # => [num_procs, CODE_COMMITMENT]
 
     # store number of procedures in memory
@@ -518,7 +503,7 @@ proc.validate_account_procedures
     # => [DIGEST, CODE_COMMITMENT]
 
     # verify hashed account procedures match account code commitment
-    assert_eqw.err=ERR_ACCT_CODE_COMMITMENT_MISMATCH
+    assert_eqw.err=ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH
     # => []
 end
 
@@ -567,7 +552,7 @@ proc.process_account_data
     # assert the account id matches the account id in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
-    assert_eq.err=ERR_PROLOGUE_ACCT_ID_MISMATCH
+    assert_eq.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
     # => [ACCT_HASH]
 
     # store a copy of the initial nonce in global inputs
@@ -618,12 +603,12 @@ proc.process_account_data
     else
         # assert that the existing account hash matches the hash in global inputs
         exec.memory::get_init_acct_hash
-        assert_eqw.err=ERR_PROLOGUE_ACCT_HASH_MISMATCH
+        assert_eqw.err=ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT
         # => []
 
         # assert the nonce of an existing account is non-zero
         exec.memory::get_acct_nonce neq.0
-        assert.err=ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO
+        assert.err=ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE
         # => []
     end
 end
@@ -677,7 +662,7 @@ proc.authenticate_note.2
     # => [COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
 
     # assert the computed block hash matches
-    movup.8 drop movupw.2 assert_eqw.err=ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
+    movup.8 drop movupw.2 assert_eqw.err=ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR
     # => [PERM, NOTE_HASH]
 
     # Authenticate the NOTE_HASH
@@ -786,7 +771,7 @@ proc.process_note_assets
     adv_push.1
     # => [assets_count, note_ptr]
 
-    dup exec.constants::get_max_assets_per_note lte assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
+    dup exec.constants::get_max_assets_per_note lte assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT
     # => [assets_count, note_ptr]
 
     dup dup.2 exec.memory::set_input_note_num_assets
@@ -845,7 +830,7 @@ proc.process_note_assets
 
     # VERIFY: computed ASSET_HASH matches the provided hash
     exec.memory::get_input_note_assets_hash
-    assert_eqw.err=ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
+    assert_eqw.err=ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT
     # => []
 end
 
@@ -1061,8 +1046,8 @@ proc.process_input_notes_data
     # assert the number of input notes is within limits; since max number of input notes is
     # expected to be smaller than 2^32, we can use a more efficient u32 comparison
     dup
-    exec.constants::get_max_num_input_notes u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
-    u32lte assert.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
+    exec.constants::get_max_num_input_notes u32assert2.err=ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT
+    u32lte assert.err=ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT
     # => [num_notes]
 
     # if there are input notes, load input notes data from the advice map onto the advice stack

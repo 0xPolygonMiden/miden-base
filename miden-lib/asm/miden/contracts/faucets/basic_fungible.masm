@@ -20,8 +20,8 @@ const.PRIVATE_NOTE=2
 # ERRORS
 # =================================================================================================
 
-# Distribute would cause the max supply to be exceeded
-const.ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW=0x00020021
+# Distribute would cause the maximum supply to be exceeded
+const.ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED=0x00020021
 
 # CONSTANTS
 # =================================================================================================
@@ -64,7 +64,7 @@ export.distribute.1
     # => [max_supply - total_issuance, amount, tag, aux, note_type, execution_hint, RECIPIENT, ...]
 
     # check that amount =< max_supply - total_issuance, fails if otherwise
-    dup.1 gte assert.err=ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW
+    dup.1 gte assert.err=ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED
     # => [asset, tag, aux, note_type, execution_hint, RECIPIENT, ...]
 
     # creating the asset

@@ -35,8 +35,9 @@ use super::{Felt, Process, Word, ZERO};
 use crate::{
     assert_execution_error,
     errors::tx_kernel_errors::{
-        ERR_ACCOUNT_SEED_DIGEST_MISMATCH, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT,
-        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
+        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
+        ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
+        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
     },
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
@@ -455,7 +456,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     ";
 
     let process = tx_context.execute_code(code);
-    assert_execution_error!(process, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT);
+    assert_execution_error!(process, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY);
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -507,7 +508,10 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
     let process = tx_context.execute_code(code);
 
-    assert_execution_error!(process, ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT);
+    assert_execution_error!(
+        process,
+        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT
+    );
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]

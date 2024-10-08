@@ -2,8 +2,12 @@ use.kernel::constants
 
 # ERRORS
 # =================================================================================================
-const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
-const.ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE=0x00020054
+
+# Number of assets in a note exceed 255
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002A
+
+# The current account is not native
+const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020054
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
@@ -653,7 +657,7 @@ end
 export.assert_native_account
     push.CURRENT_ACCOUNT_DATA_PTR mem_load
     push.NATIVE_ACCOUNT_DATA_PTR
-    assert_eq.err=ERR_CURRENT_ACCOUNT_IS_NOT_NATIVE
+    assert_eq.err=ERR_ACCOUNT_IS_NOT_NATIVE
 end
 
 #! Returns a pointer to the end of the core account data section.
@@ -1267,7 +1271,7 @@ export.set_output_note_num_assets
     # => [note_ptr + offset, num_assets]
 
     # check note number of assets limit
-    dup.1 exec.constants::get_max_assets_per_note lt assert.err=ERR_NOTE_TOO_MANY_ASSETS
+    dup.1 exec.constants::get_max_assets_per_note lt assert.err=ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT
 
     mem_store
 end

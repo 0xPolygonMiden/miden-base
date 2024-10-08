@@ -5,11 +5,11 @@ use.std::mem
 # ERRORS
 # =================================================================================================
 
-# Provided note data does not match the commitment
-const.ERR_NOTE_DATA_MISMATCH=0x00020040
+# Note data does not match the commitment
+const.ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT=0x00020040
 
 # Number of note inputs exceeded the maximum limit of 128
-const.ERR_NOTE_TOO_MANY_INPUTS=0x0002001B
+const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002001B
 
 #! Writes the data currently on the advice stack into the memory at the specified location and
 #! verifies that the hash of the written data is equal to the provided hash.
@@ -34,7 +34,7 @@ proc.write_advice_data_to_memory
     # => [DIGEST, HASH]
 
     # assert the computed hash is equal to the expected hash
-    assert_eqw.err=ERR_NOTE_DATA_MISMATCH
+    assert_eqw.err=ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT
     # => []
 end
 
@@ -113,7 +113,7 @@ export.get_inputs
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # validate the input length
-    dup exec.get_max_inputs_per_note lte assert.err=ERR_NOTE_TOO_MANY_INPUTS
+    dup exec.get_max_inputs_per_note lte assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # calculate the number of words required to store the inputs

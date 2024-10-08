@@ -3,29 +3,29 @@ use.kernel::account
 # ERRORS
 # =================================================================================================
 
-# Malformed fungible asset; ASSET[1] must be 0
-const.ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO=0x00020033
+# Malformed fungible asset: ASSET[1] must be 0
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO=0x00020033
 
-# Malformed fungible asset; ASSET[2] must be 0
-const.ERR_FUNGIBLE_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO=0x00020034
+# Malformed fungible asset: ASSET[2] must be 0
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO=0x00020034
 
-# Malformed fungible asset; ASSET[3] must be a valide fungible faucet id
-const.ERR_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020035
+# Malformed fungible asset: ASSET[3] must be a valide fungible faucet id
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020035
 
-# Malformed fungible asset; ASSET[0] exceeds the maximum allowed amount
-const.ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ZERO_MUST_BE_WITHIN_LIMITS=0x00020036
+# Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS=0x00020036
 
-# Malformed non-fungible asset; ASSET[1] is not a valid non-fungible faucet id
-const.ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020037
+# Malformed non-fungible asset: ASSET[1] is not a valid non-fungible faucet id
+const.ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020037
 
-# Malformed non-fungible asset; the most significant bit must be 0
-const.ERR_NON_FUNGIBLE_ASSET_FORMAT_HIGH_BIT_MUST_BE_ZERO=0x00020038
+# Malformed non-fungible asset: the most significant bit must be 0
+const.ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO=0x00020038
 
-# Fungible asset origin validation failed
-const.ERR_FUNGIBLE_ASSET_MISMATCH=0x00020039
+# The origin of the fungible asset is not this faucet
+const.ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020039
 
-# Non-fungible asset origin validation failed
-const.ERR_NON_FUNGIBLE_ASSET_MISMATCH=0x0002003A
+# The origin of the non-fungible asset is not this faucet
+const.ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x0002003A
 
 # CONSTANTS
 # =================================================================================================
@@ -58,11 +58,11 @@ end
 #! ASSET is the asset to validate.
 export.validate_fungible_asset
     # assert that ASSET[1] == ZERO
-    dup.1 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO
+    dup.1 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO
     # => [ASSET]
 
     # assert that ASSET[2] == ZERO
-    dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO
+    dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO
     # => [ASSET]
 
     # assert that ASSET[3] is a valid account id
@@ -70,11 +70,11 @@ export.validate_fungible_asset
     # => [ASSET]
 
     # assert that ASSET[3] is a fungible faucet
-    dup exec.account::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
+    dup exec.account::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
     # assert that the max amount (ASSET[0]) of a fungible asset is not exceeded
-    dup.3 push.FUNGIBLE_ASSET_MAX_AMOUNT lte assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ZERO_MUST_BE_WITHIN_LIMITS
+    dup.3 push.FUNGIBLE_ASSET_MAX_AMOUNT lte assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS
     # => [ASSET]
 end
 
@@ -105,11 +105,11 @@ export.validate_non_fungible_asset
     # => [ASSET]
 
     # assert that ASSET[1] is a fungible faucet
-    dup.2 exec.account::is_non_fungible_faucet assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_FUNGIBLE_FAUCET_ID
+    dup.2 exec.account::is_non_fungible_faucet assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
     # assert the fungible bit is set to 0
-    dup u32split push.FUNGIBLE_BITMASK_U32 u32and assertz.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_HIGH_BIT_MUST_BE_ZERO drop
+    dup u32split push.FUNGIBLE_BITMASK_U32 u32and assertz.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO drop
     # => [ASSET]
 end
 
@@ -158,7 +158,7 @@ end
 #! - ASSET is the asset to validate.
 export.validate_fungible_asset_origin
     # assert the origin of the asset is the faucet_id provided via the stack
-    dup.1 assert_eq.err=ERR_FUNGIBLE_ASSET_MISMATCH
+    dup.1 assert_eq.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the fungible asset is valid
@@ -175,7 +175,7 @@ end
 #! - ASSET is the asset to validate.
 export.validate_non_fungible_asset_origin
     # assert the origin of the asset is the faucet_id provided via the stack
-    dup.3 assert_eq.err=ERR_NON_FUNGIBLE_ASSET_MISMATCH
+    dup.3 assert_eq.err=ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the non-fungible asset is valid

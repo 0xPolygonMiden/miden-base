@@ -1365,6 +1365,7 @@ name = "miden-tx"
 version = "0.6.0"
 dependencies = [
  "async-trait",
+ "miden-assembly",
  "miden-lib",
  "miden-objects",
  "miden-processor",
@@ -1373,6 +1374,8 @@ dependencies = [
  "miden-verifier",
  "rand",
  "rand_chacha",
+ "regex",
+ "walkdir",
  "winter-maybe-async 0.10.1",
 ]
 

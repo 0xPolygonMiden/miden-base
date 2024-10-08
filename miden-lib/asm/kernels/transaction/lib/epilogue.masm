@@ -10,11 +10,11 @@ use.std::crypto::hashes::native
 # ERRORS
 # =================================================================================================
 
-# The nonce did not increase after a state changing transaction.
-const.ERR_NONCE_DID_NOT_INCREASE=0x00020009
+# Account nonce did not increase after a state changing transaction
+const.ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE=0x00020009
 
 # Total number of assets in the account and all involved notes must stay the same
-const.ERR_EPILOGUE_ASSETS_DONT_ADD_UP=0x0002000A
+const.ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME=0x0002000A
 
 # OUTPUT NOTES PROCEDURES
 # =================================================================================================
@@ -282,7 +282,7 @@ export.finalize_transaction
         push.1005 drop                              # TODO: remove line, see miden-vm/#1122
 
         # assert that initial nonce is less than current nonce
-        lt assert.err=ERR_NONCE_DID_NOT_INCREASE
+        lt assert.err=ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE
         # => [FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
     end
 
@@ -307,7 +307,7 @@ export.finalize_transaction
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
-    exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_EPILOGUE_ASSETS_DONT_ADD_UP
+    exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     swapdw
