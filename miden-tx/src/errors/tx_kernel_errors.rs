@@ -112,7 +112,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002002f;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x00020032;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x00020031;
 
-pub const VM_ERRORS: [(u32, &str); 83] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 83] = [
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
     (ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES, "Account ID must contain at least MIN_ACCOUNT_ONES number of ones"),

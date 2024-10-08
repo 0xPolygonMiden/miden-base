@@ -173,7 +173,7 @@ fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result
     }
     writeln!(output).into_diagnostic()?;
 
-    writeln!(output, "pub const VM_ERRORS: [(u32, &str); {}] = [", errors.len())
+    writeln!(output, "pub const TX_KERNEL_ERRORS: [(u32, &str); {}] = [", errors.len())
         .into_diagnostic()?;
 
     let mut last_error = None;
