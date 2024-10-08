@@ -2,8 +2,8 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
-        StorageSlot,
+        Account, AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountStorageMode,
+        AccountType, StorageSlot,
     },
     assets::TokenSymbol,
     AccountError, Felt, Word, ZERO,
@@ -39,7 +39,7 @@ pub fn create_basic_fungible_faucet(
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
-    // faucet contract, so we can just use the public key as storage slot 0.
+    // faucet contract.
 
     let (auth_scheme_procedure, auth_data): (&str, Word) = match auth_scheme {
         AuthScheme::RpoFalcon512 { pub_key } => ("auth_tx_rpo_falcon512", pub_key.into()),
@@ -55,6 +55,15 @@ pub fn create_basic_fungible_faucet(
 
     let assembler = TransactionKernel::assembler();
     let account_code = AccountCode::compile(source_code, assembler, true)?;
+
+    // TODO: Remove this manual modification once we have the ability to set sizes using the
+    // assembler.
+    let procedures = account_code
+        .procedures()
+        .iter()
+        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 2).unwrap())
+        .collect();
+    let account_code = AccountCode::from_parts(account_code.mast(), procedures);
 
     // First check that the metadata is valid.
     if decimals > MAX_DECIMALS {
