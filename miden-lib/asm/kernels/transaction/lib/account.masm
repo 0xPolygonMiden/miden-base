@@ -375,7 +375,7 @@ export.validate_procedure_metadata
                 # => [index, num_storage_slots, num_account_procedures]
             else
                 # assert that storage offset is in bounds
-                dup dup.3 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+                dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
                 # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
                 # assert that storage limit is in bounds
