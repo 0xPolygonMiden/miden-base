@@ -57,13 +57,16 @@ const.ERR_ACCT_TOO_MANY_STORAGE_SLOTS=0x00020058
 const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020056
 
 # Maximum allowed number of foreign account to be loaded (64) was exceeded.
-const.ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED=0x00020057
+const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020057
 
 # Provided foreign account ID is equal to the native account ID. 
-const.ERR_FOREIGN_ACCT_ID_EQUALS_NATIVE_ACCT_ID=0x00020059
+const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020059
 
-# Storage offset is invalid for 0 storage size (should be 0)
+# Storage offset is invalid for 0 storage size (should be 0).
 const.ERR_INVALID_STORAGE_OFFSET_FOR_SIZE=0x0002005A
+
+# State of the current foreign account is invalid.
+const.ERR_FOREIGN_ACCOUNT_INVALID=0x0002005B
 
 # CONSTANTS
 # =================================================================================================
@@ -944,7 +947,7 @@ export.get_foreign_account_ptr
     # => [foreign_account_id]
 
     # check that foreign account id is not equal to the native account id
-    dup exec.memory::get_native_account_id neq assert.err=ERR_FOREIGN_ACCT_ID_EQUALS_NATIVE_ACCT_ID
+    dup exec.memory::get_native_account_id neq assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
 
     # get the initial account data pointer
     exec.memory::get_native_account_data_ptr
@@ -988,10 +991,44 @@ export.get_foreign_account_ptr
 
     # check that the loading of one more account won't exceed the maximum number of the foreign 
     # accounts which can be loaded.
-    dup exec.memory::get_max_foreign_account_ptr lte assert.err=ERR_MAX_NUM_FOREIGN_ACCOUNTS_EXCEEDED
+    dup exec.memory::get_max_foreign_account_ptr lte assert.err=ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED
     # => [curr_account_ptr, foreign_account_id, is_equal_id]
 
     # the resulting `was_loaded` flag is essentially equal to the `is_equal_id` flag
     movup.2
     # => [was_loaded, curr_account_ptr, foreign_account_id]
+end
+
+
+#! Checks that the state of the current foreign account is valid.
+#!
+#! Stack:  []
+#! Output: []
+#!
+#! Panics if:
+#! - the hash of the current account is not represented in the account database.
+export.validate_current_foreign_account
+    # get the account database root
+    exec.memory::get_acct_db_root
+    # => [ACCOUNT_DB_ROOT]
+
+    # get the current account ID
+    exec.memory::get_account_id
+    # => [account_id, ACCOUNT_DB_ROOT]
+
+    # push the depth of the account database tree
+    # TODO: create a constant for account database tree depth?
+    push.64
+    # => [depth, account_id, ACCOUNT_DB_ROOT]
+
+    # get the foreign account hash
+    exec.get_current_hash
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id, ACCOUNT_DB_ROOT]
+
+    # verify that the account database has the hash of the current foreign account
+    mtree_verify.err=ERR_FOREIGN_ACCOUNT_INVALID
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id, ACCOUNT_DB_ROOT]
+
+    # clean the stack
+    dropw drop drop dropw
 end

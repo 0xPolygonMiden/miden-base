@@ -506,10 +506,10 @@ end
 #! Returns the account db root of the last known block.
 #!
 #! Stack: []
-#! Output: [ACCT_ROOT]
+#! Output: [ACCT_DB_ROOT]
 #!
 #! Where:
-#! - ACCT_ROOT is the account root of the last known block.
+#! - ACCT_DB_ROOT is the account database root of the last known block.
 export.get_acct_db_root
     padw push.ACCT_DB_ROOT_PTR mem_loadw
 end

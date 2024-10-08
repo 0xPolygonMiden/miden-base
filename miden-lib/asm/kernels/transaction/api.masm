@@ -1047,6 +1047,10 @@ export.start_foreign_context
         # OS => []
         # AS => []
     end
+
+    # make sure that the state of the loaded foreign account is valid
+    exec.account::validate_current_foreign_account
+    # => []
 end
 
 #! Tells the transaction kernel that we are done executing a procedure on a foreign account.

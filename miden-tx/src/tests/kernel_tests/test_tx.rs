@@ -42,7 +42,10 @@ use crate::{
     errors::tx_kernel_errors::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_OUTPUT_NOTES_OVERFLOW,
     },
-    testing::{MockHost, TransactionContextBuilder},
+    testing::{
+        mock_chain::{MockChain, MockChainBuilder},
+        MockHost, TransactionContextBuilder,
+    },
     tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
 };
 
@@ -598,6 +601,8 @@ fn test_build_recipient_hash() {
 
 #[test]
 fn test_load_foreign_account_basic() {
+    // GET ITEM
+    // --------------------------------------------------------------------------------------------
     let storage_slot = AccountStorage::mock_item_0().slot;
     let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_storage_slot(storage_slot.clone())
@@ -605,13 +610,13 @@ fn test_load_foreign_account_basic() {
         .nonce(ONE)
         .build()
         .unwrap();
+
     let account_id = foreign_account.id();
+    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let advice_inputs = get_mock_advice_inputs(&foreign_account);
-
-    // GET ITEM
-    // --------------------------------------------------------------------------------------------
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
         .advice_inputs(advice_inputs.clone())
         .build();
 
@@ -666,10 +671,11 @@ fn test_load_foreign_account_basic() {
         .unwrap();
 
     let account_id = foreign_account.id();
-
-    let advice_inputs = get_mock_advice_inputs(&foreign_account);
+    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
         .advice_inputs(advice_inputs)
         .build();
 
@@ -729,11 +735,13 @@ fn test_load_foreign_account_twice() {
         .nonce(ONE)
         .build()
         .unwrap();
-    let account_id = foreign_account.id();
 
-    let advice_inputs = get_mock_advice_inputs(&foreign_account);
+    let account_id = foreign_account.id();
+    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
         .advice_inputs(advice_inputs.clone())
         .build();
 
@@ -797,37 +805,39 @@ fn test_load_foreign_account_twice() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn get_mock_advice_inputs(foreign_account: &Account) -> AdviceInputs {
+fn get_mock_advice_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
     let foreign_id_root = Digest::from([foreign_account.id().into(), ZERO, ZERO, ZERO]);
     let foreign_id_and_nonce = [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()];
     let foreign_vault_root = foreign_account.vault().commitment();
     let foreign_storage_root = foreign_account.storage().commitment();
     let foreign_code_root = foreign_account.code().commitment();
 
-    AdviceInputs::default().with_map([
-        // ACCOUNT_ID |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
-        (
-            foreign_id_root,
-            [
-                &foreign_id_and_nonce,
-                foreign_vault_root.as_elements(),
-                foreign_storage_root.as_elements(),
-                foreign_code_root.as_elements(),
-            ]
-            .concat(),
-        ),
-        // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
-        (foreign_storage_root, foreign_account.storage().as_elements()),
-        // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
-        (
-            foreign_code_root,
-            [
-                vec![Felt::try_from(foreign_account.code().procedures().len()).unwrap()],
-                foreign_account.code().as_elements(),
-            ]
-            .concat(),
-        ),
-    ])
+    AdviceInputs::default()
+        .with_map([
+            // ACCOUNT_ID |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+            (
+                foreign_id_root,
+                [
+                    &foreign_id_and_nonce,
+                    foreign_vault_root.as_elements(),
+                    foreign_storage_root.as_elements(),
+                    foreign_code_root.as_elements(),
+                ]
+                .concat(),
+            ),
+            // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
+            (foreign_storage_root, foreign_account.storage().as_elements()),
+            // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+            (
+                foreign_code_root,
+                [
+                    vec![Felt::try_from(foreign_account.code().procedures().len()).unwrap()],
+                    foreign_account.code().as_elements(),
+                ]
+                .concat(),
+            ),
+        ])
+        .with_merkle_store(mock_chain.accounts().into())
 }
 
 fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process<MockHost>) {
