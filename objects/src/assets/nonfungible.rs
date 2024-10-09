@@ -3,10 +3,7 @@ use core::fmt;
 
 use vm_core::{FieldElement, WORD_SIZE};
 
-use super::{
-    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
-    ACCOUNT_ISFAUCET_MASK,
-};
+use super::{AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word, ACCOUNT_ISFAUCET_MASK};
 use crate::{
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
@@ -149,17 +146,6 @@ impl From<NonFungibleAsset> for Word {
     }
 }
 
-impl From<NonFungibleAsset> for [u8; 32] {
-    fn from(asset: NonFungibleAsset) -> Self {
-        let mut result = [0_u8; 32];
-        result[..8].copy_from_slice(&asset.0[0].as_int().to_le_bytes());
-        result[8..16].copy_from_slice(&asset.0[FAUCET_ID_POS].as_int().to_le_bytes());
-        result[16..24].copy_from_slice(&asset.0[2].as_int().to_le_bytes());
-        result[24..].copy_from_slice(&asset.0[3].as_int().to_le_bytes());
-        result
-    }
-}
-
 impl From<NonFungibleAsset> for Asset {
     fn from(asset: NonFungibleAsset) -> Self {
         Asset::NonFungible(asset)
@@ -176,24 +162,23 @@ impl TryFrom<Word> for NonFungibleAsset {
     }
 }
 
-impl TryFrom<[u8; 32]> for NonFungibleAsset {
-    type Error = AssetError;
-
-    fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
-        let word = parse_word(value)?;
-        Self::try_from(word)
-    }
-}
-
 impl fmt::Display for NonFungibleAsset {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
 impl Serializable for NonFungibleAsset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write(self.0)
+        // All assets should serialize their faucet ID at the first position to allow them to be
+        // easily distinguishable during deserialization.
+        target.write(self.0[FAUCET_ID_POS]);
+        target.write(self.0[0]);
+        target.write(self.0[2]);
+        target.write(self.0[3]);
     }
 
     fn get_size_hint(&self) -> usize {
@@ -204,8 +189,23 @@ impl Serializable for NonFungibleAsset {
 impl Deserializable for NonFungibleAsset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let value: Word = source.read()?;
-
         Self::try_from(value).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+impl NonFungibleAsset {
+    /// Deserializes a [`NonFungibleAsset`] from an [`AccountId`] and the remaining data from the
+    /// given `source`.
+    pub(super) fn deserialize_with_account_id<R: ByteReader>(
+        faucet_id: AccountId,
+        source: &mut R,
+    ) -> Result<Self, DeserializationError> {
+        let hash_0: Felt = source.read()?;
+        let hash_2: Felt = source.read()?;
+        let hash_3: Felt = source.read()?;
+
+        NonFungibleAsset::from_parts(faucet_id, [hash_0, Felt::ZERO, hash_2, hash_3])
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
