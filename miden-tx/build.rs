@@ -1,9 +1,15 @@
-use std::{collections::BTreeMap, env, fmt::Write, path::Path};
+use std::{
+    collections::BTreeMap,
+    env,
+    fmt::Write,
+    path::Path,
+};
 
 use assembly::{
-    diagnostics::{IntoDiagnostic, Result},
+    diagnostics::{miette, Result},
     Report,
 };
+use miette::IntoDiagnostic;
 use regex::Regex;
 use walkdir::WalkDir;
 

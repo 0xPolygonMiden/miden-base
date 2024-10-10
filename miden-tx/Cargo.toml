@@ -31,6 +31,9 @@ miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { version = "0.3", default-features = false, optional = true }
+tonic = "0.11"
+tonic-web = { version = "0.11" }
+tonic-web-wasm-client = { version = "0.6", default-features = false }
 vm-processor = { workspace = true }
 winter-maybe-async = { version = "0.10" }
 
@@ -40,5 +43,10 @@ rand_chacha = { version = "0.3", default-features = false }
 
 [build-dependencies]
 assembly = { workspace = true }
+miette = { version = "7.2", features = ["fancy"] }
+prost = { version = "0.12" }
+prost-build = { version = "0.12" }
+protox = { version = "0.6" }
 regex = { version = "1.10" }
+tonic-build = { version = "0.11" }
 walkdir = { version = "2.5"}

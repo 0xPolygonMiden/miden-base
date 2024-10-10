@@ -13,7 +13,7 @@ fn main() -> miette::Result<()> {
 fn compile_tonic_server_proto() -> miette::Result<()> {
     let crate_root: PathBuf =
         env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set").into();
-    let dst_dir = crate_root.join("src").join("server").join("generated");
+    let dst_dir = crate_root.join("src").join("generated");
 
     // Remove api.rs file if exists.
     let _ = fs::remove_file(dst_dir.join("api.rs")).into_diagnostic();
@@ -35,6 +35,19 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     let prost_config = prost_build::Config::new();
 
     // Generate the stub of the user facing server from its proto file
+
+    #[cfg(not(feature = "testing"))]
+    tonic_build::configure()
+        .file_descriptor_set_path(&file_descriptor_path)
+        .skip_protoc_run()
+        .build_client(false)
+        .build_transport(false)
+        .out_dir(&dst_dir)
+        .compile_with_config(prost_config, protos, includes)
+        .into_diagnostic()?;
+
+    // If on test, create the ApiClient
+    #[cfg(feature = "testing")]
     tonic_build::configure()
         .file_descriptor_set_path(&file_descriptor_path)
         .skip_protoc_run()

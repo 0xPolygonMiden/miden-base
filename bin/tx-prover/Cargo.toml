@@ -13,6 +13,7 @@ edition.workspace = true
 
 [features]
 testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
+std = ["miden-objects/std", "miden-tx/std"]
 
 [dependencies]
 axum = "0.7"
@@ -27,6 +28,7 @@ tonic = "0.11"
 tonic-web = { version = "0.11" }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
+winter-maybe-async = { version = "0.10" }
 
 [build-dependencies]
 miette = { version = "7.2", features = ["fancy"] }
@@ -38,3 +40,4 @@ tonic-build = { version = "0.11" }
 [dev-dependencies]
 tokio = { version = "1.38", features = ["full"] }
 tonic = "0.11"
+miden-tx-prover = { path=".", features = ["testing"] }
