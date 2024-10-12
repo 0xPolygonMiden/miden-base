@@ -66,7 +66,9 @@ proc.authenticate_account_origin
     # => [storage_offset, storage_size]
 end
 
-#! Authenticates that the invocation of a kernel procedure originates from the account context.
+#! Verifies that the procedure to be invoked against the foreign account is part of its code.
+#! TODO: it is a temporary solution. This and other `*_foreign` procedures should be removed after 
+#! the refactoring of the `DYN` operation (see miden-vm/#1091) and the fix of the CALLER operation. 
 #!
 #! Stack: [FOREIGN_PROC_ROOT]
 #! Output: [storage_offset, storage_size, ...]
@@ -953,15 +955,16 @@ export.get_note_serial_number
 end
 
 #! Tells the transaction kernel that we are about to execute a procedure on a foreign account.
-#! Loads the data of the specified foreign account to the memory and moves the pointer of the 
-#! currently accessing account to it. 
+#!
+#! Checks whether the current foreign account was already loaded to the memory, and loads it if not.
+#! Moves the account pointer to the currently accessing foreign account.
 #!
 #! Inputs:
 #!   Operand stack: [KERNEL_PROCEDURE_HASH, foreign_account_id, pad(11)]
 #!   Advice map: {
 #!     FOREIGN_ACCOUNT_ID: [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
 #!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
-#!     CODE_ROOT: [[ACCOUNT_PROCEDURE_DATA]]
+#!     CODE_ROOT: [num_procs, [ACCOUNT_PROCEDURE_DATA]]
 #!   }
 #! Outputs:
 #!   Operand stack: []
@@ -1047,7 +1050,8 @@ export.start_foreign_context
         # AS => []
     end
 
-    # make sure that the state of the loaded foreign account is valid
+    # make sure that the state of the loaded foreign account corresponds to this commitment in the 
+    # account database
     exec.account::validate_current_foreign_account
     # => []
 end

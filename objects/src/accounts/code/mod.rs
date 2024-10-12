@@ -195,7 +195,7 @@ impl AccountCode {
     ///
     /// This is done by first converting each procedure into 8 field elements as follows:
     /// ```text
-    /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, storage_size]
+    /// [PROCEDURE_MAST_ROOT, storage_offset, storage_size, 0, 0]
     /// ```
     /// And then concatenating the resulting elements into a single vector.
     pub fn as_elements(&self) -> Vec<Felt> {

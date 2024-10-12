@@ -124,7 +124,9 @@ const.KERNEL_PROCEDURES_PTR=401
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
-# The largest memory address which can be used to load the foreign account data
+# The largest memory address which can be used to load the foreign account data.
+# It is computed as `2048 * 64` -- this is the memory address where the data block of the 64th 
+# account starts.
 const.MAX_FOREIGN_ACCOUNT_PTR=131072
 
 # The memory address at which the native account data is stored.

@@ -109,6 +109,9 @@ const.MAX_NUM_STORAGE_SLOTS=MAX_STORAGE_SLOT_INDEX+1
 # Depth of the account database tree.
 const.ACCOUNT_TREE_DEPTH=64
 
+# The number of field elements it takes to store one account storage slot.
+const.ACCOUNT_STORAGE_SLOT_LENGTH=8
+
 # EVENTS
 # =================================================================================================
 
@@ -730,7 +733,7 @@ end
 #!   Operand stack: []
 #! 
 #! Where:
-#! - STORAGE_COMMITMENT is the commitment of the foreign account's storage.
+#! - STORAGE_COMMITMENT is the commitment of the current account's storage.
 #! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows: 
 #!   [SLOT_VALUE, slot_type, 0, 0, 0]
 #!
@@ -745,7 +748,7 @@ export.save_account_storage_data
 
     # push the length of the storage slot data onto the operand stack and compute the number of 
     # storage slots from it 
-    adv_push.1 div.8
+    adv_push.1 div.ACCOUNT_STORAGE_SLOT_LENGTH
     # OS => [num_storage_slots, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
@@ -759,9 +762,9 @@ export.save_account_storage_data
     # OS => [num_storage_slots, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
-    # setup acct_storage_slots_offset and end_ptr for reading from advice stack
+    # setup acct_storage_slots_ptr and end_ptr for reading from advice stack
     mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
-    # OS => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
+    # OS => [acct_storage_slots_ptr, end_ptr, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
     # pad stack before reading from advice stack
@@ -799,10 +802,10 @@ end
 #!   Operand stack: []
 #! 
 #! Where:
-#! - CODE_COMMITMENT is the commitment of the foreign account's code.
+#! - CODE_COMMITMENT is the commitment of the current account's code.
 #! - num_procs is the number of foreign account's procedures.
 #! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as 
-#!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+#!   follows: [PROCEDURE_MAST_ROOT, storage_offset, storage_size, 0, 0]
 #!
 #! Panics if:
 #! - the number of account procedures exceeded the maximum limit of 256
@@ -972,23 +975,19 @@ export.get_foreign_account_ptr
         padw dup.4 mem_loadw
         # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id]
 
-        # check whether the first data words is an empty word, preserve the last value in this word 
-        # (account id)
-        dup.3 movdn.4 padw eqw movdn.8 dropw dropw
-        # => [is_empty_word, last_data_value, curr_account_ptr', foreign_account_id]
+        # check whether the last value in the word equals zero. If so, it will mean that this memory
+        # block was not initialized.
+        drop drop drop dup eq.0
+        # => [is_empty_block, last_data_value, curr_account_ptr', foreign_account_id]
 
         # check whether the current id matches the foreign id 
         swap dup.3 eq
         # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id]
 
-        # get the sum of the flags to obtain the loop flag
-        dup movdn.4 add
-        # => [flags_sum, curr_account_ptr', foreign_account_id, is_equal_id]
-
         # get the loop flag
-        # it equals 0 if both `is_equal_id` and `is_empty_word` flags equal 0, so we should continue 
-        # iterating
-        eq.0
+        # it equals 1 if both `is_equal_id` and `is_empty_block` flags are equal to 0, so we should 
+        # continue iterating
+        dup movdn.4 or not
         # => [loop_flag, curr_account_ptr', foreign_account_id, is_equal_id]
     end
 
