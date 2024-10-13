@@ -110,7 +110,7 @@ const.MAX_NUM_STORAGE_SLOTS=MAX_STORAGE_SLOT_INDEX+1
 const.ACCOUNT_TREE_DEPTH=64
 
 # The number of field elements it takes to store one account storage slot.
-const.ACCOUNT_STORAGE_SLOT_LENGTH=8
+const.ACCOUNT_STORAGE_SLOT_DATA_LENGTH=8
 
 # EVENTS
 # =================================================================================================
@@ -748,7 +748,7 @@ export.save_account_storage_data
 
     # push the length of the storage slot data onto the operand stack and compute the number of 
     # storage slots from it 
-    adv_push.1 div.ACCOUNT_STORAGE_SLOT_LENGTH
+    adv_push.1 div.ACCOUNT_STORAGE_SLOT_DATA_LENGTH
     # OS => [num_storage_slots, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
