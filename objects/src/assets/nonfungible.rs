@@ -188,8 +188,10 @@ impl Serializable for NonFungibleAsset {
 
 impl Deserializable for NonFungibleAsset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let value: Word = source.read()?;
-        Self::try_from(value).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        let faucet_id: AccountId = source.read()?;
+
+        Self::deserialize_with_account_id(faucet_id, source)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -204,6 +206,8 @@ impl NonFungibleAsset {
         let hash_2: Felt = source.read()?;
         let hash_3: Felt = source.read()?;
 
+        // The second felt in the data_hash will be replaced by the faucet id, so we can set it to
+        // zero here.
         NonFungibleAsset::from_parts(faucet_id, [hash_0, Felt::ZERO, hash_2, hash_3])
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
@@ -242,5 +246,43 @@ impl NonFungibleAssetDetails {
     /// Returns asset data in binary format.
     pub fn asset_data(&self) -> &[u8] {
         &self.asset_data
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::accounts::account_id::testing::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+    };
+
+    #[test]
+    fn test_non_fungible_asset_serde() {
+        for non_fungible_account_id in [
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ] {
+            let account_id = AccountId::try_from(non_fungible_account_id).unwrap();
+            let details = NonFungibleAssetDetails::new(account_id, vec![1, 2, 3]).unwrap();
+            let non_fungible_asset = NonFungibleAsset::new(&details).unwrap();
+            assert_eq!(
+                non_fungible_asset,
+                NonFungibleAsset::read_from_bytes(&non_fungible_asset.to_bytes()).unwrap()
+            );
+        }
+
+        let account = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let details = NonFungibleAssetDetails::new(account, vec![4, 5, 6, 7]).unwrap();
+        let asset = NonFungibleAsset::new(&details).unwrap();
+        let mut asset_bytes = asset.to_bytes();
+        // Set invalid Faucet ID.
+        asset_bytes[0..8].copy_from_slice(&ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN.to_le_bytes());
+        let err = NonFungibleAsset::read_from_bytes(&asset_bytes).unwrap_err();
+        assert!(matches!(err, DeserializationError::InvalidValue(_)));
     }
 }

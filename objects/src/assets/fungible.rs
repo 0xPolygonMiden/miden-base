@@ -209,3 +209,42 @@ impl FungibleAsset {
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::accounts::account_id::testing::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+    };
+
+    #[test]
+    fn test_fungible_asset_serde() {
+        for fungible_account_id in [
+            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+        ] {
+            let account_id = AccountId::try_from(fungible_account_id).unwrap();
+            let fungible_asset = FungibleAsset::new(account_id, 10).unwrap();
+            assert_eq!(
+                fungible_asset,
+                FungibleAsset::read_from_bytes(&fungible_asset.to_bytes()).unwrap()
+            );
+        }
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+        let asset = FungibleAsset::new(account_id, 50).unwrap();
+        let mut asset_bytes = asset.to_bytes();
+        // Set invalid Faucet ID.
+        asset_bytes[0..8].copy_from_slice(&ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN.to_le_bytes());
+        let err = FungibleAsset::read_from_bytes(&asset_bytes).unwrap_err();
+        assert!(matches!(err, DeserializationError::InvalidValue(_)));
+    }
+}
