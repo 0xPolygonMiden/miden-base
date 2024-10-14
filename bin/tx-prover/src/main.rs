@@ -1,11 +1,16 @@
 use std::env;
 
-use server::Rpc;
+use api::RpcListener;
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
+mod api;
 
-pub mod server;
+mod generated;
+pub use generated::api::{
+    api_server::{Api as ProverApi, ApiServer},
+    ProveTransactionRequest, ProveTransactionResponse,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = env::var("PROVER_SERVICE_PORT").unwrap_or_else(|_| "50051".to_string());
     let addr = format!("{}:{}", host, port);
 
-    let rpc = Rpc::new(TcpListener::bind(addr).await?);
+    let rpc = RpcListener::new(TcpListener::bind(addr).await?);
 
     info!("Server listening on {}", rpc.listener.local_addr()?);
 
@@ -49,20 +54,19 @@ mod test {
         testing::mock_chain::{Auth, MockChain},
         utils::Serializable,
     };
-    use server::{
-        generated::api::{api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest},
-        RpcApi,
-    };
     use tokio::net::TcpListener;
     use tonic::Request;
 
-    use super::*;
+    use crate::{
+        api::ProverRpcApi, generated::api::api_client::ApiClient, ApiServer,
+        ProveTransactionRequest,
+    };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
-        let api_service = ApiServer::new(RpcApi::default());
+        let api_service = ApiServer::new(ProverRpcApi::default());
 
         // Spawn the server as a background task
         tokio::spawn(async move {

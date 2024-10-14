@@ -13,7 +13,7 @@ fn main() -> miette::Result<()> {
 fn compile_tonic_server_proto() -> miette::Result<()> {
     let crate_root: PathBuf =
         env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set").into();
-    let dst_dir = crate_root.join("src").join("server").join("generated");
+    let dst_dir = crate_root.join("src").join("generated");
 
     // Remove api.rs file if exists.
     let _ = fs::remove_file(dst_dir.join("api.rs")).into_diagnostic();
@@ -33,14 +33,36 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     fs::write(&file_descriptor_path, file_descriptors.encode_to_vec()).into_diagnostic()?;
 
     let prost_config = prost_build::Config::new();
-
-    // Generate the stub of the user facing server from its proto file
-    tonic_build::configure()
+    let mut tonic_builder = tonic_build::configure();
+    tonic_builder = tonic_builder
         .file_descriptor_set_path(&file_descriptor_path)
         .skip_protoc_run()
         .out_dir(&dst_dir)
-        .compile_with_config(prost_config, protos, includes)
+        .build_server(true);
+
+    // Conditionally configure the builder based on the "wasm" feature
+    #[cfg(feature = "wasm")]
+    {
+        tonic_builder = tonic_builder.build_transport(false).build_server(false);
+    }
+
+    tonic_builder
+        .compile_protos_with_config(prost_config, protos, includes)
         .into_diagnostic()?;
 
     Ok(())
 }
+
+// This function replaces all "std::result" with "core::result" in the generated "rpc.rs" file
+// for the web tonic client. This is needed as `tonic_build` doesn't generate `no_std` compatible
+// files and we want to build wasm without `std`.
+// fn replace_no_std_types() {
+//     let path = WEB_TONIC_CLIENT_PROTO_OUT_DIR.to_string() + "/rpc.rs";
+//     let file_str = fs::read_to_string(&path).unwrap();
+//     let new_file_str = file_str
+//         .replace("std::result", "core::result")
+//         .replace("std::marker", "core::marker");
+
+//     let mut f = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+//     f.write_all(new_file_str.as_bytes()).unwrap();
+// }

@@ -11,30 +11,41 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
+[[bin]]
+name = "prover-service"
+path = "src/main.rs"
+required-features = ["std"]
+
 [features]
-testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
+std = ["miden-objects/std", "miden-tx/std", "dep:tokio", "dep:tonic-web", "dep:tokio-stream", "dep:axum",  "dep:tracing", "dep:tracing-subscriber"]
+async = ["miden-tx/async"]
+wasm = ["dep:tonic-web-wasm-client", "dep:getrandom", "getrandom/js"]
 
 [dependencies]
-axum = "0.7"
-miden-lib = { workspace = true }
-miden-objects = { workspace = true }
-miden-prover = { workspace = true }
-miden-tx = { workspace = true }
-prost = "0.12"
-tokio = { version = "1.38", features = ["full"] }
-tokio-stream = { version = "0.1", features = [ "net" ]}
-tonic = "0.11"
-tonic-web = { version = "0.11" }
-tracing = { version = "0.1" }
-tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
+async-trait = "0.1"
+axum = {version = "0.7", optional = true }
+getrandom = { version = "0.2", features = ["js"], optional = true }
+miden-lib = { workspace = true , default-features = false}
+miden-objects = { workspace = true, default-features = false }
+miden-tx = { workspace = true, default-features = false }
+prost = { version = "0.13", default-features = false, features = ["derive"] }
+tokio = { version = "1.38", optional = true, features = ["full"] }
+tokio-stream = { version = "0.1", optional = true, features = [ "net" ]}
+tonic = {version = "0.12", features = ["prost", "codegen"]}
+tonic-web = { version = "0.12", optional = true }
+tonic-web-wasm-client = { version = "0.6", optional = true, default-features = false }
+tracing = { version = "0.1", optional=true }
+tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"], optional=true }
+winter-maybe-async = { version = "0.10" }
+
+[dev-dependencies]
+miden-lib = { workspace = true , default-features = false, features = ["testing"]}
+miden-objects = { workspace = true, default-features = false, features = ["testing"] }
+miden-tx = { workspace = true, default-features = false, features = ["testing"] }
 
 [build-dependencies]
 miette = { version = "7.2", features = ["fancy"] }
-prost = { version = "0.12" }
-prost-build = { version = "0.12" }
-protox = { version = "0.6" }
-tonic-build = { version = "0.11" }
-
-[dev-dependencies]
-tokio = { version = "1.38", features = ["full"] }
-tonic = "0.11"
+prost = { version = "0.13", default-features = false, features = ["derive"] }
+prost-build = { version = "0.13" }
+protox = { version = "0.7" }
+tonic-build = { version = "0.12" }
