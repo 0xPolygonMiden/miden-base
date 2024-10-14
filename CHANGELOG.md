@@ -2,6 +2,7 @@
 
 ## 0.6.0 (TBD)
 
+- Added `RemoteTransactionProver` struct to `miden-tx-prover` (#921).
 - [BREAKING] Changed `TransactionProver` trait to be `maybe_async_trait` based on the `async` feature (#913).
 - [BREAKING] Changed `TransactionExecutor` and `TransactionHost` to use trait objects (#897).
 - Implemented kernel procedure to set transaction expiration block delta (#897).
