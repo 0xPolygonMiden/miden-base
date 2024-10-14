@@ -1,11 +1,10 @@
-use miden_crypto::merkle::EmptySubtreeRoots;
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     EMPTY_WORD, ZERO,
 };
 use vm_processor::DeserializationError;
 
-use super::{Felt, StorageMap, Word};
+use super::{map::EMPTY_STORAGE_MAP_ROOT, Felt, StorageMap, Word};
 
 mod r#type;
 pub use r#type::StorageSlotType;
@@ -28,9 +27,7 @@ impl StorageSlot {
     pub fn is_default(&self) -> bool {
         match self {
             StorageSlot::Value(value) => *value == EMPTY_WORD,
-            StorageSlot::Map(map) => {
-                &map.root() == EmptySubtreeRoots::entry(StorageMap::STORAGE_MAP_TREE_DEPTH, 0)
-            },
+            StorageSlot::Map(map) => map.root() == EMPTY_STORAGE_MAP_ROOT,
         }
     }
 
@@ -38,9 +35,7 @@ impl StorageSlot {
     pub fn default_word(&self) -> Word {
         match self {
             StorageSlot::Value(_) => EMPTY_WORD,
-            StorageSlot::Map(_) => {
-                EmptySubtreeRoots::entry(StorageMap::STORAGE_MAP_TREE_DEPTH, 0).into()
-            },
+            StorageSlot::Map(_) => EMPTY_STORAGE_MAP_ROOT.into(),
         }
     }
 
