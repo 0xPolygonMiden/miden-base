@@ -93,7 +93,7 @@ impl TransactionProver for LocalTransactionProver {
                 .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
             prove(&TransactionKernel::main(), stack_inputs, &mut host, self.proof_options.clone())
-                .map_err(TransactionProverError::TransactionExecutionProgramFailed)?;
+                .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;
 
         // extract transaction outputs and process transaction data
         let (advice_provider, account_delta, output_notes, _signatures, _tx_progress) =

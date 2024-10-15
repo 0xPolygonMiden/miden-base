@@ -48,7 +48,7 @@ pub enum TransactionProverError {
     InvalidAccountDelta(AccountError),
     InvalidTransactionOutput(TransactionOutputError),
     ProvenTransactionError(ProvenTransactionError),
-    TransactionExecutionProgramFailed(ExecutionError),
+    TransactionProgramExecutionFailed(ExecutionError),
     TransactionHostCreationFailed(TransactionHostError),
 }
 
@@ -67,7 +67,7 @@ impl Display for TransactionProverError {
             TransactionProverError::ProvenTransactionError(inner) => {
                 write!(f, "Building proven transaction error: {}", inner)
             },
-            TransactionProverError::TransactionExecutionProgramFailed(inner) => {
+            TransactionProverError::TransactionProgramExecutionFailed(inner) => {
                 write!(f, "Proving transaction failed: {}", inner)
             },
             TransactionProverError::TransactionHostCreationFailed(inner) => {
