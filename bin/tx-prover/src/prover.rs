@@ -1,10 +1,10 @@
-use alloc::string::ToString;
+use alloc::{boxed::Box, string::ToString};
 use core::cell::RefCell;
 
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{TransactionProver, TransactionProverError};
 
-use crate::{generated::api::api_client::ApiClient, RemoteTransactionProverError};
+use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
@@ -13,9 +13,9 @@ use crate::{generated::api::api_client::ApiClient, RemoteTransactionProverError}
 /// gRPC server and receives a proven transaction.
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "wasm-transport")]
     client: RefCell<ApiClient<tonic_web_wasm_client::Client>>,
-    #[cfg(not(feature = "wasm"))]
+    #[cfg(not(feature = "wasm-transport"))]
     client: RefCell<ApiClient<tonic::transport::Channel>>,
 }
 
@@ -31,12 +31,12 @@ impl RemoteTransactionProver {
     /// This function will return an error if the endpoint is invalid or if the gRPC
     /// connection to the server cannot be established.
     pub async fn new(endpoint: &str) -> Result<Self, RemoteTransactionProverError> {
-        #[cfg(feature = "wasm")]
+        #[cfg(feature = "wasm-transport")]
         let client = {
             let web_client = tonic_web_wasm_client::Client::new(endpoint.to_string());
             ApiClient::new(web_client)
         };
-        #[cfg(not(feature = "wasm"))]
+        #[cfg(not(feature = "wasm-transport"))]
         let client = ApiClient::connect(endpoint.to_string())
             .await
             .map_err(|_| RemoteTransactionProverError::ConnectionFailed(endpoint.to_string()))?;
@@ -54,7 +54,7 @@ impl TransactionProver for RemoteTransactionProver {
         use miden_objects::utils::Serializable;
         let mut client = self.client.borrow_mut();
 
-        let request = tonic::Request::new(crate::generated::api::ProveTransactionRequest {
+        let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
             transaction_witness: tx_witness.to_bytes(),
         });
 

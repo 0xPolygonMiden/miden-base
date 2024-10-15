@@ -16,26 +16,30 @@ name = "prover-service"
 path = "src/main.rs"
 required-features = ["std"]
 
+[lib]
+crate-type = ["lib"]
+
 [features]
-std = ["miden-objects/std", "miden-tx/std", "dep:tokio", "dep:tonic-web", "dep:tokio-stream", "dep:axum",  "dep:tracing", "dep:tracing-subscriber"]
+default = ["std"]
+std = ["miden-objects/std", "miden-tx/std", "dep:tokio", "dep:tonic-web", "dep:tokio-stream", "dep:axum",  "dep:tracing", "dep:tracing-subscriber", "tonic/transport"]
 async = ["miden-tx/async"]
-wasm = ["dep:tonic-web-wasm-client", "dep:getrandom", "getrandom/js"]
+wasm-transport = ["async", "dep:tonic-web-wasm-client", "dep:getrandom"]
 
 [dependencies]
 async-trait = "0.1"
 axum = {version = "0.7", optional = true }
 getrandom = { version = "0.2", features = ["js"], optional = true }
-miden-lib = { workspace = true , default-features = false}
+miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false }
 miden-tx = { workspace = true, default-features = false }
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 tokio = { version = "1.38", optional = true, features = ["full"] }
 tokio-stream = { version = "0.1", optional = true, features = [ "net" ]}
-tonic = {version = "0.12", features = ["prost", "codegen"]}
+tonic = { version = "0.12", default-features = false, features = ["prost", "codegen"] }
 tonic-web = { version = "0.12", optional = true }
 tonic-web-wasm-client = { version = "0.6", optional = true, default-features = false }
-tracing = { version = "0.1", optional=true }
-tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"], optional=true }
+tracing = { version = "0.1", optional = true }
+tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"], optional = true }
 winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]

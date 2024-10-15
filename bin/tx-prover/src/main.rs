@@ -7,7 +7,7 @@ use tracing::info;
 mod api;
 
 mod generated;
-pub use generated::api::{
+pub use generated::{
     api_server::{Api as ProverApi, ApiServer},
     ProveTransactionRequest, ProveTransactionResponse,
 };
@@ -58,8 +58,7 @@ mod test {
     use tonic::Request;
 
     use crate::{
-        api::ProverRpcApi, generated::api::api_client::ApiClient, ApiServer,
-        ProveTransactionRequest,
+        api::ProverRpcApi, generated::api_client::ApiClient, ApiServer, ProveTransactionRequest,
     };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

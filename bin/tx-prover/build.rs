@@ -1,4 +1,8 @@
-use std::{env, fs, path::PathBuf};
+use std::{
+    env, fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use miette::IntoDiagnostic;
 use protox::prost::Message;
@@ -9,46 +13,63 @@ fn main() -> miette::Result<()> {
 
     Ok(())
 }
-
 fn compile_tonic_server_proto() -> miette::Result<()> {
-    let crate_root: PathBuf =
-        env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set").into();
+    let crate_root =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("generated");
+    let proto_dir = crate_root.join("proto");
 
-    // Remove api.rs file if exists.
-    let _ = fs::remove_file(dst_dir.join("api.rs")).into_diagnostic();
+    // Remove `api.rs` if it exists.
+    fs::remove_file(dst_dir.join("api.rs")).into_diagnostic().ok();
 
-    // Compute the directory of the `proto` definitions
-    let proto_dir: PathBuf = crate_root.join("proto");
+    let out_dir = env::var("OUT_DIR").into_diagnostic()?;
+    let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
-    // Compute the compiler's target file path.
-    let out = env::var("OUT_DIR").into_diagnostic()?;
-    let file_descriptor_path = PathBuf::from(out).join("file_descriptor_set.bin");
-
-    // Compile the proto file for all servers APIs
     let protos = &[proto_dir.join("api.proto")];
-
     let includes = &[proto_dir];
+
     let file_descriptors = protox::compile(protos, includes)?;
     fs::write(&file_descriptor_path, file_descriptors.encode_to_vec()).into_diagnostic()?;
 
-    let prost_config = prost_build::Config::new();
-    let mut tonic_builder = tonic_build::configure();
-    tonic_builder = tonic_builder
-        .file_descriptor_set_path(&file_descriptor_path)
-        .skip_protoc_run()
-        .out_dir(&dst_dir)
-        .build_server(true);
+    // Codegen for wasm transport and std transport
+    let nostd_path = dst_dir.join("nostd");
+    let std_path = dst_dir.join("std");
+    build_tonic_server(&file_descriptor_path, &std_path, protos, includes, true)?;
+    println!("asdasd");
+    build_tonic_server(&file_descriptor_path, &nostd_path, protos, includes, true)?;
 
-    // Conditionally configure the builder based on the "wasm" feature
-    #[cfg(feature = "wasm")]
-    {
-        tonic_builder = tonic_builder.build_transport(false).build_server(false);
-    }
+    // Replace `std` references with `core` and `alloc` in `api.rs`.
+    // (Only for nostd version)
+    let nostd_file_path = nostd_path.join("api.rs");
+    let file_content = fs::read_to_string(&nostd_file_path).into_diagnostic()?;
+    let updated_content = file_content
+        .replace("std::result", "core::result")
+        .replace("std::marker", "core::marker")
+        .replace("format!", "alloc::format!");
 
-    tonic_builder
-        .compile_protos_with_config(prost_config, protos, includes)
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(&nostd_file_path)
         .into_diagnostic()?;
 
+    file.write_all(updated_content.as_bytes()).into_diagnostic()?;
+
     Ok(())
+}
+
+fn build_tonic_server(
+    file_descriptor_path: &Path,
+    out_dir: &Path,
+    protos: &[PathBuf],
+    includes: &[PathBuf],
+    build_server: bool,
+) -> miette::Result<()> {
+    tonic_build::configure()
+        .file_descriptor_set_path(file_descriptor_path)
+        .skip_protoc_run()
+        .out_dir(out_dir)
+        .build_server(build_server)
+        .compile_protos_with_config(prost_build::Config::new(), protos, includes)
+        .into_diagnostic()
 }

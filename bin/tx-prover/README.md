@@ -54,9 +54,9 @@ RUST_LOG=<log-level>
 ```
 
 ### Using RemoteTransactionProver
-To use the `RemoteTransactionProver` struct, disable default features and enable the `async` feature. If compiling for `wasm32`, optionally enable the `wasm` feature:
+To use the `RemoteTransactionProver` struct, disable default features and enable either `async`. Additionally, with `wasm-transport` feature, a `wasm32-unknown-unknown`-compatible transport is used.
 
 ```
 [dependencies]
-miden-tx-prover = { version = "0.6", default-features = false, features = ["async", "wasm"] }
+miden-tx-prover = { version = "0.6", default-features = false, features = ["async"] }
 ```

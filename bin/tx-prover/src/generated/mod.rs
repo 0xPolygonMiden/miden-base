@@ -1,8 +1,15 @@
-use api::ProveTransactionResponse;
 use miden_objects::transaction::ProvenTransaction;
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
 
-pub mod api;
+#[cfg(feature = "std")]
+mod std;
+#[cfg(feature = "std")]
+pub use std::api::*;
+
+#[cfg(feature = "wasm-transport")]
+mod nostd;
+#[cfg(feature = "wasm-transport")]
+pub use nostd::api::*;
 
 // CONVERSIONS
 // ================================================================================================

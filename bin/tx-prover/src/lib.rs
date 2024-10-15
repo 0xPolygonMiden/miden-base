@@ -1,12 +1,11 @@
 extern crate alloc;
-
 use alloc::string::String;
 
 pub(crate) mod generated;
 
-#[cfg(feature = "async")]
+#[cfg(any(feature = "async"))]
 mod prover;
-#[cfg(feature = "async")]
+#[cfg(any(feature = "async"))]
 pub use prover::RemoteTransactionProver;
 
 /// Contains the protobuf definitions
