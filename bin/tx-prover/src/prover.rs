@@ -23,8 +23,8 @@ impl RemoteTransactionProver {
     /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint.
     /// This instantiates a tonic client that attempts connecting with the server.
     ///
-    /// When the "std" feature is turned on, this uses the built-in generated tonic transport.
-    /// Otherwise, the tonic_web_wasm_client transport is utilized.
+    /// When the "wasm-transport" feature is turned off, this uses the built-in generated tonic
+    /// transport. Otherwise, the tonic_web_wasm_client transport is utilized.
     ///
     /// # Errors
     ///
@@ -64,8 +64,12 @@ impl TransactionProver for RemoteTransactionProver {
             .map_err(|err| TransactionProverError::InternalError(err.to_string()))?;
 
         // Deserialize the response bytes back into a ProvenTransaction.
-        let proven_transaction = ProvenTransaction::try_from(response.into_inner())
-            .map_err(TransactionProverError::DeserializationError)?;
+        let proven_transaction =
+            ProvenTransaction::try_from(response.into_inner()).map_err(|_| {
+                TransactionProverError::InternalError(
+                    "Error deserializing received response".to_string(),
+                )
+            })?;
 
         Ok(proven_transaction)
     }

@@ -20,9 +20,9 @@ required-features = ["std"]
 crate-type = ["lib"]
 
 [features]
+async = ["miden-tx/async"]
 default = ["std"]
 std = ["miden-objects/std", "miden-tx/std", "dep:tokio", "dep:tonic-web", "dep:tokio-stream", "dep:axum",  "dep:tracing", "dep:tracing-subscriber", "tonic/transport"]
-async = ["miden-tx/async"]
 wasm-transport = ["async", "dep:tonic-web-wasm-client", "dep:getrandom"]
 
 [dependencies]

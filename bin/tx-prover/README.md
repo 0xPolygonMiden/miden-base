@@ -54,7 +54,7 @@ RUST_LOG=<log-level>
 ```
 
 ### Using RemoteTransactionProver
-To use the `RemoteTransactionProver` struct, disable default features and enable either `async`. Additionally, with `wasm-transport` feature, a `wasm32-unknown-unknown`-compatible transport is used.
+To use the `RemoteTransactionProver` struct, disable default features and enable `async`. Additionally, with `wasm-transport` feature, a `wasm32-unknown-unknown`-compatible transport is used.
 
 ```
 [dependencies]

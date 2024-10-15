@@ -6,7 +6,7 @@ use miden_objects::{
     TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
-use vm_processor::{DeserializationError, ExecutionError};
+use vm_processor::ExecutionError;
 
 pub mod tx_kernel_errors;
 
@@ -43,21 +43,17 @@ impl std::error::Error for TransactionExecutorError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionProverError {
-    DeserializationError(DeserializationError),
     InternalError(String),
     InvalidAccountDelta(AccountError),
     InvalidTransactionOutput(TransactionOutputError),
     ProvenTransactionError(ProvenTransactionError),
-    ProveTransactionProgramFailed(ExecutionError),
+    TransactionExecutionProgramFailed(ExecutionError),
     TransactionHostCreationFailed(TransactionHostError),
 }
 
 impl Display for TransactionProverError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TransactionProverError::DeserializationError(inner) => {
-                write!(f, "Deserializing proven transaction failed: {}", inner)
-            },
             TransactionProverError::InternalError(inner) => {
                 write!(f, "Internal transaction prover error: {}", inner)
             },
@@ -70,7 +66,7 @@ impl Display for TransactionProverError {
             TransactionProverError::ProvenTransactionError(inner) => {
                 write!(f, "Building proven transaction error: {}", inner)
             },
-            TransactionProverError::ProveTransactionProgramFailed(inner) => {
+            TransactionProverError::TransactionExecutionProgramFailed(inner) => {
                 write!(f, "Proving transaction failed: {}", inner)
             },
             TransactionProverError::TransactionHostCreationFailed(inner) => {

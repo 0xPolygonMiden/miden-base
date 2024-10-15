@@ -34,8 +34,7 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     // Codegen for wasm transport and std transport
     let nostd_path = dst_dir.join("nostd");
     let std_path = dst_dir.join("std");
-    build_tonic_server(&file_descriptor_path, &std_path, protos, includes, true)?;
-    println!("asdasd");
+    build_tonic_server(&file_descriptor_path, &std_path, protos, includes, false)?;
     build_tonic_server(&file_descriptor_path, &nostd_path, protos, includes, true)?;
 
     // Replace `std` references with `core` and `alloc` in `api.rs`.
@@ -63,13 +62,14 @@ fn build_tonic_server(
     out_dir: &Path,
     protos: &[PathBuf],
     includes: &[PathBuf],
-    build_server: bool,
+    for_no_std: bool,
 ) -> miette::Result<()> {
     tonic_build::configure()
         .file_descriptor_set_path(file_descriptor_path)
         .skip_protoc_run()
         .out_dir(out_dir)
-        .build_server(build_server)
+        .build_server(!for_no_std)
+        .build_transport(!for_no_std)
         .compile_protos_with_config(prost_build::Config::new(), protos, includes)
         .into_diagnostic()
 }
