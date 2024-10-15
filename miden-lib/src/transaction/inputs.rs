@@ -168,8 +168,7 @@ fn add_account_to_advice_inputs(
     }
 
     // extend advice map with storage commitment |-> length, storage slots and types vector
-    let storage_slots = storage.as_elements();
-    inputs.extend_map([(storage.commitment(), storage_slots)]);
+    inputs.extend_map([(storage.commitment(), storage.as_elements())]);
 
     // --- account vault ------------------------------------------------------
     let vault = account.vault();
@@ -185,9 +184,7 @@ fn add_account_to_advice_inputs(
     let code = account.code();
 
     // extend the advice map with the account code data and number of procedures
-    let mut procedures: Vec<Felt> = vec![(code.num_procedures() as u8).into()];
-    procedures.append(&mut code.as_elements());
-    inputs.extend_map([(code.commitment(), procedures)]);
+    inputs.extend_map([(code.commitment(), code.as_elements())]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

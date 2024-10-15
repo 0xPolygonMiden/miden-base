@@ -828,14 +828,7 @@ fn get_mock_advice_inputs(foreign_account: &Account, mock_chain: &MockChain) -> 
             // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
             (foreign_storage_root, foreign_account.storage().as_elements()),
             // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
-            (
-                foreign_code_root,
-                [
-                    vec![Felt::try_from(foreign_account.code().procedures().len()).unwrap()],
-                    foreign_account.code().as_elements(),
-                ]
-                .concat(),
-            ),
+            (foreign_code_root, foreign_account.code().as_elements()),
         ])
         .with_merkle_store(mock_chain.accounts().into())
 }
