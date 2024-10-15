@@ -1069,6 +1069,8 @@ end
 #!      INPUT_NOTES_COMMITMENT => NOTE_DATA,
 #!      KERNEL_ROOT => KERNEL_HASHES
 #!      KERNEL_HASH => KERNEL_PROCEDURE_HASHES
+#!      ACCOUNT_CODE_COMMITMENT => [ACCOUNT_PROCEDURE_DATA]
+#!      ACCOUNT_STORAGE_COMMITMENT => [ACCOUNT_STORAGE_SLOT_DATA]
 #! }
 #! Output: []
 #!
@@ -1094,6 +1096,8 @@ end
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_COMMITMENT, account's storage commitment.
 #! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
+#! - ACCOUNT_PROCEDURE_DATA, vector of the account's procedure data.
+#! - ACCOUNT_STORAGE_SLOT_DATA, vector of the account's storage slot data.
 #! - number_of_input_notes, number of input notes.
 #! - TX_SCRIPT_ROOT, the transaction's script root.
 #! - MMR_PEAKS, is the MMR peak data, see process_chain_data

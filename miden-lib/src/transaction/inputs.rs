@@ -144,8 +144,8 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// - If present, the Merkle nodes associated with the account storage maps.
 ///
 /// Inserts the following entries into the advice map:
-/// - The account storage commitment |-> length, storage slots and types vector.
-/// - The account code commitment |-> length and procedures vector.
+/// - The account storage commitment |-> storage slots and types vector.
+/// - The account code commitment |-> procedures vector.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
