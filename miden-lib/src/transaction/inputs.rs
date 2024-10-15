@@ -144,8 +144,8 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// - If present, the Merkle nodes associated with the account storage maps.
 ///
 /// Inserts the following entries into the advice map:
-/// - The account storage commitment |-> length, storage slots and types vector.
-/// - The account code commitment |-> length and procedures vector.
+/// - The account storage commitment |-> storage slots and types vector.
+/// - The account code commitment |-> procedures vector.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
@@ -168,8 +168,7 @@ fn add_account_to_advice_inputs(
     }
 
     // extend advice map with storage commitment |-> length, storage slots and types vector
-    let storage_slots = storage.as_elements();
-    inputs.extend_map([(storage.commitment(), storage_slots)]);
+    inputs.extend_map([(storage.commitment(), storage.as_elements())]);
 
     // --- account vault ------------------------------------------------------
     let vault = account.vault();
@@ -184,10 +183,8 @@ fn add_account_to_advice_inputs(
     // --- account code -------------------------------------------------------
     let code = account.code();
 
-    // extend the advice map with the account code data and number of procedures
-    let mut procedures: Vec<Felt> = vec![(code.num_procedures() as u8).into()];
-    procedures.append(&mut code.as_elements());
-    inputs.extend_map([(code.commitment(), procedures)]);
+    // extend the advice map with the account code data
+    inputs.extend_map([(code.commitment(), code.as_elements())]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

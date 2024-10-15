@@ -112,6 +112,9 @@ const.ACCOUNT_TREE_DEPTH=64
 # The number of field elements it takes to store one account storage slot.
 const.ACCOUNT_STORAGE_SLOT_DATA_LENGTH=8
 
+# The number of field elements it takes to store one account procedure.
+const.ACCOUNT_PROCEDURE_DATA_LENGTH=8
+
 # EVENTS
 # =================================================================================================
 
@@ -796,14 +799,13 @@ end
 #! Inputs:
 #!   Operand stack: [CODE_COMMITMENT]
 #!   Advice map: {
-#!     CODE_COMMITMENT: [num_procs, [ACCOUNT_PROCEDURE_DATA]],
+#!     CODE_COMMITMENT: [[ACCOUNT_PROCEDURE_DATA]],
 #!   }
 #! Outputs:
 #!   Operand stack: []
 #! 
 #! Where:
 #! - CODE_COMMITMENT is the commitment of the current account's code.
-#! - num_procs is the number of foreign account's procedures.
 #! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as 
 #!   follows: [PROCEDURE_MAST_ROOT, storage_offset, storage_size, 0, 0]
 #!
@@ -812,12 +814,13 @@ end
 #! - the computed account code commitment does not match the provided account code commitment
 export.save_account_procedure_data
     # move procedure data from the advice map to the advice stack
-    adv.push_mapval push.15161 drop               # TODO: remove line, see miden-vm/#1122
+    adv.push_mapvaln push.15161 drop               # TODO: remove line, see miden-vm/#1122
     # OS => [CODE_COMMITMENT]
-    # AS => [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+    # AS => [account_procedure_data_len, [ACCOUNT_PROCEDURE_DATA]]
 
-    # push the number of procedures onto the operand stack before storing it in memory
-    adv_push.1
+    # push the length of the account procedure data onto the operand stack and compute the number of 
+    # procedures from it 
+    adv_push.1 div.ACCOUNT_PROCEDURE_DATA_LENGTH
     # OS => [num_procs, CODE_COMMITMENT]
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
