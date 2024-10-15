@@ -54,9 +54,10 @@ RUST_LOG=<log-level>
 ```
 
 ### Using RemoteTransactionProver
-To use the `RemoteTransactionProver` struct, disable default features and enable `async`. Additionally, with `wasm-transport` feature, a `wasm32-unknown-unknown`-compatible transport is used.
+To use the `RemoteTransactionProver` struct, enable `async`. Additionally, when compiling for `wasm32-unknown-unknown`, disable default features.
 
 ```
 [dependencies]
-miden-tx-prover = { version = "0.6", default-features = false, features = ["async"] }
+miden-tx-prover = { version = "0.6", features = ["async"], default-features = false } # Uses tonic-web-wasm-client transport
+miden-tx-prover = { version = "0.6", features = ["async"] } # Uses tonic's Channel transport
 ```

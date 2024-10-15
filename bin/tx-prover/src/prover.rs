@@ -13,9 +13,10 @@ use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 /// gRPC server and receives a proven transaction.
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
-    #[cfg(feature = "wasm-transport")]
+    #[cfg(target_arch = "wasm32")]
     client: RefCell<ApiClient<tonic_web_wasm_client::Client>>,
-    #[cfg(not(feature = "wasm-transport"))]
+
+    #[cfg(not(target_arch = "wasm32"))]
     client: RefCell<ApiClient<tonic::transport::Channel>>,
 }
 
@@ -23,20 +24,21 @@ impl RemoteTransactionProver {
     /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint.
     /// This instantiates a tonic client that attempts connecting with the server.
     ///
-    /// When the "wasm-transport" feature is turned off, this uses the built-in generated tonic
-    /// transport. Otherwise, the tonic_web_wasm_client transport is utilized.
+    /// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
+    /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
     ///
     /// # Errors
     ///
     /// This function will return an error if the endpoint is invalid or if the gRPC
     /// connection to the server cannot be established.
     pub async fn new(endpoint: &str) -> Result<Self, RemoteTransactionProverError> {
-        #[cfg(feature = "wasm-transport")]
+        #[cfg(target_arch = "wasm32")]
         let client = {
             let web_client = tonic_web_wasm_client::Client::new(endpoint.to_string());
             ApiClient::new(web_client)
         };
-        #[cfg(not(feature = "wasm-transport"))]
+
+        #[cfg(not(target_arch = "wasm32"))]
         let client = ApiClient::connect(endpoint.to_string())
             .await
             .map_err(|_| RemoteTransactionProverError::ConnectionFailed(endpoint.to_string()))?;

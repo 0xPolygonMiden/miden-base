@@ -6,9 +6,9 @@ mod std;
 #[cfg(feature = "std")]
 pub use std::api::*;
 
-#[cfg(feature = "wasm-transport")]
+#[cfg(target_arch = "wasm32")]
 mod nostd;
-#[cfg(feature = "wasm-transport")]
+#[cfg(target_arch = "wasm32")]
 pub use nostd::api::*;
 
 // CONVERSIONS

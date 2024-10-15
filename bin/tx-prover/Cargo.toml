@@ -23,21 +23,25 @@ crate-type = ["lib"]
 async = ["miden-tx/async"]
 default = ["std"]
 std = ["miden-objects/std", "miden-tx/std", "dep:tokio", "dep:tonic-web", "dep:tokio-stream", "dep:axum",  "dep:tracing", "dep:tracing-subscriber", "tonic/transport"]
-wasm-transport = ["async", "dep:tonic-web-wasm-client", "dep:getrandom"]
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+tonic-web-wasm-client = { version = "0.6", default-features = false }
+tonic = { version = "0.12", default-features = false, features = ["prost", "codegen"] }
+getrandom = { version = "0.2", features = ["js"], optional = true }
+
+[target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
+tonic = { version = "0.12", default-features = false, features = ["prost", "codegen", "transport"] }
 
 [dependencies]
 async-trait = "0.1"
 axum = {version = "0.7", optional = true }
-getrandom = { version = "0.2", features = ["js"], optional = true }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false }
 miden-tx = { workspace = true, default-features = false }
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 tokio = { version = "1.38", optional = true, features = ["full"] }
 tokio-stream = { version = "0.1", optional = true, features = [ "net" ]}
-tonic = { version = "0.12", default-features = false, features = ["prost", "codegen"] }
 tonic-web = { version = "0.12", optional = true }
-tonic-web-wasm-client = { version = "0.6", optional = true, default-features = false }
 tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"], optional = true }
 winter-maybe-async = { version = "0.10" }
