@@ -183,7 +183,7 @@ fn add_account_to_advice_inputs(
     // --- account code -------------------------------------------------------
     let code = account.code();
 
-    // extend the advice map with the account code data and number of procedures
+    // extend the advice map with the account code data
     inputs.extend_map([(code.commitment(), code.as_elements())]);
 
     // --- account seed -------------------------------------------------------
