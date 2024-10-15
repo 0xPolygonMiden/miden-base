@@ -8,6 +8,7 @@ use miden_objects::{
 use miden_verifier::VerificationError;
 use vm_processor::ExecutionError;
 
+#[rustfmt::skip]
 pub mod tx_kernel_errors;
 
 // TRANSACTION EXECUTOR ERROR

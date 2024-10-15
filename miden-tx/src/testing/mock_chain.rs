@@ -597,8 +597,14 @@ impl MockChain {
         &self.nullifiers
     }
 
+    /// Get the vector of IDs of the available notes.
     pub fn available_notes(&self) -> Vec<InputNote> {
         self.available_notes.values().cloned().collect()
+    }
+
+    /// Get the reference to the accounts hash tree.
+    pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
+        &self.accounts
     }
 }
 

@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest, Felt};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 32] = [
+pub const KERNEL0_PROCEDURES: [Digest; 34] = [
     // account_vault_add_asset
     digest!(0x77365035d901b352, 0x85d8042000096df, 0xa8531ec691f24d17, 0xc67a8fd2677bf558),
     // account_vault_get_balance
@@ -37,6 +37,10 @@ pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     digest!(0xc279aa203249464, 0x464f69a21be47e7a, 0xb9161aaee45f0ff5, 0xbca81ff227c9ca03),
     // set_account_map_item
     digest!(0x85c7e78d8e33f81, 0x2392bd80e65f27a7, 0x69d4d656a994dd2c, 0xcb9be97522be5cf4),
+    // get_account_item_foreign
+    digest!(0x3c0c99f2f5121a84, 0x8f9541aa57405666, 0xba263d917c8f664b, 0xfac8bfe516c825da),
+    // get_account_map_item_foreign
+    digest!(0xcaf822e9cd58699a, 0xcfd20d3ec7662b3, 0xddfda23d49af1998, 0x9e0d76104a9c7d75),
     // burn_asset
     digest!(0x3c71836eaa5fba1b, 0xee719bcada360cd1, 0xad55420b925fd10d, 0x4d32e15e121e5e3e),
     // get_fungible_faucet_total_issuance
@@ -64,7 +68,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     // get_block_number
     digest!(0xd483c8edceb956d, 0xf9f8d62043fcf072, 0xb917fc68b6e01ad1, 0x3ef8d736e7331692),
     // start_foreign_context
-    digest!(0x9d231f21bd27ff27, 0x5cc4476fad12b66d, 0x82f40fd18e7abb0a, 0xc09c240f2a1d82af),
+    digest!(0x5d64e0991481cb12, 0x4ea85139f6c7672d, 0xcbcb5b1b94536c73, 0xd61b2581bc5ec88),
     // end_foreign_context
     digest!(0x3770db711ce9aaf1, 0xb6f3c929151a5d52, 0x3ed145ec5dbee85f, 0xf979d975d7951bf6),
     // update_expiration_block_num

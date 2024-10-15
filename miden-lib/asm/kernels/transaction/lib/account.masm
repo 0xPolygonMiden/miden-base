@@ -1,5 +1,6 @@
 use.std::collections::smt
 use.std::crypto::hashes::native
+use.std::mem
 
 use.kernel::constants
 use.kernel::memory
@@ -8,40 +9,64 @@ use.kernel::memory
 # =================================================================================================
 
 # Account nonce cannot be increased by a greater than u32 value
-const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x0002003B
+const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x00020004
 
 # Account ID must contain at least MIN_ACCOUNT_ONES number of ones
-const.ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES=0x0002003C
+const.ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES=0x00020005
 
 # Account code must be updatable for it to be possible to set new code
-const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x0002003D
+const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020006
 
 # ID of the new account does not match the ID computed from the seed
-const.ERR_ACCOUNT_SEED_DIGEST_MISMATCH=0x0002003E
+const.ERR_ACCOUNT_SEED_DIGEST_MISMATCH=0x00020007
 
 # Account proof of work is insufficient
-const.ERR_ACCOUNT_POW_IS_INSUFFICIENT=0x0002003F
+const.ERR_ACCOUNT_POW_IS_INSUFFICIENT=0x00020008
 
 # Failed to write an account value item to a non-value storage slot
-const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020047
+const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020009
 
 # Failed to write an account map item to a non-map storage slot
-const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x00020048
+const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x0002000A
 
 # Account procedure is not part of the account code
-const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002004A
+const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002000B
 
 # Provided procedure index is out of bounds
-const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
+const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002000C
 
 # Provided storage slot index is out of bounds
-const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002004E
+const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002000D
 
 # Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)
-const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x00020057
+const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x0002000E
+
+# Computed account code commitment does not match recorded account code commitment
+const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH=0x0002000F
+
+# Number of account procedures exceeds the maximum limit of 256
+const.ERR_ACCOUNT_TOO_MANY_PROCEDURES=0x00020010
+
+# Number of account storage slots exceeds the maximum limit of 255
+const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS=0x00020011
+
+# Computed account storage commitment does not match recorded account storage commitment
+const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH=0x00020012
 
 # Storage offset is invalid for 0 storage size (should be 0)
-const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020056
+const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020013
+
+# ID of the provided foreign account equals zero.
+const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020014
+
+# Maximum allowed number of foreign account to be loaded (64) was exceeded.
+const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020015
+
+# Provided foreign account ID is equal to the native account ID. 
+const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020016
+
+# State of the current foreign account is invalid.
+const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020017
 
 # CONSTANTS
 # =================================================================================================
@@ -80,6 +105,12 @@ const.MAX_STORAGE_SLOT_INDEX=254
 
 # The maximum number of account storage slots.
 const.MAX_NUM_STORAGE_SLOTS=MAX_STORAGE_SLOT_INDEX+1
+
+# Depth of the account database tree.
+const.ACCOUNT_TREE_DEPTH=64
+
+# The number of field elements it takes to store one account storage slot.
+const.ACCOUNT_STORAGE_SLOT_DATA_LENGTH=8
 
 # EVENTS
 # =================================================================================================
@@ -310,7 +341,7 @@ export.set_code
     # => []
 end
 
-#!  Applies storage offset to provided storage slot index for storage access
+#! Applies storage offset to provided storage slot index for storage access
 #!
 #! Panics:
 #! - computed index is out of bounds
@@ -687,6 +718,147 @@ export.validate_seed
         # => []
 end
 
+# DATA LOADERS
+# =================================================================================================
+
+#! Saves storage slots data into memory and validates that the storage commitment matches the 
+#! sequential storage hash.
+#!
+#! Inputs:
+#!   Operand stack: [STORAGE_COMMITMENT]
+#!   Advice map: {
+#!     STORAGE_COMMITMENT: [[STORAGE_SLOT_DATA]],
+#!   }
+#! Outputs:
+#!   Operand stack: []
+#! 
+#! Where:
+#! - STORAGE_COMMITMENT is the commitment of the current account's storage.
+#! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows: 
+#!   [SLOT_VALUE, slot_type, 0, 0, 0]
+#!
+#! Panics if:
+#! - the number of account storage slots exceeded the maximum limit of 255.
+#! - the computed account storage commitment does not match the provided account storage commitment
+export.save_account_storage_data
+    # move storage slot data from the advice map to the advice stack
+    adv.push_mapvaln push.15160 drop                # TODO: remove line, see miden-vm/#1122
+    # OS => [STORAGE_COMMITMENT]
+    # AS => [storage_slot_data_len, [STORAGE_SLOT_DATA]]
+
+    # push the length of the storage slot data onto the operand stack and compute the number of 
+    # storage slots from it 
+    adv_push.1 div.ACCOUNT_STORAGE_SLOT_DATA_LENGTH
+    # OS => [num_storage_slots, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # assert that account does not exceed allowed maximum number of storage slots
+    dup exec.get_max_num_storage_slots lte assert.err=ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS
+    # OS => [num_storage_slots, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # store number of storage slots in memory
+    dup exec.memory::set_num_storage_slots
+    # OS => [num_storage_slots, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # setup acct_storage_slots_ptr and end_ptr for reading from advice stack
+    mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
+    # OS => [acct_storage_slots_ptr, end_ptr, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # pad stack before reading from advice stack
+    padw padw padw
+    # OS => [PAD, PAD, PAD, acct_proc_offset, end_ptr, STORAGE_COMMITMENT]
+    # AS => [[STORAGE_SLOT_DATA]]
+
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # OS => [PERM, PERM, PERM, end_ptr', STORAGE_COMMITMENT]
+    # AS => []
+
+    # extract the digest
+    exec.native::state_to_digest
+    # OS => [DIGEST, end_ptr', STORAGE_COMMITMENT]
+
+    # drop end_ptr
+    movup.4 drop
+    # OS => [DIGEST, STORAGE_COMMITMENT]
+
+    # verify hashed account storage slots match account storage commitment
+    assert_eqw.err=ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH
+    # OS => []
+end
+
+#! Saves account procedure data into memory and validates that the code commitment matches the 
+#! sequential procedure hash.
+#!
+#! Inputs:
+#!   Operand stack: [CODE_COMMITMENT]
+#!   Advice map: {
+#!     CODE_COMMITMENT: [num_procs, [ACCOUNT_PROCEDURE_DATA]],
+#!   }
+#! Outputs:
+#!   Operand stack: []
+#! 
+#! Where:
+#! - CODE_COMMITMENT is the commitment of the current account's code.
+#! - num_procs is the number of foreign account's procedures.
+#! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as 
+#!   follows: [PROCEDURE_MAST_ROOT, storage_offset, storage_size, 0, 0]
+#!
+#! Panics if:
+#! - the number of account procedures exceeded the maximum limit of 256
+#! - the computed account code commitment does not match the provided account code commitment
+export.save_account_procedure_data
+    # move procedure data from the advice map to the advice stack
+    adv.push_mapval push.15161 drop               # TODO: remove line, see miden-vm/#1122
+    # OS => [CODE_COMMITMENT]
+    # AS => [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+
+    # push the number of procedures onto the operand stack before storing it in memory
+    adv_push.1
+    # OS => [num_procs, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # assert that account does not exceed allowed maximum number of procedures
+    dup exec.get_max_num_procedures lte assert.err=ERR_ACCOUNT_TOO_MANY_PROCEDURES
+    # OS => [num_procs, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # store number of procedures in memory
+    dup exec.memory::set_num_account_procedures
+    # OS => [num_procs, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # setup acct_proc_offset and end_ptr for reading from advice stack
+    mul.2 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
+    # OS => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # pad stack before reading from advice stack
+    padw padw padw
+    # OS => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # AS => [[ACCOUNT_PROCEDURE_DATA]]
+
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # OS => [PERM, PERM, PERM, end_ptr', CODE_COMMITMENT]
+    # AS => []
+
+    # extract the digest
+    exec.native::state_to_digest
+    # OS => [DIGEST, end_ptr', CODE_COMMITMENT]
+
+    # drop end_ptr
+    movup.4 drop
+    # OS => [DIGEST, CODE_COMMITMENT]
+
+    # verify hashed account procedures match account code commitment
+    assert_eqw.err=ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH
+    # OS => []
+end
+
 # HELPER PROCEDURES
 # =================================================================================================
 
@@ -757,4 +929,107 @@ proc.get_procedure_metadata
     # load procedure metadata from memory and keep relevant data
     padw movup.4 mem_loadw drop drop swap
     # => [storage_offset, storage_size]
+end
+
+#! Returns the pointer to the next vacant memory slot if the account was not loaded before, and the 
+#! pointer to the account data otherwise.
+#!
+#! Stack:  [foreign_account_id]
+#! Output: [was_loaded, ptr, foreign_account_id]
+#!
+#! Where: 
+#! - foreign_account_id is the ID of the foreign account whose procedure is going to be executed.
+#! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the 
+#!   memory.
+#! - ptr is the memory pointer to the next empty memory slot or the memory pointer to the account 
+#!   data, depending on the value of the was_loaded flag.
+#!
+#! Panics if:
+#! - the ID of the provided foreign account equals zero.
+#! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
+export.get_foreign_account_ptr
+    # check that foreign account id is not equal zero
+    dup neq.0 assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
+    # => [foreign_account_id]
+
+    # check that foreign account id is not equal to the native account id
+    dup exec.memory::get_native_account_id neq assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
+
+    # get the initial account data pointer
+    exec.memory::get_native_account_data_ptr
+    # => [curr_account_ptr, foreign_account_id]
+
+    # push the flag to enter the loop
+    push.1
+
+    while.true
+        # drop the flag left from the previous loop
+        movup.2 drop
+        # => [curr_account_ptr, foreign_account_id]
+
+        # move the current account pointer to the next account data block
+        exec.memory::get_account_data_length add
+        # => [curr_account_ptr', foreign_account_id]
+
+        # load the first data word at the current account pointer
+        padw dup.4 mem_loadw
+        # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id]
+
+        # check whether the last value in the word equals zero. If so, it will mean that this memory
+        # block was not initialized.
+        drop drop drop dup eq.0
+        # => [is_empty_block, last_data_value, curr_account_ptr', foreign_account_id]
+
+        # check whether the current id matches the foreign id 
+        swap dup.3 eq
+        # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id]
+
+        # get the loop flag
+        # it equals 1 if both `is_equal_id` and `is_empty_block` flags are equal to 0, so we should 
+        # continue iterating
+        dup movdn.4 or not
+        # => [loop_flag, curr_account_ptr', foreign_account_id, is_equal_id]
+    end
+
+    # check that the loading of one more account won't exceed the maximum number of the foreign 
+    # accounts which can be loaded.
+    dup exec.memory::get_max_foreign_account_ptr lte assert.err=ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED
+    # => [curr_account_ptr, foreign_account_id, is_equal_id]
+
+    # the resulting `was_loaded` flag is essentially equal to the `is_equal_id` flag
+    movup.2
+    # => [was_loaded, curr_account_ptr, foreign_account_id]
+end
+
+
+#! Checks that the state of the current foreign account is valid.
+#!
+#! Stack:  []
+#! Output: []
+#!
+#! Panics if:
+#! - the hash of the current account is not represented in the account database.
+export.validate_current_foreign_account
+    # get the account database root
+    exec.memory::get_acct_db_root
+    # => [ACCOUNT_DB_ROOT]
+
+    # get the current account ID
+    exec.memory::get_account_id
+    # => [account_id, ACCOUNT_DB_ROOT]
+
+    # push the depth of the account database tree
+    push.ACCOUNT_TREE_DEPTH
+    # => [depth, account_id, ACCOUNT_DB_ROOT]
+
+    # get the foreign account hash
+    exec.get_current_hash
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id, ACCOUNT_DB_ROOT]
+
+    # verify that the account database has the hash of the current foreign account
+    mtree_verify.err=ERR_FOREIGN_ACCOUNT_INVALID
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id, ACCOUNT_DB_ROOT]
+
+    # clean the stack
+    dropw drop drop dropw
 end

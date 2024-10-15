@@ -16,9 +16,10 @@ pub mod api_client {
         dead_code,
         missing_docs,
         clippy::wildcard_imports,
-        clippy::let_unit_value
+        clippy::let_unit_value,
     )]
-    use tonic::codegen::{http::Uri, *};
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
     pub struct ApiClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -38,7 +39,10 @@ pub mod api_client {
             let inner = tonic::client::Grpc::with_origin(inner, origin);
             Self { inner }
         }
-        pub fn with_interceptor<F>(inner: T, interceptor: F) -> ApiClient<InterceptedService<T, F>>
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> ApiClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -48,8 +52,9 @@ pub mod api_client {
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
-                Into<StdError> + core::marker::Send + core::marker::Sync,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+            >>::Error: Into<StdError> + core::marker::Send + core::marker::Sync,
         {
             ApiClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -87,11 +92,18 @@ pub mod api_client {
         pub async fn prove_transaction(
             &mut self,
             request: impl tonic::IntoRequest<super::ProveTransactionRequest>,
-        ) -> core::result::Result<tonic::Response<super::ProveTransactionResponse>, tonic::Status>
-        {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::unknown(alloc::format!("Service was not ready: {}", e.into()))
-            })?;
+        ) -> core::result::Result<
+            tonic::Response<super::ProveTransactionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        alloc::format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static("/api.Api/ProveTransaction");
             let mut req = request.into_request();

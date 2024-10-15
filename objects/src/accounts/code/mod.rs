@@ -58,9 +58,9 @@ impl AccountCode {
     /// - If the creation of a new `AccountProcedureInfo` fails.
     pub fn new(library: Library, is_faucet: bool) -> Result<Self, AccountError> {
         // extract procedure information from the library exports
-        // TODO: currently, offsets for all regular account procedures are set to 0
-        // and offsets for faucet accounts procedures are set to 1. Furthermore sizes
-        // are set to 1 for all accounts. Instead they should be read from the Library metadata.
+        // TODO: currently, offsets for all regular account procedures are set to 0 and offsets for
+        // faucet accounts procedures are set to 1. Furthermore sizes are set to 1 for all
+        // procedures. Instead they should be read from the Library metadata.
         let mut procedures = Vec::new();
         let storage_offset = if is_faucet { 1 } else { 0 };
         let storage_size = 1;
@@ -195,7 +195,7 @@ impl AccountCode {
     ///
     /// This is done by first converting each procedure into 8 field elements as follows:
     /// ```text
-    /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, storage_size]
+    /// [PROCEDURE_MAST_ROOT, storage_offset, storage_size, 0, 0]
     /// ```
     /// And then concatenating the resulting elements into a single vector.
     pub fn as_elements(&self) -> Vec<Felt> {

@@ -6,10 +6,10 @@ use.std::mem
 # =================================================================================================
 
 # Note data does not match the commitment
-const.ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT=0x00020040
+const.ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT=0x0002004E
 
 # Number of note inputs exceeded the maximum limit of 128
-const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002001B
+const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
 
 #! Writes the data currently on the advice stack into the memory at the specified location and
 #! verifies that the hash of the written data is equal to the provided hash.

@@ -167,23 +167,28 @@ end
 #! than 12 elements back. Otherwise exceeding elements will not be provided to the procedure and 
 #! will not be returned from it.
 #!
-#! Inputs:  [foreign_account_id, FOREIGN_PROC_ROOT, ...]
+#! Inputs:  [foreign_account_id, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
 #! Outputs: [<values returned from the foreign procedure>]
+#! 
+#! Where:
+#! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the moment of the foreign procedure execution
+#!   (n = 16 - WORD_SIZE - foreign_inputs_len)
 export.execute_foreign_procedure
     # pad the stack before the syscall
     push.0.0 movup.2
     exec.kernel_proc_offsets::start_foreign_context_offset
     padw swapw padw padw swapdw
-    # => [offset, foreign_account_id, pad(14), FOREIGN_PROC_ROOT, ...]
+    # => [offset, foreign_account_id, pad(14), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
 
     # load the foreign account to the memory
     syscall.exec_kernel_proc
-    # => [pad(16), FOREIGN_PROC_ROOT, ...]
+    # => [pad(16), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
 
     # prepare the stack for the dyncall
-    dropw movupw.3
-    # => [FOREIGN_PROC_ROOT, pad(12), ...]
+    dropw dropw dropw dropw
+    # => [FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
 
+    # execute the foreign procedure
     dyncall
     # => [<values returned from the foreign procedure>]
 

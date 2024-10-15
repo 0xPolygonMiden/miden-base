@@ -1,33 +1,52 @@
 use alloc::vec::Vec;
 use std::string::String;
 
-use miden_lib::transaction::memory::{
-    NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
-    OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+use miden_lib::transaction::{
+    memory::{
+        ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
+        ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
+        ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, NATIVE_ACCOUNT_DATA_PTR,
+        NOTE_MEM_SIZE, NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
+        NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
+        OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+    },
+    TransactionKernel,
 };
 use miden_objects::{
-    accounts::account_id::testing::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+    accounts::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
+        Account, AccountCode, AccountProcedureInfo, AccountStorage, StorageSlot,
     },
     assets::NonFungibleAsset,
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
     },
-    testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word},
+    testing::{
+        account::AccountBuilder, constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word,
+        storage::STORAGE_LEAVES_2,
+    },
     transaction::{OutputNote, OutputNotes},
-    FieldElement,
+    Digest, FieldElement,
 };
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use vm_processor::AdviceInputs;
 
-use super::{Felt, ProcessState, Word, ONE, ZERO};
+use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
     errors::tx_kernel_errors::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
-    testing::TransactionContextBuilder,
-    tests::kernel_tests::read_root_mem_value,
+    testing::{
+        mock_chain::{MockChain, MockChainBuilder},
+        MockHost, TransactionContextBuilder,
+    },
+    tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
 };
 
 #[test]
@@ -578,4 +597,319 @@ fn test_build_recipient_hash() {
         recipient_digest.as_slice(),
         "recipient hash not correct",
     );
+}
+
+#[test]
+fn test_load_foreign_account_basic() {
+    // GET ITEM
+    // --------------------------------------------------------------------------------------------
+    let storage_slot = AccountStorage::mock_item_0().slot;
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot.clone())
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
+
+    let account_id = foreign_account.id();
+    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
+        .advice_inputs(advice_inputs.clone())
+        .build();
+
+    let code = format!(
+        "
+        use.kernel::prologue
+        use.miden::tx
+        use.miden::account
+        use.miden::kernel_proc_offsets
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw padw push.0.0.0
+            # => [pad(11)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item_foreign` account procedure
+            procref.account::get_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+
+            exec.tx::execute_foreign_procedure
+            # => [STORAGE_VALUE_1]
+        end
+        "
+    );
+
+    let process = tx_context.execute_code(&code).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        storage_slot.value(),
+        "Value at the top of the stack (value in the storage at index 0) should be equal [1, 2, 3, 4]",
+    );
+
+    foreign_account_data_memory_assertions(&foreign_account, &process);
+
+    // GET MAP ITEM
+    // --------------------------------------------------------------------------------------------
+    let storage_slot = AccountStorage::mock_item_2().slot;
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot.clone())
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
+
+    let account_id = foreign_account.id();
+    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
+        .advice_inputs(advice_inputs)
+        .build();
+
+    let code = format!(
+        "
+        use.kernel::prologue
+        use.miden::tx
+        use.miden::account
+        use.miden::kernel_proc_offsets
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw push.0.0.0
+            # => [pad(7)]
+
+            # push the key of desired storage item
+            push.{map_key}
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_map_item_foreign` account procedure
+            procref.account::get_map_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+
+            exec.tx::execute_foreign_procedure
+            # => [MAP_VALUE]
+        end
+        ",
+        map_key = STORAGE_LEAVES_2[0].0,
+    );
+
+    let process = tx_context.execute_code(&code).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        STORAGE_LEAVES_2[0].1,
+        "Value at the top of the stack should be equal [1, 2, 3, 4]",
+    );
+
+    foreign_account_data_memory_assertions(&foreign_account, &process);
+}
+
+/// This test checks that invoking two foreign procedures from the same account results in reuse of
+/// the loaded account.
+#[test]
+fn test_load_foreign_account_twice() {
+    let storage_slot = AccountStorage::mock_item_0().slot;
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot)
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
+
+    let account_id = foreign_account.id();
+    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
+        .advice_inputs(advice_inputs.clone())
+        .build();
+
+    let code = format!(
+        "
+        use.kernel::prologue
+        use.miden::tx
+        use.miden::account
+        use.miden::kernel_proc_offsets
+
+        begin
+            exec.prologue::prepare_transaction
+
+            ### Get the storage item at index 0 #####################
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw padw push.0.0.0
+            # => [pad(11)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item_foreign` account procedure
+            procref.account::get_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+
+            exec.tx::execute_foreign_procedure dropw
+            # => []
+
+            ### Get the storage item at index 0 again ###############
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw push.0.0.0
+            # => [pad(7)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item_foreign` account procedure
+            procref.account::get_item_foreign
+
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+
+            exec.tx::execute_foreign_procedure
+        end
+        ",
+    );
+
+    let process = tx_context.execute_code(&code).unwrap();
+
+    assert_eq!(
+        try_read_root_mem_value(&process, NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2),
+        None,
+        "Memory starting from 6144 should stay uninitialized"
+    );
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn get_mock_advice_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
+    let foreign_id_root = Digest::from([foreign_account.id().into(), ZERO, ZERO, ZERO]);
+    let foreign_id_and_nonce = [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()];
+    let foreign_vault_root = foreign_account.vault().commitment();
+    let foreign_storage_root = foreign_account.storage().commitment();
+    let foreign_code_root = foreign_account.code().commitment();
+
+    AdviceInputs::default()
+        .with_map([
+            // ACCOUNT_ID |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+            (
+                foreign_id_root,
+                [
+                    &foreign_id_and_nonce,
+                    foreign_vault_root.as_elements(),
+                    foreign_storage_root.as_elements(),
+                    foreign_code_root.as_elements(),
+                ]
+                .concat(),
+            ),
+            // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
+            (foreign_storage_root, foreign_account.storage().as_elements()),
+            // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+            (
+                foreign_code_root,
+                [
+                    vec![Felt::try_from(foreign_account.code().procedures().len()).unwrap()],
+                    foreign_account.code().as_elements(),
+                ]
+                .concat(),
+            ),
+        ])
+        .with_merkle_store(mock_chain.accounts().into())
+}
+
+fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process<MockHost>) {
+    let foreign_account_data_ptr = NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32;
+
+    assert_eq!(
+        read_root_mem_value(process, foreign_account_data_ptr + ACCT_ID_AND_NONCE_OFFSET),
+        [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()],
+    );
+
+    assert_eq!(
+        read_root_mem_value(process, foreign_account_data_ptr + ACCT_VAULT_ROOT_OFFSET),
+        foreign_account.vault().commitment().as_elements(),
+    );
+
+    assert_eq!(
+        read_root_mem_value(process, foreign_account_data_ptr + ACCT_STORAGE_COMMITMENT_OFFSET),
+        Word::from(foreign_account.storage().commitment()),
+    );
+
+    assert_eq!(
+        read_root_mem_value(process, foreign_account_data_ptr + ACCT_CODE_COMMITMENT_OFFSET),
+        foreign_account.code().commitment().as_elements(),
+    );
+
+    assert_eq!(
+        read_root_mem_value(process, foreign_account_data_ptr + NUM_ACCT_STORAGE_SLOTS_OFFSET),
+        [
+            u16::try_from(foreign_account.storage().slots().len()).unwrap().into(),
+            ZERO,
+            ZERO,
+            ZERO
+        ],
+    );
+
+    for (i, elements) in foreign_account
+        .storage()
+        .as_elements()
+        .chunks(StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT / 2)
+        .enumerate()
+    {
+        assert_eq!(
+            read_root_mem_value(
+                process,
+                foreign_account_data_ptr + ACCT_STORAGE_SLOTS_SECTION_OFFSET + i as u32
+            ),
+            Word::try_from(elements).unwrap(),
+        )
+    }
+
+    assert_eq!(
+        read_root_mem_value(process, foreign_account_data_ptr + NUM_ACCT_PROCEDURES_OFFSET),
+        [
+            u16::try_from(foreign_account.code().procedures().len()).unwrap().into(),
+            ZERO,
+            ZERO,
+            ZERO
+        ],
+    );
+
+    for (i, elements) in foreign_account
+        .code()
+        .as_elements()
+        .chunks(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC / 2)
+        .enumerate()
+    {
+        assert_eq!(
+            read_root_mem_value(
+                process,
+                foreign_account_data_ptr + ACCT_PROCEDURES_SECTION_OFFSET + i as u32
+            ),
+            Word::try_from(elements).unwrap(),
+        );
+    }
 }
