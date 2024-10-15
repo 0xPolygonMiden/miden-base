@@ -28,10 +28,10 @@ const.ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED=0x00020000
 const.ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET=0x00020001
 
 # Failed to read an account map item from a non-map storage slot
-const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
+const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020002
 
 # Provided kernel procedure offset is out of bounds
-const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020053
+const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020003
 
 # EVENTS
 # =================================================================================================
@@ -64,6 +64,21 @@ proc.authenticate_account_origin
     # assert that the caller is from the user context
     exec.account::authenticate_procedure
     # => [storage_offset, storage_size]
+end
+
+#! Verifies that the procedure to be invoked against the foreign account is part of its code.
+#! TODO: it is a temporary solution. This and other `*_foreign` procedures should be removed after 
+#! the refactoring of the `DYN` operation (see miden-vm/#1091) and the fix of the CALLER operation. 
+#!
+#! Stack: [FOREIGN_PROC_ROOT]
+#! Output: [storage_offset, storage_size, ...]
+#!
+#! Panics if:
+#! - the invocation of the kernel procedure does not originate from the account context.
+proc.authenticate_account_origin_foreign
+    # assert that the caller is from the user context
+    exec.account::authenticate_procedure
+    # => [storage_offset, storage_size, ...]
 end
 
 # KERNEL PROCEDURES
@@ -208,6 +223,37 @@ export.get_account_item
     # => [VALUE]
 end
 
+#! Gets an item from the account storage.
+#!
+#! Stack: [KERNEL_PROCEDURE_HASH, FOREIGN_PROC_ROOT, index, pad(10)]
+#! Output: [VALUE, pad(10)]
+#!
+#! Where:
+#! - KERNEL_PROCEDURE_HASH is the hash of this procedure.
+#! - FOREIGN_PROC_ROOT is the hash of the foreign procedure which called this procedure. 
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index is out of bounds.
+export.get_account_item_foreign
+    # drop the kernel procedure's hash
+    dropw
+    # => [FOREIGN_PROC_ROOT, index, pad(10)]
+
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin_foreign
+    # => [storage_offset, storage_size, index, pad(10)]
+
+    # apply offset to storage slot index
+    exec.account::apply_storage_offset
+    # => [index_with_offset, pad(10)]
+
+    # fetch the account storage item
+    exec.account::get_item
+    # => [VALUE, pad(10)]
+end
+
 #! Sets an item in the account storage.
 #!
 #! Stack: [KERNEL_PROCEDURE_HASH, index, V', 0, 0, 0]
@@ -296,6 +342,52 @@ export.get_account_map_item
     # prepare the stack for return
     swapw dropw
     # => [VALUE, 0]
+end
+
+#! Returns VALUE located under specified KEY in map in specified account storage slot.
+#!
+#! Stack: [KERNEL_PROCEDURE_HASH, FOREIGN_PROC_ROOT, index, KEY, pad(6)]
+#! Output: [VALUE, pad(6)]
+#!
+#! Where:
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index is out of bounds (>255).
+#! - the requested storage slot type is not map
+export.get_account_map_item_foreign    
+    # drop the procedure's hash
+    dropw
+    # => [FOREIGN_PROC_ROOT, index, KEY, pad(6)]
+
+    # check if storage type is map
+    movup.4 dup exec.account::get_storage_slot_type
+    # => [slot_type, index, FOREIGN_PROC_ROOT, KEY, pad(6)]
+
+    # check if type == map
+    exec.constants::get_storage_slot_type_map eq assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
+    # => [index, FOREIGN_PROC_ROOT, KEY, pad(6)]
+
+    # authenticate that the procedure invocation originates from the account context
+    movdn.4 exec.authenticate_account_origin_foreign
+    # => [storage_offset, storage_size, index, KEY, pad(6)]
+
+    # apply offset to storage slot index
+    exec.account::apply_storage_offset
+    # => [index_with_offset, KEY, pad(6)]
+
+    # fetch the account storage item, which is ROOT of the map
+    exec.account::get_item swapw
+    # => [KEY, ROOT, pad(6)]
+
+    # fetch the VALUE located under KEY in the tree
+    exec.smt::get
+    # => [VALUE, ROOT, pad(6)]
+
+    # prepare the stack for return
+    swapw dropw
+    # => [VALUE, pad(6)]
 end
 
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
@@ -864,19 +956,104 @@ end
 
 #! Tells the transaction kernel that we are about to execute a procedure on a foreign account.
 #!
-#! Inputs:  [KERNEL_PROCEDURE_HASH, foreign_account_id, pad(11)]
-#! Outputs: [pad(16)]
+#! Checks whether the current foreign account was already loaded to the memory, and loads it if not.
+#! Moves the account pointer to the currently accessing foreign account.
+#!
+#! Inputs:
+#!   Operand stack: [KERNEL_PROCEDURE_HASH, foreign_account_id, pad(11)]
+#!   Advice map: {
+#!     FOREIGN_ACCOUNT_ID: [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
+#!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
+#!     CODE_ROOT: [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+#!   }
+#! Outputs:
+#!   Operand stack: []
 #!
 #! Where:
 #! - foreign_account_id is the ID of the foreign account whose procedure is going to be executed.
+#! - FOREIGN_ACCOUNT_ID is the word constructed from the foreign_account_id as follows:
+#!   [foreign_account_id, 0, 0, 0].
+#! - account_nonce is the nonce of the foreign account.
+#! - VAULT_ROOT is the commitment of the foreign account's vault.
+#! - STORAGE_ROOT is the commitment of the foreign account's storage.
+#! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows: 
+#!   [SLOT_VALUE, slot_type, 0, 0, 0]
+#! - CODE_ROOT is the commitment of the foreign account's code.
+#! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as 
+#!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
 #!
 #! Panics if:
 #! - the current context is not a native context.
 export.start_foreign_context
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # OS => [KERNEL_PROCEDURE_HASH, foreign_account_id]
 
-    dropw drop # unimplemented!
+    # drop the procedure's hash
+    dropw
+    # OS => [foreign_account_id]
+
+    # get the memory address and a flag whether this account was already loaded.
+    exec.account::get_foreign_account_ptr
+    # OS => [was_loaded, ptr, foreign_account_id]
+
+    if.true
+        exec.memory::set_current_account_data_ptr drop
+        # OS => []
+    else
+        exec.memory::set_current_account_data_ptr
+        # OS => [foreign_account_id]
+
+        # construct the word with account ID to load the core account data from the advice map
+        push.0.0.0
+        # OS => [0, 0, 0, foreign_account_id]
+
+        # move the core account data to the advice stack
+        adv.push_mapval
+        # OS => [0, 0, 0, foreign_account_id]
+        # AS => [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+
+        # store the id and nonce of the foreign account to the memory
+        dropw adv_loadw 
+        exec.memory::set_acct_id_and_nonce dropw
+        # OS => []
+        # AS => [VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+
+        # store the vault root of the foreign account to the memory
+        adv_loadw exec.memory::set_acct_vault_root dropw
+        # OS => []
+        # AS => [STORAGE_ROOT, CODE_ROOT]
+
+        # move the storage root and the code root to the operand stack 
+        adv_loadw padw adv_loadw
+        # OS => [CODE_ROOT, STORAGE_ROOT]
+        # AS => []
+
+        # store the code root into the memory
+        exec.memory::set_acct_code_commitment
+        # OS => [CODE_ROOT, STORAGE_ROOT]
+        # AS => []
+
+        # save the account procedure data into the memory
+        exec.account::save_account_procedure_data
+        # OS => [STORAGE_ROOT]
+        # AS => []
+
+        # store the storage root to the memory
+        exec.memory::set_acct_storage_commitment
+        # OS => [STORAGE_ROOT]
+        # AS => []
+
+        # save the storage slots data into the memory
+        exec.account::save_account_storage_data
+        # OS => []
+        # AS => []
+    end
+
+    # make sure that the state of the loaded foreign account corresponds to this commitment in the 
+    # account database
+    exec.account::validate_current_foreign_account
+    # => []
 end
 
 #! Tells the transaction kernel that we are done executing a procedure on a foreign account.
@@ -938,7 +1115,7 @@ export.exec_kernel_proc
     # check that the provided procedure offset is within expected bounds
     dup exec.memory::get_num_kernel_procedures
     lt assert.err=ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS
-    # => [procedure_pointer, <procedure_inputs>, <pad>]
+    # => [procedure_offset, <procedure_inputs>, <pad>]
 
     # compute the memory pointer at which desired procedure is stored
     exec.memory::get_kernel_procedures_ptr add

@@ -7,16 +7,16 @@ use.kernel::memory
 # =================================================================================================
 
 # Attempted to access note sender from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT=0x00020027
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT=0x00020031
 
 # Attempted to access note assets from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT=0x00020028
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT=0x00020032
 
 # Attempted to access note inputs from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT=0x00020029
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT=0x00020033
 
 # Number of assets in a note exceed 255
-const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002A
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002F
 
 # CONSTANTS
 # =================================================================================================

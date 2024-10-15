@@ -9,6 +9,7 @@ use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
 use tracing::info;
 
+#[rustfmt::skip]
 pub mod generated;
 
 pub struct Rpc {

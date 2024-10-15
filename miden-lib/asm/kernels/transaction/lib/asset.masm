@@ -4,28 +4,28 @@ use.kernel::account
 # =================================================================================================
 
 # Malformed fungible asset: ASSET[1] must be 0
-const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO=0x00020033
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO=0x00020020
 
 # Malformed fungible asset: ASSET[2] must be 0
-const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO=0x00020034
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO=0x00020021
 
 # Malformed fungible asset: ASSET[3] must be a valide fungible faucet id
-const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020035
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020022
 
 # Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount
-const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS=0x00020036
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS=0x00020023
 
 # Malformed non-fungible asset: ASSET[1] is not a valid non-fungible faucet id
-const.ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020037
+const.ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020024
 
 # Malformed non-fungible asset: the most significant bit must be 0
-const.ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO=0x00020038
+const.ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO=0x00020025
 
 # The origin of the fungible asset is not this faucet
-const.ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020039
+const.ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020026
 
 # The origin of the non-fungible asset is not this faucet
-const.ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x0002003A
+const.ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020027
 
 # CONSTANTS
 # =================================================================================================

@@ -1,13 +1,11 @@
 use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::native
-use.std::collections::smt
 
 use.kernel::account
 use.kernel::asset_vault
 use.kernel::constants
 use.kernel::memory
-use.kernel::utils
 
 # CONSTS
 # =================================================================================================
@@ -19,58 +17,46 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # =================================================================================================
 
 # The provided global inputs do not match the block hash commitment
-const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x0002000B
+const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x00020034
 
 # New account must have an empty vault
-const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x0002000F
+const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020035
 
 # Reserved slot for new fungible faucet is not empty
-const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY=0x00020011
+const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY=0x00020036
 
 # Reserved slot for new fungible faucet has an invalid type
-const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020013
+const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020037
 
 # Reserved slot for non-fungible faucet is not a valid empty SMT
-const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT=0x00020014
+const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT=0x00020038
 
 # Reserved slot for new non-fungible faucet has an invalid type
-const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020016
+const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020039
 
 # Account data provided does not match the commitment recorded on-chain
-const.ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT=0x00020017
+const.ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT=0x0002003A
 
 # Existing accounts must have a non-zero nonce
-const.ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE=0x00020018
+const.ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE=0x0002003B
 
 # Account IDs provided via global inputs and advice provider do not match
-const.ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER=0x00020019
+const.ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER=0x0002003C
 
 # Reference block MMR and note's authentication MMR must match
-const.ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR=0x0002001A
+const.ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR=0x0002003D
 
 # Number of note assets exceeds the maximum limit of 256
-const.ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT=0x0002001C
+const.ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT=0x0002003E
 
 # Provided info about assets of an input does not match its commitment
-const.ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT=0x0002001D
+const.ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT=0x0002003F
 
 # Number of input notes exceeds the kernel's maximum limit of 1024
-const.ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT=0x0002001E
+const.ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT=0x00020040
 
 # Note commitment computed from the input note data does not match given note commitment
-const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
-
-# Computed account code commitment does not match recorded account code commitment
-const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH=0x0002004C
-
-# Number of account procedures exceeds the maximum limit of 256
-const.ERR_ACCOUNT_TOO_MANY_PROCEDURES=0x0002004D
-
-# Number of account storage slots exceeds the maximum limit of 255
-const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS=0x0002004F
-
-# Computed account storage commitment does not match recorded account storage commitment
-const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH=0x00020058
+const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x00020041
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -102,15 +88,15 @@ end
 #!
 #! Inputs:
 #!   Operand stack: []
-#!   Advice stack: [kernel_version]
+#!   Advice stack:  [kernel_version]
 #!   Advice map: {
 #!     KERNEL_ROOT: [KERNEL_HASHES]
 #!     KERNEL_HASH: [KERNEL_PROCEDURE_HASHES]
 #!   }
 #! Outputs:
 #!   Operand stack: []
-#!   Advice stack: []
-#!
+#!   Advice stack:  []
+#! 
 #! Where:
 #! - kernel_version, index of the desired kernel in the array of all kernels available for the
 #!   current transaction
@@ -120,80 +106,80 @@ end
 proc.process_kernel_data
     # move the kernel offset to the operand stack
     adv_push.1
-    # OS  => [kernel_version]
+    # OS => [kernel_version]
     # AS => []
 
     # load the kernel root from the memory
     exec.memory::get_kernel_root
-    # OS  => [KERNEL_ROOT, kernel_version]
+    # OS => [KERNEL_ROOT, kernel_version]
     # AS => []
 
     # push the kernel hashes from the advice map to the advice stack
     adv.push_mapvaln
-    # OS  => [KERNEL_ROOT, kernel_version]
+    # OS => [KERNEL_ROOT, kernel_version]
     # AS => [len_felts, [KERNEL_HASHES]]
 
     # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the
     # number of Words from it
     adv_push.1 div.4
-    # OS  => [len_words, KERNEL_ROOT, kernel_version]
+    # OS => [len_words, KERNEL_ROOT, kernel_version]
     # AS => [[KERNEL_HASHES]]
 
     # get the pointer to the memory where kernel hashes will be stored
     # Note: for now we use the same address for kernel hash and for kernel procedures since there is
     # only one kernel and its hash will be overwritten by the procedures anyway.
     exec.memory::get_kernel_procedures_ptr swap
-    # OS  => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_version]
+    # OS => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_version]
     # AS => [[KERNEL_HASHES]]
 
     # store the kernel hashes in memory
     exec.mem::pipe_words_to_memory
-    # OS  => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
+    # OS => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
     # AS => []
 
     # assert that sequential hash matches the precomputed kernel root
     movup.4 drop assert_eqw
-    # OS  => [kernel_version]
+    # OS => [kernel_version]
     # AS => []
 
     # get the hash of the kernel which will be used in the current transaction
-    exec.memory::get_kernel_procedures_ptr add
-    # OS  => [kernel_ptr]
+    exec.memory::get_kernel_procedures_ptr add 
+    # OS => [kernel_ptr]
     # AS => []
 
     padw movup.4 mem_loadw
-    # OS  => [KERNEL_HASH]
+    # OS => [KERNEL_HASH]
     # AS => []
 
     # push the procedure hashes of the chosen kernel from the advice map to the advice stack
     adv.push_mapvaln
-    # OS  => [KERNEL_HASH]
+    # OS => [KERNEL_HASH]
     # AS => [len_felts, [PROC_HASHES]]
 
     # move the number of felt elements in the [PROC_HASHES] array to the stack and get the
     # number of Words from it
     adv_push.1 div.4
-    # OS  => [len_words, KERNEL_HASH]
+    # OS => [len_words, KERNEL_HASH]
     # AS => [[PROC_HASHES]]
 
     # store the number of the procedures of the chosen kernel to the memory
     dup exec.memory::set_num_kernel_procedures
-    # OS  => [len_words, KERNEL_HASH]
+    # OS => [len_words, KERNEL_HASH]
     # AS => [[PROC_HASHES]]
 
     # get the pointer to the memory where hashes of the kernel procedures will be stored
     exec.memory::get_kernel_procedures_ptr swap
-    # OS  => [len_words, kernel_procs_ptr, KERNEL_HASH]
+    # OS => [len_words, kernel_procs_ptr, KERNEL_HASH]
     # AS => [[PROC_HASHES]]
 
     # store the kernel procedures to the memory
     exec.mem::pipe_words_to_memory
-    # OS  => [SEQ_HASH, kernel_procs_ptr', KERNEL_HASH]
+    # OS => [SEQ_HASH, kernel_procs_ptr', KERNEL_HASH]
     # AS => []
 
     # assert that the precomputed hash matches the computed one
     movup.4 drop assert_eqw
-    # OS  => []
+    # OS => []
     # AS => []
 end
 
@@ -391,55 +377,6 @@ proc.validate_new_account
     # => []
 end
 
-#! Validates that storage slots match storage commitment and saves storage slots into memory.
-#!
-#! This is achieved by reading the storage slots from the advice map, saving them into memory,
-#! and sequentially hashing them before comparing the final hash to the storage commitment.
-#!
-#! Stack: [STORAGE_COMMITMENT]
-#! Advice stack: [num_storage_slots, STORAGE_SLOT_VALUE_0, storage_slot_type_0, 0, 0, 0, ..., STORAGE_SLOT_VALUE_N, storage_slot_type_n, 0, 0, 0]
-#! Output: []
-proc.validate_account_storage_slots
-    # move storage slot data from the advice map to the advice stack
-    adv.push_mapval push.15160 drop                # TODO: remove line, see miden-vm/#1122
-
-    # push the number of storage slots onto the operand stack before storing it into memory
-    adv_push.1
-    # => [num_storage_slots, STORAGE_COMMITMENT]
-
-    # assert that account does not exceed allowed maximum number of storage slots
-    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS
-    # => [num_storage_slots, STORAGE_COMMITMENT]
-
-    # store number of storage slots in memory
-    dup exec.memory::set_num_storage_slots
-    # => [num_storage_slots, STORAGE_COMMITMENT]
-
-    # setup acct_storage_slots_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
-    # => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
-
-    # pad stack before reading from advice stack
-    padw padw padw
-    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, STORAGE_COMMITMENT]
-
-    # read the data from advice stack to memory and hash
-    exec.mem::pipe_double_words_to_memory
-    # => [PERM, PERM, PERM, end_ptr, STORAGE_COMMITMENT]
-
-    # extract the digest
-    exec.native::state_to_digest
-    # => [DIGEST, end_ptr, STORAGE_COMMITMENT]
-
-    # drop end_ptr
-    movup.4 drop
-    # => [DIGEST, STORAGE_COMMITMENT]
-
-    # verify hashed account storage slots match account storage commitment
-    assert_eqw.err=ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH
-    # => []
-end
-
 #! Returns whether the input word is equal to EMPTY_WORD as a boolean value.
 #!
 #! This procedure drops the input word.
@@ -451,60 +388,6 @@ end
 #! - is_empty is a boolean value that is 1 if INPUT_WORD is equal to EMPTY_WORD, and 0 otherwise.
 proc.is_empty_word_dropped
     eq.0 swap eq.0 and swap eq.0 and swap eq.0 and
-end
-
-#! Validates that account procedures match account code commitment and saves procedure information
-#! into memory.
-#!
-#! This is achieved by reading account procedure information from the advice map, saving them into
-#! memory, and sequentially hashing them before comparing the final hash to the account code
-#! commitment.
-#!
-#! Information for each saved procedure consists of the procedure's MAST root and the storage
-#! offset associated with this procedure.
-#!
-#! Stack: [CODE_COMMITMENT]
-#! Advice stack: [num_account_procedures, PROC_0, storage_offset_0, 0, 0, 0, ..., PROC_N, storage_offset_n, 0, 0, 0]
-#! Output: []
-proc.validate_account_procedures
-    # move procedure data from the advice map to the advice stack
-    adv.push_mapval push.15161 drop               # TODO: remove line, see miden-vm/#1122
-
-    # push the number of procedures onto the operand stack before storing it in memory
-    adv_push.1
-    # => [num_procs, CODE_COMMITMENT]
-
-    # assert that account does not exceed allowed maximum number of procedures
-    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCOUNT_TOO_MANY_PROCEDURES
-    # => [num_procs, CODE_COMMITMENT]
-
-    # store number of procedures in memory
-    dup exec.memory::set_num_account_procedures
-    # => [num_procs, CODE_COMMITMENT]
-
-    # setup acct_proc_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
-    # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
-
-    # pad stack before reading from advice stack
-    padw padw padw
-    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
-
-    # read the data from advice stack to memory and hash
-    exec.mem::pipe_double_words_to_memory
-    # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
-
-    # extract the digest
-    exec.native::state_to_digest
-    # => [DIGEST, end_ptr, CODE_COMMITMENT]
-
-    # drop end_ptr
-    movup.4 drop
-    # => [DIGEST, CODE_COMMITMENT]
-
-    # verify hashed account procedures match account code commitment
-    assert_eqw.err=ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH
-    # => []
 end
 
 #! Saves the account data to memory and validates it.
@@ -562,17 +445,17 @@ proc.process_account_data
 
     # validates and stores account storage slots in memory.
     exec.memory::get_acct_storage_commitment
-    exec.validate_account_storage_slots
+    exec.account::save_account_storage_data
     # => [ACCT_HASH]
 
-    # set the new account code commitment to the initial account code root this is used for managing
-    # code commitment updates
+    # set the new account code commitment to the initial account code root 
+    # this is used for managing code commitment updates
     exec.memory::get_acct_code_commitment
     exec.memory::set_new_acct_code_commitment
     # => [ACCOUNT_CODE_COMMITMENT, ACCT_HASH]
 
     # validates and stores account procedures in memory.
-    exec.validate_account_procedures
+    exec.account::save_account_procedure_data
     # => [ACCT_HASH]
 
     # copy the initial account vault hash to the input vault hash to support transaction asset

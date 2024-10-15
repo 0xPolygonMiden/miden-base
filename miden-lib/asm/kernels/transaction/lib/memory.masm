@@ -1,13 +1,16 @@
+use.std::crypto::hashes::native
+
+use.kernel::account
 use.kernel::constants
 
 # ERRORS
 # =================================================================================================
 
 # Number of assets in a note exceed 255
-const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002A
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002F
 
 # The current account is not native
-const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020054
+const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020030
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
@@ -121,11 +124,16 @@ const.KERNEL_PROCEDURES_PTR=401
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
-# Maximum number of the foreign accounts that can be loaded.
-const.MAX_NUM_FOREIGN_ACCOUNTS=64
+# The largest memory address which can be used to load the foreign account data.
+# It is computed as `2048 * 64` -- this is the memory address where the data block of the 64th 
+# account starts.
+const.MAX_FOREIGN_ACCOUNT_PTR=131072
 
 # The memory address at which the native account data is stored.
 const.NATIVE_ACCOUNT_DATA_PTR=2048
+
+# The length of the memory interval that the account data occupies. 
+const.ACCOUNT_DATA_LENGTH=2048
 
 # The offsets at which the account data is stored relative to the start of the account data segment.
 const.ACCT_ID_AND_NONCE_OFFSET=0
@@ -500,10 +508,10 @@ end
 #! Returns the account db root of the last known block.
 #!
 #! Stack: []
-#! Output: [ACCT_ROOT]
+#! Output: [ACCT_DB_ROOT]
 #!
 #! Where:
-#! - ACCT_ROOT is the account root of the last known block.
+#! - ACCT_DB_ROOT is the account database root of the last known block.
 export.get_acct_db_root
     padw push.ACCT_DB_ROOT_PTR mem_loadw
 end
@@ -614,6 +622,33 @@ end
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
+#! Returns the memory pointer at which the native account data is stored.
+#!
+#! Stack: []
+#! Output: [ptr]
+#!
+#! Where:
+#! - ptr is the memory address at which the native account data is stored.
+export.get_native_account_data_ptr
+    push.NATIVE_ACCOUNT_DATA_PTR
+end
+
+#! Returns the length of the memory interval that the account data occupies. 
+#!
+#! Stack: []
+#! Output: [acct_data_length]
+export.get_account_data_length
+    push.ACCOUNT_DATA_LENGTH
+end
+
+#! Returns the largest memory address which can be used to load the foreign account data.
+#!
+#! Stack: []
+#! Output: [max_foreign_acct_ptr]
+export.get_max_foreign_account_ptr
+    push.MAX_FOREIGN_ACCOUNT_PTR
+end
+
 #! Sets the memory pointer of the current account data to the native account (2048).
 #!
 #! Stack: []
@@ -671,6 +706,8 @@ export.get_core_acct_data_end_ptr
     exec.get_current_account_data_ptr push.ACCT_CORE_DATA_SECTION_END_OFFSET add
 end
 
+### ACCOUNT ID AND NONCE #################################################
+
 #! Returns the id of the current account.
 #!
 #! Stack: []
@@ -681,6 +718,19 @@ end
 export.get_account_id
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
     mem_load
+end
+
+#! Sets the account id and nonce.
+#!
+#! Stack: [account_nonce, 0, 0, account_id]
+#! Output: [account_nonce, 0, 0, account_id]
+#!
+#! Where:
+#! - account_id is the id of the currently accessing account.
+#! - account_nonce is the nonce of the currently accessing account.
+export.set_acct_id_and_nonce
+    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
+    mem_storew
 end
 
 #! Returns the id of the native account.
@@ -725,6 +775,8 @@ export.set_acct_nonce
     drop movup.4 movup.4 mem_storew dropw
 end
 
+### ACCOUNT VAULT #################################################
+
 #! Returns the memory pointer to the account vault root.
 #!
 #! Stack: []
@@ -761,30 +813,7 @@ export.set_acct_vault_root
     mem_storew
 end
 
-#! Returns the account storage commitment.
-#!
-#! Stack: []
-#! Output: [STORAGE_COMMITMENT]
-#!
-#! Where:
-#! - STORAGE_COMMITMENT is the account storage commitment.
-export.get_acct_storage_commitment
-    padw
-    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
-    mem_loadw
-end
-
-#! Sets the account storage commitment.
-#!
-#! Stack: [STORAGE_COMMITMENT]
-#! Output: [STORAGE_COMMITMENT]
-#!
-#! Where:
-#! - STORAGE_COMMITMENT is the account storage commitment.
-export.set_acct_storage_commitment
-    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
-    mem_storew
-end
+### ACCOUNT CODE #################################################
 
 #! Returns the code commitment of the account.
 #!
@@ -885,6 +914,33 @@ end
 #! - account_procedures_section_ptr is the memory pointer to the account procedures section.
 export.get_acct_procedures_section_ptr
     exec.get_current_account_data_ptr push.ACCT_PROCEDURES_SECTION_OFFSET add
+end
+
+### ACCOUNT STORAGE #################################################
+
+#! Returns the account storage commitment.
+#!
+#! Stack: []
+#! Output: [STORAGE_COMMITMENT]
+#!
+#! Where:
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.get_acct_storage_commitment
+    padw
+    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
+    mem_loadw
+end
+
+#! Sets the account storage commitment.
+#!
+#! Stack: [STORAGE_COMMITMENT]
+#! Output: [STORAGE_COMMITMENT]
+#!
+#! Where:
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.set_acct_storage_commitment
+    exec.get_current_account_data_ptr push.ACCT_STORAGE_COMMITMENT_OFFSET add
+    mem_storew
 end
 
 #! Returns the number of storage slots contained in the account storage.

@@ -20,6 +20,7 @@
 - Added `AccountStorageHeader` (#876).
 - Implemented generation of transaction kernel procedure hashes in build.rs (#887).
 - [BREAKING] `send_asset` procedure was removed from the basic wallet (#829).
+- Implemented ability to invoke procedures against the foreign account (#882, #890, #896).
 - [BREAKING] Updated limits, introduced additional limits (#889).
 - Introduced `AccountDelta` maximum size limit of 32 KiB (#889).
 - [BREAKING] Moved `MAX_NUM_FOREIGN_ACCOUNTS` into `miden-objects` (#904).

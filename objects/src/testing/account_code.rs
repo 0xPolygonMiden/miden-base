@@ -49,6 +49,9 @@ impl AccountCode {
         export.::miden::contracts::wallets::basic::create_note
         export.::miden::contracts::wallets::basic::move_asset_to_note
 
+        export.::miden::account::get_item_foreign
+        export.::miden::account::get_map_item_foreign
+
         export.incr_nonce
             push.0 swap
             # => [value, 0]
