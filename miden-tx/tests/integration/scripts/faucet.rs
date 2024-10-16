@@ -1,5 +1,7 @@
 extern crate alloc;
 
+use std::sync::Arc;
+
 use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
 use miden_objects::{
     assets::{Asset, FungibleAsset},

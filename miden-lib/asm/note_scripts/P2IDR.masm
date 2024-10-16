@@ -7,13 +7,13 @@ use.miden::contracts::wallets::basic->wallet
 # =================================================================================================
 
 # P2IDR scripts expect exactly 2 note inputs
-const.ERR_P2IDR_WRONG_NUMBER_OF_INPUTS=0x00020004
+const.ERR_P2IDR_WRONG_NUMBER_OF_INPUTS=0x00020052
 
-# P2IDR's can only be reclaimed by the sender
-const.ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER=0x00020005
+# P2IDR's reclaimer is not the original sender
+const.ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER=0x00020053
 
-# Transaction's reference block is lower than reclaim height. The P2IDR can not be reclaimed
-const.ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED=0x00020006
+# P2IDR can not be reclaimed as the transaction's reference block is lower than the reclaim height
+const.ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED=0x00020054
 
 #! Helper procedure to add all assets of a note to an account.
 #!

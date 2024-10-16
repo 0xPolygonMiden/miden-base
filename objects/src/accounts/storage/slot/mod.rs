@@ -27,7 +27,7 @@ impl StorageSlot {
     pub fn is_default(&self) -> bool {
         match self {
             StorageSlot::Value(value) => *value == EMPTY_WORD,
-            StorageSlot::Map(map) => *map.root() == EMPTY_STORAGE_MAP_ROOT,
+            StorageSlot::Map(map) => map.root() == EMPTY_STORAGE_MAP_ROOT,
         }
     }
 
@@ -35,7 +35,7 @@ impl StorageSlot {
     pub fn default_word(&self) -> Word {
         match self {
             StorageSlot::Value(_) => EMPTY_WORD,
-            StorageSlot::Map(_) => EMPTY_STORAGE_MAP_ROOT,
+            StorageSlot::Map(_) => EMPTY_STORAGE_MAP_ROOT.into(),
         }
     }
 

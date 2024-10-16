@@ -1,6 +1,6 @@
 extern crate alloc;
 pub use alloc::{collections::BTreeMap, string::String};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -10,7 +10,7 @@ use miden_objects::{
     transaction::TransactionMeasurements,
     Felt, Word,
 };
-use miden_tx::auth::BasicAuthenticator;
+use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
 use rand::rngs::StdRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use serde::Serialize;
@@ -87,7 +87,7 @@ pub fn get_account_with_default_account_code(
     Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
 
-pub fn get_new_pk_and_authenticator() -> (Word, Rc<BasicAuthenticator<StdRng>>) {
+pub fn get_new_pk_and_authenticator() -> (Word, Arc<dyn TransactionAuthenticator>) {
     let seed = [0_u8; 32];
     let mut rng = ChaCha20Rng::from_seed(seed);
 
@@ -97,7 +97,7 @@ pub fn get_new_pk_and_authenticator() -> (Word, Rc<BasicAuthenticator<StdRng>>) 
     let authenticator =
         BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
 
-    (pub_key, Rc::new(authenticator))
+    (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }
 
 pub fn write_bench_results_to_json(

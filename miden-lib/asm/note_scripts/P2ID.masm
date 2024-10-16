@@ -5,11 +5,11 @@ use.miden::contracts::wallets::basic->wallet
 # ERRORS
 # =================================================================================================
 
-# P2ID scripts expect exactly 1 note input
-const.ERR_P2ID_WRONG_NUMBER_OF_INPUTS=0x00020002
+# P2ID script expects exactly 1 note input
+const.ERR_P2ID_WRONG_NUMBER_OF_INPUTS=0x00020050
 
 # P2ID's target account address and transaction address do not match
-const.ERR_P2ID_TARGET_ACCT_MISMATCH=0x00020003
+const.ERR_P2ID_TARGET_ACCT_MISMATCH=0x00020051
 
 #! Helper procedure to add all assets of a note to an account.
 #!

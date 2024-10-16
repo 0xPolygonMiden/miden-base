@@ -51,6 +51,9 @@ impl AccountCode {
         export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
         export.::miden::contracts::faucets::basic_fungible::distribute
 
+        export.::miden::account::get_item_foreign
+        export.::miden::account::get_map_item_foreign
+
         export.incr_nonce
             push.0 swap
             # => [value, 0]

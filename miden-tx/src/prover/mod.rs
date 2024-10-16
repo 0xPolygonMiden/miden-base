@@ -1,4 +1,6 @@
-use alloc::{rc::Rc, vec::Vec};
+#[cfg(feature = "async")]
+use alloc::boxed::Box;
+use alloc::{sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -8,7 +10,7 @@ use miden_objects::{
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
-use winter_maybe_async::maybe_async;
+use winter_maybe_async::*;
 
 use super::{TransactionHost, TransactionProverError};
 use crate::executor::TransactionMastStore;
@@ -18,6 +20,7 @@ use crate::executor::TransactionMastStore;
 
 /// The [TransactionProver] trait defines the interface that transaction witness objects use to
 /// prove transactions and generate a [ProvenTransaction].
+#[maybe_async_trait]
 pub trait TransactionProver {
     /// Proves the provided transaction and returns a [ProvenTransaction].
     ///
@@ -28,7 +31,7 @@ pub trait TransactionProver {
     #[maybe_async]
     fn prove(
         &self,
-        transaction: impl Into<TransactionWitness>,
+        tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError>;
 }
 
@@ -39,7 +42,7 @@ pub trait TransactionProver {
 ///
 /// Local Transaction Prover implements the [TransactionProver] trait.
 pub struct LocalTransactionProver {
-    mast_store: Rc<TransactionMastStore>,
+    mast_store: Arc<TransactionMastStore>,
     proof_options: ProvingOptions,
 }
 
@@ -49,7 +52,7 @@ impl LocalTransactionProver {
     /// Creates a new [LocalTransactionProver] instance.
     pub fn new(proof_options: ProvingOptions) -> Self {
         Self {
-            mast_store: Rc::new(TransactionMastStore::new()),
+            mast_store: Arc::new(TransactionMastStore::new()),
             proof_options,
         }
     }
@@ -58,19 +61,19 @@ impl LocalTransactionProver {
 impl Default for LocalTransactionProver {
     fn default() -> Self {
         Self {
-            mast_store: Rc::new(TransactionMastStore::new()),
+            mast_store: Arc::new(TransactionMastStore::new()),
             proof_options: Default::default(),
         }
     }
 }
 
+#[maybe_async_trait]
 impl TransactionProver for LocalTransactionProver {
     #[maybe_async]
     fn prove(
         &self,
-        transaction: impl Into<TransactionWitness>,
+        tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
-        let tx_witness: TransactionWitness = transaction.into();
         let TransactionWitness { tx_inputs, tx_args, advice_witness } = tx_witness;
 
         let account = tx_inputs.account();
@@ -85,12 +88,12 @@ impl TransactionProver for LocalTransactionProver {
         // load the store with account/note/tx_script MASTs
         self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
-        let mut host: TransactionHost<_, ()> =
+        let mut host: TransactionHost<_> =
             TransactionHost::new(account.into(), advice_provider, self.mast_store.clone(), None)
                 .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
             prove(&TransactionKernel::main(), stack_inputs, &mut host, self.proof_options.clone())
-                .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
+                .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;
 
         // extract transaction outputs and process transaction data
         let (advice_provider, account_delta, output_notes, _signatures, _tx_progress) =

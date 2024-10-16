@@ -1,6 +1,4 @@
-use generated::api::{api_server, ProveTransactionRequest, ProveTransactionResponse};
-use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
-use miden_prover::DeserializationError;
+use miden_objects::transaction::TransactionWitness;
 use miden_tx::{
     utils::{Deserializable, Serializable},
     LocalTransactionProver, TransactionProver,
@@ -9,32 +7,32 @@ use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-pub mod generated;
+use crate::{ApiServer, ProveTransactionRequest, ProveTransactionResponse, ProverApi};
 
-pub struct Rpc {
-    pub api_service: api_server::ApiServer<RpcApi>,
+pub struct RpcListener {
+    pub api_service: ApiServer<ProverRpcApi>,
     pub listener: TcpListener,
 }
 
-impl Rpc {
+impl RpcListener {
     pub fn new(listener: TcpListener) -> Self {
-        let api_service = api_server::ApiServer::new(RpcApi::default());
+        let api_service = ApiServer::new(ProverRpcApi::default());
         Self { listener, api_service }
     }
 }
 
 #[derive(Default)]
-pub struct RpcApi {
-    prover: Mutex<LocalTransactionProver>,
+pub struct ProverRpcApi {
+    local_prover: Mutex<LocalTransactionProver>,
 }
 
 // We need to implement Send and Sync for the generated code to be able to use the prover in the
 // shared context.
-unsafe impl Send for RpcApi {}
-unsafe impl Sync for RpcApi {}
+unsafe impl Send for ProverRpcApi {}
+unsafe impl Sync for ProverRpcApi {}
 
-#[tonic::async_trait]
-impl api_server::Api for RpcApi {
+#[async_trait::async_trait]
+impl ProverApi for ProverRpcApi {
     async fn prove_transaction(
         &self,
         request: Request<ProveTransactionRequest>,
@@ -43,7 +41,7 @@ impl api_server::Api for RpcApi {
 
         // Try to acquire a permit without waiting
         let prover = self
-            .prover
+            .local_prover
             .try_lock()
             .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
 
@@ -54,23 +52,6 @@ impl api_server::Api for RpcApi {
         let proof = prover.prove(transaction_witness).map_err(internal_error)?;
 
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
-    }
-}
-
-// CONVERSIONS
-// ================================================================================================
-
-impl From<ProvenTransaction> for ProveTransactionResponse {
-    fn from(value: ProvenTransaction) -> Self {
-        ProveTransactionResponse { proven_transaction: value.to_bytes() }
-    }
-}
-
-impl TryFrom<ProveTransactionResponse> for ProvenTransaction {
-    type Error = DeserializationError;
-
-    fn try_from(response: ProveTransactionResponse) -> Result<Self, Self::Error> {
-        ProvenTransaction::read_from_bytes(&response.proven_transaction)
     }
 }
 

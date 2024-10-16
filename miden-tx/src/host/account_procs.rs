@@ -38,7 +38,15 @@ impl AccountProcedureIndexMap {
             ));
         }
 
-        let num_procs = proc_data[0].as_int() as usize;
+        // check that procedure data have a correct length
+        if proc_data.len() % AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != 0 {
+            return Err(TransactionHostError::AccountProcedureIndexMapError(
+                "The account procedure data has invalid length.".to_string(),
+            ));
+        }
+
+        // One procedure requires 8 values to represent
+        let num_procs = proc_data.len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
 
         // check that the account code does not contain too many procedures
         if num_procs > AccountCode::MAX_NUM_PROCEDURES {
@@ -47,17 +55,8 @@ impl AccountProcedureIndexMap {
             ));
         }
 
-        // check that the stored number of procedures matches the length of the procedures array
-        if num_procs * AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != proc_data.len() - 1 {
-            return Err(TransactionHostError::AccountProcedureIndexMapError(
-                "Invalid number of procedures.".to_string(),
-            ));
-        }
-
-        // we skip proc_data[0] because it's the number of procedures
-        for (proc_idx, proc_info) in proc_data[1..]
-            .chunks_exact(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC)
-            .enumerate()
+        for (proc_idx, proc_info) in
+            proc_data.chunks_exact(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC).enumerate()
         {
             let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
                 proc_info.try_into().expect("Failed conversion into procedure info array.");

@@ -94,7 +94,7 @@ impl From<AccountProcedureInfo> for [Felt; 8] {
         // copy the storage offset into value[4]
         result[4] = Felt::from(value.storage_offset);
 
-        // copy the storage size into value[7]
+        // copy the storage size into value[5]
         result[5] = Felt::from(value.storage_size);
 
         result

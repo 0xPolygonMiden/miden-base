@@ -24,6 +24,7 @@ std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier
 testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/testing", "dep:rand_chacha"]
 
 [dependencies]
+async-trait = "0.1"
 miden-lib = { workspace = true }
 miden-objects = { workspace = true }
 miden-prover = { workspace = true }
@@ -36,3 +37,8 @@ winter-maybe-async = { version = "0.10" }
 [dev-dependencies]
 miden-tx = { path = ".", features = ["testing"] }
 rand_chacha = { version = "0.3", default-features = false }
+
+[build-dependencies]
+assembly = { workspace = true }
+regex = { version = "1.10" }
+walkdir = { version = "2.5"}

@@ -29,7 +29,7 @@ cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-
 cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --rev <git-sha>
 ```
 
-If you want to build the prover from a local version, you can run:
+If you want to build the prover from a local version, from the root of the workspace you can run:
 
 ```bash
 make install-prover
@@ -51,4 +51,13 @@ By default, the server will start on `0.0.0.0:50051`. You can change this and th
 PROVER_SERVICE_HOST=<your-host>
 PROVER_SERVICE_PORT=<your-port>
 RUST_LOG=<log-level>
+```
+
+### Using RemoteTransactionProver
+To use the `RemoteTransactionProver` struct, enable `async`. Additionally, when compiling for `wasm32-unknown-unknown`, disable default features.
+
+```
+[dependencies]
+miden-tx-prover = { version = "0.6", features = ["async"], default-features = false } # Uses tonic-web-wasm-client transport
+miden-tx-prover = { version = "0.6", features = ["async"] } # Uses tonic's Channel transport
 ```

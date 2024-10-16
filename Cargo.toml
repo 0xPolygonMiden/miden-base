@@ -38,7 +38,7 @@ miden-lib = { path = "miden-lib", version = "0.6", default-features = false }
 miden-objects = { path = "objects", version = "0.6", default-features = false }
 miden-prover = { version = "0.10", default-features = false }
 miden-stdlib = { version = "0.10", default-features = false }
-miden-tx = { path = "miden-tx", version = "0.6" }
+miden-tx = { path = "miden-tx", version = "0.6", default-features = false }
 miden-verifier = { version = "0.10", default-features = false }
 rand = { version = "0.8", default-features = false }
 vm-core = { package = "miden-core", version = "0.10", default-features = false }
