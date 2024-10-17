@@ -2,6 +2,7 @@
 use alloc::boxed::Box;
 use alloc::{rc::Rc, sync::Arc, vec::Vec};
 
+use builder::MockAuthenticator;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountId},
@@ -12,11 +13,7 @@ use miden_objects::{
 use vm_processor::{AdviceInputs, ExecutionError, Process};
 use winter_maybe_async::*;
 
-use super::{
-    executor::CodeExecutor,
-    mock_chain::{MockAuthenticator, MockChain},
-    MockHost,
-};
+use super::{executor::CodeExecutor, MockHost};
 use crate::{
     auth::TransactionAuthenticator, DataStore, DataStoreError, TransactionExecutor,
     TransactionExecutorError, TransactionMastStore,
@@ -34,7 +31,6 @@ pub use builder::TransactionContextBuilder;
 /// It implements [DataStore], so transactions may be executed with
 /// [TransactionExecutor](crate::TransactionExecutor)
 pub struct TransactionContext {
-    mock_chain: MockChain,
     expected_output_notes: Vec<Note>,
     tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
@@ -100,16 +96,12 @@ impl TransactionContext {
         &self.expected_output_notes
     }
 
-    pub fn mock_chain(&self) -> &MockChain {
-        &self.mock_chain
-    }
-
-    pub fn input_notes(&self) -> InputNotes<InputNote> {
-        InputNotes::new(self.mock_chain.available_notes().clone()).unwrap()
-    }
-
     pub fn tx_args(&self) -> &TransactionArgs {
         &self.tx_args
+    }
+
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
+        self.tx_inputs.input_notes()
     }
 
     pub fn set_tx_args(&mut self, tx_args: TransactionArgs) {
