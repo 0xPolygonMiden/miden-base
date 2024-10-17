@@ -8,7 +8,7 @@ use miden_objects::{
     transaction::{OutputNote, TransactionScript},
     Felt,
 };
-use miden_tx::testing::mock_chain::{Auth, MockChain};
+use miden_tx::testing::mock_chain::MockChain;
 
 use crate::prove_and_verify_transaction;
 
@@ -16,11 +16,10 @@ use crate::prove_and_verify_transaction;
 #[test]
 pub fn prove_send_swap_note() {
     let mut mock_chain = MockChain::new();
-    let offered_asset =
-        mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64, None).mint(2000);
+    let offered_asset = mock_chain.add_new_faucet("USDT", 100000u64, None).mint(2000);
     let requested_asset =
         NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
-    let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![offered_asset]);
+    let sender_account = mock_chain.add_existing_wallet(vec![offered_asset]);
 
     let (note, _payback) = get_swap_notes(sender_account.id(), offered_asset, requested_asset);
 
@@ -76,18 +75,17 @@ pub fn prove_send_swap_note() {
 #[test]
 fn prove_consume_swap_note() {
     let mut mock_chain = MockChain::new();
-    let offered_asset =
-        mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64, None).mint(2000);
+    let offered_asset = mock_chain.add_new_faucet("USDT", 100000u64, None).mint(2000);
     let requested_asset =
         NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
-    let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![offered_asset]);
+    let sender_account = mock_chain.add_existing_wallet(vec![offered_asset]);
 
     let (note, payback_note) = get_swap_notes(sender_account.id(), offered_asset, requested_asset);
 
     // CONSUME CREATED NOTE
     // --------------------------------------------------------------------------------------------
 
-    let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
+    let target_account = mock_chain.add_existing_wallet(vec![requested_asset]);
     mock_chain.add_note(note.clone());
     mock_chain.seal_block(None);
 

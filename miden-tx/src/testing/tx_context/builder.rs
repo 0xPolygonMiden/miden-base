@@ -73,7 +73,6 @@ pub struct TransactionContextBuilder {
     assembler: Assembler,
     account: Account,
     account_seed: Option<Word>,
-    advice_map: Option<AdviceMap>,
     advice_inputs: AdviceInputs,
     authenticator: Option<MockAuthenticator>,
     input_notes: Vec<Note>,
@@ -92,7 +91,6 @@ impl TransactionContextBuilder {
             account_seed: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            advice_map: None,
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
             tx_script: None,
             authenticator: None,
@@ -120,7 +118,6 @@ impl TransactionContextBuilder {
             authenticator: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            advice_map: None,
             advice_inputs: Default::default(),
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
             tx_script: None,
@@ -605,8 +602,6 @@ impl TransactionContextBuilder {
 
                 mock_chain.seal_block(None);
                 mock_chain.seal_block(None);
-                mock_chain.seal_block(None);
-                mock_chain.seal_block(None);
 
                 let input_note_ids: Vec<NoteId> =
                     mock_chain.available_notes().iter().map(|n| n.id()).collect();
@@ -620,11 +615,8 @@ impl TransactionContextBuilder {
             },
         };
 
-        let mut tx_args = TransactionArgs::new(
-            self.tx_script,
-            Some(self.note_args),
-            self.advice_map.unwrap_or_default(),
-        );
+        let mut tx_args =
+            TransactionArgs::new(self.tx_script, Some(self.note_args), AdviceMap::default());
 
         tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
 

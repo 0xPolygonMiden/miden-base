@@ -50,10 +50,7 @@ mod test {
         testing::account_code::DEFAULT_AUTH_SCRIPT,
         transaction::{ProvenTransaction, TransactionScript, TransactionWitness},
     };
-    use miden_tx::{
-        testing::mock_chain::{Auth, MockChain},
-        utils::Serializable,
-    };
+    use miden_tx::{testing::mock_chain::MockChain, utils::Serializable};
     use tokio::net::TcpListener;
     use tonic::Request;
 
@@ -86,7 +83,7 @@ mod test {
 
         // Create a mock transaction to send to the server
         let mut mock_chain = MockChain::new();
-        let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+        let account = mock_chain.add_existing_wallet(vec![]);
 
         let fungible_asset_1: Asset =
             FungibleAsset::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap(), 100)

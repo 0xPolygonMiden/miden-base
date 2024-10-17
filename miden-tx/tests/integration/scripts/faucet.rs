@@ -1,7 +1,5 @@
 extern crate alloc;
 
-use std::sync::Arc;
-
 use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
 use miden_objects::{
     assets::{Asset, FungibleAsset},
@@ -10,7 +8,7 @@ use miden_objects::{
     transaction::TransactionScript,
     Felt,
 };
-use miden_tx::testing::mock_chain::{Auth, MockChain};
+use miden_tx::testing::mock_chain::MockChain;
 
 use crate::{get_note_with_fungible_asset_and_script, prove_and_verify_transaction};
 
@@ -22,7 +20,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let mut mock_chain = MockChain::new();
-    let faucet = mock_chain.add_existing_faucet(Auth::BasicAuth, "TST", 200, None);
+    let faucet = mock_chain.add_existing_faucet("TST", 200, None);
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
@@ -90,7 +88,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     // --------------------------------------------------------------------------------------------
     let mut mock_chain = MockChain::new();
     let faucet: miden_tx::testing::mock_chain::MockFungibleFaucet =
-        mock_chain.add_existing_faucet(Auth::BasicAuth, "TST", 200u64, None);
+        mock_chain.add_existing_faucet("TST", 200u64, None);
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -134,7 +132,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 #[test]
 fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let mut mock_chain = MockChain::new();
-    let faucet = mock_chain.add_existing_faucet(Auth::BasicAuth, "TST", 200, Some(100));
+    let faucet = mock_chain.add_existing_faucet("TST", 200, Some(100));
 
     let fungible_asset = FungibleAsset::new(faucet.account().id(), 100).unwrap();
 

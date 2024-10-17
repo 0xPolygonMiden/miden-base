@@ -46,7 +46,7 @@ const TIMESTAMP_STEP: u32 = 10;
 pub enum Auth {
     /// Creates a [SecretKey] for theaccount and creates a [BasicAuthenticator] that gets used for
     /// authenticating the account.
-    BasicAuth,
+    BasicAuth(AuthSecretKey),
 
     /// Does not create any authentication mechanism for the account.
     NoAuth,
@@ -266,16 +266,33 @@ impl MockChain {
     // CONSTRUCTORS
     // ----------------------------------------------------------------------------------------
 
-    /// Creates a new `MockChain` with default settings.
+    /// Creates a new `MockChain`.
+    pub fn empty() -> Self {
+        MockChain::default()
+    }
+
+    /// Creates a new `MockChain` with two blocks.
     pub fn new() -> Self {
-        let mut chain = Self {
-            accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
-            ..Default::default()
-        };
+        let mut chain = MockChain::default();
         chain.seal_block(None);
         chain.seal_block(None);
-        chain.seal_block(None);
-        chain.seal_block(None);
+        chain
+    }
+
+    /// Creates a new `MockChain` with two blocks and accounts in the genesis block.
+    pub fn with_accounts(accounts: &[Account]) -> Self {
+        let mut chain = MockChain::default();
+        for acc in accounts {
+            chain.add_account(acc.clone());
+            chain.available_accounts.insert(
+                acc.id(),
+                MockAccount {
+                    account: acc.clone(),
+                    seed: None,
+                    authenticator: None,
+                },
+            );
+        }
         chain.seal_block(None);
         chain
     }
@@ -359,23 +376,19 @@ impl MockChain {
     // ----------------------------------------------------------------------------------------
 
     /// Adds a new wallet with the specified authentication method and assets.
-    pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        self.add_wallet_account(auth_method, assets, Felt::ZERO)
+    pub fn add_new_wallet(&mut self, assets: Vec<Asset>) -> Account {
+        self.add_wallet_account(assets, Felt::ZERO)
     }
 
     /// Adds an existing wallet with the specified authentication method and assets.
-    pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        self.add_wallet_account(auth_method, assets, Felt::ONE)
+    pub fn add_existing_wallet(&mut self, assets: Vec<Asset>) -> Account {
+        self.add_wallet_account(assets, Felt::ONE)
     }
+
     /// Helper method to build a wallet account
-    fn add_wallet_account(
-        &mut self,
-        auth_method: Auth,
-        assets: Vec<Asset>,
-        nonce: Felt,
-    ) -> Account {
+    fn add_wallet_account(&mut self, assets: Vec<Asset>, nonce: Felt) -> Account {
         let mut account_builder = AccountBuilder::new(self.rng.clone())
-            .default_code(TransactionKernel::testing_assembler(), false)
+            .default_code(TransactionKernel::testing_assembler_with_mock_account(), false)
             .nonce(nonce)
             .add_assets(assets);
 
@@ -390,13 +403,12 @@ impl MockChain {
             AuthSecretKey::RpoFalcon512(secret_key)
         };
 
-        self.add_from_account_builder(account_builder, auth_method, auth_secret_key)
+        self.add_from_account_builder(account_builder, Auth::BasicAuth(auth_secret_key))
     }
 
     /// Helper method to build a faucet account
     fn add_faucet_account(
         &mut self,
-        auth_method: Auth,
         token_symbol_str: &str,
         max_supply: u64,
         total_issuance: Option<u64>,
@@ -444,33 +456,30 @@ impl MockChain {
             AuthSecretKey::RpoFalcon512(secret_key)
         };
 
-        let account = self.add_from_account_builder(account_builder, auth_method, auth_secret_key);
+        let account =
+            self.add_from_account_builder(account_builder, Auth::BasicAuth(auth_secret_key));
 
         MockFungibleFaucet(account)
     }
 
-    /// Adds a new fungible faucet with the specified authentication method, token symbol, and max
-    /// supply.
+    /// Adds a new fungible faucet with the specified token symbol, and max supply.
     pub fn add_new_faucet(
         &mut self,
-        auth_method: Auth,
         token_symbol: &str,
         max_supply: u64,
         total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        self.add_faucet_account(auth_method, token_symbol, max_supply, total_issuance, Felt::ZERO)
+        self.add_faucet_account(token_symbol, max_supply, total_issuance, Felt::ZERO)
     }
 
-    /// Adds an existing fungible faucet with the specified authentication method, token symbol, and
-    /// max supply.
+    /// Adds an existing fungible faucet with the specified token symbol, and max supply.
     pub fn add_existing_faucet(
         &mut self,
-        auth_method: Auth,
         token_symbol: &str,
         max_supply: u64,
         total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        self.add_faucet_account(auth_method, token_symbol, max_supply, total_issuance, Felt::ONE)
+        self.add_faucet_account(token_symbol, max_supply, total_issuance, Felt::ONE)
     }
 
     /// Adds a new `Account` from an `AccountBuilder` to the list of pending objects.
@@ -479,17 +488,16 @@ impl MockChain {
         &mut self,
         account_builder: AccountBuilder<ChaCha20Rng>,
         auth_method: Auth,
-        secret_key: AuthSecretKey,
     ) -> Account {
         let (account, seed) = account_builder.build().unwrap();
 
         let authenticator = match auth_method {
-            Auth::BasicAuth => {
-                let public_key = match &secret_key {
+            Auth::BasicAuth(auth_secret_key) => {
+                let public_key = match &auth_secret_key {
                     AuthSecretKey::RpoFalcon512(secret_key) => secret_key.public_key(),
                 };
                 Some(BasicAuthenticator::new_with_rng(
-                    &[(public_key.into(), secret_key)],
+                    &[(public_key.into(), auth_secret_key)],
                     self.rng.clone(),
                 ))
             },
@@ -547,7 +555,7 @@ impl MockChain {
             let tx_script = TransactionScript::compile(
                 DEFAULT_AUTH_SCRIPT,
                 vec![],
-                TransactionKernel::testing_assembler(),
+                TransactionKernel::testing_assembler_with_mock_account(),
             )
             .unwrap();
             tx_context_builder = tx_context_builder.tx_script(tx_script);
@@ -745,9 +753,14 @@ impl MockChain {
         &self.nullifiers
     }
 
-    /// Returns currently available notes.
+    /// Get the vector of IDs of the currently available notes.
     pub fn available_notes(&self) -> Vec<InputNote> {
         self.available_notes.values().cloned().collect()
+    }
+
+    /// Get the reference to the accounts hash tree.
+    pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
+        &self.accounts
     }
 }
 

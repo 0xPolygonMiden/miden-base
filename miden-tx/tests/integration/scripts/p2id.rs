@@ -16,7 +16,7 @@ use miden_objects::{
     transaction::{OutputNote, TransactionScript},
     Felt,
 };
-use miden_tx::testing::mock_chain::{Auth, MockChain};
+use miden_tx::testing::mock_chain::MockChain;
 
 use crate::prove_and_verify_transaction;
 
@@ -34,8 +34,8 @@ fn p2id_script_multiple_assets() {
             .into();
 
     // Create sender and target account
-    let sender_account = mock_chain.add_new_wallet(Auth::BasicAuth, vec![]);
-    let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let sender_account = mock_chain.add_new_wallet(vec![]);
+    let target_account = mock_chain.add_existing_wallet(vec![]);
 
     // Create the note
     let note = mock_chain
@@ -73,7 +73,7 @@ fn p2id_script_multiple_assets() {
     // --------------------------------------------------------------------------------------------
     // A "malicious" account tries to consume the note, we expect an error (not the correct target)
 
-    let malicious_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let malicious_account = mock_chain.add_existing_wallet(vec![]);
     mock_chain.seal_block(None);
 
     // Execute the transaction and get the witness
@@ -141,7 +141,7 @@ fn p2id_script_multiple_assets() {
 #[test]
 fn prove_consume_multiple_notes() {
     let mut mock_chain = MockChain::new();
-    let mut account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let mut account = mock_chain.add_existing_wallet(vec![]);
 
     let fungible_asset_1: Asset =
         FungibleAsset::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap(), 100)
@@ -192,8 +192,7 @@ fn prove_consume_multiple_notes() {
 #[test]
 fn test_create_consume_multiple_notes() {
     let mut mock_chain = MockChain::new();
-    let mut account =
-        mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
+    let mut account = mock_chain.add_existing_wallet(vec![FungibleAsset::mock(20)]);
 
     let input_note_faucet_id = ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN;
     let input_note_asset_1: Asset =
