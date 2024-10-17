@@ -1,7 +1,10 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt;
 
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_lib::{
+    notes::{create_p2id_note, create_p2idr_note},
+    transaction::TransactionKernel,
+};
 use miden_objects::{
     accounts::{
         delta::AccountUpdateDetails, Account, AccountCode, AccountDelta, AccountId,
@@ -275,7 +278,6 @@ impl MockChain {
     pub fn new() -> Self {
         let mut chain = MockChain::default();
         chain.seal_block(None);
-        chain.seal_block(None);
         chain
     }
 
@@ -349,17 +351,30 @@ impl MockChain {
         target_account_id: AccountId,
         asset: &[Asset],
         note_type: NoteType,
+        reclaim_height: Option<u32>,
     ) -> Result<Note, NoteError> {
         let mut rng = RpoRandomCoin::new(Word::default());
 
-        let note = create_p2id_note(
-            sender_account_id,
-            target_account_id,
-            asset.to_vec(),
-            note_type,
-            Default::default(),
-            &mut rng,
-        )?;
+        let note = if let Some(height) = reclaim_height {
+            create_p2idr_note(
+                sender_account_id,
+                target_account_id,
+                asset.to_vec(),
+                note_type,
+                Default::default(),
+                height,
+                &mut rng,
+            )?
+        } else {
+            create_p2id_note(
+                sender_account_id,
+                target_account_id,
+                asset.to_vec(),
+                note_type,
+                Default::default(),
+                &mut rng,
+            )?
+        };
 
         self.add_note(note.clone());
 
@@ -608,125 +623,124 @@ impl MockChain {
     // MODIFIERS
     // =========================================================================================
 
-    /// Creates the next block.
-    ///
+    /// Creates the next block or generates blocks up to the input number if specified.
     /// This will also make all the objects currently pending available for use.
-    /// If `block_num` is `Some(number)`, `number` will be used as the new block's number.
+    /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
     pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
         let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num() + 1);
-        let block_num: u32 = if let Some(input_block_num) = block_num {
-            if input_block_num < next_block_num {
-                panic!("Input block number should be higher than the last block number");
-            }
-            input_block_num
-        } else {
-            next_block_num
-        };
+        let target_block_num = block_num.unwrap_or(next_block_num);
 
-        for update in self.pending_objects.updated_accounts.iter() {
-            self.accounts.insert(update.account_id().into(), *update.new_state_hash());
-
-            if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
-                let account = match update.details() {
-                    AccountUpdateDetails::New(acc) => acc.clone(),
-                    _ => panic!("The mockchain should have full account details"),
-                };
-                self.available_accounts.insert(
-                    update.account_id(),
-                    MockAccount::new(
-                        account,
-                        mock_account.seed,
-                        mock_account.authenticator.clone(),
-                    ),
-                );
-            }
+        if target_block_num < next_block_num {
+            panic!("Input block number should be higher than the last block number");
         }
 
-        // TODO:
-        // - resetting the nullifier tree once defined at the protocol level.
-        // - inserting only nullifier from transactions included in the batches, once the batch
-        // kernel has been implemented.
-        for nullifier in self.pending_objects.created_nullifiers.iter() {
-            self.nullifiers.insert(nullifier.inner(), [block_num.into(), ZERO, ZERO, ZERO]);
-        }
-        let notes_tree = self.pending_objects.build_notes_tree();
+        let mut last_block: Option<Block> = None;
 
-        let version = 0;
-        let previous = self.blocks.last();
-        let peaks = self.chain.peaks(self.chain.forest()).unwrap();
-        let chain_root: Digest = peaks.hash_peaks();
-        let account_root = self.accounts.root();
-        let prev_hash = previous.map_or(Digest::default(), |block| block.hash());
-        let nullifier_root = self.nullifiers.root();
-        let note_root = notes_tree.root();
-        let timestamp =
-            previous.map_or(TIMESTAMP_START, |block| block.header().timestamp() + TIMESTAMP_STEP);
-        let tx_hash =
-            compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
+        for current_block_num in next_block_num..=target_block_num {
+            for update in self.pending_objects.updated_accounts.iter() {
+                self.accounts.insert(update.account_id().into(), *update.new_state_hash());
 
-        // get the hash of all kernels
-        let kernel_root = TransactionKernel::kernel_root();
-
-        // TODO: Set `proof_hash` to the correct value once the kernel is available.
-        let proof_hash = Digest::default();
-
-        let header = BlockHeader::new(
-            version,
-            prev_hash,
-            block_num,
-            chain_root,
-            account_root,
-            nullifier_root,
-            note_root,
-            tx_hash,
-            kernel_root,
-            proof_hash,
-            timestamp,
-        );
-
-        let block = Block::new(
-            header,
-            self.pending_objects.updated_accounts.clone(),
-            self.pending_objects.output_note_batches.clone(),
-            self.pending_objects.created_nullifiers.clone(),
-        )
-        .unwrap();
-
-        for (batch_index, note_batch) in self.pending_objects.output_note_batches.iter().enumerate()
-        {
-            for (note_index, note) in note_batch.iter().enumerate() {
-                // All note details should be OutputNote::Full at this point
-                match note {
-                    OutputNote::Full(note) => {
-                        let block_note_index =
-                            BlockNoteIndex::new(batch_index, note_index).unwrap();
-                        let note_path = notes_tree.get_note_path(block_note_index);
-                        let note_inclusion_proof = NoteInclusionProof::new(
-                            block.header().block_num(),
-                            block_note_index.leaf_index_value(),
-                            note_path,
-                        )
-                        .unwrap();
-
-                        self.available_notes.insert(
-                            note.id(),
-                            InputNote::authenticated(note.clone(), note_inclusion_proof),
-                        );
-                    },
-                    _ => continue,
+                if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
+                    let account = match update.details() {
+                        AccountUpdateDetails::New(acc) => acc.clone(),
+                        _ => panic!("The mockchain should have full account details"),
+                    };
+                    self.available_accounts.insert(
+                        update.account_id(),
+                        MockAccount::new(
+                            account,
+                            mock_account.seed,
+                            mock_account.authenticator.clone(),
+                        ),
+                    );
                 }
             }
+
+            // TODO: Implement nullifier tree reset once defined at the protocol level.
+            for nullifier in self.pending_objects.created_nullifiers.iter() {
+                self.nullifiers
+                    .insert(nullifier.inner(), [current_block_num.into(), ZERO, ZERO, ZERO]);
+            }
+            let notes_tree = self.pending_objects.build_notes_tree();
+
+            let version = 0;
+            let previous = self.blocks.last();
+            let peaks = self.chain.peaks(self.chain.forest()).unwrap();
+            let chain_root: Digest = peaks.hash_peaks();
+            let account_root = self.accounts.root();
+            let prev_hash = previous.map_or(Digest::default(), |block| block.hash());
+            let nullifier_root = self.nullifiers.root();
+            let note_root = notes_tree.root();
+            let timestamp = previous
+                .map_or(TIMESTAMP_START, |block| block.header().timestamp() + TIMESTAMP_STEP);
+            let tx_hash =
+                compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
+
+            let kernel_root = TransactionKernel::kernel_root();
+
+            // TODO: Set `proof_hash` to the correct value once the kernel is available.
+            let proof_hash = Digest::default();
+
+            let header = BlockHeader::new(
+                version,
+                prev_hash,
+                current_block_num,
+                chain_root,
+                account_root,
+                nullifier_root,
+                note_root,
+                tx_hash,
+                kernel_root,
+                proof_hash,
+                timestamp,
+            );
+
+            let block = Block::new(
+                header,
+                self.pending_objects.updated_accounts.clone(),
+                self.pending_objects.output_note_batches.clone(),
+                self.pending_objects.created_nullifiers.clone(),
+            )
+            .unwrap();
+
+            for (batch_index, note_batch) in
+                self.pending_objects.output_note_batches.iter().enumerate()
+            {
+                for (note_index, note) in note_batch.iter().enumerate() {
+                    match note {
+                        OutputNote::Full(note) => {
+                            let block_note_index =
+                                BlockNoteIndex::new(batch_index, note_index).unwrap();
+                            let note_path = notes_tree.get_note_path(block_note_index);
+                            let note_inclusion_proof = NoteInclusionProof::new(
+                                block.header().block_num(),
+                                block_note_index.leaf_index_value(),
+                                note_path,
+                            )
+                            .unwrap();
+
+                            self.available_notes.insert(
+                                note.id(),
+                                InputNote::authenticated(note.clone(), note_inclusion_proof),
+                            );
+                        },
+                        _ => continue,
+                    }
+                }
+            }
+
+            for removed_note in self.removed_notes.iter() {
+                self.available_notes.remove(removed_note);
+            }
+
+            self.blocks.push(block.clone());
+            self.chain.add(header.hash());
+            self.reset_pending();
+
+            last_block = Some(block);
         }
 
-        for removed_note in self.removed_notes.iter() {
-            self.available_notes.remove(removed_note);
-        }
-
-        self.blocks.push(block.clone());
-        self.chain.add(header.hash());
-        self.reset_pending();
-
-        block
+        last_block.expect("There should be at least one block generated")
     }
 
     fn reset_pending(&mut self) {
