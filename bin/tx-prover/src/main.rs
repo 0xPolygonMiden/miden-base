@@ -95,7 +95,7 @@ mod test {
                 account.id(),
                 &[fungible_asset_1],
                 NoteType::Private,
-                None
+                None,
             )
             .unwrap();
 

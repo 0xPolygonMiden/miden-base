@@ -1,8 +1,5 @@
 use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        Account,
-    },
+    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, Account},
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteType,
     Felt,
