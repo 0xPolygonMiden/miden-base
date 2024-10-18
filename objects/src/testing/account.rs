@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use core::fmt::Display;
 
 use assembly::Assembler;
-use miden_crypto::{dsa::rpo_falcon512::SecretKey, merkle::MerkleError};
+use miden_crypto::{dsa::rpo_falcon512::PublicKey, merkle::MerkleError};
 use rand::Rng;
 use vm_core::FieldElement;
 
@@ -21,7 +21,7 @@ use crate::{
         Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
         StorageMap, StorageSlot,
     },
-    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, TokenSymbol},
     AccountError, AssetVaultError, Felt, Word, ZERO,
 };
 
@@ -41,16 +41,6 @@ impl<T: Rng> AccountBuilder<T> {
         Self {
             assets: vec![],
             storage_builder: AccountStorageBuilder::new(),
-            code: None,
-            nonce: ZERO,
-            account_id_builder: AccountIdBuilder::new(rng),
-        }
-    }
-
-    pub fn with_mock_storage(rng: T) -> Self {
-        Self {
-            assets: vec![],
-            storage_builder: AccountStorageBuilder::with_mock_data(),
             code: None,
             nonce: ZERO,
             account_id_builder: AccountIdBuilder::new(rng),
@@ -80,14 +70,16 @@ impl<T: Rng> AccountBuilder<T> {
     }
 
     pub fn code(mut self, account_code: AccountCode) -> Self {
-        self.code = Some(account_code);
+        self.code = Some(account_code.clone());
+
         self
     }
 
     /// Compiles [DEFAULT_ACCOUNT_CODE] into [AccountCode] and sets it.
-    pub fn default_code(self, assembler: Assembler) -> Self {
-        let default_account_code = AccountCode::compile(DEFAULT_ACCOUNT_CODE, assembler, false)
+    pub fn default_code(self, assembler: Assembler, is_faucet: bool) -> Self {
+        let default_account_code = AccountCode::compile(DEFAULT_ACCOUNT_CODE, assembler, is_faucet)
             .expect("Default account code should compile.");
+
         self.code(default_account_code)
     }
 
@@ -103,6 +95,29 @@ impl<T: Rng> AccountBuilder<T> {
 
     pub fn storage_mode(mut self, storage_mode: AccountStorageMode) -> Self {
         self.account_id_builder.storage_mode(storage_mode);
+        self
+    }
+
+    /// Configures storage slots for a wallet account with authentication.
+    pub fn with_wallet_storage(mut self, public_key: PublicKey) -> Self {
+        self.storage_builder.with_wallet_storage(public_key);
+        self
+    }
+
+    /// Configures storage slots for a faucet account with authentication and metadata.
+    pub fn with_faucet_storage(
+        mut self,
+        public_key: PublicKey,
+        token_symbol: TokenSymbol,
+        max_supply: u64,
+        total_issuance: Option<u64>,
+    ) -> Self {
+        self.storage_builder.with_faucet_storage(
+            public_key,
+            token_symbol,
+            max_supply,
+            total_issuance,
+        );
         self
     }
 
@@ -123,49 +138,12 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn build_with_seed(mut self, seed: Word) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
-
-        self.account_id_builder.storage_commitment(storage.commitment());
-        let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code = self.code.ok_or(AccountBuilderError::AccountCodeNotSet)?;
 
-        Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
-    }
-
-    /// Build an account using the provided `seed` and `storage`.
-    ///
-    /// The storage items added to this builder will added on top of `storage`.
-    pub fn build_with_seed_and_storage(
-        mut self,
-        seed: Word,
-        storage: AccountStorage,
-    ) -> Result<Account, AccountBuilderError> {
-        let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
-
-        let account_code = self.code.ok_or(AccountBuilderError::AccountCodeNotSet)?;
-
-        self.account_id_builder.code(account_code.clone());
-        self.account_id_builder.storage_commitment(storage.commitment());
         let account_id = self.account_id_builder.with_seed(seed)?;
+        self.account_id_builder.storage_commitment(storage.commitment());
 
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
-    }
-
-    /// Build an account using the provided `seed` and `storage`.
-    /// This method also returns the seed and secret key generated for the account based on the
-    /// provided RNG.
-    ///
-    /// The storage items added to this builder will added on top of `storage`.
-    pub fn build_with_auth(
-        self,
-        rng: &mut impl Rng,
-    ) -> Result<(Account, Word, SecretKey), AccountBuilderError> {
-        let sec_key = SecretKey::with_rng(rng);
-        let pub_key: Word = sec_key.public_key().into();
-
-        let storage_slot = StorageSlot::Value(pub_key);
-        let (account, seed) = self.add_storage_slot(storage_slot).build()?;
-
-        Ok((account, seed, sec_key))
     }
 }
 

@@ -302,24 +302,33 @@ pub fn hash_account(
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Felt, Word,
     };
     use vm_processor::Digest;
 
-    use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
+    use super::{
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, AccountCode,
+        AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountVaultDelta,
+    };
     use crate::{
-        accounts::{Account, StorageMap, StorageMapDelta, StorageSlot},
-        testing::storage::{
-            build_account, build_account_delta, build_assets, AccountStorageDeltaBuilder,
+        accounts::{
+            account_id::testing::{
+                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            },
+            Account, StorageMap, StorageMapDelta, StorageSlot,
         },
+        assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+        testing::storage::AccountStorageDeltaBuilder,
     };
 
     #[test]
     fn test_serde_account() {
         let init_nonce = Felt::new(1);
-        let (asset_0, _) = build_assets();
+        let asset_0 = FungibleAsset::mock(99);
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
         let storage_slot = StorageSlot::Value(word);
         let account = build_account(vec![asset_0], init_nonce, vec![storage_slot]);
@@ -332,7 +341,8 @@ mod tests {
     #[test]
     fn test_serde_account_delta() {
         let final_nonce = Felt::new(2);
-        let (asset_0, asset_1) = build_assets();
+        let asset_0 = FungibleAsset::mock(15);
+        let asset_1 = NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[5, 5, 5]);
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
             .add_updated_values([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
@@ -350,7 +360,8 @@ mod tests {
     fn valid_account_delta_is_correctly_applied() {
         // build account
         let init_nonce = Felt::new(1);
-        let (asset_0, asset_1) = build_assets();
+        let asset_0 = FungibleAsset::mock(100);
+        let asset_1 = NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, &[1, 2, 3]);
 
         // build storage slots
         let storage_slot_value_0 =
@@ -419,7 +430,7 @@ mod tests {
     fn valid_account_delta_with_unchanged_nonce() {
         // build account
         let init_nonce = Felt::new(1);
-        let (asset, _) = build_assets();
+        let asset = FungibleAsset::mock(110);
         let mut account =
             build_account(vec![asset], init_nonce, vec![StorageSlot::Value(Word::default())]);
 
@@ -440,7 +451,7 @@ mod tests {
     fn valid_account_delta_with_decremented_nonce() {
         // build account
         let init_nonce = Felt::new(2);
-        let (asset, _) = build_assets();
+        let asset = FungibleAsset::mock(100);
         let mut account =
             build_account(vec![asset], init_nonce, vec![StorageSlot::Value(Word::default())]);
 
@@ -476,5 +487,26 @@ mod tests {
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()
+    }
+
+    pub fn build_account_delta(
+        added_assets: Vec<Asset>,
+        removed_assets: Vec<Asset>,
+        nonce: Felt,
+        storage_delta: AccountStorageDelta,
+    ) -> AccountDelta {
+        let vault_delta = AccountVaultDelta::from_iters(added_assets, removed_assets);
+        AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
+    }
+
+    pub fn build_account(assets: Vec<Asset>, nonce: Felt, slots: Vec<StorageSlot>) -> Account {
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        let code = AccountCode::mock();
+
+        let vault = AssetVault::new(&assets).unwrap();
+
+        let storage = AccountStorage::new(slots).unwrap();
+
+        Account::from_parts(id, vault, storage, code, nonce)
     }
 }
