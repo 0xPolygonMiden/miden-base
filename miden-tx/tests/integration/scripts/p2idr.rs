@@ -31,7 +31,7 @@ fn p2idr_script() {
         .add_p2id_note(
             sender_account.id(),
             target_account.id(),
-            &[fungible_asset.clone()],
+            &[fungible_asset],
             NoteType::Public,
             Some(reclaim_block_height_in_time),
         )
@@ -41,7 +41,7 @@ fn p2idr_script() {
         .add_p2id_note(
             sender_account.id(),
             target_account.id(),
-            &[fungible_asset.clone()],
+            &[fungible_asset],
             NoteType::Public,
             Some(reclaim_block_height_reclaimable),
         )
@@ -61,7 +61,7 @@ fn p2idr_script() {
 
     let target_account_after: Account = Account::from_parts(
         target_account.id(),
-        AssetVault::new(&[fungible_asset.clone()]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
