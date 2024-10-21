@@ -1082,6 +1082,9 @@ end
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
 export.update_expiration_delta
+    # drop the procedure's hash
+    dropw
+
     exec.tx::update_expiration_delta
 end
 
@@ -1093,6 +1096,9 @@ end
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
 export.get_expiration_delta
+    # drop the procedure's hash
+    dropw
+
     exec.tx::get_expiration_delta
 end
 
