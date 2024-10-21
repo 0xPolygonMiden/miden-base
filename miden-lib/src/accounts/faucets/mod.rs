@@ -50,7 +50,7 @@ pub fn create_basic_fungible_faucet(
         export.::miden::contracts::faucets::basic_fungible::distribute
         export.::miden::contracts::faucets::basic_fungible::burn
         export.::miden::contracts::auth::basic::{auth_scheme_procedure}
-    "
+        "
     );
 
     let assembler = TransactionKernel::assembler();
