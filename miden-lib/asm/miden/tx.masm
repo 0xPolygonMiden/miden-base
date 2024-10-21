@@ -211,5 +211,5 @@ export.update_expiration_delta
     syscall.exec_kernel_proc
 
     # clear the stack
-    drop drop dropw dropw dropw
+    dropw dropw dropw dropw
 end
