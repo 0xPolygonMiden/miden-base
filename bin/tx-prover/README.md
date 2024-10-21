@@ -53,6 +53,13 @@ PROVER_SERVICE_PORT=<your-port>
 RUST_LOG=<log-level>
 ```
 
+## Features
+
+For the service, the following features are available:
+
+- `testing`: This flag reduces the difficulty target of the account seed creation. If the client uses the `testing` flag, then the prover will not be able to prove transactions correctly without it.
+- `concurrent`: Enables transaction proving speedups.
+
 ### Using RemoteTransactionProver
 To use the `RemoteTransactionProver` struct, enable `async`. Additionally, when compiling for `wasm32-unknown-unknown`, disable default features.
 
