@@ -12,7 +12,7 @@ rust-version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "prover-service"
+name = "miden-tx-prover"
 path = "src/main.rs"
 required-features = ["std"]
 
