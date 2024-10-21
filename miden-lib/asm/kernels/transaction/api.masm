@@ -67,8 +67,8 @@ proc.authenticate_account_origin
 end
 
 #! Verifies that the procedure to be invoked against the foreign account is part of its code.
-#! TODO: it is a temporary solution. This and other `*_foreign` procedures should be removed after 
-#! the refactoring of the `DYN` operation (see miden-vm/#1091) and the fix of the CALLER operation. 
+#! TODO: it is a temporary solution. This and other `*_foreign` procedures should be removed after
+#! the refactoring of the `DYN` operation (see miden-vm/#1091) and the fix of the CALLER operation.
 #!
 #! Stack: [FOREIGN_PROC_ROOT]
 #! Output: [storage_offset, storage_size, ...]
@@ -230,7 +230,7 @@ end
 #!
 #! Where:
 #! - KERNEL_PROCEDURE_HASH is the hash of this procedure.
-#! - FOREIGN_PROC_ROOT is the hash of the foreign procedure which called this procedure. 
+#! - FOREIGN_PROC_ROOT is the hash of the foreign procedure which called this procedure.
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 #!
@@ -356,7 +356,7 @@ end
 #! Panics if:
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
-export.get_account_map_item_foreign    
+export.get_account_map_item_foreign
     # drop the procedure's hash
     dropw
     # => [FOREIGN_PROC_ROOT, index, KEY, pad(6)]
@@ -976,10 +976,10 @@ end
 #! - account_nonce is the nonce of the foreign account.
 #! - VAULT_ROOT is the commitment of the foreign account's vault.
 #! - STORAGE_ROOT is the commitment of the foreign account's storage.
-#! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows: 
+#! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows:
 #!   [SLOT_VALUE, slot_type, 0, 0, 0]
 #! - CODE_ROOT is the commitment of the foreign account's code.
-#! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as 
+#! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as
 #!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
 #!
 #! Panics if:
@@ -1014,7 +1014,7 @@ export.start_foreign_context
         # AS => [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the id and nonce of the foreign account to the memory
-        dropw adv_loadw 
+        dropw adv_loadw
         exec.memory::set_acct_id_and_nonce dropw
         # OS => []
         # AS => [VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
@@ -1024,7 +1024,7 @@ export.start_foreign_context
         # OS => []
         # AS => [STORAGE_ROOT, CODE_ROOT]
 
-        # move the storage root and the code root to the operand stack 
+        # move the storage root and the code root to the operand stack
         adv_loadw padw adv_loadw
         # OS => [CODE_ROOT, STORAGE_ROOT]
         # AS => []
@@ -1050,7 +1050,7 @@ export.start_foreign_context
         # AS => []
     end
 
-    # make sure that the state of the loaded foreign account corresponds to this commitment in the 
+    # make sure that the state of the loaded foreign account corresponds to this commitment in the
     # account database
     exec.account::validate_current_foreign_account
     # => []
@@ -1081,8 +1081,8 @@ end
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
-export.update_expiration_block_num
-    exec.tx::update_expiration_block_num
+export.update_expiration_delta
+    exec.tx::update_expiration_delta
 end
 
 #! Gets the transaction expiration delta.

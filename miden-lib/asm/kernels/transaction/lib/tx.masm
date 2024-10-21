@@ -80,7 +80,7 @@ const.NOTE_AFTER_CREATED_EVENT=131084
 const.NOTE_BEFORE_ADD_ASSET_EVENT=131085
 # Event emitted after an ASSET is added to a note
 const.NOTE_AFTER_ADD_ASSET_EVENT=131086
- 
+
 #! Returns the block hash of the reference block to memory.
 #!
 #! Stack: []
@@ -189,14 +189,14 @@ end
 #!
 #! The input block_height_delta is added to the block reference number in order to output an upper
 #! limit at which the transaction will be considered valid (not expired).
-#! This value can be later decreased, but not increased. 
+#! This value can be later decreased, but not increased.
 #!
 #! Inputs: [block_height_delta, ...]
 #! Output: [...]
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
-export.update_expiration_block_num
+export.update_expiration_delta
     # Ensure block_height_delta is between 1 and 0xFFFF (inclusive)
     dup neq.0 assert.err=ERR_TX_INVALID_EXPIRATION_DELTA
     dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_TX_INVALID_EXPIRATION_DELTA
@@ -206,16 +206,16 @@ export.update_expiration_block_num
     # => [absolute_expiration_num]
 
     # Load the current stored delta from memory
-    dup exec.memory::get_expiration_block_num  
+    dup exec.memory::get_expiration_block_num
     # => [stored_expiration_block_num, absolute_expiration_num, absolute_expiration_num]
 
     # Check if block_height_delta is greater
     u32lt
     if.true
         # Set new expiration delta
-        exec.memory::set_expiration_block_num 
+        exec.memory::set_expiration_block_num
     else
-        drop                           
+        drop
     end
 end
 
