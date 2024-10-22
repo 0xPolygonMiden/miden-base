@@ -1,4 +1,5 @@
 #![no_std]
+use alloc::sync::Arc;
 
 #[macro_use]
 extern crate alloc;
@@ -34,6 +35,13 @@ const MIDEN_LIB_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets/
 
 pub struct MidenLib(Library);
 
+impl MidenLib {
+    /// Returns a reference to the [`MastForest`] of the inner [`Library`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
+        self.0.mast_forest()
+    }
+}
+
 impl AsRef<Library> for MidenLib {
     fn as_ref(&self) -> &Library {
         &self.0
@@ -43,12 +51,6 @@ impl AsRef<Library> for MidenLib {
 impl From<MidenLib> for Library {
     fn from(value: MidenLib) -> Self {
         value.0
-    }
-}
-
-impl From<MidenLib> for MastForest {
-    fn from(value: MidenLib) -> Self {
-        value.0.into()
     }
 }
 

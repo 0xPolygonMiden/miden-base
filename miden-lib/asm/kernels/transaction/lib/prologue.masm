@@ -1,6 +1,6 @@
 use.std::mem
 use.std::collections::mmr
-use.std::crypto::hashes::native
+use.std::crypto::hashes::rpo
 
 use.kernel::account
 use.kernel::asset_vault
@@ -134,6 +134,11 @@ proc.process_kernel_data
 
     # store the kernel hashes in memory
     exec.mem::pipe_words_to_memory
+    # OS => [C, B, A, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
+    # AS => []
+
+    # extract the resulting hash
+    exec.rpo::squeeze_digest
     # OS => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
     # AS => []
 
@@ -174,13 +179,18 @@ proc.process_kernel_data
 
     # store the kernel procedures to the memory
     exec.mem::pipe_words_to_memory
+    # OS => [C, B, A, kernel_procs_ptr', KERNEL_HASH]
+    # AS => []
+
+    # extract the resulting hash
+    exec.rpo::squeeze_digest
     # OS => [SEQ_HASH, kernel_procs_ptr', KERNEL_HASH]
     # AS => []
 
     # assert that the precomputed hash matches the computed one
     movup.4 drop assert_eqw
     # OS => []
-    # AS => []
+    # AS => []    
 end
 
 # BLOCK DATA
@@ -224,7 +234,7 @@ proc.process_block_data
     adv_pipe hperm
     adv_pipe hperm
     adv_pipe hperm
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [DIG, block_data_ptr']
 
     # store the note root in memory
@@ -426,7 +436,7 @@ proc.process_account_data
     padw padw padw
     adv_pipe hperm
     adv_pipe hperm
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [ACCT_HASH, acct_data_ptr']
 
     movup.4 drop
@@ -597,7 +607,7 @@ proc.process_input_note_details
     padw padw padw
     adv_pipe hperm
     adv_pipe hperm
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [NULLIFIER, note_data_ptr + 4]
 
     movup.4 drop
@@ -705,7 +715,7 @@ proc.process_note_assets
     end
     # => [PERM, PERM, PERM, assets_ptr+n, note_ptr, counter+n, rounded_num_assets]
 
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [ASSET_HASH_COMPUTED, assets_ptr+n, note_ptr, counter+n, rounded_num_assets]
 
     swapw drop movdn.2 drop drop
@@ -987,7 +997,7 @@ proc.process_input_notes_data
         # => [has_more_notes, PERM, PERM, PERM, idx+1, num_notes]
     end
 
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [INPUT_NOTES_COMMITMENT, idx+1, num_notes]
 
     # assert the input notes and the commitment matches

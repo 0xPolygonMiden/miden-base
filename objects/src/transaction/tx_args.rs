@@ -190,7 +190,7 @@ impl TransactionScript {
     pub fn new(code: Program, inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>) -> Self {
         Self {
             entrypoint: code.entrypoint(),
-            mast: Arc::new(code.into()),
+            mast: code.mast_forest().clone(),
             inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
         }
     }

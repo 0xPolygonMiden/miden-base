@@ -565,6 +565,7 @@ impl TransactionContextBuilder {
         } else {
             MockChainBuilder::default().notes(self.input_notes.clone()).build()
         };
+
         for _ in 0..4 {
             mock_chain.seal_block(None);
         }
