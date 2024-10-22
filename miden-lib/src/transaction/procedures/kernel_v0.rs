@@ -71,8 +71,8 @@ pub const KERNEL0_PROCEDURES: [Digest; 34] = [
     digest!(0xa96c44785874ca90, 0x7534ee3618355b2a, 0x5e45a034f624dd88, 0x5542ff311c8340b7),
     // end_foreign_context
     digest!(0x3770db711ce9aaf1, 0xb6f3c929151a5d52, 0x3ed145ec5dbee85f, 0xf979d975d7951bf6),
-    // update_expiration_delta
-    digest!(0xb5b796c8143e57de, 0x43d6914fb889f3ba, 0xf65308f85c7c73b7, 0xe86bfcaccebe6b49),
+    // update_expiration_block_num
+    digest!(0x268af21ef3c89bcc, 0x4142290b918c7df8, 0x4d220ca00ecb6ec2, 0xa36b719508d30cb2),
     // get_expiration_delta
-    digest!(0x2d93af519fa32359, 0x14275beadcb2ab9c, 0x68f9336f45c32c86, 0x75ee8ba0f3c11c83),
+    digest!(0x4f8ba89ed03ed171, 0x847f80cf50f96733, 0xf41141e83cb42597, 0x6f21b93bdafe7270),
 ];

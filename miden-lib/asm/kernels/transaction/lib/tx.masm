@@ -196,7 +196,7 @@ end
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
-export.update_expiration_delta
+export.update_expiration_block_num
     # Ensure block_height_delta is between 1 and 0xFFFF (inclusive)
     dup neq.0 assert.err=ERR_TX_INVALID_EXPIRATION_DELTA
     dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_TX_INVALID_EXPIRATION_DELTA

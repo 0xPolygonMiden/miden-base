@@ -1081,11 +1081,11 @@ end
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
-export.update_expiration_delta
+export.update_expiration_block_num
     # drop the procedure's hash
     dropw
 
-    exec.tx::update_expiration_delta
+    exec.tx::update_expiration_block_num
 end
 
 #! Gets the transaction expiration delta.

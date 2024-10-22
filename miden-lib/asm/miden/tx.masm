@@ -200,8 +200,8 @@ export.execute_foreign_procedure
     # => [<values returned from the foreign procedure>]
 end
 
-export.update_expiration_delta
-    exec.kernel_proc_offsets::update_expiration_delta_offset
+export.update_expiration_block_num
+    exec.kernel_proc_offsets::update_expiration_block_num_offset
     # => [offset, expiration_delta, ...]
 
     # pad the stack
