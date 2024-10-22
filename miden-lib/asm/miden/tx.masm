@@ -213,3 +213,19 @@ export.update_expiration_block_num
     # clear the stack
     dropw dropw dropw dropw
 end
+
+export.get_expiration_block_delta
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
+
+    exec.kernel_proc_offsets::get_expiration_block_delta_offset
+    # => [offset, PAD(15)]
+
+    syscall.exec_kernel_proc
+    # => [expiration_delta, PAD(15)]
+
+    # clear the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
+    # => [expiration_delta]
+end
