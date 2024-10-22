@@ -53,12 +53,17 @@ PROVER_SERVICE_PORT=<your-port>
 RUST_LOG=<log-level>
 ```
 
+
 ## Features
 
-For the service, the following features are available:
+Description of this crate's feature:
 
-- `testing`: This flag reduces the difficulty target of the account seed creation. If the client uses the `testing` flag, then the prover will not be able to prove transactions correctly without it.
-- `concurrent`: Enables transaction proving speedups.
+| Features     | Description                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------|
+| `std`        | Enable usage of Rust's `std`, use `--no-default-features` for `no-std` support.                             |
+| `concurrent` | Enables concurrent code to speed up runtime execution.                                                      |
+| `async`      | Enables the `RemoteTransactionProver` struct, that implements an async version of `TransactionProver` trait.|
+| `testing`    | Enables testing utilities and reduces proof-of-work requirements to speed up tests' runtimes.               |
 
 ### Using RemoteTransactionProver
 To use the `RemoteTransactionProver` struct, enable `async`. Additionally, when compiling for `wasm32-unknown-unknown`, disable default features.
