@@ -200,6 +200,17 @@ export.execute_foreign_procedure
     # => [<values returned from the foreign procedure>]
 end
 
+#! Updates the transaction expiration block number.
+#!
+#! The input block_height_delta is added to the block reference number in order to output an upper
+#! limit at which the transaction will be considered valid (not expired).
+#! This value can be later decreased, but not increased.
+#!
+#! Inputs: [block_height_delta, ...]
+#! Output: [...]
+#!
+#! Where:
+#! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
 export.update_expiration_block_num
     exec.kernel_proc_offsets::update_expiration_block_num_offset
     # => [offset, expiration_delta, ...]
@@ -214,6 +225,13 @@ export.update_expiration_block_num
     dropw dropw dropw dropw
 end
 
+#! Gets the transaction expiration delta.
+#!
+#! Inputs: [...]
+#! Output: [block_height_delta, ...]
+#!
+#! Where:
+#! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
 export.get_expiration_block_delta
     # pad the stack
     padw padw padw push.0.0.0
