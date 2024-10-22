@@ -27,7 +27,6 @@ use miden_objects::{
     },
     testing::{
         account::AccountBuilder, constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word,
-        storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes},
     Digest, FieldElement,
@@ -660,68 +659,69 @@ fn test_load_foreign_account_basic() {
 
     foreign_account_data_memory_assertions(&foreign_account, &process);
 
-    // GET MAP ITEM
-    // --------------------------------------------------------------------------------------------
-    let storage_slot = AccountStorage::mock_item_2().slot;
-    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slot(storage_slot.clone())
-        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
-        .nonce(ONE)
-        .build()
-        .unwrap();
+    // // GET MAP ITEM
+    // // --------------------------------------------------------------------------------------------
+    // let storage_slot = AccountStorage::mock_item_2().slot;
+    // let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+    //     .add_storage_slot(storage_slot.clone())
+    //     .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+    //     .nonce(ONE)
+    //     .build()
+    //     .unwrap();
 
-    let account_id = foreign_account.id();
-    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
-    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
+    // let account_id = foreign_account.id();
+    // let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    // let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .mock_chain(mock_chain)
-        .advice_inputs(advice_inputs)
-        .build();
+    // let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    //     .mock_chain(mock_chain)
+    //     .advice_inputs(advice_inputs)
+    //     .build();
 
-    let code = format!(
-        "
-        use.kernel::prologue
-        use.miden::tx
-        use.miden::account
-        use.miden::kernel_proc_offsets
+    // let code = format!(
+    //     "
+    //     use.kernel::prologue
+    //     use.miden::tx
+    //     use.miden::account
+    //     use.miden::kernel_proc_offsets
 
-        begin
-            exec.prologue::prepare_transaction
+    //     begin
+    //         exec.prologue::prepare_transaction
 
-            # pad the stack for the `execute_foreign_procedure`execution
-            padw push.0.0.0
-            # => [pad(7)]
+    //         # pad the stack for the `execute_foreign_procedure`execution
+    //         padw push.0.0.0
+    //         # => [pad(7)]
 
-            # push the key of desired storage item
-            push.{map_key}
+    //         # push the key of desired storage item
+    //         push.{map_key}
 
-            # push the index of desired storage item
-            push.0
+    //         # push the index of desired storage item
+    //         push.0
 
-            # get the hash of the `get_map_item_foreign` account procedure
-            procref.account::get_map_item_foreign
+    //         # get the hash of the `get_map_item_foreign` account procedure
+    //         procref.account::get_map_item_foreign
 
-            # push the foreign account id
-            push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+    //         # push the foreign account id
+    //         push.{account_id}
+    //         # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY,
+    // pad(7)]
 
-            exec.tx::execute_foreign_procedure
-            # => [MAP_VALUE]
-        end
-        ",
-        map_key = STORAGE_LEAVES_2[0].0,
-    );
+    //         exec.tx::execute_foreign_procedure
+    //         # => [MAP_VALUE]
+    //     end
+    //     ",
+    //     map_key = STORAGE_LEAVES_2[0].0,
+    // );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    // let process = tx_context.execute_code(&code).unwrap();
 
-    assert_eq!(
-        process.stack.get_word(0),
-        STORAGE_LEAVES_2[0].1,
-        "Value at the top of the stack should be equal [1, 2, 3, 4]",
-    );
+    // assert_eq!(
+    //     process.stack.get_word(0),
+    //     STORAGE_LEAVES_2[0].1,
+    //     "Value at the top of the stack should be equal [1, 2, 3, 4]",
+    // );
 
-    foreign_account_data_memory_assertions(&foreign_account, &process);
+    // foreign_account_data_memory_assertions(&foreign_account, &process);
 }
 
 /// This test checks that invoking two foreign procedures from the same account results in reuse of

@@ -161,7 +161,7 @@ mod tests {
             let block_header = int_to_block_header(i);
             mmr.add(block_header.hash());
         }
-        let partial_mmr: PartialMmr = mmr.peaks(mmr.forest()).unwrap().into();
+        let partial_mmr: PartialMmr = mmr.peaks().into();
         let mut chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
 
         // add a new block to the chain MMR, this reduces the number of peaks to 1
@@ -171,7 +171,7 @@ mod tests {
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
-            mmr.open(block_num as usize, mmr.forest()).unwrap(),
+            mmr.open(block_num as usize).unwrap(),
             chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
         );
 
@@ -182,7 +182,7 @@ mod tests {
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
-            mmr.open(block_num as usize, mmr.forest()).unwrap(),
+            mmr.open(block_num as usize).unwrap(),
             chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
         );
 
@@ -193,7 +193,7 @@ mod tests {
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
-            mmr.open(block_num as usize, mmr.forest()).unwrap(),
+            mmr.open(block_num as usize).unwrap(),
             chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
         );
     }
@@ -206,7 +206,7 @@ mod tests {
             let block_header = int_to_block_header(i);
             mmr.add(block_header.hash());
         }
-        let partial_mmr: PartialMmr = mmr.peaks(mmr.forest()).unwrap().into();
+        let partial_mmr: PartialMmr = mmr.peaks().into();
         let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
 
         let bytes = chain_mmr.to_bytes();

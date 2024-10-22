@@ -230,6 +230,10 @@ impl MockChain {
         }
     }
 
+    pub fn aboba(&self) -> &Mmr {
+        &self.chain
+    }
+
     pub fn add_executed_transaction(&mut self, transaction: ExecutedTransaction) {
         let mut account = transaction.initial_account().clone();
         account.apply_delta(transaction.account_delta()).unwrap();
@@ -497,7 +501,7 @@ impl MockChain {
 
         let version = 0;
         let previous = self.blocks.last();
-        let peaks = self.chain.peaks(self.chain.forest()).unwrap();
+        let peaks = self.chain.peaks();
         let chain_root: Digest = peaks.hash_peaks();
         let account_root = self.accounts.root();
         let prev_hash = previous.map_or(Digest::default(), |block| block.hash());
@@ -656,11 +660,11 @@ impl MockChainBuilder {
 /// Converts the MMR into partial MMR by copying all leaves from MMR to partial MMR.
 fn mmr_to_chain_mmr(mmr: &Mmr, blocks: &[BlockHeader]) -> Result<ChainMmr, MmrError> {
     let target_forest = mmr.forest() - 1;
-    let mut partial_mmr = PartialMmr::from_peaks(mmr.peaks(target_forest)?);
+    let mut partial_mmr = PartialMmr::from_peaks(mmr.peaks_at(target_forest)?);
 
     for i in 0..target_forest {
         let node = mmr.get(i)?;
-        let path = mmr.open(i, target_forest)?.merkle_path;
+        let path = mmr.open(i)?.merkle_path;
         partial_mmr.track(i, node, &path)?;
     }
 

@@ -1,5 +1,5 @@
 use.miden::kernel_proc_offsets
-use.std::crypto::hashes::native
+use.std::crypto::hashes::rpo
 use.std::mem
 
 # ERRORS
@@ -26,7 +26,7 @@ proc.write_advice_data_to_memory
     # => [PERM, PERM, PERM, end_ptr, HASH]
 
     # extract the digest
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [DIGEST, end_ptr, HASH]
 
     # drop pointer for reading from memory
@@ -218,7 +218,7 @@ export.compute_inputs_hash
     # => [C, B, A, inputs_ptr, end_addr, num_inputs%8]
 
     # hash every pair of words
-    exec.native::hash_memory_even
+    exec.rpo::absorb_double_words_from_memory
     # => [C', B', A', inputs_ptr', end_addr, num_inputs%8] where inputs_ptr' = end_addr
 
     # hash remaining input values if there are any left
@@ -226,7 +226,7 @@ export.compute_inputs_hash
     dup.14 eq.0
     if.true
         # clean the stack
-        exec.native::state_to_digest
+        exec.rpo::squeeze_digest
         swapw drop drop drop movdn.4
         # => [B']
     else
@@ -337,7 +337,7 @@ export.compute_inputs_hash
         hperm
         # => [F, E, D]
 
-        exec.native::state_to_digest
+        exec.rpo::squeeze_digest
         # => [E]
     end
 end

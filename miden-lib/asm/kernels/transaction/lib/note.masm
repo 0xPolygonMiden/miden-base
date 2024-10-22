@@ -1,4 +1,4 @@
-use.std::crypto::hashes::native
+use.std::crypto::hashes::rpo
 
 use.kernel::constants
 use.kernel::memory
@@ -205,7 +205,7 @@ proc.compute_output_note_assets_hash
     end
 
     # extract digest
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [ASSETS_HASH, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
 
     # drop accessory variables from stack
@@ -243,7 +243,7 @@ proc.compute_output_note_id
     dup.8 exec.compute_output_note_assets_hash
 
     # compute output note commitment and extract digest
-    hperm exec.native::state_to_digest
+    hperm exec.rpo::squeeze_digest
 
     # save the output notes commitment to memory
     movup.4 mem_storew
@@ -301,7 +301,7 @@ export.compute_output_notes_commitment
     end
 
     # extract digest
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # => [OUTPUT_NOTES_COMMITMENT, end_ptr, end_ptr, ...]
 
     # drop accessory variables from stack

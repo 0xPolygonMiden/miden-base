@@ -59,6 +59,7 @@ impl TransactionExecutor {
                 Some(MAX_TX_EXECUTION_CYCLES),
                 MIN_TX_EXECUTION_CYCLES,
                 false,
+                false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
         }
@@ -80,6 +81,7 @@ impl TransactionExecutor {
                 Some(self.exec_options.max_cycles()),
                 self.exec_options.expected_cycles(),
                 self.exec_options.enable_tracing(),
+                in_debug_mode,
             )
             .expect("failed to clone execution options");
         }

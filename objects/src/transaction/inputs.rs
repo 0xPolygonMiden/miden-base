@@ -70,12 +70,7 @@ impl TransactionInputs {
                         .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
                 };
 
-                if !is_in_block(note, proof, block_header) {
-                    return Err(TransactionInputError::InputNoteNotInBlock(
-                        note.id(),
-                        note_block_num,
-                    ));
-                }
+                is_in_block(note, proof, block_header)?;
             }
         }
 
@@ -398,10 +393,19 @@ impl InputNote {
 }
 
 /// Returns true if this note belongs to the note tree of the specified block.
-fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHeader) -> bool {
+fn is_in_block(
+    note: &Note,
+    proof: &NoteInclusionProof,
+    block_header: &BlockHeader,
+) -> Result<(), TransactionInputError> {
     let note_index = proof.location().node_index_in_block().into();
     let note_hash = note.hash();
-    proof.note_path().verify(note_index, note_hash, &block_header.note_root())
+    proof
+        .note_path()
+        .verify(note_index, note_hash, &block_header.note_root())
+        .map_err(|_| {
+            TransactionInputError::InputNoteNotInBlock(note.id(), proof.location().block_num())
+        })
 }
 
 impl ToInputNoteCommitments for InputNote {

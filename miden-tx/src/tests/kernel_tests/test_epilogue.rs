@@ -76,8 +76,8 @@ fn test_epilogue() {
     expected_stack.extend((9..16).map(|_| ZERO));
 
     assert_eq!(
-        process.stack.build_stack_outputs().stack(),
-        &expected_stack,
+        *process.stack.build_stack_outputs().unwrap(),
+        expected_stack.as_slice(),
         "Stack state after finalize_transaction does not contain the expected values"
     );
 
