@@ -12,7 +12,7 @@ rust-version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "prover-service"
+name = "miden-tx-prover"
 path = "src/main.rs"
 required-features = ["std"]
 
@@ -23,6 +23,8 @@ crate-type = ["lib"]
 async = ["miden-tx/async"]
 default = ["std"]
 std = ["miden-objects/std", "miden-tx/std", "dep:tokio", "dep:tonic-web", "dep:tokio-stream", "dep:axum",  "dep:tracing", "dep:tracing-subscriber", "tonic/transport"]
+testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
+concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-tx/concurrent", "std"]
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 tonic-web-wasm-client = { version = "0.6", default-features = false }
