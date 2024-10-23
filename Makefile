@@ -110,3 +110,7 @@ install-prover: ## Installs prover
 .PHONY: install-prover-testing
 install-prover-testing: ## Installs prover intended for testing purposes
 	cargo install --path bin/tx-prover --locked --features testing
+
+.PHONY: install-prover-proxy
+install-prover-proxy: ## Install prover's proxy
+	cargo install --path bin/prover-proxy --locked
