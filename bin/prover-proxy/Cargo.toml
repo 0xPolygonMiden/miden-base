@@ -14,7 +14,6 @@ edition.workspace = true
 [[bin]]
 name = "miden-prover-proxy"
 path = "src/main.rs"
-required-features = ["std"]
 
 [dependencies]
 async-trait="0.1"
