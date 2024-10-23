@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, env, fmt::Write, path::Path};
+use std::{collections::BTreeMap, env, ffi::OsStr, fmt::Write, path::Path};
 
 use assembly::{
     diagnostics::{IntoDiagnostic, Result},
@@ -9,6 +9,7 @@ use walkdir::WalkDir;
 
 const ASM_DIR: &str = "../miden-lib/asm";
 const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
+const MASM_FILE_EXTENSION: &str = "masm";
 
 fn main() -> Result<()> {
     // re-build when the MASM code changes
@@ -62,7 +63,7 @@ fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
     // Walk all files of the kernel source directory.
     for entry in WalkDir::new(kernel_source_dir) {
         let entry = entry.into_diagnostic()?;
-        if entry.file_type().is_dir() {
+        if !is_masm_file(entry.path()) {
             continue;
         }
         let file_contents = std::fs::read_to_string(entry.path()).into_diagnostic()?;
@@ -84,6 +85,11 @@ fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
     std::fs::write(KERNEL_ERRORS_FILE, error_file_content).into_diagnostic()?;
 
     Ok(())
+}
+
+/// Returns true if the file at the specified path is a MASM file (i.e., has ".masm" extension).
+fn is_masm_file(path: &Path) -> bool {
+    path.is_file() && path.extension().and_then(OsStr::to_str) == Some(MASM_FILE_EXTENSION)
 }
 
 fn extract_kernel_errors(
