@@ -1,0 +1,21 @@
+[package]
+name = "miden-prover-proxy"
+version = "0.6.0"
+description = "Miden rollup transaction prover proxy"
+readme = "README.md"
+keywords = ["miden", "transaction", "prover", "proxy"]
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "miden-prover-proxy"
+path = "src/main.rs"
+required-features = ["std"]
+
+[dependencies]
+async-trait="0.1"
+pingora = { version = "0.1", features = [ "lb" ] }
