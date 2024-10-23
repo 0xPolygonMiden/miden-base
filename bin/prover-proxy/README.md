@@ -17,3 +17,17 @@ be helpful to implement the shared queues.
 
 More information and discussion about the implementation
 [available here](https://github.com/0xPolygonMiden/miden-base/issues/908).
+
+## Usage
+
+To build the prover proxy, from the root of the workspace you can run:
+
+```bash
+make install-prover-proxy
+```
+
+And then you can run it by doing:
+
+```bash
+miden-prover-proxy
+```
