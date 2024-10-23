@@ -194,6 +194,9 @@ fn test_is_faucet_procedure() {
             begin
                 push.{account_id}
                 exec.account::is_faucet
+
+                # truncate the stack
+                swap drop
             end
             ",
             account_id = account_id,
@@ -270,6 +273,9 @@ fn test_get_map_item() {
                 push.{map_key}
                 push.{item_index}
                 call.::test::account::get_map_item
+
+                # truncate the stack 
+                swapw dropw movup.4 drop
             end
             ",
             item_index = 0,
@@ -322,6 +328,9 @@ fn test_get_storage_slot_type() {
 
                 # get the type of the respective storage slot
                 exec.account::get_storage_slot_type
+
+                # truncate the stack
+                swap drop
             end
             ",
             item_index = storage_item.index,
@@ -398,6 +407,8 @@ fn test_set_map_item() {
 
     let code = format!(
         "
+        use.std::sys
+
         use.test::account
         use.kernel::prologue
 
@@ -413,6 +424,9 @@ fn test_set_map_item() {
             # double check that on storage slot is indeed the new map
             push.{item_index}
             call.account::get_item
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         ",
         item_index = 0,
@@ -608,6 +622,9 @@ fn test_authenticate_procedure() {
                 # authenticate procedure
                 push.{root}
                 exec.account::authenticate_procedure
+
+                # truncate the stack
+                dropw
             end
             ",
             root = prepare_word(&root)

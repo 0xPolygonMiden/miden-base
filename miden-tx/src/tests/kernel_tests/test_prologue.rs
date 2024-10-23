@@ -556,6 +556,9 @@ fn test_get_blk_version() {
     begin
         exec.prologue::prepare_transaction
         exec.memory::get_blk_version
+
+        # truncate the stack 
+        swap drop
     end
     ";
 
@@ -574,6 +577,9 @@ fn test_get_blk_timestamp() {
     begin
         exec.prologue::prepare_transaction
         exec.memory::get_blk_timestamp
+
+        # truncate the stack 
+        swap drop
     end
     ";
 

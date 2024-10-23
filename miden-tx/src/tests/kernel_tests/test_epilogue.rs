@@ -308,6 +308,9 @@ fn test_epilogue_increment_nonce_success() {
             call.account::incr_nonce
 
             exec.epilogue::finalize_transaction
+
+            # truncate the stack
+            drop drop
         end
         "
     );
