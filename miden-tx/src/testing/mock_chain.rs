@@ -230,10 +230,6 @@ impl MockChain {
         }
     }
 
-    pub fn aboba(&self) -> &Mmr {
-        &self.chain
-    }
-
     pub fn add_executed_transaction(&mut self, transaction: ExecutedTransaction) {
         let mut account = transaction.initial_account().clone();
         account.apply_delta(transaction.account_delta()).unwrap();
@@ -664,7 +660,7 @@ fn mmr_to_chain_mmr(mmr: &Mmr, blocks: &[BlockHeader]) -> Result<ChainMmr, MmrEr
 
     for i in 0..target_forest {
         let node = mmr.get(i)?;
-        let path = mmr.open(i)?.merkle_path;
+        let path = mmr.open_at(i, target_forest)?.merkle_path;
         partial_mmr.track(i, node, &path)?;
     }
 

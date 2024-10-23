@@ -35,6 +35,9 @@ fn test_create_fungible_asset_succeeds() {
             # create fungible asset
             push.{FUNGIBLE_ASSET_AMOUNT}
             exec.asset::create_fungible_asset
+
+            # truncate the stack
+            swapw dropw
         end
         "
     );
@@ -75,6 +78,9 @@ fn test_create_non_fungible_asset_succeeds() {
             # push non-fungible asset data hash onto the stack
             push.{non_fungible_asset_data_hash}
             exec.asset::create_non_fungible_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         non_fungible_asset_data_hash = prepare_word(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
@@ -103,7 +109,11 @@ fn test_validate_non_fungible_asset() {
         use.kernel::asset
 
         begin
-            push.{asset} exec.asset::validate_non_fungible_asset
+            push.{asset} 
+            exec.asset::validate_non_fungible_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         asset = prepare_word(&encoded)

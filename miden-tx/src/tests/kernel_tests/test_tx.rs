@@ -27,6 +27,7 @@ use miden_objects::{
     },
     testing::{
         account::AccountBuilder, constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word,
+        storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes},
     Digest, FieldElement,
@@ -72,6 +73,9 @@ fn test_create_note() {
             push.{tag}
 
             call.tx::create_note
+
+            # truncate the stack
+            swapdw dropw dropw
         end
         ",
         recipient = prepare_word(&recipient),
@@ -150,6 +154,9 @@ fn test_create_note_with_invalid_tag() {
                 push.{tag}
     
                 call.tx::create_note
+
+                # clean the stack
+                dropw dropw
             end
             ",
             recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
@@ -251,6 +258,8 @@ fn test_get_output_notes_hash() {
 
     let code = format!(
         "
+        use.std::sys
+
         use.kernel::prologue
         use.miden::tx
 
@@ -293,6 +302,10 @@ fn test_get_output_notes_hash() {
 
             # compute the output notes hash
             exec.tx::get_output_notes_hash
+            # => [COM]
+
+            # truncate the stack
+            exec.sys::truncate_stack
             # => [COM]
         end
         ",
@@ -375,6 +388,9 @@ fn test_create_note_and_add_asset() {
 
             dropw
             # => [note_idx]
+
+            # truncate the stack
+            swapdw dropw dropw
         end
         ",
         recipient = prepare_word(&recipient),
@@ -446,6 +462,9 @@ fn test_create_note_and_add_multiple_assets() {
             push.{nft}
             call.tx::add_asset_to_note dropw
             # => [note_idx]
+
+            # truncate the stack
+            swapdw dropw drop drop drop
         end
         ",
         recipient = prepare_word(&recipient),
@@ -570,6 +589,9 @@ fn test_build_recipient_hash() {
             push.{aux}
             push.{tag}
             call.tx::create_note
+
+            # clean the stack
+            dropw dropw dropw dropw
         end
         ",
         input_hash = input_hash,
@@ -621,6 +643,8 @@ fn test_load_foreign_account_basic() {
 
     let code = format!(
         "
+        use.std::sys
+        
         use.kernel::prologue
         use.miden::tx
         use.miden::account
@@ -645,6 +669,9 @@ fn test_load_foreign_account_basic() {
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         "
     );
@@ -659,69 +686,73 @@ fn test_load_foreign_account_basic() {
 
     foreign_account_data_memory_assertions(&foreign_account, &process);
 
-    // // GET MAP ITEM
-    // // --------------------------------------------------------------------------------------------
-    // let storage_slot = AccountStorage::mock_item_2().slot;
-    // let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-    //     .add_storage_slot(storage_slot.clone())
-    //     .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
-    //     .nonce(ONE)
-    //     .build()
-    //     .unwrap();
+    // GET MAP ITEM
+    // --------------------------------------------------------------------------------------------
+    let storage_slot = AccountStorage::mock_item_2().slot;
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_slot(storage_slot.clone())
+        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .nonce(ONE)
+        .build()
+        .unwrap();
 
-    // let account_id = foreign_account.id();
-    // let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
-    // let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
+    let account_id = foreign_account.id();
+    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
+    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    // let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-    //     .mock_chain(mock_chain)
-    //     .advice_inputs(advice_inputs)
-    //     .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
+        .advice_inputs(advice_inputs)
+        .build();
 
-    // let code = format!(
-    //     "
-    //     use.kernel::prologue
-    //     use.miden::tx
-    //     use.miden::account
-    //     use.miden::kernel_proc_offsets
+    let code = format!(
+        "
+        use.std::sys
 
-    //     begin
-    //         exec.prologue::prepare_transaction
+        use.kernel::prologue
+        use.miden::tx
+        use.miden::account
+        use.miden::kernel_proc_offsets
 
-    //         # pad the stack for the `execute_foreign_procedure`execution
-    //         padw push.0.0.0
-    //         # => [pad(7)]
+        begin
+            exec.prologue::prepare_transaction
 
-    //         # push the key of desired storage item
-    //         push.{map_key}
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw push.0.0.0
+            # => [pad(7)]
 
-    //         # push the index of desired storage item
-    //         push.0
+            # push the key of desired storage item
+            push.{map_key}
 
-    //         # get the hash of the `get_map_item_foreign` account procedure
-    //         procref.account::get_map_item_foreign
+            # push the index of desired storage item
+            push.0
 
-    //         # push the foreign account id
-    //         push.{account_id}
-    //         # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY,
-    // pad(7)]
+            # get the hash of the `get_map_item_foreign` account procedure
+            procref.account::get_map_item_foreign
 
-    //         exec.tx::execute_foreign_procedure
-    //         # => [MAP_VALUE]
-    //     end
-    //     ",
-    //     map_key = STORAGE_LEAVES_2[0].0,
-    // );
+            # push the foreign account id
+            push.{account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
 
-    // let process = tx_context.execute_code(&code).unwrap();
+            exec.tx::execute_foreign_procedure
+            # => [MAP_VALUE]
 
-    // assert_eq!(
-    //     process.stack.get_word(0),
-    //     STORAGE_LEAVES_2[0].1,
-    //     "Value at the top of the stack should be equal [1, 2, 3, 4]",
-    // );
+            # truncate the stack
+            exec.sys::truncate_stack
+        end
+        ",
+        map_key = STORAGE_LEAVES_2[0].0,
+    );
 
-    // foreign_account_data_memory_assertions(&foreign_account, &process);
+    let process = tx_context.execute_code(&code).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        STORAGE_LEAVES_2[0].1,
+        "Value at the top of the stack should be equal [1, 2, 3, 4]",
+    );
+
+    foreign_account_data_memory_assertions(&foreign_account, &process);
 }
 
 /// This test checks that invoking two foreign procedures from the same account results in reuse of
@@ -747,6 +778,8 @@ fn test_load_foreign_account_twice() {
 
     let code = format!(
         "
+        use.std::sys
+
         use.kernel::prologue
         use.miden::tx
         use.miden::account
@@ -789,6 +822,9 @@ fn test_load_foreign_account_twice() {
             # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
 
             exec.tx::execute_foreign_procedure
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         ",
     );
