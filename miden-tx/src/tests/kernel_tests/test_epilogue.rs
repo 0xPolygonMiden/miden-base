@@ -262,9 +262,13 @@ fn test_no_expiration_delta_set() {
     let code_template = "
     use.kernel::prologue
     use.kernel::epilogue
+    use.kernel::tx
 
     begin
         exec.prologue::prepare_transaction
+
+        exec.tx::get_expiration_delta assertz
+
         exec.epilogue::finalize_transaction
     end
     ";

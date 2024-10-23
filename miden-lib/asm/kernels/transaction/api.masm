@@ -1076,7 +1076,7 @@ end
 #! The input block height delta is added to the reference block in order to output an upper limit
 #! up until which the transaction will be considered valid (not expired).
 #!
-#! Inputs: [block_height_delta, ...]
+#! Inputs: [KERNEL_PROCEDURE_HASH, block_height_delta, ...]
 #! Output: [...]
 #!
 #! Where:
@@ -1091,7 +1091,7 @@ end
 #! Gets the transaction expiration delta.
 #!
 #! Inputs: [...]
-#! Output: [block_height_delta, ...]
+#! Output: [KERNEL_PROCEDURE_HASH, block_height_delta, ...]
 #!
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).

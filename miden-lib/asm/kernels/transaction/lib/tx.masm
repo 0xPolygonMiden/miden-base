@@ -21,6 +21,9 @@ const.EXPIRY_UPPER_LIMIT=0xFFFF+1
 # The note type must be PUBLIC, unless the high bits are `0b11`. (See the table below.)
 const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
 
+# Max U32 value, used for initializing the expiration block number
+const.MAX_BLOCK_NUM=0xFFFFFFFF
+
 # ERRORS
 # =================================================================================================
 
@@ -227,8 +230,17 @@ end
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
 export.get_expiration_delta
-    exec.memory::get_expiration_block_num exec.get_block_number
-    sub
+    exec.memory::get_expiration_block_num
+    # => [stored_expiration_block_num]
+
+    dup eq.MAX_BLOCK_NUM
+    if.true
+        # The delta was not set
+        drop push.0
+    else
+        # Calculate the delta
+        exec.get_block_number sub
+    end
 end
 
 

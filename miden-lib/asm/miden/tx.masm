@@ -200,11 +200,15 @@ export.execute_foreign_procedure
     # => [<values returned from the foreign procedure>]
 end
 
-#! Updates the transaction expiration block delta.
+#! Updates the transaction expiration delta.
 #!
-#! The input block_height_delta is added to the block reference number in order to determine an upper
-#! limit at which the transaction will be considered valid (not expired).
-#! This value can be later decreased, but not increased.
+#! The transaction expiration delta specifies how close to the transaction's reference block the
+#! transaction must be included into the chain. For example, if the transaction's reference block
+#! is 100 and transaction expiration delta is 10, the transaction can be included into the chain
+#! by block 110. If this does not happen, the transaction is considered expired and cannot be
+#! included into the chain.
+#!
+#! Once set, transaction expiration delta can be decreased, but not increased.
 #!
 #! Inputs: [block_height_delta, ...]
 #! Output: [...]
@@ -225,7 +229,7 @@ export.update_expiration_block_delta
     dropw dropw dropw dropw
 end
 
-#! Gets the transaction expiration delta.
+#! Returns the transaction expiration delta, or 0 if the delta has not been set.
 #!
 #! Inputs: [...]
 #! Output: [block_height_delta, ...]
