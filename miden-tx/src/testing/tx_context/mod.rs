@@ -65,10 +65,10 @@ impl TransactionContext {
         let mast_store = Rc::new(TransactionMastStore::new());
 
         let test_lib = TransactionKernel::kernel_as_library();
-        mast_store.insert(Arc::new(test_lib.mast_forest().clone()));
+        mast_store.insert(test_lib.mast_forest().clone());
 
         let program = self.assembler.clone().assemble_program(code).unwrap();
-        mast_store.insert(Arc::new(program.mast_forest().clone()));
+        mast_store.insert(program.mast_forest().clone());
         mast_store.load_transaction_code(&self.tx_inputs, &self.tx_args);
 
         CodeExecutor::new(MockHost::new(self.tx_inputs.account().into(), advice_inputs, mast_store))

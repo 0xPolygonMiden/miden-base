@@ -8,71 +8,71 @@ use miden_objects::{digest, Digest, Felt};
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 34] = [
     // account_vault_add_asset
-    digest!(0x77365035d901b352, 0x85d8042000096df, 0xa8531ec691f24d17, 0xc67a8fd2677bf558),
+    digest!(0x6a4c5744379b0cfe, 0x57e40daef3cec08, 0x8417b2b9ec21d9c6, 0x20bad9b26d301d51),
     // account_vault_get_balance
-    digest!(0x92b81d20684fa47, 0x4920ee53425609b9, 0x2f8c32c56898141c, 0x9e4542839e34452f),
+    digest!(0x473133967d0cd8c3, 0xa9b39da8971ba187, 0xf35e31679a6e8ba6, 0xb2b5a0eb135d9642),
     // account_vault_has_non_fungible_asset
-    digest!(0x1b1e6ec92fabca80, 0xbb3847ce15f98cac, 0x7152391739b5e0b3, 0x696aaf2c879c4fde),
+    digest!(0xcbb00af70f96ae4, 0x1b15725d50b2ad4d, 0x4366b2d4c5ef9d68, 0x11c5ed76e02dcf5b),
     // account_vault_remove_asset
-    digest!(0xdf93ea4374fe098f, 0x63df56e7578d9661, 0xc5d3b1958456cc5, 0xbfeec68c1c6b4ca9),
+    digest!(0x63983686cfc3e338, 0x49ac24bbe5da2222, 0x95fc53e8d4175df6, 0x186bd5fd84eeef81),
     // get_account_id
-    digest!(0x386549d4435f79c1, 0x4a7add2e3b9f1b9e, 0x91c0af1138c14e77, 0xee8a5630e31bc74d),
+    digest!(0x3bb2b1ebd4b93ba4, 0x3573acd91765a430, 0xaf0dbcbc764df097, 0x31af3e18b39589c0),
     // get_account_item
-    digest!(0x83380522a33f8c7e, 0x1653bbd634d31107, 0x868fac07b1cb4005, 0x39bee294dac7fdc9),
+    digest!(0x92ea96dea9736b41, 0x80fa0e2803b876e8, 0x4de592d9b418369f, 0x73bb3aeef016eda4),
     // get_account_map_item
-    digest!(0xdf739f276157cf90, 0x4c94a55654d426b, 0xff2528216462fa83, 0x45797577ddc9a224),
+    digest!(0xdeeccc19456a9bee, 0x365a1f03bbfb89f8, 0x4605e18f262ea21, 0x27a8b916b81272b3),
     // get_account_nonce
-    digest!(0x64d14d80f9eff37a, 0x7587e273b2d8a416, 0x3c041064332c03d3, 0xc327341072f4f1e8),
+    digest!(0x706a7e6f01eaca6c, 0x128418b35adc4bae, 0x575071abfd7c7891, 0x19e10dfdd93b6689),
     // get_account_vault_commitment
-    digest!(0xfa21810ab45e0cd2, 0xd859e05d807fe494, 0xcb0518c9918f4bbe, 0xd72b9bac454e9e24),
+    digest!(0x1eb5ab08eee78202, 0x24b4209938be234a, 0x225cdf131b90a8f0, 0x1091ab9649c7923b),
     // get_current_account_hash
-    digest!(0x115aa25d3e72bfd9, 0xad99ad9b9b145d43, 0x7ae8b6a15864ce03, 0xf2caa0738be9ae3e),
+    digest!(0xcf814d60948e4f31, 0xf37c6365975649ff, 0xdfb3c81a7d8f401a, 0xe0f48c13bdc2fc00),
     // get_initial_account_hash
-    digest!(0xe239391d2c860c53, 0x7a9d09c3015d7417, 0x111e9be3640d3848, 0xf2d442cf1e685a89),
+    digest!(0x7200982d1270fde9, 0x17344f71b88e42c1, 0xe416d03b6e170405, 0xc3d6fa95b3fca8a6),
     // incr_account_nonce
-    digest!(0x6d75402ead2fe81c, 0x6e66c9ec980ec9cd, 0xe82e007b0eda78f1, 0xea9de83af0fc2634),
+    digest!(0x153f7f40fe898961, 0x3e5759b18d548091, 0x98fa30818b06e761, 0x7c3a93fea3ee1f85),
     // set_account_code
-    digest!(0x62110f0b57e49ee5, 0xd961174262cd614a, 0x3459572bcf110091, 0x319291c6c18ad0db),
+    digest!(0xd9020751acc4d18f, 0x5197b566ce35dc5b, 0xd814905dec6794d3, 0x7fe8ebc8ee735bed),
     // set_account_item
-    digest!(0xc279aa203249464, 0x464f69a21be47e7a, 0xb9161aaee45f0ff5, 0xbca81ff227c9ca03),
+    digest!(0x9e5a9241d5e7a337, 0x9fc135b73381fc2d, 0xa7de64699a803ddf, 0x95af6772e92e304a),
     // set_account_map_item
-    digest!(0x85c7e78d8e33f81, 0x2392bd80e65f27a7, 0x69d4d656a994dd2c, 0xcb9be97522be5cf4),
+    digest!(0xe8a35ef683860239, 0xaad59ad5a062d811, 0x7b41eda353be1f2f, 0x71fe819e5134a208),
     // get_account_item_foreign
-    digest!(0x3c0c99f2f5121a84, 0x8f9541aa57405666, 0xba263d917c8f664b, 0xfac8bfe516c825da),
+    digest!(0x3391cd1c53071c21, 0xafae0c1886ac7fd0, 0x39c7e7faf40c27df, 0xe920b566887a70b9),
     // get_account_map_item_foreign
-    digest!(0xcaf822e9cd58699a, 0xcfd20d3ec7662b3, 0xddfda23d49af1998, 0x9e0d76104a9c7d75),
+    digest!(0xb184cda9c0b74acd, 0xfe92bb45c26872eb, 0x5ac336124a3e5c05, 0x675f5660f797b940),
     // burn_asset
-    digest!(0x3c71836eaa5fba1b, 0xee719bcada360cd1, 0xad55420b925fd10d, 0x4d32e15e121e5e3e),
+    digest!(0x434615ce6d6f4511, 0x20a46199d43a7396, 0xe428d5590463d800, 0xa403f97c29382f0c),
     // get_fungible_faucet_total_issuance
-    digest!(0xd9310aaf087d0dc4, 0xdc834fff6ea325d2, 0x2c9d90a33b9a6d8a, 0xa381c27e49c538a8),
+    digest!(0x5ea05f3e3e4f81ca, 0x8496fd279dddd738, 0xc3ff22442bbdc3ec, 0xac33ea50669bc0aa),
     // mint_asset
-    digest!(0x715eae96f4068cf1, 0x84ee32a7c64a85dd, 0x9b4d5a63fbd97064, 0xef0e81abf63aa2be),
+    digest!(0x64c37e09b9b2bb75, 0xbc76d5845d6c439d, 0x25442aa97dff8d5e, 0x57f86b308e3a34c8),
     // add_asset_to_note
-    digest!(0x9fbed6f52f2cc62d, 0xda9c2f699fac16fb, 0xeb6b8827beac6c95, 0xe27fc6900c673e2d),
+    digest!(0x1c6316d7664eedfe, 0x2a412f16c5221694, 0xeebb83464618d7cd, 0xfb1e445be3826578),
     // create_note
-    digest!(0xa9e52dd343a6fa1d, 0xa54d666e10f34357, 0x7c53cc941096bd84, 0xe601314453890dfc),
+    digest!(0xa2f8729e6c4f40d6, 0x8bc5b479884d82d, 0x20a8f7f3e27b7ea3, 0x3e60ddb9d387325e),
     // get_input_notes_commitment
-    digest!(0x1c078486abf976f5, 0xfce31a9f4b9687cd, 0xb1edb2edc115a619, 0xf1bb8c1bd9c7148b),
+    digest!(0xf9def388fed463af, 0xd4cc0c28bbfb3e3b, 0x34214c6db961ab94, 0x6c7d08842f0d3f05),
     // get_note_assets_info
-    digest!(0xab574397392f6eb0, 0xfa2eaa1e6e8c51e8, 0xcc54dfe9af5d4beb, 0xa02f0d33bf6a580d),
+    digest!(0xc964001fcc716747, 0x85b6192367ebbb6b, 0x130316a2b2012aaa, 0x689eab2646670883),
     // get_note_inputs_hash
-    digest!(0xee810997a44fdecd, 0x2394831eedc8ded0, 0x73e581c53082e21b, 0x9deb377a3b2fe837),
+    digest!(0xb0023a2d6db766f2, 0xfb3f03e1ceab2acf, 0x2cf90c72a460cbd8, 0xcccbf0ce7510d3d6),
     // get_note_sender
-    digest!(0xd36968610c0a64b4, 0x7b2917c7cbb145dc, 0xceecee3384ef5714, 0xa5c553de5eb59b54),
+    digest!(0x313121b59e628727, 0xed392737df4eb374, 0x73e1162d04f6e183, 0xff2c13eca489cbb4),
     // get_note_serial_number
     digest!(0x2d2dc403ffe37a4, 0x19fa079fae6767b3, 0x9906641edeb7c6dc, 0x73cf6ad64959ad7c),
     // get_output_notes_hash
-    digest!(0x3d3c6efa7c3ab3eb, 0x7b481a20f6b469a7, 0xea540b27c62b6365, 0xd6b918503c50fc8a),
+    digest!(0xa26981efeeaf8832, 0x58c074710a5846cf, 0x6562ef6dacb0d009, 0xac19ed60ff18d663),
     // get_block_hash
-    digest!(0xd826d2ff59b30896, 0xbb1efaf300456f50, 0x4b0d12b7a0f9fe86, 0xc0d832c9f1c15fab),
+    digest!(0x7ac96b85d3264a44, 0x728be44578702285, 0xadc7955452ed46b0, 0x64e57a26836003a2),
     // get_block_number
-    digest!(0xd483c8edceb956d, 0xf9f8d62043fcf072, 0xb917fc68b6e01ad1, 0x3ef8d736e7331692),
+    digest!(0x4ae44b38c3cbdb03, 0x90cb608a6097a8b4, 0x697db8ae9980cc61, 0xdc101e2fb18546fc),
     // start_foreign_context
-    digest!(0xa96c44785874ca90, 0x7534ee3618355b2a, 0x5e45a034f624dd88, 0x5542ff311c8340b7),
+    digest!(0x562e2acd1d18037c, 0x6c27192cdd634a9d, 0x3e5d3fa8ddaae4b4, 0x200701203fc97777),
     // end_foreign_context
-    digest!(0x3770db711ce9aaf1, 0xb6f3c929151a5d52, 0x3ed145ec5dbee85f, 0xf979d975d7951bf6),
+    digest!(0xf95632fd4a6467c2, 0xf1559b93b6790054, 0x3b5180597c08a1cd, 0xee23ca99d5420d5d),
     // update_expiration_block_num
-    digest!(0x268af21ef3c89bcc, 0x4142290b918c7df8, 0x4d220ca00ecb6ec2, 0xa36b719508d30cb2),
+    digest!(0xd678d5b25cb7394, 0x660a9b25e0733930, 0x5831851f6ffb1b2d, 0xfddab52d7183c806),
     // get_expiration_delta
-    digest!(0xc315b9b152b64c75, 0x4eb3b30ec94a0887, 0xa8bb394f6805a266, 0xa05857dac130cf87),
+    digest!(0x83f22fdecb98f87, 0xee7d669b37e6e740, 0x6ecf3b01115a6724, 0xe8fa1ba45c87b953),
 ];

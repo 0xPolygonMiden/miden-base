@@ -186,7 +186,7 @@ impl TransactionKernel {
         outputs.extend(final_acct_hash);
         outputs.extend(output_notes_hash);
         outputs.reverse();
-        StackOutputs::new(outputs, Vec::new())
+        StackOutputs::new(outputs)
             .map_err(|e| e.to_string())
             .expect("Invalid stack output")
     }
@@ -235,11 +235,6 @@ impl TransactionKernel {
         if stack.get_stack_word(12).expect("fourth word missing") != EMPTY_WORD {
             return Err(TransactionOutputError::OutputStackInvalid(
                 "Fourth word on output stack should consist only of ZEROs".into(),
-            ));
-        }
-        if stack.has_overflow() {
-            return Err(TransactionOutputError::OutputStackInvalid(
-                "Output stack should not have overflow addresses".into(),
             ));
         }
 

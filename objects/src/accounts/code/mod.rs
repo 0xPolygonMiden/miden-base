@@ -87,7 +87,7 @@ impl AccountCode {
         Ok(Self {
             commitment: build_procedure_commitment(&procedures),
             procedures,
-            mast: Arc::new(library.into()),
+            mast: library.mast_forest().clone(),
         })
     }
 
