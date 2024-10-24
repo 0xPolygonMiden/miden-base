@@ -6,6 +6,7 @@ members = [
     "objects",
     "bin/bench-tx",
     "bin/tx-prover",
+    "bin/prover-proxy"
 ]
 
 [workspace.package]
