@@ -1073,7 +1073,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 [[package]]
 name = "miden-air"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=al-migrate-new-padding-rule#0b10225edc6eb0b5b7f8e9ff729e0c64b5c3a499"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#ae34c56f53ae3194af4368da3e67370a116f9cd7"
 dependencies = [
  "miden-core",
  "miden-thiserror",
@@ -1084,7 +1084,7 @@ dependencies = [
 [[package]]
 name = "miden-assembly"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=al-migrate-new-padding-rule#0b10225edc6eb0b5b7f8e9ff729e0c64b5c3a499"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#ae34c56f53ae3194af4368da3e67370a116f9cd7"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1115,7 +1115,7 @@ dependencies = [
 [[package]]
 name = "miden-core"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=al-migrate-new-padding-rule#0b10225edc6eb0b5b7f8e9ff729e0c64b5c3a499"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#ae34c56f53ae3194af4368da3e67370a116f9cd7"
 dependencies = [
  "lock_api",
  "loom",
@@ -1233,7 +1233,7 @@ dependencies = [
 [[package]]
 name = "miden-processor"
 version = "0.10.6"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=al-migrate-new-padding-rule#0b10225edc6eb0b5b7f8e9ff729e0c64b5c3a499"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#ae34c56f53ae3194af4368da3e67370a116f9cd7"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1244,7 +1244,7 @@ dependencies = [
 [[package]]
 name = "miden-prover"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=al-migrate-new-padding-rule#0b10225edc6eb0b5b7f8e9ff729e0c64b5c3a499"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#ae34c56f53ae3194af4368da3e67370a116f9cd7"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -1255,7 +1255,7 @@ dependencies = [
 [[package]]
 name = "miden-stdlib"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=al-migrate-new-padding-rule#0b10225edc6eb0b5b7f8e9ff729e0c64b5c3a499"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#ae34c56f53ae3194af4368da3e67370a116f9cd7"
 dependencies = [
  "miden-assembly",
 ]
@@ -1327,7 +1327,7 @@ dependencies = [
 [[package]]
 name = "miden-verifier"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=al-migrate-new-padding-rule#0b10225edc6eb0b5b7f8e9ff729e0c64b5c3a499"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#ae34c56f53ae3194af4368da3e67370a116f9cd7"
 dependencies = [
  "miden-air",
  "miden-core",

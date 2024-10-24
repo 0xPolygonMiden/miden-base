@@ -59,7 +59,7 @@ impl Default for MidenLib {
     fn default() -> Self {
         static MIDEN_LIB: LazyLock<MidenLib> = LazyLock::new(|| {
             let contents =
-                Library::read_from_bytes(MIDEN_LIB_BYTES).expect("failed to read std masl!");
+                Library::read_from_bytes(MIDEN_LIB_BYTES).expect("failed to read miden lib masl!");
             MidenLib(contents)
         });
         MIDEN_LIB.clone()
