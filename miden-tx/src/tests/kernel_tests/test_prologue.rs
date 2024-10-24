@@ -19,6 +19,7 @@ use miden_lib::transaction::{
 };
 use miden_objects::{
     accounts::{AccountProcedureInfo, StorageSlot},
+    crypto::dsa::rpo_falcon512::SecretKey,
     testing::{
         account::AccountBuilder,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
@@ -388,8 +389,9 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, seed) = AccountBuilder::with_mock_storage(ChaCha20Rng::from_entropy())
-        .default_code(TransactionKernel::testing_assembler())
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .default_code(TransactionKernel::testing_assembler(), false)
+        .with_wallet_storage(SecretKey::new().public_key())
         .build()
         .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
@@ -518,9 +520,8 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .default_code(TransactionKernel::testing_assembler())
+        .default_code(TransactionKernel::testing_assembler(), false)
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .default_code(TransactionKernel::testing_assembler())
         .build()
         .unwrap();
 

@@ -9,17 +9,15 @@ use miden_objects::{
         account_id::testing::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage,
     },
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
+    crypto::utils::Serializable,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
-    testing::account_code::DEFAULT_AUTH_SCRIPT,
-    transaction::{ExecutedTransaction, ProvenTransaction, TransactionArgs, TransactionScript},
+    transaction::{ExecutedTransaction, ProvenTransaction},
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use miden_tx::{
     LocalTransactionProver, TransactionProver, TransactionVerifier, TransactionVerifierError,
 };
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
 // HELPER FUNCTIONS
@@ -46,27 +44,6 @@ pub fn prove_and_verify_transaction(
     let verifier = TransactionVerifier::new(miden_objects::MIN_PROOF_SECURITY_LEVEL);
 
     verifier.verify(proven_transaction)
-}
-
-#[cfg(test)]
-pub fn get_new_pk_and_authenticator(
-) -> (Word, std::sync::Arc<dyn miden_tx::auth::TransactionAuthenticator>) {
-    use alloc::sync::Arc;
-
-    use miden_objects::accounts::AuthSecretKey;
-    use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
-    use rand::rngs::StdRng;
-
-    let seed = [0_u8; 32];
-    let mut rng = ChaCha20Rng::from_seed(seed);
-
-    let sec_key = SecretKey::with_rng(&mut rng);
-    let pub_key: Word = sec_key.public_key().into();
-
-    let authenticator =
-        BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
-
-    (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }
 
 #[cfg(test)]
@@ -118,16 +95,4 @@ pub fn get_note_with_fungible_asset_and_script(
     let recipient = NoteRecipient::new(SERIAL_NUM, note_script, inputs);
 
     Note::new(vault, metadata, recipient)
-}
-
-#[cfg(test)]
-pub fn build_default_auth_script() -> TransactionScript {
-    TransactionScript::compile(DEFAULT_AUTH_SCRIPT, [], TransactionKernel::assembler()).unwrap()
-}
-
-#[cfg(test)]
-pub fn build_tx_args_from_script(script_source: &str) -> TransactionArgs {
-    let tx_script =
-        TransactionScript::compile(script_source, [], TransactionKernel::assembler()).unwrap();
-    TransactionArgs::with_tx_script(tx_script)
 }

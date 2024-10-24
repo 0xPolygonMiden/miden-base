@@ -48,6 +48,8 @@ impl AccountCode {
         export.::miden::contracts::wallets::basic::receive_asset
         export.::miden::contracts::wallets::basic::create_note
         export.::miden::contracts::wallets::basic::move_asset_to_note
+        export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+        export.::miden::contracts::faucets::basic_fungible::distribute
 
         export.::miden::account::get_item_foreign
         export.::miden::account::get_map_item_foreign

@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use assembly::Assembler;
-use miden_crypto::EMPTY_WORD;
+use miden_crypto::{dsa::rpo_falcon512::PublicKey, EMPTY_WORD};
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
@@ -9,16 +9,13 @@ use super::{constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word};
 use crate::{
     accounts::{
         account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
-        AccountStorageDelta, AccountStorageMode, AccountType, AccountVaultDelta, StorageMap,
-        StorageMapDelta, StorageSlot,
+        get_account_seed_single, Account, AccountId, AccountStorage, AccountStorageDelta,
+        AccountStorageMode, AccountType, StorageMap, StorageMapDelta, StorageSlot,
     },
-    assets::{Asset, AssetVault, FungibleAsset},
+    assets::TokenSymbol,
     notes::NoteAssets,
     AccountDeltaError,
 };
@@ -34,16 +31,6 @@ impl AccountStorageBuilder {
         Self { slots: vec![] }
     }
 
-    pub fn with_mock_data() -> Self {
-        Self {
-            slots: vec![
-                AccountStorage::mock_item_0().slot,
-                AccountStorage::mock_item_1().slot,
-                AccountStorage::mock_item_2().slot,
-            ],
-        }
-    }
-
     pub fn add_slot(&mut self, slot: StorageSlot) -> &mut Self {
         self.slots.push(slot);
         self
@@ -53,6 +40,40 @@ impl AccountStorageBuilder {
         for slot in slots.into_iter() {
             self.add_slot(slot);
         }
+        self
+    }
+    /// Configures storage slots for a wallet account with authentication.
+    pub fn with_wallet_storage(&mut self, public_key: PublicKey) -> &mut Self {
+        self.add_slot(StorageSlot::Value(public_key.into()));
+
+        self
+    }
+
+    /// Configures storage slots for a faucet account with optional authentication and metadata.
+    pub fn with_faucet_storage(
+        &mut self,
+        public_key: PublicKey,
+        token_symbol: TokenSymbol,
+        max_supply: u64,
+        total_issuance: Option<u64>,
+    ) -> &mut Self {
+        let metadata: [Felt; 4] = [
+            max_supply.try_into().unwrap(),
+            Felt::new(10), // Placeholder for decimal places or other metadata
+            token_symbol.into(),
+            ZERO,
+        ];
+        let faucet_metadata = StorageSlot::Value(metadata);
+
+        let reserved_data = match total_issuance {
+            Some(issuance) => StorageSlot::Value([ZERO, ZERO, ZERO, Felt::new(issuance)]),
+            None => StorageSlot::Value(Word::default()),
+        };
+
+        self.add_slot(reserved_data);
+        self.add_slot(StorageSlot::Value(public_key.into()));
+        self.add_slot(faucet_metadata);
+
         self
     }
 
@@ -259,37 +280,7 @@ pub fn generate_account_seed(
 // UTILITIES
 // --------------------------------------------------------------------------------------------
 
-pub fn build_account(assets: Vec<Asset>, nonce: Felt, slots: Vec<StorageSlot>) -> Account {
-    let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-    let code = AccountCode::mock();
-
-    let vault = AssetVault::new(&assets).unwrap();
-
-    let storage = AccountStorage::new(slots).unwrap();
-
-    Account::from_parts(id, vault, storage, code, nonce)
-}
-
-pub fn build_account_delta(
-    added_assets: Vec<Asset>,
-    removed_assets: Vec<Asset>,
-    nonce: Felt,
-    storage_delta: AccountStorageDelta,
-) -> AccountDelta {
-    let vault_delta = AccountVaultDelta::from_iters(added_assets, removed_assets);
-    AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
-}
-
-pub fn build_assets() -> (Asset, Asset) {
-    let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
-
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-    let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
-
-    (asset_0, asset_1)
-}
-
+/// Returns a list of strings, one for each note asset.
 pub fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
     let mut assets = Vec::new();
     for &asset in note_assets.iter() {
