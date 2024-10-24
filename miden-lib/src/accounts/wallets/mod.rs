@@ -47,7 +47,7 @@ pub fn create_basic_wallet(
         export.::miden::contracts::wallets::basic::create_note
         export.::miden::contracts::wallets::basic::move_asset_to_note
         export.::miden::contracts::auth::basic::{auth_scheme_procedure}
-    "
+        "
     );
 
     let assembler = TransactionKernel::assembler();

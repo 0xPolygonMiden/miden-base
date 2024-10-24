@@ -21,6 +21,9 @@ const.EXPIRY_UPPER_LIMIT=0xFFFF+1
 # The note type must be PUBLIC, unless the high bits are `0b11`. (See the table below.)
 const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
 
+# Max U32 value, used for initializing the expiration block number
+const.MAX_BLOCK_NUM=0xFFFFFFFF
+
 # ERRORS
 # =================================================================================================
 
@@ -80,7 +83,7 @@ const.NOTE_AFTER_CREATED_EVENT=131084
 const.NOTE_BEFORE_ADD_ASSET_EVENT=131085
 # Event emitted after an ASSET is added to a note
 const.NOTE_AFTER_ADD_ASSET_EVENT=131086
- 
+
 #! Returns the block hash of the reference block to memory.
 #!
 #! Stack: []
@@ -189,7 +192,7 @@ end
 #!
 #! The input block_height_delta is added to the block reference number in order to output an upper
 #! limit at which the transaction will be considered valid (not expired).
-#! This value can be later decreased, but not increased. 
+#! This value can be later decreased, but not increased.
 #!
 #! Inputs: [block_height_delta, ...]
 #! Output: [...]
@@ -206,16 +209,16 @@ export.update_expiration_block_num
     # => [absolute_expiration_num]
 
     # Load the current stored delta from memory
-    dup exec.memory::get_expiration_block_num  
+    dup exec.memory::get_expiration_block_num
     # => [stored_expiration_block_num, absolute_expiration_num, absolute_expiration_num]
 
     # Check if block_height_delta is greater
     u32lt
     if.true
         # Set new expiration delta
-        exec.memory::set_expiration_block_num 
+        exec.memory::set_expiration_block_num
     else
-        drop                           
+        drop
     end
 end
 
@@ -227,8 +230,17 @@ end
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
 export.get_expiration_delta
-    exec.memory::get_expiration_block_num exec.get_block_number
-    sub
+    exec.memory::get_expiration_block_num
+    # => [stored_expiration_block_num]
+
+    dup eq.MAX_BLOCK_NUM
+    if.true
+        # The delta was not set
+        drop push.0
+    else
+        # Calculate the delta
+        exec.get_block_number sub
+    end
 end
 
 
