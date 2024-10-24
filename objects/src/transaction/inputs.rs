@@ -70,7 +70,7 @@ impl TransactionInputs {
                         .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
                 };
 
-                is_in_block(note, proof, block_header)?;
+                validate_is_in_block(note, proof, block_header)?;
             }
         }
 
@@ -392,8 +392,8 @@ impl InputNote {
     }
 }
 
-/// Returns true if this note belongs to the note tree of the specified block.
-fn is_in_block(
+/// Validates whether the provided note belongs to the note tree of the specified block.
+fn validate_is_in_block(
     note: &Note,
     proof: &NoteInclusionProof,
     block_header: &BlockHeader,
