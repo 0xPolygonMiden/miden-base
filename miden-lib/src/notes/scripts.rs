@@ -16,10 +16,18 @@ pub fn p2idr() -> NoteScript {
     NoteScript::new(program)
 }
 
-/// Returns a SWAP (Pay-to-ID with recall) note script.
+/// Returns a SWAP (SWAP) note script.
 pub fn swap() -> NoteScript {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
     let program = Program::read_from_bytes(bytes).expect("Shipped SWAP script is well-formed");
+
+    NoteScript::new(program)
+}
+
+/// Returns a SWAPP (Partial SWAP) note script.
+pub fn swapp() -> NoteScript {
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAPP.masb"));
+    let program = Program::read_from_bytes(bytes).expect("Shipped SWAPP script is well-formed");
 
     NoteScript::new(program)
 }

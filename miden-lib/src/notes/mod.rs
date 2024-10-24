@@ -136,3 +136,50 @@ pub fn create_swap_note<R: FeltRng>(
 
     Ok((note, payback_note))
 }
+
+pub fn create_swapp_note<R: FeltRng>(
+    sender: AccountId,
+    offered_asset: Asset,
+    requested_asset: Asset,
+    note_type: NoteType,
+    aux: Felt,
+    rng: &mut R,
+) -> Result<Note, NoteError> {
+    let note_script = scripts::swapp();
+
+    let payback_serial_num = rng.draw_word();
+    let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;
+
+    let payback_recipient_word: Word = payback_recipient.digest().into();
+    let requested_asset_word: Word = requested_asset.into();
+    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local)?;
+
+    let inputs = NoteInputs::new(vec![
+        payback_recipient_word[0],
+        payback_recipient_word[1],
+        payback_recipient_word[2],
+        payback_recipient_word[3],
+        requested_asset_word[0],
+        requested_asset_word[1],
+        requested_asset_word[2],
+        requested_asset_word[3],
+        payback_tag.inner().into(),
+        NoteExecutionHint::always().into(),
+    ])?;
+
+    // build the tag for the SWAP use case
+    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
+    let serial_num = rng.draw_word();
+
+    // build the outgoing note
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
+    let assets = NoteAssets::new(vec![offered_asset])?;
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    let note = Note::new(assets, metadata, recipient);
+
+    // build the payback note details
+    // let payback_assets = NoteAssets::new(vec![requested_asset])?;
+    // let payback_note = NoteDetails::new(payback_assets, payback_recipient);
+
+    Ok(note)
+}

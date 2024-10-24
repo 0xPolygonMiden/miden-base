@@ -97,6 +97,7 @@ pub const ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT:
 
 pub const ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x0002000D;
 
+pub const ERR_SWAP_FILL_AMOUNT_EXCEEDS_REQUESTED_AMOUNT: u32 = 0x00020057;
 pub const ERR_SWAP_WRONG_NUMBER_OF_ASSETS: u32 = 0x00020056;
 pub const ERR_SWAP_WRONG_NUMBER_OF_INPUTS: u32 = 0x00020055;
 
@@ -112,7 +113,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002001C;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x0002001F;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x0002001E;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 88] = [
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
     (ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES, "Account ID must contain at least MIN_ACCOUNT_ONES number of ones"),
@@ -200,6 +201,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
 
     (ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
 
+    (ERR_SWAP_FILL_AMOUNT_EXCEEDS_REQUESTED_AMOUNT, "SWAPP script fill amount should be smaller than requested amount"),
     (ERR_SWAP_WRONG_NUMBER_OF_ASSETS, "SWAP script requires exactly 1 note asset"),
     (ERR_SWAP_WRONG_NUMBER_OF_INPUTS, "SWAP script expects exactly 10 note inputs"),
 
