@@ -181,9 +181,9 @@ end
 
 #! Computes hash of note inputs starting at the specified memory address.
 #!
-#! This procedure divides the hashing process into two parts: hashing pairs of words using 
-#! `absorb_double_words_from_memory` procedure and hashing the remaining values using the `hperm`
-#! instruction. 
+#! This procedure checks that the provided number of inputs is within limits and then computes the
+#! hash using the procedure from the standard library. See the documentation of the 
+#! `std::crypto::hashes::rpo::hash_memory` for the more detailed description.
 #!
 #! If the number if inputs is 0, procedure returns the empty word: [0, 0, 0, 0].
 #!

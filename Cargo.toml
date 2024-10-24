@@ -33,29 +33,29 @@ lto = true
 
 [workspace.dependencies]
 #assembly = { package = "miden-assembly", version = "0.10", default-features = false }
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "al-migrate-new-padding-rule", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 miden-crypto = { version = "0.11", default-features = false }
-#miden-crypto = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "al-migrate-new-padding-rule", default-features = false }
+#miden-crypto = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 miden-lib = { path = "miden-lib", version = "0.6", default-features = false }
 miden-objects = { path = "objects", version = "0.6", default-features = false }
 
 #miden-prover = { version = "0.10", default-features = false }
-miden-prover = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "al-migrate-new-padding-rule", default-features = false }
+miden-prover = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 #miden-stdlib = { version = "0.10", default-features = false }
-miden-stdlib = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "al-migrate-new-padding-rule", default-features = false }
+miden-stdlib = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 miden-tx = { path = "miden-tx", version = "0.6", default-features = false }
 
 #miden-verifier = { version = "0.10", default-features = false }
-miden-verifier = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "al-migrate-new-padding-rule", default-features = false }
+miden-verifier = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 rand = { version = "0.8", default-features = false }
 
 #vm-core = { package = "miden-core", version = "0.10", default-features = false }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "al-migrate-new-padding-rule", default-features = false }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 #vm-processor = { package = "miden-processor", version = "0.10", default-features = false }
-vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "al-migrate-new-padding-rule", default-features = false }
+vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
