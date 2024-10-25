@@ -84,7 +84,10 @@ impl ProxyHttp for LB {
         let upstream = self.0.select(b"", 256).unwrap();
         // Set SNI
         let mut http_peer = HttpPeer::new(upstream, false, "".to_string());
-        http_peer.get_mut_peer_options().unwrap().alpn = ALPN::H2;
+        let peer_opts = http_peer.get_mut_peer_options().unwrap();
+
+        peer_opts.connection_timeout = Some(Duration::from_secs(5));
+        peer_opts.alpn = ALPN::H2;
 
         let peer = Box::new(http_peer);
         Ok(peer)
