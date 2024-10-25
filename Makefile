@@ -105,4 +105,4 @@ bench-tx: ## Run transaction benchmarks
 
 .PHONY: install-prover
 install-prover: ## Installs prover
-	cargo install --path bin/tx-prover --locked
+	cargo install --path bin/tx-prover --locked --features testing

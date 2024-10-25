@@ -1,49 +1,30 @@
 use alloc::{boxed::Box, string::ToString};
-use core::cell::RefCell;
 
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{TransactionProver, TransactionProverError};
 
-use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
+use crate::generated::api_client::ApiClient;
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
 
 /// A [RemoteTransactionProver] is a transaction prover that sends witness data to a remote
 /// gRPC server and receives a proven transaction.
+///
+/// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
+/// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
+/// The transport layer connection is established lazily when the first transaction is proven.
+
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
-    #[cfg(target_arch = "wasm32")]
-    client: RefCell<ApiClient<tonic_web_wasm_client::Client>>,
-
-    #[cfg(not(target_arch = "wasm32"))]
-    client: RefCell<ApiClient<tonic::transport::Channel>>,
+    endpoint: String,
 }
 
 impl RemoteTransactionProver {
-    /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint.
-    /// This instantiates a tonic client that attempts connecting with the server.
-    ///
-    /// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
-    /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if the endpoint is invalid or if the gRPC
-    /// connection to the server cannot be established.
-    pub async fn new(endpoint: &str) -> Result<Self, RemoteTransactionProverError> {
-        #[cfg(target_arch = "wasm32")]
-        let client = {
-            let web_client = tonic_web_wasm_client::Client::new(endpoint.to_string());
-            ApiClient::new(web_client)
-        };
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let client = ApiClient::connect(endpoint.to_string())
-            .await
-            .map_err(|_| RemoteTransactionProverError::ConnectionFailed(endpoint.to_string()))?;
-
-        Ok(RemoteTransactionProver { client: RefCell::new(client) })
+    /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint. The
+    /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
+    pub async fn new(endpoint: &str) -> Self {
+        RemoteTransactionProver { endpoint: endpoint.to_string() }
     }
 }
 
@@ -54,7 +35,19 @@ impl TransactionProver for RemoteTransactionProver {
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         use miden_objects::utils::Serializable;
-        let mut client = self.client.borrow_mut();
+        #[cfg(target_arch = "wasm32")]
+        let mut client = {
+            let web_client = tonic_web_wasm_client::Client::new(self.endpoint);
+            ApiClient::new(web_client)
+        };
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let mut client = ApiClient::connect(self.endpoint.clone()).await.map_err(|_| {
+            TransactionProverError::InternalError(format!(
+                "Failed to connect to endpoint {}",
+                self.endpoint
+            ))
+        })?;
 
         let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
             transaction_witness: tx_witness.to_bytes(),
