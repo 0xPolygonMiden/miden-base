@@ -3,7 +3,10 @@ use core::cell::RefCell;
 
 use miden_lib::{transaction::TransactionKernel, MidenLib, StdLibrary};
 use miden_objects::{
-    accounts::AccountCode, assembly::mast::MastForest, transaction::{TransactionArgs, TransactionInputs}, Digest
+    accounts::AccountCode,
+    assembly::mast::MastForest,
+    transaction::{TransactionArgs, TransactionInputs},
+    Digest,
 };
 use vm_processor::MastForestStore;
 
