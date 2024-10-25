@@ -3,6 +3,7 @@ use core::cell::RefCell;
 
 use miden_lib::{transaction::TransactionKernel, MidenLib, StdLibrary};
 use miden_objects::{
+    accounts::AccountCode,
     assembly::mast::MastForest,
     transaction::{TransactionArgs, TransactionInputs},
     Digest,
@@ -50,6 +51,11 @@ impl TransactionMastStore {
         store
     }
 
+    /// Loads the provided account code into this store.
+    pub fn load_account_code(&self, code: &AccountCode) {
+        self.insert(code.mast().clone());
+    }
+
     /// Loads code required for executing a transaction with the specified inputs and args into
     /// this store.
     ///
@@ -59,7 +65,7 @@ impl TransactionMastStore {
     /// - Transaction script (if any) from the specified [TransactionArgs].
     pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
         // load account code
-        self.insert(tx_inputs.account().code().mast().clone());
+        self.load_account_code(tx_inputs.account().code());
 
         // load note script MAST into the MAST store
         for note in tx_inputs.input_notes() {
