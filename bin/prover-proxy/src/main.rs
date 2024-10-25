@@ -2,11 +2,11 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use pingora::http::ResponseHeader;
 use pingora::prelude::*;
-use pingora::upstreams::peer::ALPN;
+use pingora::upstreams::peer::{Peer, ALPN};
 use pingora_core::server::Server;
 use pingora_core::upstreams::peer::HttpPeer;
 use pingora_core::Result;
-use pingora_core::{modules::http::HttpModules, prelude::Opt};
+use pingora_core::prelude::Opt;
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 
@@ -14,9 +14,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 fn main() {
+    tracing_subscriber::fmt().init();
+
     let mut server = Server::new(Some(Opt::default())).unwrap();
     server.bootstrap();
-    let mut upstreams = LoadBalancer::try_from_iter(["0.0.0.0:8080", "0.0.0.0:50051"]).unwrap();
+    let upstreams = LoadBalancer::try_from_iter(["0.0.0.0:8080", "0.0.0.0:50051"]).unwrap();
 
     // Set health check
     // let hc = TcpHealthCheck::new();
@@ -29,6 +31,15 @@ fn main() {
     // Set load balancer
     let mut lb = http_proxy_service(&server.configuration, LB(upstreams.into()));
     lb.add_tcp("0.0.0.0:6188");
+
+
+    // let mut tls_settings =
+    //     pingora::listeners::TlsSettings::intermediate("cert/localhost.crt", "cert/localhost.key")
+    //         .unwrap();
+
+    // tls_settings.enable_h2();
+
+    // lb.add_tls_with_settings("0.0.0.0:8000", None, tls_settings);
 
     // let rate = Rate
     // server.add_service(background);
@@ -69,7 +80,9 @@ impl ProxyHttp for LB {
     ) -> Result<Box<HttpPeer>> {
         let upstream = self.0.select(b"", 256).unwrap();
         // Set SNI
-        let mut peer = Box::new(HttpPeer::new(upstream, false, "".to_string()));
+        let mut http_peer = HttpPeer::new(upstream, false, "".to_string());
+        http_peer.get_mut_peer_options().unwrap().alpn = ALPN::H2;
+        let peer = Box::new(http_peer);
         Ok(peer)
     }
 
