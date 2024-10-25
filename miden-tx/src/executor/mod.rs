@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountCode, AccountId},
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
@@ -95,6 +95,17 @@ impl TransactionExecutor {
     pub fn with_tracing(mut self) -> Self {
         self.exec_options = self.exec_options.with_tracing();
         self
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Loads the provided code into the internal MAST store and associates the procedures of the
+    /// account code with the specified account ID.
+    pub fn load_account_code(&mut self, _account_id: AccountId, code: &AccountCode) {
+        // TODO: account_id is not used yet, but it could be used to build a procedure map for the
+        // loaded accounts
+        self.mast_store.load_account_code(code);
     }
 
     // TRANSACTION EXECUTION
