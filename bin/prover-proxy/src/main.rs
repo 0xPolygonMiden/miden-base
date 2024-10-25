@@ -12,6 +12,8 @@ use pingora_core::{prelude::Opt, server::Server, upstreams::peer::HttpPeer, Resu
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 
+const TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(30));
+
 fn main() {
     tracing_subscriber::fmt().init();
 
@@ -19,50 +21,20 @@ fn main() {
     server.bootstrap();
     let upstreams = LoadBalancer::try_from_iter(["0.0.0.0:8080", "0.0.0.0:50051"]).unwrap();
 
-    // Set health check
-    // let hc = TcpHealthCheck::new();
-    // upstreams.set_health_check(hc);
-    // upstreams.health_check_frequency = Some(Duration::from_secs(1));
-    // Set background service
-    // let background = background_service("health check", upstreams);
-    // let upstreams = background.task();
-
     // Set load balancer
     let mut lb = http_proxy_service(&server.configuration, LB(upstreams.into()));
     lb.add_tcp("0.0.0.0:6188");
 
-    let mut logic = lb.app_logic_mut().unwrap();
+    let logic = lb.app_logic_mut().unwrap();
     let mut http_server_options = HttpServerOptions::default();
     http_server_options.h2c = true;
     logic.server_options = Some(http_server_options);
 
-    // let mut tls_settings =
-    //     pingora::listeners::TlsSettings::intermediate("cert/localhost.crt", "cert/localhost.key")
-    //         .unwrap();
-
-    // tls_settings.enable_h2();
-
-    // lb.add_tls_with_settings("0.0.0.0:8000", None, tls_settings);
-
-    // let rate = Rate
-    // server.add_service(background);
     server.add_service(lb);
     server.run_forever();
 }
 
 pub struct LB(Arc<LoadBalancer<RoundRobin>>);
-
-impl LB {
-    pub fn get_request_appid(&self, session: &mut Session) -> Option<String> {
-        match session.req_header().headers.get("appid").map(|v| v.to_str()) {
-            None => None,
-            Some(v) => match v {
-                Ok(v) => Some(v.to_string()),
-                Err(_) => None,
-            },
-        }
-    }
-}
 
 // Rate limiter
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
@@ -86,7 +58,13 @@ impl ProxyHttp for LB {
         let mut http_peer = HttpPeer::new(upstream, false, "".to_string());
         let peer_opts = http_peer.get_mut_peer_options().unwrap();
 
-        peer_opts.connection_timeout = Some(Duration::from_secs(5));
+        // Timeout settings
+        peer_opts.total_connection_timeout = TIMEOUT_SECS;
+        peer_opts.connection_timeout = TIMEOUT_SECS;
+        peer_opts.read_timeout = TIMEOUT_SECS;
+        peer_opts.write_timeout = TIMEOUT_SECS;
+        peer_opts.idle_timeout = TIMEOUT_SECS;
+
         peer_opts.alpn = ALPN::H2;
 
         let peer = Box::new(http_peer);
@@ -118,13 +96,12 @@ impl ProxyHttp for LB {
     where
         Self::CTX: Send + Sync,
     {
-        let appid = match self.get_request_appid(session) {
-            None => return Ok(false), // no client appid found, skip rate limiting
-            Some(addr) => addr,
-        };
+        let client_addr = session.client_addr();
+        let user_id = client_addr.map(|addr| addr.to_string());
 
         // retrieve the current window requests
-        let curr_window_requests = RATE_LIMITER.observe(&appid, 1);
+        let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
+
         if curr_window_requests > MAX_REQ_PER_SEC {
             // rate limited, return 429
             let mut header = ResponseHeader::build(429, None).unwrap();
