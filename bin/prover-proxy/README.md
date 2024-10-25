@@ -26,6 +26,20 @@ To build the prover proxy, from the root of the workspace you can run:
 make install-prover-proxy
 ```
 
+Before running the proxy you will need to setup the backends using a comma separated string:
+
+```bash
+export PROVER_BACKENDS="<your_backends>" # e.g.: "0.0.0.0:8080,0.0.0.0:50051"
+```
+
+Optionally, you can set the logs level, proxy host and proxy port:
+
+```bash
+export RUST_LOG=<your_log_level> # e.g.: info
+export PROXY_HOST="<your_host>" # e.g.: "127.0.0.1"
+export PROXY_PORT="<your_port>" # e.g.: "6188"
+```
+
 And then you can run it by doing:
 
 ```bash
