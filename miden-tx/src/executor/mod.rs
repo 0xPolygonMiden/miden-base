@@ -128,8 +128,15 @@ impl TransactionExecutor {
             maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
+        let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(
+            &tx_inputs,
+            &tx_args,
+            Some(
+                self.data_store
+                    .get_advice_inputs(account_id, block_ref, notes)
+                    .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?,
+            ),
+        );
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
         // load note script MAST into the MAST store
@@ -140,6 +147,7 @@ impl TransactionExecutor {
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
+            tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 

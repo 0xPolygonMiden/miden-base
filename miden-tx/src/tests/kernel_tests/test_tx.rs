@@ -1,5 +1,8 @@
 use alloc::vec::Vec;
-use std::string::String;
+use std::{
+    string::{String, ToString},
+    sync::Arc,
+};
 
 use miden_lib::transaction::{
     memory::{
@@ -29,7 +32,7 @@ use miden_objects::{
         account::AccountBuilder, constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word,
         storage::STORAGE_LEAVES_2,
     },
-    transaction::{OutputNote, OutputNotes},
+    transaction::{OutputNote, OutputNotes, TransactionScript},
     Digest, FieldElement,
 };
 use rand::SeedableRng;
@@ -46,7 +49,8 @@ use crate::{
         mock_chain::{MockChain, MockChainBuilder},
         MockHost, TransactionContextBuilder,
     },
-    tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
+    tests::kernel_tests::read_root_mem_value,
+    TransactionExecutor,
 };
 
 #[test]
@@ -648,7 +652,6 @@ fn test_load_foreign_account_basic() {
         use.kernel::prologue
         use.miden::tx
         use.miden::account
-        use.miden::kernel_proc_offsets
 
         begin
             exec.prologue::prepare_transaction
@@ -712,7 +715,6 @@ fn test_load_foreign_account_basic() {
         use.kernel::prologue
         use.miden::tx
         use.miden::account
-        use.miden::kernel_proc_offsets
 
         begin
             exec.prologue::prepare_transaction
@@ -759,35 +761,42 @@ fn test_load_foreign_account_basic() {
 /// the loaded account.
 #[test]
 fn test_load_foreign_account_twice() {
+    let foreign_account_code_source = "
+        use.miden::account
+
+        export.get_item_foreign
+            exec.account::get_item_foreign
+        end
+
+        export.get_map_item_foreign
+            exec.account::get_map_item_foreign
+        end
+    ";
+    let foreign_account_code = AccountCode::mock_with_code(
+        foreign_account_code_source,
+        TransactionKernel::testing_assembler(),
+    );
+
     let storage_slot = AccountStorage::mock_item_0().slot;
     let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_storage_slot(storage_slot)
-        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .code(foreign_account_code)
         .nonce(ONE)
         .build()
         .unwrap();
 
-    let account_id = foreign_account.id();
+    let foreign_account_id = foreign_account.id();
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
     let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
-
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .mock_chain(mock_chain)
-        .advice_inputs(advice_inputs.clone())
-        .build();
 
     let code = format!(
         "
         use.std::sys
 
-        use.kernel::prologue
         use.miden::tx
         use.miden::account
-        use.miden::kernel_proc_offsets
 
         begin
-            exec.prologue::prepare_transaction
-
             ### Get the storage item at index 0 #####################
             # pad the stack for the `execute_foreign_procedure`execution
             padw padw push.0.0.0
@@ -800,7 +809,7 @@ fn test_load_foreign_account_twice() {
             procref.account::get_item_foreign
 
             # push the foreign account id
-            push.{account_id}
+            push.{foreign_account_id}
             # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
 
             exec.tx::execute_foreign_procedure dropw
@@ -818,10 +827,13 @@ fn test_load_foreign_account_twice() {
             procref.account::get_item_foreign
 
             # push the foreign account id
-            push.{account_id}
+            push.{foreign_account_id}
             # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
 
             exec.tx::execute_foreign_procedure
+
+            # assert the correctness of the obtained value
+            push.1.2.3.4 assert_eqw
 
             # truncate the stack
             exec.sys::truncate_stack
@@ -829,13 +841,42 @@ fn test_load_foreign_account_twice() {
         ",
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let tx_script =
+        TransactionScript::compile(code, vec![], TransactionKernel::testing_assembler()).unwrap();
 
-    assert_eq!(
-        try_read_root_mem_value(&process, NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2),
-        None,
-        "Memory starting from 6144 should stay uninitialized"
-    );
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .mock_chain(mock_chain)
+        .advice_inputs(advice_inputs.clone())
+        .tx_script(tx_script)
+        .build();
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+    let account = tx_context.account();
+
+    let mut executor: TransactionExecutor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
+    executor.load_account_code(foreign_account_id, foreign_account.code());
+
+    let foreign_account_code_commitments = vec![foreign_account.code().commitment()];
+
+    let _executed_transaction = executor
+        .execute_transaction(
+            account.id(),
+            block_ref,
+            &note_ids,
+            tx_context
+                .tx_args()
+                .clone()
+                .with_foreign_code(&foreign_account_code_commitments),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
 }
 
 // HELPER FUNCTIONS
@@ -863,7 +904,7 @@ fn get_mock_advice_inputs(foreign_account: &Account, mock_chain: &MockChain) -> 
             ),
             // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
             (foreign_storage_root, foreign_account.storage().as_elements()),
-            // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+            // CODE_ROOT |-> [[ACCOUNT_PROCEDURE_DATA]]
             (foreign_code_root, foreign_account.code().as_elements()),
         ])
         .with_merkle_store(mock_chain.accounts().into())

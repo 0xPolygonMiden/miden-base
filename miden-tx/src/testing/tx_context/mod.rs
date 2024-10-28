@@ -139,4 +139,17 @@ impl DataStore for TransactionContext {
 
         Ok(self.tx_inputs.clone())
     }
+
+    fn get_advice_inputs(
+        &self,
+        account_id: AccountId,
+        block_num: u32,
+        notes: &[NoteId],
+    ) -> Result<AdviceInputs, DataStoreError> {
+        assert_eq!(account_id, self.tx_inputs.account().id());
+        assert_eq!(block_num, self.tx_inputs.block_header().block_num());
+        assert_eq!(notes.len(), self.tx_inputs.input_notes().num_notes());
+
+        Ok(self.advice_inputs.clone())
+    }
 }

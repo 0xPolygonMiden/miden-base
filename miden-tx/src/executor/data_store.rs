@@ -2,6 +2,7 @@
 use alloc::boxed::Box;
 
 use miden_objects::{accounts::AccountId, notes::NoteId, transaction::TransactionInputs};
+use vm_processor::AdviceInputs;
 use winter_maybe_async::*;
 
 use crate::DataStoreError;
@@ -35,4 +36,11 @@ pub trait DataStore {
         block_ref: u32,
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError>;
+
+    fn get_advice_inputs(
+        &self,
+        account_id: AccountId,
+        block_ref: u32,
+        notes: &[NoteId],
+    ) -> Result<AdviceInputs, DataStoreError>;
 }

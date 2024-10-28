@@ -1,6 +1,9 @@
 use alloc::string::ToString;
 
-use miden_lib::transaction::TransactionKernelError;
+use miden_lib::transaction::{
+    memory::{ACCT_CODE_COMMITMENT_OFFSET, CURRENT_ACCOUNT_DATA_PTR},
+    TransactionKernelError,
+};
 use miden_objects::accounts::{AccountCode, AccountProcedureInfo};
 
 use super::{AdviceProvider, BTreeMap, Digest, Felt, ProcessState};
@@ -10,67 +13,74 @@ use crate::errors::TransactionHostError;
 // ================================================================================================
 
 /// A map of proc_root |-> proc_index for all known procedures of an account interface.
-pub struct AccountProcedureIndexMap(BTreeMap<Digest, u8>);
+pub struct AccountProcedureIndexMap(BTreeMap<Digest, BTreeMap<Digest, u8>>);
 
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
     pub fn new(
-        account_code_commitment: Digest,
+        native_account_code_commitment: Digest,
         adv_provider: &impl AdviceProvider,
+        foreign_account_code_commitments: &[Digest],
     ) -> Result<Self, TransactionHostError> {
-        // get the account procedures from the advice_map
-        let proc_data =
-            adv_provider.get_mapped_values(&account_code_commitment).ok_or_else(|| {
+        let mut result = BTreeMap::new();
+
+        for code_commitment in
+            foreign_account_code_commitments.iter().chain(&[native_account_code_commitment])
+        {
+            // get the account procedures from the advice_map
+            let proc_data = adv_provider.get_mapped_values(code_commitment).ok_or_else(|| {
                 TransactionHostError::AccountProcedureIndexMapError(
                     "Failed to read account procedure data from the advice provider".to_string(),
                 )
             })?;
 
-        let mut result = BTreeMap::new();
+            let mut account_procs_map = BTreeMap::new();
 
-        // sanity checks
+            // sanity checks
 
-        // check that there are procedures in the account code
-        if proc_data.is_empty() {
-            return Err(TransactionHostError::AccountProcedureIndexMapError(
-                "The account code does not contain any procedures.".to_string(),
-            ));
-        }
+            // check that there are procedures in the account code
+            if proc_data.is_empty() {
+                return Err(TransactionHostError::AccountProcedureIndexMapError(
+                    "The account code does not contain any procedures.".to_string(),
+                ));
+            }
 
-        // check that procedure data have a correct length
-        if proc_data.len() % AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != 0 {
-            return Err(TransactionHostError::AccountProcedureIndexMapError(
-                "The account procedure data has invalid length.".to_string(),
-            ));
-        }
+            // check that procedure data have a correct length
+            if proc_data.len() % AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != 0 {
+                return Err(TransactionHostError::AccountProcedureIndexMapError(
+                    "The account procedure data has invalid length.".to_string(),
+                ));
+            }
 
-        // One procedure requires 8 values to represent
-        let num_procs = proc_data.len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
+            // One procedure requires 8 values to represent
+            let num_procs = proc_data.len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
 
-        // check that the account code does not contain too many procedures
-        if num_procs > AccountCode::MAX_NUM_PROCEDURES {
-            return Err(TransactionHostError::AccountProcedureIndexMapError(
-                "The account code contains too many procedures.".to_string(),
-            ));
-        }
+            // check that the account code does not contain too many procedures
+            if num_procs > AccountCode::MAX_NUM_PROCEDURES {
+                return Err(TransactionHostError::AccountProcedureIndexMapError(
+                    "The account code contains too many procedures.".to_string(),
+                ));
+            }
 
-        for (proc_idx, proc_info) in
-            proc_data.chunks_exact(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC).enumerate()
-        {
-            let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
-                proc_info.try_into().expect("Failed conversion into procedure info array.");
+            for (proc_idx, proc_info) in
+                proc_data.chunks_exact(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC).enumerate()
+            {
+                let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
+                    proc_info.try_into().expect("Failed conversion into procedure info array.");
 
-            let procedure = AccountProcedureInfo::try_from(proc_info_array).map_err(|e| {
-                TransactionHostError::AccountProcedureIndexMapError(format!(
-                    "Failed to create AccountProcedureInfo: {:?}",
-                    e
-                ))
-            })?;
+                let procedure = AccountProcedureInfo::try_from(proc_info_array).map_err(|e| {
+                    TransactionHostError::AccountProcedureIndexMapError(format!(
+                        "Failed to create AccountProcedureInfo: {:?}",
+                        e
+                    ))
+                })?;
 
-            let proc_idx = u8::try_from(proc_idx).expect("Invalid procedure index.");
+                let proc_idx = u8::try_from(proc_idx).expect("Invalid procedure index.");
 
-            result.insert(*procedure.mast_root(), proc_idx);
+                account_procs_map.insert(*procedure.mast_root(), proc_idx);
+            }
+            result.insert(*code_commitment, account_procs_map);
         }
 
         Ok(Self(result))
@@ -86,9 +96,22 @@ impl AccountProcedureIndexMap {
         &self,
         process: &impl ProcessState,
     ) -> Result<u8, TransactionKernelError> {
+        // get current account code commitment
+        let code_commitment = {
+            let curr_data_ptr = process
+                .get_mem_value(process.ctx(), CURRENT_ACCOUNT_DATA_PTR)
+                .expect("Current account pointer was not initialized")[0]
+                .as_int();
+            process
+                .get_mem_value(process.ctx(), curr_data_ptr as u32 + ACCT_CODE_COMMITMENT_OFFSET)
+                .expect("current account code commitment was not initialized")
+        };
+
         let proc_root = process.get_stack_word(0).into();
 
         self.0
+            .get(&code_commitment.into())
+            .ok_or(TransactionKernelError::UnknownCodeCommitment(code_commitment.into()))?
             .get(&proc_root)
             .cloned()
             .ok_or(TransactionKernelError::UnknownAccountProcedure(proc_root))

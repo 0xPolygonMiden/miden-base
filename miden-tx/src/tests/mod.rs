@@ -81,9 +81,14 @@ fn transaction_executor_witness() {
     let mast_store = Arc::new(TransactionMastStore::new());
     mast_store.load_transaction_code(tx_inputs, tx_args);
 
-    let mut host: TransactionHost<MemAdviceProvider> =
-        TransactionHost::new(tx_inputs.account().into(), mem_advice_provider, mast_store, None)
-            .unwrap();
+    let mut host: TransactionHost<MemAdviceProvider> = TransactionHost::new(
+        tx_inputs.account().into(),
+        mem_advice_provider,
+        mast_store,
+        None,
+        &[],
+    )
+    .unwrap();
     let result = vm_processor::execute(
         &TransactionKernel::main(),
         stack_inputs,

@@ -36,6 +36,7 @@ pub enum TransactionKernelError {
     MissingStorageSlotValue(u8, String),
     TooFewElementsForNoteInputs,
     UnknownAccountProcedure(Digest),
+    UnknownCodeCommitment(Digest),
     MissingMemoryValue(u32),
 }
 
@@ -102,6 +103,9 @@ impl fmt::Display for TransactionKernelError {
             },
             TransactionKernelError::UnknownAccountProcedure(proc_root) => {
                 write!(f, "Account procedure with root {proc_root} is not in the advice provider")
+            },
+            TransactionKernelError::UnknownCodeCommitment(code_commitment) => {
+                write!(f, "Code commitment {code_commitment} is not in the advice provider")
             },
             TransactionKernelError::AccountDeltaError(error) => {
                 write!(f, "Account delta error: {error}")

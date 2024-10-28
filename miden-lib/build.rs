@@ -309,7 +309,7 @@ fn build_assembler(kernel: Option<KernelLibrary>) -> Result<Assembler> {
     kernel
         .map(|kernel| Assembler::with_kernel(Arc::new(DefaultSourceManager::default()), kernel))
         .unwrap_or_default()
-        .with_debug_mode(cfg!(feature = "with-debug-info"))
+        .with_debug_mode(true)
         .with_library(miden_stdlib::StdLibrary::default())
 }
 

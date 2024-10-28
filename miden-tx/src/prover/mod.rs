@@ -88,9 +88,14 @@ impl TransactionProver for LocalTransactionProver {
         // load the store with account/note/tx_script MASTs
         self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
-        let mut host: TransactionHost<_> =
-            TransactionHost::new(account.into(), advice_provider, self.mast_store.clone(), None)
-                .map_err(TransactionProverError::TransactionHostCreationFailed)?;
+        let mut host: TransactionHost<_> = TransactionHost::new(
+            account.into(),
+            advice_provider,
+            self.mast_store.clone(),
+            None,
+            &[],
+        )
+        .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
             prove(&TransactionKernel::main(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;

@@ -48,10 +48,6 @@ pub fn read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Word {
     process.get_mem_value(ContextId::root(), addr).unwrap()
 }
 
-pub fn try_read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Option<Word> {
-    process.get_mem_value(ContextId::root(), addr)
-}
-
 pub fn output_notes_data_procedure(notes: &[Note]) -> String {
     let note_0_metadata = prepare_word(&notes[0].metadata().into());
     let note_0_recipient = prepare_word(&notes[0].recipient().digest());

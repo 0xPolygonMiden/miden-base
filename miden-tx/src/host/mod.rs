@@ -92,9 +92,13 @@ impl<A: AdviceProvider> TransactionHost<A> {
         adv_provider: A,
         mast_store: Arc<TransactionMastStore>,
         authenticator: Option<Arc<dyn TransactionAuthenticator>>,
+        foreign_account_code_commitments: &[Digest],
     ) -> Result<Self, TransactionHostError> {
-        let proc_index_map =
-            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider)?;
+        let proc_index_map = AccountProcedureIndexMap::new(
+            account.code_commitment(),
+            &adv_provider,
+            foreign_account_code_commitments,
+        )?;
         let kernel_assertion_errors = BTreeMap::from(TX_KERNEL_ERRORS);
         Ok(Self {
             adv_provider,
