@@ -18,7 +18,6 @@ use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 /// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
 /// The transport layer connection is established lazily when the first transaction is proven.
-
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
     #[cfg(target_arch = "wasm32")]
