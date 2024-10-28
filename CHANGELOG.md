@@ -30,6 +30,8 @@
 - [BREAKING] Auto-generate `KERNEL_ERRORS` list from the transaction kernel's MASM files and rework error constant names (#906).
 - Implement `Serializable` for `FungibleAsset` (#907).
 - [BREAKING] Changed type of `EMPTY_STORAGE_MAP_ROOT` constant to `RpoDigst`, which references constant from `miden-crypto` (#916).
+- Added `TransactionExecutor::load_account_code()` method to support foreign procedure invocation (#936).
+- [BREAKING] Migrated to v0.11 version of Miden VM (#929).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 

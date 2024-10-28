@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountCode, AccountId},
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
@@ -59,6 +59,7 @@ impl TransactionExecutor {
                 Some(MAX_TX_EXECUTION_CYCLES),
                 MIN_TX_EXECUTION_CYCLES,
                 false,
+                false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
         }
@@ -70,19 +71,13 @@ impl TransactionExecutor {
     /// account code) will be compiled and executed in debug mode. This will ensure that all debug
     /// instructions present in the original source code are executed.
     pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
-        if in_debug_mode && !self.exec_options.enable_debugging() {
-            self.exec_options = self.exec_options.with_debugging();
-        } else if !in_debug_mode && self.exec_options.enable_debugging() {
-            // since we can't set the debug mode directly, we re-create execution options using
-            // the same values as current execution options (except for debug mode which defaults
-            // to false)
-            self.exec_options = ExecutionOptions::new(
-                Some(self.exec_options.max_cycles()),
-                self.exec_options.expected_cycles(),
-                self.exec_options.enable_tracing(),
-            )
-            .expect("failed to clone execution options");
-        }
+        self.exec_options = ExecutionOptions::new(
+            Some(self.exec_options.max_cycles()),
+            self.exec_options.expected_cycles(),
+            self.exec_options.enable_tracing(),
+            in_debug_mode,
+        )
+        .expect("failed to clone execution options");
 
         self
     }
@@ -95,6 +90,17 @@ impl TransactionExecutor {
     pub fn with_tracing(mut self) -> Self {
         self.exec_options = self.exec_options.with_tracing();
         self
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Loads the provided code into the internal MAST store and associates the procedures of the
+    /// account code with the specified account ID.
+    pub fn load_account_code(&mut self, _account_id: AccountId, code: &AccountCode) {
+        // TODO: account_id is not used yet, but it could be used to build a procedure map for the
+        // loaded accounts
+        self.mast_store.load_account_code(code);
     }
 
     // TRANSACTION EXECUTION

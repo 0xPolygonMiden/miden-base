@@ -73,6 +73,9 @@ fn test_create_note() {
             push.{tag}
 
             call.tx::create_note
+
+            # truncate the stack
+            swapdw dropw dropw
         end
         ",
         recipient = prepare_word(&recipient),
@@ -151,6 +154,9 @@ fn test_create_note_with_invalid_tag() {
                 push.{tag}
     
                 call.tx::create_note
+
+                # clean the stack
+                dropw dropw
             end
             ",
             recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
@@ -252,6 +258,8 @@ fn test_get_output_notes_hash() {
 
     let code = format!(
         "
+        use.std::sys
+
         use.kernel::prologue
         use.miden::tx
 
@@ -294,6 +302,10 @@ fn test_get_output_notes_hash() {
 
             # compute the output notes hash
             exec.tx::get_output_notes_hash
+            # => [COM]
+
+            # truncate the stack
+            exec.sys::truncate_stack
             # => [COM]
         end
         ",
@@ -376,6 +388,9 @@ fn test_create_note_and_add_asset() {
 
             dropw
             # => [note_idx]
+
+            # truncate the stack
+            swapdw dropw dropw
         end
         ",
         recipient = prepare_word(&recipient),
@@ -447,6 +462,9 @@ fn test_create_note_and_add_multiple_assets() {
             push.{nft}
             call.tx::add_asset_to_note dropw
             # => [note_idx]
+
+            # truncate the stack
+            swapdw dropw drop drop drop
         end
         ",
         recipient = prepare_word(&recipient),
@@ -571,6 +589,9 @@ fn test_build_recipient_hash() {
             push.{aux}
             push.{tag}
             call.tx::create_note
+
+            # clean the stack
+            dropw dropw dropw dropw
         end
         ",
         input_hash = input_hash,
@@ -622,6 +643,8 @@ fn test_load_foreign_account_basic() {
 
     let code = format!(
         "
+        use.std::sys
+        
         use.kernel::prologue
         use.miden::tx
         use.miden::account
@@ -646,6 +669,9 @@ fn test_load_foreign_account_basic() {
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         "
     );
@@ -681,6 +707,8 @@ fn test_load_foreign_account_basic() {
 
     let code = format!(
         "
+        use.std::sys
+
         use.kernel::prologue
         use.miden::tx
         use.miden::account
@@ -708,6 +736,9 @@ fn test_load_foreign_account_basic() {
 
             exec.tx::execute_foreign_procedure
             # => [MAP_VALUE]
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         ",
         map_key = STORAGE_LEAVES_2[0].0,
@@ -747,6 +778,8 @@ fn test_load_foreign_account_twice() {
 
     let code = format!(
         "
+        use.std::sys
+
         use.kernel::prologue
         use.miden::tx
         use.miden::account
@@ -789,6 +822,9 @@ fn test_load_foreign_account_twice() {
             # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
 
             exec.tx::execute_foreign_procedure
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         ",
     );
