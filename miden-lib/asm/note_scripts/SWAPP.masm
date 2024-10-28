@@ -1,4 +1,5 @@
 use.std::sys
+use.std::math::u64
 use.miden::note
 use.miden::contracts::wallets::basic->wallet
 
@@ -9,6 +10,15 @@ const.REQUESTED_ASSET_PTR=1
 const.PRIVATE_NOTE=2
 const.OFFERED_ASSET_PTR=3
 const.FILL_AMOUNT_PTR=5
+
+# Memory Addresses for Price Calculation Procedure
+const.AMT_TOKENS_A=64
+const.AMT_TOKENS_B=65
+const.AMT_TOKENS_B_IN=66
+const.RATIO=67
+
+const.FACTOR=0x000186A0 # 1e5
+const.MAX_U32=0x0000000100000000
 
 # ERRORS
 # =================================================================================================
@@ -27,6 +37,84 @@ const.ERR_SWAPP_FILL_AMOUNT_IS_ZERO=0x00020058
 
 # HELPERS
 # =================================================================================================
+
+# # => [offered_token_amount, requested_token_amount, requested_token_fill]
+# proc.calculate_partial_exchange
+#     push.10.2 div
+#     u32split
+# end
+
+#! Returns the amount of tokens_a out given an amount of tokens_b
+#!
+#! Inputs: [tokens_a, tokens_b, tokens_b_in]
+#! Outputs: [tokens_a_out]
+#!
+proc.calculate_partial_exchange
+    mem_store.AMT_TOKENS_A
+    mem_store.AMT_TOKENS_B
+    mem_store.AMT_TOKENS_B_IN
+
+    mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
+
+    gt
+    if.true
+        mem_load.AMT_TOKENS_B
+        u32split
+
+        push.FACTOR
+        u32split
+
+        exec.u64::wrapping_mul
+
+        mem_load.AMT_TOKENS_A
+        u32split
+
+        exec.u64::div
+        push.MAX_U32 mul add
+
+        mem_store.RATIO
+
+        mem_load.AMT_TOKENS_B_IN
+        u32split
+
+        push.FACTOR
+        u32split
+
+        exec.u64::wrapping_mul
+
+        mem_load.RATIO
+        u32split
+
+        exec.u64::div
+        push.MAX_U32 mul add
+
+    else
+        mem_load.AMT_TOKENS_A
+        u32split
+
+        push.FACTOR
+        u32split
+
+        exec.u64::wrapping_mul
+
+        mem_load.AMT_TOKENS_B
+        u32split
+
+        exec.u64::div
+
+        mem_load.AMT_TOKENS_B_IN
+        u32split
+
+        exec.u64::wrapping_mul
+
+        push.FACTOR
+        u32split
+
+        exec.u64::div
+        push.MAX_U32 mul add
+
+    end
+end
 
 proc.create_p2id_note
     # load RECIPIENT
@@ -70,12 +158,15 @@ proc.create_p2id_note
     # => []
 end
 
+# proc.create_swapp_note
+# end
+
 proc.full_swap
-    # store ASSET into memory
+    # store OFFERED_ASSET into memory
     push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
-    # load the ASSET and add it to the account
+    # load the OFFERED_ASSET and add it to the account
     mem_loadw call.wallet::receive_asset dropw
     # => []
 
@@ -85,12 +176,36 @@ proc.full_swap
 end
 
 proc.partial_swap
-    # store ASSET into memory
-    push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
+    # update the REQUESTED_ASSET with the fill_amount
+    padw mem_loadw.REQUESTED_ASSET_PTR mem_load.FILL_AMOUNT_PTR swap.4 drop mem_storew.REQUESTED_ASSET_PTR dropw
+    # => []
+
+    # create p2id note (payback note)
+    exec.create_p2id_note
+    # => []
+
+    # get inputs for partial exchange
+    mem_load.FILL_AMOUNT_PTR
+    padw mem_loadw.REQUESTED_ASSET_PTR drop drop drop
+    padw mem_loadw.OFFERED_ASSET_PTR drop drop drop
+    # => [offered_amount, requested_amount, fill_amount]
+
+    # debug
+    push.0 drop
+    debug.stack
+    debug.mem
+    # => [fill_amount]
+
+    # calculate partial exchange
+    exec.calculate_partial_exchange
+    # => []
+
+    # store OFFERED_ASSET into memory
+    # push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
-    # load the ASSET and add to the account the fill amount
-    mem_loadw mem_load.FILL_AMOUNT_PTR swap.4 drop call.wallet::receive_asset dropw
+    # load the OFFERED_ASSET and add to the account the fill amount
+    # mem_loadw mem_load.FILL_AMOUNT_PTR swap.4 drop call.wallet::receive_asset dropw
     # => []
 end
 
