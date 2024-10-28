@@ -5,9 +5,10 @@ use.miden::contracts::wallets::basic->wallet
 # CONSTANTS
 # =================================================================================================
 
-const.PRIVATE_NOTE=2
-const.FILL_AMOUNT_PTR=100
 const.REQUESTED_ASSET_PTR=1
+const.PRIVATE_NOTE=2
+const.OFFERED_ASSET_PTR=3
+const.FILL_AMOUNT_PTR=5
 
 # ERRORS
 # =================================================================================================
@@ -19,20 +20,15 @@ const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020055
 const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020056
 
 # SWAPP script fill amount should be smaller than requested amount
-const.ERR_SWAP_FILL_AMOUNT_EXCEEDS_REQUESTED_AMOUNT=0x00020057
+const.ERR_SWAPP_FILL_AMOUNT_EXCEEDS_REQUESTED_AMOUNT=0x00020057
+
+# SWAPP script fill amount should not be zero
+const.ERR_SWAPP_FILL_AMOUNT_IS_ZERO=0x00020058
 
 # HELPERS
 # =================================================================================================
 
-proc.full_swap
-    # store ASSET into memory at address 3
-    push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
-    # => [ptr]
-
-    # load the ASSET and add it to the account
-    mem_loadw call.wallet::receive_asset dropw
-    # => []
-
+proc.create_p2id_note
     # load RECIPIENT
     drop padw mem_loadw
     # => [RECIPIENT]
@@ -74,8 +70,28 @@ proc.full_swap
     # => []
 end
 
+proc.full_swap
+    # store ASSET into memory
+    push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
+    # => [ptr]
+
+    # load the ASSET and add it to the account
+    mem_loadw call.wallet::receive_asset dropw
+    # => []
+
+    # create p2id note
+    exec.create_p2id_note
+    # => []
+end
+
 proc.partial_swap
-    push.100
+    # store ASSET into memory
+    push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
+    # => [ptr]
+
+    # load the ASSET and add to the account the fill amount
+    mem_loadw mem_load.FILL_AMOUNT_PTR swap.4 drop call.wallet::receive_asset dropw
+    # => []
 end
 
 begin
@@ -93,7 +109,7 @@ begin
 
     # populate memory with note inputs
     push.0 exec.note::get_inputs
-    # => [fill_amount]
+    # => [num_inputs, inputs_ptr, fill_amount]
 
     # make sure the number of inputs is 10
     eq.10 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS drop
@@ -104,7 +120,11 @@ begin
     # => [requested_amount, fill_amount]
 
     # throw an error if fill amount is greater than requested amount
-    dup.1 dup.1 lte assert.err=ERR_SWAP_FILL_AMOUNT_EXCEEDS_REQUESTED_AMOUNT
+    dup.1 dup.1 lte assert.err=ERR_SWAPP_FILL_AMOUNT_EXCEEDS_REQUESTED_AMOUNT
+    # => [requested_amount, fill_amount]
+
+    # throw an error if fill amount is zero
+    dup.1 neq.0 assert.err=ERR_SWAPP_FILL_AMOUNT_IS_ZERO
     # => [requested_amount, fill_amount]
 
     # check if fill amount is equal to requested amount
