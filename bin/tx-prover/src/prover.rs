@@ -1,4 +1,7 @@
-use alloc::{boxed::Box, string::ToString};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+};
 
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{TransactionProver, TransactionProverError};
@@ -23,7 +26,7 @@ pub struct RemoteTransactionProver {
 impl RemoteTransactionProver {
     /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint. The
     /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
-    pub async fn new(endpoint: &str) -> Self {
+    pub fn new(endpoint: &str) -> Self {
         RemoteTransactionProver { endpoint: endpoint.to_string() }
     }
 }
@@ -37,7 +40,7 @@ impl TransactionProver for RemoteTransactionProver {
         use miden_objects::utils::Serializable;
         #[cfg(target_arch = "wasm32")]
         let mut client = {
-            let web_client = tonic_web_wasm_client::Client::new(self.endpoint);
+            let web_client = tonic_web_wasm_client::Client::new(self.endpoint.clone());
             ApiClient::new(web_client)
         };
 
