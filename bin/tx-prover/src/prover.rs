@@ -17,6 +17,7 @@ use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 ///
 /// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
+///
 /// The transport layer connection is established lazily when the first transaction is proven.
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
@@ -39,7 +40,15 @@ impl RemoteTransactionProver {
         }
     }
 
+    /// Establishes a connection to the remote transaction prover server. The connection is
+    /// mantained for the lifetime of the prover. If the connection is already established, this
+    /// method does nothing.
     async fn connect(&self) -> Result<(), RemoteTransactionProverError> {
+        let mut client = self.client.borrow_mut();
+        if client.is_some() {
+            return Ok(());
+        }
+
         #[cfg(target_arch = "wasm32")]
         let new_client = {
             let web_client = tonic_web_wasm_client::Client::new(self.endpoint.clone());
@@ -53,7 +62,7 @@ impl RemoteTransactionProver {
             })?
         };
 
-        self.client.replace(Some(new_client));
+        *client = Some(new_client);
 
         Ok(())
     }
@@ -66,19 +75,12 @@ impl TransactionProver for RemoteTransactionProver {
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         use miden_objects::utils::Serializable;
-        let connected = {
-            let client = self.client.borrow();
-            client.is_some()
-        };
-
-        if !connected {
-            self.connect().await.map_err(|err| {
-                TransactionProverError::InternalError(format!(
-                    "Failed to connect to the remote prover: {}",
-                    err
-                ))
-            })?;
-        }
+        self.connect().await.map_err(|err| {
+            TransactionProverError::InternalError(format!(
+                "Failed to connect to the remote prover: {}",
+                err
+            ))
+        })?;
 
         let mut client = self.client.borrow_mut();
 
