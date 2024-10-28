@@ -43,6 +43,9 @@ fn test_get_balance() {
             exec.prologue::prepare_transaction
             push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.account::get_balance
+
+            # truncate the stack
+            swap drop
         end
         "
     );
@@ -93,6 +96,9 @@ fn test_has_non_fungible_asset() {
             exec.prologue::prepare_transaction
             push.{non_fungible_asset_key}
             exec.account::has_non_fungible_asset
+
+            # truncate the stack
+            swap drop
         end
         ",
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
@@ -121,6 +127,9 @@ fn test_add_fungible_asset_success() {
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
             call.account::add_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
@@ -190,6 +199,9 @@ fn test_add_non_fungible_asset_success() {
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
             call.account::add_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
@@ -254,6 +266,9 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
             exec.::kernel::prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
             call.::miden::account::remove_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -318,6 +333,9 @@ fn test_remove_fungible_asset_success_balance_remaining() {
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
             call.account::remove_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -396,6 +414,9 @@ fn test_remove_non_fungible_asset_success() {
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
             call.account::remove_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())

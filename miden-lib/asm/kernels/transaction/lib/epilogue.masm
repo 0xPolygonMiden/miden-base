@@ -5,7 +5,7 @@ use.kernel::memory
 use.kernel::note
 use.kernel::tx
 
-use.std::crypto::hashes::native
+use.std::crypto::hashes::rpo
 
 # ERRORS
 # =================================================================================================
@@ -193,11 +193,11 @@ proc.update_account_storage_commitment
         # => [PAD, PAD, PAD, start_ptr, end_ptr]
 
         # hash elements from memory
-        exec.native::hash_memory_even
+        exec.rpo::absorb_double_words_from_memory
         # => [PERM, PERM, PERM, start_ptr, end_ptr]
 
         # extract the digest
-        exec.native::state_to_digest
+        exec.rpo::squeeze_digest
         # => [DIGEST, end_ptr, end_ptr]
 
         # clean stack

@@ -1,5 +1,5 @@
 use.std::collections::smt
-use.std::crypto::hashes::native
+use.std::crypto::hashes::rpo
 use.std::mem
 
 use.kernel::constants
@@ -190,7 +190,7 @@ export.get_current_hash
     mem_stream hperm mem_stream hperm
 
     # extract account hash
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
 
     # drop memory pointer
     movup.4 drop
@@ -694,7 +694,7 @@ export.validate_seed
         # => [RATE, RATE, CAP]
 
         # extract digest
-        exec.native::state_to_digest
+        exec.rpo::squeeze_digest
         # => [DIG]
 
         # assert the account id matches the account id of the new account and extract pow
@@ -781,7 +781,7 @@ export.save_account_storage_data
     # AS => []
 
     # extract the digest
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # OS => [DIGEST, end_ptr', STORAGE_COMMITMENT]
 
     # drop end_ptr
@@ -850,7 +850,7 @@ export.save_account_procedure_data
     # AS => []
 
     # extract the digest
-    exec.native::state_to_digest
+    exec.rpo::squeeze_digest
     # OS => [DIGEST, end_ptr', CODE_COMMITMENT]
 
     # drop end_ptr

@@ -37,15 +37,15 @@ impl TransactionMastStore {
         let store = Self { mast_forests };
 
         // load transaction kernel MAST forest
-        let kernels_forest = Arc::new(TransactionKernel::kernel().into());
+        let kernels_forest = TransactionKernel::kernel().mast_forest().clone();
         store.insert(kernels_forest);
 
         // load miden-stdlib MAST forest
-        let miden_stdlib_forest = Arc::new(StdLibrary::default().into());
+        let miden_stdlib_forest = StdLibrary::default().mast_forest().clone();
         store.insert(miden_stdlib_forest);
 
         // load miden lib MAST forest
-        let miden_lib_forest = Arc::new(MidenLib::default().into());
+        let miden_lib_forest = MidenLib::default().mast_forest().clone();
         store.insert(miden_lib_forest);
 
         store

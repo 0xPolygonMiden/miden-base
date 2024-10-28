@@ -1,4 +1,5 @@
 #![no_std]
+use alloc::sync::Arc;
 
 #[macro_use]
 extern crate alloc;
@@ -8,7 +9,7 @@ extern crate std;
 
 use miden_objects::{
     assembly::{mast::MastForest, Library},
-    utils::serde::Deserializable,
+    utils::{serde::Deserializable, sync::LazyLock},
 };
 
 mod auth;
@@ -32,7 +33,15 @@ const MIDEN_LIB_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets/
 // MIDEN LIBRARY
 // ================================================================================================
 
+#[derive(Clone)]
 pub struct MidenLib(Library);
+
+impl MidenLib {
+    /// Returns a reference to the [`MastForest`] of the inner [`Library`].
+    pub fn mast_forest(&self) -> &Arc<MastForest> {
+        self.0.mast_forest()
+    }
+}
 
 impl AsRef<Library> for MidenLib {
     fn as_ref(&self) -> &Library {
@@ -46,16 +55,14 @@ impl From<MidenLib> for Library {
     }
 }
 
-impl From<MidenLib> for MastForest {
-    fn from(value: MidenLib) -> Self {
-        value.0.into()
-    }
-}
-
 impl Default for MidenLib {
     fn default() -> Self {
-        let contents = Library::read_from_bytes(MIDEN_LIB_BYTES).expect("failed to read masl!");
-        Self(contents)
+        static MIDEN_LIB: LazyLock<MidenLib> = LazyLock::new(|| {
+            let contents =
+                Library::read_from_bytes(MIDEN_LIB_BYTES).expect("failed to read miden lib masl!");
+            MidenLib(contents)
+        });
+        MIDEN_LIB.clone()
     }
 }
 

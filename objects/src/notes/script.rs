@@ -35,7 +35,7 @@ impl NoteScript {
     pub fn new(code: Program) -> Self {
         Self {
             entrypoint: code.entrypoint(),
-            mast: Arc::new(code.into()),
+            mast: code.mast_forest().clone(),
         }
     }
 
