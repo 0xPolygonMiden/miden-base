@@ -4,6 +4,7 @@ use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
+use crate::accounts::AccountComponent;
 
 mod slot;
 pub use slot::{StorageSlot, StorageSlotType};
@@ -47,6 +48,19 @@ impl AccountStorage {
         }
 
         Ok(Self { slots })
+    }
+
+    // TODO Document.
+    pub fn from_components(
+        components: &[AccountComponent],
+    ) -> Result<AccountStorage, AccountError> {
+        let storage_slots = components
+            .into_iter()
+            .flat_map(|component| component.storage_slots())
+            .cloned()
+            .collect();
+
+        Self::new(storage_slots)
     }
 
     // PUBLIC ACCESSORS

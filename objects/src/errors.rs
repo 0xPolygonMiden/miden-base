@@ -22,7 +22,8 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
-    AccountCodeAssemblyError(String), // TODO: use Report
+    AccountCodeAssemblyError(String),       // TODO: use Report
+    AccountCodeMergeError(String), // TODO: use MastForestError once it implements Clone
     AccountCodeDeserializationError(DeserializationError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },

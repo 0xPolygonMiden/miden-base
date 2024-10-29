@@ -11,7 +11,11 @@ pub use account_id::{
 };
 
 pub mod auth;
+
 pub use auth::AuthSecretKey;
+
+mod component;
+pub use component::AccountComponent;
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
@@ -92,6 +96,20 @@ impl Account {
         nonce: Felt,
     ) -> Self {
         Self { id, vault, storage, code, nonce }
+    }
+
+    // TODO: Document.
+    pub fn from_components(
+        seed: Word,
+        account_type: AccountType,
+        components: &[AccountComponent],
+    ) -> Result<Self, AccountError> {
+        let code = AccountCode::from_components(components, account_type)?;
+        let storage = AccountStorage::from_components(components)?;
+        let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
+        let vault = AssetVault::default();
+        let nonce = ZERO;
+        Ok(Self { id, vault, storage, code, nonce })
     }
 
     // PUBLIC ACCESSORS

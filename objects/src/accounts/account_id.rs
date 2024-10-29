@@ -39,6 +39,18 @@ pub enum AccountType {
     RegularAccountUpdatableCode = REGULAR_ACCOUNT_UPDATABLE_CODE,
 }
 
+impl AccountType {
+    /// Returns `true` if the account is a faucet.
+    pub fn is_faucet(&self) -> bool {
+        matches!(self, Self::FungibleFaucet | Self::NonFungibleFaucet)
+    }
+
+    /// Returns `true` if the account is a regular account.
+    pub fn is_regular_account(&self) -> bool {
+        matches!(self, Self::RegularAccountImmutableCode | Self::RegularAccountUpdatableCode)
+    }
+}
+
 /// Extracts the [AccountType] encoded in an u64.
 ///
 /// The account id is encoded in the bits `[62,60]` of the u64, see [ACCOUNT_TYPE_MASK].

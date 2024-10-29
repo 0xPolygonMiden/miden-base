@@ -1,4 +1,6 @@
-use alloc::{string::ToString, sync::Arc, vec::Vec};
+use std::println;
+
+use alloc::{collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
 use assembly::{Assembler, Compile, Library};
 use vm_core::mast::MastForest;
@@ -7,6 +9,7 @@ use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
     Hasher, Serializable,
 };
+use crate::accounts::{AccountComponent, AccountType};
 
 pub mod procedure;
 use procedure::AccountProcedureInfo;
@@ -88,6 +91,68 @@ impl AccountCode {
             commitment: build_procedure_commitment(&procedures),
             procedures,
             mast: library.mast_forest().clone(),
+        })
+    }
+
+    // TODO: Document.
+    pub fn from_components(
+        components: &[AccountComponent],
+        account_type: AccountType,
+    ) -> Result<Self, AccountError> {
+        let (merged_mast_forest, _) =
+            MastForest::merge(components.iter().map(|component| component.mast_forest()))
+                .map_err(|err| AccountError::AccountCodeMergeError(err.to_string()))?;
+
+        let mut procedures = Vec::new();
+        let mut proc_root_set = BTreeSet::new();
+        let mut component_storage_offset = if account_type.is_faucet() { 1 } else { 0 };
+        for component in components {
+            let AccountComponent { code: library, storage_slots } = component;
+            let component_storage_size: u8 = storage_slots
+                .len()
+                .try_into()
+                .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
+
+            for module in library.module_infos() {
+                for proc_mast_root in module.procedure_digests() {
+                    // We cannot support procedures from multiple components with the same MAST root
+                    // since storage offsets/sizes are set per MAST root. Setting them again
+                    // for procedures where the offset has already been inserted would cause that
+                    // procedure of the earlier component to write to the wrong
+                    // slot.
+                    if !proc_root_set.insert(proc_mast_root) {
+                        return Err(AccountError::AccountCodeMergeError(format!(
+                            "procedure with MAST root {proc_mast_root} is present in multiple account components"
+                        )));
+                    }
+
+                    // Note: Offset and size are validated in `AccountProcedureInfo::new`.
+                    procedures.push(AccountProcedureInfo::new(
+                        proc_mast_root,
+                        component_storage_offset,
+                        component_storage_size,
+                    )?);
+                }
+            }
+
+            component_storage_offset = component_storage_offset.checked_add(component_storage_size)
+              .expect("account procedure info constructor should return an error if the addition overflows");
+        }
+
+        // make sure the number of procedures is between 1 and 256 (both inclusive)
+        if procedures.is_empty() {
+            return Err(AccountError::AccountCodeNoProcedures);
+        } else if procedures.len() > Self::MAX_NUM_PROCEDURES {
+            return Err(AccountError::AccountCodeTooManyProcedures {
+                max: Self::MAX_NUM_PROCEDURES,
+                actual: procedures.len(),
+            });
+        }
+
+        Ok(Self {
+            commitment: build_procedure_commitment(&procedures),
+            procedures,
+            mast: Arc::new(merged_mast_forest),
         })
     }
 
