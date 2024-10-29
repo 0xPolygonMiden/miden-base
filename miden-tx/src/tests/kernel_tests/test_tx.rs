@@ -765,10 +765,16 @@ fn test_load_foreign_account_twice() {
         use.miden::account
 
         export.get_item_foreign
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.1 drop
             exec.account::get_item_foreign
         end
 
         export.get_map_item_foreign
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.2 drop
             exec.account::get_map_item_foreign
         end
     ";
@@ -780,7 +786,7 @@ fn test_load_foreign_account_twice() {
     let storage_slot = AccountStorage::mock_item_0().slot;
     let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_storage_slot(storage_slot)
-        .code(foreign_account_code)
+        .code(foreign_account_code.clone())
         .nonce(ONE)
         .build()
         .unwrap();
@@ -806,7 +812,7 @@ fn test_load_foreign_account_twice() {
             push.0
 
             # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{foreign_account_id}
@@ -824,7 +830,7 @@ fn test_load_foreign_account_twice() {
             push.0
 
             # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{foreign_account_id}
@@ -839,6 +845,8 @@ fn test_load_foreign_account_twice() {
             exec.sys::truncate_stack
         end
         ",
+        // `get_item_foreign` procedure has index 0
+        get_item_foreign_hash = foreign_account_code.procedures()[0].mast_root()
     );
 
     let tx_script =
@@ -861,20 +869,10 @@ fn test_load_foreign_account_twice() {
 
     let mut executor: TransactionExecutor =
         TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
-    executor.load_account_code(foreign_account_id, foreign_account.code());
-
-    let foreign_account_code_commitments = vec![foreign_account.code().commitment()];
+    executor.load_account_code(foreign_account.code());
 
     let _executed_transaction = executor
-        .execute_transaction(
-            account.id(),
-            block_ref,
-            &note_ids,
-            tx_context
-                .tx_args()
-                .clone()
-                .with_foreign_code(&foreign_account_code_commitments),
-        )
+        .execute_transaction(account.id(), block_ref, &note_ids, tx_context.tx_args().clone())
         .map_err(|e| e.to_string())
         .unwrap();
 }

@@ -574,7 +574,8 @@ impl TransactionContextBuilder {
             self.tx_script,
             Some(self.note_args),
             self.advice_map.unwrap_or_default(),
-        );
+        )
+        .with_advice_inputs(self.advice_inputs.clone());
 
         let input_note_ids: Vec<NoteId> =
             mock_chain.available_notes().iter().map(|n| n.id()).collect();

@@ -32,7 +32,6 @@ pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
     advice_inputs: AdviceInputs,
-    foreign_account_code_commitments: Vec<Digest>,
 }
 
 impl TransactionArgs {
@@ -60,7 +59,6 @@ impl TransactionArgs {
             tx_script,
             note_args: note_args.unwrap_or_default(),
             advice_inputs,
-            ..Default::default()
         }
     }
 
@@ -72,6 +70,11 @@ impl TransactionArgs {
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
     pub fn with_note_args(note_args: BTreeMap<NoteId, Word>) -> Self {
         Self::new(None, Some(note_args), AdviceMap::default())
+    }
+
+    pub fn with_advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
+        self.advice_inputs.extend(advice_inputs);
+        self
     }
 
     // PUBLIC ACCESSORS
@@ -90,10 +93,6 @@ impl TransactionArgs {
     /// Returns a reference to the args [AdviceInputs].
     pub fn advice_inputs(&self) -> &AdviceInputs {
         &self.advice_inputs
-    }
-
-    pub fn foreign_account_code_commitments(&self) -> &Vec<Digest> {
-        &self.foreign_account_code_commitments
     }
 
     // STATE MUTATORS
@@ -149,11 +148,6 @@ impl TransactionArgs {
     pub fn extend_merkle_store<I: Iterator<Item = InnerNodeInfo>>(&mut self, iter: I) {
         self.advice_inputs.extend_merkle_store(iter)
     }
-
-    pub fn with_foreign_code(mut self, code_commitments: &[Digest]) -> Self {
-        self.foreign_account_code_commitments.extend(code_commitments);
-        self
-    }
 }
 
 impl Serializable for TransactionArgs {
@@ -161,7 +155,6 @@ impl Serializable for TransactionArgs {
         self.tx_script.write_into(target);
         self.note_args.write_into(target);
         self.advice_inputs.write_into(target);
-        self.foreign_account_code_commitments.write_into(target);
     }
 }
 
@@ -170,14 +163,8 @@ impl Deserializable for TransactionArgs {
         let tx_script = Option::<TransactionScript>::read_from(source)?;
         let note_args = BTreeMap::<NoteId, Word>::read_from(source)?;
         let advice_inputs = AdviceInputs::read_from(source)?;
-        let foreign_account_code_commitments = Vec::<Digest>::read_from(source)?;
 
-        Ok(Self {
-            tx_script,
-            note_args,
-            advice_inputs,
-            foreign_account_code_commitments,
-        })
+        Ok(Self { tx_script, note_args, advice_inputs })
     }
 }
 

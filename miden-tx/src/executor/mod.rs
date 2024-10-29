@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -6,7 +6,7 @@ use miden_objects::{
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
-    MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
+    Digest, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
 use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -37,6 +37,7 @@ pub struct TransactionExecutor {
     mast_store: Arc<TransactionMastStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     exec_options: ExecutionOptions,
+    foreign_account_code_commitments: Vec<Digest>,
 }
 
 impl TransactionExecutor {
@@ -62,6 +63,7 @@ impl TransactionExecutor {
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
+            foreign_account_code_commitments: Vec::new(),
         }
     }
 
@@ -97,10 +99,12 @@ impl TransactionExecutor {
 
     /// Loads the provided code into the internal MAST store and associates the procedures of the
     /// account code with the specified account ID.
-    pub fn load_account_code(&mut self, _account_id: AccountId, code: &AccountCode) {
-        // TODO: account_id is not used yet, but it could be used to build a procedure map for the
-        // loaded accounts
+    pub fn load_account_code(&mut self, code: &AccountCode) {
+        // load the code mast forest to the mast store
         self.mast_store.load_account_code(code);
+
+        // store the commitment of the foreign account code
+        self.foreign_account_code_commitments.push(code.commitment());
     }
 
     // TRANSACTION EXECUTION
@@ -128,15 +132,8 @@ impl TransactionExecutor {
             maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(
-            &tx_inputs,
-            &tx_args,
-            Some(
-                self.data_store
-                    .get_advice_inputs(account_id, block_ref, notes)
-                    .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?,
-            ),
-        );
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
         // load note script MAST into the MAST store
@@ -147,7 +144,7 @@ impl TransactionExecutor {
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
-            tx_args.foreign_account_code_commitments(),
+            &self.foreign_account_code_commitments,
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
