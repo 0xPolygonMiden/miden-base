@@ -1,18 +1,22 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use pingora::{
     apps::HttpServerOptions,
     http::ResponseHeader,
+    lb::Backend,
     prelude::*,
     upstreams::peer::{Peer, ALPN},
 };
 use pingora_core::{prelude::Opt, server::Server, upstreams::peer::HttpPeer, Result};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
+use tokio::sync::RwLock;
+use tracing::error;
 
-const TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(30));
+const TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(100));
+const MAX_QUEUE_ITEMS: usize = 10;
 
 fn main() {
     tracing_subscriber::fmt().init();
@@ -46,7 +50,11 @@ pub struct LB(Arc<LoadBalancer<RoundRobin>>);
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
 
 // max request per second per client
-static MAX_REQ_PER_SEC: isize = 1;
+static MAX_REQ_PER_SEC: isize = 10000;
+
+// Shared state
+static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
 
 #[async_trait]
 impl ProxyHttp for LB {
@@ -56,10 +64,44 @@ impl ProxyHttp for LB {
 
     async fn upstream_peer(
         &self,
-        _session: &mut Session,
+        session: &mut Session,
         _ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
         let upstream = self.0.select(b"", 256).unwrap();
+
+        // read request ID from headers
+        let request_id = session
+            .get_header("X-Request-ID")
+            .expect("Request ID not found")
+            .to_str()
+            .expect("Invalid header value");
+
+        {
+            let mut ctx_guard = QUEUES.write().await;
+            let backend_queue = ctx_guard.entry(upstream.clone()).or_insert_with(|| Vec::new());
+
+            // Limit queue length to MAX_QUEUE_ITEMS requests
+            if backend_queue.len() >= MAX_QUEUE_ITEMS {
+                panic!("Too many requests in the queue");
+                // return Err(Box::new("Too many requests in the queue".into()));
+            }
+
+            backend_queue.push(request_id.to_string());
+        }
+
+        // This is a hack to wait for the request to be processed
+        let mut cond = true;
+        while cond {
+            {
+                let ctx_guard = QUEUES.read().await;
+                let backend_queue = ctx_guard.get(&upstream).expect("Upstream not found");
+                if backend_queue[0] == request_id {
+                    cond = false;
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+
         // Set SNI
         let mut http_peer = HttpPeer::new(upstream, false, "".to_string());
         let peer_opts = http_peer.get_mut_peer_options().unwrap();
@@ -105,6 +147,13 @@ impl ProxyHttp for LB {
         let client_addr = session.client_addr();
         let user_id = client_addr.map(|addr| addr.to_string());
 
+        // Request ID is a random number
+        let request_id = rand::random::<u64>().to_string();
+        session
+            .req_header_mut()
+            .insert_header("X-Request-ID", request_id)
+            .expect("Failed to insert header");
+
         // retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
 
@@ -119,5 +168,40 @@ impl ProxyHttp for LB {
             return Ok(true);
         }
         Ok(false)
+    }
+
+    async fn logging(&self, session: &mut Session, e: Option<&Error>, _ctx: &mut Self::CTX)
+    where
+        Self::CTX: Send + Sync,
+    {
+        if let Some(e) = e {
+            error!("Error: {:?}", e);
+        }
+
+        // Get the request ID from the session
+        let request_id = session
+            .get_header("X-Request-ID")
+            .expect("Request ID not found")
+            .to_str()
+            .expect("Invalid header value");
+
+        // Remove the completed request from the backend queue
+        // Maybe we can replace this with a read lock and using write only in the moment of the
+        // deletion.
+        let mut ctx_guard = QUEUES.write().await;
+
+        // Get the upstream by checking each backend queue
+        let upstream = ctx_guard
+            .iter()
+            .find(|(_, queue)| queue.contains(&request_id.to_string()))
+            .map(|(upstream, _)| upstream.clone())
+            .expect("Upstream not found");
+
+        // Remove the request ID from the queue for the specific backend
+        if let Some(backend_queue) = ctx_guard.get_mut(&upstream) {
+            if !backend_queue.is_empty() {
+                backend_queue.remove(0);
+            }
+        }
     }
 }
