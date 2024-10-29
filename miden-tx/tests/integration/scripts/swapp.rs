@@ -109,18 +109,26 @@ fn test_swapp_script_partial_swap() {
     let mut chain = MockChain::new();
 
     // create assets
-    let faucet_1 = chain.add_existing_faucet(Auth::NoAuth, "BTC", 10);
-    let faucet_2 = chain.add_existing_faucet(Auth::NoAuth, "ETH", 10);
+    let faucet_1 = chain.add_existing_faucet(Auth::NoAuth, "BTC", 1_000_000_000);
+    let faucet_2 = chain.add_existing_faucet(Auth::NoAuth, "ETH", 20_000_000_000_000);
 
     let offered_asset = faucet_1.mint(1_000_000_000);
     let requested_asset = faucet_2.mint(20_000_000_000_000);
 
+    // assets for note checks
+    let filled_requested_asset = faucet_2.mint(7_000_000_000_000);
+    let remaining_offered_asset = faucet_1.mint(650_000_000);
+    let remaining_requested_asset = faucet_2.mint(13_000_000_000_000);
+
+    // assets for target account vault after transaction
+    let received_offered_asset = faucet_1.mint(350_000_000);
+
     // create sender and target account
-    let sender = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
-    let target = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
+    let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
+    let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
 
     let note = create_swapp_note(
-        sender.id(),
+        sender_account.id(),
         offered_asset,
         requested_asset,
         NoteType::Public,
@@ -140,7 +148,7 @@ fn test_swapp_script_partial_swap() {
             .unwrap();
 
     let mut tx_context = chain
-        .build_tx_context(target.id())
+        .build_tx_context(target_account.id())
         .tx_script(transaction_script.clone())
         .build();
 
@@ -158,5 +166,54 @@ fn test_swapp_script_partial_swap() {
 
     let executed_transaction = tx_context.execute().unwrap();
 
-    println!("Executed transaction: {:#?}", executed_transaction);
+    // target account vault delta
+    let target_account_after: Account = Account::from_parts(
+        target_account.id(),
+        AssetVault::new(&[received_offered_asset, remaining_requested_asset]).unwrap(),
+        target_account.storage().clone(),
+        target_account.code().clone(),
+        Felt::new(2),
+    );
+
+    // Check that the target account has received the asset from the note
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+
+    // Check if only two `Note`s have been created
+    assert_eq!(executed_transaction.output_notes().num_notes(), 2);
+
+    // Check if the output `Note`s are what we expect
+
+    // P2ID note
+    let recipient = executed_transaction.output_notes().get_note(0).recipient_digest().unwrap();
+    let tag = NoteTag::from_account_id(sender_account.id(), NoteExecutionMode::Local).unwrap();
+    let note_metadata = NoteMetadata::new(
+        target_account.id(),
+        NoteType::Private,
+        tag,
+        NoteExecutionHint::Always,
+        ZERO,
+    )
+    .unwrap();
+    let assets = NoteAssets::new(vec![filled_requested_asset]).unwrap();
+    let note_id = NoteId::new(recipient, assets.commitment());
+    let p2id_output_note = executed_transaction.output_notes().get_note(0);
+
+    assert_eq!(NoteHeader::from(p2id_output_note), NoteHeader::new(note_id, note_metadata));
+
+    // SWAPP note
+    let recipient = executed_transaction.output_notes().get_note(1).recipient_digest().unwrap();
+    let tag = NoteTag::from_account_id(sender_account.id(), NoteExecutionMode::Local).unwrap();
+    let note_metadata = NoteMetadata::new(
+        target_account.id(),
+        NoteType::Private,
+        tag,
+        NoteExecutionHint::Always,
+        ZERO,
+    )
+    .unwrap();
+    let assets = NoteAssets::new(vec![remaining_offered_asset]).unwrap();
+    let note_id = NoteId::new(recipient, assets.commitment());
+    let swapp_output_note = executed_transaction.output_notes().get_note(1);
+
+    assert_eq!(NoteHeader::from(swapp_output_note), NoteHeader::new(note_id, note_metadata));
 }

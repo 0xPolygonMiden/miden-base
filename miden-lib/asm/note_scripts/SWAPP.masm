@@ -194,12 +194,6 @@ proc.create_swapp_note
     padw mem_loadw.OFFERED_ASSET_PTR
     # => [ASSET, tag, aux, note_type, execution_hint, SWAPP_RECIPIENT]
 
-    # debug
-    push.0 drop
-    debug.stack
-    debug.mem
-    # => []
-
     # create note using inputs
     padw swapdw padw movdnw.2
     # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8), ASSET]
@@ -208,12 +202,6 @@ proc.create_swapp_note
 
     swapw dropw movupw.3
     # => [ASSET, note_idx, PAD(11)]
-
-    # debug
-    push.0 drop
-    debug.stack
-    debug.mem
-    # => []
 
     # move asset to the note
     call.wallet::move_asset_to_note
@@ -330,12 +318,6 @@ begin
       # perform a partial swap
       exec.partial_swap
     end
-
-    # debug
-    push.0 drop
-    debug.stack
-    debug.mem
-    # => []
 
     # clean stack
     exec.sys::truncate_stack
