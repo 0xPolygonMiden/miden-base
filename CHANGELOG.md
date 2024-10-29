@@ -2,6 +2,7 @@
 
 ## 0.6.0 (TBD)
 
+- [BREAKING] Made `TransactionMastForest` and `BasicAuthenticator` be `Send`, `Sync`; made scripts lazily initialize (#939).
 - Added `RemoteTransactionProver` struct to `miden-tx-prover` (#921).
 - [BREAKING] Changed `TransactionProver` trait to be `maybe_async_trait` based on the `async` feature (#913).
 - [BREAKING] Changed `TransactionExecutor` and `TransactionHost` to use trait objects (#897).
