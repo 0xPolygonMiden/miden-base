@@ -89,14 +89,18 @@ impl ProxyHttp for LB {
             backend_queue.push(request_id.to_string());
         }
 
-        // This is a hack to wait for the request to be processed
-        let mut cond = true;
-        while cond {
+        // Wait for the request to be at the front of the queue
+        loop {
+            // We use a new scope for each iteration to release the lock
             {
                 let ctx_guard = QUEUES.read().await;
-                let backend_queue = ctx_guard.get(&upstream).expect("Upstream not found");
-                if backend_queue[0] == request_id {
-                    cond = false;
+                if let Some(backend_queue) = ctx_guard.get(&upstream) {
+                    if backend_queue[0] == request_id {
+                        break;
+                    }
+                } else {
+                    // TODO: replace this panic with an error
+                    panic!("Upstream not found");
                 }
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
