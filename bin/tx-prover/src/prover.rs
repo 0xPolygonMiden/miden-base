@@ -1,4 +1,7 @@
-use alloc::{boxed::Box, string::ToString};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+};
 use core::cell::RefCell;
 
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
@@ -11,39 +14,57 @@ use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 
 /// A [RemoteTransactionProver] is a transaction prover that sends witness data to a remote
 /// gRPC server and receives a proven transaction.
+///
+/// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
+/// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
+///
+/// The transport layer connection is established lazily when the first transaction is proven.
 #[derive(Clone)]
 pub struct RemoteTransactionProver {
     #[cfg(target_arch = "wasm32")]
-    client: RefCell<ApiClient<tonic_web_wasm_client::Client>>,
+    client: RefCell<Option<ApiClient<tonic_web_wasm_client::Client>>>,
 
     #[cfg(not(target_arch = "wasm32"))]
-    client: RefCell<ApiClient<tonic::transport::Channel>>,
+    client: RefCell<Option<ApiClient<tonic::transport::Channel>>>,
+
+    endpoint: String,
 }
 
 impl RemoteTransactionProver {
-    /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint.
-    /// This instantiates a tonic client that attempts connecting with the server.
-    ///
-    /// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
-    /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if the endpoint is invalid or if the gRPC
-    /// connection to the server cannot be established.
-    pub async fn new(endpoint: &str) -> Result<Self, RemoteTransactionProverError> {
+    /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint. The
+    /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
+    pub fn new(endpoint: &str) -> Self {
+        RemoteTransactionProver {
+            endpoint: endpoint.to_string(),
+            client: RefCell::new(None),
+        }
+    }
+
+    /// Establishes a connection to the remote transaction prover server. The connection is
+    /// mantained for the lifetime of the prover. If the connection is already established, this
+    /// method does nothing.
+    async fn connect(&self) -> Result<(), RemoteTransactionProverError> {
+        let mut client = self.client.borrow_mut();
+        if client.is_some() {
+            return Ok(());
+        }
+
         #[cfg(target_arch = "wasm32")]
-        let client = {
-            let web_client = tonic_web_wasm_client::Client::new(endpoint.to_string());
+        let new_client = {
+            let web_client = tonic_web_wasm_client::Client::new(self.endpoint.clone());
             ApiClient::new(web_client)
         };
 
         #[cfg(not(target_arch = "wasm32"))]
-        let client = ApiClient::connect(endpoint.to_string())
-            .await
-            .map_err(|_| RemoteTransactionProverError::ConnectionFailed(endpoint.to_string()))?;
+        let new_client = {
+            ApiClient::connect(self.endpoint.clone()).await.map_err(|_| {
+                RemoteTransactionProverError::ConnectionFailed(self.endpoint.to_string())
+            })?
+        };
 
-        Ok(RemoteTransactionProver { client: RefCell::new(client) })
+        *client = Some(new_client);
+
+        Ok(())
     }
 }
 
@@ -54,6 +75,13 @@ impl TransactionProver for RemoteTransactionProver {
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         use miden_objects::utils::Serializable;
+        self.connect().await.map_err(|err| {
+            TransactionProverError::InternalError(format!(
+                "Failed to connect to the remote prover: {}",
+                err
+            ))
+        })?;
+
         let mut client = self.client.borrow_mut();
 
         let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
@@ -61,6 +89,8 @@ impl TransactionProver for RemoteTransactionProver {
         });
 
         let response = client
+            .as_mut()
+            .expect("client should be connected")
             .prove_transaction(request)
             .await
             .map_err(|err| TransactionProverError::InternalError(err.to_string()))?;

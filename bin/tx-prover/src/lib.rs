@@ -22,3 +22,16 @@ pub enum RemoteTransactionProverError {
     /// Indicates that the connection to the server failed.
     ConnectionFailed(String),
 }
+
+impl std::fmt::Display for RemoteTransactionProverError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            RemoteTransactionProverError::InvalidEndpoint(endpoint) => {
+                write!(f, "Invalid endpoint: {}", endpoint)
+            },
+            RemoteTransactionProverError::ConnectionFailed(endpoint) => {
+                write!(f, "Failed to connect to transaction prover at: {}", endpoint)
+            },
+        }
+    }
+}
