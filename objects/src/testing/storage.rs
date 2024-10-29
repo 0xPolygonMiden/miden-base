@@ -133,12 +133,11 @@ pub const STORAGE_LEAVES_2: [(Digest, Word); 2] = [
 impl AccountStorage {
     /// Create account storage:
     pub fn mock() -> Self {
-        AccountStorage::new(vec![
-            Self::mock_item_0().slot,
-            Self::mock_item_1().slot,
-            Self::mock_item_2().slot,
-        ])
-        .unwrap()
+        AccountStorage::new(Self::mock_storage_slots()).unwrap()
+    }
+
+    pub fn mock_storage_slots() -> Vec<StorageSlot> {
+        vec![Self::mock_item_0().slot, Self::mock_item_1().slot, Self::mock_item_2().slot]
     }
 
     pub fn mock_item_0() -> SlotWithIndex {

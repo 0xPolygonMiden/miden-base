@@ -13,7 +13,7 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        AccountCode, AccountProcedureInfo, AccountStorage,
+        AccountCode, AccountComponent, AccountStorage,
     },
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
@@ -21,7 +21,7 @@ use miden_objects::{
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
-        account::AccountBuilder,
+        account_builder::AccountBuilder,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
         prepare_word,
@@ -116,28 +116,14 @@ fn transaction_executor_witness() {
 }
 
 #[test]
-fn executed_transaction_account_delta() {
-    let account_code =
-        AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false);
+fn executed_transaction_account_delta_new() {
+    let account_component = AccountComponent::mock_account_component(
+        TransactionKernel::testing_assembler(),
+        AccountStorage::mock_storage_slots(),
+    );
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-
-    // modify procedure storage sizes
-    // TODO: We manually modify the sizes here to 3 because they are hardcoded as 1.
-    // Though we are accessing multiple storage slots up to 2 in this test.
-    // Remove this manual modification once we have the ability to set sizes using the assembler.
-    let procedures = account_code
-        .procedures()
-        .iter()
-        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 3).unwrap())
-        .collect();
-    let account_code = AccountCode::from_parts(account_code.mast(), procedures);
     let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slots([
-            AccountStorage::mock_item_0().slot,
-            AccountStorage::mock_item_1().slot,
-            AccountStorage::mock_item_2().slot,
-        ])
-        .code(account_code)
+        .add_component(account_component)
         .add_assets(account_assets)
         .nonce(ONE)
         .build()

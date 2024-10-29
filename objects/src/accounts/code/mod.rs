@@ -1,5 +1,3 @@
-use std::println;
-
 use alloc::{collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
 use assembly::{Assembler, Compile, Library};

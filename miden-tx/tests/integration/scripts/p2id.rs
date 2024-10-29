@@ -9,12 +9,12 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        Account, AccountId, AccountType, StorageSlot,
+        Account, AccountComponent, AccountId, AccountType,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
-    testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
+    testing::{account_builder::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
     transaction::{TransactionArgs, TransactionScript},
     Felt, FieldElement,
 };
@@ -360,11 +360,11 @@ fn prove_consume_multiple_notes() {
 fn create_new_account() -> (Account, Word, Arc<dyn TransactionAuthenticator>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
-    let storage_slot = StorageSlot::Value(pub_key);
-
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slot(storage_slot)
-        .default_code(TransactionKernel::testing_assembler())
+        .add_component(AccountComponent::default_account_component(
+            TransactionKernel::testing_assembler(),
+            Some(pub_key),
+        ))
         .account_type(AccountType::RegularAccountUpdatableCode)
         .nonce(Felt::ZERO)
         .build()

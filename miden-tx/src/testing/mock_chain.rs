@@ -4,14 +4,17 @@ use core::fmt;
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
-        delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountType, AuthSecretKey,
-        StorageSlot,
+        delta::AccountUpdateDetails, Account, AccountComponent, AccountDelta, AccountId,
+        AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
-    crypto::merkle::{Mmr, MmrError, PartialMmr, Smt},
+    crypto::{
+        dsa::rpo_falcon512::SecretKey,
+        merkle::{Mmr, MmrError, PartialMmr, Smt},
+    },
     notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
-    testing::account::AccountBuilder,
+    testing::account_builder::AccountBuilder,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
         TransactionId, TransactionInputs,
@@ -301,7 +304,6 @@ impl MockChain {
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -309,7 +311,6 @@ impl MockChain {
 
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -321,20 +322,17 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let metadata: [Felt; 4] = [
+        let faucet_metadata: [Felt; 4] = [
             max_supply.try_into().unwrap(),
             Felt::new(10),
             TokenSymbol::new(token_symbol).unwrap().into(),
             ZERO,
         ];
 
-        let faucet_metadata = StorageSlot::Value(metadata);
-
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
-            .add_storage_slot(faucet_metadata);
+            .faucet_metadata(faucet_metadata);
 
         let account = self.add_from_account_builder(auth_method, account_builder);
 
@@ -347,20 +345,17 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let metadata: [Felt; 4] = [
+        let faucet_metadata: [Felt; 4] = [
             max_supply.try_into().unwrap(),
             Felt::new(10),
             TokenSymbol::new(token_symbol).unwrap().into(),
             ZERO,
         ];
 
-        let faucet_metadata = StorageSlot::Value(metadata);
-
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .default_code(TransactionKernel::testing_assembler())
+            .faucet_metadata(faucet_metadata)
             .nonce(Felt::ONE)
-            .account_type(AccountType::FungibleFaucet)
-            .add_storage_slot(faucet_metadata);
+            .account_type(AccountType::FungibleFaucet);
         MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
     }
 
@@ -374,18 +369,32 @@ impl MockChain {
         let (account, seed, authenticator) = match auth_method {
             Auth::BasicAuth => {
                 let mut rng = ChaCha20Rng::from_seed(Default::default());
+                let sec_key = SecretKey::with_rng(&mut rng);
+                let pub_key = sec_key.public_key();
 
-                let (acc, seed, auth) = account_builder.build_with_auth(&mut rng).unwrap();
+                let (acc, seed) = account_builder
+                    .add_component(AccountComponent::default_account_component(
+                        TransactionKernel::testing_assembler(),
+                        Some(pub_key.into()),
+                    ))
+                    .build()
+                    .unwrap();
 
                 let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
-                    &[(auth.public_key().into(), AuthSecretKey::RpoFalcon512(auth))],
+                    &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
                     rng,
                 );
 
                 (acc, seed, Some(authenticator))
             },
             Auth::NoAuth => {
-                let (account, seed) = account_builder.build().unwrap();
+                let (account, seed) = account_builder
+                    .add_component(AccountComponent::default_account_component(
+                        TransactionKernel::testing_assembler(),
+                        None,
+                    ))
+                    .build()
+                    .unwrap();
                 (account, seed, None)
             },
         };

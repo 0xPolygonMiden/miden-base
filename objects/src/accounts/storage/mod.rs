@@ -55,10 +55,21 @@ impl AccountStorage {
         components: &[AccountComponent],
     ) -> Result<AccountStorage, AccountError> {
         let storage_slots = components
-            .into_iter()
+            .iter()
             .flat_map(|component| component.storage_slots())
             .cloned()
             .collect();
+
+        Self::new(storage_slots)
+    }
+
+    pub fn from_components_with_faucet_metadata(
+        components: &[AccountComponent],
+        faucet_metadata: Word,
+    ) -> Result<AccountStorage, AccountError> {
+        let mut storage_slots = vec![StorageSlot::Value(faucet_metadata)];
+        storage_slots
+            .extend(components.iter().flat_map(|component| component.storage_slots()).cloned());
 
         Self::new(storage_slots)
     }

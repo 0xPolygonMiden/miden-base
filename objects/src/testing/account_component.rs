@@ -1,0 +1,150 @@
+use alloc::{sync::Arc, vec::Vec};
+
+use assembly::{ast::Module, Assembler, Library, LibraryPath};
+use vm_core::Word;
+
+use crate::accounts::{AccountComponent, StorageSlot};
+
+// ACCOUNT ASSEMBLY CODE
+// ================================================================================================
+
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    export.::miden::contracts::wallets::basic::receive_asset
+    export.::miden::contracts::wallets::basic::create_note
+    export.::miden::contracts::wallets::basic::move_asset_to_note
+    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+";
+
+pub const DEFAULT_AUTH_SCRIPT: &str = "
+    begin
+        call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+    end
+";
+
+impl AccountComponent {
+    // TODO: Document pub key option.
+    pub fn default_account_component(
+        assembler: Assembler,
+        falcon_pub_key: Option<Word>,
+    ) -> AccountComponent {
+        AccountComponent::compile(
+            DEFAULT_ACCOUNT_CODE,
+            assembler,
+            // If no key is provided we need to put an empty word into it, otherwise the storage
+            // size will be 0 which is an error.
+            vec![StorageSlot::Value(falcon_pub_key.unwrap_or_default())],
+        )
+        .unwrap()
+    }
+
+    pub fn default_account_component_with_storage(
+        assembler: Assembler,
+        storage_slots: Vec<StorageSlot>,
+    ) -> AccountComponent {
+        AccountComponent::compile(DEFAULT_ACCOUNT_CODE, assembler, storage_slots).unwrap()
+    }
+
+    pub fn mock_account_component(
+        assembler: Assembler,
+        storage_slots: Vec<StorageSlot>,
+    ) -> AccountComponent {
+        AccountComponent::new(Self::mock_library(assembler), storage_slots)
+    }
+
+    /// Creates a mock [Library] which can be used to assemble programs and as a library to create a
+    /// mock [AccountCode] interface. Transaction and note scripts that make use of this interface
+    /// should be assembled with this.
+    pub fn mock_library(assembler: Assembler) -> Library {
+        let code = "
+      use.miden::account
+      use.miden::faucet
+      use.miden::tx
+
+      export.::miden::contracts::wallets::basic::receive_asset
+      export.::miden::contracts::wallets::basic::create_note
+      export.::miden::contracts::wallets::basic::move_asset_to_note
+
+      export.::miden::account::get_item_foreign
+      export.::miden::account::get_map_item_foreign
+
+      export.incr_nonce
+          push.0 swap
+          # => [value, 0]
+          exec.account::incr_nonce
+          # => [0]
+      end
+
+      export.set_item
+          exec.account::set_item
+          # => [R', V, 0, 0, 0]
+          movup.8 drop movup.8 drop movup.8 drop
+          # => [R', V]
+      end
+
+      export.get_item
+          exec.account::get_item
+          movup.8 drop movup.8 drop movup.8 drop
+      end
+
+      export.set_map_item
+          exec.account::set_map_item
+          # => [R', V, 0, 0, 0]
+          movup.8 drop movup.8 drop movup.8 drop
+          # => [R', V]
+      end
+
+      export.get_map_item
+          exec.account::get_map_item
+      end
+
+      export.set_code
+          padw swapw
+          # => [CODE_COMMITMENT, 0, 0, 0, 0]
+          exec.account::set_code
+          # => [0, 0, 0, 0]
+      end
+
+      export.add_asset_to_note
+          exec.tx::add_asset_to_note
+          # => [ASSET, note_idx]
+      end
+
+      export.add_asset
+          exec.account::add_asset
+      end
+
+      export.remove_asset
+          exec.account::remove_asset
+          # => [ASSET]
+      end
+
+      export.account_procedure_1
+          push.1.2
+          add
+      end
+
+      export.account_procedure_2
+          push.2.1
+          sub
+      end
+
+      export.mint
+          exec.faucet::mint
+      end
+
+      export.burn
+          exec.faucet::burn
+      end
+
+      export.execute_foreign_procedure
+          exec.tx::execute_foreign_procedure
+      end
+      ";
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        let module = Module::parser(assembly::ast::ModuleKind::Library)
+            .parse_str(LibraryPath::new("test::account").unwrap(), code, &source_manager)
+            .unwrap();
+
+        assembler.assemble_library(&[*module]).unwrap()
+    }
+}
