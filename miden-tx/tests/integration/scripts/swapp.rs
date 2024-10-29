@@ -112,8 +112,8 @@ fn test_swapp_script_partial_swap() {
     let faucet_1 = chain.add_existing_faucet(Auth::NoAuth, "BTC", 10);
     let faucet_2 = chain.add_existing_faucet(Auth::NoAuth, "ETH", 10);
 
-    let offered_asset = faucet_1.mint(10);
-    let requested_asset = faucet_2.mint(10);
+    let offered_asset = faucet_1.mint(1_000_000_000);
+    let requested_asset = faucet_2.mint(20_000_000_000_000);
 
     // create sender and target account
     let sender = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
@@ -144,7 +144,7 @@ fn test_swapp_script_partial_swap() {
         .tx_script(transaction_script.clone())
         .build();
 
-    let note_args = [Felt::new(5), Felt::new(0), Felt::new(0), Felt::new(0)];
+    let note_args = [Felt::new(7_000_000_000_000), Felt::new(0), Felt::new(0), Felt::new(0)];
 
     let note_args_map = BTreeMap::from([(note.id(), note_args)]);
 

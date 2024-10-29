@@ -9,7 +9,7 @@ use.miden::contracts::wallets::basic->wallet
 const.REQUESTED_ASSET_PTR=1
 const.PRIVATE_NOTE=2
 const.OFFERED_ASSET_PTR=3
-const.FILL_AMOUNT_PTR=5
+const.FILL_AMOUNT_PTR=4
 
 # Memory Addresses for Price Calculation Procedure
 const.AMT_TOKENS_A=64
@@ -37,12 +37,6 @@ const.ERR_SWAPP_FILL_AMOUNT_IS_ZERO=0x00020058
 
 # HELPERS
 # =================================================================================================
-
-# # => [offered_token_amount, requested_token_amount, requested_token_fill]
-# proc.calculate_partial_exchange
-#     push.10.2 div
-#     u32split
-# end
 
 #! Returns the amount of tokens_a out given an amount of tokens_b
 #!
@@ -116,9 +110,13 @@ proc.calculate_partial_exchange
     end
 end
 
+#! Creates a new p2id note using inputs from memory
+#!
+#! Stack: []
+#! Output: []
 proc.create_p2id_note
     # load RECIPIENT
-    drop padw mem_loadw
+    padw mem_loadw.0
     # => [RECIPIENT]
 
     padw mem_loadw.1
@@ -158,30 +156,30 @@ proc.create_p2id_note
     # => []
 end
 
-# proc.create_swapp_note
-# end
-
-proc.full_swap
-    # store OFFERED_ASSET into memory
-    push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
-    # => [ptr]
-
-    # load the OFFERED_ASSET and add it to the account
-    mem_loadw call.wallet::receive_asset dropw
-    # => []
-
-    # create p2id note
-    exec.create_p2id_note
-    # => []
+#! Creates a new swapp note using inputs from memory
+#!
+#! Stack: []
+#! Output: []
+proc.create_swapp_note
+    push.0 drop
 end
 
+#! Executes a partial swap
+#!
+#! Stack: []
+#! Output: []
 proc.partial_swap
-    # update the REQUESTED_ASSET with the fill_amount
-    padw mem_loadw.REQUESTED_ASSET_PTR mem_load.FILL_AMOUNT_PTR swap.4 drop mem_storew.REQUESTED_ASSET_PTR dropw
-    # => []
+    # update the requested asset with the fill amount for note creation
+    mem_loadw.REQUESTED_ASSET_PTR dupw mem_load.FILL_AMOUNT_PTR swap.4 drop
+    mem_storew.REQUESTED_ASSET_PTR dropw
+    # => [REQUESTED_ASSET]
 
     # create p2id note (payback note)
     exec.create_p2id_note
+    # => [REQUESTED_ASSET]
+
+    # revert requested asset changes
+    mem_storew.REQUESTED_ASSET_PTR dropw
     # => []
 
     # get inputs for partial exchange
@@ -190,22 +188,38 @@ proc.partial_swap
     padw mem_loadw.OFFERED_ASSET_PTR drop drop drop
     # => [offered_amount, requested_amount, fill_amount]
 
-    # debug
-    push.0 drop
-    debug.stack
-    debug.mem
-    # => [fill_amount]
-
     # calculate partial exchange
     exec.calculate_partial_exchange
+    # => [final_amount]
+
+    # get asset for consumer account
+    padw mem_loadw.OFFERED_ASSET_PTR
+    # => [OFFERED_ASSET, final_amount]
+
+    # update offered asset (remaining)
+    dupw dup.8 movup.4 swap sub movdn.3 mem_storew.OFFERED_ASSET_PTR dropw
+    # => [OFFERED_ASSET, final_amount]
+
+    # add assets to consumer account
+    movup.4 swap.4 drop call.wallet::receive_asset dropw
     # => []
 
-    # store OFFERED_ASSET into memory
-    # push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
-    # => [ptr]
+    # create swapp note
+    # exec.create_swapp_note
+    # => []
+end
 
-    # load the OFFERED_ASSET and add to the account the fill amount
-    # mem_loadw mem_load.FILL_AMOUNT_PTR swap.4 drop call.wallet::receive_asset dropw
+#! Executes a full swap
+#!
+#! Stack: []
+#! Output: []
+proc.full_swap
+    # load the OFFERED_ASSET and add it to the account
+    mem_loadw.OFFERED_ASSET_PTR call.wallet::receive_asset dropw
+    # => []
+
+    # create p2id note
+    exec.create_p2id_note
     # => []
 end
 
@@ -214,20 +228,24 @@ begin
     dropw
     # => [NOTE_ARGS]
 
+    # populate memory with note inputs
+    push.0 exec.note::get_inputs
+    # => [num_inputs, inputs_ptr]
+
+    # make sure the number of inputs is 10
+    eq.10 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS drop
+    # => []
+
+    # store OFFERED_ASSET into memory
+    push.OFFERED_ASSET_PTR exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS drop
+    # => []
+
     # get fill amount from note args
     drop drop drop
     # => [fill_amount]
 
     # store fill amount in memory
     dup mem_store.FILL_AMOUNT_PTR
-    # => [fill_amount]
-
-    # populate memory with note inputs
-    push.0 exec.note::get_inputs
-    # => [num_inputs, inputs_ptr, fill_amount]
-
-    # make sure the number of inputs is 10
-    eq.10 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS drop
     # => [fill_amount]
 
     # get fill amount and requested amount
@@ -258,7 +276,7 @@ begin
     push.0 drop
     debug.stack
     debug.mem
-    # => [fill_amount]
+    # => []
 
     # clean stack
     exec.sys::truncate_stack
