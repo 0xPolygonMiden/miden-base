@@ -14,7 +14,7 @@ ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
 
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
-	cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings --allow clippy::arc_with_non_send_sync
+	cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
 
 
 .PHONY: fix

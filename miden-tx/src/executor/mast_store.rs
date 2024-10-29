@@ -1,7 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc};
-use core::cell::RefCell;
 
-use miden_lib::{transaction::TransactionKernel, MidenLib, StdLibrary};
+use miden_lib::{transaction::TransactionKernel, utils::sync::RwLock, MidenLib, StdLibrary};
 use miden_objects::{
     accounts::AccountCode,
     assembly::mast::MastForest,
@@ -21,7 +20,7 @@ use vm_processor::MastForestStore;
 /// references to external procedures, the store must be loaded with [MastForest]s containing these
 /// procedures.
 pub struct TransactionMastStore {
-    mast_forests: RefCell<BTreeMap<Digest, Arc<MastForest>>>,
+    mast_forests: RwLock<BTreeMap<Digest, Arc<MastForest>>>,
 }
 
 #[allow(clippy::new_without_default)]
@@ -33,7 +32,7 @@ impl TransactionMastStore {
     /// - Miden rollup library (miden-lib).
     /// - Transaction kernel.
     pub fn new() -> Self {
-        let mast_forests = RefCell::new(BTreeMap::new());
+        let mast_forests = RwLock::new(BTreeMap::new());
         let store = Self { mast_forests };
 
         // load transaction kernel MAST forest
@@ -80,7 +79,7 @@ impl TransactionMastStore {
 
     /// Registers all procedures of the provided [MastForest] with this store.
     pub fn insert(&self, mast_forest: Arc<MastForest>) {
-        let mut mast_forests = self.mast_forests.borrow_mut();
+        let mut mast_forests = self.mast_forests.write();
 
         // only register procedures that are local to this forest
         for proc_digest in mast_forest.local_procedure_digests() {
@@ -94,6 +93,6 @@ impl TransactionMastStore {
 
 impl MastForestStore for TransactionMastStore {
     fn get(&self, procedure_hash: &Digest) -> Option<Arc<MastForest>> {
-        self.mast_forests.borrow().get(procedure_hash).cloned()
+        self.mast_forests.read().get(procedure_hash).cloned()
     }
 }
