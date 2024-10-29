@@ -78,7 +78,7 @@ impl ProxyHttp for LB {
 
         {
             let mut ctx_guard = QUEUES.write().await;
-            let backend_queue = ctx_guard.entry(upstream.clone()).or_insert_with(|| Vec::new());
+            let backend_queue = ctx_guard.entry(upstream.clone()).or_insert_with(Vec::new);
 
             // Limit queue length to MAX_QUEUE_ITEMS requests
             if backend_queue.len() >= MAX_QUEUE_ITEMS {
