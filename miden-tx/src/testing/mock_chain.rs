@@ -4,8 +4,7 @@ use core::fmt;
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
-        delta::AccountUpdateDetails, Account, AccountComponent, AccountDelta, AccountId,
-        AccountType, AuthSecretKey,
+        delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
@@ -14,7 +13,10 @@ use miden_objects::{
         merkle::{Mmr, MmrError, PartialMmr, Smt},
     },
     notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
-    testing::account_builder::AccountBuilder,
+    testing::{
+        account_builder::AccountBuilder,
+        account_component::{BasicWallet, RpoFalcon512},
+    },
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
         TransactionId, TransactionInputs,
@@ -303,16 +305,22 @@ impl MockChain {
     // ================================================================================================
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .nonce(Felt::ZERO)
-            .add_assets(assets);
+        let account_builder = AccountBuilder::new(
+            ChaCha20Rng::from_entropy(),
+            TransactionKernel::testing_assembler(),
+        )
+        .nonce(Felt::ZERO)
+        .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
 
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .nonce(Felt::ONE)
-            .add_assets(assets);
+        let account_builder = AccountBuilder::new(
+            ChaCha20Rng::from_entropy(),
+            TransactionKernel::testing_assembler(),
+        )
+        .nonce(Felt::ONE)
+        .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
 
@@ -329,10 +337,13 @@ impl MockChain {
             ZERO,
         ];
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .nonce(Felt::ZERO)
-            .account_type(AccountType::FungibleFaucet)
-            .faucet_metadata(faucet_metadata);
+        let account_builder = AccountBuilder::new(
+            ChaCha20Rng::from_entropy(),
+            TransactionKernel::testing_assembler(),
+        )
+        .nonce(Felt::ZERO)
+        .account_type(AccountType::FungibleFaucet)
+        .faucet_metadata(faucet_metadata);
 
         let account = self.add_from_account_builder(auth_method, account_builder);
 
@@ -352,10 +363,13 @@ impl MockChain {
             ZERO,
         ];
 
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
-            .faucet_metadata(faucet_metadata)
-            .nonce(Felt::ONE)
-            .account_type(AccountType::FungibleFaucet);
+        let account_builder = AccountBuilder::new(
+            ChaCha20Rng::from_entropy(),
+            TransactionKernel::testing_assembler(),
+        )
+        .faucet_metadata(faucet_metadata)
+        .nonce(Felt::ONE)
+        .account_type(AccountType::FungibleFaucet);
         MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
     }
 
@@ -373,10 +387,8 @@ impl MockChain {
                 let pub_key = sec_key.public_key();
 
                 let (acc, seed) = account_builder
-                    .add_component(AccountComponent::default_account_component(
-                        TransactionKernel::testing_assembler(),
-                        Some(pub_key.into()),
-                    ))
+                    .add_component(BasicWallet)
+                    .add_component(RpoFalcon512::new(pub_key))
                     .build()
                     .unwrap();
 
@@ -388,13 +400,7 @@ impl MockChain {
                 (acc, seed, Some(authenticator))
             },
             Auth::NoAuth => {
-                let (account, seed) = account_builder
-                    .add_component(AccountComponent::default_account_component(
-                        TransactionKernel::testing_assembler(),
-                        None,
-                    ))
-                    .build()
-                    .unwrap();
+                let (account, seed) = account_builder.add_component(BasicWallet).build().unwrap();
                 (account, seed, None)
             },
         };

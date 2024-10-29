@@ -9,12 +9,16 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        Account, AccountComponent, AccountId, AccountType,
+        Account, AccountId, AccountType,
     },
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::rand::RpoRandomCoin,
+    crypto::{dsa::rpo_falcon512::PublicKey, rand::RpoRandomCoin},
     notes::NoteType,
-    testing::{account_builder::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
+    testing::{
+        account_builder::AccountBuilder,
+        account_code::DEFAULT_AUTH_SCRIPT,
+        account_component::{BasicWallet, RpoFalcon512},
+    },
     transaction::{TransactionArgs, TransactionScript},
     Felt, FieldElement,
 };
@@ -360,15 +364,14 @@ fn prove_consume_multiple_notes() {
 fn create_new_account() -> (Account, Word, Arc<dyn TransactionAuthenticator>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(AccountComponent::default_account_component(
-            TransactionKernel::testing_assembler(),
-            Some(pub_key),
-        ))
-        .account_type(AccountType::RegularAccountUpdatableCode)
-        .nonce(Felt::ZERO)
-        .build()
-        .unwrap();
+    let (account, seed) =
+        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
+            .add_component(BasicWallet)
+            .add_component(RpoFalcon512::new(PublicKey::new(pub_key)))
+            .account_type(AccountType::RegularAccountUpdatableCode)
+            .nonce(Felt::ZERO)
+            .build()
+            .unwrap();
 
     (account, seed, falcon_auth)
 }

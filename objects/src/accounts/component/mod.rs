@@ -25,10 +25,10 @@ impl AccountComponent {
     /// public interface.
     ///
     /// # Errors
+    ///
     /// Returns an error if:
     /// - Compilation of the provided source code fails.
-    /// - The number of procedures exported from the provided library is smaller than 1 or greater
-    ///   than 256.
+    /// - The number of procedures exported from the provided library is 0 or greater than 256.
     pub fn compile(
         source_code: impl Compile,
         assembler: Assembler,

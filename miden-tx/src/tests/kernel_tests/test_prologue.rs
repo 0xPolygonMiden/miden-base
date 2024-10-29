@@ -21,6 +21,7 @@ use miden_objects::{
     accounts::{AccountComponent, AccountProcedureInfo, AccountStorage, StorageSlot},
     testing::{
         account_builder::AccountBuilder,
+        account_component::{BasicWallet, IntoAccountComponent, BASIC_WALLET_CODE},
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
     },
@@ -388,13 +389,23 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(AccountComponent::default_account_component_with_storage(
-            TransactionKernel::testing_assembler(),
-            AccountStorage::mock_storage_slots(),
-        ))
-        .build()
-        .unwrap();
+    struct TestAccountComponent;
+    impl IntoAccountComponent for TestAccountComponent {
+        fn into_component(self, assembler: miden_objects::assembly::Assembler) -> AccountComponent {
+            AccountComponent::compile(
+                BASIC_WALLET_CODE,
+                assembler,
+                AccountStorage::mock_storage_slots(),
+            )
+            .unwrap()
+        }
+    }
+
+    let (account, seed) =
+        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
+            .add_component(TestAccountComponent)
+            .build()
+            .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
     let code = "
@@ -520,14 +531,12 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .add_component(AccountComponent::default_account_component(
-            TransactionKernel::testing_assembler(),
-            None,
-        ))
-        .build()
-        .unwrap();
+    let (acct, account_seed) =
+        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
+            .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
+            .add_component(BasicWallet)
+            .build()
+            .unwrap();
 
     let code = "
     use.kernel::prologue

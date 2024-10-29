@@ -13,7 +13,10 @@ use miden_objects::{
         AccountCode, AccountComponent, AccountId, AccountStorage, AccountType, StorageSlot,
     },
     assembly::Library,
-    testing::{account_builder::AccountBuilder, prepare_word, storage::STORAGE_LEAVES_2},
+    testing::{
+        account_builder::AccountBuilder, account_component::AccountMockComponent, prepare_word,
+        storage::STORAGE_LEAVES_2,
+    },
     transaction::TransactionScript,
 };
 use rand::SeedableRng;
@@ -252,16 +255,14 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let component = AccountComponent::mock_account_component(
-        TransactionKernel::testing_assembler(),
-        vec![AccountStorage::mock_item_2().slot],
-    );
-
-    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(component)
-        .nonce(ONE)
-        .build()
-        .unwrap();
+    let (account, _) =
+        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
+            .add_component(AccountMockComponent::with_slots(vec![
+                AccountStorage::mock_item_2().slot,
+            ]))
+            .nonce(ONE)
+            .build()
+            .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
 
@@ -398,16 +399,14 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let component = AccountComponent::mock_account_component(
-        TransactionKernel::testing_assembler(),
-        vec![AccountStorage::mock_item_2().slot],
-    );
-
-    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(component)
-        .nonce(ONE)
-        .build()
-        .unwrap();
+    let (account, _) =
+        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
+            .add_component(AccountMockComponent::with_slots(vec![
+                AccountStorage::mock_item_2().slot,
+            ]))
+            .nonce(ONE)
+            .build()
+            .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
     let storage_item = AccountStorage::mock_item_2();
@@ -544,12 +543,13 @@ fn test_account_component_storage_offset() {
     )
     .unwrap();
 
-    let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(component1)
-        .add_component(component2)
-        .nonce(ONE)
-        .build()
-        .unwrap();
+    let (mut account, _) =
+        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
+            .add_component(component1)
+            .add_component(component2)
+            .nonce(ONE)
+            .build()
+            .unwrap();
 
     // Assert that the storage offset and size have been set correctly.
     for (procedure_digest, expected_offset, expected_size) in

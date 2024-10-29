@@ -76,19 +76,26 @@ pub fn get_account_with_default_account_code(
     assets: Option<Asset>,
 ) -> Account {
     use miden_objects::{
-        accounts::{StorageMap, StorageSlot},
-        testing::account_code::DEFAULT_ACCOUNT_CODE,
+        accounts::{AccountComponent, StorageMap, StorageSlot},
+        crypto::dsa::rpo_falcon512::PublicKey,
+        testing::account_component::{IntoAccountComponent, RpoFalcon512, BASIC_WALLET_CODE},
     };
-    let account_code_src = DEFAULT_ACCOUNT_CODE;
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let account_code = AccountCode::compile(account_code_src, assembler, false).unwrap();
-    let account_storage = AccountStorage::new(vec![
-        StorageSlot::Value(public_key),
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Map(StorageMap::default()),
-    ])
+    let account_component = AccountComponent::compile(
+        BASIC_WALLET_CODE,
+        assembler.clone(),
+        vec![StorageSlot::Value(Word::default()), StorageSlot::Map(StorageMap::default())],
+    )
     .unwrap();
+
+    let account_components = [
+        RpoFalcon512::new(PublicKey::new(public_key)).into_component(assembler),
+        account_component,
+    ];
+    let account_code =
+        AccountCode::from_components(&account_components, account_id.account_type()).unwrap();
+    let account_storage = AccountStorage::from_components(&account_components).unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

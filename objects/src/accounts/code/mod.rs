@@ -124,11 +124,18 @@ impl AccountCode {
                         )));
                     }
 
+                    // Components that do not access storage need to have offset and size set to 0.
+                    let (storage_offset, storage_size) = if component_storage_size == 0 {
+                        (0, 0)
+                    } else {
+                        (component_storage_offset, component_storage_size)
+                    };
+
                     // Note: Offset and size are validated in `AccountProcedureInfo::new`.
                     procedures.push(AccountProcedureInfo::new(
                         proc_mast_root,
-                        component_storage_offset,
-                        component_storage_size,
+                        storage_offset,
+                        storage_size,
                     )?);
                 }
             }

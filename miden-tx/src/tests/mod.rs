@@ -13,7 +13,7 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        AccountCode, AccountComponent, AccountStorage,
+        AccountCode, AccountStorage,
     },
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
@@ -22,6 +22,7 @@ use miden_objects::{
     },
     testing::{
         account_builder::AccountBuilder,
+        account_component::AccountMockComponent,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
         prepare_word,
@@ -117,17 +118,14 @@ fn transaction_executor_witness() {
 
 #[test]
 fn executed_transaction_account_delta_new() {
-    let account_component = AccountComponent::mock_account_component(
-        TransactionKernel::testing_assembler(),
-        AccountStorage::mock_storage_slots(),
-    );
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(account_component)
-        .add_assets(account_assets)
-        .nonce(ONE)
-        .build()
-        .unwrap();
+    let (account, _) =
+        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
+            .add_component(AccountMockComponent::with_slots(AccountStorage::mock_storage_slots()))
+            .add_assets(account_assets)
+            .nonce(ONE)
+            .build()
+            .unwrap();
 
     let mut tx_context = TransactionContextBuilder::new(account)
         .with_mock_notes_preserved_with_account_vault_delta()

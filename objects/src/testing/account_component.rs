@@ -1,150 +1,98 @@
 use alloc::{sync::Arc, vec::Vec};
 
-use assembly::{ast::Module, Assembler, Library, LibraryPath};
-use vm_core::Word;
+use assembly::{ast::Module, Assembler, LibraryPath};
+use miden_crypto::dsa::rpo_falcon512::PublicKey;
 
-use crate::accounts::{AccountComponent, StorageSlot};
+use crate::{accounts::{AccountComponent, StorageSlot}, testing::account_code::MOCK_ACCOUNT_CODE};
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
 
-pub const DEFAULT_ACCOUNT_CODE: &str = "
+pub const BASIC_WALLET_CODE: &str = "
     export.::miden::contracts::wallets::basic::receive_asset
     export.::miden::contracts::wallets::basic::create_note
     export.::miden::contracts::wallets::basic::move_asset_to_note
+";
+
+pub const RPO_FALCON_AUTH_CODE: &str = "
     export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
-pub const DEFAULT_AUTH_SCRIPT: &str = "
-    begin
-        call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-    end
-";
+pub trait IntoAccountComponent {
+    fn into_component(self, assembler: Assembler) -> AccountComponent;
+}
 
-impl AccountComponent {
-    // TODO: Document pub key option.
-    pub fn default_account_component(
-        assembler: Assembler,
-        falcon_pub_key: Option<Word>,
-    ) -> AccountComponent {
+impl IntoAccountComponent for AccountComponent {
+    fn into_component(self, _: Assembler) -> AccountComponent {
+        self
+    }
+}
+
+// BASIC WALLET ACCOUNT COMPONENT
+// ================================================================================================
+
+pub struct BasicWallet;
+
+impl IntoAccountComponent for BasicWallet {
+    fn into_component(self, assembler: Assembler) -> AccountComponent {
+        AccountComponent::compile(BASIC_WALLET_CODE, assembler, vec![]).unwrap()
+    }
+}
+
+// RPO FALCON 512 AUTH ACCOUNT COMPONENT
+// ================================================================================================
+
+pub struct RpoFalcon512 {
+    public_key: PublicKey,
+}
+
+impl RpoFalcon512 {
+    pub fn new(public_key: PublicKey) -> Self {
+        Self { public_key }
+    }
+}
+
+impl IntoAccountComponent for RpoFalcon512 {
+    fn into_component(self, assembler: Assembler) -> AccountComponent {
         AccountComponent::compile(
-            DEFAULT_ACCOUNT_CODE,
+            RPO_FALCON_AUTH_CODE,
             assembler,
-            // If no key is provided we need to put an empty word into it, otherwise the storage
-            // size will be 0 which is an error.
-            vec![StorageSlot::Value(falcon_pub_key.unwrap_or_default())],
+            vec![StorageSlot::Value(self.public_key.into())],
         )
         .unwrap()
     }
+}
 
-    pub fn default_account_component_with_storage(
-        assembler: Assembler,
-        storage_slots: Vec<StorageSlot>,
-    ) -> AccountComponent {
-        AccountComponent::compile(DEFAULT_ACCOUNT_CODE, assembler, storage_slots).unwrap()
+// ACCOUNT MOCK COMPONENT
+// ================================================================================================
+
+/// Creates a mock [Library] which can be used to assemble programs and as a library to create a
+/// mock [AccountCode] interface. Transaction and note scripts that make use of this interface
+/// should be assembled with this.
+
+pub struct AccountMockComponent {
+    storage_slots: Vec<StorageSlot>,
+}
+
+impl AccountMockComponent {
+    pub fn with_empty_slots() -> Self {
+        Self { storage_slots: vec![] }
     }
 
-    pub fn mock_account_component(
-        assembler: Assembler,
-        storage_slots: Vec<StorageSlot>,
-    ) -> AccountComponent {
-        AccountComponent::new(Self::mock_library(assembler), storage_slots)
+    pub fn with_slots(storage_slots: Vec<StorageSlot>) -> Self {
+        Self { storage_slots }
     }
+}
 
-    /// Creates a mock [Library] which can be used to assemble programs and as a library to create a
-    /// mock [AccountCode] interface. Transaction and note scripts that make use of this interface
-    /// should be assembled with this.
-    pub fn mock_library(assembler: Assembler) -> Library {
-        let code = "
-      use.miden::account
-      use.miden::faucet
-      use.miden::tx
-
-      export.::miden::contracts::wallets::basic::receive_asset
-      export.::miden::contracts::wallets::basic::create_note
-      export.::miden::contracts::wallets::basic::move_asset_to_note
-
-      export.::miden::account::get_item_foreign
-      export.::miden::account::get_map_item_foreign
-
-      export.incr_nonce
-          push.0 swap
-          # => [value, 0]
-          exec.account::incr_nonce
-          # => [0]
-      end
-
-      export.set_item
-          exec.account::set_item
-          # => [R', V, 0, 0, 0]
-          movup.8 drop movup.8 drop movup.8 drop
-          # => [R', V]
-      end
-
-      export.get_item
-          exec.account::get_item
-          movup.8 drop movup.8 drop movup.8 drop
-      end
-
-      export.set_map_item
-          exec.account::set_map_item
-          # => [R', V, 0, 0, 0]
-          movup.8 drop movup.8 drop movup.8 drop
-          # => [R', V]
-      end
-
-      export.get_map_item
-          exec.account::get_map_item
-      end
-
-      export.set_code
-          padw swapw
-          # => [CODE_COMMITMENT, 0, 0, 0, 0]
-          exec.account::set_code
-          # => [0, 0, 0, 0]
-      end
-
-      export.add_asset_to_note
-          exec.tx::add_asset_to_note
-          # => [ASSET, note_idx]
-      end
-
-      export.add_asset
-          exec.account::add_asset
-      end
-
-      export.remove_asset
-          exec.account::remove_asset
-          # => [ASSET]
-      end
-
-      export.account_procedure_1
-          push.1.2
-          add
-      end
-
-      export.account_procedure_2
-          push.2.1
-          sub
-      end
-
-      export.mint
-          exec.faucet::mint
-      end
-
-      export.burn
-          exec.faucet::burn
-      end
-
-      export.execute_foreign_procedure
-          exec.tx::execute_foreign_procedure
-      end
-      ";
+impl IntoAccountComponent for AccountMockComponent {
+    fn into_component(self, assembler: Assembler) -> AccountComponent {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module = Module::parser(assembly::ast::ModuleKind::Library)
-            .parse_str(LibraryPath::new("test::account").unwrap(), code, &source_manager)
+            .parse_str(LibraryPath::new("test::account").unwrap(), MOCK_ACCOUNT_CODE, &source_manager)
             .unwrap();
 
-        assembler.assemble_library(&[*module]).unwrap()
+        let library = assembler.assemble_library(&[*module]).unwrap();
+
+        AccountComponent::new(library, self.storage_slots)
     }
 }

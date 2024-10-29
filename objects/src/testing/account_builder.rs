@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt::Display;
 
+use assembly::Assembler;
 use miden_crypto::merkle::MerkleError;
 use rand::Rng;
 
@@ -10,6 +11,7 @@ use crate::{
         Account, AccountCode, AccountComponent, AccountStorage, AccountStorageMode, AccountType,
     },
     assets::{Asset, AssetVault},
+    testing::account_component::IntoAccountComponent,
     AccountError, AssetVaultError, Felt, Word, ZERO,
 };
 
@@ -18,6 +20,7 @@ use crate::{
 /// builder.
 #[derive(Clone)]
 pub struct AccountBuilder<T> {
+    assembler: Assembler,
     account_type: AccountType,
     faucet_metadata: Option<Word>,
     assets: Vec<Asset>,
@@ -27,8 +30,9 @@ pub struct AccountBuilder<T> {
 }
 
 impl<T: Rng> AccountBuilder<T> {
-    pub fn new(rng: T) -> Self {
+    pub fn new(rng: T, assembler: Assembler) -> Self {
         Self {
+            assembler,
             account_type: AccountType::RegularAccountUpdatableCode,
             faucet_metadata: None,
             assets: vec![],
@@ -50,8 +54,8 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_component(mut self, account_component: AccountComponent) -> Self {
-        self.components.push(account_component);
+    pub fn add_component(mut self, account_component: impl IntoAccountComponent) -> Self {
+        self.components.push(account_component.into_component(self.assembler.clone()));
         self
     }
 
