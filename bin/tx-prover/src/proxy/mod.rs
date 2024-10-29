@@ -3,13 +3,12 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use pingora::{
-    apps::HttpServerOptions,
     http::ResponseHeader,
     lb::Backend,
     prelude::*,
     upstreams::peer::{Peer, ALPN},
 };
-use pingora_core::{prelude::Opt, server::Server, upstreams::peer::HttpPeer, Result};
+use pingora_core::{upstreams::peer::HttpPeer, Result};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
@@ -18,33 +17,13 @@ use tracing::error;
 const TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(100));
 const MAX_QUEUE_ITEMS: usize = 10;
 
-fn main() {
-    tracing_subscriber::fmt().init();
-
-    let mut server = Server::new(Some(Opt::default())).unwrap();
-    server.bootstrap();
-
-    let backends =
-        std::env::var("PROVER_BACKENDS").expect("PROVER_BACKENDS environment variable not set");
-    let upstreams = LoadBalancer::try_from_iter(backends.split(",")).unwrap();
-
-    // Set load balancer
-    let mut lb = http_proxy_service(&server.configuration, LB(upstreams.into()));
-
-    let proxy_host = std::env::var("PROXY_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let proxy_port = std::env::var("PROXY_PORT").unwrap_or_else(|_| "6188".to_string());
-    lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
-
-    let logic = lb.app_logic_mut().unwrap();
-    let mut http_server_options = HttpServerOptions::default();
-    http_server_options.h2c = true;
-    logic.server_options = Some(http_server_options);
-
-    server.add_service(lb);
-    server.run_forever();
-}
-
 pub struct LB(Arc<LoadBalancer<RoundRobin>>);
+
+impl LB {
+    pub fn new(upstreams: LoadBalancer<RoundRobin>) -> Self {
+        Self(Arc::new(upstreams))
+    }
+}
 
 // Rate limiter
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));

@@ -1694,22 +1694,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "miden-prover-proxy"
-version = "0.6.0"
-dependencies = [
- "async-trait",
- "once_cell",
- "pingora",
- "pingora-core",
- "pingora-limits",
- "pingora-proxy",
- "rand",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "miden-stdlib"
 version = "0.10.5"
 source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#12dd5e5588cfda7bbdf1ecd8d78aee26358935de"
@@ -1767,9 +1751,15 @@ dependencies = [
  "miden-objects",
  "miden-tx",
  "miette",
+ "once_cell",
+ "pingora",
+ "pingora-core",
+ "pingora-limits",
+ "pingora-proxy",
  "prost",
  "prost-build",
  "protox",
+ "rand",
  "tokio",
  "tokio-stream",
  "tonic",
