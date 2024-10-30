@@ -108,8 +108,8 @@ install-prover-worker: ## Installs prover worker
 	cargo install --path bin/tx-prover --bin miden-tx-prover-worker --locked
 
 .PHONY: install-prover-testing
-install-prover-testing: ## Installs prover intended for testing purposes
-	cargo install --path bin/tx-prover --locked --features testing
+install-prover-worker-testing: ## Installs prover worker intended for testing purposes
+	cargo install --path bin/tx-prover --bin miden-tx-prover-worker --locked --features testing
 
 .PHONY: install-prover-proxy
 install-prover-proxy: ## Install prover's proxy
