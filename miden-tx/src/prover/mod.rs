@@ -1,11 +1,12 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::delta::AccountUpdateDetails,
+    accounts::{delta::AccountUpdateDetails, AccountCode},
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
+    Digest,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -44,6 +45,12 @@ pub trait TransactionProver {
 pub struct LocalTransactionProver {
     mast_store: Arc<TransactionMastStore>,
     proof_options: ProvingOptions,
+    /// Holds the code commitments of all accounts loaded into this transaction prover via the
+    /// [Self::load_account_code()] method.
+    ///
+    /// These commitments are used to create the account procedure index map during transaction
+    /// execution.
+    account_code_commitments: BTreeSet<Digest>,
 }
 
 impl LocalTransactionProver {
@@ -54,7 +61,18 @@ impl LocalTransactionProver {
         Self {
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options,
+            account_code_commitments: BTreeSet::new(),
         }
+    }
+
+    /// Loads the provided code into the internal MAST forest store and adds the commitment of the
+    /// provided code to the commitments set.
+    pub fn load_account_code(&mut self, code: &AccountCode) {
+        // load the code mast forest to the mast store
+        self.mast_store.load_account_code(code);
+
+        // store the commitment of the foreign account code in the set
+        self.account_code_commitments.insert(code.commitment());
     }
 }
 
@@ -63,6 +81,7 @@ impl Default for LocalTransactionProver {
         Self {
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options: Default::default(),
+            account_code_commitments: Default::default(),
         }
     }
 }
@@ -88,9 +107,14 @@ impl TransactionProver for LocalTransactionProver {
         // load the store with account/note/tx_script MASTs
         self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
-        let mut host: TransactionHost<_> =
-            TransactionHost::new(account.into(), advice_provider, self.mast_store.clone(), None)
-                .map_err(TransactionProverError::TransactionHostCreationFailed)?;
+        let mut host: TransactionHost<_> = TransactionHost::new(
+            account.into(),
+            advice_provider,
+            self.mast_store.clone(),
+            None,
+            self.account_code_commitments.clone(),
+        )
+        .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
             prove(&TransactionKernel::main(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;

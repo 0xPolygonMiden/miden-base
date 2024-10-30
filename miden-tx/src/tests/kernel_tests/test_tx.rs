@@ -648,7 +648,6 @@ fn test_load_foreign_account_basic() {
         use.kernel::prologue
         use.miden::tx
         use.miden::account
-        use.miden::kernel_proc_offsets
 
         begin
             exec.prologue::prepare_transaction
@@ -712,7 +711,6 @@ fn test_load_foreign_account_basic() {
         use.kernel::prologue
         use.miden::tx
         use.miden::account
-        use.miden::kernel_proc_offsets
 
         begin
             exec.prologue::prepare_transaction
@@ -783,7 +781,6 @@ fn test_load_foreign_account_twice() {
         use.kernel::prologue
         use.miden::tx
         use.miden::account
-        use.miden::kernel_proc_offsets
 
         begin
             exec.prologue::prepare_transaction
@@ -808,8 +805,8 @@ fn test_load_foreign_account_twice() {
 
             ### Get the storage item at index 0 again ###############
             # pad the stack for the `execute_foreign_procedure`execution
-            padw push.0.0.0
-            # => [pad(7)]
+            padw padw push.0.0.0
+            # => [pad(11)]
 
             # push the index of desired storage item
             push.0
@@ -819,7 +816,7 @@ fn test_load_foreign_account_twice() {
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(11)]
 
             exec.tx::execute_foreign_procedure
 
@@ -863,7 +860,7 @@ fn get_mock_advice_inputs(foreign_account: &Account, mock_chain: &MockChain) -> 
             ),
             // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
             (foreign_storage_root, foreign_account.storage().as_elements()),
-            // CODE_ROOT |-> [num_procs, [ACCOUNT_PROCEDURE_DATA]]
+            // CODE_ROOT |-> [[ACCOUNT_PROCEDURE_DATA]]
             (foreign_code_root, foreign_account.code().as_elements()),
         ])
         .with_merkle_store(mock_chain.accounts().into())

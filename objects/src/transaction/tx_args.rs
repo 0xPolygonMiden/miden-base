@@ -72,6 +72,13 @@ impl TransactionArgs {
         Self::new(None, Some(note_args), AdviceMap::default())
     }
 
+    /// Returns the provided [TransactionArgs] with advice inputs extended with the passed-in
+    /// `advice_inputs`.
+    pub fn with_advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
+        self.advice_inputs.extend(advice_inputs);
+        self
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 

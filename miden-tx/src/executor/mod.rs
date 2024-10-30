@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{collections::BTreeSet, sync::Arc};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -6,7 +6,7 @@ use miden_objects::{
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
-    MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
+    Digest, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
 use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -36,6 +36,12 @@ pub struct TransactionExecutor {
     data_store: Arc<dyn DataStore>,
     mast_store: Arc<TransactionMastStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
+    /// Holds the code commitments of all accounts loaded into this transaction executor via the
+    /// [Self::load_account_code()] method.
+    ///
+    /// These commitments are used to create the account procedure index map during transaction
+    /// execution.
+    account_code_commitments: BTreeSet<Digest>,
     exec_options: ExecutionOptions,
 }
 
@@ -62,6 +68,7 @@ impl TransactionExecutor {
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
+            account_code_commitments: BTreeSet::new(),
         }
     }
 
@@ -95,12 +102,14 @@ impl TransactionExecutor {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Loads the provided code into the internal MAST store and associates the procedures of the
-    /// account code with the specified account ID.
-    pub fn load_account_code(&mut self, _account_id: AccountId, code: &AccountCode) {
-        // TODO: account_id is not used yet, but it could be used to build a procedure map for the
-        // loaded accounts
+    /// Loads the provided code into the internal MAST forest store and adds the commitment of the
+    /// provided code to the commitments set.
+    pub fn load_account_code(&mut self, code: &AccountCode) {
+        // load the code mast forest to the mast store
         self.mast_store.load_account_code(code);
+
+        // store the commitment of the foreign account code in the set
+        self.account_code_commitments.insert(code.commitment());
     }
 
     // TRANSACTION EXECUTION
@@ -140,6 +149,7 @@ impl TransactionExecutor {
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
+            self.account_code_commitments.clone(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
