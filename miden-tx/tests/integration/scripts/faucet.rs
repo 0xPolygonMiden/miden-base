@@ -5,14 +5,14 @@ use std::sync::Arc;
 use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
 use miden_objects::{
     accounts::{
-        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage,
+        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode,
+        AccountComponent, AccountId, AccountStorage,
     },
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::PublicKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::{
-        account_component::{AccountComponent, BasicFungibleFaucet, RpoFalcon512},
+        account_component::{BasicFungibleFaucet, RpoFalcon512},
         prepare_word,
     },
     Felt, Word, ZERO,
@@ -249,8 +249,11 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             5,
             max_supply.try_into().unwrap(),
         )
-        .assemble_component(assembler.clone()),
-        RpoFalcon512::new(PublicKey::new(public_key)).assemble_component(assembler),
+        .assemble_component(assembler.clone())
+        .unwrap(),
+        RpoFalcon512::new(PublicKey::new(public_key))
+            .assemble_component(assembler)
+            .unwrap(),
     ];
 
     let faucet_account_code = AccountCode::from_components(&components).unwrap();

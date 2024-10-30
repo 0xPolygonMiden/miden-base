@@ -18,15 +18,18 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
-    accounts::{AccountProcedureInfo, AccountStorage, AssembledAccountComponent, StorageSlot},
+    accounts::{
+        AccountComponent, AccountProcedureInfo, AccountStorage, AssembledAccountComponent,
+        StorageSlot,
+    },
     testing::{
         account_builder::AccountBuilder,
-        account_component::{AccountComponent, BasicWallet, BASIC_WALLET_CODE},
+        account_component::{BasicWallet, BASIC_WALLET_CODE},
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
-    Digest, FieldElement,
+    AccountError, Digest, FieldElement,
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
@@ -394,19 +397,19 @@ pub fn test_prologue_create_account() {
         fn assemble_component(
             self,
             assembler: miden_objects::assembly::Assembler,
-        ) -> AssembledAccountComponent {
+        ) -> Result<AssembledAccountComponent, AccountError> {
             AssembledAccountComponent::compile(
                 BASIC_WALLET_CODE,
                 assembler,
                 AccountStorage::mock_storage_slots(),
             )
-            .unwrap()
         }
     }
 
     let (account, seed) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .add_component(TestAccountComponent)
+            .unwrap()
             .build()
             .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
@@ -538,6 +541,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
             .add_component(BasicWallet)
+            .unwrap()
             .build()
             .unwrap();
 

@@ -261,6 +261,7 @@ fn test_get_map_item() {
             .add_component(AccountMockComponent::with_slots(vec![
                 AccountStorage::mock_item_2().slot,
             ]))
+            .unwrap()
             .nonce(ONE)
             .build()
             .unwrap();
@@ -405,6 +406,7 @@ fn test_set_map_item() {
             .add_component(AccountMockComponent::with_slots(vec![
                 AccountStorage::mock_item_2().slot,
             ]))
+            .unwrap()
             .nonce(ONE)
             .build()
             .unwrap();
@@ -547,7 +549,9 @@ fn test_account_component_storage_offset() {
     let (mut account, _) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .add_component(component1)
+            .unwrap()
             .add_component(component2)
+            .unwrap()
             .nonce(ONE)
             .build()
             .unwrap();

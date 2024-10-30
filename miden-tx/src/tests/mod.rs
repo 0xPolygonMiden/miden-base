@@ -122,6 +122,7 @@ fn executed_transaction_account_delta_new() {
     let (account, _) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .add_component(AccountMockComponent::with_slots(AccountStorage::mock_storage_slots()))
+            .unwrap()
             .add_assets(account_assets)
             .nonce(ONE)
             .build()

@@ -367,7 +367,9 @@ fn create_new_account() -> (Account, Word, Arc<dyn TransactionAuthenticator>) {
     let (account, seed) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .add_component(BasicWallet)
+            .unwrap()
             .add_component(RpoFalcon512::new(PublicKey::new(pub_key)))
+            .unwrap()
             .account_type(AccountType::RegularAccountUpdatableCode)
             .nonce(Felt::ZERO)
             .build()

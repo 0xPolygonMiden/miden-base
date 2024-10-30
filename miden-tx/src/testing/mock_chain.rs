@@ -340,6 +340,7 @@ impl MockChain {
             10,
             max_supply.try_into().unwrap(),
         ))
+        .unwrap()
         .account_type(AccountType::FungibleFaucet);
 
         let account = self.add_from_account_builder(auth_method, account_builder);
@@ -362,6 +363,7 @@ impl MockChain {
             10,
             max_supply.try_into().unwrap(),
         ))
+        .unwrap()
         .nonce(Felt::ONE)
         .account_type(AccountType::FungibleFaucet);
 
@@ -383,7 +385,9 @@ impl MockChain {
 
                 let (acc, seed) = account_builder
                     .add_component(BasicWallet)
+                    .unwrap()
                     .add_component(RpoFalcon512::new(pub_key))
+                    .unwrap()
                     .build()
                     .unwrap();
 
@@ -395,7 +399,8 @@ impl MockChain {
                 (acc, seed, Some(authenticator))
             },
             Auth::NoAuth => {
-                let (account, seed) = account_builder.add_component(BasicWallet).build().unwrap();
+                let (account, seed) =
+                    account_builder.add_component(BasicWallet).unwrap().build().unwrap();
                 (account, seed, None)
             },
         };

@@ -15,7 +15,7 @@ pub mod auth;
 pub use auth::AuthSecretKey;
 
 mod component;
-pub use component::{AccountComponentType, AssembledAccountComponent};
+pub use component::{AccountComponent, AccountComponentType, AssembledAccountComponent};
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};

@@ -652,6 +652,7 @@ fn test_load_foreign_account_basic() {
     let (foreign_account, _) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .add_component(AccountMockComponent::with_slots(vec![storage_slot.clone()]))
+            .unwrap()
             .nonce(ONE)
             .build()
             .unwrap();
@@ -715,6 +716,7 @@ fn test_load_foreign_account_basic() {
     let (foreign_account, _) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .add_component(AccountMockComponent::with_slots(vec![storage_slot]))
+            .unwrap()
             .nonce(ONE)
             .build()
             .unwrap();
@@ -785,6 +787,7 @@ fn test_load_foreign_account_twice() {
     let (foreign_account, _) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
             .add_component(AccountMockComponent::with_slots(vec![storage_slot]))
+            .unwrap()
             .nonce(ONE)
             .build()
             .unwrap();

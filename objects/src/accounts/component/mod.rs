@@ -6,6 +6,13 @@ use vm_processor::MastForest;
 
 use crate::{accounts::StorageSlot, AccountError};
 
+pub trait AccountComponent {
+    fn assemble_component(
+        self,
+        assembler: Assembler,
+    ) -> Result<AssembledAccountComponent, AccountError>;
+}
+
 // TODO Document everything, add section separators.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssembledAccountComponent {
@@ -69,6 +76,12 @@ impl AssembledAccountComponent {
 
     pub fn storage_slots(&self) -> &[StorageSlot] {
         self.storage_slots.as_slice()
+    }
+}
+
+impl AccountComponent for AssembledAccountComponent {
+    fn assemble_component(self, _: Assembler) -> Result<AssembledAccountComponent, AccountError> {
+        Ok(self)
     }
 }
 

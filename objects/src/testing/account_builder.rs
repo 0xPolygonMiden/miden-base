@@ -8,11 +8,10 @@ use rand::Rng;
 use super::account_id::AccountIdBuilder;
 use crate::{
     accounts::{
-        Account, AccountCode, AccountStorage, AccountStorageMode, AccountType,
+        Account, AccountCode, AccountComponent, AccountStorage, AccountStorageMode, AccountType,
         AssembledAccountComponent,
     },
     assets::{Asset, AssetVault},
-    testing::account_component::AccountComponent,
     AccountError, AssetVaultError, Felt, Word, ZERO,
 };
 
@@ -51,10 +50,13 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_component(mut self, account_component: impl AccountComponent) -> Self {
+    pub fn add_component(
+        mut self,
+        account_component: impl AccountComponent,
+    ) -> Result<Self, AccountError> {
         self.components
-            .push(account_component.assemble_component(self.assembler.clone()));
-        self
+            .push(account_component.assemble_component(self.assembler.clone())?);
+        Ok(self)
     }
 
     pub fn nonce(mut self, nonce: Felt) -> Self {
