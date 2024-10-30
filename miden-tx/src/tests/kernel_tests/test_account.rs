@@ -10,8 +10,8 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
-        AssembledAccountComponent, StorageSlot,
+        AccountCode, AccountId, AccountStorage, AccountType, AssembledAccountComponent,
+        StorageSlot,
     },
     assembly::Library,
     testing::{

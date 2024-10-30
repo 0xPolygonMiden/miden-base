@@ -18,10 +18,7 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
-    accounts::{
-        AccountComponent, AccountProcedureInfo, AccountStorage, AssembledAccountComponent,
-        StorageSlot,
-    },
+    accounts::{AccountProcedureInfo, AccountStorage, AssembledAccountComponent, StorageSlot},
     testing::{
         account_builder::AccountBuilder,
         account_component::{BasicWallet, BASIC_WALLET_CODE},
@@ -29,7 +26,7 @@ use miden_objects::{
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
-    AccountError, Digest, FieldElement,
+    Digest, FieldElement,
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
