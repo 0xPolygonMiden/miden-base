@@ -8,7 +8,8 @@ use rand::Rng;
 use super::account_id::AccountIdBuilder;
 use crate::{
     accounts::{
-        Account, AccountCode, AccountComponent, AccountStorage, AccountStorageMode, AccountType,
+        Account, AccountCode, AccountStorage, AccountStorageMode, AccountType,
+        AssembledAccountComponent,
     },
     assets::{Asset, AssetVault},
     testing::account_component::IntoAccountComponent,
@@ -22,7 +23,7 @@ use crate::{
 pub struct AccountBuilder<T> {
     assembler: Assembler,
     assets: Vec<Asset>,
-    components: Vec<AccountComponent>,
+    components: Vec<AssembledAccountComponent>,
     nonce: Felt,
     account_id_builder: AccountIdBuilder<T>,
 }

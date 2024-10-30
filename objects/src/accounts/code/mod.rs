@@ -7,7 +7,7 @@ use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
     Hasher, Serializable,
 };
-use crate::accounts::AccountComponent;
+use crate::accounts::AssembledAccountComponent;
 
 pub mod procedure;
 use procedure::AccountProcedureInfo;
@@ -93,7 +93,7 @@ impl AccountCode {
     }
 
     // TODO: Document.
-    pub fn from_components(components: &[AccountComponent]) -> Result<Self, AccountError> {
+    pub fn from_components(components: &[AssembledAccountComponent]) -> Result<Self, AccountError> {
         let (merged_mast_forest, _) =
             MastForest::merge(components.iter().map(|component| component.mast_forest()))
                 .map_err(|err| AccountError::AccountCodeMergeError(err.to_string()))?;
@@ -108,14 +108,15 @@ impl AccountCode {
         let mut component_storage_offset = if has_faucet_component { 1 } else { 0 };
 
         for component in components {
-            let AccountComponent { code: library, storage_slots, .. } = component;
+            let AssembledAccountComponent { code: library, storage_slots, .. } = component;
             let component_storage_size: u8 = storage_slots
                 .len()
                 .try_into()
                 .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
 
             for module in library.module_infos() {
-                for proc_mast_root in module.procedure_digests() {
+                for (_, info) in module.procedures() {
+                    let proc_mast_root = info.digest;
                     // We cannot support procedures from multiple components with the same MAST root
                     // since storage offsets/sizes are set per MAST root. Setting them again
                     // for procedures where the offset has already been inserted would cause that
@@ -133,6 +134,8 @@ impl AccountCode {
                     } else {
                         (component_storage_offset, component_storage_size)
                     };
+
+                    std::println!("{} -> ({}, {})", info.name, storage_offset, storage_size);
 
                     // Note: Offset and size are validated in `AccountProcedureInfo::new`.
                     procedures.push(AccountProcedureInfo::new(

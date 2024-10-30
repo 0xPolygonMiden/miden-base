@@ -76,13 +76,13 @@ pub fn get_account_with_default_account_code(
     assets: Option<Asset>,
 ) -> Account {
     use miden_objects::{
-        accounts::{AccountComponent, StorageMap, StorageSlot},
+        accounts::{AssembledAccountComponent, StorageMap, StorageSlot},
         crypto::dsa::rpo_falcon512::PublicKey,
         testing::account_component::{IntoAccountComponent, RpoFalcon512, BASIC_WALLET_CODE},
     };
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let wallet_component = AccountComponent::compile(
+    let wallet_component = AssembledAccountComponent::compile(
         BASIC_WALLET_CODE,
         assembler.clone(),
         vec![StorageSlot::Value(Word::default()), StorageSlot::Map(StorageMap::default())],

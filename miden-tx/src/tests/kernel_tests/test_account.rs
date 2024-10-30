@@ -10,7 +10,8 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountCode, AccountComponent, AccountId, AccountStorage, AccountType, StorageSlot,
+        AccountCode, AccountId, AccountStorage, AccountType, AssembledAccountComponent,
+        StorageSlot,
     },
     assembly::Library,
     testing::{
@@ -529,14 +530,14 @@ fn test_account_component_storage_offset() {
     let bar_read = find_procedure_digest_by_name("bar_read", &code2).unwrap();
 
     // Compile source code into components.
-    let component1 = AccountComponent::compile(
+    let component1 = AssembledAccountComponent::compile(
         source_code_component1,
         assembler.clone(),
         vec![StorageSlot::Value(Word::default())],
     )
     .unwrap();
 
-    let component2 = AccountComponent::compile(
+    let component2 = AssembledAccountComponent::compile(
         source_code_component2,
         assembler.clone(),
         vec![StorageSlot::Value(Word::default())],

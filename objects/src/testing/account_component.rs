@@ -5,7 +5,7 @@ use miden_crypto::dsa::rpo_falcon512::PublicKey;
 use vm_core::{Felt, FieldElement};
 
 use crate::{
-    accounts::{AccountComponent, AccountComponentType, StorageSlot},
+    accounts::{AccountComponentType, AssembledAccountComponent, StorageSlot},
     assets::TokenSymbol,
     testing::account_code::MOCK_ACCOUNT_CODE,
 };
@@ -29,11 +29,11 @@ const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
 ";
 
 pub trait IntoAccountComponent {
-    fn into_component(self, assembler: Assembler) -> AccountComponent;
+    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent;
 }
 
-impl IntoAccountComponent for AccountComponent {
-    fn into_component(self, _: Assembler) -> AccountComponent {
+impl IntoAccountComponent for AssembledAccountComponent {
+    fn into_component(self, _: Assembler) -> AssembledAccountComponent {
         self
     }
 }
@@ -44,8 +44,8 @@ impl IntoAccountComponent for AccountComponent {
 pub struct BasicWallet;
 
 impl IntoAccountComponent for BasicWallet {
-    fn into_component(self, assembler: Assembler) -> AccountComponent {
-        AccountComponent::compile(BASIC_WALLET_CODE, assembler, vec![]).unwrap()
+    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
+        AssembledAccountComponent::compile(BASIC_WALLET_CODE, assembler, vec![]).unwrap()
     }
 }
 
@@ -63,8 +63,8 @@ impl RpoFalcon512 {
 }
 
 impl IntoAccountComponent for RpoFalcon512 {
-    fn into_component(self, assembler: Assembler) -> AccountComponent {
-        AccountComponent::compile(
+    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
+        AssembledAccountComponent::compile(
             RPO_FALCON_AUTH_CODE,
             assembler,
             vec![StorageSlot::Value(self.public_key.into())],
@@ -89,12 +89,12 @@ impl BasicFungibleFaucet {
 }
 
 impl IntoAccountComponent for BasicFungibleFaucet {
-    fn into_component(self, assembler: Assembler) -> AccountComponent {
+    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
         // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as
         // [a3, a2, a1, a0, ...]
         let metadata = [self.max_supply, Felt::from(self.decimals), self.symbol.into(), Felt::ZERO];
 
-        AccountComponent::compile(
+        AssembledAccountComponent::compile(
             BASIC_FUNGIBLE_FAUCET_CODE,
             assembler,
             vec![StorageSlot::Value(metadata)],
@@ -126,7 +126,7 @@ impl AccountMockComponent {
 }
 
 impl IntoAccountComponent for AccountMockComponent {
-    fn into_component(self, assembler: Assembler) -> AccountComponent {
+    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module = Module::parser(assembly::ast::ModuleKind::Library)
             .parse_str(
@@ -138,6 +138,6 @@ impl IntoAccountComponent for AccountMockComponent {
 
         let library = assembler.assemble_library(&[*module]).unwrap();
 
-        AccountComponent::new(library, self.storage_slots)
+        AssembledAccountComponent::new(library, self.storage_slots)
     }
 }

@@ -8,13 +8,13 @@ use crate::{accounts::StorageSlot, AccountError};
 
 // TODO Document everything, add section separators.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AccountComponent {
+pub struct AssembledAccountComponent {
     pub(crate) code: Library,
     pub(crate) storage_slots: Vec<StorageSlot>,
     pub(crate) component_type: AccountComponentType,
 }
 
-impl AccountComponent {
+impl AssembledAccountComponent {
     pub fn new(code: Library, storage_slots: Vec<StorageSlot>) -> Self {
         Self {
             code,
@@ -23,8 +23,8 @@ impl AccountComponent {
         }
     }
 
-    /// Returns a new [AccountCode] compiled from the provided source code using the specified
-    /// assembler.
+    /// Returns a new [`AssembledAccountComponent`] compiled from the provided source code using the
+    /// specified assembler.
     ///
     /// All procedures exported from the provided code will become members of the account's
     /// public interface.
@@ -51,6 +51,10 @@ impl AccountComponent {
         self
     }
 
+    pub fn component_type(&self) -> AccountComponentType {
+        self.component_type
+    }
+
     pub fn is_faucet_component(&self) -> bool {
         self.component_type == AccountComponentType::Faucet
     }
@@ -68,7 +72,7 @@ impl AccountComponent {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum AccountComponentType {
     Any,
     Faucet,

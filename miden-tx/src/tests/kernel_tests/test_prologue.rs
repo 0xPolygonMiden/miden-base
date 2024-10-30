@@ -18,7 +18,7 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
-    accounts::{AccountComponent, AccountProcedureInfo, AccountStorage, StorageSlot},
+    accounts::{AccountProcedureInfo, AccountStorage, AssembledAccountComponent, StorageSlot},
     testing::{
         account_builder::AccountBuilder,
         account_component::{BasicWallet, IntoAccountComponent, BASIC_WALLET_CODE},
@@ -391,8 +391,11 @@ fn input_notes_memory_assertions(
 pub fn test_prologue_create_account() {
     struct TestAccountComponent;
     impl IntoAccountComponent for TestAccountComponent {
-        fn into_component(self, assembler: miden_objects::assembly::Assembler) -> AccountComponent {
-            AccountComponent::compile(
+        fn into_component(
+            self,
+            assembler: miden_objects::assembly::Assembler,
+        ) -> AssembledAccountComponent {
+            AssembledAccountComponent::compile(
                 BASIC_WALLET_CODE,
                 assembler,
                 AccountStorage::mock_storage_slots(),

@@ -15,7 +15,7 @@ pub mod auth;
 pub use auth::AuthSecretKey;
 
 mod component;
-pub use component::{AccountComponent, AccountComponentType};
+pub use component::{AccountComponentType, AssembledAccountComponent};
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
@@ -101,7 +101,7 @@ impl Account {
     // TODO: Document.
     pub fn from_components(
         seed: Word,
-        components: &[AccountComponent],
+        components: &[AssembledAccountComponent],
     ) -> Result<Self, AccountError> {
         let code = AccountCode::from_components(components)?;
         let storage = AccountStorage::from_components(components)?;
