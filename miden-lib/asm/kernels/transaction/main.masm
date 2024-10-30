@@ -95,6 +95,10 @@ proc.main.1
         exec.note::prepare_note
         # => [NOTE_SCRIPT_HASH, NOTE_ARGS]
 
+        # store the NOTE_SCRIPT_HASH to the memory to be able to call it dynamically
+        exec.memory::store_dyn_proc_root
+        # => [note_script_hash_addr, NOTE_ARGS]
+
         # run note's script
         dyncall
         # => [X, X, X, X]
@@ -134,6 +138,10 @@ proc.main.1
     # => [has_tx_script, TX_SCRIPT_ROOT]
 
     if.true
+        # store the TX_SCRIPT_ROOT to the memory to be able to call it dynamically
+        exec.memory::store_dyn_proc_root
+        # => [tx_script_root_addr]
+
         # execute the transaction script
         dyncall
         # => [OUTPUT_3, OUTPUT_2, OUTPUT_1, OUTPUT_0]

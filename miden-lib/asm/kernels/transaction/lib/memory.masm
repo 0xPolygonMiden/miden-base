@@ -144,6 +144,13 @@ const.ACCT_PROCEDURES_SECTION_OFFSET=8
 const.NUM_ACCT_STORAGE_SLOTS_OFFSET=521
 const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=522
 
+# DYNAMIC EXECUTION DATA SLOT
+# -------------------------------------------------------------------------------------------------
+
+# The memory address which should be used to store the root of the dynamically called/executed 
+# procedure.
+const.DYN_PROC_ROOT_ADDR=133120
+
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -974,6 +981,23 @@ end
 #! - storage_slots_section_ptr is the memory pointer to the account storage slots section.
 export.get_acct_storage_slots_section_ptr
     exec.get_current_account_data_ptr push.ACCT_STORAGE_SLOTS_SECTION_OFFSET add
+end
+
+# DYNAMIC EXECUTION DATA
+# -------------------------------------------------------------------------------------------------
+
+#! Stores the provided procedure root to the dedicated memory address, returning this address as a 
+#! result.
+#!
+#! Stack: [DYN_PROC_ROOT]
+#! Output: [dyn_proc_root_addr]
+#!
+#! Where:
+#! - DYN_PROC_ROOT is the root of the procedure which will be called/executed dynamically. 
+#! - dyn_proc_root_addr is the memory address where this proc root is stored. 
+export.store_dyn_proc_root
+    mem_storew.DYN_PROC_ROOT_ADDR dropw 
+    push.DYN_PROC_ROOT_ADDR
 end
 
 # INPUT NOTES

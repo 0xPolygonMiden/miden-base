@@ -91,7 +91,7 @@ If a transaction script is provided, its root is stored at a pre-defined memory 
 
 ## Note processing
 
-Input notes are consumed in a loop. 
+Input notes are consumed in a loop.
 
 For every note, the [MAST root](https://0xpolygonmiden.github.io/miden-vm/design/programs.html) of the note script is loaded onto the stack. Then, by calling a [`dyncall`](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/code_organization.html?highlight=dyncall#dynamic-procedure-invocation) the note script is executed in a new context which prevents unwanted memory access.
 
@@ -101,6 +101,10 @@ For every note, the [MAST root](https://0xpolygonmiden.github.io/miden-vm/design
         # execute the note setup script
         exec.note::prepare_note
         # => [NOTE_SCRIPT_HASH]
+
+        # store the NOTE_SCRIPT_HASH to the memory to be able to call it dynamically
+        loc_storew.0 dropw locaddr.0
+        # => [note_script_hash_addr]
 
         # invoke the note script using the dyncall instruction
         dyncall

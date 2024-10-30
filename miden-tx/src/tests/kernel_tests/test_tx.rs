@@ -641,30 +641,45 @@ fn test_load_foreign_account_basic() {
         .advice_inputs(advice_inputs.clone())
         .build();
 
+    let get_item_foreign_hash = {
+        let foreign_account_code_source = "
+            use.miden::account
+            export.get_item
+                exec.account::get_item
+                movup.8 drop movup.8 drop movup.8 drop
+            end
+        ";
+        *AccountCode::mock_with_code(
+            foreign_account_code_source,
+            TransactionKernel::testing_assembler(),
+        )
+        .procedures()[0]
+            .mast_root()
+    };
+
     let code = format!(
         "
         use.std::sys
         
         use.kernel::prologue
         use.miden::tx
-        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
 
             # pad the stack for the `execute_foreign_procedure`execution
-            padw padw push.0.0.0
-            # => [pad(11)]
+            padw padw padw push.0.0
+            # => [pad(14)]
 
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
@@ -716,8 +731,8 @@ fn test_load_foreign_account_basic() {
             exec.prologue::prepare_transaction
 
             # pad the stack for the `execute_foreign_procedure`execution
-            padw push.0.0.0
-            # => [pad(7)]
+            padw padw push.0.0
+            # => [pad(10)]
 
             # push the key of desired storage item
             push.{map_key}
@@ -725,12 +740,12 @@ fn test_load_foreign_account_basic() {
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_map_item_foreign` account procedure
-            procref.account::get_map_item_foreign
+            # get the hash of the `get_map_item` account procedure
+            procref.account::get_map_item
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
             exec.tx::execute_foreign_procedure
             # => [MAP_VALUE]
@@ -774,49 +789,64 @@ fn test_load_foreign_account_twice() {
         .advice_inputs(advice_inputs.clone())
         .build();
 
+    let get_item_foreign_hash = {
+        let foreign_account_code_source = "
+            use.miden::account
+            export.get_item
+                exec.account::get_item
+                movup.8 drop movup.8 drop movup.8 drop
+            end
+        ";
+        *AccountCode::mock_with_code(
+            foreign_account_code_source,
+            TransactionKernel::testing_assembler(),
+        )
+        .procedures()[0]
+            .mast_root()
+    };
+
     let code = format!(
         "
         use.std::sys
 
         use.kernel::prologue
         use.miden::tx
-        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
 
             ### Get the storage item at index 0 #####################
             # pad the stack for the `execute_foreign_procedure`execution
-            padw padw push.0.0.0
-            # => [pad(11)]
+            padw padw padw push.0.0
+            # => [pad(14)]
 
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure dropw
             # => []
 
             ### Get the storage item at index 0 again ###############
             # pad the stack for the `execute_foreign_procedure`execution
-            padw padw push.0.0.0
-            # => [pad(11)]
+            padw padw padw push.0.0
+            # => [pad(14)]
 
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(11)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
 

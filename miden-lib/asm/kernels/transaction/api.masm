@@ -66,35 +66,17 @@ proc.authenticate_account_origin
     # => [storage_offset, storage_size]
 end
 
-#! Verifies that the procedure to be invoked against the foreign account is part of its code.
-#! TODO: it is a temporary solution. This and other `*_foreign` procedures should be removed after
-#! the refactoring of the `DYN` operation (see miden-vm/#1091) and the fix of the CALLER operation.
-#!
-#! Stack: [FOREIGN_PROC_ROOT]
-#! Output: [storage_offset, storage_size, ...]
-#!
-#! Panics if:
-#! - the invocation of the kernel procedure does not originate from the account context.
-proc.authenticate_account_origin_foreign
-    # assert that the caller is from the user context
-    exec.account::authenticate_procedure
-    # => [storage_offset, storage_size, ...]
-end
-
 # KERNEL PROCEDURES
 # =================================================================================================
 
 #! Returns the account id.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, 0]
+#! Stack: [0]
 #! Output: [acct_id]
 #!
 #! Where:
 #! - acct_id is the account id.
 export.get_account_id
-    # drop the procedure's hash
-    dropw
-
     # get the account id
     exec.account::get_id
     # => [acct_id, 0]
@@ -105,15 +87,12 @@ end
 
 #! Returns the account nonce.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, 0]
+#! Stack: [0]
 #! Output: [nonce]
 #!
 #! Where:
 #! - nonce is the account nonce.
 export.get_account_nonce
-    # drop the procedure's hash
-    dropw
-
     # get the account nonce
     exec.account::get_nonce
     # => [0, nonce]
@@ -124,15 +103,12 @@ end
 
 #! Returns the initial account hash.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
+#! Stack: [0, 0, 0, 0]
 #! Output: [H]
 #!
 #! Where:
 #! - H is the initial account hash.
 export.get_initial_account_hash
-    # drop the procedure's hash
-    dropw
-
     # get the initial account hash
     exec.account::get_initial_hash
     # => [H, 0, 0, 0, 0]
@@ -143,15 +119,12 @@ end
 
 #! Computes and returns the account hash from account data stored in memory.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
+#! Stack: [0, 0, 0, 0]
 #! Output: [ACCT_HASH]
 #!
 #! Where:
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_account_hash
-    # drop the procedure's hash
-    dropw
-
     # get the current account hash
     exec.account::get_current_hash
     # => [ACCT_HASH, 0, 0, 0, 0]
@@ -162,7 +135,7 @@ end
 
 #! Increments the account nonce by the provided value.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, value]
+#! Stack: [value]
 #! Output: [0]
 #!
 #! Where:
@@ -174,9 +147,6 @@ end
 export.incr_account_nonce
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-
-    # drop the procedure's hash
-    dropw
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
@@ -193,7 +163,7 @@ end
 
 #! Gets an item from the account storage.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, index, 0, 0, 0]
+#! Stack: [index, 0, 0, 0]
 #! Output: [VALUE]
 #!
 #! Where:
@@ -203,9 +173,6 @@ end
 #! Panics if:
 #! - the index is out of bounds.
 export.get_account_item
-    # drop the procedure's hash
-    dropw
-
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [storage_offset, storage_size, index, 0, 0, 0]
@@ -223,40 +190,9 @@ export.get_account_item
     # => [VALUE]
 end
 
-#! Gets an item from the account storage.
-#!
-#! Stack: [KERNEL_PROCEDURE_HASH, FOREIGN_PROC_ROOT, index, pad(10)]
-#! Output: [VALUE, pad(10)]
-#!
-#! Where:
-#! - KERNEL_PROCEDURE_HASH is the hash of this procedure.
-#! - FOREIGN_PROC_ROOT is the hash of the foreign procedure which called this procedure.
-#! - index is the index of the item to get.
-#! - VALUE is the value of the item.
-#!
-#! Panics if:
-#! - the index is out of bounds.
-export.get_account_item_foreign
-    # drop the kernel procedure's hash
-    dropw
-    # => [FOREIGN_PROC_ROOT, index, pad(10)]
-
-    # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin_foreign
-    # => [storage_offset, storage_size, index, pad(10)]
-
-    # apply offset to storage slot index
-    exec.account::apply_storage_offset
-    # => [index_with_offset, pad(10)]
-
-    # fetch the account storage item
-    exec.account::get_item
-    # => [VALUE, pad(10)]
-end
-
 #! Sets an item in the account storage.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, index, V', 0, 0, 0]
+#! Stack: [index, V', 0, 0, 0]
 #! Output: [R', V]
 #!
 #! Where:
@@ -271,9 +207,6 @@ end
 export.set_account_item
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-
-    # drop the procedure's hash
-    dropw
 
     # if the transaction is being executed against a faucet account then assert
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
@@ -301,7 +234,7 @@ end
 
 #! Returns VALUE located under specified KEY in map in specified account storage slot.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, index, KEY, ...]
+#! Stack: [index, KEY, ...]
 #! Output: [VALUE, 0]
 #!
 #! Where:
@@ -312,9 +245,6 @@ end
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 export.get_account_map_item
-    # drop the procedure's hash
-    dropw
-
     # check if storage type is map
     dup exec.account::get_storage_slot_type
     # => [slot_type, index, KEY, ...]
@@ -344,55 +274,9 @@ export.get_account_map_item
     # => [VALUE, 0]
 end
 
-#! Returns VALUE located under specified KEY in map in specified account storage slot.
-#!
-#! Stack: [KERNEL_PROCEDURE_HASH, FOREIGN_PROC_ROOT, index, KEY, pad(6)]
-#! Output: [VALUE, pad(6)]
-#!
-#! Where:
-#! - index is the index of the item to get.
-#! - VALUE is the value of the item.
-#!
-#! Panics if:
-#! - the index is out of bounds (>255).
-#! - the requested storage slot type is not map
-export.get_account_map_item_foreign
-    # drop the procedure's hash
-    dropw
-    # => [FOREIGN_PROC_ROOT, index, KEY, pad(6)]
-
-    # check if storage type is map
-    movup.4 dup exec.account::get_storage_slot_type
-    # => [slot_type, index, FOREIGN_PROC_ROOT, KEY, pad(6)]
-
-    # check if type == map
-    exec.constants::get_storage_slot_type_map eq assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
-    # => [index, FOREIGN_PROC_ROOT, KEY, pad(6)]
-
-    # authenticate that the procedure invocation originates from the account context
-    movdn.4 exec.authenticate_account_origin_foreign
-    # => [storage_offset, storage_size, index, KEY, pad(6)]
-
-    # apply offset to storage slot index
-    exec.account::apply_storage_offset
-    # => [index_with_offset, KEY, pad(6)]
-
-    # fetch the account storage item, which is ROOT of the map
-    exec.account::get_item swapw
-    # => [KEY, ROOT, pad(6)]
-
-    # fetch the VALUE located under KEY in the tree
-    exec.smt::get
-    # => [VALUE, ROOT, pad(6)]
-
-    # prepare the stack for return
-    swapw dropw
-    # => [VALUE, pad(6)]
-end
-
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, index, KEY, NEW_VALUE, ...]
+#! Stack: [index, KEY, NEW_VALUE, ...]
 #! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
 #!
 #! Where:
@@ -411,9 +295,6 @@ end
 export.set_account_map_item.1
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-
-    # drop the procedure's hash
-    dropw
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
@@ -444,7 +325,7 @@ end
 #! This procedure can only be executed on regular accounts with updatable code. Otherwise, this
 #! procedure fails.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, CODE_COMMITMENT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: [0, 0, 0, 0]
 #!
 #! Where:
@@ -455,9 +336,6 @@ end
 export.set_account_code
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-
-    # drop the procedure's hash
-    dropw
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
@@ -474,7 +352,7 @@ end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, faucet_id]
+#! Stack: [faucet_id]
 #! Output: [balance]
 #!
 #! Where:
@@ -484,9 +362,6 @@ end
 #! Panics if:
 #! - the asset is not a fungible asset.
 export.account_vault_get_balance
-    # drop the procedure's hash
-    dropw
-
     # get the vault root
     exec.memory::get_acct_vault_root_ptr swap
     # => [faucet_id, acct_vault_root_ptr]
@@ -498,7 +373,7 @@ end
 
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
+#! Stack: [ASSET]
 #! Output: [has_asset, 0, 0, 0]
 #!
 #! Where:
@@ -508,9 +383,6 @@ end
 #! Panics if:
 #! - the ASSET is a fungible asset.
 export.account_vault_has_non_fungible_asset
-    # drop the procedure's hash
-    dropw
-
     # arrange stack and get the vault root
     push.0 movdn.4 push.0 movdn.4 push.0 movdn.4 exec.memory::get_acct_vault_root_ptr movdn.4
     # => [ASSET, 0, 0, 0]
@@ -522,7 +394,7 @@ end
 
 #! Add the specified asset to the vault.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
+#! Stack: [ASSET]
 #! Output: [ASSET']
 #!
 #! Where:
@@ -540,9 +412,6 @@ end
 export.account_vault_add_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-
-    # drop the procedure's hash
-    dropw
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
@@ -573,7 +442,7 @@ end
 
 #! Remove the specified asset from the vault.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
+#! Stack: [ASSET]
 #! Output: [ASSET]
 #!
 #! Where:
@@ -587,9 +456,6 @@ end
 export.account_vault_remove_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-
-    # drop the procedure's hash
-    dropw
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
@@ -615,7 +481,7 @@ end
 
 #! Returns the number of assets and the assets hash of the note currently being processed.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0, 0]
+#! Inputs: [0, 0, 0, 0, 0]
 #! Outputs: [ASSETS_HASH, num_assets]
 #!
 #! Where:
@@ -625,9 +491,6 @@ end
 #! Panics if:
 #! - a note is not being processed.
 export.get_note_assets_info
-    # drop the procedure's hash
-    dropw
-
     # get the assets info
     exec.note::get_assets_info
     # => [ASSETS_HASH, num_assets, 0, 0, 0, 0, 0]
@@ -639,15 +502,12 @@ end
 
 #! Returns the current note's inputs hash.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, EMPTY_WORD]
+#! Inputs: [EMPTY_WORD]
 #! Outputs: [NOTE_INPUTS_HASH]
 #!
 #! Where:
 #! - NOTE_INPUTS_HASH is the current note's inputs hash.
 export.get_note_inputs_hash
-    # drop the procedure's hash
-    dropw
-
     exec.note::get_note_inputs_hash
     # => [NOTE_INPUTS_HASH, EMPTY_WORD]
 
@@ -657,7 +517,7 @@ end
 
 #! Returns the sender of the note currently being processed.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, 0]
+#! Inputs: [0]
 #! Outputs: [sender]
 #!
 #! Where:
@@ -666,24 +526,18 @@ end
 #! Panics if:
 #! - a note is not being processed.
 export.get_note_sender
-    # drop the procedure's hash
-    dropw
-
     exec.note::get_sender swap drop
     # => [sender]
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, 0]
+#! Inputs: [0]
 #! Outputs: [num]
 #!
 #! Where:
 #! - num is the last known block number.
 export.get_block_number
-    # drop the procedure's hash
-    dropw
-
     # get the block number
     exec.tx::get_block_number
     # => [num, 0]
@@ -695,15 +549,12 @@ end
 
 #! Returns the block hash of the reference block.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, EMPTY_WORD]
+#! Stack: [EMPTY_WORD]
 #! Output: [BLOCK_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
 export.get_block_hash
-    # drop the procedure's hash
-    dropw
-
     dropw exec.tx::get_block_hash
     # => [BLOCK_HASH]
 end
@@ -716,15 +567,12 @@ end
 #! be delayed to the batch/block kernel. The delayed authentication allows a transaction to consume a
 #! public note that is not yet included to a block.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
+#! Inputs: [0, 0, 0, 0]
 #! Outputs: [INPUT_NOTES_COMMITMENT]
 #!
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
 export.get_input_notes_commitment
-    # drop the procedure's hash
-    dropw
-
     exec.tx::get_input_notes_commitment
     # => [COM, 0, 0, 0, 0]
 
@@ -735,15 +583,12 @@ end
 #! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
+#! Inputs: [0, 0, 0, 0]
 #! Outputs: [COM]
 #!
 #! Where:
 #! - COM is the output notes hash.
 export.get_output_notes_hash
-    # drop the procedure's hash
-    dropw
-
     # get the output notes hash
     exec.tx::get_output_notes_hash
     # => [COM, 0, 0, 0, 0]
@@ -755,7 +600,7 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, tag, aux, note_type, execution_hint, RECIPIENT, pad(4)]
+#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT, pad(4)]
 #! Outputs: [note_idx, pad(15)]
 #!
 #! Where:
@@ -773,9 +618,6 @@ export.create_note
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
 
-    # drop the procedure's hash
-    dropw
-
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
     # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
@@ -786,7 +628,7 @@ end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs:  [KERNEL_PROCEDURE_HASH, note_idx, ASSET, pad(7)]
+#! Inputs:  [note_idx, ASSET, pad(7)]
 #! Outputs: [note_idx, ASSET, pad(11)]
 #!
 #! Where:
@@ -799,9 +641,6 @@ end
 export.add_asset_to_note
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-
-    # drop the procedure's hash
-    dropw
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
@@ -817,15 +656,12 @@ end
 
 #! Returns a commitment to the account vault the transaction is being executed against.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, 0, 0, 0, 0]
+#! Stack: [0, 0, 0, 0]
 #! Outputs: [COM]
 #!
 #! Where:
 #! - COM is the commitment to the account vault.
 export.get_account_vault_commitment
-    # drop the procedure's hash
-    dropw
-
     # fetch the account vault root
     exec.memory::get_acct_vault_root
     # => [COM, 0, 0, 0, 0]
@@ -837,7 +673,7 @@ end
 
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
+#! Stack: [ASSET]
 #! Outputs: [ASSET]
 #!
 #! Where:
@@ -857,9 +693,6 @@ export.mint_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
 
-    # drop the procedure's hash
-    dropw
-
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
     # => [ASSET]
@@ -871,7 +704,7 @@ end
 
 #! Burn an asset from the faucet the transaction is being executed against.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, ASSET]
+#! Stack: [ASSET]
 #! Outputs: [ASSET]
 #!
 #! Where:
@@ -892,9 +725,6 @@ export.burn_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
 
-    # drop the procedure's hash
-    dropw
-
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
     # => [ASSET]
@@ -906,7 +736,7 @@ end
 
 #! Returns the total issuance of the fungible faucet the transaction is being executed against.
 #!
-#! Stack: [KERNEL_PROCEDURE_HASH, 0]
+#! Stack: [0]
 #! Outputs: [total_issuance]
 #!
 #! Where:
@@ -916,9 +746,6 @@ end
 #! Panics if:
 #! - the transaction is not being executed against a fungible faucet.
 export.get_fungible_faucet_total_issuance
-    # drop the procedure's hash
-    dropw
-
     # assert that we are executing a transaction against a fungible faucet (access checks)
     exec.account::get_id exec.account::is_fungible_faucet assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [0]
@@ -934,7 +761,7 @@ end
 
 #! Returns the serial number of the note currently being processed.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH]
+#! Inputs: []
 #! Outputs: [SERIAL_NUMBER]
 #!
 #! Where:
@@ -943,9 +770,6 @@ end
 #! Panics if:
 #! - no note is not being processed.
 export.get_note_serial_number
-    # drop the procedure's hash
-    dropw
-
     exec.note::get_serial_number
     # => [SERIAL_NUMBER]
 
@@ -960,7 +784,7 @@ end
 #! Moves the account pointer to the currently accessing foreign account.
 #!
 #! Inputs:
-#!   Operand stack: [KERNEL_PROCEDURE_HASH, foreign_account_id, pad(11)]
+#!   Operand stack: [foreign_account_id, pad(11)]
 #!   Advice map: {
 #!     FOREIGN_ACCOUNT_ID: [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
 #!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
@@ -987,10 +811,6 @@ end
 export.start_foreign_context
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-    # OS => [KERNEL_PROCEDURE_HASH, foreign_account_id]
-
-    # drop the procedure's hash
-    dropw
     # OS => [foreign_account_id]
 
     # get the memory address and a flag whether this account was already loaded.
@@ -1058,16 +878,13 @@ end
 
 #! Tells the transaction kernel that we are done executing a procedure on a foreign account.
 #!
-#! Inputs:  [KERNEL_PROCEDURE_HASH, ...]
+#! Inputs:  [...]
 #! Outputs: [...]
 #!
 #! Panics if:
 #! - the current context is a native context.
 export.end_foreign_context
     exec.memory::set_current_account_data_ptr_to_native_account
-
-    # drop the procedure's hash
-    dropw
 end
 
 #! Updates the transaction expiration time delta.
@@ -1076,29 +893,23 @@ end
 #! The input block height delta is added to the reference block in order to output an upper limit
 #! up until which the transaction will be considered valid (not expired).
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, block_height_delta, ...]
+#! Inputs: [block_height_delta, ...]
 #! Output: [...]
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
 export.update_expiration_block_num
-    # drop the procedure's hash
-    dropw
-
     exec.tx::update_expiration_block_num
 end
 
 #! Gets the transaction expiration delta.
 #!
 #! Inputs: [...]
-#! Output: [KERNEL_PROCEDURE_HASH, block_height_delta, ...]
+#! Output: [block_height_delta, ...]
 #!
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
 export.get_expiration_delta
-    # drop the procedure's hash
-    dropw
-
     exec.tx::get_expiration_delta
 end
 
@@ -1134,6 +945,10 @@ export.exec_kernel_proc
     # load kernel procedure hash
     mem_loadw
     # => [KERNEL_PROCEDURE_HASH, <procedure_inputs>, <pad>]
+
+    # store the KERNEL_PROCEDURE_HASH to the memory to be able to call it dynamically
+    exec.memory::store_dyn_proc_root
+    # => [kernel_procedure_hash_addr, <procedure_inputs>, <pad>]
 
     # execute loaded procedure
     dynexec

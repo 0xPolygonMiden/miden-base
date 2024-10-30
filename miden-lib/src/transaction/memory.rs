@@ -20,6 +20,7 @@ pub type StorageSlot = u8;
 // | Chain MMR         | 300           | 332?         |
 // | Kernel data       | 400           | 429          |
 // | Accounts data     | 2048          | 133_119      | 64 foreign accounts max
+// | Dyn proc root     | 133_120       | 133_120      |
 // | Input notes       | 1_048_576     | ?            |
 // | Output notes      | 4_194_304     | ?            |
 
@@ -253,6 +254,13 @@ pub const NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR: MemoryAddress =
 
 /// The size of the memory segment allocated to each note.
 pub const NOTE_MEM_SIZE: MemoryAddress = 512;
+
+// DYNAMIC EXECUTION DATA SLOT
+// ================================================================================================
+
+/// The memory address which should be used to store the root of the dynamically called/executed
+/// procedure.
+pub const DYN_PROC_ROOT: MemoryAddress = 133120;
 
 #[rustfmt::skip]
 // INPUT NOTES DATA
