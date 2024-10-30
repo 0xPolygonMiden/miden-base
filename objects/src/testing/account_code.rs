@@ -151,7 +151,11 @@ impl AccountCode {
     pub fn mock_library(assembler: Assembler) -> Library {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module = Module::parser(assembly::ast::ModuleKind::Library)
-            .parse_str(LibraryPath::new("test::account").unwrap(), MOCK_ACCOUNT_CODE, &source_manager)
+            .parse_str(
+                LibraryPath::new("test::account").unwrap(),
+                MOCK_ACCOUNT_CODE,
+                &source_manager,
+            )
             .unwrap();
 
         assembler.assemble_library(&[*module]).unwrap()

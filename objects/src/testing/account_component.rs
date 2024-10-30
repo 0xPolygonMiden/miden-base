@@ -3,7 +3,10 @@ use alloc::{sync::Arc, vec::Vec};
 use assembly::{ast::Module, Assembler, LibraryPath};
 use miden_crypto::dsa::rpo_falcon512::PublicKey;
 
-use crate::{accounts::{AccountComponent, StorageSlot}, testing::account_code::MOCK_ACCOUNT_CODE};
+use crate::{
+    accounts::{AccountComponent, StorageSlot},
+    testing::account_code::MOCK_ACCOUNT_CODE,
+};
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
@@ -88,7 +91,11 @@ impl IntoAccountComponent for AccountMockComponent {
     fn into_component(self, assembler: Assembler) -> AccountComponent {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module = Module::parser(assembly::ast::ModuleKind::Library)
-            .parse_str(LibraryPath::new("test::account").unwrap(), MOCK_ACCOUNT_CODE, &source_manager)
+            .parse_str(
+                LibraryPath::new("test::account").unwrap(),
+                MOCK_ACCOUNT_CODE,
+                &source_manager,
+            )
             .unwrap();
 
         let library = assembler.assemble_library(&[*module]).unwrap();

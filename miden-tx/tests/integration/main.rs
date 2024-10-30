@@ -82,7 +82,7 @@ pub fn get_account_with_default_account_code(
     };
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let account_component = AccountComponent::compile(
+    let wallet_component = AccountComponent::compile(
         BASIC_WALLET_CODE,
         assembler.clone(),
         vec![StorageSlot::Value(Word::default()), StorageSlot::Map(StorageMap::default())],
@@ -91,10 +91,9 @@ pub fn get_account_with_default_account_code(
 
     let account_components = [
         RpoFalcon512::new(PublicKey::new(public_key)).into_component(assembler),
-        account_component,
+        wallet_component,
     ];
-    let account_code =
-        AccountCode::from_components(&account_components, account_id.account_type()).unwrap();
+    let account_code = AccountCode::from_components(&account_components).unwrap();
     let account_storage = AccountStorage::from_components(&account_components).unwrap();
 
     let account_vault = match assets {

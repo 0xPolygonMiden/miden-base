@@ -21,7 +21,6 @@ use crate::{
 #[derive(Clone)]
 pub struct AccountBuilder<T> {
     assembler: Assembler,
-    account_type: AccountType,
     faucet_metadata: Option<Word>,
     assets: Vec<Asset>,
     components: Vec<AccountComponent>,
@@ -33,7 +32,6 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn new(rng: T, assembler: Assembler) -> Self {
         Self {
             assembler,
-            account_type: AccountType::RegularAccountUpdatableCode,
             faucet_metadata: None,
             assets: vec![],
             components: vec![],
@@ -66,7 +64,6 @@ impl<T: Rng> AccountBuilder<T> {
 
     pub fn account_type(mut self, account_type: AccountType) -> Self {
         self.account_id_builder.account_type(account_type);
-        self.account_type = account_type;
         self
     }
 
@@ -83,7 +80,7 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn build(mut self) -> Result<(Account, Word), AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
 
-        let code = AccountCode::from_components(&self.components, self.account_type)
+        let code = AccountCode::from_components(&self.components)
             .map_err(AccountBuilderError::AccountError)?;
         let storage = match self.faucet_metadata {
             Some(faucet_metadata) => AccountStorage::from_components_with_faucet_metadata(

@@ -11,11 +11,16 @@ use crate::{accounts::StorageSlot, AccountError};
 pub struct AccountComponent {
     pub(crate) code: Library,
     pub(crate) storage_slots: Vec<StorageSlot>,
+    pub(crate) component_type: AccountComponentType,
 }
 
 impl AccountComponent {
     pub fn new(code: Library, storage_slots: Vec<StorageSlot>) -> Self {
-        Self { code, storage_slots }
+        Self {
+            code,
+            storage_slots,
+            component_type: AccountComponentType::Any,
+        }
     }
 
     /// Returns a new [AccountCode] compiled from the provided source code using the specified
@@ -41,6 +46,15 @@ impl AccountComponent {
         Ok(Self::new(library, storage_slots))
     }
 
+    pub fn with_type(mut self, component_type: AccountComponentType) -> Self {
+        self.component_type = component_type;
+        self
+    }
+
+    pub fn is_faucet_component(&self) -> bool {
+        self.component_type == AccountComponentType::Faucet
+    }
+
     pub fn library(&self) -> &Library {
         &self.code
     }
@@ -52,4 +66,10 @@ impl AccountComponent {
     pub fn storage_slots(&self) -> &[StorageSlot] {
         self.storage_slots.as_slice()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AccountComponentType {
+    Any,
+    Faucet,
 }
