@@ -91,7 +91,7 @@ fn transaction_executor_witness() {
         mem_advice_provider,
         mast_store,
         None,
-        &BTreeSet::new(),
+        BTreeSet::new(),
     )
     .unwrap();
     let result = vm_processor::execute(

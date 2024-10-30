@@ -97,15 +97,15 @@ impl<A: AdviceProvider> TransactionHost<A> {
         adv_provider: A,
         mast_store: Arc<TransactionMastStore>,
         authenticator: Option<Arc<dyn TransactionAuthenticator>>,
-        foreign_account_code_commitments: &BTreeSet<Digest>,
+        mut account_code_commitments: BTreeSet<Digest>,
     ) -> Result<Self, TransactionHostError> {
-        let proc_index_map = AccountProcedureIndexMap::new(
-            &adv_provider,
-            foreign_account_code_commitments
-                .iter()
-                .cloned()
-                .chain([account.code_commitment()]),
-        )?;
+        // currently, the executor/prover do not keep track of the code commitment of the native
+        // account, so we add it to the set here
+        account_code_commitments.insert(account.code_commitment());
+
+        let proc_index_map =
+            AccountProcedureIndexMap::new(account_code_commitments, &adv_provider)?;
+
         let kernel_assertion_errors = BTreeMap::from(TX_KERNEL_ERRORS);
         Ok(Self {
             adv_provider,

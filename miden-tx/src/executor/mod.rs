@@ -36,10 +36,13 @@ pub struct TransactionExecutor {
     data_store: Arc<dyn DataStore>,
     mast_store: Arc<TransactionMastStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
+    /// Holds the code commitments of all accounts loaded into this transaction executor via the
+    /// [Self::load_account_code()] method.
+    ///
+    /// These commitments are used to create the account procedure index map during transaction
+    /// execution.
+    account_code_commitments: BTreeSet<Digest>,
     exec_options: ExecutionOptions,
-    /// Holds the code commitments of all foreign accounts used in this transaction. It is used for
-    /// creation of the account procedure index map during the execution.
-    foreign_account_code_commitments: BTreeSet<Digest>,
 }
 
 impl TransactionExecutor {
@@ -65,7 +68,7 @@ impl TransactionExecutor {
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
-            foreign_account_code_commitments: BTreeSet::new(),
+            account_code_commitments: BTreeSet::new(),
         }
     }
 
@@ -99,14 +102,14 @@ impl TransactionExecutor {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Loads the provided code into the internal MAST store and adds the commitment of the provided
-    /// code to the commitments set.
+    /// Loads the provided code into the internal MAST forest store and adds the commitment of the
+    /// provided code to the commitments set.
     pub fn load_account_code(&mut self, code: &AccountCode) {
         // load the code mast forest to the mast store
         self.mast_store.load_account_code(code);
 
         // store the commitment of the foreign account code in the set
-        self.foreign_account_code_commitments.insert(code.commitment());
+        self.account_code_commitments.insert(code.commitment());
     }
 
     // TRANSACTION EXECUTION
@@ -146,7 +149,7 @@ impl TransactionExecutor {
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
-            &self.foreign_account_code_commitments,
+            self.account_code_commitments.clone(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 

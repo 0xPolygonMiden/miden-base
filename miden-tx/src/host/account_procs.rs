@@ -13,17 +13,18 @@ use crate::errors::TransactionHostError;
 // ================================================================================================
 
 /// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known procedures
-/// of an account interface for every account code commitment.
+/// of account interfaces for all accounts expected to be invoked during transaction execution.
 pub struct AccountProcedureIndexMap(BTreeMap<Digest, BTreeMap<Digest, u8>>);
 
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
+    ///
+    /// Note: `account_code_commitments` iterator should include both native account code and
+    /// foreign account codes commitments
     pub fn new(
-        adv_provider: &impl AdviceProvider,
-        // `account_code_commitments` iterator should include both native account code and foreign
-        // account codes commitments
         account_code_commitments: impl IntoIterator<Item = Digest>,
+        adv_provider: &impl AdviceProvider,
     ) -> Result<Self, TransactionHostError> {
         let mut result = BTreeMap::new();
 
