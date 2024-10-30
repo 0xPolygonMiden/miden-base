@@ -104,7 +104,7 @@ bench-tx: ## Run transaction benchmarks
 # --- installing ----------------------------------------------------------------------------------
 
 .PHONY: install-prover
-install-prover: ## Installs prover
+install-prover-worker: ## Installs prover worker
 	cargo install --path bin/tx-prover --bin miden-tx-prover-worker --locked
 
 .PHONY: install-prover-testing

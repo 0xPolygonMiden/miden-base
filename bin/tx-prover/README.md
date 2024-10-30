@@ -1,48 +1,60 @@
 # Miden transaction prover
 
-A service for generating Miden transaction proofs on-demand.
+A service for generating Miden transaction proofs on-demand. It is split in two binaries: worker
+and proxy.
+
+The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can
+only handle one request at a time and returns an error if is already in use.
+
+The proxy uses Cloudflare's Pingora crate, which provides features to create a modular proxy. It is
+meant to handle multiple workers with a queue for each one.
 
 ## Installation
 
-Install the prover binary for production using `cargo`:
+Install the prover worker and proxy binaries for production using `cargo`:
 
 ```sh
-cargo install miden-tx-prover --locked
+cargo install miden-tx-prover-worker --locked
+cargo install miden-tx-prover-proxy --locked
 ```
 
 This will install the latest official version of the prover. You can install a specific version using `--version <x.y.z>`:
 
 ```sh
-cargo install miden-tx-prover --locked --version x.y.z
+cargo install miden-tx-prover-worker --locked --version x.y.z
+cargo install miden-tx-prover-proxy --locked --version x.y.z
 ```
 
-You can also use `cargo` to compile the prover service from the source code if for some reason you need a specific git revision. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only. The incantation is a little different as you'll be targetting this repo instead:
+To install both services at once from the source code using specific git revisions you can use `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only:
 
 ```sh
 # Install from a specific branch
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --branch <branch>
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-worker --branch <branch>
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-proxy --branch <branch>
 
 # Install a specific tag
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --tag <tag>
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-worker --tag <tag>
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-proxy --tag <tag>
 
 # Install a specific git revision
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover --rev <git-sha>
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-worker --rev <git-sha>
+cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-proxy --rev <git-sha>
 ```
-
-If you want to build the prover from a local version, from the root of the workspace you can run:
+If you want to build from a local version, from the root of the workspace you can run:
 
 ```bash
-make install-prover
+make install-prover-worker
+make install-prover-proxy
 ```
 
-This step will also generate the necessary protobuf-related files.
+Note that for the prover worker you might need to add the `testing` feature in case you need. This step will also generate the necessary protobuf-related files.
 
-### Running the Service
+## Running the Service
 
-Once installed, you can run the service with:
+Once installed, you can run the worker with:
 
 ```bash
-RUST_LOG=info miden-tx-prover
+RUST_LOG=info miden-tx-prover-worker
 ```
 
 By default, the server will start on `0.0.0.0:50051`. You can change this and the log level by setting the following environment variables:
@@ -53,6 +65,30 @@ PROVER_SERVICE_PORT=<your-port>
 RUST_LOG=<log-level>
 ```
 
+And to run the proxy:
+
+```bash
+RUST_LOG=info miden-tx-prover-proxy
+```
+
+By default, the server will start on `0.0.0.0:6188`. This can be changed by setting:
+
+```bash
+PROXY_HOST=<your-host>
+PROXY_PORT=<your-port>
+```
+
+Also, it is mandatory to set at least one prover worker by setting the `PROVER_BACKENDS` env var:
+
+```bash
+PROVER_BACKENDS=<your-backends>
+
+# For only 1 backend
+PROVER_BACKENDS="0.0.0.0:50051"
+
+# For multiple backends
+PROVER_BACKENDS="0.0.0.0:8080,0.0.0.0:50051,165.75.2.4:1010,10.2.2.1:9999"
+```
 
 ## Features
 
