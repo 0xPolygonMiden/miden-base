@@ -195,7 +195,6 @@ impl AccountCode {
         Self::read_from_bytes(bytes).map_err(AccountError::AccountCodeDeserializationError)
     }
 
-    // TODO: Remove once no longer needed.
     /// Returns a new definition of an account's interface instantiated from the provided
     /// [MastForest] and a list of [AccountProcedureInfo]s.
     ///

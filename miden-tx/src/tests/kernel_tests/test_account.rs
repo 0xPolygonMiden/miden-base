@@ -10,8 +10,8 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountCode, AccountId, AccountStorage, AccountType, AssembledAccountComponent,
-        StorageSlot,
+        AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
+        AssembledAccountComponent, StorageSlot,
     },
     assembly::Library,
     testing::{
@@ -644,7 +644,10 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let account_code = AccountCode::mock_account_code(TransactionKernel::assembler(), false);
+    let mock_component = AccountMockComponent::with_empty_slots()
+        .assemble_component(TransactionKernel::assembler())
+        .unwrap();
+    let account_code = AccountCode::from_components(&[mock_component]).unwrap();
 
     let tc_0: [Felt; 4] =
         account_code.procedures()[0].mast_root().as_elements().try_into().unwrap();

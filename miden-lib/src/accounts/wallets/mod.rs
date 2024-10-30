@@ -1,10 +1,11 @@
-use alloc::string::{String, ToString};
+use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
-        StorageSlot,
+        Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
+        AccountType,
     },
+    testing::account_component::{BasicWallet, RpoFalcon512},
     AccountError, Word,
 };
 
@@ -37,23 +38,18 @@ pub fn create_basic_wallet(
         ));
     }
 
-    let (auth_scheme_procedure, storage_slot_0_data): (&str, Word) = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => ("auth_tx_rpo_falcon512", pub_key.into()),
+    let assembler = TransactionKernel::assembler();
+
+    let auth_component = match auth_scheme {
+        AuthScheme::RpoFalcon512 { pub_key } => {
+            RpoFalcon512::new(pub_key).assemble_component(assembler.clone())?
+        },
     };
 
-    let source_code: String = format!(
-        "
-        export.::miden::contracts::wallets::basic::receive_asset
-        export.::miden::contracts::wallets::basic::create_note
-        export.::miden::contracts::wallets::basic::move_asset_to_note
-        export.::miden::contracts::auth::basic::{auth_scheme_procedure}
-        "
-    );
+    let components = [auth_component, BasicWallet.assemble_component(assembler)?];
 
-    let assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::compile(source_code, assembler, false)?;
-
-    let account_storage = AccountStorage::new(vec![StorageSlot::Value(storage_slot_0_data)])?;
+    let account_code = AccountCode::from_components(&components)?;
+    let account_storage = AccountStorage::from_components(&components)?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
