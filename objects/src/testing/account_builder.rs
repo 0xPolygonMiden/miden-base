@@ -21,7 +21,6 @@ use crate::{
 #[derive(Clone)]
 pub struct AccountBuilder<T> {
     assembler: Assembler,
-    faucet_metadata: Option<Word>,
     assets: Vec<Asset>,
     components: Vec<AccountComponent>,
     nonce: Felt,
@@ -32,7 +31,6 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn new(rng: T, assembler: Assembler) -> Self {
         Self {
             assembler,
-            faucet_metadata: None,
             assets: vec![],
             components: vec![],
             nonce: ZERO,
@@ -72,24 +70,13 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn faucet_metadata(mut self, faucet_metadata: Word) -> Self {
-        self.faucet_metadata = Some(faucet_metadata);
-        self
-    }
-
     pub fn build(mut self) -> Result<(Account, Word), AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
 
         let code = AccountCode::from_components(&self.components)
             .map_err(AccountBuilderError::AccountError)?;
-        let storage = match self.faucet_metadata {
-            Some(faucet_metadata) => AccountStorage::from_components_with_faucet_metadata(
-                &self.components,
-                faucet_metadata,
-            ),
-            None => AccountStorage::from_components(&self.components),
-        }
-        .map_err(AccountBuilderError::AccountError)?;
+        let storage = AccountStorage::from_components(&self.components)
+            .map_err(AccountBuilderError::AccountError)?;
 
         self.account_id_builder.code_commitment(code.commitment());
         self.account_id_builder.storage_commitment(storage.commitment());

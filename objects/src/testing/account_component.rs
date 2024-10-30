@@ -2,9 +2,11 @@ use alloc::{sync::Arc, vec::Vec};
 
 use assembly::{ast::Module, Assembler, LibraryPath};
 use miden_crypto::dsa::rpo_falcon512::PublicKey;
+use vm_core::{Felt, FieldElement};
 
 use crate::{
-    accounts::{AccountComponent, StorageSlot},
+    accounts::{AccountComponent, AccountComponentType, StorageSlot},
+    assets::TokenSymbol,
     testing::account_code::MOCK_ACCOUNT_CODE,
 };
 
@@ -19,6 +21,11 @@ pub const BASIC_WALLET_CODE: &str = "
 
 pub const RPO_FALCON_AUTH_CODE: &str = "
     export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+";
+
+const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
+    export.::miden::contracts::faucets::basic_fungible::distribute
+    export.::miden::contracts::faucets::basic_fungible::burn
 ";
 
 pub trait IntoAccountComponent {
@@ -63,6 +70,37 @@ impl IntoAccountComponent for RpoFalcon512 {
             vec![StorageSlot::Value(self.public_key.into())],
         )
         .unwrap()
+    }
+}
+
+// BASIC FUNGIBLE FAUCET ACCOUNT COMPONENT
+// ================================================================================================
+
+pub struct BasicFungibleFaucet {
+    symbol: TokenSymbol,
+    decimals: u8,
+    max_supply: Felt,
+}
+
+impl BasicFungibleFaucet {
+    pub fn new(symbol: TokenSymbol, decimals: u8, max_supply: Felt) -> Self {
+        Self { symbol, decimals, max_supply }
+    }
+}
+
+impl IntoAccountComponent for BasicFungibleFaucet {
+    fn into_component(self, assembler: Assembler) -> AccountComponent {
+        // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as
+        // [a3, a2, a1, a0, ...]
+        let metadata = [self.max_supply, Felt::from(self.decimals), self.symbol.into(), Felt::ZERO];
+
+        AccountComponent::compile(
+            BASIC_FUNGIBLE_FAUCET_CODE,
+            assembler,
+            vec![StorageSlot::Value(metadata)],
+        )
+        .unwrap()
+        .with_type(AccountComponentType::Faucet)
     }
 }
 

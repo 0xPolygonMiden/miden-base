@@ -54,11 +54,16 @@ impl AccountStorage {
     pub fn from_components(
         components: &[AccountComponent],
     ) -> Result<AccountStorage, AccountError> {
-        let storage_slots = components
-            .iter()
-            .flat_map(|component| component.storage_slots())
-            .cloned()
-            .collect();
+        let has_faucet_component =
+            components.iter().any(|component| component.is_faucet_component());
+        let mut storage_slots = if has_faucet_component {
+            vec![StorageSlot::Value(Word::default()); 1]
+        } else {
+            vec![]
+        };
+
+        storage_slots
+            .extend(components.iter().flat_map(|component| component.storage_slots()).cloned());
 
         Self::new(storage_slots)
     }

@@ -15,7 +15,7 @@ use miden_objects::{
     notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::{
         account_builder::AccountBuilder,
-        account_component::{BasicWallet, RpoFalcon512},
+        account_component::{BasicFungibleFaucet, BasicWallet, RpoFalcon512},
     },
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
@@ -330,20 +330,17 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let faucet_metadata: [Felt; 4] = [
-            max_supply.try_into().unwrap(),
-            Felt::new(10),
-            TokenSymbol::new(token_symbol).unwrap().into(),
-            ZERO,
-        ];
-
         let account_builder = AccountBuilder::new(
             ChaCha20Rng::from_entropy(),
             TransactionKernel::testing_assembler(),
         )
         .nonce(Felt::ZERO)
-        .account_type(AccountType::FungibleFaucet)
-        .faucet_metadata(faucet_metadata);
+        .add_component(BasicFungibleFaucet::new(
+            TokenSymbol::new(token_symbol).unwrap(),
+            10,
+            max_supply.try_into().unwrap(),
+        ))
+        .account_type(AccountType::FungibleFaucet);
 
         let account = self.add_from_account_builder(auth_method, account_builder);
 
@@ -356,20 +353,18 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let faucet_metadata: [Felt; 4] = [
-            max_supply.try_into().unwrap(),
-            Felt::new(10),
-            TokenSymbol::new(token_symbol).unwrap().into(),
-            ZERO,
-        ];
-
         let account_builder = AccountBuilder::new(
             ChaCha20Rng::from_entropy(),
             TransactionKernel::testing_assembler(),
         )
-        .faucet_metadata(faucet_metadata)
+        .add_component(BasicFungibleFaucet::new(
+            TokenSymbol::new(token_symbol).unwrap(),
+            10,
+            max_supply.try_into().unwrap(),
+        ))
         .nonce(Felt::ONE)
         .account_type(AccountType::FungibleFaucet);
+
         MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
     }
 
