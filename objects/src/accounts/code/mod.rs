@@ -115,8 +115,7 @@ impl AccountCode {
                 .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
 
             for module in library.module_infos() {
-                for (_, info) in module.procedures() {
-                    let proc_mast_root = info.digest;
+                for proc_mast_root in module.procedure_digests() {
                     // We cannot support procedures from multiple components with the same MAST root
                     // since storage offsets/sizes are set per MAST root. Setting them again
                     // for procedures where the offset has already been inserted would cause that
@@ -134,8 +133,6 @@ impl AccountCode {
                     } else {
                         (component_storage_offset, component_storage_size)
                     };
-
-                    std::println!("{} -> ({}, {})", info.name, storage_offset, storage_size);
 
                     // Note: Offset and size are validated in `AccountProcedureInfo::new`.
                     procedures.push(AccountProcedureInfo::new(

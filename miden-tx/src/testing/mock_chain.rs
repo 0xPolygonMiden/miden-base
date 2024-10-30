@@ -1,7 +1,9 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt;
 
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_lib::{
+    accounts::faucets::BasicFungibleFaucet, notes::create_p2id_note, transaction::TransactionKernel,
+};
 use miden_objects::{
     accounts::{
         delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountType, AuthSecretKey,
@@ -15,7 +17,7 @@ use miden_objects::{
     notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::{
         account_builder::AccountBuilder,
-        account_component::{BasicFungibleFaucet, BasicWallet, RpoFalcon512},
+        account_component::{BasicWallet, RpoFalcon512},
     },
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
@@ -335,11 +337,14 @@ impl MockChain {
             TransactionKernel::testing_assembler(),
         )
         .nonce(Felt::ZERO)
-        .add_component(BasicFungibleFaucet::new(
-            TokenSymbol::new(token_symbol).unwrap(),
-            10,
-            max_supply.try_into().unwrap(),
-        ))
+        .add_component(
+            BasicFungibleFaucet::new(
+                TokenSymbol::new(token_symbol).unwrap(),
+                10,
+                max_supply.try_into().unwrap(),
+            )
+            .unwrap(),
+        )
         .unwrap()
         .account_type(AccountType::FungibleFaucet);
 
@@ -358,11 +363,14 @@ impl MockChain {
             ChaCha20Rng::from_entropy(),
             TransactionKernel::testing_assembler(),
         )
-        .add_component(BasicFungibleFaucet::new(
-            TokenSymbol::new(token_symbol).unwrap(),
-            10,
-            max_supply.try_into().unwrap(),
-        ))
+        .add_component(
+            BasicFungibleFaucet::new(
+                TokenSymbol::new(token_symbol).unwrap(),
+                10,
+                max_supply.try_into().unwrap(),
+            )
+            .unwrap(),
+        )
         .unwrap()
         .nonce(Felt::ONE)
         .account_type(AccountType::FungibleFaucet);

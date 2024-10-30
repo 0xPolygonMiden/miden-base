@@ -2,7 +2,10 @@ extern crate alloc;
 
 use std::sync::Arc;
 
-use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
+use miden_lib::{
+    accounts::faucets::BasicFungibleFaucet,
+    transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
+};
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode,
@@ -11,10 +14,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::PublicKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::{
-        account_component::{BasicFungibleFaucet, RpoFalcon512},
-        prepare_word,
-    },
+    testing::{account_component::RpoFalcon512, prepare_word},
     Felt, Word, ZERO,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
@@ -249,6 +249,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             5,
             max_supply.try_into().unwrap(),
         )
+        .unwrap()
         .assemble_component(assembler.clone())
         .unwrap(),
         RpoFalcon512::new(PublicKey::new(public_key))

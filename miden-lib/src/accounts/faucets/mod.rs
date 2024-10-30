@@ -2,14 +2,65 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountStorageMode,
-        AccountType, StorageSlot,
+        Account, AccountCode, AccountComponent, AccountComponentType, AccountId, AccountStorage,
+        AccountStorageMode, AccountType, AssembledAccountComponent, StorageSlot,
     },
+    assembly::Assembler,
     assets::TokenSymbol,
-    AccountError, Felt, Word, ZERO,
+    testing::account_component::RpoFalcon512,
+    AccountError, Felt, FieldElement, Word,
 };
 
 use super::{AuthScheme, TransactionKernel};
+
+const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
+    export.::miden::contracts::faucets::basic_fungible::distribute
+    export.::miden::contracts::faucets::basic_fungible::burn
+";
+
+// BASIC FUNGIBLE FAUCET ACCOUNT COMPONENT
+// ================================================================================================
+
+pub struct BasicFungibleFaucet {
+    symbol: TokenSymbol,
+    decimals: u8,
+    max_supply: Felt,
+}
+
+impl BasicFungibleFaucet {
+    pub fn new(symbol: TokenSymbol, decimals: u8, max_supply: Felt) -> Result<Self, AccountError> {
+        // First check that the metadata is valid.
+        if decimals > MAX_DECIMALS {
+            return Err(AccountError::FungibleFaucetInvalidMetadata(
+                "Decimals must be less than 13".to_string(),
+            ));
+        } else if max_supply.as_int() > MAX_MAX_SUPPLY {
+            return Err(AccountError::FungibleFaucetInvalidMetadata(
+                "Max supply must be < 2^63".to_string(),
+            ));
+        }
+
+        Ok(Self { symbol, decimals, max_supply })
+    }
+}
+
+impl AccountComponent for BasicFungibleFaucet {
+    fn assemble_component(
+        self,
+        assembler: Assembler,
+    ) -> Result<AssembledAccountComponent, AccountError> {
+        // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as
+        // [a3, a2, a1, a0, ...]
+        let metadata = [self.max_supply, Felt::from(self.decimals), self.symbol.into(), Felt::ZERO];
+
+        AssembledAccountComponent::compile(
+            BASIC_FUNGIBLE_FAUCET_CODE,
+            assembler,
+            vec![StorageSlot::Value(metadata)],
+        )
+        .map(|component| component.with_type(AccountComponentType::Faucet))
+    }
+}
 
 // FUNGIBLE FAUCET
 // ================================================================================================
@@ -38,60 +89,21 @@ pub fn create_basic_fungible_faucet(
     account_storage_mode: AccountStorageMode,
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
+    let assembler = TransactionKernel::assembler();
+
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
     // faucet contract.
-
-    let (auth_scheme_procedure, auth_data): (&str, Word) = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => ("auth_tx_rpo_falcon512", pub_key.into()),
+    let auth_component = match auth_scheme {
+        AuthScheme::RpoFalcon512 { pub_key } => {
+            RpoFalcon512::new(pub_key).assemble_component(assembler.clone())?
+        },
     };
+    let faucet_component =
+        BasicFungibleFaucet::new(symbol, decimals, max_supply)?.assemble_component(assembler)?;
+    let components = [auth_component, faucet_component];
 
-    let source_code = format!(
-        "
-        export.::miden::contracts::faucets::basic_fungible::distribute
-        export.::miden::contracts::faucets::basic_fungible::burn
-        export.::miden::contracts::auth::basic::{auth_scheme_procedure}
-        "
-    );
-
-    let assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::compile(source_code, assembler, true)?;
-
-    // TODO: Remove this manual modification once we have the ability to set sizes using the
-    // assembler.
-    let procedures = account_code
-        .procedures()
-        .iter()
-        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 2).unwrap())
-        .collect();
-    let account_code = AccountCode::from_parts(account_code.mast(), procedures);
-
-    // First check that the metadata is valid.
-    if decimals > MAX_DECIMALS {
-        return Err(AccountError::FungibleFaucetInvalidMetadata(
-            "Decimals must be less than 13".to_string(),
-        ));
-    } else if max_supply.as_int() > MAX_MAX_SUPPLY {
-        return Err(AccountError::FungibleFaucetInvalidMetadata(
-            "Max supply must be < 2^63".to_string(),
-        ));
-    }
-
-    // newly created fungible faucets store an empty word in their reserved faucet
-    // data storage slot to track token issuance
-    let reserved_data = Word::default();
-
-    // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as [a3, a2, a1, a0, ...]
-    let metadata = [max_supply, Felt::from(decimals), symbol.into(), ZERO];
-
-    // We store the authentication data and the token metadata in the account storage:
-    // - slot 0: reserved faucet data
-    // - slot 1: authentication data
-    // - slot 2: token metadata as [max_supply, decimals, token_symbol, 0]
-    let account_storage = AccountStorage::new(vec![
-        StorageSlot::Value(reserved_data),
-        StorageSlot::Value(auth_data),
-        StorageSlot::Value(metadata),
-    ])?;
+    let account_code = AccountCode::from_components(&components)?;
+    let account_storage = AccountStorage::from_components(&components)?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
@@ -101,7 +113,9 @@ pub fn create_basic_fungible_faucet(
         account_storage.commitment(),
     )?;
 
-    Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
+    let account = Account::new(account_seed, account_code, account_storage)?;
+
+    Ok((account, account_seed))
 }
 
 // TESTS
@@ -109,11 +123,9 @@ pub fn create_basic_fungible_faucet(
 
 #[cfg(test)]
 mod tests {
-    use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
+    use miden_objects::{crypto::dsa::rpo_falcon512, FieldElement, ONE};
 
-    use super::{
-        create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol, ZERO,
-    };
+    use super::{create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol};
 
     #[test]
     fn faucet_contract_creation() {
@@ -142,10 +154,12 @@ mod tests {
         )
         .unwrap();
 
-        // check that max_supply (slot 1) is 123
+        // Check that faucet metadata was initialized to the given values.
+        // The RpoFalcon512 component is added first and the faucet component second, so its
+        // assigned storage slot will be 2.
         assert_eq!(
             faucet_account.storage().get_item(2).unwrap(),
-            [Felt::new(123), Felt::new(2), token_symbol.into(), ZERO].into()
+            [Felt::new(123), Felt::new(2), token_symbol.into(), Felt::ZERO].into()
         );
 
         assert!(faucet_account.is_faucet());
