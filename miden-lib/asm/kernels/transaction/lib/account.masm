@@ -431,12 +431,14 @@ export.validate_procedure_metadata
             dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # TODO: Find a way to remove this `if` statement
-            # assert that if size is 0 then offset is 0
-            dup.1 eq.0
-            if.true
-                dup eq.0 assert.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
-            end
+            # assert that if size is 0 then offset is 0 (for procedures that do not access storage)
+            # We can rewrite it to an "or" statement so we panic if the above condition is not met:
+            # size != 0 || offset == 0
+            # This will produce false only when the above assertion statement is true.
+            dup eq.0 dup.2 eq.0 not
+            # => [is_size_non_zero, is_offset_zero, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+            or assert.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage limit is in bounds
