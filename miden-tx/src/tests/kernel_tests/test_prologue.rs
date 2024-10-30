@@ -392,23 +392,16 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    struct TestAccountComponent;
-    impl AccountComponent for TestAccountComponent {
-        fn assemble_component(
-            self,
-            assembler: miden_objects::assembly::Assembler,
-        ) -> Result<AssembledAccountComponent, AccountError> {
-            AssembledAccountComponent::compile(
-                BASIC_WALLET_CODE,
-                assembler,
-                AccountStorage::mock_storage_slots(),
-            )
-        }
-    }
-
     let (account, seed) =
         AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
-            .add_component(TestAccountComponent)
+            .add_component(
+                AssembledAccountComponent::compile(
+                    BASIC_WALLET_CODE,
+                    TransactionKernel::testing_assembler(),
+                    AccountStorage::mock_storage_slots(),
+                )
+                .unwrap(),
+            )
             .unwrap()
             .build()
             .unwrap();
@@ -446,9 +439,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_code(code);
-
-    assert!(process.is_ok());
+    tx_context.execute_code(code).unwrap();
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]

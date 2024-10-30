@@ -392,8 +392,26 @@ export.validate_procedure_metadata
             dup exec.get_procedure_metadata
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # assert that storage offset is not 0
-            dup push.0 neq assert.err=ERR_FAUCET_INVALID_STORAGE_OFFSET
+            # Procedures that do not access storage are defined with (offset, size) = (0, 0).
+            # But we want to fail on tuples defined with a zero size but non-zero offset, since that is a logic error.
+            # So any (X, 0) tuple is disallowed (if X > 0).
+            #
+            # We also want to assert that no procedure accesses the reserved faucet slot (slot 0).
+            # We can assert this with: offset == 0 && size != 0.
+            # So any (0, X) tuple is disallowed (if X > 0).
+            #
+            # We want to panic when these conditions are NOT met, so we have to negate the above statements.
+            # The full condition to assert on then becomes:
+            # !(size == 0 && offset != 0) && !(offset == 0 && size != 0)
+
+            dup.1 eq.0 dup.1 eq.0 not and not
+            # => [first_condition, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+            dup.2 eq.0 not dup.2 eq.0 and not
+            # => [second_condition, first_condition, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+
+            # TODO: Differentiate between this error and ERR_FAUCET_INVALID_STORAGE_OFFSET.
+            and assert.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
@@ -431,14 +449,13 @@ export.validate_procedure_metadata
             dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # assert that if size is 0 then offset is 0 (for procedures that do not access storage)
-            # We can rewrite it to an "or" statement so we panic if the above condition is not met:
-            # size != 0 || offset == 0
-            # This will produce false only when the above assertion statement is true.
-            dup eq.0 dup.2 eq.0 not
-            # => [is_size_non_zero, is_offset_zero, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
-
-            or assert.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
+            # Procedures that do not access storage are defined with (offset, size) = (0, 0).
+            # But we want to fail on tuples defined with a zero size but non-zero offset, since that is a logic error.
+            # So any (X, 0) tuple is disallowed (if X > 0).
+            # We want to panic when this condition is NOT met, so we have to negate the above statement.
+            # The condition to assert on then becomes:
+            # !(size == 0 && offset != 0)
+            dup.1 eq.0 dup.1 eq.0 not and not assert.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage limit is in bounds

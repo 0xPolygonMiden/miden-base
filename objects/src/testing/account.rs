@@ -8,9 +8,11 @@ use crate::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
-        Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot,
+        Account, AccountCode, AccountComponent, AccountComponentType, AccountId, AccountStorage,
+        StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    testing::{account_component::AccountMockComponent, storage::FAUCET_STORAGE_DATA_SLOT},
     Felt, Word, ZERO,
 };
 
@@ -20,15 +22,18 @@ use crate::{
 impl Account {
     /// Creates a non-new mock account with a defined number of assets and storage
     pub fn mock(account_id: u64, nonce: Felt, assembler: Assembler) -> Self {
-        let account_storage = AccountStorage::mock();
-
         let account_vault = if nonce == Felt::ZERO {
             AssetVault::default()
         } else {
             AssetVault::mock()
         };
 
-        let account_code = AccountCode::mock_account_code(assembler, false);
+        let mock_component = AccountMockComponent::with_slots(AccountStorage::mock_storage_slots())
+            .assemble_component(assembler)
+            .unwrap();
+        let components = [mock_component];
+        let account_code = AccountCode::from_components(&components).unwrap();
+        let account_storage = AccountStorage::from_components(&components).unwrap();
 
         let account_id = AccountId::try_from(account_id).unwrap();
         Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
@@ -40,11 +45,20 @@ impl Account {
         initial_balance: Felt,
         assembler: Assembler,
     ) -> Self {
-        let account_storage =
-            AccountStorage::new(vec![StorageSlot::Value([ZERO, ZERO, ZERO, initial_balance])])
-                .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
-        let account_code = AccountCode::mock_account_code(assembler, true);
+
+        let mock_component = AccountMockComponent::with_empty_slots()
+            .assemble_component(assembler)
+            .unwrap()
+            .with_type(AccountComponentType::Faucet);
+        let components = [mock_component];
+
+        let account_code = AccountCode::from_components(&components).unwrap();
+        let mut account_storage = AccountStorage::from_components(&components).unwrap();
+
+        let faucet_data_slot = [ZERO, ZERO, ZERO, initial_balance];
+        account_storage.set_item(FAUCET_STORAGE_DATA_SLOT, faucet_data_slot).unwrap();
+
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
     }
 
@@ -64,12 +78,25 @@ impl Account {
                 vec![(Word::from(asset).into(), asset.into())]
             },
         };
+
         // construct nft tree
         let nft_storage_map = StorageMap::with_entries(entries).unwrap();
 
-        let account_storage = AccountStorage::new(vec![StorageSlot::Map(nft_storage_map)]).unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
-        let account_code = AccountCode::mock_account_code(assembler, true);
+
+        let mock_component = AccountMockComponent::with_empty_slots()
+            .assemble_component(assembler)
+            .unwrap()
+            .with_type(AccountComponentType::Faucet);
+        let components = [mock_component];
+
+        let account_code = AccountCode::from_components(&components).unwrap();
+
+        // The component does not have any storage slots so we don't need to instantiate storage
+        // from the component. We also need to set the custom value for the storage map so we
+        // construct storage manually.
+        let account_storage = AccountStorage::new(vec![StorageSlot::Map(nft_storage_map)]).unwrap();
+
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
     }
 }

@@ -2,7 +2,10 @@ use alloc::sync::Arc;
 
 use assembly::{ast::Module, Assembler, Library, LibraryPath};
 
-use crate::accounts::AccountCode;
+use crate::{
+    accounts::{AccountCode, AccountComponent},
+    testing::account_component::AccountMockComponent,
+};
 
 pub const CODE: &str = "
     export.foo
@@ -141,8 +144,10 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
 
 impl AccountCode {
     /// Creates a mock [AccountCode]
-    pub fn mock_account_code(assembler: Assembler, is_faucet: bool) -> AccountCode {
-        AccountCode::new(Self::mock_library(assembler), is_faucet).unwrap()
+    pub fn mock_account_code(assembler: Assembler) -> AccountCode {
+        let mock_component =
+            AccountMockComponent::with_empty_slots().assemble_component(assembler).unwrap();
+        AccountCode::from_components(&[mock_component]).unwrap()
     }
 
     /// Creates a mock [Library] which can be used to assemble programs and as a library to create a

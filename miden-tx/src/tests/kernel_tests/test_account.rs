@@ -644,10 +644,7 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let mock_component = AccountMockComponent::with_empty_slots()
-        .assemble_component(TransactionKernel::assembler())
-        .unwrap();
-    let account_code = AccountCode::from_components(&[mock_component]).unwrap();
+    let account_code = AccountCode::mock_account_code(TransactionKernel::assembler());
 
     let tc_0: [Felt; 4] =
         account_code.procedures()[0].mast_root().as_elements().try_into().unwrap();
