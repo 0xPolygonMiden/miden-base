@@ -21,6 +21,8 @@ fn main() {
 
     let logic = lb.app_logic_mut().unwrap();
     let mut http_server_options = HttpServerOptions::default();
+
+    // Enable HTTP/2 for plaintext
     http_server_options.h2c = true;
     logic.server_options = Some(http_server_options);
 

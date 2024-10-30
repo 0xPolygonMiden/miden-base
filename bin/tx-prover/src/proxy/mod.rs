@@ -14,9 +14,12 @@ use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::error;
 
+/// Timeout for the requests
 const TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(100));
+/// Maximum number of items per queue
 const MAX_QUEUE_ITEMS: usize = 10;
 
+/// Load balancer that uses a round robin strategy
 pub struct LB(Arc<LoadBalancer<RoundRobin>>);
 
 impl LB {
@@ -25,13 +28,13 @@ impl LB {
     }
 }
 
-// Rate limiter
+/// Rate limiter
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
 
-// max request per second per client
-static MAX_REQ_PER_SEC: isize = 10000;
+/// Maximum amount of request per second per client
+static MAX_REQ_PER_SEC: isize = 5;
 
-// Shared state
+/// Shared state. It is a map of backends to a vector of request IDs
 static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
