@@ -12,7 +12,7 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::PublicKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::{
-        account_component::{BasicFungibleFaucet, IntoAccountComponent, RpoFalcon512},
+        account_component::{AccountComponent, BasicFungibleFaucet, RpoFalcon512},
         prepare_word,
     },
     Felt, Word, ZERO,
@@ -249,8 +249,8 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             5,
             max_supply.try_into().unwrap(),
         )
-        .into_component(assembler.clone()),
-        RpoFalcon512::new(PublicKey::new(public_key)).into_component(assembler),
+        .assemble_component(assembler.clone()),
+        RpoFalcon512::new(PublicKey::new(public_key)).assemble_component(assembler),
     ];
 
     let faucet_account_code = AccountCode::from_components(&components).unwrap();

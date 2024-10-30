@@ -12,7 +12,7 @@ use crate::{
         AssembledAccountComponent,
     },
     assets::{Asset, AssetVault},
-    testing::account_component::IntoAccountComponent,
+    testing::account_component::AccountComponent,
     AccountError, AssetVaultError, Felt, Word, ZERO,
 };
 
@@ -51,8 +51,9 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_component(mut self, account_component: impl IntoAccountComponent) -> Self {
-        self.components.push(account_component.into_component(self.assembler.clone()));
+    pub fn add_component(mut self, account_component: impl AccountComponent) -> Self {
+        self.components
+            .push(account_component.assemble_component(self.assembler.clone()));
         self
     }
 

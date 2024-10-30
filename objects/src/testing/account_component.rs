@@ -10,7 +10,7 @@ use crate::{
     testing::account_code::MOCK_ACCOUNT_CODE,
 };
 
-// ACCOUNT ASSEMBLY CODE
+// ACCOUNT COMPONENT ASSEMBLY CODE
 // ================================================================================================
 
 pub const BASIC_WALLET_CODE: &str = "
@@ -28,12 +28,12 @@ const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
     export.::miden::contracts::faucets::basic_fungible::burn
 ";
 
-pub trait IntoAccountComponent {
-    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent;
+pub trait AccountComponent {
+    fn assemble_component(self, assembler: Assembler) -> AssembledAccountComponent;
 }
 
-impl IntoAccountComponent for AssembledAccountComponent {
-    fn into_component(self, _: Assembler) -> AssembledAccountComponent {
+impl AccountComponent for AssembledAccountComponent {
+    fn assemble_component(self, _: Assembler) -> AssembledAccountComponent {
         self
     }
 }
@@ -43,8 +43,8 @@ impl IntoAccountComponent for AssembledAccountComponent {
 
 pub struct BasicWallet;
 
-impl IntoAccountComponent for BasicWallet {
-    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
+impl AccountComponent for BasicWallet {
+    fn assemble_component(self, assembler: Assembler) -> AssembledAccountComponent {
         AssembledAccountComponent::compile(BASIC_WALLET_CODE, assembler, vec![]).unwrap()
     }
 }
@@ -62,8 +62,8 @@ impl RpoFalcon512 {
     }
 }
 
-impl IntoAccountComponent for RpoFalcon512 {
-    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
+impl AccountComponent for RpoFalcon512 {
+    fn assemble_component(self, assembler: Assembler) -> AssembledAccountComponent {
         AssembledAccountComponent::compile(
             RPO_FALCON_AUTH_CODE,
             assembler,
@@ -88,8 +88,8 @@ impl BasicFungibleFaucet {
     }
 }
 
-impl IntoAccountComponent for BasicFungibleFaucet {
-    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
+impl AccountComponent for BasicFungibleFaucet {
+    fn assemble_component(self, assembler: Assembler) -> AssembledAccountComponent {
         // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as
         // [a3, a2, a1, a0, ...]
         let metadata = [self.max_supply, Felt::from(self.decimals), self.symbol.into(), Felt::ZERO];
@@ -125,8 +125,8 @@ impl AccountMockComponent {
     }
 }
 
-impl IntoAccountComponent for AccountMockComponent {
-    fn into_component(self, assembler: Assembler) -> AssembledAccountComponent {
+impl AccountComponent for AccountMockComponent {
+    fn assemble_component(self, assembler: Assembler) -> AssembledAccountComponent {
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module = Module::parser(assembly::ast::ModuleKind::Library)
             .parse_str(

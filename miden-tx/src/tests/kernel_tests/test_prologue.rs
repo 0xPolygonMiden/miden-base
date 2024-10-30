@@ -21,7 +21,7 @@ use miden_objects::{
     accounts::{AccountProcedureInfo, AccountStorage, AssembledAccountComponent, StorageSlot},
     testing::{
         account_builder::AccountBuilder,
-        account_component::{BasicWallet, IntoAccountComponent, BASIC_WALLET_CODE},
+        account_component::{AccountComponent, BasicWallet, BASIC_WALLET_CODE},
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
     },
@@ -390,8 +390,8 @@ fn input_notes_memory_assertions(
 #[test]
 pub fn test_prologue_create_account() {
     struct TestAccountComponent;
-    impl IntoAccountComponent for TestAccountComponent {
-        fn into_component(
+    impl AccountComponent for TestAccountComponent {
+        fn assemble_component(
             self,
             assembler: miden_objects::assembly::Assembler,
         ) -> AssembledAccountComponent {
