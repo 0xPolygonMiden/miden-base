@@ -1,4 +1,9 @@
-use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    string::String,
+    sync::Arc,
+    vec::Vec,
+};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -86,7 +91,7 @@ fn transaction_executor_witness() {
         mem_advice_provider,
         mast_store,
         None,
-        &[],
+        &BTreeSet::new(),
     )
     .unwrap();
     let result = vm_processor::execute(

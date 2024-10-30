@@ -1,4 +1,4 @@
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -37,7 +37,9 @@ pub struct TransactionExecutor {
     mast_store: Arc<TransactionMastStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     exec_options: ExecutionOptions,
-    foreign_account_code_commitments: Vec<Digest>,
+    /// Holds the code commitments of all foreign accounts used in this transaction. It is used for
+    /// creation of the account procedure index map during the execution.
+    foreign_account_code_commitments: BTreeSet<Digest>,
 }
 
 impl TransactionExecutor {
@@ -63,7 +65,7 @@ impl TransactionExecutor {
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
-            foreign_account_code_commitments: Vec::new(),
+            foreign_account_code_commitments: BTreeSet::new(),
         }
     }
 
@@ -97,14 +99,14 @@ impl TransactionExecutor {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Loads the provided code into the internal MAST store and associates the procedures of the
-    /// account code with the specified account ID.
+    /// Loads the provided code into the internal MAST store and adds the commitment of the provided
+    /// code to the commitments set.
     pub fn load_account_code(&mut self, code: &AccountCode) {
         // load the code mast forest to the mast store
         self.mast_store.load_account_code(code);
 
-        // store the commitment of the foreign account code
-        self.foreign_account_code_commitments.push(code.commitment());
+        // store the commitment of the foreign account code in the set
+        self.foreign_account_code_commitments.insert(code.commitment());
     }
 
     // TRANSACTION EXECUTION

@@ -37,7 +37,7 @@ impl MockHost {
     ) -> Self {
         let adv_provider: MemAdviceProvider = advice_inputs.into();
         let proc_index_map =
-            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider, &[]);
+            AccountProcedureIndexMap::new(&adv_provider, [account.code_commitment()]);
         Self {
             adv_provider,
             acct_procedure_index_map: proc_index_map.unwrap(),

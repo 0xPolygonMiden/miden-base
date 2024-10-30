@@ -12,75 +12,24 @@ use crate::errors::TransactionHostError;
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
 
-/// A map of proc_root |-> proc_index for all known procedures of an account interface.
+/// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known procedures
+/// of an account interface for every account code commitment.
 pub struct AccountProcedureIndexMap(BTreeMap<Digest, BTreeMap<Digest, u8>>);
 
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
     pub fn new(
-        native_account_code_commitment: Digest,
         adv_provider: &impl AdviceProvider,
-        foreign_account_code_commitments: &[Digest],
+        // `account_code_commitments` iterator should include both native account code and foreign
+        // account codes commitments
+        account_code_commitments: impl IntoIterator<Item = Digest>,
     ) -> Result<Self, TransactionHostError> {
         let mut result = BTreeMap::new();
 
-        for code_commitment in
-            foreign_account_code_commitments.iter().chain(&[native_account_code_commitment])
-        {
-            // get the account procedures from the advice_map
-            let proc_data = adv_provider.get_mapped_values(code_commitment).ok_or_else(|| {
-                TransactionHostError::AccountProcedureIndexMapError(
-                    "Failed to read account procedure data from the advice provider".to_string(),
-                )
-            })?;
-
-            let mut account_procs_map = BTreeMap::new();
-
-            // sanity checks
-
-            // check that there are procedures in the account code
-            if proc_data.is_empty() {
-                return Err(TransactionHostError::AccountProcedureIndexMapError(
-                    "The account code does not contain any procedures.".to_string(),
-                ));
-            }
-
-            // check that procedure data have a correct length
-            if proc_data.len() % AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != 0 {
-                return Err(TransactionHostError::AccountProcedureIndexMapError(
-                    "The account procedure data has invalid length.".to_string(),
-                ));
-            }
-
-            // One procedure requires 8 values to represent
-            let num_procs = proc_data.len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
-
-            // check that the account code does not contain too many procedures
-            if num_procs > AccountCode::MAX_NUM_PROCEDURES {
-                return Err(TransactionHostError::AccountProcedureIndexMapError(
-                    "The account code contains too many procedures.".to_string(),
-                ));
-            }
-
-            for (proc_idx, proc_info) in
-                proc_data.chunks_exact(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC).enumerate()
-            {
-                let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
-                    proc_info.try_into().expect("Failed conversion into procedure info array.");
-
-                let procedure = AccountProcedureInfo::try_from(proc_info_array).map_err(|e| {
-                    TransactionHostError::AccountProcedureIndexMapError(format!(
-                        "Failed to create AccountProcedureInfo: {:?}",
-                        e
-                    ))
-                })?;
-
-                let proc_idx = u8::try_from(proc_idx).expect("Invalid procedure index.");
-
-                account_procs_map.insert(*procedure.mast_root(), proc_idx);
-            }
-            result.insert(*code_commitment, account_procs_map);
+        for code_commitment in account_code_commitments {
+            let account_procs_map = build_account_procedure_map(code_commitment, adv_provider)?;
+            result.insert(code_commitment, account_procs_map);
         }
 
         Ok(Self(result))
@@ -116,4 +65,67 @@ impl AccountProcedureIndexMap {
             .cloned()
             .ok_or(TransactionKernelError::UnknownAccountProcedure(proc_root))
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn build_account_procedure_map(
+    code_commitment: Digest,
+    adv_provider: &impl AdviceProvider,
+) -> Result<BTreeMap<Digest, u8>, TransactionHostError> {
+    // get the account procedures from the advice_map
+    let proc_data = adv_provider.get_mapped_values(&code_commitment).ok_or_else(|| {
+        TransactionHostError::AccountProcedureIndexMapError(
+            "Failed to read account procedure data from the advice provider".to_string(),
+        )
+    })?;
+
+    let mut account_procs_map = BTreeMap::new();
+
+    // sanity checks
+
+    // check that there are procedures in the account code
+    if proc_data.is_empty() {
+        return Err(TransactionHostError::AccountProcedureIndexMapError(
+            "The account code does not contain any procedures.".to_string(),
+        ));
+    }
+
+    // check that procedure data have a correct length
+    if proc_data.len() % AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != 0 {
+        return Err(TransactionHostError::AccountProcedureIndexMapError(
+            "The account procedure data has invalid length.".to_string(),
+        ));
+    }
+
+    // One procedure requires 8 values to represent
+    let num_procs = proc_data.len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
+
+    // check that the account code does not contain too many procedures
+    if num_procs > AccountCode::MAX_NUM_PROCEDURES {
+        return Err(TransactionHostError::AccountProcedureIndexMapError(
+            "The account code contains too many procedures.".to_string(),
+        ));
+    }
+
+    for (proc_idx, proc_info) in
+        proc_data.chunks_exact(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC).enumerate()
+    {
+        let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
+            proc_info.try_into().expect("Failed conversion into procedure info array.");
+
+        let procedure = AccountProcedureInfo::try_from(proc_info_array).map_err(|e| {
+            TransactionHostError::AccountProcedureIndexMapError(format!(
+                "Failed to create AccountProcedureInfo: {:?}",
+                e
+            ))
+        })?;
+
+        let proc_idx = u8::try_from(proc_idx).expect("Invalid procedure index.");
+
+        account_procs_map.insert(*procedure.mast_root(), proc_idx);
+    }
+
+    Ok(account_procs_map)
 }

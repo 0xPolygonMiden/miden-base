@@ -1,11 +1,12 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::delta::AccountUpdateDetails,
+    accounts::{delta::AccountUpdateDetails, AccountCode},
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
+    Digest,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -44,6 +45,9 @@ pub trait TransactionProver {
 pub struct LocalTransactionProver {
     mast_store: Arc<TransactionMastStore>,
     proof_options: ProvingOptions,
+    /// Holds the code commitments of all foreign accounts used in this transaction. It is used for
+    /// creation of the account procedure index map during the execution.
+    foreign_account_code_commitments: BTreeSet<Digest>,
 }
 
 impl LocalTransactionProver {
@@ -54,7 +58,18 @@ impl LocalTransactionProver {
         Self {
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options,
+            foreign_account_code_commitments: BTreeSet::new(),
         }
+    }
+
+    /// Loads the provided code into the internal MAST store and adds the commitment of the provided
+    /// code to the commitments set.
+    pub fn load_account_code(&mut self, code: &AccountCode) {
+        // load the code mast forest to the mast store
+        self.mast_store.load_account_code(code);
+
+        // store the commitment of the foreign account code in the set
+        self.foreign_account_code_commitments.insert(code.commitment());
     }
 }
 
@@ -63,6 +78,7 @@ impl Default for LocalTransactionProver {
         Self {
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options: Default::default(),
+            foreign_account_code_commitments: Default::default(),
         }
     }
 }
@@ -93,7 +109,7 @@ impl TransactionProver for LocalTransactionProver {
             advice_provider,
             self.mast_store.clone(),
             None,
-            &[],
+            &self.foreign_account_code_commitments,
         )
         .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
