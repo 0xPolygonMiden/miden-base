@@ -47,7 +47,11 @@ make install-prover-worker
 make install-prover-proxy
 ```
 
-Note that for the prover worker you might need to add the `testing` feature in case you need. This step will also generate the necessary protobuf-related files.
+Note that for the prover worker you might need to enable the `testing` feature in case the transactions were executed with reduced proof-of-work requirements (or otherwise, the proving process will fail). This step will also generate the necessary protobuf-related files. You can achieve that by generating the binary with:
+
+```bash
+make install-prover-worker-testing
+```
 
 ## Running the Service
 
