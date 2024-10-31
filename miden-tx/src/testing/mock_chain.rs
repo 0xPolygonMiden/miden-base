@@ -306,7 +306,7 @@ impl MockChain {
     // ================================================================================================
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .nonce(Felt::ZERO)
             .add_component(BasicWallet)
             .add_assets(assets);
@@ -314,7 +314,7 @@ impl MockChain {
     }
 
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .nonce(Felt::ONE)
             .add_component(BasicWallet)
             .add_assets(assets);
@@ -327,7 +327,7 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .nonce(Felt::ZERO)
             .add_component(
                 BasicFungibleFaucet::new(
@@ -350,7 +350,7 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_seed(Default::default()))
             .add_component(
                 BasicFungibleFaucet::new(
                     TokenSymbol::new(token_symbol).unwrap(),

@@ -1,5 +1,4 @@
-use alloc::{sync::Arc, vec::Vec};
-use std::string::ToString;
+use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use assembly::{ast::Module, Assembler, Library, LibraryPath};
 
