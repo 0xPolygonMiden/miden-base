@@ -110,20 +110,6 @@ impl Account {
         Ok((code, storage))
     }
 
-    // TODO: Document.
-    pub fn from_components(
-        seed: Word,
-        account_type: AccountType,
-        components: &[AccountComponent],
-    ) -> Result<Self, AccountError> {
-        let code = AccountCode::from_components(components, account_type)?;
-        let storage = AccountStorage::from_components(components, account_type)?;
-        let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
-        let vault = AssetVault::default();
-        let nonce = ZERO;
-        Ok(Self { id, vault, storage, code, nonce })
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -333,7 +319,7 @@ fn validate_components(
     account_type: AccountType,
 ) -> Result<(), AccountError> {
     for (component_index, component) in components.iter().enumerate() {
-        if !component.supported_types().contains(&account_type) {
+        if !component.supports_type(account_type) {
             return Err(AccountError::UnsupportedComponentForAccountType {
                 account_type,
                 component_index,

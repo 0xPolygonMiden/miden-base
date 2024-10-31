@@ -77,6 +77,10 @@ impl AccountComponent {
         &self.supported_types
     }
 
+    pub fn supports_type(&self, account_type: AccountType) -> bool {
+        self.supported_types.contains(&account_type)
+    }
+
     pub fn library(&self) -> &Library {
         &self.library
     }
