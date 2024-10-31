@@ -87,10 +87,12 @@ pub enum AccountBuilderError {
     AssetVaultError(AssetVaultError),
     MerkleError(MerkleError),
 
-    /// When the created [AccountId] doesn't match the builder's configured [AccountType].
+    /// When the created [`AccountId`](crate::accounts::AccountId) doesn't match the builder's
+    /// configured [AccountType].
     SeedAndAccountTypeMismatch,
 
-    /// When the created [AccountId] doesn't match the builder's `on_chain` config.
+    /// When the created [`AccountId`](crate::accounts::AccountId) doesn't match the builder's
+    /// `on_chain` config.
     SeedAndOnChainMismatch,
 }
 
