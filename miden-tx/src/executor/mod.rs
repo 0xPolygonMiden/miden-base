@@ -141,8 +141,8 @@ impl TransactionExecutor {
         // load note script MAST into the MAST store
         self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
-        for (_, code) in &self.account_codes {
-            self.mast_store.load_account_code(&code);
+        for code in self.account_codes.values() {
+            self.mast_store.load_account_code(code);
         }
 
         let mut host = TransactionHost::new(
@@ -150,7 +150,7 @@ impl TransactionExecutor {
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
-            self.account_codes.iter().map(|(comm, _)| *comm).collect(),
+            self.account_codes.keys().map(|code_comm| *code_comm).collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -168,7 +168,7 @@ impl TransactionExecutor {
             .account_codes
             .iter()
             .filter_map(|(comm, code)| {
-                tx_args.advice_inputs().mapped_values(&comm).and(Some(code.clone()))
+                tx_args.advice_inputs().mapped_values(comm).and(Some(code.clone()))
             })
             .collect();
 
