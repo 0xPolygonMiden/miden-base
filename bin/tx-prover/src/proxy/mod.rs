@@ -49,14 +49,14 @@ impl ProxyHttp for LB {
         session: &mut Session,
         _ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
-        let upstream = self.0.select(b"", 256).unwrap();
+        let upstream = self.0.select(b"", 256).ok_or(Error::new_str("Upstream not found"))?;
 
         // read request ID from headers
         let request_id = session
             .get_header("X-Request-ID")
-            .expect("Request ID not found")
+            .ok_or(Error::new(ErrorType::InternalError))?
             .to_str()
-            .expect("Invalid header value");
+            .map_err(|_| Error::new(ErrorType::InternalError))?;
 
         {
             let mut ctx_guard = QUEUES.write().await;
@@ -64,8 +64,7 @@ impl ProxyHttp for LB {
 
             // Limit queue length to MAX_QUEUE_ITEMS requests
             if backend_queue.len() >= MAX_QUEUE_ITEMS {
-                panic!("Too many requests in the queue");
-                // return Err(Box::new("Too many requests in the queue".into()));
+                return Err(Error::new_str("Too many requests in the queue"));
             }
 
             backend_queue.push(request_id.to_string());
@@ -81,8 +80,7 @@ impl ProxyHttp for LB {
                         break;
                     }
                 } else {
-                    // TODO: replace this panic with an error
-                    panic!("Upstream not found");
+                    return Err(Error::new_str("Upstream not found"));
                 }
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
@@ -90,7 +88,8 @@ impl ProxyHttp for LB {
 
         // Set SNI
         let mut http_peer = HttpPeer::new(upstream, false, "".to_string());
-        let peer_opts = http_peer.get_mut_peer_options().unwrap();
+        let peer_opts =
+            http_peer.get_mut_peer_options().ok_or(Error::new(ErrorType::InternalError))?;
 
         // Timeout settings
         peer_opts.total_connection_timeout = TIMEOUT_SECS;
@@ -118,8 +117,7 @@ impl ProxyHttp for LB {
         if let Some(content_type) = upstream_request.headers.get("content-type") {
             if content_type == "application/grpc" {
                 // Ensure the correct host and gRPC headers are forwarded
-                // upstream_request.insert_header("Host", "0.0.0.0").unwrap();
-                upstream_request.insert_header("content-type", "application/grpc").unwrap();
+                upstream_request.insert_header("content-type", "application/grpc")?;
             }
         }
 
@@ -135,20 +133,17 @@ impl ProxyHttp for LB {
 
         // Request ID is a random number
         let request_id = rand::random::<u64>().to_string();
-        session
-            .req_header_mut()
-            .insert_header("X-Request-ID", request_id)
-            .expect("Failed to insert header");
+        session.req_header_mut().insert_header("X-Request-ID", request_id)?;
 
         // retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
 
         if curr_window_requests > MAX_REQ_PER_SEC {
             // rate limited, return 429
-            let mut header = ResponseHeader::build(429, None).unwrap();
-            header.insert_header("X-Rate-Limit-Limit", MAX_REQ_PER_SEC.to_string()).unwrap();
-            header.insert_header("X-Rate-Limit-Remaining", "0").unwrap();
-            header.insert_header("X-Rate-Limit-Reset", "1").unwrap();
+            let mut header = ResponseHeader::build(429, None)?;
+            header.insert_header("X-Rate-Limit-Limit", MAX_REQ_PER_SEC.to_string())?;
+            header.insert_header("X-Rate-Limit-Remaining", "0")?;
+            header.insert_header("X-Rate-Limit-Reset", "1")?;
             session.set_keepalive(None);
             session.write_response_header(Box::new(header), true).await?;
             return Ok(true);
@@ -169,7 +164,7 @@ impl ProxyHttp for LB {
             .get_header("X-Request-ID")
             .expect("Request ID not found")
             .to_str()
-            .expect("Invalid header value");
+            .expect("Internal error");
 
         // Remove the completed request from the backend queue
         // Maybe we can replace this with a read lock and using write only in the moment of the
