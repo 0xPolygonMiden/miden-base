@@ -7,7 +7,7 @@ use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
     Hasher, Serializable,
 };
-use crate::accounts::AccountComponent;
+use crate::accounts::{AccountComponent, AccountType};
 
 pub mod procedure;
 use procedure::AccountProcedureInfo;
@@ -93,7 +93,10 @@ impl AccountCode {
     }
 
     // TODO: Document.
-    pub fn from_components(components: &[AccountComponent]) -> Result<Self, AccountError> {
+    pub fn from_components(
+        components: &[AccountComponent],
+        account_type: AccountType,
+    ) -> Result<Self, AccountError> {
         let (merged_mast_forest, _) =
             MastForest::merge(components.iter().map(|component| component.mast_forest()))
                 .map_err(|err| AccountError::AccountCodeMergeError(err.to_string()))?;
@@ -101,11 +104,9 @@ impl AccountCode {
         let mut procedures = Vec::new();
         let mut proc_root_set = BTreeSet::new();
 
-        let has_faucet_component =
-            components.iter().any(|component| component.is_faucet_component());
         // Slot 0 is globally reserved for faucet accounts so the accessible slots begin at 1 if
         // there is a faucet component present.
-        let mut component_storage_offset = if has_faucet_component { 1 } else { 0 };
+        let mut component_storage_offset = if account_type.is_faucet() { 1 } else { 0 };
 
         for component in components {
             let AccountComponent { code: library, storage_slots, .. } = component;

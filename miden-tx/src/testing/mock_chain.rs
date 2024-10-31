@@ -308,6 +308,7 @@ impl MockChain {
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
             .nonce(Felt::ZERO)
+            .add_component(BasicWallet)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
@@ -315,6 +316,7 @@ impl MockChain {
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
             .nonce(Felt::ONE)
+            .add_component(BasicWallet)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
@@ -376,11 +378,8 @@ impl MockChain {
                 let sec_key = SecretKey::with_rng(&mut rng);
                 let pub_key = sec_key.public_key();
 
-                let (acc, seed) = account_builder
-                    .add_component(BasicWallet)
-                    .add_component(RpoFalcon512::new(pub_key))
-                    .build()
-                    .unwrap();
+                let (acc, seed) =
+                    account_builder.add_component(RpoFalcon512::new(pub_key)).build().unwrap();
 
                 let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
                     &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
@@ -390,7 +389,7 @@ impl MockChain {
                 (acc, seed, Some(authenticator))
             },
             Auth::NoAuth => {
-                let (account, seed) = account_builder.add_component(BasicWallet).build().unwrap();
+                let (account, seed) = account_builder.build().unwrap();
                 (account, seed, None)
             },
         };

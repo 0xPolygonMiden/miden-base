@@ -22,7 +22,7 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::{AccountComponent, AccountProcedureInfo, AccountStorage, StorageSlot},
+    accounts::{AccountComponent, AccountProcedureInfo, AccountStorage, AccountType, StorageSlot},
     testing::{
         account_builder::AccountBuilder,
         account_component::BASIC_WALLET_CODE,
@@ -400,7 +400,8 @@ pub fn test_prologue_create_account() {
                 TransactionKernel::testing_assembler(),
                 AccountStorage::mock_storage_slots(),
             )
-            .unwrap(),
+            .unwrap()
+            .with_supported_type(AccountType::RegularAccountUpdatableCode),
         )
         .build()
         .unwrap();

@@ -5,9 +5,7 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage,
-    },
+    accounts::{account_id::testing::ACCOUNT_ID_SENDER, Account, AccountId},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
@@ -83,17 +81,21 @@ pub fn get_account_with_default_account_code(
     };
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
+    // This component supports all types of accounts for testing purposes.
     let wallet_component = AccountComponent::compile(
         BASIC_WALLET_CODE,
         assembler.clone(),
         vec![StorageSlot::Value(Word::default()), StorageSlot::Map(StorageMap::default())],
     )
-    .unwrap();
+    .unwrap()
+    .with_supports_all_types();
 
     let account_components =
         [RpoFalcon512::new(PublicKey::new(public_key)).into(), wallet_component];
-    let account_code = AccountCode::from_components(&account_components).unwrap();
-    let account_storage = AccountStorage::from_components(&account_components).unwrap();
+
+    let (account_code, account_storage) =
+        Account::initialize_from_components(account_id.account_type(), &account_components)
+            .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

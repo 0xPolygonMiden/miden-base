@@ -26,7 +26,10 @@ pub enum AccountError {
     AccountCodeMergeError(String),    // TODO: use MastForestError once it implements Clone
     AccountCodeDeserializationError(DeserializationError),
     AccountCodeNoProcedures,
-    AccountCodeTooManyProcedures { max: usize, actual: usize },
+    AccountCodeTooManyProcedures {
+        max: usize,
+        actual: usize,
+    },
     AccountCodeProcedureInvalidStorageOffset,
     AccountCodeProcedureInvalidStorageSize,
     AccountCodeProcedureInvalidPadding,
@@ -40,14 +43,30 @@ pub enum AccountError {
     HexParseError(String),
     InvalidAccountStorageMode,
     MapsUpdateToNonMapsSlot(u8, StorageSlotType),
-    NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
-    SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
+    NonceNotMonotonicallyIncreasing {
+        current: u64,
+        new: u64,
+    },
+    SeedDigestTooFewTrailingZeros {
+        expected: u32,
+        actual: u32,
+    },
     StorageSlotNotMap(u8),
     StorageSlotNotValue(u8),
-    StorageIndexOutOfBounds { max: u8, actual: u8 },
+    StorageIndexOutOfBounds {
+        max: u8,
+        actual: u8,
+    },
     StorageTooManySlots(u64),
-    StorageOffsetOutOfBounds { max: u8, actual: u8 },
+    StorageOffsetOutOfBounds {
+        max: u8,
+        actual: u8,
+    },
     PureProcedureWithStorageOffset,
+    UnsupportedComponentForAccountType {
+        account_type: AccountType,
+        component_index: usize,
+    },
 }
 
 impl fmt::Display for AccountError {

@@ -2,8 +2,7 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountComponent, AccountComponentType, AccountId, AccountStorage,
-        AccountStorageMode, AccountType, StorageSlot,
+        Account, AccountComponent, AccountId, AccountStorageMode, AccountType, StorageSlot,
     },
     assets::TokenSymbol,
     AccountError, Felt, FieldElement, Word,
@@ -46,7 +45,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
             [faucet.max_supply, Felt::from(faucet.decimals), faucet.symbol.into(), Felt::ZERO];
 
         AccountComponent::new(basic_fungible_faucet_library(), vec![StorageSlot::Value(metadata)])
-            .with_type(AccountComponentType::Faucet)
+            .with_supported_type(AccountType::FungibleFaucet)
     }
 }
 
@@ -85,12 +84,13 @@ pub fn create_basic_fungible_faucet(
     let faucet_component = BasicFungibleFaucet::new(symbol, decimals, max_supply)?.into();
     let components = [auth_component, faucet_component];
 
-    let account_code = AccountCode::from_components(&components)?;
-    let account_storage = AccountStorage::from_components(&components)?;
+    let account_type = AccountType::FungibleFaucet;
+    let (account_code, account_storage) =
+        Account::initialize_from_components(account_type, &components)?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
-        AccountType::FungibleFaucet,
+        account_type,
         account_storage_mode,
         account_code.commitment(),
         account_storage.commitment(),

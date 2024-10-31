@@ -98,13 +98,26 @@ impl Account {
         Self { id, vault, storage, code, nonce }
     }
 
+    pub fn initialize_from_components(
+        account_type: AccountType,
+        components: &[AccountComponent],
+    ) -> Result<(AccountCode, AccountStorage), AccountError> {
+        validate_components(components, account_type)?;
+
+        let code = AccountCode::from_components(components, account_type)?;
+        let storage = AccountStorage::from_components(components, account_type)?;
+
+        Ok((code, storage))
+    }
+
     // TODO: Document.
     pub fn from_components(
         seed: Word,
+        account_type: AccountType,
         components: &[AccountComponent],
     ) -> Result<Self, AccountError> {
-        let code = AccountCode::from_components(components)?;
-        let storage = AccountStorage::from_components(components)?;
+        let code = AccountCode::from_components(components, account_type)?;
+        let storage = AccountStorage::from_components(components, account_type)?;
         let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
         let vault = AssetVault::default();
         let nonce = ZERO;
@@ -312,6 +325,23 @@ pub fn hash_account(
     elements[8..12].copy_from_slice(&*storage_commitment);
     elements[12..].copy_from_slice(&*code_commitment);
     Hasher::hash_elements(&elements)
+}
+
+/// Validates that all `components` support the given `account_type`.
+fn validate_components(
+    components: &[AccountComponent],
+    account_type: AccountType,
+) -> Result<(), AccountError> {
+    for (component_index, component) in components.iter().enumerate() {
+        if !component.supported_types().contains(&account_type) {
+            return Err(AccountError::UnsupportedComponentForAccountType {
+                account_type,
+                component_index,
+            });
+        }
+    }
+
+    Ok(())
 }
 
 // TESTS

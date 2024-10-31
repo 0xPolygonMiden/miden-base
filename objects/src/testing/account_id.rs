@@ -47,6 +47,10 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
+    pub(crate) fn get_account_type(&self) -> AccountType {
+        self.account_type
+    }
+
     pub fn build(&mut self) -> Result<(AccountId, Word), AccountBuilderError> {
         let account_code = self.code_commitment.ok_or(AccountBuilderError::AccountCodeNotSet)?;
 

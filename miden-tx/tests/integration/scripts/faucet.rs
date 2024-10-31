@@ -7,10 +7,7 @@ use miden_lib::{
     transaction::memory::FAUCET_STORAGE_DATA_SLOT,
 };
 use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage,
-    },
+    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountId},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::PublicKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
@@ -252,8 +249,8 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
         RpoFalcon512::new(PublicKey::new(public_key)).into(),
     ];
 
-    let faucet_account_code = AccountCode::from_components(&components).unwrap();
-    let mut faucet_account_storage = AccountStorage::from_components(&components).unwrap();
+    let (faucet_account_code, mut faucet_account_storage) =
+        Account::initialize_from_components(faucet_account_id.account_type(), &components).unwrap();
 
     // The faucet's reserved slot is initialized to an empty word by default.
     // If total_issuance is set, overwrite it.

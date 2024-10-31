@@ -4,7 +4,7 @@ use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
-use crate::accounts::AccountComponent;
+use crate::accounts::{AccountComponent, AccountType};
 
 mod slot;
 pub use slot::{StorageSlot, StorageSlotType};
@@ -53,11 +53,10 @@ impl AccountStorage {
     // TODO Document.
     pub fn from_components(
         components: &[AccountComponent],
+        account_type: AccountType,
     ) -> Result<AccountStorage, AccountError> {
-        let has_faucet_component =
-            components.iter().any(|component| component.is_faucet_component());
-        let mut storage_slots = if has_faucet_component {
-            vec![StorageSlot::Value(Word::default()); 1]
+        let mut storage_slots = if account_type.is_faucet() {
+            vec![StorageSlot::Value(Word::default())]
         } else {
             vec![]
         };

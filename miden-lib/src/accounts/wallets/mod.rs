@@ -1,10 +1,7 @@
 use alloc::string::ToString;
 
 use miden_objects::{
-    accounts::{
-        Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
-        AccountType,
-    },
+    accounts::{Account, AccountComponent, AccountId, AccountStorageMode, AccountType},
     AccountError, Word,
 };
 
@@ -19,6 +16,8 @@ pub struct BasicWallet;
 impl From<BasicWallet> for AccountComponent {
     fn from(_: BasicWallet) -> Self {
         AccountComponent::new(basic_wallet_library(), vec![])
+            .with_supported_type(AccountType::RegularAccountImmutableCode)
+            .with_supported_type(AccountType::RegularAccountUpdatableCode)
     }
 }
 
@@ -52,8 +51,8 @@ pub fn create_basic_wallet(
 
     let components = [auth_component, BasicWallet.into()];
 
-    let account_code = AccountCode::from_components(&components)?;
-    let account_storage = AccountStorage::from_components(&components)?;
+    let (account_code, account_storage) =
+        Account::initialize_from_components(account_type, &components)?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,

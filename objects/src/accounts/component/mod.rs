@@ -1,17 +1,20 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeSet, vec::Vec};
 use std::string::ToString;
 
 use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
-use crate::{accounts::StorageSlot, AccountError};
+use crate::{
+    accounts::{AccountType, StorageSlot},
+    AccountError,
+};
 
 // TODO Document everything, add section separators.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountComponent {
     pub(crate) code: Library,
     pub(crate) storage_slots: Vec<StorageSlot>,
-    pub(crate) component_type: AccountComponentType,
+    pub(crate) supported_types: BTreeSet<AccountType>,
 }
 
 impl AccountComponent {
@@ -19,7 +22,7 @@ impl AccountComponent {
         Self {
             code,
             storage_slots,
-            component_type: AccountComponentType::Any,
+            supported_types: BTreeSet::new(),
         }
     }
 
@@ -46,17 +49,28 @@ impl AccountComponent {
         Ok(Self::new(library, storage_slots))
     }
 
-    pub fn with_type(mut self, component_type: AccountComponentType) -> Self {
-        self.component_type = component_type;
+    pub fn with_supported_type(mut self, supported_type: AccountType) -> Self {
+        self.supported_types.insert(supported_type);
         self
     }
 
-    pub fn component_type(&self) -> AccountComponentType {
-        self.component_type
+    pub fn with_supported_types(mut self, supported_types: BTreeSet<AccountType>) -> Self {
+        self.supported_types = supported_types;
+        self
     }
 
-    pub fn is_faucet_component(&self) -> bool {
-        self.component_type == AccountComponentType::Faucet
+    pub fn with_supports_all_types(mut self) -> Self {
+        self.supported_types.extend([
+            AccountType::FungibleFaucet,
+            AccountType::NonFungibleFaucet,
+            AccountType::RegularAccountImmutableCode,
+            AccountType::RegularAccountUpdatableCode,
+        ]);
+        self
+    }
+
+    pub fn supported_types(&self) -> &BTreeSet<AccountType> {
+        &self.supported_types
     }
 
     pub fn library(&self) -> &Library {

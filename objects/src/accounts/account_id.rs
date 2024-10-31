@@ -30,7 +30,7 @@ pub const NON_FUNGIBLE_FAUCET: u64 = 0b11;
 pub const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
 pub const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u64)]
 pub enum AccountType {
     FungibleFaucet = FUNGIBLE_FAUCET,

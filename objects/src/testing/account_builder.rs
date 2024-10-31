@@ -6,9 +6,7 @@ use rand::Rng;
 
 use super::account_id::AccountIdBuilder;
 use crate::{
-    accounts::{
-        Account, AccountCode, AccountComponent, AccountStorage, AccountStorageMode, AccountType,
-    },
+    accounts::{Account, AccountComponent, AccountStorageMode, AccountType},
     assets::{Asset, AssetVault},
     AccountError, AssetVaultError, Felt, Word, ZERO,
 };
@@ -69,9 +67,8 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn build(mut self) -> Result<(Account, Word), AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
 
-        let code = AccountCode::from_components(&self.components)
-            .map_err(AccountBuilderError::AccountError)?;
-        let storage = AccountStorage::from_components(&self.components)
+        let account_type = self.account_id_builder.get_account_type();
+        let (code, storage) = Account::initialize_from_components(account_type, &self.components)
             .map_err(AccountBuilderError::AccountError)?;
 
         self.account_id_builder.code_commitment(code.commitment());

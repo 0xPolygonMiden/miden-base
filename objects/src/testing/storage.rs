@@ -10,6 +10,7 @@ use crate::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
@@ -188,7 +189,7 @@ pub fn generate_account_seed(
     let (account, account_type) = match account_seed_type {
         AccountSeedType::FungibleFaucetInvalidInitialBalance => (
             Account::mock_fungible_faucet(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
                 ZERO,
                 Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
                 assembler,
@@ -197,7 +198,7 @@ pub fn generate_account_seed(
         ),
         AccountSeedType::FungibleFaucetValidInitialBalance => (
             Account::mock_fungible_faucet(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
                 ZERO,
                 ZERO,
                 assembler,
@@ -206,7 +207,7 @@ pub fn generate_account_seed(
         ),
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot => (
             Account::mock_non_fungible_faucet(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
                 ZERO,
                 false,
                 assembler,
@@ -215,7 +216,7 @@ pub fn generate_account_seed(
         ),
         AccountSeedType::NonFungibleFaucetValidReservedSlot => (
             Account::mock_non_fungible_faucet(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
                 ZERO,
                 true,
                 assembler,

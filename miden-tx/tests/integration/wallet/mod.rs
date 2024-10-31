@@ -296,9 +296,11 @@ fn wallet_creation() {
     let (wallet, _) =
         create_basic_wallet(init_seed, auth_scheme, account_type, storage_mode).unwrap();
 
-    let expected_code =
-        AccountCode::from_components(&[RpoFalcon512::new(pub_key).into(), BasicWallet.into()])
-            .unwrap();
+    let expected_code = AccountCode::from_components(
+        &[RpoFalcon512::new(pub_key).into(), BasicWallet.into()],
+        AccountType::RegularAccountUpdatableCode,
+    )
+    .unwrap();
     let expected_code_commitment = expected_code.commitment();
 
     assert!(wallet.is_regular_account());

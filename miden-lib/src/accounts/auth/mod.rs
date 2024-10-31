@@ -21,5 +21,6 @@ impl From<RpoFalcon512> for AccountComponent {
             rpo_falcon_512_library(),
             vec![StorageSlot::Value(falcon.public_key.into())],
         )
+        .with_supports_all_types()
     }
 }

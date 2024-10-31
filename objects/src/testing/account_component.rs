@@ -24,6 +24,8 @@ pub const BASIC_WALLET_CODE: &str = "
 /// Creates a mock account component which can be used as a library to create a mock
 /// [`AccountCode`](crate::accounts::AccountCode) interface. Transaction and note scripts that make
 /// use of this interface should be assembled with this.
+///
+/// This component supports all [`AccountType`]s for testing purposes.
 pub struct AccountMockComponent {
     storage_slots: Vec<StorageSlot>,
 }
@@ -56,6 +58,6 @@ impl AccountMockComponent {
             .assemble_library(&[*module])
             .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
 
-        Ok(AccountComponent::new(library, self.storage_slots))
+        Ok(AccountComponent::new(library, self.storage_slots).with_supports_all_types())
     }
 }
