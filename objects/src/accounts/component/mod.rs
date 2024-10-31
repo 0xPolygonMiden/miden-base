@@ -18,6 +18,11 @@ pub struct AccountComponent {
 }
 
 impl AccountComponent {
+    /// Returns a new [`AccountComponent`] constructed from the provided `library` and
+    /// `storage_slots`.
+    ///
+    /// All procedures exported from the provided code will become members of the account's public
+    /// interface when added to an [`AccountCode`](crate::accounts::AccountCode).
     pub fn new(code: Library, storage_slots: Vec<StorageSlot>) -> Self {
         Self {
             library: code,
@@ -26,17 +31,16 @@ impl AccountComponent {
         }
     }
 
-    /// Returns a new [`AccountComponent`] compiled from the provided source code using the
-    /// specified assembler.
+    /// Returns a new [`AccountComponent`] whose library is compiled from the provided `source_code`
+    /// using the specified `assembler` and with the given `storage_slots`.
     ///
-    /// All procedures exported from the provided code will become members of the account's
-    /// public interface.
+    /// All procedures exported from the provided code will become members of the account's public
+    /// interface when added to an [`AccountCode`](crate::accounts::AccountCode).
     ///
     /// # Errors
     ///
     /// Returns an error if:
-    /// - Compilation of the provided source code fails.
-    /// - The number of procedures exported from the provided library is 0 or greater than 256.
+    /// - the compilation of the provided source code fails.
     pub fn compile(
         source_code: impl Compile,
         assembler: Assembler,
