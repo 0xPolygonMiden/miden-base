@@ -31,9 +31,9 @@ impl Account {
         let mock_component = AccountMockComponent::with_slots(AccountStorage::mock_storage_slots())
             .assemble_component(assembler)
             .unwrap();
-        let components = [mock_component];
         let (account_code, account_storage) =
-            Account::initialize_from_components(account_id.account_type(), &components).unwrap();
+            Account::initialize_from_components(account_id.account_type(), &[mock_component])
+                .unwrap();
 
         Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
     }
@@ -48,10 +48,10 @@ impl Account {
 
         let mock_component =
             AccountMockComponent::with_empty_slots().assemble_component(assembler).unwrap();
-        let components = [mock_component];
 
         let (account_code, mut account_storage) =
-            Account::initialize_from_components(account_id.account_type(), &components).unwrap();
+            Account::initialize_from_components(account_id.account_type(), &[mock_component])
+                .unwrap();
 
         let faucet_data_slot = [ZERO, ZERO, ZERO, initial_balance];
         account_storage.set_item(FAUCET_STORAGE_DATA_SLOT, faucet_data_slot).unwrap();

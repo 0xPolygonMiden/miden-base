@@ -82,11 +82,10 @@ pub fn create_basic_fungible_faucet(
         AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key).into(),
     };
     let faucet_component = BasicFungibleFaucet::new(symbol, decimals, max_supply)?.into();
-    let components = [auth_component, faucet_component];
 
     let account_type = AccountType::FungibleFaucet;
     let (account_code, account_storage) =
-        Account::initialize_from_components(account_type, &components)?;
+        Account::initialize_from_components(account_type, &[auth_component, faucet_component])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,

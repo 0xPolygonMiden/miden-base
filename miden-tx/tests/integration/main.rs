@@ -90,12 +90,11 @@ pub fn get_account_with_default_account_code(
     .unwrap()
     .with_supports_all_types();
 
-    let account_components =
-        [RpoFalcon512::new(PublicKey::new(public_key)).into(), wallet_component];
-
-    let (account_code, account_storage) =
-        Account::initialize_from_components(account_id.account_type(), &account_components)
-            .unwrap();
+    let (account_code, account_storage) = Account::initialize_from_components(
+        account_id.account_type(),
+        &[RpoFalcon512::new(PublicKey::new(public_key)).into(), wallet_component],
+    )
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

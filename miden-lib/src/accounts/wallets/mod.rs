@@ -49,10 +49,8 @@ pub fn create_basic_wallet(
         AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key).into(),
     };
 
-    let components = [auth_component, BasicWallet.into()];
-
     let (account_code, account_storage) =
-        Account::initialize_from_components(account_type, &components)?;
+        Account::initialize_from_components(account_type, &[auth_component, BasicWallet.into()])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
