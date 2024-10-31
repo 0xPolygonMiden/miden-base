@@ -65,11 +65,16 @@ impl ProxyHttp for WorkerLoadBalancer {
 
     fn new_ctx(&self) {}
 
+    // The `upstream_peer` method is called when a new upstream connection is required.
+    // This method is responsible for selecting a worker from the load balancer and
+    // creating a new peer with the selected worker.
+    // Here we enqueue the request ID in the worker queue and wait for it to be at the front.
     async fn upstream_peer(
         &self,
         session: &mut Session,
         _ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
+        // Select the worker in a round-robin fashion
         let worker = self.0.select(b"", 256).ok_or(Error::new_str("Worker not found"))?;
 
         // Read request ID from headers
@@ -79,6 +84,8 @@ impl ProxyHttp for WorkerLoadBalancer {
             .to_str()
             .map_err(|_| Error::new(ErrorType::InternalError))?;
 
+        // Enqueue the request ID in the worker queue
+        // We use a new scope to release the lock after the operation
         {
             let mut ctx_guard = QUEUES.write().await;
             let worker_queue = ctx_guard.entry(worker.clone()).or_insert_with(Vec::new);
@@ -126,6 +133,9 @@ impl ProxyHttp for WorkerLoadBalancer {
         Ok(peer)
     }
 
+    // The `upstream_request_filter` method is called before sending the request to the upstream
+    // server. We use the method to ensure that the correct headers are forwarded for gRPC
+    // requests.
     async fn upstream_request_filter(
         &self,
         _session: &mut Session,
@@ -146,6 +156,8 @@ impl ProxyHttp for WorkerLoadBalancer {
         Ok(())
     }
 
+    // The `request_filter` method is called before processing the request.
+    // We use the method to rate limit the requests and add a unique request ID to the headers.
     async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool>
     where
         Self::CTX: Send + Sync,
@@ -166,6 +178,8 @@ impl ProxyHttp for WorkerLoadBalancer {
         Ok(false)
     }
 
+    // The `logging` method is called after the request cycle is complete no matter the outcome.
+    // We use the method to log errors and remove the completed request from the worker queue.
     async fn logging(&self, session: &mut Session, e: Option<&Error>, _ctx: &mut Self::CTX)
     where
         Self::CTX: Send + Sync,
