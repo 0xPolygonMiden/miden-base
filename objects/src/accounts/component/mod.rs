@@ -1,5 +1,4 @@
-use alloc::{collections::BTreeSet, vec::Vec};
-use std::string::ToString;
+use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 
 use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
