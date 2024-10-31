@@ -23,6 +23,9 @@ const CONNECTION_TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(10));
 /// Maximum number of items per queue
 const MAX_QUEUE_ITEMS: usize = 10;
 
+/// Maximum number of retries per request
+const MAX_RETRIES_PER_REQUEST: usize = 1;
+
 /// Load balancer that uses a round robin strategy
 pub struct WorkerLoadBalancer(Arc<LoadBalancer<RoundRobin>>);
 
@@ -31,6 +34,7 @@ impl WorkerLoadBalancer {
         Self(Arc::new(workers))
     }
 
+    /// Create a 429 response for too many requests
     pub async fn create_too_many_requests_response(session: &mut Session) -> Result<bool> {
         // Rate limited, return 429
         let mut header = ResponseHeader::build(429, None)?;
@@ -40,6 +44,34 @@ impl WorkerLoadBalancer {
         session.set_keepalive(None);
         session.write_response_header(Box::new(header), true).await?;
         Ok(true)
+    }
+
+    /// Remove the request ID from the corresponding worker queue
+    pub async fn remove_request_from_queue(request_id: &str) {
+        let mut ctx_guard = QUEUES.write().await;
+
+        // Get the worker by checking each queue
+        let worker = ctx_guard
+            .iter()
+            .find(|(_, queue)| queue.contains(&request_id.to_string()))
+            .map(|(worker, _)| worker.clone())
+            .expect("Worker not found");
+
+        // Remove the request ID from the queue for the specific worker
+        if let Some(worker_queue) = ctx_guard.get_mut(&worker) {
+            if !worker_queue.is_empty() {
+                worker_queue.remove(0);
+            }
+        }
+    }
+
+    /// Get the request ID from the session headers
+    pub fn get_request_id(session: &Session) -> Result<&str> {
+        session
+            .get_header("X-Request-ID")
+            .ok_or(Error::new(ErrorType::InternalError))?
+            .to_str()
+            .map_err(|_| Error::new(ErrorType::InternalError))
     }
 }
 
@@ -53,6 +85,12 @@ static MAX_REQ_PER_SEC: isize = 5;
 static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
+/// Custom context for the request/response lifecycle
+/// We use this context to keep track of the number of tries for a request.
+pub struct TriesCounter {
+    tries: usize,
+}
+
 #[async_trait]
 /// The [ProxyHttp] trait enables implementing a custom HTTP proxy service.
 /// Defined in the [pingora_proxy] crate, this trait provides several methods
@@ -61,28 +99,30 @@ static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
 /// For a detailed explanation of the request/response cycle, refer to the
 /// [official documentation](https://github.com/cloudflare/pingora/blob/main/docs/user_guide/phase.md).
 impl ProxyHttp for WorkerLoadBalancer {
-    type CTX = ();
-
-    fn new_ctx(&self) {}
+    type CTX = TriesCounter;
+    fn new_ctx(&self) -> Self::CTX {
+        TriesCounter { tries: 0 }
+    }
 
     // The `upstream_peer` method is called when a new upstream connection is required.
     // This method is responsible for selecting a worker from the load balancer and
     // creating a new peer with the selected worker.
     // Here we enqueue the request ID in the worker queue and wait for it to be at the front.
+    // If we are retring the request, we remove the request from the queue first.
     async fn upstream_peer(
         &self,
         session: &mut Session,
-        _ctx: &mut Self::CTX,
+        ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
+        if ctx.tries > 0 {
+            Self::remove_request_from_queue(Self::get_request_id(session)?).await;
+        }
+
         // Select the worker in a round-robin fashion
         let worker = self.0.select(b"", 256).ok_or(Error::new_str("Worker not found"))?;
 
         // Read request ID from headers
-        let request_id = session
-            .get_header("X-Request-ID")
-            .ok_or(Error::new(ErrorType::InternalError))?
-            .to_str()
-            .map_err(|_| Error::new(ErrorType::InternalError))?;
+        let request_id = Self::get_request_id(session)?;
 
         // Enqueue the request ID in the worker queue
         // We use a new scope to release the lock after the operation
@@ -178,6 +218,22 @@ impl ProxyHttp for WorkerLoadBalancer {
         Ok(false)
     }
 
+    // If the connection fails, we retry the request [MAX_RETRIES_PER_REQUEST] times.
+    fn fail_to_connect(
+        &self,
+        _session: &mut Session,
+        _peer: &HttpPeer,
+        ctx: &mut Self::CTX,
+        mut e: Box<Error>,
+    ) -> Box<Error> {
+        if ctx.tries > MAX_RETRIES_PER_REQUEST {
+            return e;
+        }
+        ctx.tries += 1;
+        e.set_retry(true);
+        e
+    }
+
     // The `logging` method is called after the request cycle is complete no matter the outcome.
     // We use the method to log errors and remove the completed request from the worker queue.
     async fn logging(&self, session: &mut Session, e: Option<&Error>, _ctx: &mut Self::CTX)
@@ -189,29 +245,11 @@ impl ProxyHttp for WorkerLoadBalancer {
         }
 
         // Get the request ID from the session
-        let request_id = session
-            .get_header("X-Request-ID")
-            .expect("Request ID not found")
-            .to_str()
-            .expect("Internal error");
+        let request_id = Self::get_request_id(session).expect("Request ID not found");
 
         // Remove the completed request from the worker queue
         // Maybe we can replace this with a read lock and using write only in the moment of the
         // deletion.
-        let mut ctx_guard = QUEUES.write().await;
-
-        // Get the worker by checking each queue
-        let worker = ctx_guard
-            .iter()
-            .find(|(_, queue)| queue.contains(&request_id.to_string()))
-            .map(|(worker, _)| worker.clone())
-            .expect("Worker not found");
-
-        // Remove the request ID from the queue for the specific worker
-        if let Some(worker_queue) = ctx_guard.get_mut(&worker) {
-            if !worker_queue.is_empty() {
-                worker_queue.remove(0);
-            }
-        }
+        Self::remove_request_from_queue(request_id).await;
     }
 }
