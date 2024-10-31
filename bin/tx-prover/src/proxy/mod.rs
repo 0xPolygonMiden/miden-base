@@ -30,6 +30,17 @@ impl WorkerLoadBalancer {
     pub fn new(upstreams: LoadBalancer<RoundRobin>) -> Self {
         Self(Arc::new(upstreams))
     }
+
+    pub async fn create_too_many_requests_response(session: &mut Session) -> Result<bool> {
+        // rate limited, return 429
+        let mut header = ResponseHeader::build(429, None)?;
+        header.insert_header("X-Rate-Limit-Limit", MAX_REQ_PER_SEC.to_string())?;
+        header.insert_header("X-Rate-Limit-Remaining", "0")?;
+        header.insert_header("X-Rate-Limit-Reset", "1")?;
+        session.set_keepalive(None);
+        session.write_response_header(Box::new(header), true).await?;
+        Ok(true)
+    }
 }
 
 /// Rate limiter
@@ -143,15 +154,8 @@ impl ProxyHttp for WorkerLoadBalancer {
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
 
         if curr_window_requests > MAX_REQ_PER_SEC {
-            // rate limited, return 429
-            let mut header = ResponseHeader::build(429, None)?;
-            header.insert_header("X-Rate-Limit-Limit", MAX_REQ_PER_SEC.to_string())?;
-            header.insert_header("X-Rate-Limit-Remaining", "0")?;
-            header.insert_header("X-Rate-Limit-Reset", "1")?;
-            session.set_keepalive(None);
-            session.write_response_header(Box::new(header), true).await?;
-            return Ok(true);
-        }
+            return Self::create_too_many_requests_response(session).await;
+        };
         Ok(false)
     }
 
