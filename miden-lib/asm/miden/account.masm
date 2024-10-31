@@ -170,6 +170,7 @@ export.set_item
 
     # clean the stack
     swapdw dropw dropw
+    # => [R', V]
 end
 
 #! Gets a map item from the account storage. Panics if

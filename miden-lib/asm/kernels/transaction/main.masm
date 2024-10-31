@@ -93,7 +93,7 @@ proc.main.1
         # => []
 
         exec.note::prepare_note
-        # => [note_script_hash_addr, NOTE_ARGS]
+        # => [note_script_root_ptr, NOTE_ARGS]
 
         # run note's script
         dyncall
@@ -127,12 +127,12 @@ proc.main.1
     trace.TX_SCRIPT_PROCESSING_START
 
     # get the memory address of the transaction script root and load it to the stack
-    exec.memory::get_tx_script_root_addr
+    exec.memory::get_tx_script_root_ptr
     padw dup.4 mem_loadw
-    # => [TX_SCRIPT_ROOT, tx_script_root_addr]
+    # => [TX_SCRIPT_ROOT, tx_script_root_ptr]
 
     exec.utils::is_empty_word not movdn.4 dropw
-    # => [has_tx_script, tx_script_root_addr]
+    # => [has_tx_script, tx_script_root_ptr]
 
     if.true
         # execute the transaction script

@@ -413,11 +413,11 @@ end
 #! Returns a memory address of the transaction script root.
 #!
 #! Stack: []
-#! Output: [tx_script_root_addr]
+#! Output: [tx_script_root_ptr]
 #!
 #! Where:
-#! - TX_SCRIPT_ROOT is the transaction script root.
-export.get_tx_script_root_addr
+#! - tx_script_root_ptr is the pointer to the memory where transaction script root is stored.
+export.get_tx_script_root_ptr
     push.TX_SCRIPT_ROOT_PTR
 end
 
@@ -1080,12 +1080,12 @@ end
 #! Returns the memory address of the script root of a input note.
 #!
 #! Stack: [note_ptr]
-#! Output: [script_hash_addr]
+#! Output: [script_root_ptr]
 #!
 #! Where:
 #! - note_ptr, the memory address at which the input note data begins.
-#! - script_hash_addr, the memory address where script root of the input note is stored.
-export.get_input_note_script_root_addr
+#! - script_root_ptr, the memory address where script root of the input note is stored.
+export.get_input_note_script_root_ptr
     push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
 end
 

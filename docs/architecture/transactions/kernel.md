@@ -100,7 +100,7 @@ For every note, the [MAST root](https://0xpolygonmiden.github.io/miden-vm/design
     while.true
         # execute the note setup script
         exec.note::prepare_note
-        # => [note_script_hash_addr, NOTE_ARGS]
+        # => [note_script_root_ptr, NOTE_ARGS]
 
         # invoke the note script using the dyncall instruction
         dyncall

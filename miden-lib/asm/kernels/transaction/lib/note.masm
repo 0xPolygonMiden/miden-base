@@ -137,10 +137,10 @@ end
 #! Loads the note's script root address and args onto the stack.
 #!
 #! Stack: []
-#! Output: [note_script_root_addr, NOTE_ARGS]
+#! Output: [note_script_root_ptr, NOTE_ARGS]
 #!
 #! Where:
-#! - note_script_root_addr, the memory address where note's script root is stored.
+#! - note_script_root_ptr, the memory address where note's script root is stored.
 #! - NOTE_ARGS, the note's arguments.
 export.prepare_note
     exec.memory::get_current_input_note_ptr
@@ -149,8 +149,8 @@ export.prepare_note
     dup exec.memory::get_input_note_args movup.4
     # => [note_ptr, NOTE_ARGS]
 
-    exec.memory::get_input_note_script_root_addr
-    # => [note_script_root_addr, NOTE_ARGS]
+    exec.memory::get_input_note_script_root_ptr
+    # => [note_script_root_ptr, NOTE_ARGS]
 end
 
 # OUTPUT NOTE PROCEDURES

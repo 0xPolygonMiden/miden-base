@@ -641,22 +641,6 @@ fn test_load_foreign_account_basic() {
         .advice_inputs(advice_inputs.clone())
         .build();
 
-    let get_item_foreign_hash = {
-        let foreign_account_code_source = "
-            use.miden::account
-            export.get_item
-                exec.account::get_item
-                movup.8 drop movup.8 drop movup.8 drop
-            end
-        ";
-        *AccountCode::mock_with_code(
-            foreign_account_code_source,
-            TransactionKernel::testing_assembler(),
-        )
-        .procedures()[0]
-            .mast_root()
-    };
-
     let code = format!(
         "
         use.std::sys
@@ -687,7 +671,9 @@ fn test_load_foreign_account_basic() {
             # truncate the stack
             exec.sys::truncate_stack
         end
-        "
+        ",
+        // `get_item` procedure has index 7
+        get_item_foreign_hash = foreign_account.code().procedures()[6].mast_root(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -789,22 +775,6 @@ fn test_load_foreign_account_twice() {
         .advice_inputs(advice_inputs.clone())
         .build();
 
-    let get_item_foreign_hash = {
-        let foreign_account_code_source = "
-            use.miden::account
-            export.get_item
-                exec.account::get_item
-                movup.8 drop movup.8 drop movup.8 drop
-            end
-        ";
-        *AccountCode::mock_with_code(
-            foreign_account_code_source,
-            TransactionKernel::testing_assembler(),
-        )
-        .procedures()[0]
-            .mast_root()
-    };
-
     let code = format!(
         "
         use.std::sys
@@ -854,6 +824,8 @@ fn test_load_foreign_account_twice() {
             exec.sys::truncate_stack
         end
         ",
+        // `get_item` procedure has index 7
+        get_item_foreign_hash = foreign_account.code().procedures()[6].mast_root(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
