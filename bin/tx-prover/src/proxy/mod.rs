@@ -49,7 +49,7 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 /// Maximum amount of request per second per client
 static MAX_REQ_PER_SEC: isize = 5;
 
-/// Shared state. It is a map of backends to a vector of request IDs
+/// Shared state. It is a map of workers to a vector of request IDs
 static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
@@ -96,8 +96,8 @@ impl ProxyHttp for WorkerLoadBalancer {
             // We use a new scope for each iteration to release the lock
             {
                 let ctx_guard = QUEUES.read().await;
-                if let Some(backend_queue) = ctx_guard.get(&worker) {
-                    if backend_queue[0] == request_id {
+                if let Some(worker_queue) = ctx_guard.get(&worker) {
+                    if worker_queue[0] == request_id {
                         break;
                     }
                 } else {

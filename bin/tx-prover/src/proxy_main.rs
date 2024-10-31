@@ -8,13 +8,12 @@ fn main() {
     let mut server = Server::new(Some(Opt::default())).unwrap();
     server.bootstrap();
 
-    let backends =
-        std::env::var("PROVER_BACKENDS").expect("PROVER_BACKENDS environment variable not set");
-    let upstreams = LoadBalancer::try_from_iter(backends.split(",")).unwrap();
+    let workers =
+        std::env::var("PROVER_WORKERS").expect("PROVER_WORKERS environment variable not set");
+    let workers = LoadBalancer::try_from_iter(workers.split(",")).unwrap();
 
     // Set load balancer
-    let mut lb =
-        http_proxy_service(&server.configuration, proxy::WorkerLoadBalancer::new(upstreams));
+    let mut lb = http_proxy_service(&server.configuration, proxy::WorkerLoadBalancer::new(workers));
 
     let proxy_host = std::env::var("PROXY_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let proxy_port = std::env::var("PROXY_PORT").unwrap_or_else(|_| "6188".to_string());

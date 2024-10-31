@@ -82,16 +82,16 @@ PROXY_HOST=<your-host>
 PROXY_PORT=<your-port>
 ```
 
-Also, it is mandatory to set at least one prover worker by setting the `PROVER_BACKENDS` env var:
+Also, it is mandatory to set at least one prover worker by setting the `PROVER_WORKERS` env var:
 
 ```bash
-PROVER_BACKENDS=<your-backends>
+PROVER_WORKERS=<your-backends>
 
 # For only 1 backend
-PROVER_BACKENDS="0.0.0.0:50051"
+PROVER_WORKERS="0.0.0.0:50051"
 
 # For multiple backends
-PROVER_BACKENDS="0.0.0.0:8080,0.0.0.0:50051,165.75.2.4:1010,10.2.2.1:9999"
+PROVER_WORKERS="0.0.0.0:8080,0.0.0.0:50051,165.75.2.4:1010,10.2.2.1:9999"
 ```
 
 ## Features
