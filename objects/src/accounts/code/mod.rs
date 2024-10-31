@@ -44,6 +44,12 @@ impl AccountCode {
 
     /// Creates a new [`AccountCode`] from the provided components' libraries.
     ///
+    /// # Warning
+    ///
+    /// This does not check whether the provided components are valid when combined. Prefer
+    /// [`Account::initialize_from_components`](crate::accounts::Account::initialize_from_components)
+    /// whenever possible as it implements that check.
+    ///
     /// # Errors
     ///
     /// Returns an error if:
