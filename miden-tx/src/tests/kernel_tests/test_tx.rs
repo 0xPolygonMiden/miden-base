@@ -649,13 +649,15 @@ fn test_load_foreign_account_basic() {
     // GET ITEM
     // --------------------------------------------------------------------------------------------
     let storage_slot = AccountStorage::mock_item_0().slot;
-    let (foreign_account, _) =
-        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
-            .add_component(AccountMockComponent::with_slots(vec![storage_slot.clone()]))
-            .unwrap()
-            .nonce(ONE)
-            .build()
-            .unwrap();
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_component(
+            AccountMockComponent::with_slots(vec![storage_slot.clone()])
+                .assemble_component(TransactionKernel::testing_assembler())
+                .unwrap(),
+        )
+        .nonce(ONE)
+        .build()
+        .unwrap();
 
     let account_id = foreign_account.id();
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
@@ -713,13 +715,15 @@ fn test_load_foreign_account_basic() {
     // GET MAP ITEM
     // --------------------------------------------------------------------------------------------
     let storage_slot = AccountStorage::mock_item_2().slot;
-    let (foreign_account, _) =
-        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
-            .add_component(AccountMockComponent::with_slots(vec![storage_slot]))
-            .unwrap()
-            .nonce(ONE)
-            .build()
-            .unwrap();
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_component(
+            AccountMockComponent::with_slots(vec![storage_slot])
+                .assemble_component(TransactionKernel::testing_assembler())
+                .unwrap(),
+        )
+        .nonce(ONE)
+        .build()
+        .unwrap();
 
     let account_id = foreign_account.id();
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
@@ -784,13 +788,15 @@ fn test_load_foreign_account_basic() {
 #[test]
 fn test_load_foreign_account_twice() {
     let storage_slot = AccountStorage::mock_item_0().slot;
-    let (foreign_account, _) =
-        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
-            .add_component(AccountMockComponent::with_slots(vec![storage_slot]))
-            .unwrap()
-            .nonce(ONE)
-            .build()
-            .unwrap();
+    let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_component(
+            AccountMockComponent::with_slots(vec![storage_slot])
+                .assemble_component(TransactionKernel::testing_assembler())
+                .unwrap(),
+        )
+        .nonce(ONE)
+        .build()
+        .unwrap();
 
     let account_id = foreign_account.id();
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();

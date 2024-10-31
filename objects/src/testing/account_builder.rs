@@ -1,7 +1,6 @@
 use alloc::vec::Vec;
 use core::fmt::Display;
 
-use assembly::Assembler;
 use miden_crypto::merkle::MerkleError;
 use rand::Rng;
 
@@ -9,7 +8,6 @@ use super::account_id::AccountIdBuilder;
 use crate::{
     accounts::{
         Account, AccountCode, AccountComponent, AccountStorage, AccountStorageMode, AccountType,
-        AssembledAccountComponent,
     },
     assets::{Asset, AssetVault},
     AccountError, AssetVaultError, Felt, Word, ZERO,
@@ -20,17 +18,15 @@ use crate::{
 /// builder.
 #[derive(Clone)]
 pub struct AccountBuilder<T> {
-    assembler: Assembler,
     assets: Vec<Asset>,
-    components: Vec<AssembledAccountComponent>,
+    components: Vec<AccountComponent>,
     nonce: Felt,
     account_id_builder: AccountIdBuilder<T>,
 }
 
 impl<T: Rng> AccountBuilder<T> {
-    pub fn new(rng: T, assembler: Assembler) -> Self {
+    pub fn new(rng: T) -> Self {
         Self {
-            assembler,
             assets: vec![],
             components: vec![],
             nonce: ZERO,
@@ -50,13 +46,9 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_component(
-        mut self,
-        account_component: impl AccountComponent,
-    ) -> Result<Self, AccountError> {
-        self.components
-            .push(account_component.assemble_component(self.assembler.clone())?);
-        Ok(self)
+    pub fn add_component(mut self, account_component: impl Into<AccountComponent>) -> Self {
+        self.components.push(account_component.into());
+        self
     }
 
     pub fn nonce(mut self, nonce: Felt) -> Self {

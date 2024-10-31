@@ -1,27 +1,31 @@
 use alloc::collections::BTreeMap;
 
-use miden_lib::transaction::{
-    memory::{
-        MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
-        BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
-        INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
-        INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
-        INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET,
-        INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET,
-        KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
-        NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
-        NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
-        NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
-        NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
-        TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+use miden_lib::{
+    accounts::wallets::BasicWallet,
+    transaction::{
+        memory::{
+            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
+            BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+            INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
+            INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
+            INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
+            INPUT_NOTE_NUM_ASSETS_OFFSET, INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET,
+            INPUT_NOTE_SERIAL_NUM_OFFSET, KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR,
+            NATIVE_ACCT_ID_AND_NONCE_PTR, NATIVE_ACCT_PROCEDURES_SECTION_PTR,
+            NATIVE_ACCT_STORAGE_COMMITMENT_PTR, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
+            NATIVE_ACCT_VAULT_ROOT_PTR, NATIVE_NUM_ACCT_PROCEDURES_PTR,
+            NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
+            PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR,
+            TX_SCRIPT_ROOT_PTR,
+        },
+        TransactionKernel,
     },
-    TransactionKernel,
 };
 use miden_objects::{
-    accounts::{AccountProcedureInfo, AccountStorage, AssembledAccountComponent, StorageSlot},
+    accounts::{AccountComponent, AccountProcedureInfo, AccountStorage, StorageSlot},
     testing::{
         account_builder::AccountBuilder,
-        account_component::{BasicWallet, BASIC_WALLET_CODE},
+        account_component::BASIC_WALLET_CODE,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
     },
@@ -389,19 +393,17 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, seed) =
-        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
-            .add_component(
-                AssembledAccountComponent::compile(
-                    BASIC_WALLET_CODE,
-                    TransactionKernel::testing_assembler(),
-                    AccountStorage::mock_storage_slots(),
-                )
-                .unwrap(),
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_component(
+            AccountComponent::compile(
+                BASIC_WALLET_CODE,
+                TransactionKernel::testing_assembler(),
+                AccountStorage::mock_storage_slots(),
             )
-            .unwrap()
-            .build()
-            .unwrap();
+            .unwrap(),
+        )
+        .build()
+        .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
     let code = "
@@ -525,13 +527,11 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (acct, account_seed) =
-        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
-            .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-            .add_component(BasicWallet)
-            .unwrap()
-            .build()
-            .unwrap();
+    let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
+        .add_component(BasicWallet)
+        .build()
+        .unwrap();
 
     let code = "
     use.kernel::prologue

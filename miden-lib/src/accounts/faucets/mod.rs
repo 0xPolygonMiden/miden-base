@@ -3,20 +3,14 @@ use alloc::string::ToString;
 use miden_objects::{
     accounts::{
         Account, AccountCode, AccountComponent, AccountComponentType, AccountId, AccountStorage,
-        AccountStorageMode, AccountType, AssembledAccountComponent, StorageSlot,
+        AccountStorageMode, AccountType, StorageSlot,
     },
-    assembly::Assembler,
     assets::TokenSymbol,
-    testing::account_component::RpoFalcon512,
     AccountError, Felt, FieldElement, Word,
 };
 
-use super::{AuthScheme, TransactionKernel};
-
-const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
-    export.::miden::contracts::faucets::basic_fungible::distribute
-    export.::miden::contracts::faucets::basic_fungible::burn
-";
+use super::AuthScheme;
+use crate::accounts::{auth::RpoFalcon512, components::basic_fungible_faucet_library};
 
 // BASIC FUNGIBLE FAUCET ACCOUNT COMPONENT
 // ================================================================================================
@@ -44,21 +38,15 @@ impl BasicFungibleFaucet {
     }
 }
 
-impl AccountComponent for BasicFungibleFaucet {
-    fn assemble_component(
-        self,
-        assembler: Assembler,
-    ) -> Result<AssembledAccountComponent, AccountError> {
+impl From<BasicFungibleFaucet> for AccountComponent {
+    fn from(faucet: BasicFungibleFaucet) -> Self {
         // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as
         // [a3, a2, a1, a0, ...]
-        let metadata = [self.max_supply, Felt::from(self.decimals), self.symbol.into(), Felt::ZERO];
+        let metadata =
+            [faucet.max_supply, Felt::from(faucet.decimals), faucet.symbol.into(), Felt::ZERO];
 
-        AssembledAccountComponent::compile(
-            BASIC_FUNGIBLE_FAUCET_CODE,
-            assembler,
-            vec![StorageSlot::Value(metadata)],
-        )
-        .map(|component| component.with_type(AccountComponentType::Faucet))
+        AccountComponent::new(basic_fungible_faucet_library(), vec![StorageSlot::Value(metadata)])
+            .with_type(AccountComponentType::Faucet)
     }
 }
 
@@ -89,17 +77,12 @@ pub fn create_basic_fungible_faucet(
     account_storage_mode: AccountStorageMode,
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
-    let assembler = TransactionKernel::assembler();
-
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
     // faucet contract.
     let auth_component = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => {
-            RpoFalcon512::new(pub_key).assemble_component(assembler.clone())?
-        },
+        AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key).into(),
     };
-    let faucet_component =
-        BasicFungibleFaucet::new(symbol, decimals, max_supply)?.assemble_component(assembler)?;
+    let faucet_component = BasicFungibleFaucet::new(symbol, decimals, max_supply)?.into();
     let components = [auth_component, faucet_component];
 
     let account_code = AccountCode::from_components(&components)?;

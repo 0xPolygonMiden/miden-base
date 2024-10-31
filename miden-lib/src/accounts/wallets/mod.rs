@@ -5,14 +5,22 @@ use miden_objects::{
         Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
         AccountType,
     },
-    testing::account_component::{BasicWallet, RpoFalcon512},
     AccountError, Word,
 };
 
-use super::{AuthScheme, TransactionKernel};
+use super::AuthScheme;
+use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
 
 // BASIC WALLET
 // ================================================================================================
+
+pub struct BasicWallet;
+
+impl From<BasicWallet> for AccountComponent {
+    fn from(_: BasicWallet) -> Self {
+        AccountComponent::new(basic_wallet_library(), vec![])
+    }
+}
 
 /// Creates a new account with basic wallet interface, the specified authentication scheme and the
 /// account storage type. Basic wallets can be specified to have either mutable or immutable code.
@@ -38,15 +46,11 @@ pub fn create_basic_wallet(
         ));
     }
 
-    let assembler = TransactionKernel::assembler();
-
     let auth_component = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => {
-            RpoFalcon512::new(pub_key).assemble_component(assembler.clone())?
-        },
+        AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key).into(),
     };
 
-    let components = [auth_component, BasicWallet.assemble_component(assembler)?];
+    let components = [auth_component, BasicWallet.into()];
 
     let account_code = AccountCode::from_components(&components)?;
     let account_storage = AccountStorage::from_components(&components)?;

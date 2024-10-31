@@ -7,7 +7,7 @@ use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
     Hasher, Serializable,
 };
-use crate::accounts::AssembledAccountComponent;
+use crate::accounts::AccountComponent;
 
 pub mod procedure;
 use procedure::AccountProcedureInfo;
@@ -93,7 +93,7 @@ impl AccountCode {
     }
 
     // TODO: Document.
-    pub fn from_components(components: &[AssembledAccountComponent]) -> Result<Self, AccountError> {
+    pub fn from_components(components: &[AccountComponent]) -> Result<Self, AccountError> {
         let (merged_mast_forest, _) =
             MastForest::merge(components.iter().map(|component| component.mast_forest()))
                 .map_err(|err| AccountError::AccountCodeMergeError(err.to_string()))?;
@@ -108,7 +108,7 @@ impl AccountCode {
         let mut component_storage_offset = if has_faucet_component { 1 } else { 0 };
 
         for component in components {
-            let AssembledAccountComponent { code: library, storage_slots, .. } = component;
+            let AccountComponent { code: library, storage_slots, .. } = component;
             let component_storage_size: u8 = storage_slots
                 .len()
                 .try_into()

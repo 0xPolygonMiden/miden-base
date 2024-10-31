@@ -3,18 +3,18 @@ extern crate alloc;
 use std::sync::Arc;
 
 use miden_lib::{
-    accounts::faucets::BasicFungibleFaucet,
-    transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
+    accounts::{auth::RpoFalcon512, faucets::BasicFungibleFaucet},
+    transaction::memory::FAUCET_STORAGE_DATA_SLOT,
 };
 use miden_objects::{
     accounts::{
-        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode,
-        AccountComponent, AccountId, AccountStorage,
+        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
+        AccountStorage,
     },
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::PublicKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::{account_component::RpoFalcon512, prepare_word},
+    testing::prepare_word,
     Felt, Word, ZERO,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
@@ -241,8 +241,6 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
 
-    let assembler = TransactionKernel::assembler();
-
     let components = [
         BasicFungibleFaucet::new(
             TokenSymbol::new("TST").unwrap(),
@@ -250,11 +248,8 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             max_supply.try_into().unwrap(),
         )
         .unwrap()
-        .assemble_component(assembler.clone())
-        .unwrap(),
-        RpoFalcon512::new(PublicKey::new(public_key))
-            .assemble_component(assembler)
-            .unwrap(),
+        .into(),
+        RpoFalcon512::new(PublicKey::new(public_key)).into(),
     ];
 
     let faucet_account_code = AccountCode::from_components(&components).unwrap();

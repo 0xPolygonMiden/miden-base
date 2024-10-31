@@ -119,14 +119,16 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let (account, _) =
-        AccountBuilder::new(ChaCha20Rng::from_entropy(), TransactionKernel::testing_assembler())
-            .add_component(AccountMockComponent::with_slots(AccountStorage::mock_storage_slots()))
-            .unwrap()
-            .add_assets(account_assets)
-            .nonce(ONE)
-            .build()
-            .unwrap();
+    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_component(
+            AccountMockComponent::with_slots(AccountStorage::mock_storage_slots())
+                .assemble_component(TransactionKernel::testing_assembler())
+                .unwrap(),
+        )
+        .add_assets(account_assets)
+        .nonce(ONE)
+        .build()
+        .unwrap();
 
     let mut tx_context = TransactionContextBuilder::new(account)
         .with_mock_notes_preserved_with_account_vault_delta()

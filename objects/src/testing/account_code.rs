@@ -2,10 +2,7 @@ use alloc::sync::Arc;
 
 use assembly::{ast::Module, Assembler, Library, LibraryPath};
 
-use crate::{
-    accounts::{AccountCode, AccountComponent},
-    testing::account_component::AccountMockComponent,
-};
+use crate::{accounts::AccountCode, testing::account_component::AccountMockComponent};
 
 pub const CODE: &str = "
     export.foo

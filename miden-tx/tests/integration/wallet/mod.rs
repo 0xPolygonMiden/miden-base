@@ -273,11 +273,8 @@ fn prove_send_note_with_asset_via_wallet() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn wallet_creation() {
-    use miden_lib::transaction::TransactionKernel;
-    use miden_objects::{
-        accounts::{AccountCode, AccountComponent, AccountStorageMode, AccountType},
-        testing::account_component::{BasicWallet, RpoFalcon512},
-    };
+    use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
+    use miden_objects::accounts::{AccountCode, AccountStorageMode, AccountType};
 
     // we need a Falcon Public Key to create the wallet account
     let seed = [0_u8; 32];
@@ -299,13 +296,9 @@ fn wallet_creation() {
     let (wallet, _) =
         create_basic_wallet(init_seed, auth_scheme, account_type, storage_mode).unwrap();
 
-    let expected_code = AccountCode::from_components(&[
-        RpoFalcon512::new(pub_key)
-            .assemble_component(TransactionKernel::assembler())
-            .unwrap(),
-        BasicWallet.assemble_component(TransactionKernel::assembler()).unwrap(),
-    ])
-    .unwrap();
+    let expected_code =
+        AccountCode::from_components(&[RpoFalcon512::new(pub_key).into(), BasicWallet.into()])
+            .unwrap();
     let expected_code_commitment = expected_code.commitment();
 
     assert!(wallet.is_regular_account());
