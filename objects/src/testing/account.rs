@@ -28,12 +28,14 @@ impl Account {
         };
 
         let account_id = AccountId::try_from(account_id).unwrap();
-        let mock_component = AccountMockComponent::with_slots(AccountStorage::mock_storage_slots())
-            .assemble_component(assembler)
-            .unwrap();
-        let (account_code, account_storage) =
-            Account::initialize_from_components(account_id.account_type(), &[mock_component])
+        let mock_component =
+            AccountMockComponent::new_with_slots(assembler, AccountStorage::mock_storage_slots())
                 .unwrap();
+        let (account_code, account_storage) = Account::initialize_from_components(
+            account_id.account_type(),
+            &[mock_component.into()],
+        )
+        .unwrap();
 
         Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
     }
@@ -46,12 +48,13 @@ impl Account {
     ) -> Self {
         let account_id = AccountId::try_from(account_id).unwrap();
 
-        let mock_component =
-            AccountMockComponent::with_empty_slots().assemble_component(assembler).unwrap();
+        let mock_component = AccountMockComponent::new_with_empty_slots(assembler).unwrap();
 
-        let (account_code, mut account_storage) =
-            Account::initialize_from_components(account_id.account_type(), &[mock_component])
-                .unwrap();
+        let (account_code, mut account_storage) = Account::initialize_from_components(
+            account_id.account_type(),
+            &[mock_component.into()],
+        )
+        .unwrap();
 
         let faucet_data_slot = [ZERO, ZERO, ZERO, initial_balance];
         account_storage.set_item(FAUCET_STORAGE_DATA_SLOT, faucet_data_slot).unwrap();
@@ -81,12 +84,11 @@ impl Account {
 
         let account_id = AccountId::try_from(account_id).unwrap();
 
-        let mock_component =
-            AccountMockComponent::with_empty_slots().assemble_component(assembler).unwrap();
-        let components = [mock_component];
+        let mock_component = AccountMockComponent::new_with_empty_slots(assembler).unwrap();
 
         let account_code =
-            AccountCode::from_components(&components, account_id.account_type()).unwrap();
+            AccountCode::from_components(&[mock_component.into()], account_id.account_type())
+                .unwrap();
 
         // The component does not have any storage slots so we don't need to instantiate storage
         // from the component. We also need to set the custom value for the storage map so we

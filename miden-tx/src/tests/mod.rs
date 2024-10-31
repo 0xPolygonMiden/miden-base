@@ -121,9 +121,11 @@ fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
     let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_component(
-            AccountMockComponent::with_slots(AccountStorage::mock_storage_slots())
-                .assemble_component(TransactionKernel::testing_assembler())
-                .unwrap(),
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                AccountStorage::mock_storage_slots(),
+            )
+            .unwrap(),
         )
         .add_assets(account_assets)
         .nonce(ONE)

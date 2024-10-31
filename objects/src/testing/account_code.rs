@@ -145,9 +145,7 @@ impl AccountCode {
     /// mock [AccountCode] interface. Transaction and note scripts that make use of this interface
     /// should be assembled with this.
     pub fn mock_library(assembler: Assembler) -> Library {
-        let component =
-            AccountMockComponent::with_empty_slots().assemble_component(assembler).unwrap();
-        component.into()
+        AccountMockComponent::new_with_empty_slots(assembler).unwrap().into()
     }
 
     /// Creates a mock [AccountCode] with default assembler and mock code

@@ -257,9 +257,11 @@ fn test_get_item() {
 fn test_get_map_item() {
     let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_component(
-            AccountMockComponent::with_slots(vec![AccountStorage::mock_item_2().slot])
-                .assemble_component(TransactionKernel::testing_assembler())
-                .unwrap(),
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![AccountStorage::mock_item_2().slot],
+            )
+            .unwrap(),
         )
         .nonce(ONE)
         .build()
@@ -402,9 +404,11 @@ fn test_set_map_item() {
 
     let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_component(
-            AccountMockComponent::with_slots(vec![AccountStorage::mock_item_2().slot])
-                .assemble_component(TransactionKernel::testing_assembler())
-                .unwrap(),
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![AccountStorage::mock_item_2().slot],
+            )
+            .unwrap(),
         )
         .nonce(ONE)
         .build()
@@ -642,12 +646,13 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let mock_component = AccountMockComponent::with_empty_slots()
-        .assemble_component(TransactionKernel::assembler())
-        .unwrap();
-    let account_code =
-        AccountCode::from_components(&[mock_component], AccountType::RegularAccountUpdatableCode)
-            .unwrap();
+    let mock_component =
+        AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap();
+    let account_code = AccountCode::from_components(
+        &[mock_component.into()],
+        AccountType::RegularAccountUpdatableCode,
+    )
+    .unwrap();
 
     let tc_0: [Felt; 4] =
         account_code.procedures()[0].mast_root().as_elements().try_into().unwrap();
