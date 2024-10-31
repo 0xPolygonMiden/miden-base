@@ -150,7 +150,7 @@ impl TransactionExecutor {
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
-            self.account_codes.keys().map(|code_comm| *code_comm).collect(),
+            self.account_codes.keys().copied().collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
