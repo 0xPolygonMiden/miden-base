@@ -27,12 +27,12 @@ const MAX_QUEUE_ITEMS: usize = 10;
 pub struct WorkerLoadBalancer(Arc<LoadBalancer<RoundRobin>>);
 
 impl WorkerLoadBalancer {
-    pub fn new(upstreams: LoadBalancer<RoundRobin>) -> Self {
-        Self(Arc::new(upstreams))
+    pub fn new(workers: LoadBalancer<RoundRobin>) -> Self {
+        Self(Arc::new(workers))
     }
 
     pub async fn create_too_many_requests_response(session: &mut Session) -> Result<bool> {
-        // rate limited, return 429
+        // Rate limited, return 429
         let mut header = ResponseHeader::build(429, None)?;
         header.insert_header("X-Rate-Limit-Limit", MAX_REQ_PER_SEC.to_string())?;
         header.insert_header("X-Rate-Limit-Remaining", "0")?;
@@ -54,6 +54,12 @@ static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
 #[async_trait]
+/// The [ProxyHttp] trait enables implementing a custom HTTP proxy service.
+/// Defined in the [pingora_proxy] crate, this trait provides several methods
+/// that correspond to different stages of the request/response lifecycle.
+/// Most methods have default implementations, making them optional to override.
+/// For a detailed explanation of the request/response cycle, refer to the
+/// [official documentation](https://github.com/cloudflare/pingora/blob/main/docs/user_guide/phase.md).
 impl ProxyHttp for WorkerLoadBalancer {
     type CTX = ();
 
@@ -64,9 +70,9 @@ impl ProxyHttp for WorkerLoadBalancer {
         session: &mut Session,
         _ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
-        let upstream = self.0.select(b"", 256).ok_or(Error::new_str("Upstream not found"))?;
+        let worker = self.0.select(b"", 256).ok_or(Error::new_str("Worker not found"))?;
 
-        // read request ID from headers
+        // Read request ID from headers
         let request_id = session
             .get_header("X-Request-ID")
             .ok_or(Error::new(ErrorType::InternalError))?
@@ -75,14 +81,14 @@ impl ProxyHttp for WorkerLoadBalancer {
 
         {
             let mut ctx_guard = QUEUES.write().await;
-            let backend_queue = ctx_guard.entry(upstream.clone()).or_insert_with(Vec::new);
+            let worker_queue = ctx_guard.entry(worker.clone()).or_insert_with(Vec::new);
 
             // Limit queue length to MAX_QUEUE_ITEMS requests
-            if backend_queue.len() >= MAX_QUEUE_ITEMS {
+            if worker_queue.len() >= MAX_QUEUE_ITEMS {
                 return Err(Error::new_str("Too many requests in the queue"));
             }
 
-            backend_queue.push(request_id.to_string());
+            worker_queue.push(request_id.to_string());
         }
 
         // Wait for the request to be at the front of the queue
@@ -90,19 +96,19 @@ impl ProxyHttp for WorkerLoadBalancer {
             // We use a new scope for each iteration to release the lock
             {
                 let ctx_guard = QUEUES.read().await;
-                if let Some(backend_queue) = ctx_guard.get(&upstream) {
+                if let Some(backend_queue) = ctx_guard.get(&worker) {
                     if backend_queue[0] == request_id {
                         break;
                     }
                 } else {
-                    return Err(Error::new_str("Upstream not found"));
+                    return Err(Error::new_str("Worker not found"));
                 }
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
         // Set SNI
-        let mut http_peer = HttpPeer::new(upstream, false, "".to_string());
+        let mut http_peer = HttpPeer::new(worker, false, "".to_string());
         let peer_opts =
             http_peer.get_mut_peer_options().ok_or(Error::new(ErrorType::InternalError))?;
 
@@ -113,6 +119,7 @@ impl ProxyHttp for WorkerLoadBalancer {
         peer_opts.write_timeout = TIMEOUT_SECS;
         peer_opts.idle_timeout = TIMEOUT_SECS;
 
+        // Enable HTTP/2
         peer_opts.alpn = ALPN::H2;
 
         let peer = Box::new(http_peer);
@@ -150,7 +157,7 @@ impl ProxyHttp for WorkerLoadBalancer {
         let request_id = rand::random::<u64>().to_string();
         session.req_header_mut().insert_header("X-Request-ID", request_id)?;
 
-        // retrieve the current window requests
+        // Retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
 
         if curr_window_requests > MAX_REQ_PER_SEC {
@@ -174,22 +181,22 @@ impl ProxyHttp for WorkerLoadBalancer {
             .to_str()
             .expect("Internal error");
 
-        // Remove the completed request from the backend queue
+        // Remove the completed request from the worker queue
         // Maybe we can replace this with a read lock and using write only in the moment of the
         // deletion.
         let mut ctx_guard = QUEUES.write().await;
 
-        // Get the upstream by checking each backend queue
-        let upstream = ctx_guard
+        // Get the worker by checking each queue
+        let worker = ctx_guard
             .iter()
             .find(|(_, queue)| queue.contains(&request_id.to_string()))
-            .map(|(upstream, _)| upstream.clone())
-            .expect("Upstream not found");
+            .map(|(worker, _)| worker.clone())
+            .expect("Worker not found");
 
-        // Remove the request ID from the queue for the specific backend
-        if let Some(backend_queue) = ctx_guard.get_mut(&upstream) {
-            if !backend_queue.is_empty() {
-                backend_queue.remove(0);
+        // Remove the request ID from the queue for the specific worker
+        if let Some(worker_queue) = ctx_guard.get_mut(&worker) {
+            if !worker_queue.is_empty() {
+                worker_queue.remove(0);
             }
         }
     }
