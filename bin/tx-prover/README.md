@@ -25,21 +25,8 @@ cargo install miden-tx-prover-worker --locked --version x.y.z
 cargo install miden-tx-prover-proxy --locked --version x.y.z
 ```
 
-To install both services at once from the source code using specific git revisions you can use `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only:
+Both services can be installed at once from the source code using specific git revisions with `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only.
 
-```sh
-# Install from a specific branch
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-worker --branch <branch>
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-proxy --branch <branch>
-
-# Install a specific tag
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-worker --tag <tag>
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-proxy --tag <tag>
-
-# Install a specific git revision
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-worker --rev <git-sha>
-cargo install --locked --git https://github.com/0xPolygonMiden/miden-base miden-tx-prover-proxy --rev <git-sha>
-```
 If you want to build from a local version, from the root of the workspace you can run:
 
 ```bash
