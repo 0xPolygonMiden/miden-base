@@ -31,11 +31,7 @@
 - [BREAKING] Changed type of `EMPTY_STORAGE_MAP_ROOT` constant to `RpoDigst`, which references constant from `miden-crypto` (#916).
 - Added `RemoteTransactionProver` struct to `miden-tx-prover` (#921).
 - [BREAKING] Migrated to v0.11 version of Miden VM (#929).
-- Added a proxy server for the `miden-tx-prover` service (#930).
-- Added `TransactionExecutor::load_account_code()` method to support foreign procedure invocation (#936).
-- Changed `RemoteTransactionProver` to lazily connect on prove (#937).
-- [BREAKING] Made `TransactionMastForest` and `BasicAuthenticator` be `Send`, `Sync`; made scripts lazily initialize (#939).
-- Added account codes to `TransactionWitness` (#946).
+- [BREAKING] Introduce a new way to build `Account`s from `AccountComponent`s (#941).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
