@@ -365,9 +365,8 @@ end
 #! - All storage offsets and sizes are in bounds
 #! - All storage offsets adhere to account type specific rules
 #! - All procedures not accessing storage have offset and size set to 0
-#!
-#! Notes:
-#! - For faucets checks that no storage offset is 0 (preventing reserved storage slot access)
+#! - No storage offset of a faucet account's procedure is 0 with a size != 0
+#!   (to prevent access to the reserved storage slot)
 #!
 #! Stack: []
 #! Output: []
@@ -405,26 +404,13 @@ export.validate_procedure_metadata
             dup.1 eq.0 not dup.1 eq.0 and assertz.err=ERR_FAUCET_INVALID_STORAGE_OFFSET
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
-            # to prevent access to the reserved faucet data slot. When the assembler
-            # will support storage offsets and sizes remove this check.
-            # check if the storage offset and the number of storage slots are 1
-            dup dup.4 eq.1 swap eq.1 and
-            # => [both_1, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+            # assert that storage offset is in bounds
+            dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            if.true
-                # clean stack
-                drop drop
-                # => [index, num_storage_slots, num_account_procedures]
-            else
-                # assert that storage offset is in bounds
-                dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-                # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
-
-                # assert that storage limit is in bounds
-                add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-                # => [index, num_storage_slots, num_account_procedures]
-            end
+            # assert that storage limit is in bounds
+            add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [index, num_storage_slots, num_account_procedures]
 
             # check if we should continue looping
             add.1 dup dup.3 lt
