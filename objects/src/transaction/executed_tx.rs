@@ -6,6 +6,7 @@ use super::{
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionWitness,
 };
+use crate::accounts::AccountCode;
 
 // EXECUTED TRANSACTION
 // ================================================================================================
@@ -29,6 +30,7 @@ pub struct ExecutedTransaction {
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
     tx_measurements: TransactionMeasurements,
+    account_codes: Vec<AccountCode>,
 }
 
 impl ExecutedTransaction {
@@ -46,6 +48,7 @@ impl ExecutedTransaction {
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
         tx_measurements: TransactionMeasurements,
+        account_codes: Vec<AccountCode>,
     ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
         assert_eq!(tx_inputs.account().id(), tx_outputs.account.id());
@@ -58,6 +61,7 @@ impl ExecutedTransaction {
             tx_args,
             advice_witness,
             tx_measurements,
+            account_codes,
         }
     }
 
@@ -131,6 +135,7 @@ impl ExecutedTransaction {
             tx_inputs: self.tx_inputs,
             tx_args: self.tx_args,
             advice_witness: self.advice_witness,
+            account_codes: self.account_codes,
         };
         (self.account_delta, self.tx_outputs, tx_witness, self.tx_measurements)
     }

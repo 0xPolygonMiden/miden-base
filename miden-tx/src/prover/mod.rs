@@ -4,7 +4,7 @@ use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{delta::AccountUpdateDetails, AccountCode},
+    accounts::delta::AccountUpdateDetails,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
     Digest,
 };
@@ -64,16 +64,6 @@ impl LocalTransactionProver {
             account_code_commitments: BTreeSet::new(),
         }
     }
-
-    /// Loads the provided code into the internal MAST forest store and adds the commitment of the
-    /// provided code to the commitments set.
-    pub fn load_account_code(&mut self, code: &AccountCode) {
-        // load the code mast forest to the mast store
-        self.mast_store.load_account_code(code);
-
-        // store the commitment of the foreign account code in the set
-        self.account_code_commitments.insert(code.commitment());
-    }
 }
 
 impl Default for LocalTransactionProver {
@@ -93,7 +83,17 @@ impl TransactionProver for LocalTransactionProver {
         &self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
-        let TransactionWitness { tx_inputs, tx_args, advice_witness } = tx_witness;
+        let TransactionWitness {
+            tx_inputs,
+            tx_args,
+            advice_witness,
+            account_codes,
+        } = tx_witness;
+
+        for account_code in account_codes {
+            // load the code mast forest to the mast store
+            self.mast_store.load_account_code(&account_code);
+        }
 
         let account = tx_inputs.account();
         let input_notes = tx_inputs.input_notes();
