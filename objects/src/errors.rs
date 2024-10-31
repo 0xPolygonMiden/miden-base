@@ -60,7 +60,7 @@ pub enum AccountError {
     StorageTooManySlots(u64),
     StorageOffsetOutOfBounds {
         max: u8,
-        actual: u8,
+        actual: u16,
     },
     PureProcedureWithStorageOffset,
     UnsupportedComponentForAccountType {

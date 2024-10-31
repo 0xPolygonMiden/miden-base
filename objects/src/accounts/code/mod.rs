@@ -290,8 +290,14 @@ fn build_procedure_commitment(procedures: &[AccountProcedureInfo]) -> Digest {
 #[cfg(test)]
 mod tests {
 
+    use assembly::Assembler;
+    use vm_core::Word;
+
     use super::{AccountCode, Deserializable, Serializable};
-    use crate::accounts::code::build_procedure_commitment;
+    use crate::{
+        accounts::{code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot},
+        AccountError,
+    };
 
     #[test]
     fn test_serde_account_code() {
@@ -306,5 +312,36 @@ mod tests {
         let code = AccountCode::mock();
         let procedure_commitment = build_procedure_commitment(code.procedures());
         assert_eq!(procedure_commitment, code.commitment())
+    }
+
+    #[test]
+    fn test_account_code_procedure_offset_out_of_bounds() {
+        let code1 = "export.foo add end";
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+        let code2 = "export.bar sub end";
+        let library2 = Assembler::default().assemble_library([code2]).unwrap();
+
+        let component1 =
+            AccountComponent::new(library1, vec![StorageSlot::Value(Word::default()); 250]);
+        let mut component2 =
+            AccountComponent::new(library2, vec![StorageSlot::Value(Word::default()); 5]);
+
+        // This is fine as the offset+size for component 2 is <= 255.
+        AccountCode::from_components(
+            &[component1.clone(), component2.clone()],
+            AccountType::RegularAccountUpdatableCode,
+        )
+        .unwrap();
+
+        // Push one more slot so offset+size exceeds 255.
+        component2.storage_slots.push(StorageSlot::Value(Word::default()));
+
+        let err = AccountCode::from_components(
+            &[component1, component2],
+            AccountType::RegularAccountUpdatableCode,
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, AccountError::StorageOffsetOutOfBounds { actual: 256, .. }))
     }
 }
