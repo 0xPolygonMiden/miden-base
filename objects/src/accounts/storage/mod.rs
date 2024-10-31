@@ -50,8 +50,12 @@ impl AccountStorage {
         Ok(Self { slots })
     }
 
-    // TODO Document.
-    pub fn from_components(
+    /// Creates an [`AccountStorage`] from the provided components' storage slots.
+    ///
+    /// If the account type is faucet, an empty word will be put in the reserved slots for faucets
+    /// (slot 0). If the storage should be initialized with a specific value in that slot, it can be
+    /// set afterwards.
+    pub(super) fn from_components(
         components: &[AccountComponent],
         account_type: AccountType,
     ) -> Result<AccountStorage, AccountError> {
@@ -61,17 +65,6 @@ impl AccountStorage {
             vec![]
         };
 
-        storage_slots
-            .extend(components.iter().flat_map(|component| component.storage_slots()).cloned());
-
-        Self::new(storage_slots)
-    }
-
-    pub fn from_components_with_faucet_metadata(
-        components: &[AccountComponent],
-        faucet_metadata: Word,
-    ) -> Result<AccountStorage, AccountError> {
-        let mut storage_slots = vec![StorageSlot::Value(faucet_metadata)];
         storage_slots
             .extend(components.iter().flat_map(|component| component.storage_slots()).cloned());
 

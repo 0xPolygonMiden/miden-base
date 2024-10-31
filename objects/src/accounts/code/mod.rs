@@ -42,7 +42,17 @@ impl AccountCode {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    // TODO: Document.
+    /// Creates a new [`AccountCode`] from the provided components' libraries.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The number of procedures in all merged libraries is 0 or exceeds
+    ///   [`AccountCode::MAX_NUM_PROCEDURES`].
+    /// - If two or more libraries export a procedure with the same MAST root.
+    /// - If the number of [`StorageSlot`](crate::accounts::StorageSlot)s of a component or of all
+    ///   components exceeds 255.
+    /// - If [`MastForest::merge`] fails on all libraries.
     pub fn from_components(
         components: &[AccountComponent],
         account_type: AccountType,

@@ -11,6 +11,18 @@ use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
 // BASIC WALLET
 // ================================================================================================
 
+/// An [`AccountComponent`] implementing a basic wallet.
+///
+/// Its exported procedures are:
+/// - `receive_asset`, which can be used to add an asset to the account.
+/// - `create_note`, which can be used to create a new note without any assets attached to it.
+/// - `move_asset_to_note`, which can be used to remove the specified asset from the account and add
+///   it to the output note with the specified index.
+///
+/// All methods require authentication. Thus, this component must be combined with a component
+/// providing authentication.
+///
+/// This component supports regular accounts.
 pub struct BasicWallet;
 
 impl From<BasicWallet> for AccountComponent {
@@ -31,8 +43,7 @@ impl From<BasicWallet> for AccountComponent {
 ///   it to the output note with the specified index.
 ///
 /// All methods require authentication. The authentication procedure is defined by the specified
-/// authentication scheme. Public key information for the scheme is stored in the account storage
-/// at slot 0.
+/// authentication scheme.
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,

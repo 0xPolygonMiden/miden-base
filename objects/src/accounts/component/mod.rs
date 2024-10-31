@@ -8,7 +8,21 @@ use crate::{
     AccountError,
 };
 
-// TODO Document everything, add section separators.
+/// An [`AccountComponent`] defines a [`Library`] of code and the initial value and types of
+/// the [`StorageSlot`]s it accesses.
+///
+/// One or more components can be used to built [`AccountCode`](crate::accounts::AccountCode) and
+/// [`AccountStorage`](crate::accounts::AccountStorage).
+///
+/// Each component is independent of other components and can only access its own storage slots.
+/// Each component defines its own storage layout starting at index 0 up to the length of the
+/// storage slots vector.
+///
+/// Components define the [`AccountType`]s they support, meaning whether the component can be used
+/// to instantiate an account of that type. For example, a component implementing a fungible faucet
+/// would only specify support for [`AccountType::FungibleFaucet`]. Using it to instantiate a
+/// regular account would fail. By default, the set of supported types is empty, so each component
+/// is forced to explicitly define what it supports.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountComponent {
     pub(crate) library: Library,
@@ -52,16 +66,22 @@ impl AccountComponent {
         Ok(Self::new(library, storage_slots))
     }
 
+    /// Adds `supported_type` to the set of [`AccountType`]s supported by this component.
+    ///
+    /// This function has the semantics of [`BTreeSet::insert`], i.e. adding a type twice is fine
+    /// and it can be called multiple times with different account types.
     pub fn with_supported_type(mut self, supported_type: AccountType) -> Self {
         self.supported_types.insert(supported_type);
         self
     }
 
+    /// Sets the [`AccountType`]s supported by this component to the given set.
     pub fn with_supported_types(mut self, supported_types: BTreeSet<AccountType>) -> Self {
         self.supported_types = supported_types;
         self
     }
 
+    /// Sets the [`AccountType`]s supported by this component to all account types.
     pub fn with_supports_all_types(mut self) -> Self {
         self.supported_types.extend([
             AccountType::FungibleFaucet,
@@ -72,22 +92,27 @@ impl AccountComponent {
         self
     }
 
+    /// Returns a reference to the supported [`AccountType`]s.
     pub fn supported_types(&self) -> &BTreeSet<AccountType> {
         &self.supported_types
     }
 
+    /// Returns `true` if this component supports the given `account_type`, `false` otherwise.
     pub fn supports_type(&self, account_type: AccountType) -> bool {
         self.supported_types.contains(&account_type)
     }
 
+    /// Returns a reference to the underlying [`Library`] of this component.
     pub fn library(&self) -> &Library {
         &self.library
     }
 
+    /// Returns a reference to the underlying [`MastForest`] of this component.
     pub fn mast_forest(&self) -> &MastForest {
         self.library.mast_forest().as_ref()
     }
 
+    /// Returns a slice of the underlying [`StorageSlot`]s of this component.
     pub fn storage_slots(&self) -> &[StorageSlot] {
         self.storage_slots.as_slice()
     }
@@ -97,10 +122,4 @@ impl From<AccountComponent> for Library {
     fn from(component: AccountComponent) -> Self {
         component.library
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum AccountComponentType {
-    Any,
-    Faucet,
 }

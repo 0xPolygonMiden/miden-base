@@ -15,7 +15,7 @@ pub mod auth;
 pub use auth::AuthSecretKey;
 
 mod component;
-pub use component::{AccountComponent, AccountComponentType};
+pub use component::AccountComponent;
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
@@ -98,11 +98,26 @@ impl Account {
         Self { id, vault, storage, code, nonce }
     }
 
+    /// Creates an account's [`AccountCode`] and [`AccountStorage`] from the provided components.
+    ///
+    /// The resulting commitments from code and storage can then be used to construct an
+    /// [`AccountId`]. Finally, a new account can then be instantiated from those parts using
+    /// [`Account::new`].
+    ///
+    /// If the `account_type` is faucet, an empty word will be put in the reserved slots for faucets
+    /// (slot 0). If the storage should be initialized with a specific value in that slot, it can be
+    /// set afterwards on [`AccountStorage`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Any of the components does not support `account_type`.
+    /// - If the call to [`AccountCode::from_components`] fails, see its documentation for details.
     pub fn initialize_from_components(
         account_type: AccountType,
         components: &[AccountComponent],
     ) -> Result<(AccountCode, AccountStorage), AccountError> {
-        validate_components(components, account_type)?;
+        validate_components_support_account_type(components, account_type)?;
 
         let code = AccountCode::from_components(components, account_type)?;
         let storage = AccountStorage::from_components(components, account_type)?;
@@ -314,7 +329,7 @@ pub fn hash_account(
 }
 
 /// Validates that all `components` support the given `account_type`.
-fn validate_components(
+fn validate_components_support_account_type(
     components: &[AccountComponent],
     account_type: AccountType,
 ) -> Result<(), AccountError> {

@@ -14,6 +14,17 @@ use crate::accounts::{auth::RpoFalcon512, components::basic_fungible_faucet_libr
 // BASIC FUNGIBLE FAUCET ACCOUNT COMPONENT
 // ================================================================================================
 
+/// An [`AccountComponent`] implementing a basic fungible faucet.
+///
+/// Its exported procedures are:
+/// - `distribute`, which mints an assets and create a note for the provided recipient.
+/// - `burn`, which burns the provided asset.
+///
+/// `distribute` requires authentication while `burn` does not require authentication and can be
+/// called by anyone. Thus, this component must be combined with a component providing
+/// authentication.
+///
+/// This component supports accounts of type [`AccountType::FungibleFaucet`].
 pub struct BasicFungibleFaucet {
     symbol: TokenSymbol,
     decimals: u8,
@@ -21,6 +32,7 @@ pub struct BasicFungibleFaucet {
 }
 
 impl BasicFungibleFaucet {
+    /// Creates a new [`BasicFungibleFaucet`] component from the given pieces of metadata.
     pub fn new(symbol: TokenSymbol, decimals: u8, max_supply: Felt) -> Result<Self, AccountError> {
         // First check that the metadata is valid.
         if decimals > MAX_DECIMALS {
@@ -66,8 +78,7 @@ const MAX_DECIMALS: u8 = 12;
 /// `distribute` requires authentication. The authentication procedure is defined by the specified
 /// authentication scheme. `burn` does not require authentication and can be called by anyone.
 ///
-/// Public key information for the scheme is stored in the account storage at slot 0. The token
-/// metadata is stored in the account storage at slot 1.
+/// The token metadata is stored in the account storage at slot 0.
 pub fn create_basic_fungible_faucet(
     init_seed: [u8; 32],
     symbol: TokenSymbol,
