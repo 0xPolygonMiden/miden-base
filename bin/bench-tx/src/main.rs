@@ -20,7 +20,7 @@ use vm_processor::ONE;
 
 mod utils;
 use utils::{
-    get_account_with_default_account_code, get_new_pk_and_authenticator,
+    get_account_with_basic_authenticated_wallet, get_new_pk_and_authenticator,
     write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
@@ -98,7 +98,7 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Create the note
     let note = create_p2id_note(

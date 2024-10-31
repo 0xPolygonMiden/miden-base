@@ -1,8 +1,9 @@
-use alloc::sync::Arc;
+use assembly::{Assembler, Library};
 
-use assembly::{ast::Module, Assembler, Library, LibraryPath};
-
-use crate::accounts::AccountCode;
+use crate::{
+    accounts::{AccountCode, AccountComponent, AccountType},
+    testing::account_component::AccountMockComponent,
+};
 
 pub const CODE: &str = "
     export.foo
@@ -144,20 +145,14 @@ impl AccountCode {
     /// mock [AccountCode] interface. Transaction and note scripts that make use of this interface
     /// should be assembled with this.
     pub fn mock_library(assembler: Assembler) -> Library {
-        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
-        let module = Module::parser(assembly::ast::ModuleKind::Library)
-            .parse_str(
-                LibraryPath::new("test::account").unwrap(),
-                MOCK_ACCOUNT_CODE,
-                &source_manager,
-            )
-            .unwrap();
-
-        assembler.assemble_library(&[*module]).unwrap()
+        let component =
+            AccountMockComponent::with_empty_slots().assemble_component(assembler).unwrap();
+        component.into()
     }
 
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        Self::compile(CODE, Assembler::default(), false).unwrap()
+        let component = AccountComponent::compile(CODE, Assembler::default(), vec![]).unwrap();
+        Self::from_components(&[component], AccountType::RegularAccountUpdatableCode).unwrap()
     }
 }

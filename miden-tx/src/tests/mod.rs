@@ -13,7 +13,7 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        AccountCode, AccountStorage,
+        AccountCode, AccountComponent, AccountStorage, AccountType,
     },
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
@@ -140,8 +140,15 @@ fn executed_transaction_account_delta_new() {
         dropw
     end
     ";
+
+    let component = AccountComponent::compile(
+        new_acct_code_src,
+        TransactionKernel::testing_assembler(),
+        vec![],
+    )
+    .unwrap();
     let new_acct_code =
-        AccountCode::compile(new_acct_code_src, TransactionKernel::testing_assembler(), false)
+        AccountCode::from_components(&[component], AccountType::RegularAccountUpdatableCode)
             .unwrap();
 
     // updated storage

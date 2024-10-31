@@ -1,6 +1,5 @@
 use alloc::{collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
-use assembly::{Assembler, Compile, Library};
 use vm_core::mast::MastForest;
 
 use super::{
@@ -43,55 +42,6 @@ impl AccountCode {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [AccountCode] instantiated from the provided [Library].
-    ///
-    /// All procedures exported from the provided library will become members of the account's
-    /// public interface.
-    ///
-    /// # Notes
-    /// - A `faucet` flag has been temporarly added to this procedure enabling correct storage
-    ///   offset of faucet procedures. This is needed because of the faucet reserved storage slot at
-    ///   location 0.
-    ///
-    /// # Errors
-    /// - If the number of procedures exported from the provided library is 0.
-    /// - If the number of procedures exported from the provided library is greater than 256.
-    /// - If the creation of a new `AccountProcedureInfo` fails.
-    pub fn new(library: Library, is_faucet: bool) -> Result<Self, AccountError> {
-        // extract procedure information from the library exports
-        // TODO: currently, offsets for all regular account procedures are set to 0 and offsets for
-        // faucet accounts procedures are set to 1. Furthermore sizes are set to 1 for all
-        // procedures. Instead they should be read from the Library metadata.
-        let mut procedures = Vec::new();
-        let storage_offset = if is_faucet { 1 } else { 0 };
-        let storage_size = 1;
-        for module in library.module_infos() {
-            for proc_mast_root in module.procedure_digests() {
-                procedures.push(AccountProcedureInfo::new(
-                    proc_mast_root,
-                    storage_offset,
-                    storage_size,
-                )?);
-            }
-        }
-
-        // make sure the number of procedures is between 1 and 256 (both inclusive)
-        if procedures.is_empty() {
-            return Err(AccountError::AccountCodeNoProcedures);
-        } else if procedures.len() > Self::MAX_NUM_PROCEDURES {
-            return Err(AccountError::AccountCodeTooManyProcedures {
-                max: Self::MAX_NUM_PROCEDURES,
-                actual: procedures.len(),
-            });
-        }
-
-        Ok(Self {
-            commitment: build_procedure_commitment(&procedures),
-            procedures,
-            mast: library.mast_forest().clone(),
-        })
-    }
-
     // TODO: Document.
     pub fn from_components(
         components: &[AccountComponent],
@@ -109,7 +59,7 @@ impl AccountCode {
         let mut component_storage_offset = if account_type.is_faucet() { 1 } else { 0 };
 
         for component in components {
-            let AccountComponent { code: library, storage_slots, .. } = component;
+            let AccountComponent { library, storage_slots, .. } = component;
             let component_storage_size: u8 = storage_slots
                 .len()
                 .try_into()
@@ -163,29 +113,6 @@ impl AccountCode {
             procedures,
             mast: Arc::new(merged_mast_forest),
         })
-    }
-
-    /// Returns a new [AccountCode] compiled from the provided source code using the specified
-    /// assembler.
-    ///
-    /// All procedures exported from the provided code will become members of the account's
-    /// public interface.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - Compilation of the provided source code fails.
-    /// - The number of procedures exported from the provided library is smaller than 1 or greater
-    ///   than 256.
-    pub fn compile(
-        source_code: impl Compile,
-        assembler: Assembler,
-        is_faucet: bool,
-    ) -> Result<Self, AccountError> {
-        let library = assembler
-            .assemble_library([source_code])
-            .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
-
-        Self::new(library, is_faucet)
     }
 
     /// Returns a new [AccountCode] deserialized from the provided bytes.

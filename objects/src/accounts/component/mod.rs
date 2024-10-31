@@ -12,7 +12,7 @@ use crate::{
 // TODO Document everything, add section separators.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountComponent {
-    pub(crate) code: Library,
+    pub(crate) library: Library,
     pub(crate) storage_slots: Vec<StorageSlot>,
     pub(crate) supported_types: BTreeSet<AccountType>,
 }
@@ -20,13 +20,13 @@ pub struct AccountComponent {
 impl AccountComponent {
     pub fn new(code: Library, storage_slots: Vec<StorageSlot>) -> Self {
         Self {
-            code,
+            library: code,
             storage_slots,
             supported_types: BTreeSet::new(),
         }
     }
 
-    /// Returns a new [`AssembledAccountComponent`] compiled from the provided source code using the
+    /// Returns a new [`AccountComponent`] compiled from the provided source code using the
     /// specified assembler.
     ///
     /// All procedures exported from the provided code will become members of the account's
@@ -74,15 +74,21 @@ impl AccountComponent {
     }
 
     pub fn library(&self) -> &Library {
-        &self.code
+        &self.library
     }
 
     pub fn mast_forest(&self) -> &MastForest {
-        self.code.mast_forest().as_ref()
+        self.library.mast_forest().as_ref()
     }
 
     pub fn storage_slots(&self) -> &[StorageSlot] {
         self.storage_slots.as_slice()
+    }
+}
+
+impl From<AccountComponent> for Library {
+    fn from(component: AccountComponent) -> Self {
+        component.library
     }
 }
 
