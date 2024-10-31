@@ -255,13 +255,6 @@ pub const NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR: MemoryAddress =
 /// The size of the memory segment allocated to each note.
 pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 
-// DYNAMIC EXECUTION DATA SLOT
-// ================================================================================================
-
-/// The memory address which should be used to store the root of the dynamically called/executed
-/// procedure.
-pub const DYN_PROC_ROOT: MemoryAddress = 133120;
-
 #[rustfmt::skip]
 // INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------

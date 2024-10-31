@@ -144,13 +144,6 @@ const.ACCT_PROCEDURES_SECTION_OFFSET=8
 const.NUM_ACCT_STORAGE_SLOTS_OFFSET=521
 const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=522
 
-# DYNAMIC EXECUTION DATA SLOT
-# -------------------------------------------------------------------------------------------------
-
-# The memory address which should be used to store the root of the dynamically called/executed 
-# procedure.
-const.DYN_PROC_ROOT_ADDR=133120
-
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -417,17 +410,16 @@ export.set_init_nonce
     push.INIT_NONCE_PTR mem_store
 end
 
-#! Gets the transaction script root.
+#! Returns a memory address of the transaction script root.
 #!
 #! Stack: []
-#! Output: [TX_SCRIPT_ROOT]
+#! Output: [tx_script_root_addr]
 #!
 #! Where:
 #! - TX_SCRIPT_ROOT is the transaction script root.
-export.get_tx_script_root
-    padw push.TX_SCRIPT_ROOT_PTR mem_loadw
+export.get_tx_script_root_addr
+    push.TX_SCRIPT_ROOT_PTR
 end
-
 
 #! Sets the transaction script root.
 #!
@@ -983,23 +975,6 @@ export.get_acct_storage_slots_section_ptr
     exec.get_current_account_data_ptr push.ACCT_STORAGE_SLOTS_SECTION_OFFSET add
 end
 
-# DYNAMIC EXECUTION DATA
-# -------------------------------------------------------------------------------------------------
-
-#! Stores the provided procedure root to the dedicated memory address, returning this address as a 
-#! result.
-#!
-#! Stack: [DYN_PROC_ROOT]
-#! Output: [dyn_proc_root_addr]
-#!
-#! Where:
-#! - DYN_PROC_ROOT is the root of the procedure which will be called/executed dynamically. 
-#! - dyn_proc_root_addr is the memory address where this proc root is stored. 
-export.store_dyn_proc_root
-    mem_storew.DYN_PROC_ROOT_ADDR dropw 
-    push.DYN_PROC_ROOT_ADDR
-end
-
 # INPUT NOTES
 # -------------------------------------------------------------------------------------------------
 
@@ -1100,6 +1075,18 @@ export.get_input_note_script_root
     padw
     movup.4 push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
     mem_loadw
+end
+
+#! Returns the memory address of the script root of a input note.
+#!
+#! Stack: [note_ptr]
+#! Output: [script_hash_addr]
+#!
+#! Where:
+#! - note_ptr, the memory address at which the input note data begins.
+#! - script_hash_addr, the memory address where script root of the input note is stored.
+export.get_input_note_script_root_addr
+    push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
 end
 
 #! Returns the inputs hash of a input note located at the specified memory address.

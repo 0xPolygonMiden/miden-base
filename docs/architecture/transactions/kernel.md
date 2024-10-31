@@ -100,11 +100,7 @@ For every note, the [MAST root](https://0xpolygonmiden.github.io/miden-vm/design
     while.true
         # execute the note setup script
         exec.note::prepare_note
-        # => [NOTE_SCRIPT_HASH]
-
-        # store the NOTE_SCRIPT_HASH to the memory to be able to call it dynamically
-        loc_storew.0 dropw locaddr.0
-        # => [note_script_hash_addr]
+        # => [note_script_hash_addr, NOTE_ARGS]
 
         # invoke the note script using the dyncall instruction
         dyncall

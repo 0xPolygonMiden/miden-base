@@ -188,7 +188,8 @@ export.execute_foreign_procedure.1
     dropw dropw dropw dropw
     # => [FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
 
-    # store the foreign procedure root to the <...> memory address
+    # store the foreign procedure root to the first local memory slot and get its absolute memory 
+    # address
     loc_storew.0 dropw locaddr.0
     # => [foreign_proc_root_addr, <foreign account inputs>, pad(n), ...]
 

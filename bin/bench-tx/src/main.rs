@@ -40,7 +40,7 @@ impl fmt::Display for Benchmark {
 
 fn main() -> Result<(), String> {
     // create a template file for benchmark results
-    let path = Path::new("bench-tx/bench-tx.json");
+    let path = Path::new("bin/bench-tx/bench-tx.json");
     let mut file = File::create(path).map_err(|e| e.to_string())?;
     file.write_all(b"{}").map_err(|e| e.to_string())?;
 

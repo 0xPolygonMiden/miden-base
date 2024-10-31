@@ -93,10 +93,6 @@ proc.main.1
         # => []
 
         exec.note::prepare_note
-        # => [NOTE_SCRIPT_HASH, NOTE_ARGS]
-
-        # store the NOTE_SCRIPT_HASH to the memory to be able to call it dynamically
-        exec.memory::store_dyn_proc_root
         # => [note_script_hash_addr, NOTE_ARGS]
 
         # run note's script
@@ -130,18 +126,15 @@ proc.main.1
     push.6 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_START
 
-    # execute the transaction script
-    exec.memory::get_tx_script_root
-    # => [TX_SCRIPT_ROOT]
+    # get the memory address of the transaction script root and load it to the stack
+    exec.memory::get_tx_script_root_addr
+    padw dup.4 mem_loadw
+    # => [TX_SCRIPT_ROOT, tx_script_root_addr]
 
-    exec.utils::is_empty_word not
-    # => [has_tx_script, TX_SCRIPT_ROOT]
+    exec.utils::is_empty_word not movdn.4 dropw
+    # => [has_tx_script, tx_script_root_addr]
 
     if.true
-        # store the TX_SCRIPT_ROOT to the memory to be able to call it dynamically
-        exec.memory::store_dyn_proc_root
-        # => [tx_script_root_addr]
-
         # execute the transaction script
         dyncall
         # => [OUTPUT_3, OUTPUT_2, OUTPUT_1, OUTPUT_0]
@@ -150,8 +143,8 @@ proc.main.1
         dropw dropw dropw dropw
         # => []
     else
-        # drop the empty transaction script root word
-        dropw
+        # drop the pointer to the empty transaction script root
+        drop
         # => []
     end
 

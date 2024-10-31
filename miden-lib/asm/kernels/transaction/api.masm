@@ -922,8 +922,8 @@ end
 #! - procedure_offset is an offset of the kernel procedure, specified in the
 #!   `miden/kernel_proc_offsets.masm` file.
 #! - procedure_inputs are inputs of the procedure to be executed, which is specified by the
-#!   procedure_offset. Note that the length of this inputs cannot exceed 12 elements, since the
-#!   first word on the stack will be occupied by the procedure hash.
+#!   procedure_offset. Note that the length of this inputs cannot exceed 15 elements, since the
+#!   first element on the stack will be occupied by the memory pointer to the procedure hash.
 #! - procedure_outputs are the outputs of the procedure to be executed.
 #!
 #! Panics if:
@@ -937,18 +937,6 @@ export.exec_kernel_proc
     # compute the memory pointer at which desired procedure is stored
     exec.memory::get_kernel_procedures_ptr add
     # => [procedure_pointer, <procedure_inputs>, <pad>]
-
-    # prepare stack for procedure hash obtaining
-    padw movup.4
-    # => [procedure_pointer, 0, 0, 0, 0, <procedure_inputs>, <pad>]
-
-    # load kernel procedure hash
-    mem_loadw
-    # => [KERNEL_PROCEDURE_HASH, <procedure_inputs>, <pad>]
-
-    # store the KERNEL_PROCEDURE_HASH to the memory to be able to call it dynamically
-    exec.memory::store_dyn_proc_root
-    # => [kernel_procedure_hash_addr, <procedure_inputs>, <pad>]
 
     # execute loaded procedure
     dynexec
