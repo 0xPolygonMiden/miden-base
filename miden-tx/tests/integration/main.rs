@@ -68,7 +68,7 @@ pub fn get_new_pk_and_authenticator(
 }
 
 #[cfg(test)]
-pub fn get_account_with_default_account_code(
+pub fn get_account_with_basic_authenticated_wallet(
     account_id: AccountId,
     public_key: Word,
     assets: Option<Asset>,

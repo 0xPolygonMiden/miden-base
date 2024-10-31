@@ -20,9 +20,9 @@ use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
-    build_default_auth_script, build_tx_args_from_script, get_account_with_default_account_code,
-    get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
-    prove_and_verify_transaction,
+    build_default_auth_script, build_tx_args_from_script,
+    get_account_with_basic_authenticated_wallet, get_new_pk_and_authenticator,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
 
 // Testing the basic Miden wallet - receiving an asset
@@ -36,7 +36,7 @@ fn prove_receive_asset_via_wallet() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Create the note
     let note_script_src = "
@@ -108,7 +108,7 @@ fn prove_send_note_without_asset_via_wallet() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
     let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
     let sender_account =
-        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
+        get_account_with_basic_authenticated_wallet(sender_account_id, sender_pub_key, None);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ fn prove_send_note_with_asset_via_wallet() {
 
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
     let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
-    let sender_account = get_account_with_default_account_code(
+    let sender_account = get_account_with_basic_authenticated_wallet(
         sender_account_id,
         sender_pub_key,
         fungible_asset_1.into(),

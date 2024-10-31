@@ -35,8 +35,8 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
 
 use crate::{
-    build_default_auth_script, get_account_with_default_account_code, get_new_pk_and_authenticator,
-    prove_and_verify_transaction,
+    build_default_auth_script, get_account_with_basic_authenticated_wallet,
+    get_new_pk_and_authenticator, prove_and_verify_transaction,
 };
 
 // P2ID TESTS
@@ -57,7 +57,7 @@ fn prove_p2id_script() {
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Create the note
     let note = create_p2id_note(
@@ -116,7 +116,7 @@ fn prove_p2id_script() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
-        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
+        get_account_with_basic_authenticated_wallet(malicious_account_id, malicious_pub_key, None);
 
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
@@ -167,7 +167,7 @@ fn p2id_script_multiple_assets() {
 
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Create the note
     let note = create_p2id_note(
@@ -222,7 +222,7 @@ fn p2id_script_multiple_assets() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
-        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
+        get_account_with_basic_authenticated_wallet(malicious_account_id, malicious_pub_key, None);
 
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
