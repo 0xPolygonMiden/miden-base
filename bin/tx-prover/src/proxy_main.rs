@@ -13,7 +13,8 @@ fn main() {
     let upstreams = LoadBalancer::try_from_iter(backends.split(",")).unwrap();
 
     // Set load balancer
-    let mut lb = http_proxy_service(&server.configuration, proxy::LB::new(upstreams));
+    let mut lb =
+        http_proxy_service(&server.configuration, proxy::WorkerLoadBalancer::new(upstreams));
 
     let proxy_host = std::env::var("PROXY_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let proxy_port = std::env::var("PROXY_PORT").unwrap_or_else(|_| "6188".to_string());

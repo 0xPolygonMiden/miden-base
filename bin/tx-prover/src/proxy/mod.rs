@@ -14,15 +14,19 @@ use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::error;
 
-/// Timeout for the requests
+/// Timeout duration for the requests
 const TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(100));
+
+/// Timeout duration for the connection
+const CONNECTION_TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(10));
+
 /// Maximum number of items per queue
 const MAX_QUEUE_ITEMS: usize = 10;
 
 /// Load balancer that uses a round robin strategy
-pub struct LB(Arc<LoadBalancer<RoundRobin>>);
+pub struct WorkerLoadBalancer(Arc<LoadBalancer<RoundRobin>>);
 
-impl LB {
+impl WorkerLoadBalancer {
     pub fn new(upstreams: LoadBalancer<RoundRobin>) -> Self {
         Self(Arc::new(upstreams))
     }
@@ -39,7 +43,7 @@ static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
 #[async_trait]
-impl ProxyHttp for LB {
+impl ProxyHttp for WorkerLoadBalancer {
     type CTX = ();
 
     fn new_ctx(&self) {}
@@ -93,7 +97,7 @@ impl ProxyHttp for LB {
 
         // Timeout settings
         peer_opts.total_connection_timeout = TIMEOUT_SECS;
-        peer_opts.connection_timeout = TIMEOUT_SECS;
+        peer_opts.connection_timeout = CONNECTION_TIMEOUT_SECS;
         peer_opts.read_timeout = TIMEOUT_SECS;
         peer_opts.write_timeout = TIMEOUT_SECS;
         peer_opts.idle_timeout = TIMEOUT_SECS;
