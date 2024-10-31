@@ -17,10 +17,11 @@ use miden_objects::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        Account, AccountProcedureInfo, AccountStorage, StorageSlot,
+        Account, AccountId, AccountProcedureInfo, AccountStorage, StorageSlot,
     },
-    assets::NonFungibleAsset,
+    assets::{AssetVault, NonFungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
@@ -665,7 +666,18 @@ fn test_load_foreign_account_basic() {
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
     let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
+    // account which is required for this test to pass right now.
+    let native_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let native_account = Account::from_parts(
+        native_account_id,
+        AssetVault::mock(),
+        foreign_account.storage().clone(),
+        foreign_account.code().clone(),
+        ONE,
+    );
+    let tx_context = TransactionContextBuilder::new(native_account)
         .mock_chain(mock_chain)
         .advice_inputs(advice_inputs.clone())
         .build();
@@ -733,7 +745,18 @@ fn test_load_foreign_account_basic() {
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
     let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
+    // account which is required for this test to pass right now.
+    let native_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let native_account = Account::from_parts(
+        native_account_id,
+        AssetVault::mock(),
+        foreign_account.storage().clone(),
+        foreign_account.code().clone(),
+        ONE,
+    );
+    let tx_context = TransactionContextBuilder::new(native_account)
         .mock_chain(mock_chain)
         .advice_inputs(advice_inputs)
         .build();
@@ -808,7 +831,18 @@ fn test_load_foreign_account_twice() {
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
     let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
+    // account which is required for this test to pass right now.
+    let native_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let native_account = Account::from_parts(
+        native_account_id,
+        AssetVault::mock(),
+        foreign_account.storage().clone(),
+        foreign_account.code().clone(),
+        ONE,
+    );
+    let tx_context = TransactionContextBuilder::new(native_account)
         .mock_chain(mock_chain)
         .advice_inputs(advice_inputs.clone())
         .build();
