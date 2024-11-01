@@ -5,7 +5,7 @@ mod proxy;
 fn main() {
     tracing_subscriber::fmt().init();
 
-    let mut server = Server::new(Some(Opt::default())).unwrap();
+    let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
     server.bootstrap();
 
     let workers =
@@ -20,7 +20,7 @@ fn main() {
     let proxy_port = std::env::var("PROXY_PORT").unwrap_or_else(|_| "6188".to_string());
     lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
 
-    let logic = lb.app_logic_mut().unwrap();
+    let logic = lb.app_logic_mut().expect("No app logic found");
     let mut http_server_options = HttpServerOptions::default();
 
     // Enable HTTP/2 for plaintext
