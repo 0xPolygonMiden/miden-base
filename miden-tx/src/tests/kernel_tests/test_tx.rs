@@ -620,6 +620,30 @@ fn test_build_recipient_hash() {
     );
 }
 
+// FOREIGN PROCEDURE INVOCATION TESTS
+// ================================================================================================
+
+/// Assert that mock account's `get_item` procedure has index 6
+#[test]
+fn test_check_get_item_index() {
+    // keep this code the same as the actual code of the account's `get_item` procedure
+    let get_item_code_source = "
+        use.miden::account
+        export.get_item
+            exec.account::get_item
+            movup.8 drop movup.8 drop movup.8 drop
+        end
+    ";
+    let expected_root =
+        *AccountCode::mock_with_code(get_item_code_source, TransactionKernel::testing_assembler())
+            .procedures()[0]
+            .mast_root();
+
+    let result_root = get_root_of_get_item_procedure();
+
+    assert_eq!(expected_root, result_root);
+}
+
 #[test]
 fn test_load_foreign_account_basic() {
     // GET ITEM
@@ -672,8 +696,7 @@ fn test_load_foreign_account_basic() {
             exec.sys::truncate_stack
         end
         ",
-        // `get_item` procedure has index 7
-        get_item_foreign_hash = foreign_account.code().procedures()[6].mast_root(),
+        get_item_foreign_hash = get_root_of_get_item_procedure(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -824,8 +847,7 @@ fn test_load_foreign_account_twice() {
             exec.sys::truncate_stack
         end
         ",
-        // `get_item` procedure has index 7
-        get_item_foreign_hash = foreign_account.code().procedures()[6].mast_root(),
+        get_item_foreign_hash = get_root_of_get_item_procedure(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -940,4 +962,17 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
             Word::try_from(elements).unwrap(),
         );
     }
+}
+
+/// This helper function returns the root of the account's `get_item` mock procedure, which could be
+/// used for its dynamic call.
+///
+/// Index of the `get_item` procedure should be kept in sync with the actual index of this procedure
+/// in the array of account's mock procedures.
+fn get_root_of_get_item_procedure() -> Digest {
+    // keep in sync with actual index of the `get_item`
+    let proc_index = 6;
+    *AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false).procedures()
+        [proc_index]
+        .mast_root()
 }
