@@ -10,7 +10,8 @@ fn main() {
 
     let workers =
         std::env::var("PROVER_WORKERS").expect("PROVER_WORKERS environment variable not set");
-    let workers = LoadBalancer::try_from_iter(workers.split(",")).unwrap();
+    let workers =
+        LoadBalancer::try_from_iter(workers.split(",")).expect("PROVER_WORKERS is invalid");
 
     // Set load balancer
     let mut lb = http_proxy_service(&server.configuration, proxy::WorkerLoadBalancer::new(workers));
