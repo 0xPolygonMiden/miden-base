@@ -38,9 +38,6 @@ pub struct TransactionExecutor {
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     /// Holds the code commitments of all accounts loaded into this transaction executor via the
     /// [Self::load_account_code()] method.
-    ///
-    /// These commitments are used to create the account procedure index map during transaction
-    /// execution.
     account_codes: BTreeMap<Digest, AccountCode>,
     exec_options: ExecutionOptions,
 }
@@ -97,6 +94,19 @@ impl TransactionExecutor {
     pub fn with_tracing(mut self) -> Self {
         self.exec_options = self.exec_options.with_tracing();
         self
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Loads the provided code into the internal MAST forest store and adds the commitment of the
+    /// provided code to the commitments set.
+    pub fn load_account_code(&mut self, code: &AccountCode) {
+        // load the code mast forest to the mast store
+        self.mast_store.load_account_code(code);
+
+        // store the commitment of the foreign account code in the set
+        self.account_codes.insert(code.commitment(), code.clone());
     }
 
     // TRANSACTION EXECUTION
