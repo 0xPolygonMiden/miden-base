@@ -386,6 +386,7 @@ export.validate_procedure_metadata
     # we do not check if num_account_procedures == 0 here because a valid
     # account has between 1 and 256 procedures with associated offsets
     if.true
+        # This branch handles procedures from faucet accounts.
         while.true
             # get storage offset and size from memory
             dup exec.get_procedure_metadata
@@ -394,13 +395,14 @@ export.validate_procedure_metadata
             # Procedures that do not access storage are defined with (offset, size) = (0, 0).
             # But we want to fail on tuples defined with a zero size but non-zero offset, since that is a logic error.
             # We want to panic when we see this condition, so we use assertz rather than assert.
+            # So we can assert this with: (size == 0 && offset != 0) == 0.
             dup.1 eq.0 dup.1 eq.0 not and assertz.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # No procedure should access the reserved faucet slot (slot 0). However (0, 0) should
             # still be allowed per the above.
-            # We can assert this with: offset == 0 && size != 0.
             # We want to panic when we see this condition, so we use assertz rather than assert.
+            # So we can assert this with: (offset == 0 && size != 0) == 0.
             dup.1 eq.0 not dup.1 eq.0 and assertz.err=ERR_FAUCET_INVALID_STORAGE_OFFSET
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
@@ -417,6 +419,7 @@ export.validate_procedure_metadata
             # => [should_loop, index, num_storage_slots, num_account_procedures]
         end
     else
+        # This branch handles procedures from regular accounts.
         while.true
             # get storage offset and size from memory
             dup exec.get_procedure_metadata
@@ -428,8 +431,8 @@ export.validate_procedure_metadata
 
             # Procedures that do not access storage are defined with (offset, size) = (0, 0).
             # But we want to fail on tuples defined with a zero size but non-zero offset, since that is a logic error.
-            # So any (X, 0) tuple is disallowed if X > 0.
             # We want to panic when we see this condition, so we use assertz rather than assert.
+            # So we can assert this with: (size == 0 && offset != 0) == 0.
             dup.1 eq.0 dup.1 eq.0 not and assertz.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
