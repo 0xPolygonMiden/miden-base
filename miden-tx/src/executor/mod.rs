@@ -99,16 +99,6 @@ impl TransactionExecutor {
         self
     }
 
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Loads the provided code into the internal MAST forest store and adds the commitment of the
-    /// provided code to the commitments set.
-    pub fn add_account_code(&mut self, code: &AccountCode) {
-        // store the commitment of the foreign account code in the set
-        self.account_codes.insert(code.commitment(), code.clone());
-    }
-
     // TRANSACTION EXECUTION
     // --------------------------------------------------------------------------------------------
 
@@ -235,10 +225,10 @@ fn build_executed_transaction(
     Ok(ExecutedTransaction::new(
         tx_inputs,
         tx_outputs,
+        account_codes,
         account_delta,
         tx_args,
         advice_witness,
         tx_progress.into(),
-        account_codes,
     ))
 }

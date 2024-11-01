@@ -1,12 +1,11 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
-use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
-    Digest,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -45,12 +44,6 @@ pub trait TransactionProver {
 pub struct LocalTransactionProver {
     mast_store: Arc<TransactionMastStore>,
     proof_options: ProvingOptions,
-    /// Holds the code commitments of all accounts loaded into this transaction prover via the
-    /// [Self::load_account_code()] method.
-    ///
-    /// These commitments are used to create the account procedure index map during transaction
-    /// execution.
-    account_code_commitments: BTreeSet<Digest>,
 }
 
 impl LocalTransactionProver {
@@ -61,7 +54,6 @@ impl LocalTransactionProver {
         Self {
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options,
-            account_code_commitments: BTreeSet::new(),
         }
     }
 }
@@ -71,7 +63,6 @@ impl Default for LocalTransactionProver {
         Self {
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options: Default::default(),
-            account_code_commitments: Default::default(),
         }
     }
 }
@@ -90,9 +81,9 @@ impl TransactionProver for LocalTransactionProver {
             account_codes,
         } = tx_witness;
 
-        for account_code in account_codes {
+        for account_code in &account_codes {
             // load the code mast forest to the mast store
-            self.mast_store.load_account_code(&account_code);
+            self.mast_store.load_account_code(account_code);
         }
 
         let account = tx_inputs.account();
@@ -112,7 +103,7 @@ impl TransactionProver for LocalTransactionProver {
             advice_provider,
             self.mast_store.clone(),
             None,
-            self.account_code_commitments.clone(),
+            account_codes.iter().map(|c| c.commitment()).collect(),
         )
         .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =

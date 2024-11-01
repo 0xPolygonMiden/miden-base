@@ -26,11 +26,11 @@ pub struct ExecutedTransaction {
     id: OnceCell<TransactionId>,
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
+    account_codes: Vec<AccountCode>,
     account_delta: AccountDelta,
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
     tx_measurements: TransactionMeasurements,
-    account_codes: Vec<AccountCode>,
 }
 
 impl ExecutedTransaction {
@@ -44,11 +44,11 @@ impl ExecutedTransaction {
     pub fn new(
         tx_inputs: TransactionInputs,
         tx_outputs: TransactionOutputs,
+        account_codes: Vec<AccountCode>,
         account_delta: AccountDelta,
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
         tx_measurements: TransactionMeasurements,
-        account_codes: Vec<AccountCode>,
     ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
         assert_eq!(tx_inputs.account().id(), tx_outputs.account.id());
@@ -57,11 +57,11 @@ impl ExecutedTransaction {
             id: OnceCell::new(),
             tx_inputs,
             tx_outputs,
+            account_codes,
             account_delta,
             tx_args,
             advice_witness,
             tx_measurements,
-            account_codes,
         }
     }
 
