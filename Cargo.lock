@@ -1658,6 +1658,7 @@ name = "miden-objects"
 version = "0.6.0"
 dependencies = [
  "criterion",
+ "getrandom",
  "log",
  "miden-assembly",
  "miden-core",

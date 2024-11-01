@@ -35,6 +35,9 @@ vm-core = { workspace = true }
 vm-processor = { workspace = true }
 winter-rand-utils = { version = "0.9", optional = true }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
 [dev-dependencies]
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
 miden-objects = { path = ".", features = ["testing"] }
