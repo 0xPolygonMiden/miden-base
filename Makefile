@@ -81,12 +81,12 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --exclude miden-prover-proxy
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --exclude miden-prover-proxy --features testing
 
 
 .PHONY: build-async
@@ -104,9 +104,13 @@ bench-tx: ## Run transaction benchmarks
 # --- installing ----------------------------------------------------------------------------------
 
 .PHONY: install-prover
-install-prover: ## Installs prover
-	cargo install --path bin/tx-prover --locked
+install-prover-worker: ## Installs prover worker
+	cargo install --path bin/tx-prover --bin miden-tx-prover-worker --locked
 
 .PHONY: install-prover-testing
-install-prover-testing: ## Installs prover intended for testing purposes
-	cargo install --path bin/tx-prover --locked --features testing
+install-prover-worker-testing: ## Installs prover worker intended for testing purposes
+	cargo install --path bin/tx-prover --bin miden-tx-prover-worker --locked --features testing
+
+.PHONY: install-prover-proxy
+install-prover-proxy: ## Install prover's proxy
+	cargo install --path bin/tx-prover --bin miden-tx-prover-proxy --locked
