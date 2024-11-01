@@ -2,6 +2,7 @@
 
 ## 0.6.0 (TBD)
 
+- Added account codes to `TransactionWitness` (#946).
 - Changed `RemoteTransactionProver` to lazily connect on prove (#937).
 - [BREAKING] Made `TransactionMastForest` and `BasicAuthenticator` be `Send`, `Sync`; made scripts lazily initialize (#939).
 - Added `RemoteTransactionProver` struct to `miden-tx-prover` (#921).
