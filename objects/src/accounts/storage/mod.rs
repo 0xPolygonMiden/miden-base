@@ -40,6 +40,11 @@ impl AccountStorage {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new instance of account storage initialized with the provided items.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The number of [`StorageSlot`]s exceeds 255.
     pub fn new(slots: Vec<StorageSlot>) -> Result<AccountStorage, AccountError> {
         let num_slots = slots.len();
 
@@ -58,6 +63,11 @@ impl AccountStorage {
     ///
     /// If the storage needs to be initialized with certain values in that slot, those can be added
     /// after construction with the standard set methods for items and maps.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The number of [`StorageSlot`]s of all components exceeds 255.
     pub(super) fn from_components(
         components: &[AccountComponent],
         account_type: AccountType,

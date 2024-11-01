@@ -30,6 +30,7 @@ impl From<RpoFalcon512> for AccountComponent {
             rpo_falcon_512_library(),
             vec![StorageSlot::Value(falcon.public_key.into())],
         )
+        .expect("falcon component should satisfy the requirements of a valid account component")
         .with_supports_all_types()
     }
 }

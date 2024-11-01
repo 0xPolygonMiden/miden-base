@@ -57,6 +57,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
             [faucet.max_supply, Felt::from(faucet.decimals), faucet.symbol.into(), Felt::ZERO];
 
         AccountComponent::new(basic_fungible_faucet_library(), vec![StorageSlot::Value(metadata)])
+            .expect("basic fungible faucet component should satisfy the requirements of a valid account component")
             .with_supported_type(AccountType::FungibleFaucet)
     }
 }

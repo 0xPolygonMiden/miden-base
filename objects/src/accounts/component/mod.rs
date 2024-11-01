@@ -31,17 +31,33 @@ pub struct AccountComponent {
 }
 
 impl AccountComponent {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns a new [`AccountComponent`] constructed from the provided `library` and
     /// `storage_slots`.
     ///
     /// All procedures exported from the provided code will become members of the account's public
     /// interface when added to an [`AccountCode`](crate::accounts::AccountCode).
-    pub fn new(code: Library, storage_slots: Vec<StorageSlot>) -> Self {
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// The following list of errors is exhaustive and can be relied upon for `expect`ing the call
+    /// to this function. It is recommended that custom components ensure these conditions by design
+    /// or in their fallible constructors.
+    ///
+    /// Returns an error if:
+    /// - The number of given [`StorageSlot`]s exceeds 255.
+    pub fn new(code: Library, storage_slots: Vec<StorageSlot>) -> Result<Self, AccountError> {
+        // Check that we have less than 256 storage slots.
+        u8::try_from(storage_slots.len())
+            .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
+
+        Ok(Self {
             library: code,
             storage_slots,
             supported_types: BTreeSet::new(),
-        }
+        })
     }
 
     /// Returns a new [`AccountComponent`] whose library is compiled from the provided `source_code`
@@ -54,6 +70,7 @@ impl AccountComponent {
     ///
     /// Returns an error if:
     /// - the compilation of the provided source code fails.
+    /// - The number of storage slots exceeds 255.
     pub fn compile(
         source_code: impl Compile,
         assembler: Assembler,
@@ -63,8 +80,19 @@ impl AccountComponent {
             .assemble_library([source_code])
             .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
 
-        Ok(Self::new(library, storage_slots))
+        Self::new(library, storage_slots)
     }
+
+    // ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    pub fn storage_size(&self) -> u8 {
+        u8::try_from(self.storage_slots.len())
+            .expect("storage slots len should fit in u8 per the constructor")
+    }
+
+    // MUTATORS
+    // --------------------------------------------------------------------------------------------
 
     /// Adds `supported_type` to the set of [`AccountType`]s supported by this component.
     ///

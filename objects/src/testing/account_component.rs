@@ -32,6 +32,10 @@ pub struct AccountMockComponent {
 
 impl AccountMockComponent {
     fn new(assembler: Assembler, storage_slots: Vec<StorageSlot>) -> Result<Self, AccountError> {
+        // Check that we have less than 256 storage slots.
+        u8::try_from(storage_slots.len())
+            .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
+
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());
         let module = Module::parser(assembly::ast::ModuleKind::Library)
             .parse_str(
@@ -69,6 +73,7 @@ impl From<AccountMockComponent> for Library {
 impl From<AccountMockComponent> for AccountComponent {
     fn from(mock_component: AccountMockComponent) -> Self {
         AccountComponent::new(mock_component.library, mock_component.storage_slots)
+            .expect("account mock component should satisfy the requirements of a valid account component")
             .with_supports_all_types()
     }
 }

@@ -27,7 +27,9 @@ pub struct BasicWallet;
 
 impl From<BasicWallet> for AccountComponent {
     fn from(_: BasicWallet) -> Self {
-        AccountComponent::new(basic_wallet_library(), vec![]).with_supports_all_types()
+        AccountComponent::new(basic_wallet_library(), vec![])
+          .expect("basic wallet component should satisfy the requirements of a valid account component")
+          .with_supports_all_types()
     }
 }
 

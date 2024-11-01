@@ -55,10 +55,10 @@ impl AccountCode {
     /// Returns an error if:
     /// - The number of procedures in all merged libraries is 0 or exceeds
     ///   [`AccountCode::MAX_NUM_PROCEDURES`].
-    /// - If two or more libraries export a procedure with the same MAST root.
-    /// - If the number of [`StorageSlot`](crate::accounts::StorageSlot)s of a component or of all
+    /// - Two or more libraries export a procedure with the same MAST root.
+    /// - The number of [`StorageSlot`](crate::accounts::StorageSlot)s of a component or of all
     ///   components exceeds 255.
-    /// - If [`MastForest::merge`] fails on all libraries.
+    /// - [`MastForest::merge`] fails on all libraries.
     pub fn from_components(
         components: &[AccountComponent],
         account_type: AccountType,
@@ -75,13 +75,9 @@ impl AccountCode {
         let mut component_storage_offset = if account_type.is_faucet() { 1 } else { 0 };
 
         for component in components {
-            let AccountComponent { library, storage_slots, .. } = component;
-            let component_storage_size: u8 = storage_slots
-                .len()
-                .try_into()
-                .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
+            let component_storage_size = component.storage_size();
 
-            for module in library.module_infos() {
+            for module in component.library().module_infos() {
                 for proc_mast_root in module.procedure_digests() {
                     // We cannot support procedures from multiple components with the same MAST root
                     // since storage offsets/sizes are set per MAST root. Setting them again for
@@ -337,9 +333,10 @@ mod tests {
         let library2 = Assembler::default().assemble_library([code2]).unwrap();
 
         let component1 =
-            AccountComponent::new(library1, vec![StorageSlot::Value(Word::default()); 250]);
+            AccountComponent::new(library1, vec![StorageSlot::Value(Word::default()); 250])
+                .unwrap();
         let mut component2 =
-            AccountComponent::new(library2, vec![StorageSlot::Value(Word::default()); 5]);
+            AccountComponent::new(library2, vec![StorageSlot::Value(Word::default()); 5]).unwrap();
 
         // This is fine as the offset+size for component 2 is <= 255.
         AccountCode::from_components(
