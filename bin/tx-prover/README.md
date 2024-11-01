@@ -1,13 +1,10 @@
 # Miden transaction prover
 
-A service for generating Miden transaction proofs on-demand. It is split in two binaries: worker
-and proxy.
+A service for generating Miden transaction proofs on-demand. It is split in two binaries: worker and proxy.
 
-The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can
-only handle one request at a time and returns an error if is already in use.
+The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can only handle one request at a time and returns an error if is already in use.
 
-The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is
-meant to handle multiple workers with a queue for each one. Further information about Pingora and it's features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
+The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue for each one. Further information about Pingora and it's features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
 ## Installation
 
