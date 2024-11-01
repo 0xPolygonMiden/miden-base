@@ -19,7 +19,8 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        Account, AccountId, AccountProcedureInfo, AccountStorage, StorageSlot,
+        Account, AccountCode, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
+        AccountType, StorageSlot,
     },
     assets::{AssetVault, NonFungibleAsset},
     notes::{
@@ -635,8 +636,17 @@ fn test_check_get_item_index() {
             movup.8 drop movup.8 drop movup.8 drop
         end
     ";
+    let component = AccountComponent::compile(
+        get_item_code_source,
+        TransactionKernel::testing_assembler(),
+        vec![],
+    )
+    .unwrap()
+    .with_supports_all_types();
+
     let expected_root =
-        *AccountCode::mock_with_code(get_item_code_source, TransactionKernel::testing_assembler())
+        *AccountCode::from_components(&[component], AccountType::RegularAccountUpdatableCode)
+            .unwrap()
             .procedures()[0]
             .mast_root();
 
@@ -1021,7 +1031,17 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
 fn get_root_of_get_item_procedure() -> Digest {
     // keep in sync with actual index of the `get_item`
     let proc_index = 6;
-    *AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false).procedures()
-        [proc_index]
-        .mast_root()
+
+    let mock_component: AccountComponent =
+        AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
+            .unwrap()
+            .into();
+
+    let code = AccountCode::from_components(
+        &[mock_component.with_supports_all_types()],
+        AccountType::RegularAccountUpdatableCode,
+    )
+    .unwrap();
+
+    *code.procedures()[proc_index].mast_root()
 }
