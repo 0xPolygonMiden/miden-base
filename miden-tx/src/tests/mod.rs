@@ -148,7 +148,8 @@ fn executed_transaction_account_delta_new() {
         TransactionKernel::testing_assembler(),
         vec![],
     )
-    .unwrap();
+    .unwrap()
+    .with_supports_all_types();
     let new_acct_code =
         AccountCode::from_components(&[component], AccountType::RegularAccountUpdatableCode)
             .unwrap();
