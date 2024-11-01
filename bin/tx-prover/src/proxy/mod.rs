@@ -91,13 +91,25 @@ pub struct TriesCounter {
     tries: usize,
 }
 
+/// Implements load-balancing of incoming requests across a pool of workers.
+///
+/// At the backend-level, a request lifecycle works as follows:
+/// - When a new requests arrives, [WorkerLoadBalancer::request_filter()] method is called. In this
+///   method we apply IP-based rate-limiting to the request and assign a unique ID to it.
+/// - Next, the [Self::upstream_peer()] method is called. We use it to figure out which worker will
+///   process the request. Inside `upstream_peer()`, we pick a worker in a round-robin fashion and
+///   add the request to the queue of requests for that worker. Once the request gets to the front
+///   of the queue, we forward it to the worker. This step is also in charge of assinging the
+///   timeouts and enabling HTTP/2. Finally, we establish a connection with the worker.
+/// - Before sending the request to the upstream server and if the connection succeed, the
+///   [Self::upstream_request_filter()] method is called. In this method, we ensure that the correct
+///   headers are forwarded for gRPC requests.
+/// - If the connection fails, the [Self::fail_to_connect()] method is called. In this method, we
+///   retry the request [MAX_RETRIES_PER_REQUEST] times.
+/// - Once the worker processes the request (either successfully or with a failure),
+///   [Self::logging()] method is called. In this method, we remove the request from the worker's
+///   queue, allowing the worker to process the next request.
 #[async_trait]
-/// The [ProxyHttp] trait enables implementing a custom HTTP proxy service.
-/// Defined in the [pingora_proxy] crate, this trait provides several methods
-/// that correspond to different stages of the request/response lifecycle.
-/// Most methods have default implementations, making them optional to override.
-/// For a detailed explanation of the request/response cycle, refer to the
-/// [official documentation](https://github.com/cloudflare/pingora/blob/main/docs/user_guide/phase.md).
 impl ProxyHttp for WorkerLoadBalancer {
     type CTX = TriesCounter;
     fn new_ctx(&self) -> Self::CTX {
