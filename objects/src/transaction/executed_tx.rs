@@ -6,6 +6,7 @@ use super::{
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionWitness,
 };
+use crate::accounts::AccountCode;
 
 // EXECUTED TRANSACTION
 // ================================================================================================
@@ -25,6 +26,7 @@ pub struct ExecutedTransaction {
     id: OnceCell<TransactionId>,
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
+    account_codes: Vec<AccountCode>,
     account_delta: AccountDelta,
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
@@ -42,6 +44,7 @@ impl ExecutedTransaction {
     pub fn new(
         tx_inputs: TransactionInputs,
         tx_outputs: TransactionOutputs,
+        account_codes: Vec<AccountCode>,
         account_delta: AccountDelta,
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
@@ -54,6 +57,7 @@ impl ExecutedTransaction {
             id: OnceCell::new(),
             tx_inputs,
             tx_outputs,
+            account_codes,
             account_delta,
             tx_args,
             advice_witness,
@@ -131,6 +135,7 @@ impl ExecutedTransaction {
             tx_inputs: self.tx_inputs,
             tx_args: self.tx_args,
             advice_witness: self.advice_witness,
+            account_codes: self.account_codes,
         };
         (self.account_delta, self.tx_outputs, tx_witness, self.tx_measurements)
     }
