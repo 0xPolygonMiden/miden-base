@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -6,7 +6,7 @@ use miden_objects::{
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
-    Digest, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
+    MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
 use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -36,9 +36,9 @@ pub struct TransactionExecutor {
     data_store: Arc<dyn DataStore>,
     mast_store: Arc<TransactionMastStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
-    /// Holds the code commitments of all accounts loaded into this transaction executor via the
+    /// Holds the code of all accounts loaded into this transaction executor via the
     /// [Self::load_account_code()] method.
-    account_codes: BTreeMap<Digest, AccountCode>,
+    account_codes: BTreeSet<AccountCode>,
     exec_options: ExecutionOptions,
 }
 
@@ -65,7 +65,7 @@ impl TransactionExecutor {
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
-            account_codes: BTreeMap::new(),
+            account_codes: BTreeSet::new(),
         }
     }
 
@@ -106,7 +106,7 @@ impl TransactionExecutor {
         self.mast_store.load_account_code(code);
 
         // store the commitment of the foreign account code in the set
-        self.account_codes.insert(code.commitment(), code.clone());
+        self.account_codes.insert(code.clone());
     }
 
     // TRANSACTION EXECUTION
@@ -141,16 +141,12 @@ impl TransactionExecutor {
         // load note script MAST into the MAST store
         self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
-        for code in self.account_codes.values() {
-            self.mast_store.load_account_code(code);
-        }
-
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
-            self.account_codes.keys().copied().collect(),
+            self.account_codes.iter().map(|code| code.commitment()).collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -167,8 +163,11 @@ impl TransactionExecutor {
         let account_codes = self
             .account_codes
             .iter()
-            .filter_map(|(comm, code)| {
-                tx_args.advice_inputs().mapped_values(comm).and(Some(code.clone()))
+            .filter_map(|code| {
+                tx_args
+                    .advice_inputs()
+                    .mapped_values(&code.commitment())
+                    .and(Some(code.clone()))
             })
             .collect();
 

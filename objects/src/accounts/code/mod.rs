@@ -213,6 +213,18 @@ impl PartialEq for AccountCode {
     }
 }
 
+impl Ord for AccountCode {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.commitment.cmp(&other.commitment)
+    }
+}
+
+impl PartialOrd for AccountCode {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl Eq for AccountCode {}
 
 // SERIALIZATION
