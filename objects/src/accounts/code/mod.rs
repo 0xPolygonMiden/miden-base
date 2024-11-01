@@ -44,11 +44,21 @@ impl AccountCode {
 
     /// Creates a new [`AccountCode`] from the provided components' libraries.
     ///
+    /// For testing use only.
+    #[cfg(feature = "testing")]
+    pub fn from_components(
+        components: &[AccountComponent],
+        account_type: AccountType,
+    ) -> Result<Self, AccountError> {
+        super::validate_components_support_account_type(components, account_type)?;
+        Self::from_components_unchecked(components, account_type)
+    }
+
+    /// Creates a new [`AccountCode`] from the provided components' libraries.
+    ///
     /// # Warning
     ///
-    /// This does not check whether the provided components are valid when combined. Prefer
-    /// [`Account::initialize_from_components`](crate::accounts::Account::initialize_from_components)
-    /// whenever possible as it implements that check.
+    /// This does not check whether the provided components are valid when combined.
     ///
     /// # Errors
     ///
@@ -59,7 +69,7 @@ impl AccountCode {
     /// - The number of [`StorageSlot`](crate::accounts::StorageSlot)s of a component or of all
     ///   components exceeds 255.
     /// - [`MastForest::merge`] fails on all libraries.
-    pub fn from_components(
+    pub(super) fn from_components_unchecked(
         components: &[AccountComponent],
         account_type: AccountType,
     ) -> Result<Self, AccountError> {

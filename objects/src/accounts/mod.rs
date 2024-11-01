@@ -100,6 +100,23 @@ impl Account {
 
     /// Creates an account's [`AccountCode`] and [`AccountStorage`] from the provided components.
     ///
+    /// This merges all libraries of the components into a single
+    /// [`MastForest`](vm_processor::MastForest) to produce the [`AccountCode`]. For each
+    /// procedure in the resulting forest, the storage offset and size are set so that the
+    /// procedure can only access the storage slots of the component in which it was defined and
+    /// each component's storage offset is the total number of slots in the previous components.
+    /// To illustrate, given two components with one and two storage slots respectively:
+    ///
+    /// - RpoFalcon512 Component: Component slot 0 stores the public key.
+    /// - Custom Component: Component slot 0 stores a custom [`StorageSlot::Value`] and component
+    ///   slot 1 stores a custom [`StorageSlot::Map`].
+    ///
+    /// When combined, their assigned slots in the [`AccountStorage`] would be:
+    ///
+    /// - The RpoFalcon512 Component has offset 0 and size 1: Account slot 0 stores the public key.
+    /// - The Custom Component has offset 1 and size 2: Account slot 1 stores the value and account
+    ///   slot 2 stores the map.
+    ///
     /// The resulting commitments from code and storage can then be used to construct an
     /// [`AccountId`]. Finally, a new account can then be instantiated from those parts using
     /// [`Account::new`].
@@ -112,14 +129,18 @@ impl Account {
     ///
     /// Returns an error if:
     /// - Any of the components does not support `account_type`.
-    /// - If the call to [`AccountCode::from_components`] fails, see its documentation for details.
+    /// - The number of procedures in all merged libraries is 0 or exceeds
+    ///   [`AccountCode::MAX_NUM_PROCEDURES`].
+    /// - Two or more libraries export a procedure with the same MAST root.
+    /// - The number of [`StorageSlot`]s of all components exceeds 255.
+    /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on all libraries.
     pub fn initialize_from_components(
         account_type: AccountType,
         components: &[AccountComponent],
     ) -> Result<(AccountCode, AccountStorage), AccountError> {
         validate_components_support_account_type(components, account_type)?;
 
-        let code = AccountCode::from_components(components, account_type)?;
+        let code = AccountCode::from_components_unchecked(components, account_type)?;
         let storage = AccountStorage::from_components(components, account_type)?;
 
         Ok((code, storage))
