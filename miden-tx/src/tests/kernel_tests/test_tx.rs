@@ -620,6 +620,30 @@ fn test_build_recipient_hash() {
     );
 }
 
+// FOREIGN PROCEDURE INVOCATION TESTS
+// ================================================================================================
+
+/// Assert that mock account's `get_item` procedure has index 6
+#[test]
+fn test_check_get_item_index() {
+    // keep this code the same as the actual code of the account's `get_item` procedure
+    let get_item_code_source = "
+        use.miden::account
+        export.get_item
+            exec.account::get_item
+            movup.8 drop movup.8 drop movup.8 drop
+        end
+    ";
+    let expected_root =
+        *AccountCode::mock_with_code(get_item_code_source, TransactionKernel::testing_assembler())
+            .procedures()[0]
+            .mast_root();
+
+    let result_root = get_root_of_get_item_procedure();
+
+    assert_eq!(expected_root, result_root);
+}
+
 #[test]
 fn test_load_foreign_account_basic() {
     // GET ITEM
@@ -647,24 +671,23 @@ fn test_load_foreign_account_basic() {
         
         use.kernel::prologue
         use.miden::tx
-        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
 
             # pad the stack for the `execute_foreign_procedure`execution
-            padw padw push.0.0.0
-            # => [pad(11)]
+            padw padw padw push.0.0
+            # => [pad(14)]
 
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
@@ -672,7 +695,8 @@ fn test_load_foreign_account_basic() {
             # truncate the stack
             exec.sys::truncate_stack
         end
-        "
+        ",
+        get_item_foreign_hash = get_root_of_get_item_procedure(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -716,8 +740,8 @@ fn test_load_foreign_account_basic() {
             exec.prologue::prepare_transaction
 
             # pad the stack for the `execute_foreign_procedure`execution
-            padw push.0.0.0
-            # => [pad(7)]
+            padw padw push.0.0
+            # => [pad(10)]
 
             # push the key of desired storage item
             push.{map_key}
@@ -725,12 +749,12 @@ fn test_load_foreign_account_basic() {
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_map_item_foreign` account procedure
-            procref.account::get_map_item_foreign
+            # get the hash of the `get_map_item` account procedure
+            procref.account::get_map_item
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(7)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
             exec.tx::execute_foreign_procedure
             # => [MAP_VALUE]
@@ -780,43 +804,42 @@ fn test_load_foreign_account_twice() {
 
         use.kernel::prologue
         use.miden::tx
-        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
 
             ### Get the storage item at index 0 #####################
             # pad the stack for the `execute_foreign_procedure`execution
-            padw padw push.0.0.0
-            # => [pad(11)]
+            padw padw padw push.0.0
+            # => [pad(14)]
 
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure dropw
             # => []
 
             ### Get the storage item at index 0 again ###############
             # pad the stack for the `execute_foreign_procedure`execution
-            padw padw push.0.0.0
-            # => [pad(11)]
+            padw padw padw push.0.0
+            # => [pad(14)]
 
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item_foreign` account procedure
-            procref.account::get_item_foreign
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(11)]
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
 
@@ -824,6 +847,7 @@ fn test_load_foreign_account_twice() {
             exec.sys::truncate_stack
         end
         ",
+        get_item_foreign_hash = get_root_of_get_item_procedure(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -938,4 +962,17 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
             Word::try_from(elements).unwrap(),
         );
     }
+}
+
+/// This helper function returns the root of the account's `get_item` mock procedure, which could be
+/// used for its dynamic call.
+///
+/// Index of the `get_item` procedure should be kept in sync with the actual index of this procedure
+/// in the array of account's mock procedures.
+fn get_root_of_get_item_procedure() -> Digest {
+    // keep in sync with actual index of the `get_item`
+    let proc_index = 6;
+    *AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false).procedures()
+        [proc_index]
+        .mast_root()
 }

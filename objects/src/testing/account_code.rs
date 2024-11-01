@@ -49,80 +49,110 @@ impl AccountCode {
         export.::miden::contracts::wallets::basic::create_note
         export.::miden::contracts::wallets::basic::move_asset_to_note
 
-        export.::miden::account::get_item_foreign
-        export.::miden::account::get_map_item_foreign
+        ### Note: all account's export procedures below should be only called or dyncalled, so it is
+        ### assumed that the operand stack at the beginning of their execution is paded and doesn't 
+        ### have any other valuable information.
 
+        # Stack:  [value, pad(15)]
+        # Output: [pad(16)]
         export.incr_nonce
-            push.0 swap
-            # => [value, 0]
             exec.account::incr_nonce
-            # => [0]
+            # => [pad(16)]
         end
 
+        # Stack:  [index, VALUE_TO_SET, pad(11)]
+        # Output: [NEW_STORAGE_ROOT, PREVIOUS_STORAGE_VALUE, pad(8)]
         export.set_item
             exec.account::set_item
-            # => [R', V, 0, 0, 0]
+            # => [R', V, pad(11)]
+
+            # truncate the stack
             movup.8 drop movup.8 drop movup.8 drop
-            # => [R', V]
+            # => [R', V, pad(8)]
         end
 
+        # Stack:  [index, pad(15)]
+        # Output: [VALUE, pad(12)]
         export.get_item
             exec.account::get_item
+            # => [VALUE, pad(15)]
+
+            # truncate the stack
             movup.8 drop movup.8 drop movup.8 drop
+            # => [VALUE, pad(12)]
         end
 
+        # Stack:  [index, KEY, VALUE, pad(7)]
+        # Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, pad(8)]
         export.set_map_item
             exec.account::set_map_item
-            # => [R', V, 0, 0, 0]
-            movup.8 drop movup.8 drop movup.8 drop
-            # => [R', V]
+            # => [R', V, pad(8)]
         end
 
+        # Stack:  [index, KEY, pad(11)]
+        # Output: [VALUE, pad(12)]
         export.get_map_item
             exec.account::get_map_item
         end
 
+        # Stack:  [CODE_COMMITMENT, pad(12)]
+        # Output: [pad(16)]
         export.set_code
-            padw swapw
-            # => [CODE_COMMITMENT, 0, 0, 0, 0]
             exec.account::set_code
-            # => [0, 0, 0, 0]
+            # => [pad(16)]
         end
 
+        # Inputs:  [ASSET, note_idx, pad(11)]
+        # Outputs: [ASSET, note_idx, pad(11)]
         export.add_asset_to_note
             exec.tx::add_asset_to_note
-            # => [ASSET, note_idx]
+            # => [ASSET, note_idx, pad(11)]
         end
 
+        # Stack:  [ASSET, pad(12)]
+        # Output: [ASSET', pad(12)]
         export.add_asset
             exec.account::add_asset
+            # => [ASSET', pad(12)]
         end
 
+        # Stack:  [ASSET, pad(12)]
+        # Output: [ASSET, pad(12)]
         export.remove_asset
             exec.account::remove_asset
-            # => [ASSET]
+            # => [ASSET, pad(12)]
         end
 
+        # Stack:  [pad(16)]
+        # Output: [3, pad(12)]
         export.account_procedure_1
-            push.1.2
-            add
+            push.1.2 add 
+
+            # truncate the stack
+            swap drop
         end
 
+        # Stack:  [pad(16)]
+        # Output: [1, pad(12)]
         export.account_procedure_2
-            push.2.1
-            sub
+            push.2.1 sub
+            
+            # truncate the stack
+            swap drop
         end
 
+        # Stack:  [ASSET, pad(12)]
+        # Output: [ASSET, pad(12)]
         export.mint
             exec.faucet::mint
+            # => [ASSET, pad(12)]
         end
 
+        # Stack:  [ASSET, pad(12)]
+        # Output: [ASSET, pad(12)]
         export.burn
             exec.faucet::burn
-        end
-
-        export.execute_foreign_procedure
-            exec.tx::execute_foreign_procedure
+            # => [ASSET, pad(12)]
         end
         ";
         let source_manager = Arc::new(assembly::DefaultSourceManager::default());

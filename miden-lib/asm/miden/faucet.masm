@@ -11,8 +11,8 @@ use.miden::kernel_proc_offsets
 #!   allowed.
 #! - For non-fungible faucets if the non-fungible asset being minted already exists.
 #!
-#! Stack: [ASSET]
-#! Outputs: [ASSET]
+#! Stack:  [ASSET]
+#! Output: [ASSET]
 #!
 #! - ASSET is the asset that was minted.
 export.mint
@@ -43,8 +43,8 @@ end
 #! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
 #!   provided as input to the transaction via a note or the accounts vault.
 #!
-#! Stack: [ASSET]
-#! Outputs: [ASSET]
+#! Stack:  [ASSET]
+#! Output: [ASSET]
 #!
 #! - ASSET is the asset that was burned.
 export.burn

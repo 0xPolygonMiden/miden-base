@@ -170,6 +170,7 @@ export.set_item
 
     # clean the stack
     swapdw dropw dropw
+    # => [R', V]
 end
 
 #! Gets a map item from the account storage. Panics if
@@ -374,74 +375,6 @@ export.get_vault_commitment
     # clean the stack
     swapdw dropw dropw swapw dropw
     # => [COM]
-end
-
-# FOREIGN ACCOUNT PROCEDURES
-# =================================================================================================
-
-# NOTE
-# -------------------------------------------------------------------------------------------------
-# Procedures listed in this section are supposed to be `dyncall`ed, so it is assumed that the top #
-# word on the stack is occupied by the procedure hash.                                            #
-# -------------------------------------------------------------------------------------------------
-
-#! Gets an item from the foreign account storage.
-#!
-#! Stack: [PROC_HASH, index]
-#! Output: [VALUE]
-#!
-#! Where:
-#! - PROC_HASH is the hash of this procedure.
-#! - index is the index of the item to get.
-#! - VALUE is the value of the item.
-#!
-#! Panics if:
-#! - the item index is out of bounds.
-export.get_item_foreign
-    exec.kernel_proc_offsets::get_account_item_foreign_offset
-    # => [offset, PROC_HASH, index]
-
-    # pad the stack
-    push.0.0 movdn.7 movdn.7
-    padw padw swapdw
-    # => [offset, PROC_HASH, index, pad(10)]
-
-    syscall.exec_kernel_proc
-    # => [VALUE, pad(12)]
-
-    # clean the stack
-    swapdw dropw dropw swapw dropw
-    # => [VALUE]
-end
-
-#! Gets a map item from the account storage.
-#!
-#! Stack: [PROC_HASH, index, KEY]
-#! Output: [VALUE]
-#!
-#! Where:
-#! - PROC_HASH is the hash of this procedure.
-#! - index is the index of the map where the KEY VALUE should be read.
-#! - KEY is the key of the item to get.
-#! - VALUE is the value of the item.
-#!
-#! Panics if:
-#! - the index for the map is out of bounds, means >255
-#! - the slot item at index is not a map
-export.get_map_item_foreign
-    exec.kernel_proc_offsets::get_account_map_item_foreign_offset
-    # => [offset, PROC_HASH, index, KEY]
-
-    # pad the stack
-    push.0.0 movdn.11 movdn.11 padw movdnw.3
-    # => [offset, PROC_HASH, index, KEY, pad(6)]
-
-    syscall.exec_kernel_proc
-    # => [VALUE, PAD(12)]
-
-    # clean the stack
-    swapdw dropw dropw swapw dropw
-    # => [VALUE]
 end
 
 # PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)

@@ -89,10 +89,7 @@ fn test_get_vault_data() {
         begin
             exec.prologue::prepare_transaction
 
-            # prepare note 0
-            exec.note::prepare_note
-
-            # get the assets info
+            # get the assets info about note 0
             exec.note::get_assets_info
 
             # assert the assets data is correct
@@ -102,10 +99,7 @@ fn test_get_vault_data() {
             # increment current input note pointer
             exec.note::increment_current_input_note_ptr
 
-            # prepare note 1
-            exec.note::prepare_note
-
-            # get the assets data
+            # get the assets info about note 1
             exec.note::get_assets_info
 
             # assert the assets data is correct
@@ -320,6 +314,7 @@ fn test_note_setup() {
         begin
             exec.prologue::prepare_transaction
             exec.note::prepare_note
+            padw movup.4 mem_loadw
 
             # truncate the stack
             swapdw dropw dropw
@@ -351,9 +346,9 @@ fn test_note_script_and_note_args() {
         begin
             exec.prologue::prepare_transaction
             exec.memory::get_num_input_notes push.2 assert_eq
-            exec.note::prepare_note dropw
+            exec.note::prepare_note drop
             exec.note::increment_current_input_note_ptr drop
-            exec.note::prepare_note dropw
+            exec.note::prepare_note drop
 
             # truncate the stack
             swapdw dropw dropw
