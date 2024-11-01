@@ -116,11 +116,40 @@ impl ProxyHttp for WorkerLoadBalancer {
         TriesCounter { tries: 0 }
     }
 
-    // The `upstream_peer` method is called when a new upstream connection is required.
-    // This method is responsible for selecting a worker from the load balancer and
-    // creating a new peer with the selected worker.
-    // Here we enqueue the request ID in the worker queue and wait for it to be at the front.
-    // If we are retring the request, we remove the request from the queue first.
+    /// Decide whether to filter the request or not.
+    ///
+    /// Here we apply IP-based rate-limiting to the request. We assign a unique ID to the request
+    /// and check if the current window requests exceed the maximum allowed requests per second.
+    ///
+    /// If the request is rate-limited, we return a 429 response. Otherwise, we return false.
+    async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool>
+    where
+        Self::CTX: Send + Sync,
+    {
+        let client_addr = session.client_addr();
+        let user_id = client_addr.map(|addr| addr.to_string());
+
+        // Request ID is a random number
+        let request_id = rand::random::<u64>().to_string();
+        session.req_header_mut().insert_header("X-Request-ID", request_id)?;
+
+        // Retrieve the current window requests
+        let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
+
+        if curr_window_requests > MAX_REQ_PER_SEC {
+            return Self::create_too_many_requests_response(session).await;
+        };
+        Ok(false)
+    }
+
+    /// Returns [HttpPeer] corresponding to the worker that will handle the current request.
+    ///
+    /// Here we select the next worker from the pool in a round-robin fashion. We then add the
+    /// request to the worker's queue and wait until it gets to the front of it. Then, we construct
+    /// and return the [HttpPeer]. The peer is configured with timeouts, and HTTP/2.
+    ///
+    /// Note that the request is not removed from the queue here. It will be returned later in
+    /// [Self::logging()] once the worker processes the it.
     async fn upstream_peer(
         &self,
         session: &mut Session,
@@ -185,9 +214,12 @@ impl ProxyHttp for WorkerLoadBalancer {
         Ok(peer)
     }
 
-    // The `upstream_request_filter` method is called before sending the request to the upstream
-    // server. We use the method to ensure that the correct headers are forwarded for gRPC
-    // requests.
+    /// Applies the necessary filters to the request before sending it to the upstream server.
+    ///
+    /// Here we ensure that the correct headers are forwarded for gRPC requests.
+    ///
+    /// This method is called right after [Self::upstream_peer()] returns a [HttpPeer] and a
+    /// connection is established with the worker.
     async fn upstream_request_filter(
         &self,
         _session: &mut Session,
@@ -208,29 +240,7 @@ impl ProxyHttp for WorkerLoadBalancer {
         Ok(())
     }
 
-    // The `request_filter` method is called before processing the request.
-    // We use the method to rate limit the requests and add a unique request ID to the headers.
-    async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool>
-    where
-        Self::CTX: Send + Sync,
-    {
-        let client_addr = session.client_addr();
-        let user_id = client_addr.map(|addr| addr.to_string());
-
-        // Request ID is a random number
-        let request_id = rand::random::<u64>().to_string();
-        session.req_header_mut().insert_header("X-Request-ID", request_id)?;
-
-        // Retrieve the current window requests
-        let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
-
-        if curr_window_requests > MAX_REQ_PER_SEC {
-            return Self::create_too_many_requests_response(session).await;
-        };
-        Ok(false)
-    }
-
-    // If the connection fails, we retry the request [MAX_RETRIES_PER_REQUEST] times.
+    /// Retry the request if the connection fails.
     fn fail_to_connect(
         &self,
         _session: &mut Session,
@@ -246,8 +256,11 @@ impl ProxyHttp for WorkerLoadBalancer {
         e
     }
 
-    // The `logging` method is called after the request cycle is complete no matter the outcome.
-    // We use the method to log errors and remove the completed request from the worker queue.
+    /// Logs the request lifecycle in case that an error happened and removes the request from the
+    /// worker queue.
+    ///
+    /// This method is the last one in the request lifecycle, no matter if the request was
+    /// processed or not.
     async fn logging(&self, session: &mut Session, e: Option<&Error>, _ctx: &mut Self::CTX)
     where
         Self::CTX: Send + Sync,
