@@ -84,10 +84,9 @@ impl AccountCode {
             for module in library.module_infos() {
                 for proc_mast_root in module.procedure_digests() {
                     // We cannot support procedures from multiple components with the same MAST root
-                    // since storage offsets/sizes are set per MAST root. Setting them again
-                    // for procedures where the offset has already been inserted would cause that
-                    // procedure of the earlier component to write to the wrong
-                    // slot.
+                    // since storage offsets/sizes are set per MAST root. Setting them again for
+                    // procedures where the offset has already been inserted would cause that
+                    // procedure of the earlier component to write to the wrong slot.
                     if !proc_root_set.insert(proc_mast_root) {
                         return Err(AccountError::AccountCodeMergeError(format!(
                             "procedure with MAST root {proc_mast_root} is present in multiple account components"

@@ -22,14 +22,12 @@ use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
 /// All methods require authentication. Thus, this component must be combined with a component
 /// providing authentication.
 ///
-/// This component supports regular accounts.
+/// This component supports all account types.
 pub struct BasicWallet;
 
 impl From<BasicWallet> for AccountComponent {
     fn from(_: BasicWallet) -> Self {
-        AccountComponent::new(basic_wallet_library(), vec![])
-            .with_supported_type(AccountType::RegularAccountImmutableCode)
-            .with_supported_type(AccountType::RegularAccountUpdatableCode)
+        AccountComponent::new(basic_wallet_library(), vec![]).with_supports_all_types()
     }
 }
 

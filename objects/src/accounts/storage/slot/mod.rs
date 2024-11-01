@@ -39,6 +39,16 @@ impl StorageSlot {
         }
     }
 
+    /// Returns a [`StorageSlot::Value`] with an empty word.
+    pub fn empty_value() -> Self {
+        StorageSlot::Value(EMPTY_WORD)
+    }
+
+    /// Returns an empty [`StorageSlot::Map`].
+    pub fn empty_map() -> Self {
+        StorageSlot::Map(StorageMap::new())
+    }
+
     /// Returns this storage slot as field elements
     ///
     /// This is done by converting this storage slot into 8 field elements as follows:

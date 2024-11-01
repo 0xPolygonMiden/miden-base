@@ -78,7 +78,10 @@ const MAX_DECIMALS: u8 = 12;
 /// `distribute` requires authentication. The authentication procedure is defined by the specified
 /// authentication scheme. `burn` does not require authentication and can be called by anyone.
 ///
-/// The token metadata is stored in the account storage at slot 0.
+/// The storage layout of the faucet account is:
+/// - Slot 0: Reserved slot for faucets.
+/// - Slot 1: Public Key of the authentication component.
+/// - Slot 2: Token metadata of the faucet.
 pub fn create_basic_fungible_faucet(
     init_seed: [u8; 32],
     symbol: TokenSymbol,
@@ -117,6 +120,7 @@ pub fn create_basic_fungible_faucet(
 #[cfg(test)]
 mod tests {
     use miden_objects::{crypto::dsa::rpo_falcon512, FieldElement, ONE};
+    use vm_processor::Word;
 
     use super::{create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol};
 
@@ -147,9 +151,15 @@ mod tests {
         )
         .unwrap();
 
-        // Check that faucet metadata was initialized to the given values.
-        // The RpoFalcon512 component is added first and the faucet component second, so its
-        // assigned storage slot will be 2.
+        // The reserved faucet slot should be initialized to an empty word.
+        assert_eq!(faucet_account.storage().get_item(0).unwrap(), Word::default().into());
+
+        // The falcon auth component is added first so its assigned storage slot for the public key
+        // will be 1.
+        assert_eq!(faucet_account.storage().get_item(1).unwrap(), Word::from(pub_key).into());
+
+        // Check that faucet metadata was initialized to the given values. The faucet component is
+        // added second, so its assigned storage slot for the metadata will be 2.
         assert_eq!(
             faucet_account.storage().get_item(2).unwrap(),
             [Felt::new(123), Felt::new(2), token_symbol.into(), Felt::ZERO].into()

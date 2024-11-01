@@ -12,7 +12,7 @@ use miden_objects::{
 };
 use utils::build_swap_tag;
 
-pub mod scripts;
+pub(super) mod scripts;
 pub mod utils;
 
 // STANDARDIZED SCRIPTS

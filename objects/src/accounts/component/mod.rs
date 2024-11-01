@@ -25,9 +25,9 @@ use crate::{
 /// is forced to explicitly define what it supports.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountComponent {
-    pub(crate) library: Library,
-    pub(crate) storage_slots: Vec<StorageSlot>,
-    pub(crate) supported_types: BTreeSet<AccountType>,
+    pub(super) library: Library,
+    pub(super) storage_slots: Vec<StorageSlot>,
+    pub(super) supported_types: BTreeSet<AccountType>,
 }
 
 impl AccountComponent {
@@ -75,7 +75,10 @@ impl AccountComponent {
         self
     }
 
-    /// Sets the [`AccountType`]s supported by this component to the given set.
+    /// Overwrites any previously set supported types with the given set.
+    ///
+    /// This can be used to reset the supported types of a component to a chosen set, which may be
+    /// useful after cloning an existing component.
     pub fn with_supported_types(mut self, supported_types: BTreeSet<AccountType>) -> Self {
         self.supported_types = supported_types;
         self
