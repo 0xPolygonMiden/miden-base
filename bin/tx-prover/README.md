@@ -69,16 +69,16 @@ PROXY_PORT=<your-port>
 Also, it is mandatory to set at least one prover worker by setting the `PROVER_WORKERS` env var:
 
 ```bash
-PROVER_WORKERS=<your-backends>
+PROVER_WORKERS=<your-worker>
 
-# For only 1 backend
+# For only 1 worker
 PROVER_WORKERS="0.0.0.0:50051"
 
-# For multiple backends
+# For multiple workers
 PROVER_WORKERS="0.0.0.0:8080,0.0.0.0:50051,165.75.2.4:1010,10.2.2.1:9999"
 ```
 
-At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fasion. The amount of retries is configurable changing the `MAX_RETRIES_PER_REQUEST` constant. To remove the worker from the set of availables, we will need to implement a health check in the worker service.
+At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fashion. The amount of retries is configurable changing the `MAX_RETRIES_PER_REQUEST` constant. To remove the worker from the set of availables, we will need to implement a health check in the worker service.
 
 ## Features
 
