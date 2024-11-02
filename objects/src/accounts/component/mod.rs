@@ -86,9 +86,35 @@ impl AccountComponent {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the number of storage slots accessible from this component.
     pub fn storage_size(&self) -> u8 {
         u8::try_from(self.storage_slots.len())
             .expect("storage slots len should fit in u8 per the constructor")
+    }
+
+    /// Returns a reference to the underlying [`Library`] of this component.
+    pub fn library(&self) -> &Library {
+        &self.library
+    }
+
+    /// Returns a reference to the underlying [`MastForest`] of this component.
+    pub fn mast_forest(&self) -> &MastForest {
+        self.library.mast_forest().as_ref()
+    }
+
+    /// Returns a slice of the underlying [`StorageSlot`]s of this component.
+    pub fn storage_slots(&self) -> &[StorageSlot] {
+        self.storage_slots.as_slice()
+    }
+
+    /// Returns a reference to the supported [`AccountType`]s.
+    pub fn supported_types(&self) -> &BTreeSet<AccountType> {
+        &self.supported_types
+    }
+
+    /// Returns `true` if this component supports the given `account_type`, `false` otherwise.
+    pub fn supports_type(&self, account_type: AccountType) -> bool {
+        self.supported_types.contains(&account_type)
     }
 
     // MUTATORS
@@ -121,31 +147,6 @@ impl AccountComponent {
             AccountType::RegularAccountUpdatableCode,
         ]);
         self
-    }
-
-    /// Returns a reference to the supported [`AccountType`]s.
-    pub fn supported_types(&self) -> &BTreeSet<AccountType> {
-        &self.supported_types
-    }
-
-    /// Returns `true` if this component supports the given `account_type`, `false` otherwise.
-    pub fn supports_type(&self, account_type: AccountType) -> bool {
-        self.supported_types.contains(&account_type)
-    }
-
-    /// Returns a reference to the underlying [`Library`] of this component.
-    pub fn library(&self) -> &Library {
-        &self.library
-    }
-
-    /// Returns a reference to the underlying [`MastForest`] of this component.
-    pub fn mast_forest(&self) -> &MastForest {
-        self.library.mast_forest().as_ref()
-    }
-
-    /// Returns a slice of the underlying [`StorageSlot`]s of this component.
-    pub fn storage_slots(&self) -> &[StorageSlot] {
-        self.storage_slots.as_slice()
     }
 }
 
