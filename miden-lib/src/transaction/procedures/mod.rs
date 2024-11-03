@@ -30,11 +30,9 @@ impl TransactionKernel {
         Digest::digests_as_elements(
             Self::PROCEDURES
                 .get(kernel_version as usize)
-                .expect("provided kernel index is out of bounds")
-                .iter(),
+                .expect("provided kernel index is out of bounds"),
         )
-        .cloned()
-        .collect::<Vec<Felt>>()
+        .to_vec()
     }
 
     /// Computes the accumulative hash of all procedures of the kernel specified by the

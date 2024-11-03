@@ -35,7 +35,7 @@ lto = true
 #assembly = { package = "miden-assembly", version = "0.10", default-features = false }
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
-miden-crypto = { version = "0.11", default-features = false }
+miden-crypto = { version = "0.12", default-features = false }
 
 miden-lib = { path = "miden-lib", version = "0.6", default-features = false }
 miden-objects = { path = "objects", version = "0.6", default-features = false }

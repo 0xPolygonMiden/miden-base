@@ -124,7 +124,7 @@ checksum = "c7c24de15d275a1ecfd47a380fb4d5ec9bfe0933f309ed5e705b775596a3574d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -135,7 +135,7 @@ checksum = "721cae7de5c34fbb2acd27e21e6d2cf7b886dce0c27388d46c4e6c47ea4318dd"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -363,9 +363,9 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.1.31"
+version = "1.1.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2e7962b54006dcfcc61cb72735f4d89bb97061dd6a7ed882ec6b8ee53714c6f"
+checksum = "67b9470d453346108f93a59222a9a1a5724db32d0a4727b7ab7ace4b4d822dc9"
 dependencies = [
  "jobserver",
  "libc",
@@ -847,7 +847,7 @@ checksum = "162ee34ebcb7c64a8abebc059ce0fee27c2262618d7b60ed8faf72fef13c3650"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -1178,9 +1178,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-timeout"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3203a961e5c83b6f5498933e78b6b263e208c197b63e9c6c53cc82ffd3f63793"
+checksum = "2b90d566bffbce6a75bd8b09a05aa8c2cb1fabb6cb348f8840c9e4c90a0d83b0"
 dependencies = [
  "hyper 1.5.0",
  "hyper-util",
@@ -1441,7 +1441,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "regex-syntax 0.8.5",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -1514,7 +1514,7 @@ dependencies = [
 [[package]]
 name = "miden-air"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#2b96b85ae3437a18c22ff6aaa689aa037923a1bf"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#1ea1e1e5ef54af1c6dac158665fbc129468b85b8"
 dependencies = [
  "miden-core",
  "miden-thiserror",
@@ -1525,7 +1525,7 @@ dependencies = [
 [[package]]
 name = "miden-assembly"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#2b96b85ae3437a18c22ff6aaa689aa037923a1bf"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#1ea1e1e5ef54af1c6dac158665fbc129468b85b8"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1556,7 +1556,7 @@ dependencies = [
 [[package]]
 name = "miden-core"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#2b96b85ae3437a18c22ff6aaa689aa037923a1bf"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#1ea1e1e5ef54af1c6dac158665fbc129468b85b8"
 dependencies = [
  "lock_api",
  "loom",
@@ -1574,9 +1574,9 @@ dependencies = [
 
 [[package]]
 name = "miden-crypto"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e0ca714c8242f329b9ea6f1a5bf0e93f1490f348f982e3a606d91b884254308"
+checksum = "f50a68deed96cde1f51eb623f75828e320f699e0d798f11592f8958ba8b512c3"
 dependencies = [
  "blake3",
  "cc",
@@ -1635,7 +1635,7 @@ dependencies = [
  "supports-color",
  "supports-hyperlinks",
  "supports-unicode",
- "syn 2.0.86",
+ "syn 2.0.87",
  "terminal_size",
  "textwrap",
  "trybuild",
@@ -1650,7 +1650,7 @@ checksum = "1cc759f0a2947acae217a2f32f722105cacc57d17d5f93bc16362142943a4edd"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -1675,7 +1675,7 @@ dependencies = [
 [[package]]
 name = "miden-processor"
 version = "0.10.6"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#2b96b85ae3437a18c22ff6aaa689aa037923a1bf"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#1ea1e1e5ef54af1c6dac158665fbc129468b85b8"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1686,7 +1686,7 @@ dependencies = [
 [[package]]
 name = "miden-prover"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#2b96b85ae3437a18c22ff6aaa689aa037923a1bf"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#1ea1e1e5ef54af1c6dac158665fbc129468b85b8"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -1697,7 +1697,7 @@ dependencies = [
 [[package]]
 name = "miden-stdlib"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#2b96b85ae3437a18c22ff6aaa689aa037923a1bf"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#1ea1e1e5ef54af1c6dac158665fbc129468b85b8"
 dependencies = [
  "miden-assembly",
 ]
@@ -1719,7 +1719,7 @@ checksum = "0ee4176a0f2e7d29d2a8ee7e60b6deb14ce67a20e94c3e2c7275cdb8804e1862"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -1738,7 +1738,7 @@ dependencies = [
  "rand_chacha",
  "regex",
  "walkdir",
- "winter-maybe-async 0.10.1",
+ "winter-maybe-async",
 ]
 
 [[package]]
@@ -1769,13 +1769,13 @@ dependencies = [
  "tonic-web-wasm-client",
  "tracing",
  "tracing-subscriber",
- "winter-maybe-async 0.10.1",
+ "winter-maybe-async",
 ]
 
 [[package]]
 name = "miden-verifier"
 version = "0.10.5"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#2b96b85ae3437a18c22ff6aaa689aa037923a1bf"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#1ea1e1e5ef54af1c6dac158665fbc129468b85b8"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1811,7 +1811,7 @@ checksum = "dcf09caffaac8068c346b6df2a7fc27a177fd20b39421a39ce0a211bde679a6c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -1922,7 +1922,7 @@ checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -2010,7 +2010,7 @@ checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -2130,7 +2130,7 @@ checksum = "3c0f5fad0874fc7abcd4d750e76917eaebbecaa2c20bde22e1dbeeba8beb758c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -2438,7 +2438,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64d1ec885c64d0457d564db4ec299b2dae3f9c02808b8ad9c3a089c591b18033"
 dependencies = [
  "proc-macro2",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -2525,7 +2525,7 @@ dependencies = [
  "prost",
  "prost-types",
  "regex",
- "syn 2.0.86",
+ "syn 2.0.87",
  "tempfile",
 ]
 
@@ -2539,7 +2539,7 @@ dependencies = [
  "itertools 0.13.0",
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -2830,7 +2830,7 @@ dependencies = [
  "regex",
  "relative-path",
  "rustc_version 0.4.1",
- "syn 2.0.86",
+ "syn 2.0.87",
  "unicode-ident",
 ]
 
@@ -3100,7 +3100,7 @@ checksum = "de523f781f095e28fa605cdce0f8307e451cc0fd14e2eb4cd2e98a355b147766"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -3291,7 +3291,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustversion",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -3334,9 +3334,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.86"
+version = "2.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e89275301d38033efb81a6e60e3497e734dfcc62571f2854bf4b16690398824c"
+checksum = "25aa4ce346d03a6dcd68dd8b4010bcb74e54e62c90c573f394c46eae99aba32d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3438,22 +3438,22 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.66"
+version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d171f59dbaa811dbbb1aee1e73db92ec2b122911a48e1390dfe327a821ddede"
+checksum = "3b3c6efbfc763e64eb85c11c25320f0737cb7364c4b6336db90aa9ebe27a0bbd"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.66"
+version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b08be0f17bd307950653ce45db00cd31200d82b624b36e181337d9c7d92765b5"
+checksum = "b607164372e89797d78b8e23a6d67d5d1038c1c65efd52e1389ef8b77caba2a6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -3567,7 +3567,7 @@ checksum = "693d596312e88961bc67d7f1f97af8a70227d9f90c31bba5806eec004978d752"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -3703,7 +3703,7 @@ dependencies = [
  "prost-build",
  "prost-types",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -3835,7 +3835,7 @@ checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -4120,7 +4120,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
  "wasm-bindgen-shared",
 ]
 
@@ -4154,7 +4154,7 @@ checksum = "26c6ab57572f7a24a4985830b120de1594465e5d500f24afe89e16b4e833ef68"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -4256,7 +4256,7 @@ checksum = "2bbd5b46c938e506ecbce286b6628a02171d56153ba733b6c741fc627ec9579b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -4267,7 +4267,7 @@ checksum = "053c4c462dc91d3b1504c6fe5a726dd15e216ba718e84a0e46a88fbe5ded3515"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
@@ -4458,9 +4458,9 @@ dependencies = [
 
 [[package]]
 name = "winter-air"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b72f12b88ebb060b52c0e9aece9bb64a9fc38daf7ba689dd5ce63271b456c883"
+checksum = "29bec0b06b741543f43e3a6677b95b200d4cad2daab76e6721e14345345bfd0e"
 dependencies = [
  "libm",
  "winter-crypto",
@@ -4471,9 +4471,9 @@ dependencies = [
 
 [[package]]
 name = "winter-crypto"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00fbb724d2d9fbfd3aa16ea27f5e461d4fe1d74b0c9e0ed1bf79e9e2a955f4d5"
+checksum = "163da45f1d4d65cac361b8df4835a6daa95b3399154e16eb0305c178c6f6c1f4"
 dependencies = [
  "blake3",
  "sha3",
@@ -4483,9 +4483,9 @@ dependencies = [
 
 [[package]]
 name = "winter-fri"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ab6077cf4c23c0411f591f4ba29378e27f26acb8cef3c51cadd93daaf6080b3"
+checksum = "3b7b394670d68979a4cc21a37a95ef8ef350cf84be9256c53effe3052df50d26"
 dependencies = [
  "winter-crypto",
  "winter-math",
@@ -4494,22 +4494,11 @@ dependencies = [
 
 [[package]]
 name = "winter-math"
-version = "0.9.3"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b0e685b3b872d82e58a86519294a814b7bc7a4d3cd2c93570a7d80c0c5a1aba"
+checksum = "5a8ba832121679e79b004b0003018c85873956d742a39c348c247f680fe15e00"
 dependencies = [
  "winter-utils",
-]
-
-[[package]]
-name = "winter-maybe-async"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ce0f4161cdde50de809b3869c1cb083a09e92e949428ea28f04c0d64045875c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.86",
 ]
 
 [[package]]
@@ -4519,29 +4508,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be43529f43f70306437d2c2c9f9e2b3a4d39b42e86702d8d7577f2357ea32fa6"
 dependencies = [
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
 name = "winter-prover"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f17e3dbae97050f58e01ed4f12906e247841575a0518632e052941a1c37468df"
+checksum = "2f55f0153d26691caaf969066a13a824bcf3c98719d71b0f569bf8dc40a06fb9"
 dependencies = [
  "tracing",
  "winter-air",
  "winter-crypto",
  "winter-fri",
  "winter-math",
- "winter-maybe-async 0.9.0",
+ "winter-maybe-async",
  "winter-utils",
 ]
 
 [[package]]
 name = "winter-rand-utils"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2b827c901ab0c316d89812858ff451d60855c0a5c7ae734b098c62a28624181"
+checksum = "4a7616d11fcc26552dada45c803a884ac97c253218835b83a2c63e1c2a988639"
 dependencies = [
  "rand",
  "winter-utils",
@@ -4549,18 +4538,18 @@ dependencies = [
 
 [[package]]
 name = "winter-utils"
-version = "0.9.3"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "961e81e9388877a25db1c034ba38253de2055f569633ae6a665d857a0556391b"
+checksum = "76b116c8ade0172506f8bda32dc674cf6b230adc8516e5138a0173ae69158a4f"
 dependencies = [
  "rayon",
 ]
 
 [[package]]
 name = "winter-verifier"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "324002ade90f21e85599d51a232a80781efc8cb46f511f8bc89f9c5a4eb9cb65"
+checksum = "2ae1648768f96f5e6321a48a5bff5cc3101d2e51b23a6a095c6c9c9e133ecb61"
 dependencies = [
  "winter-air",
  "winter-crypto",
@@ -4596,7 +4585,7 @@ checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.86",
+ "syn 2.0.87",
 ]
 
 [[package]]
