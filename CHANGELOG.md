@@ -2,12 +2,6 @@
 
 ## 0.6.0 (TBD)
 
-- Added account codes to `TransactionWitness` (#946).
-- Changed `RemoteTransactionProver` to lazily connect on prove (#937).
-- [BREAKING] Made `TransactionMastForest` and `BasicAuthenticator` be `Send`, `Sync`; made scripts lazily initialize (#939).
-- Added a proxy server for the `miden-tx-prover` service (#930).
-- Added `RemoteTransactionProver` struct to `miden-tx-prover` (#921).
-- [BREAKING] Changed `TransactionProver` trait to be `maybe_async_trait` based on the `async` feature (#913).
 - [BREAKING] Changed `TransactionExecutor` and `TransactionHost` to use trait objects (#897).
 - Implemented kernel procedure to set transaction expiration block delta (#897).
 - Created a proving service that receives `TransactionWitness` and returns the proof using gRPC (#881).
@@ -25,6 +19,7 @@
 - Added `AccountStorageHeader` (#876).
 - Implemented generation of transaction kernel procedure hashes in build.rs (#887).
 - [BREAKING] `send_asset` procedure was removed from the basic wallet (#829).
+- Updated roadmap for docs (#877).
 - Implemented ability to invoke procedures against the foreign account (#882, #890, #896).
 - [BREAKING] Updated limits, introduced additional limits (#889).
 - Introduced `AccountDelta` maximum size limit of 32 KiB (#889).
@@ -32,9 +27,15 @@
 - Implemented `storage_size`, updated storage bounds (#886).
 - [BREAKING] Auto-generate `KERNEL_ERRORS` list from the transaction kernel's MASM files and rework error constant names (#906).
 - Implement `Serializable` for `FungibleAsset` (#907).
+- [BREAKING] Changed `TransactionProver` trait to be `maybe_async_trait` based on the `async` feature (#913).
 - [BREAKING] Changed type of `EMPTY_STORAGE_MAP_ROOT` constant to `RpoDigst`, which references constant from `miden-crypto` (#916).
-- Added `TransactionExecutor::load_account_code()` method to support foreign procedure invocation (#936).
+- Added `RemoteTransactionProver` struct to `miden-tx-prover` (#921).
 - [BREAKING] Migrated to v0.11 version of Miden VM (#929).
+- Added a proxy server for the `miden-tx-prover` service (#930).
+- Added `TransactionExecutor::load_account_code()` method to support foreign procedure invocation (#936).
+- Changed `RemoteTransactionProver` to lazily connect on prove (#937).
+- [BREAKING] Made `TransactionMastForest` and `BasicAuthenticator` be `Send`, `Sync`; made scripts lazily initialize (#939).
+- Added account codes to `TransactionWitness` (#946).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 

@@ -41,7 +41,7 @@ If the `faucet_id` of MATIC is `2`, 100 MATIC are encoded as `[100, 0, 0, 2]`; t
 
 ### Non-fungible assets
 
-A non-fungible asset is encoded by hashing the asset data into a `word` and then replacing the second element with the `faucet_id` of the issuing account: For example `[e0, faucet_id, e2, e3]`. Note that the second element is guaranteed to be non-zero.
+A non-fungible asset is encoded by hashing the asset data into a `word` and then replacing the second element with the `faucet_id` of the issuing account: For example `[e0, faucet_id, e2, e3]`. Note that the second element is guaranteed to be non-zero. Together with the fungible asset encoding, this makes it easy to differentiate between both asset types by inspecting the second element.
 
 Examples of non-fungible assets are all NFTs, e.g., a DevCon ticket. The ticket's data might be represented in a JSON string representing which DevCon, the date, the initial price, etc. Now, users can create a faucet for non-fungible DevCon tickets. This DevCon faucet would hash the JSON string into a `word` to transform the ticket into an asset.
 
