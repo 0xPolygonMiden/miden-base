@@ -106,9 +106,14 @@ impl TransactionProver for LocalTransactionProver {
             account_codes.iter().map(|c| c.commitment()).collect(),
         )
         .map_err(TransactionProverError::TransactionHostCreationFailed)?;
-        let (stack_outputs, proof) =
-            prove(&TransactionKernel::main(), stack_inputs, &mut host, self.proof_options.clone())
-                .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;
+
+        let (stack_outputs, proof) = maybe_await!(prove(
+            &TransactionKernel::main(),
+            stack_inputs,
+            &mut host,
+            self.proof_options.clone()
+        ))
+        .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;
 
         // extract transaction outputs and process transaction data
         let (advice_provider, account_delta, output_notes, _signatures, _tx_progress) =
