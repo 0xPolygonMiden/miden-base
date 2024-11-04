@@ -72,16 +72,10 @@ impl AccountStorage {
         components: &[AccountComponent],
         account_type: AccountType,
     ) -> Result<AccountStorage, AccountError> {
-        let mut storage_slots = if account_type.is_faucet() {
-            let initial_storage_slot = match account_type {
-                AccountType::FungibleFaucet => StorageSlot::empty_value(),
-                AccountType::NonFungibleFaucet => StorageSlot::empty_map(),
-                _ => unreachable!("we only enter this branch if the type is faucet"),
-            };
-
-            vec![initial_storage_slot]
-        } else {
-            vec![]
+        let mut storage_slots = match account_type {
+            AccountType::FungibleFaucet => vec![StorageSlot::empty_value()],
+            AccountType::NonFungibleFaucet => vec![StorageSlot::empty_map()],
+            _ => vec![],
         };
 
         storage_slots

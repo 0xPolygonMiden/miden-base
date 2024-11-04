@@ -121,9 +121,12 @@ impl Account {
     /// [`AccountId`]. Finally, a new account can then be instantiated from those parts using
     /// [`Account::new`].
     ///
-    /// If the `account_type` is faucet, an empty word will be put in the reserved slots for faucets
-    /// (slot 0). If the storage should be initialized with a specific value in that slot, it can be
-    /// set afterwards on [`AccountStorage`].
+    /// If the account type is faucet the reserved slot (slot 0) will be initialized.
+    /// - For Fungible Faucets the value is [`StorageSlot::empty_value`].
+    /// - For Non-Fungible Faucets the value is [`StorageSlot::empty_map`].
+    ///
+    /// If the storage needs to be initialized with certain values in that slot, those can be added
+    /// after construction with the standard set methods for items and maps.
     ///
     /// # Errors
     ///
