@@ -10,12 +10,15 @@ use crate::{
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
 /// combining multiple [`AccountComponent`]s.
 ///
-/// The methods required to be called are:
+/// By default, the builder is initialized with:
+/// - The `nonce` set to [`ZERO`], i.e. the nonce of a new account.
+/// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
+/// - The `storage_mode` set to [`AccountStorageMode::Private`].
+///
+/// The methods that are required to be called are:
 ///
 /// - [`AccountBuilder::init_seed`],
-/// - [`AccountBuilder::account_type`],
-/// - [`AccountBuilder::storage_mode`],
-/// - [`AccountBuilder::with_component`] must be called at least once.
+/// - [`AccountBuilder::with_component`], which must be called at least once.
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
     assets: Vec<Asset>,
@@ -46,13 +49,13 @@ impl AccountBuilder {
         self
     }
 
-    /// Sets the type of the account. This method is **required**.
+    /// Sets the type of the account.
     pub fn account_type(mut self, account_type: AccountType) -> Self {
         self.account_type = account_type;
         self
     }
 
-    /// Sets the storage mode of the account. This method is **required**.
+    /// Sets the storage mode of the account.
     pub fn storage_mode(mut self, storage_mode: AccountStorageMode) -> Self {
         self.storage_mode = storage_mode;
         self
@@ -92,8 +95,6 @@ impl AccountBuilder {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - The storage mode is not set.
-    /// - The account type is not set.
     /// - The init seed is not set.
     /// - If a duplicate assets was added to the builder.
     /// - Any of the components does not support the set account type.
@@ -104,22 +105,21 @@ impl AccountBuilder {
     ///   255.
     /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on the given components.
     pub fn build(self) -> Result<(Account, Word), AccountBuildError> {
-        let storage_mode = self.storage_mode;
-        let account_type = self.account_type;
         let init_seed = self.init_seed.ok_or(AccountBuildError::AccountInitSeedNotSet)?;
 
         let vault = AssetVault::new(&self.assets).map_err(AccountBuildError::AssetVaultError)?;
 
-        let (code, storage) = Account::initialize_from_components(account_type, &self.components)
-            .map_err(AccountBuildError::ComponentInitializationError)?;
+        let (code, storage) =
+            Account::initialize_from_components(self.account_type, &self.components)
+                .map_err(AccountBuildError::ComponentInitializationError)?;
 
         let code_commitment = code.commitment();
         let storage_commitment = storage.commitment();
 
         let seed = AccountId::get_account_seed(
             init_seed,
-            account_type,
-            storage_mode,
+            self.account_type,
+            self.storage_mode,
             code_commitment,
             storage_commitment,
         )
@@ -128,8 +128,8 @@ impl AccountBuilder {
         let account_id = AccountId::new(seed, code_commitment, storage_commitment)
             .expect("get_account_seed should provide a suitable seed");
 
-        debug_assert_eq!(account_id.account_type(), account_type);
-        debug_assert_eq!(account_id.storage_mode(), storage_mode);
+        debug_assert_eq!(account_id.account_type(), self.account_type);
+        debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
 
         let account = Account::from_parts(account_id, vault, storage, code, self.nonce);
         Ok((account, seed))
@@ -144,8 +144,6 @@ impl Default for AccountBuilder {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountBuildError {
-    AccountTypeNotSet,
-    AccountStorageModeNotSet,
     AccountInitSeedNotSet,
     AccountSeedGenerationFailure(AccountError),
     ComponentInitializationError(AccountError),
@@ -156,12 +154,6 @@ impl Display for AccountBuildError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "account build error: ")?;
         match self {
-            AccountBuildError::AccountTypeNotSet => {
-                write!(f, "account type is required but not set")
-            },
-            AccountBuildError::AccountStorageModeNotSet => {
-                write!(f, "account storage mode is required but not set")
-            },
             AccountBuildError::AccountInitSeedNotSet => {
                 write!(f, "account initial seed for ID generation is required but not set")
             },
