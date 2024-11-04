@@ -30,13 +30,25 @@ pub const NON_FUNGIBLE_FAUCET: u64 = 0b11;
 pub const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
 pub const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u64)]
 pub enum AccountType {
     FungibleFaucet = FUNGIBLE_FAUCET,
     NonFungibleFaucet = NON_FUNGIBLE_FAUCET,
     RegularAccountImmutableCode = REGULAR_ACCOUNT_IMMUTABLE_CODE,
     RegularAccountUpdatableCode = REGULAR_ACCOUNT_UPDATABLE_CODE,
+}
+
+impl AccountType {
+    /// Returns `true` if the account is a faucet.
+    pub fn is_faucet(&self) -> bool {
+        matches!(self, Self::FungibleFaucet | Self::NonFungibleFaucet)
+    }
+
+    /// Returns `true` if the account is a regular account.
+    pub fn is_regular_account(&self) -> bool {
+        matches!(self, Self::RegularAccountImmutableCode | Self::RegularAccountUpdatableCode)
+    }
 }
 
 /// Extracts the [AccountType] encoded in an u64.

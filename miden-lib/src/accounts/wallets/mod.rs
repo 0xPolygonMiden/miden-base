@@ -1,17 +1,37 @@
-use alloc::string::{String, ToString};
+use alloc::string::ToString;
 
 use miden_objects::{
-    accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
-        StorageSlot,
-    },
+    accounts::{Account, AccountComponent, AccountId, AccountStorageMode, AccountType},
     AccountError, Word,
 };
 
-use super::{AuthScheme, TransactionKernel};
+use super::AuthScheme;
+use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
 
 // BASIC WALLET
 // ================================================================================================
+
+/// An [`AccountComponent`] implementing a basic wallet.
+///
+/// Its exported procedures are:
+/// - `receive_asset`, which can be used to add an asset to the account.
+/// - `create_note`, which can be used to create a new note without any assets attached to it.
+/// - `move_asset_to_note`, which can be used to remove the specified asset from the account and add
+///   it to the output note with the specified index.
+///
+/// All methods require authentication. Thus, this component must be combined with a component
+/// providing authentication.
+///
+/// This component supports all account types.
+pub struct BasicWallet;
+
+impl From<BasicWallet> for AccountComponent {
+    fn from(_: BasicWallet) -> Self {
+        AccountComponent::new(basic_wallet_library(), vec![])
+          .expect("basic wallet component should satisfy the requirements of a valid account component")
+          .with_supports_all_types()
+    }
+}
 
 /// Creates a new account with basic wallet interface, the specified authentication scheme and the
 /// account storage type. Basic wallets can be specified to have either mutable or immutable code.
@@ -23,8 +43,7 @@ use super::{AuthScheme, TransactionKernel};
 ///   it to the output note with the specified index.
 ///
 /// All methods require authentication. The authentication procedure is defined by the specified
-/// authentication scheme. Public key information for the scheme is stored in the account storage
-/// at slot 0.
+/// authentication scheme.
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,
@@ -37,23 +56,12 @@ pub fn create_basic_wallet(
         ));
     }
 
-    let (auth_scheme_procedure, storage_slot_0_data): (&str, Word) = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => ("auth_tx_rpo_falcon512", pub_key.into()),
+    let auth_component = match auth_scheme {
+        AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key).into(),
     };
 
-    let source_code: String = format!(
-        "
-        export.::miden::contracts::wallets::basic::receive_asset
-        export.::miden::contracts::wallets::basic::create_note
-        export.::miden::contracts::wallets::basic::move_asset_to_note
-        export.::miden::contracts::auth::basic::{auth_scheme_procedure}
-        "
-    );
-
-    let assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::compile(source_code, assembler, false)?;
-
-    let account_storage = AccountStorage::new(vec![StorageSlot::Value(storage_slot_0_data)])?;
+    let (account_code, account_storage) =
+        Account::initialize_from_components(account_type, &[auth_component, BasicWallet.into()])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,

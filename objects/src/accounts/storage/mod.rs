@@ -4,6 +4,7 @@ use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
+use crate::accounts::{AccountComponent, AccountType};
 
 mod slot;
 pub use slot::{StorageSlot, StorageSlotType};
@@ -39,6 +40,11 @@ impl AccountStorage {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new instance of account storage initialized with the provided items.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The number of [`StorageSlot`]s exceeds 255.
     pub fn new(slots: Vec<StorageSlot>) -> Result<AccountStorage, AccountError> {
         let num_slots = slots.len();
 
@@ -47,6 +53,35 @@ impl AccountStorage {
         }
 
         Ok(Self { slots })
+    }
+
+    /// Creates an [`AccountStorage`] from the provided components' storage slots.
+    ///
+    /// If the account type is faucet the reserved slot (slot 0) will be initialized.
+    /// - For Fungible Faucets the value is [`StorageSlot::empty_value`].
+    /// - For Non-Fungible Faucets the value is [`StorageSlot::empty_map`].
+    ///
+    /// If the storage needs to be initialized with certain values in that slot, those can be added
+    /// after construction with the standard set methods for items and maps.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The number of [`StorageSlot`]s of all components exceeds 255.
+    pub(super) fn from_components(
+        components: &[AccountComponent],
+        account_type: AccountType,
+    ) -> Result<AccountStorage, AccountError> {
+        let mut storage_slots = match account_type {
+            AccountType::FungibleFaucet => vec![StorageSlot::empty_value()],
+            AccountType::NonFungibleFaucet => vec![StorageSlot::empty_map()],
+            _ => vec![],
+        };
+
+        storage_slots
+            .extend(components.iter().flat_map(|component| component.storage_slots()).cloned());
+
+        Self::new(storage_slots)
     }
 
     // PUBLIC ACCESSORS

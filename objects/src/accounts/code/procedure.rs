@@ -55,10 +55,12 @@ impl AccountProcedureInfo {
             return Err(AccountError::PureProcedureWithStorageOffset);
         }
 
-        if (storage_offset + storage_size) as usize > AccountStorage::MAX_NUM_STORAGE_SLOTS {
+        // Check if the addition would exceed AccountStorage::MAX_NUM_STORAGE_SLOTS (= 255) which is
+        // the case if the addition overflows.
+        if storage_offset.checked_add(storage_size).is_none() {
             return Err(AccountError::StorageOffsetOutOfBounds {
                 max: AccountStorage::MAX_NUM_STORAGE_SLOTS as u8,
-                actual: storage_offset + storage_size,
+                actual: storage_offset as u16 + storage_size as u16,
             });
         }
 

@@ -2,13 +2,14 @@ extern crate alloc;
 
 use std::sync::Arc;
 
-use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
+use miden_lib::{
+    accounts::{auth::RpoFalcon512, faucets::BasicFungibleFaucet},
+    transaction::memory::FAUCET_STORAGE_DATA_SLOT,
+};
 use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountProcedureInfo, AccountStorage, StorageSlot,
-    },
-    assets::{Asset, AssetVault, FungibleAsset},
+    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountId},
+    assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
+    crypto::dsa::rpo_falcon512::PublicKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::prepare_word,
     Felt, Word, ZERO,
@@ -20,12 +21,6 @@ use crate::{
     get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
 
-const FUNGIBLE_FAUCET_SOURCE: &str = "
-export.::miden::contracts::faucets::basic_fungible::distribute
-export.::miden::contracts::faucets::basic_fungible::burn
-export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-";
-
 // TESTS MINT FUNGIBLE ASSET
 // ================================================================================================
 
@@ -34,20 +29,6 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
-    let procedures = faucet_account
-        .code()
-        .procedures()
-        .iter()
-        .map(|proc| AccountProcedureInfo::new(*proc.mast_root(), proc.storage_offset(), 2).unwrap())
-        .collect();
-    let account_code = AccountCode::from_parts(faucet_account.code().mast(), procedures);
-    let faucet_account = Account::from_parts(
-        faucet_account.id(),
-        faucet_account.vault().clone(),
-        faucet_account.storage().clone(),
-        account_code,
-        faucet_account.nonce(),
-    );
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -187,17 +168,17 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
 
-    // check that the faucet reserved slot has been correctly initialised
+    // Check that the faucet reserved slot has been correctly initialised.
+    // The already issued amount should be 100.
     assert_eq!(
         faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT).unwrap(),
         [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
     );
 
-    // check that max_supply (slot 2) is 200 and amount already issued (slot 0) is 100
-    assert_eq!(
-        faucet_account.storage().get_item(2).unwrap(),
-        [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
-    );
+    // The Fungible Faucet component is added as the first component, so it's storage slot offset
+    // will be 1. Check that max_supply at the word's index 0 is 200. The remainder of the word
+    // is initialized with the metadata of the faucet which we don't need to check.
+    assert_eq!(faucet_account.storage().get_item(1).unwrap()[0], Felt::new(200));
 
     // need to create a note with the fungible asset to be burned
     let note_script = "
@@ -257,35 +238,33 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
 
-    let assembler = TransactionKernel::assembler();
-    let faucet_account_code =
-        AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler, true).unwrap();
+    let components = [
+        BasicFungibleFaucet::new(
+            TokenSymbol::new("TST").unwrap(),
+            5,
+            max_supply.try_into().unwrap(),
+        )
+        .unwrap()
+        .into(),
+        RpoFalcon512::new(PublicKey::new(public_key)).into(),
+    ];
 
-    // faucet reserved slot
-    let faucet_storage_slot_0 = match total_issuance {
-        Some(issuance) => StorageSlot::Value([ZERO, ZERO, ZERO, Felt::new(issuance)]),
-        None => StorageSlot::Value(Word::default()),
-    };
+    let (faucet_account_code, mut faucet_account_storage) =
+        Account::initialize_from_components(faucet_account_id.account_type(), &components).unwrap();
 
-    // faucet pub_key
-    let faucet_storage_slot_1 = StorageSlot::Value(public_key);
-
-    // faucet metadata
-    let faucet_storage_slot_2 =
-        StorageSlot::Value([Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)]);
-
-    let faucet_account_storage = AccountStorage::new(vec![
-        faucet_storage_slot_0,
-        faucet_storage_slot_1,
-        faucet_storage_slot_2,
-    ])
-    .unwrap();
+    // The faucet's reserved slot is initialized to an empty word by default.
+    // If total_issuance is set, overwrite it.
+    if let Some(issuance) = total_issuance {
+        faucet_account_storage
+            .set_item(FAUCET_STORAGE_DATA_SLOT, [ZERO, ZERO, ZERO, Felt::new(issuance)])
+            .unwrap();
+    }
 
     Account::from_parts(
         faucet_account_id,
         AssetVault::new(&[]).unwrap(),
-        faucet_account_storage.clone(),
-        faucet_account_code.clone(),
+        faucet_account_storage,
+        faucet_account_code,
         Felt::new(1),
     )
 }

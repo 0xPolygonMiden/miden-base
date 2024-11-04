@@ -11,7 +11,11 @@ pub use account_id::{
 };
 
 pub mod auth;
+
 pub use auth::AuthSecretKey;
+
+mod component;
+pub use component::AccountComponent;
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
@@ -92,6 +96,57 @@ impl Account {
         nonce: Felt,
     ) -> Self {
         Self { id, vault, storage, code, nonce }
+    }
+
+    /// Creates an account's [`AccountCode`] and [`AccountStorage`] from the provided components.
+    ///
+    /// This merges all libraries of the components into a single
+    /// [`MastForest`](vm_processor::MastForest) to produce the [`AccountCode`]. For each
+    /// procedure in the resulting forest, the storage offset and size are set so that the
+    /// procedure can only access the storage slots of the component in which it was defined and
+    /// each component's storage offset is the total number of slots in the previous components.
+    /// To illustrate, given two components with one and two storage slots respectively:
+    ///
+    /// - RpoFalcon512 Component: Component slot 0 stores the public key.
+    /// - Custom Component: Component slot 0 stores a custom [`StorageSlot::Value`] and component
+    ///   slot 1 stores a custom [`StorageSlot::Map`].
+    ///
+    /// When combined, their assigned slots in the [`AccountStorage`] would be:
+    ///
+    /// - The RpoFalcon512 Component has offset 0 and size 1: Account slot 0 stores the public key.
+    /// - The Custom Component has offset 1 and size 2: Account slot 1 stores the value and account
+    ///   slot 2 stores the map.
+    ///
+    /// The resulting commitments from code and storage can then be used to construct an
+    /// [`AccountId`]. Finally, a new account can then be instantiated from those parts using
+    /// [`Account::new`].
+    ///
+    /// If the account type is faucet the reserved slot (slot 0) will be initialized.
+    /// - For Fungible Faucets the value is [`StorageSlot::empty_value`].
+    /// - For Non-Fungible Faucets the value is [`StorageSlot::empty_map`].
+    ///
+    /// If the storage needs to be initialized with certain values in that slot, those can be added
+    /// after construction with the standard set methods for items and maps.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Any of the components does not support `account_type`.
+    /// - The number of procedures in all merged libraries is 0 or exceeds
+    ///   [`AccountCode::MAX_NUM_PROCEDURES`].
+    /// - Two or more libraries export a procedure with the same MAST root.
+    /// - The number of [`StorageSlot`]s of all components exceeds 255.
+    /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on all libraries.
+    pub fn initialize_from_components(
+        account_type: AccountType,
+        components: &[AccountComponent],
+    ) -> Result<(AccountCode, AccountStorage), AccountError> {
+        validate_components_support_account_type(components, account_type)?;
+
+        let code = AccountCode::from_components_unchecked(components, account_type)?;
+        let storage = AccountStorage::from_components(components, account_type)?;
+
+        Ok((code, storage))
     }
 
     // PUBLIC ACCESSORS
@@ -297,11 +352,29 @@ pub fn hash_account(
     Hasher::hash_elements(&elements)
 }
 
+/// Validates that all `components` support the given `account_type`.
+fn validate_components_support_account_type(
+    components: &[AccountComponent],
+    account_type: AccountType,
+) -> Result<(), AccountError> {
+    for (component_index, component) in components.iter().enumerate() {
+        if !component.supports_type(account_type) {
+            return Err(AccountError::UnsupportedComponentForAccountType {
+                account_type,
+                component_index,
+            });
+        }
+    }
+
+    Ok(())
+}
+
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
+    use assembly::Assembler;
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Felt, Word,
@@ -310,10 +383,13 @@ mod tests {
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
-        accounts::{Account, StorageMap, StorageMapDelta, StorageSlot},
+        accounts::{
+            Account, AccountComponent, AccountType, StorageMap, StorageMapDelta, StorageSlot,
+        },
         testing::storage::{
             build_account, build_account_delta, build_assets, AccountStorageDeltaBuilder,
         },
+        AccountError,
     };
 
     #[test]
@@ -476,5 +552,56 @@ mod tests {
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()
+    }
+
+    /// Tests that initializing code and storage from a component which does not support the given
+    /// account type returns an error.
+    #[test]
+    fn test_account_unsupported_component_type() {
+        let code1 = "export.foo add end";
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+
+        // This component support all account types except the regular account with updatable code.
+        let component1 = AccountComponent::new(library1, vec![])
+            .unwrap()
+            .with_supported_type(AccountType::FungibleFaucet)
+            .with_supported_type(AccountType::NonFungibleFaucet)
+            .with_supported_type(AccountType::RegularAccountImmutableCode);
+
+        let err = Account::initialize_from_components(
+            AccountType::RegularAccountUpdatableCode,
+            &[component1],
+        )
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            AccountError::UnsupportedComponentForAccountType {
+                account_type: AccountType::RegularAccountUpdatableCode,
+                component_index: 0
+            }
+        ))
+    }
+
+    /// Two components who export a procedure with the same MAST root should fail to convert into
+    /// code and storage.
+    #[test]
+    fn test_account_duplicate_exported_mast_root() {
+        let code1 = "export.foo add eq.1 end";
+        let code2 = "export.bar add eq.1 end";
+
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+        let library2 = Assembler::default().assemble_library([code2]).unwrap();
+
+        let component1 = AccountComponent::new(library1, vec![]).unwrap().with_supports_all_types();
+        let component2 = AccountComponent::new(library2, vec![]).unwrap().with_supports_all_types();
+
+        let err = Account::initialize_from_components(
+            AccountType::RegularAccountUpdatableCode,
+            &[component1, component2],
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, AccountError::AccountCodeMergeError(_)))
     }
 }

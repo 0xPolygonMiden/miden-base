@@ -6,7 +6,9 @@ use alloc::{
 use vm_core::Word;
 
 pub mod account;
+pub mod account_builder;
 pub mod account_code;
+pub mod account_component;
 pub mod account_id;
 pub mod assets;
 pub mod block;

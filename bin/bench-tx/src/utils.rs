@@ -2,11 +2,11 @@ extern crate alloc;
 pub use alloc::{collections::BTreeMap, string::String};
 use std::sync::Arc;
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AuthSecretKey, StorageSlot},
+    accounts::{Account, AccountId, AuthSecretKey},
     assets::{Asset, AssetVault},
-    crypto::dsa::rpo_falcon512::SecretKey,
+    crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     transaction::TransactionMeasurements,
     Felt, Word,
 };
@@ -29,13 +29,6 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
     begin
         call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
     end
-";
-
-pub const DEFAULT_ACCOUNT_CODE: &str = "
-    export.::miden::contracts::wallets::basic::receive_asset
-    export.::miden::contracts::wallets::basic::create_note
-    export.::miden::contracts::wallets::basic::move_asset_to_note
-    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
 // MEASUREMENTS PRINTER
@@ -68,16 +61,16 @@ impl From<TransactionMeasurements> for MeasurementsPrinter {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn get_account_with_default_account_code(
+pub fn get_account_with_basic_authenticated_wallet(
     account_id: AccountId,
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    let account_code_src = DEFAULT_ACCOUNT_CODE;
-    let assembler = TransactionKernel::assembler();
-
-    let account_code = AccountCode::compile(account_code_src, assembler, false).unwrap();
-    let account_storage = AccountStorage::new(vec![StorageSlot::Value(public_key)]).unwrap();
+    let (account_code, account_storage) = Account::initialize_from_components(
+        account_id.account_type(),
+        &[BasicWallet.into(), RpoFalcon512::new(PublicKey::new(public_key)).into()],
+    )
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

@@ -1,8 +1,9 @@
-use alloc::sync::Arc;
+use assembly::{Assembler, Library};
 
-use assembly::{ast::Module, Assembler, Library, LibraryPath};
-
-use crate::accounts::AccountCode;
+use crate::{
+    accounts::{AccountCode, AccountComponent, AccountType},
+    testing::account_component::AccountMockComponent,
+};
 
 pub const CODE: &str = "
     export.foo
@@ -14,34 +15,8 @@ pub const CODE: &str = "
     end
 ";
 
-// ACCOUNT ASSEMBLY CODE
-// ================================================================================================
-
-pub const DEFAULT_ACCOUNT_CODE: &str = "
-    export.::miden::contracts::wallets::basic::receive_asset
-    export.::miden::contracts::wallets::basic::create_note
-    export.::miden::contracts::wallets::basic::move_asset_to_note
-    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-";
-
-pub const DEFAULT_AUTH_SCRIPT: &str = "
-    begin
-        call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-    end
-";
-
-impl AccountCode {
-    /// Creates a mock [AccountCode]
-    pub fn mock_account_code(assembler: Assembler, is_faucet: bool) -> AccountCode {
-        AccountCode::new(Self::mock_library(assembler), is_faucet).unwrap()
-    }
-
-    /// Creates a mock [Library] which can be used to assemble programs and as a library to create a
-    /// mock [AccountCode] interface. Transaction and note scripts that make use of this interface
-    /// should be assembled with this.
-    pub fn mock_library(assembler: Assembler) -> Library {
-        let code = "
-        use.miden::account
+pub(crate) const MOCK_ACCOUNT_CODE: &str = "
+    use.miden::account
         use.miden::faucet
         use.miden::tx
 
@@ -154,22 +129,30 @@ impl AccountCode {
             exec.faucet::burn
             # => [ASSET, pad(12)]
         end
-        ";
-        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
-        let module = Module::parser(assembly::ast::ModuleKind::Library)
-            .parse_str(LibraryPath::new("test::account").unwrap(), code, &source_manager)
-            .unwrap();
+";
 
-        assembler.assemble_library(&[*module]).unwrap()
-    }
+// ACCOUNT ASSEMBLY CODE
+// ================================================================================================
 
-    /// Creates a mock [AccountCode] with specific code and assembler
-    pub fn mock_with_code(source_code: &str, assembler: Assembler) -> AccountCode {
-        Self::compile(source_code, assembler, false).unwrap()
+pub const DEFAULT_AUTH_SCRIPT: &str = "
+    begin
+        call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+    end
+";
+
+impl AccountCode {
+    /// Creates a mock [Library] which can be used to assemble programs and as a library to create a
+    /// mock [AccountCode] interface. Transaction and note scripts that make use of this interface
+    /// should be assembled with this.
+    pub fn mock_library(assembler: Assembler) -> Library {
+        AccountMockComponent::new_with_empty_slots(assembler).unwrap().into()
     }
 
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        Self::compile(CODE, Assembler::default(), false).unwrap()
+        let component = AccountComponent::compile(CODE, Assembler::default(), vec![])
+            .unwrap()
+            .with_supports_all_types();
+        Self::from_components(&[component], AccountType::RegularAccountUpdatableCode).unwrap()
     }
 }

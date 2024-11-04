@@ -21,6 +21,7 @@ const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
 const ASM_MIDEN_DIR: &str = "miden";
 const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
+const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
 
@@ -61,8 +62,11 @@ fn main() -> Result<()> {
     compile_note_scripts(
         &source_dir.join(ASM_NOTE_SCRIPTS_DIR),
         &target_dir.join(ASM_NOTE_SCRIPTS_DIR),
-        assembler,
+        assembler.clone(),
     )?;
+
+    // compile account components
+    compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
 
     Ok(())
 }
@@ -296,6 +300,41 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
         masb_file_path.set_extension("masb");
         fs::write(masb_file_path, bytes).unwrap();
     }
+    Ok(())
+}
+
+// COMPILE DEFAULT ACCOUNT COMPONENTS
+// ================================================================================================
+
+const BASIC_WALLET_CODE: &str = "
+    export.::miden::contracts::wallets::basic::receive_asset
+    export.::miden::contracts::wallets::basic::create_note
+    export.::miden::contracts::wallets::basic::move_asset_to_note
+";
+
+const RPO_FALCON_AUTH_CODE: &str = "
+    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+";
+
+const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
+    export.::miden::contracts::faucets::basic_fungible::distribute
+    export.::miden::contracts::faucets::basic_fungible::burn
+";
+
+/// Compiles the default account components into a MASL library and stores the complied files in
+/// `target_dir`.
+fn compile_account_components(target_dir: &Path, assembler: Assembler) -> Result<()> {
+    for (component_name, component_code) in [
+        ("basic_wallet", BASIC_WALLET_CODE),
+        ("rpo_falcon_512", RPO_FALCON_AUTH_CODE),
+        ("basic_fungible_faucet", BASIC_FUNGIBLE_FAUCET_CODE),
+    ] {
+        let component_library = assembler.clone().assemble_library([component_code])?;
+        let component_file_path =
+            target_dir.join(component_name).with_extension(Library::LIBRARY_EXTENSION);
+        component_library.write_to_file(component_file_path).into_diagnostic()?;
+    }
+
     Ok(())
 }
 

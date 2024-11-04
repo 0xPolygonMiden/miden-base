@@ -365,9 +365,8 @@ end
 #! - All storage offsets and sizes are in bounds
 #! - All storage offsets adhere to account type specific rules
 #! - All procedures not accessing storage have offset and size set to 0
-#!
-#! Notes:
-#! - For faucets checks that no storage offset is 0 (preventing reserved storage slot access)
+#! - No storage offset of a faucet account's procedure is 0 with a size != 0
+#!   (to prevent access to the reserved storage slot)
 #!
 #! Stack: []
 #! Output: []
@@ -387,41 +386,40 @@ export.validate_procedure_metadata
     # we do not check if num_account_procedures == 0 here because a valid
     # account has between 1 and 256 procedures with associated offsets
     if.true
+        # This branch handles procedures from faucet accounts.
         while.true
             # get storage offset and size from memory
             dup exec.get_procedure_metadata
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # assert that storage offset is not 0
-            dup push.0 neq assert.err=ERR_FAUCET_INVALID_STORAGE_OFFSET
+            # Procedures that do not access storage are defined with (offset, size) = (0, 0).
+            # But we want to fail on tuples defined with a zero size but non-zero offset, since that is a logic error.
+            # We want to panic when we see this condition, so we use assertz rather than assert.
+            # So we can assert this with: (size == 0 && offset != 0) == 0.
+            dup.1 eq.0 dup.1 eq.0 not and assertz.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # TODO: This is a temporary check for faucets. We add 1 to all faucet offsets
-            # to prevent access to the reserved faucet data slot. When the assembler
-            # will support storage offsets and sizes remove this check.
-            # check if the storage offset and the number of storage slots are 1
-            dup dup.4 eq.1 swap eq.1 and
-            # => [both_1, storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+            # No procedure should access the reserved faucet slot (slot 0). However (0, 0) should
+            # still be allowed per the above.
+            # We want to panic when we see this condition, so we use assertz rather than assert.
+            # So we can assert this with: (offset == 0 && size != 0) == 0.
+            dup.1 eq.0 not dup.1 eq.0 and assertz.err=ERR_FAUCET_INVALID_STORAGE_OFFSET
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            if.true
-                # clean stack
-                drop drop
-                # => [index, num_storage_slots, num_account_procedures]
-            else
-                # assert that storage offset is in bounds
-                dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-                # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
+            # assert that storage offset is in bounds
+            dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-                # assert that storage limit is in bounds
-                add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-                # => [index, num_storage_slots, num_account_procedures]
-            end
+            # assert that storage limit is in bounds
+            add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            # => [index, num_storage_slots, num_account_procedures]
 
             # check if we should continue looping
             add.1 dup dup.3 lt
             # => [should_loop, index, num_storage_slots, num_account_procedures]
         end
     else
+        # This branch handles procedures from regular accounts.
         while.true
             # get storage offset and size from memory
             dup exec.get_procedure_metadata
@@ -431,12 +429,11 @@ export.validate_procedure_metadata
             dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # TODO: Find a way to remove this `if` statement
-            # assert that if size is 0 then offset is 0
-            dup.1 eq.0
-            if.true
-                dup eq.0 assert.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
-            end
+            # Procedures that do not access storage are defined with (offset, size) = (0, 0).
+            # But we want to fail on tuples defined with a zero size but non-zero offset, since that is a logic error.
+            # We want to panic when we see this condition, so we use assertz rather than assert.
+            # So we can assert this with: (size == 0 && offset != 0) == 0.
+            dup.1 eq.0 dup.1 eq.0 not and assertz.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage limit is in bounds

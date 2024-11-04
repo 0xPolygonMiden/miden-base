@@ -17,17 +17,19 @@ use miden_objects::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        Account, AccountCode, AccountProcedureInfo, AccountStorage, StorageSlot,
+        Account, AccountCode, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
+        AccountType, StorageSlot,
     },
-    assets::NonFungibleAsset,
+    assets::{AssetVault, NonFungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
     },
     testing::{
-        account::AccountBuilder, constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word,
-        storage::STORAGE_LEAVES_2,
+        account_builder::AccountBuilder, account_component::AccountMockComponent,
+        constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word, storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes},
     Digest, FieldElement,
@@ -634,8 +636,17 @@ fn test_check_get_item_index() {
             movup.8 drop movup.8 drop movup.8 drop
         end
     ";
+    let component = AccountComponent::compile(
+        get_item_code_source,
+        TransactionKernel::testing_assembler(),
+        vec![],
+    )
+    .unwrap()
+    .with_supports_all_types();
+
     let expected_root =
-        *AccountCode::mock_with_code(get_item_code_source, TransactionKernel::testing_assembler())
+        *AccountCode::from_components(&[component], AccountType::RegularAccountUpdatableCode)
+            .unwrap()
             .procedures()[0]
             .mast_root();
 
@@ -650,8 +661,13 @@ fn test_load_foreign_account_basic() {
     // --------------------------------------------------------------------------------------------
     let storage_slot = AccountStorage::mock_item_0().slot;
     let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slot(storage_slot.clone())
-        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .add_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![storage_slot.clone()],
+            )
+            .unwrap(),
+        )
         .nonce(ONE)
         .build()
         .unwrap();
@@ -660,7 +676,18 @@ fn test_load_foreign_account_basic() {
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
     let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
+    // account which is required for this test to pass right now.
+    let native_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let native_account = Account::from_parts(
+        native_account_id,
+        AssetVault::mock(),
+        foreign_account.storage().clone(),
+        foreign_account.code().clone(),
+        ONE,
+    );
+    let tx_context = TransactionContextBuilder::new(native_account)
         .mock_chain(mock_chain)
         .advice_inputs(advice_inputs.clone())
         .build();
@@ -713,8 +740,13 @@ fn test_load_foreign_account_basic() {
     // --------------------------------------------------------------------------------------------
     let storage_slot = AccountStorage::mock_item_2().slot;
     let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slot(storage_slot.clone())
-        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .add_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![storage_slot],
+            )
+            .unwrap(),
+        )
         .nonce(ONE)
         .build()
         .unwrap();
@@ -723,7 +755,18 @@ fn test_load_foreign_account_basic() {
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
     let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
+    // account which is required for this test to pass right now.
+    let native_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let native_account = Account::from_parts(
+        native_account_id,
+        AssetVault::mock(),
+        foreign_account.storage().clone(),
+        foreign_account.code().clone(),
+        ONE,
+    );
+    let tx_context = TransactionContextBuilder::new(native_account)
         .mock_chain(mock_chain)
         .advice_inputs(advice_inputs)
         .build();
@@ -783,8 +826,13 @@ fn test_load_foreign_account_basic() {
 fn test_load_foreign_account_twice() {
     let storage_slot = AccountStorage::mock_item_0().slot;
     let (foreign_account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slot(storage_slot)
-        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .add_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![storage_slot],
+            )
+            .unwrap(),
+        )
         .nonce(ONE)
         .build()
         .unwrap();
@@ -793,7 +841,18 @@ fn test_load_foreign_account_twice() {
     let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
     let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
+    // account which is required for this test to pass right now.
+    let native_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let native_account = Account::from_parts(
+        native_account_id,
+        AssetVault::mock(),
+        foreign_account.storage().clone(),
+        foreign_account.code().clone(),
+        ONE,
+    );
+    let tx_context = TransactionContextBuilder::new(native_account)
         .mock_chain(mock_chain)
         .advice_inputs(advice_inputs.clone())
         .build();
@@ -972,7 +1031,17 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
 fn get_root_of_get_item_procedure() -> Digest {
     // keep in sync with actual index of the `get_item`
     let proc_index = 6;
-    *AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false).procedures()
-        [proc_index]
-        .mast_root()
+
+    let mock_component: AccountComponent =
+        AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
+            .unwrap()
+            .into();
+
+    let code = AccountCode::from_components(
+        &[mock_component.with_supports_all_types()],
+        AccountType::RegularAccountUpdatableCode,
+    )
+    .unwrap();
+
+    *code.procedures()[proc_index].mast_root()
 }

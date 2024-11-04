@@ -10,9 +10,13 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType, StorageSlot,
+        AccountCode, AccountComponent, AccountId, AccountStorage, AccountType, StorageSlot,
     },
-    testing::{account::AccountBuilder, prepare_word, storage::STORAGE_LEAVES_2},
+    assembly::Library,
+    testing::{
+        account_builder::AccountBuilder, account_component::AccountMockComponent, prepare_word,
+        storage::STORAGE_LEAVES_2,
+    },
     transaction::TransactionScript,
 };
 use rand::SeedableRng;
@@ -251,10 +255,14 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let storage_slot = AccountStorage::mock_item_2().slot;
     let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slot(storage_slot)
-        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .add_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![AccountStorage::mock_item_2().slot],
+            )
+            .unwrap(),
+        )
         .nonce(ONE)
         .build()
         .unwrap();
@@ -394,10 +402,14 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let storage_slot = AccountStorage::mock_item_2().slot;
     let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_slot(storage_slot)
-        .code(AccountCode::mock_account_code(TransactionKernel::testing_assembler(), false))
+        .add_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![AccountStorage::mock_item_2().slot],
+            )
+            .unwrap(),
+        )
         .nonce(ONE)
         .build()
         .unwrap();
@@ -452,20 +464,20 @@ fn test_set_map_item() {
 }
 
 #[test]
-fn test_storage_offset() {
+fn test_account_component_storage_offset() {
     // setup assembler
     let assembler = TransactionKernel::testing_assembler();
 
     // The following code will execute the following logic that will be asserted during the test:
     //
-    // 1. foo_write will set word [1, 2, 3, 4] in storage at location 1 (0 offset by 1)
-    // 2. foo_read will read word [1, 2, 3, 4] in storage from location 1 (0 offset by 1)
-    // 3. bar_write will set word [5, 6, 7, 8] in storage at location 2 (0 offset by 2)
-    // 4. bar_read will read word [5, 6, 7, 8] in storage from location 2 (0 offset by 2)
+    // 1. foo_write will set word [1, 2, 3, 4] in storage at location 0 (0 offset by 0)
+    // 2. foo_read will read word [1, 2, 3, 4] in storage from location 0 (0 offset by 0)
+    // 3. bar_write will set word [5, 6, 7, 8] in storage at location 1 (0 offset by 1)
+    // 4. bar_read will read word [5, 6, 7, 8] in storage from location 1 (0 offset by 1)
     //
     // We will then assert that we are able to retrieve the correct elements from storage
     // insuring consistent "set" and "get" using offsets.
-    let source_code = "
+    let source_code_component1 = "
         use.miden::account
 
         export.foo_write
@@ -482,6 +494,10 @@ fn test_storage_offset() {
 
             dropw dropw
         end
+    ";
+
+    let source_code_component2 = "
+        use.miden::account
 
         export.bar_write
             push.5.6.7.8.0
@@ -499,32 +515,70 @@ fn test_storage_offset() {
             dropw dropw
         end
     ";
-    // Setup account
-    let code = AccountCode::compile(source_code, assembler.clone(), false).unwrap();
 
-    // modify procedure storage offsets
-    // TODO: We manually set the offsets here because we do not have the ability to set the
-    // offsets through MASM for now. Remove this code when we enable this functionality.
-    let procedures_with_offsets = vec![
-        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2, 1).unwrap(),
-        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2, 1).unwrap(),
-        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1, 1).unwrap(),
-        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1, 1).unwrap(),
-    ];
-    let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
+    // Compile source code to find MAST roots of procedures.
+    let code1 = assembler.clone().assemble_library([source_code_component1]).unwrap();
+    let code2 = assembler.clone().assemble_library([source_code_component2]).unwrap();
+    let find_procedure_digest_by_name = |name: &str, lib: &Library| {
+        lib.exports().find_map(|export| {
+            if export.name.as_str() == name {
+                Some(lib.mast_forest()[lib.get_export_node_id(export)].digest())
+            } else {
+                None
+            }
+        })
+    };
 
-    let storage_slots = vec![
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
-    ];
+    let foo_write = find_procedure_digest_by_name("foo_write", &code1).unwrap();
+    let foo_read = find_procedure_digest_by_name("foo_read", &code1).unwrap();
+    let bar_write = find_procedure_digest_by_name("bar_write", &code2).unwrap();
+    let bar_read = find_procedure_digest_by_name("bar_read", &code2).unwrap();
+
+    // Compile source code into components.
+    let component1 = AccountComponent::compile(
+        source_code_component1,
+        assembler.clone(),
+        vec![StorageSlot::Value(Word::default())],
+    )
+    .unwrap()
+    .with_supported_type(AccountType::RegularAccountUpdatableCode);
+
+    let component2 = AccountComponent::compile(
+        source_code_component2,
+        assembler.clone(),
+        vec![StorageSlot::Value(Word::default())],
+    )
+    .unwrap()
+    .with_supported_type(AccountType::RegularAccountUpdatableCode);
 
     let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .code(code)
+        .add_component(component1)
+        .add_component(component2)
         .nonce(ONE)
-        .add_storage_slots(storage_slots)
         .build()
         .unwrap();
+
+    // Assert that the storage offset and size have been set correctly.
+    for (procedure_digest, expected_offset, expected_size) in
+        [(foo_write, 0, 1), (foo_read, 0, 1), (bar_write, 1, 1), (bar_read, 1, 1)]
+    {
+        let procedure_info = account
+            .code()
+            .procedures()
+            .iter()
+            .find(|proc| proc.mast_root() == &procedure_digest)
+            .unwrap();
+        assert_eq!(
+            procedure_info.storage_offset(),
+            expected_offset,
+            "failed for procedure {procedure_digest}"
+        );
+        assert_eq!(
+            procedure_info.storage_size(),
+            expected_size,
+            "failed for procedure {procedure_digest}"
+        );
+    }
 
     // setup transaction script
     let tx_script_source_code = format!(
@@ -535,11 +589,7 @@ fn test_storage_offset() {
         call.{bar_write}
         call.{bar_read}
     end
-    ",
-        foo_write = procedures_with_offsets[3].mast_root(),
-        foo_read = procedures_with_offsets[2].mast_root(),
-        bar_write = procedures_with_offsets[1].mast_root(),
-        bar_read = procedures_with_offsets[0].mast_root(),
+    "
     );
     let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
     let tx_script = TransactionScript::new(tx_script_program, vec![]);
@@ -553,12 +603,12 @@ fn test_storage_offset() {
 
     // assert that elements have been set at the correct locations in storage
     assert_eq!(
-        account.storage().get_item(1).unwrap(),
+        account.storage().get_item(0).unwrap(),
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
     );
 
     assert_eq!(
-        account.storage().get_item(2).unwrap(),
+        account.storage().get_item(1).unwrap(),
         [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
     );
 }
@@ -596,7 +646,13 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let account_code = AccountCode::mock_account_code(TransactionKernel::assembler(), false);
+    let mock_component =
+        AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap();
+    let account_code = AccountCode::from_components(
+        &[mock_component.into()],
+        AccountType::RegularAccountUpdatableCode,
+    )
+    .unwrap();
 
     let tc_0: [Felt; 4] =
         account_code.procedures()[0].mast_root().as_elements().try_into().unwrap();

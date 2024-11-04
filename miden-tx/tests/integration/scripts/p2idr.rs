@@ -19,7 +19,8 @@ use miden_objects::{
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
 use crate::{
-    build_default_auth_script, get_account_with_default_account_code, get_new_pk_and_authenticator,
+    build_default_auth_script, get_account_with_basic_authenticated_wallet,
+    get_new_pk_and_authenticator,
 };
 
 // P2IDR TESTS
@@ -38,21 +39,21 @@ fn p2idr_script() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
     let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
     let sender_account =
-        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
+        get_account_with_basic_authenticated_wallet(sender_account_id, sender_pub_key, None);
 
     // Now create the target account
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Now create the malicious account
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
-        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
+        get_account_with_basic_authenticated_wallet(malicious_account_id, malicious_pub_key, None);
 
     // --------------------------------------------------------------------------------------------
     // Create notes

@@ -26,8 +26,8 @@ const.ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED=0x0002
 # CONSTANTS
 # =================================================================================================
 
-# Slot in account storage at which the metadata is stored.
-const.METADATA_SLOT=1
+# The slot in this component's storage layout where the metadata is stored.
+const.METADATA_SLOT=0
 
 # Basic authentication for the faucet owner.
 export.basic::auth_tx_rpo_falcon512

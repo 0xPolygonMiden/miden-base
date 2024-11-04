@@ -1,9 +1,8 @@
-use assembly::Assembler;
 use rand::Rng;
 
-use super::{account::AccountBuilderError, account_code::DEFAULT_ACCOUNT_CODE};
+use super::account_builder::AccountBuilderError;
 use crate::{
-    accounts::{AccountCode, AccountId, AccountStorageMode, AccountType},
+    accounts::{AccountId, AccountStorageMode, AccountType},
     Digest, Word,
 };
 
@@ -12,7 +11,7 @@ use crate::{
 pub struct AccountIdBuilder<T> {
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    code: Option<AccountCode>,
+    code_commitment: Option<Digest>,
     storage_commitment: Digest,
     rng: T,
 }
@@ -22,7 +21,7 @@ impl<T: Rng> AccountIdBuilder<T> {
         Self {
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
-            code: None,
+            code_commitment: None,
             storage_commitment: Digest::default(),
             rng,
         }
@@ -38,17 +37,8 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn code(&mut self, code: AccountCode) -> &mut Self {
-        self.code = Some(code);
-        self
-    }
-
-    /// Compiles [DEFAULT_ACCOUNT_CODE] into [AccountCode] and sets it.
-    pub fn default_code(mut self, assembler: Assembler) -> Self {
-        self.code = Some(
-            AccountCode::compile(DEFAULT_ACCOUNT_CODE, assembler, false)
-                .expect("Default account code should compile."),
-        );
+    pub fn code_commitment(&mut self, code_commitment: Digest) -> &mut Self {
+        self.code_commitment = Some(code_commitment);
         self
     }
 
@@ -57,8 +47,12 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
+    pub(crate) fn get_account_type(&self) -> AccountType {
+        self.account_type
+    }
+
     pub fn build(&mut self) -> Result<(AccountId, Word), AccountBuilderError> {
-        let account_code = self.code.clone().ok_or(AccountBuilderError::AccountCodeNotSet)?;
+        let account_code = self.code_commitment.ok_or(AccountBuilderError::AccountCodeNotSet)?;
 
         let (seed, code_commitment) = account_id_build_details(
             &mut self.rng,
@@ -75,8 +69,7 @@ impl<T: Rng> AccountIdBuilder<T> {
     }
 
     pub fn with_seed(&mut self, seed: Word) -> Result<AccountId, AccountBuilderError> {
-        let account_code = self.code.clone().ok_or(AccountBuilderError::AccountCodeNotSet)?;
-        let code_commitment = account_code.commitment();
+        let code_commitment = self.code_commitment.ok_or(AccountBuilderError::AccountCodeNotSet)?;
 
         let account_id = AccountId::new(seed, code_commitment, self.storage_commitment)
             .map_err(AccountBuilderError::AccountError)?;
@@ -101,13 +94,12 @@ impl<T: Rng> AccountIdBuilder<T> {
 /// This compiles `code` and performs the proof-of-work to find a valid seed.
 pub fn account_id_build_details<T: Rng>(
     rng: &mut T,
-    code: AccountCode,
+    code_commitment: Digest,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
     storage_commitment: Digest,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
-    let code_commitment = code.commitment();
     let seed = AccountId::get_account_seed(
         init_seed,
         account_type,
