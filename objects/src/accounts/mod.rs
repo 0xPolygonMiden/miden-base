@@ -14,11 +14,14 @@ pub mod auth;
 
 pub use auth::AuthSecretKey;
 
-mod component;
-pub use component::AccountComponent;
+mod builder;
+pub use builder::{AccountBuildError, AccountBuilder};
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
+
+mod component;
+pub use component::AccountComponent;
 
 pub mod delta;
 pub use delta::{
@@ -147,6 +150,11 @@ impl Account {
         let storage = AccountStorage::from_components(components, account_type)?;
 
         Ok((code, storage))
+    }
+
+    /// Returns a new [`AccountBuilder`]. See its documentation for details.
+    pub fn builder() -> AccountBuilder {
+        AccountBuilder::new()
     }
 
     // PUBLIC ACCESSORS
