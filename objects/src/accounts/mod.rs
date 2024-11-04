@@ -374,6 +374,7 @@ fn validate_components_support_account_type(
 
 #[cfg(test)]
 mod tests {
+    use assembly::Assembler;
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Felt, Word,
@@ -382,10 +383,13 @@ mod tests {
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
-        accounts::{Account, StorageMap, StorageMapDelta, StorageSlot},
+        accounts::{
+            Account, AccountComponent, AccountType, StorageMap, StorageMapDelta, StorageSlot,
+        },
         testing::storage::{
             build_account, build_account_delta, build_assets, AccountStorageDeltaBuilder,
         },
+        AccountError,
     };
 
     #[test]
@@ -548,5 +552,56 @@ mod tests {
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()
+    }
+
+    /// Tests that initializing code and storage from a component which does not support the given
+    /// account type returns an error.
+    #[test]
+    fn test_account_unsupported_component_type() {
+        let code1 = "export.foo add end";
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+
+        // This component support all account types except the regular account with updatable code.
+        let component1 = AccountComponent::new(library1, vec![])
+            .unwrap()
+            .with_supported_type(AccountType::FungibleFaucet)
+            .with_supported_type(AccountType::NonFungibleFaucet)
+            .with_supported_type(AccountType::RegularAccountImmutableCode);
+
+        let err = Account::initialize_from_components(
+            AccountType::RegularAccountUpdatableCode,
+            &[component1],
+        )
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            AccountError::UnsupportedComponentForAccountType {
+                account_type: AccountType::RegularAccountUpdatableCode,
+                component_index: 0
+            }
+        ))
+    }
+
+    /// Two components who export a procedure with the same MAST root should fail to convert into
+    /// code and storage.
+    #[test]
+    fn test_account_duplicate_exported_mast_root() {
+        let code1 = "export.foo add eq.1 end";
+        let code2 = "export.bar add eq.1 end";
+
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+        let library2 = Assembler::default().assemble_library([code2]).unwrap();
+
+        let component1 = AccountComponent::new(library1, vec![]).unwrap().with_supports_all_types();
+        let component2 = AccountComponent::new(library2, vec![]).unwrap().with_supports_all_types();
+
+        let err = Account::initialize_from_components(
+            AccountType::RegularAccountUpdatableCode,
+            &[component1, component2],
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, AccountError::AccountCodeMergeError(_)))
     }
 }

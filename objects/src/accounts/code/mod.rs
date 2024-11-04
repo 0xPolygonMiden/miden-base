@@ -369,31 +369,4 @@ mod tests {
 
         assert!(matches!(err, AccountError::StorageOffsetOutOfBounds { actual: 256, .. }))
     }
-
-    #[test]
-    fn test_account_component_unsupported_type() {
-        let code1 = "export.foo add end";
-        let library1 = Assembler::default().assemble_library([code1]).unwrap();
-
-        // This component support all account types except the regular account with updatable code.
-        let component1 = AccountComponent::new(library1, vec![])
-            .unwrap()
-            .with_supported_type(AccountType::FungibleFaucet)
-            .with_supported_type(AccountType::NonFungibleFaucet)
-            .with_supported_type(AccountType::RegularAccountImmutableCode);
-
-        let err = AccountCode::from_components(
-            &[component1.clone()],
-            AccountType::RegularAccountUpdatableCode,
-        )
-        .unwrap_err();
-
-        assert!(matches!(
-            err,
-            AccountError::UnsupportedComponentForAccountType {
-                account_type: AccountType::RegularAccountUpdatableCode,
-                component_index: 0
-            }
-        ))
-    }
 }
