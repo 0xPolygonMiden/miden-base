@@ -42,8 +42,10 @@ impl AccountBuilder {
         }
     }
 
-    /// Sets the initial seed from which the search for an [`AccountId`] will start. This method is
-    /// **required**.
+    /// Sets the initial seed from which the grind for an [`AccountId`] will start. This initial
+    /// seed should come from a cryptographic random number generator.
+    ///
+    ///  This method **must** be called.
     pub fn init_seed(mut self, init_seed: [u8; 32]) -> Self {
         self.init_seed = Some(init_seed);
         self
