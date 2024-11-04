@@ -251,8 +251,6 @@ mod tests {
 
         let (account, seed) = Account::builder()
             .init_seed([5; 32])
-            .account_type(AccountType::RegularAccountUpdatableCode)
-            .storage_mode(AccountStorageMode::Private)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_component(CustomComponent2 {
                 slot0: storage_slot1,
