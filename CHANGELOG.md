@@ -33,6 +33,7 @@
 - [BREAKING] Migrated to v0.11 version of Miden VM (#929).
 - [BREAKING] Introduce a new way to build `Account`s from `AccountComponent`s (#941).
 - Added `total_cycles` and `trace_length` to the `TransactionMeasurements` (#953).
+- [BREAKING] Introduce an `AccountBuilder` (#952).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
