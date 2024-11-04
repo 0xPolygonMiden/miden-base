@@ -22,9 +22,11 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::{AccountComponent, AccountProcedureInfo, AccountStorage, AccountType, StorageSlot},
+    accounts::{
+        AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage, AccountType,
+        StorageSlot,
+    },
     testing::{
-        account_builder::AccountBuilder,
         account_component::BASIC_WALLET_CODE,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
@@ -32,7 +34,7 @@ use miden_objects::{
     transaction::{TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ONE};
 
@@ -393,8 +395,9 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(
+    let (account, seed) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(
             AccountComponent::compile(
                 BASIC_WALLET_CODE,
                 TransactionKernel::testing_assembler(),
@@ -528,9 +531,10 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+    let (acct, account_seed) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .add_component(BasicWallet)
+        .with_component(BasicWallet)
         .build()
         .unwrap();
 

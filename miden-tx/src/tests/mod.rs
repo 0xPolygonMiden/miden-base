@@ -13,7 +13,7 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        AccountCode, AccountComponent, AccountStorage, AccountType,
+        AccountBuilder, AccountCode, AccountComponent, AccountStorage, AccountType,
     },
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
@@ -21,7 +21,6 @@ use miden_objects::{
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
-        account_builder::AccountBuilder,
         account_component::AccountMockComponent,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
@@ -32,7 +31,7 @@ use miden_objects::{
     Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
     utils::{Deserializable, Serializable},
@@ -119,15 +118,16 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(
+    let (account, _) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
                 AccountStorage::mock_storage_slots(),
             )
             .unwrap(),
         )
-        .add_assets(account_assets)
+        .with_assets(account_assets)
         .nonce(ONE)
         .build()
         .unwrap();

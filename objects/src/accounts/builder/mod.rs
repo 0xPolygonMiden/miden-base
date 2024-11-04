@@ -21,8 +21,8 @@ pub struct AccountBuilder {
     assets: Vec<Asset>,
     components: Vec<AccountComponent>,
     nonce: Felt,
-    account_type: Option<AccountType>,
-    storage_mode: Option<AccountStorageMode>,
+    account_type: AccountType,
+    storage_mode: AccountStorageMode,
     init_seed: Option<[u8; 32]>,
 }
 
@@ -34,8 +34,8 @@ impl AccountBuilder {
             components: vec![],
             nonce: ZERO,
             init_seed: None,
-            account_type: None,
-            storage_mode: None,
+            account_type: AccountType::RegularAccountUpdatableCode,
+            storage_mode: AccountStorageMode::Private,
         }
     }
 
@@ -48,13 +48,13 @@ impl AccountBuilder {
 
     /// Sets the type of the account. This method is **required**.
     pub fn account_type(mut self, account_type: AccountType) -> Self {
-        self.account_type = Some(account_type);
+        self.account_type = account_type;
         self
     }
 
     /// Sets the storage mode of the account. This method is **required**.
     pub fn storage_mode(mut self, storage_mode: AccountStorageMode) -> Self {
-        self.storage_mode = Some(storage_mode);
+        self.storage_mode = storage_mode;
         self
     }
 
@@ -104,8 +104,8 @@ impl AccountBuilder {
     ///   255.
     /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on the given components.
     pub fn build(self) -> Result<(Account, Word), AccountBuildError> {
-        let storage_mode = self.storage_mode.ok_or(AccountBuildError::AccountStorageModeNotSet)?;
-        let account_type = self.account_type.ok_or(AccountBuildError::AccountTypeNotSet)?;
+        let storage_mode = self.storage_mode;
+        let account_type = self.account_type;
         let init_seed = self.init_seed.ok_or(AccountBuildError::AccountInitSeedNotSet)?;
 
         let vault = AssetVault::new(&self.assets).map_err(AccountBuildError::AssetVaultError)?;
