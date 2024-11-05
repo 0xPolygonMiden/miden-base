@@ -2,8 +2,7 @@ use miden_tx_prover::Cli;
 
 extern crate alloc;
 
-#[tokio::main]
-async fn main() -> Result<(), String> {
+fn main() -> Result<(), String> {
     use clap::Parser;
 
     tracing_subscriber::fmt::init();
@@ -11,7 +10,7 @@ async fn main() -> Result<(), String> {
     let cli = Cli::parse();
 
     // execute cli action
-    cli.execute().await
+    cli.execute()
 }
 
 // TESTS
