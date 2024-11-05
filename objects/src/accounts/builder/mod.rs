@@ -10,9 +10,13 @@ use crate::{
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
 /// combining multiple [`AccountComponent`]s.
 ///
+/// This will build a valid new account with these properties:
+/// - An empty [`AssetVault`].
+/// - The nonce set to [`ZERO`].
+/// - A seed which results in an [`AccountId`] valid for the configured account type and storage
+///   mode.
+///
 /// By default, the builder is initialized with:
-/// - The `nonce` set to [`ZERO`], i.e. the nonce of a new account and this can only be changed
-///   under the `testing` feature.
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
 ///
@@ -20,6 +24,10 @@ use crate::{
 ///
 /// - [`AccountBuilder::init_seed`],
 /// - [`AccountBuilder::with_component`], which must be called at least once.
+///
+/// Under the `testing` feature, it is possible to:
+/// - Change the `nonce` to build an existing account.
+/// - Set assets which will be placed in the account's vault.
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
     nonce: Felt,
@@ -89,6 +97,7 @@ impl AccountBuilder {
     ///   255.
     /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on the given components.
     /// - If duplicate assets were added to the builder (only under the `testing` feature).
+    /// - If the vault is not empty on new accounts (only under the `testing` feature).
     pub fn build(self) -> Result<(Account, Word), AccountBuildError> {
         let init_seed = self.init_seed.ok_or(AccountBuildError::AccountInitSeedNotSet)?;
 
@@ -97,6 +106,11 @@ impl AccountBuilder {
         } else {
             AssetVault::default()
         };
+
+        #[cfg(feature = "testing")]
+        if self.nonce == ZERO && !vault.is_empty() {
+            return Err(AccountBuildError::NewAccountAssetVaultNotEmpty);
+        }
 
         let (code, storage) =
             Account::initialize_from_components(self.account_type, &self.components)
@@ -136,6 +150,8 @@ impl AccountBuilder {
     }
 
     /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
+    ///
+    /// Must only be called when nonce is non-[`ZERO`] since new accounts must have an empty vault.
     pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
@@ -155,6 +171,8 @@ pub enum AccountBuildError {
     ComponentInitializationError(AccountError),
     #[cfg(feature = "testing")]
     AssetVaultBuildError(AssetVaultError),
+    #[cfg(feature = "testing")]
+    NewAccountAssetVaultNotEmpty,
 }
 
 impl Display for AccountBuildError {
@@ -173,6 +191,10 @@ impl Display for AccountBuildError {
             #[cfg(feature = "testing")]
             AccountBuildError::AssetVaultBuildError(asset_vault_error) => {
                 write!(f, "account asset vault failed to build: {asset_vault_error}")
+            },
+            #[cfg(feature = "testing")]
+            AccountBuildError::NewAccountAssetVaultNotEmpty => {
+                write!(f, "account asset vault must be empty on new accounts")
             },
         }
     }
@@ -313,5 +335,20 @@ mod tests {
             account.storage().get_item(2).unwrap(),
             [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(storage_slot2)].into()
         );
+    }
+
+    #[cfg(feature = "testing")]
+    #[test]
+    fn account_builder_non_empty_vault_on_new_account() {
+        let storage_slot0 = 25;
+
+        let build_error = Account::builder()
+            .init_seed([0xff; 32])
+            .with_component(CustomComponent1 { slot0: storage_slot0 })
+            .with_assets(AssetVault::mock().assets())
+            .build()
+            .unwrap_err();
+
+        assert!(matches!(build_error, AccountBuildError::NewAccountAssetVaultNotEmpty))
     }
 }
