@@ -113,20 +113,19 @@ impl Cli {
     pub fn execute(&self) -> Result<(), String> {
         match &self.action {
             Command::StartWorker(worker_init) => {
-                let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {:?}", e))?;
+                let rt = tokio::runtime::Runtime::new()
+                    .map_err(|e| format!("Failed to create runtime: {:?}", e))?;
                 rt.block_on(worker_init.execute())
-            }
-            Command::StartProxy(proxy_init) => {
-                proxy_init.execute()
-            }
+            },
+            Command::StartProxy(proxy_init) => proxy_init.execute(),
             Command::Init(init) => {
                 // Init does not require async, so run directly
                 init.execute()
-            }
+            },
             Command::RestartProxy => {
                 // You can implement this in a similar way if needed.
                 todo!()
-            }
+            },
         }
     }
 }
@@ -175,6 +174,7 @@ pub struct StartWorker;
 
 impl StartWorker {
     pub async fn execute(&self) -> Result<(), String> {
+        tracing_subscriber::fmt::init();
         let cli_config = load_config_from_file()?;
         let workers_addrs = cli_config
             .workers
@@ -221,6 +221,7 @@ pub struct StartProxy;
 
 impl StartProxy {
     pub fn execute(&self) -> Result<(), String> {
+        tracing_subscriber::fmt::init();
         let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
         server.bootstrap();
 
@@ -256,7 +257,6 @@ impl StartProxy {
         //     )
         //     .await
         //     .map_err(|e| format!("Failed to spawn blocking server task: {:?}", e))?;
-
 
         server.run_forever();
 

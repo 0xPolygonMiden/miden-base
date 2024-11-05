@@ -5,7 +5,6 @@ extern crate alloc;
 fn main() -> Result<(), String> {
     use clap::Parser;
 
-    tracing_subscriber::fmt::init();
     // read command-line args
     let cli = Cli::parse();
 
