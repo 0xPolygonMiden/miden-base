@@ -12,6 +12,7 @@
 
 ### Changes
 
+- [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
 - [BREAKING] Changed `TransactionExecutor` and `TransactionHost` to use trait objects (#897).
 - Made note scripts public (#880).
 - Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
