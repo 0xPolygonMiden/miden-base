@@ -177,6 +177,25 @@ impl AccountBuilder {
 
         Ok((account, seed))
     }
+}
+
+#[cfg(feature = "testing")]
+impl AccountBuilder {
+    /// Sets the nonce of the account. This method is optional.
+    ///
+    /// If unset, the nonce will default to [`ZERO`].
+    pub fn nonce(mut self, nonce: Felt) -> Self {
+        self.nonce = nonce;
+        self
+    }
+
+    /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
+    ///
+    /// Must only be called when nonce is non-[`ZERO`] since new accounts must have an empty vault.
+    pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
+        self.assets.extend(assets);
+        self
+    }
 
     /// The build method optimized for testing scenarios. The only difference between this method
     /// and the [`Self::build`] method is that when building existing accounts, this function
@@ -184,7 +203,6 @@ impl AccountBuilder {
     /// instead. Hence it is always preferable to use this method in testing code.
     ///
     /// For possible errors, see the documentation of [`Self::build`].
-    #[cfg(feature = "testing")]
     pub fn build_testing(self) -> Result<(Account, Option<Word>), AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
@@ -206,25 +224,6 @@ impl AccountBuilder {
         let account = Account::from_parts(account_id, vault, storage, code, self.nonce);
 
         Ok((account, seed))
-    }
-}
-
-#[cfg(feature = "testing")]
-impl AccountBuilder {
-    /// Sets the nonce of the account. This method is optional.
-    ///
-    /// If unset, the nonce will default to [`ZERO`].
-    pub fn nonce(mut self, nonce: Felt) -> Self {
-        self.nonce = nonce;
-        self
-    }
-
-    /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
-    ///
-    /// Must only be called when nonce is non-[`ZERO`] since new accounts must have an empty vault.
-    pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
-        self.assets.extend(assets);
-        self
     }
 }
 
