@@ -96,13 +96,13 @@ impl AccountBuilder {
             None,
         ))?;
 
-        let vault = if cfg!(feature = "testing") {
-            AssetVault::new(&self.assets).map_err(|err| {
-                AccountError::BuildError(format!("asset vault failed to build: {err}"), None)
-            })?
-        } else {
-            AssetVault::default()
-        };
+        #[cfg(any(feature = "testing", test))]
+        let vault = AssetVault::new(&self.assets).map_err(|err| {
+            AccountError::BuildError(format!("asset vault failed to build: {err}"), None)
+        })?;
+
+        #[cfg(all(not(feature = "testing"), not(test)))]
+        let vault = AssetVault::default();
 
         #[cfg(any(feature = "testing", test))]
         if self.nonce == ZERO && !vault.is_empty() {
