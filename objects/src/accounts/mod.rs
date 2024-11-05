@@ -15,7 +15,7 @@ pub mod auth;
 pub use auth::AuthSecretKey;
 
 mod builder;
-pub use builder::{AccountBuildError, AccountBuilder};
+pub use builder::AccountBuilder;
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};

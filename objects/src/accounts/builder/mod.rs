@@ -1,5 +1,4 @@
-use alloc::vec::Vec;
-use core::fmt::Display;
+use alloc::{boxed::Box, vec::Vec};
 
 use vm_processor::Digest;
 
@@ -9,7 +8,7 @@ use crate::{
         AccountType,
     },
     assets::{Asset, AssetVault},
-    AccountError, AssetVaultError, Felt, Word, ZERO,
+    AccountError, Felt, Word, ZERO,
 };
 
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
@@ -91,23 +90,37 @@ impl AccountBuilder {
     /// Builds the common parts of testing and non-testing code.
     fn build_inner(
         &self,
-    ) -> Result<([u8; 32], AssetVault, AccountCode, AccountStorage), AccountBuildError> {
-        let init_seed = self.init_seed.ok_or(AccountBuildError::AccountInitSeedNotSet)?;
+    ) -> Result<([u8; 32], AssetVault, AccountCode, AccountStorage), AccountError> {
+        let init_seed = self.init_seed.ok_or(AccountError::BuildError(
+            "init_seed must be set on the account builder".into(),
+            None,
+        ))?;
 
         let vault = if cfg!(feature = "testing") {
-            AssetVault::new(&self.assets).map_err(AccountBuildError::AssetVaultBuildError)?
+            AssetVault::new(&self.assets).map_err(|err| {
+                AccountError::BuildError(format!("asset vault failed to build: {err}"), None)
+            })?
         } else {
             AssetVault::default()
         };
 
         #[cfg(feature = "testing")]
         if self.nonce == ZERO && !vault.is_empty() {
-            return Err(AccountBuildError::NewAccountAssetVaultNotEmpty);
+            return Err(AccountError::BuildError(
+                "account asset vault must be empty on new accounts".into(),
+                None,
+            ));
         }
 
         let (code, storage) =
-            Account::initialize_from_components(self.account_type, &self.components)
-                .map_err(AccountBuildError::ComponentInitializationError)?;
+            Account::initialize_from_components(self.account_type, &self.components).map_err(
+                |err| {
+                    AccountError::BuildError(
+                        "account components failed to build".into(),
+                        Some(Box::new(err)),
+                    )
+                },
+            )?;
 
         Ok((init_seed, vault, code, storage))
     }
@@ -118,7 +131,7 @@ impl AccountBuilder {
         init_seed: [u8; 32],
         code_commitment: Digest,
         storage_commitment: Digest,
-    ) -> Result<(AccountId, Word), AccountBuildError> {
+    ) -> Result<(AccountId, Word), AccountError> {
         let seed = AccountId::get_account_seed(
             init_seed,
             self.account_type,
@@ -126,7 +139,12 @@ impl AccountBuilder {
             code_commitment,
             storage_commitment,
         )
-        .map_err(AccountBuildError::AccountSeedGenerationFailure)?;
+        .map_err(|err| {
+            AccountError::BuildError(
+                "account seed generation failed".into(),
+                Some(Box::new(err)),
+            )
+        })?;
 
         let account_id = AccountId::new(seed, code_commitment, storage_commitment)
             .expect("get_account_seed should provide a suitable seed");
@@ -149,7 +167,7 @@ impl AccountBuilder {
     /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on the given components.
     /// - If duplicate assets were added to the builder (only under the `testing` feature).
     /// - If the vault is not empty on new accounts (only under the `testing` feature).
-    pub fn build(self) -> Result<(Account, Word), AccountBuildError> {
+    pub fn build(self) -> Result<(Account, Word), AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
         let (account_id, seed) =
@@ -170,7 +188,7 @@ impl AccountBuilder {
     ///
     /// For possible errors, see the documentation of [`Self::build`].
     #[cfg(feature = "testing")]
-    pub fn build_testing(self) -> Result<(Account, Option<Word>), AccountBuildError> {
+    pub fn build_testing(self) -> Result<(Account, Option<Word>), AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
         let (account_id, seed) = if self.nonce == ZERO {
@@ -246,45 +264,6 @@ impl Default for AccountBuilder {
         Self::new()
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AccountBuildError {
-    AccountInitSeedNotSet,
-    AccountSeedGenerationFailure(AccountError),
-    ComponentInitializationError(AccountError),
-    #[cfg(feature = "testing")]
-    AssetVaultBuildError(AssetVaultError),
-    #[cfg(feature = "testing")]
-    NewAccountAssetVaultNotEmpty,
-}
-
-impl Display for AccountBuildError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "account build error: ")?;
-        match self {
-            AccountBuildError::AccountInitSeedNotSet => {
-                write!(f, "account initial seed for ID generation is required but not set")
-            },
-            AccountBuildError::AccountSeedGenerationFailure(account_error) => {
-                write!(f, "account seed generation failed: {account_error}")
-            },
-            AccountBuildError::ComponentInitializationError(account_error) => {
-                write!(f, "account components failed to build: {account_error}")
-            },
-            #[cfg(feature = "testing")]
-            AccountBuildError::AssetVaultBuildError(asset_vault_error) => {
-                write!(f, "account asset vault failed to build: {asset_vault_error}")
-            },
-            #[cfg(feature = "testing")]
-            AccountBuildError::NewAccountAssetVaultNotEmpty => {
-                write!(f, "account asset vault must be empty on new accounts")
-            },
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AccountBuildError {}
 
 // TESTS
 // ================================================================================================
@@ -432,7 +411,9 @@ mod tests {
             .build()
             .unwrap_err();
 
-        assert!(matches!(build_error, AccountBuildError::NewAccountAssetVaultNotEmpty))
+        assert!(
+            matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
+        )
     }
 
     #[cfg(feature = "testing")]
