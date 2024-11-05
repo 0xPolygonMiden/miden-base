@@ -237,7 +237,9 @@ impl StartProxy {
 
         server.add_service(lb);
 
-        server.run_forever().await.map_err(|err| err.to_string())
+        server.run_forever();
+
+        Ok(())
     }
 }
 
