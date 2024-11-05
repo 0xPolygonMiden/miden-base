@@ -533,7 +533,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
-        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
+        .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
         .build()
         .unwrap();

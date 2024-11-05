@@ -11,7 +11,8 @@ use crate::{
 /// combining multiple [`AccountComponent`]s.
 ///
 /// By default, the builder is initialized with:
-/// - The `nonce` set to [`ZERO`], i.e. the nonce of a new account.
+/// - The `nonce` set to [`ZERO`], i.e. the nonce of a new account and this can only be changed
+///   under the `testing` feature.
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
 ///
@@ -21,9 +22,10 @@ use crate::{
 /// - [`AccountBuilder::with_component`], which must be called at least once.
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
+    nonce: Felt,
+    #[cfg(feature = "testing")]
     assets: Vec<Asset>,
     components: Vec<AccountComponent>,
-    nonce: Felt,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
     init_seed: Option<[u8; 32]>,
@@ -33,9 +35,10 @@ impl AccountBuilder {
     /// Creates a new builder for a single account.
     pub fn new() -> Self {
         Self {
+            nonce: ZERO,
+            #[cfg(feature = "testing")]
             assets: vec![],
             components: vec![],
-            nonce: ZERO,
             init_seed: None,
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
@@ -63,26 +66,6 @@ impl AccountBuilder {
         self
     }
 
-    /// Sets the nonce of the account. This method is optional.
-    ///
-    /// If unset, the nonce will default to [`ZERO`].
-    pub fn nonce(mut self, nonce: Felt) -> Self {
-        self.nonce = nonce;
-        self
-    }
-
-    /// Adds the asset to the account's [`AssetVault`]. This method is optional.
-    pub fn with_asset(mut self, asset: Asset) -> Self {
-        self.assets.push(asset);
-        self
-    }
-
-    /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
-    pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
-        self.assets.extend(assets);
-        self
-    }
-
     /// Adds an [`AccountComponent`] to the builder. This method can be called multiple times and
     /// **must be called at least once** since an account must export at least one procedure.
     ///
@@ -98,7 +81,6 @@ impl AccountBuilder {
     ///
     /// Returns an error if:
     /// - The init seed is not set.
-    /// - If a duplicate assets was added to the builder.
     /// - Any of the components does not support the set account type.
     /// - The number of procedures in all merged components is 0 or exceeds
     ///   [`AccountCode::MAX_NUM_PROCEDURES`](crate::accounts::AccountCode::MAX_NUM_PROCEDURES).
@@ -106,10 +88,15 @@ impl AccountBuilder {
     /// - The number of [`StorageSlot`](crate::accounts::StorageSlot)s of all components exceeds
     ///   255.
     /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on the given components.
+    /// - If duplicate assets were added to the builder (only under the `testing` feature).
     pub fn build(self) -> Result<(Account, Word), AccountBuildError> {
         let init_seed = self.init_seed.ok_or(AccountBuildError::AccountInitSeedNotSet)?;
 
-        let vault = AssetVault::new(&self.assets).map_err(AccountBuildError::AssetVaultError)?;
+        let vault = if cfg!(feature = "testing") {
+            AssetVault::new(&self.assets).map_err(AccountBuildError::AssetVaultBuildError)?
+        } else {
+            AssetVault::default()
+        };
 
         let (code, storage) =
             Account::initialize_from_components(self.account_type, &self.components)
@@ -138,6 +125,23 @@ impl AccountBuilder {
     }
 }
 
+#[cfg(feature = "testing")]
+impl AccountBuilder {
+    /// Sets the nonce of the account. This method is optional.
+    ///
+    /// If unset, the nonce will default to [`ZERO`].
+    pub fn nonce(mut self, nonce: Felt) -> Self {
+        self.nonce = nonce;
+        self
+    }
+
+    /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
+    pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
+        self.assets.extend(assets);
+        self
+    }
+}
+
 impl Default for AccountBuilder {
     fn default() -> Self {
         Self::new()
@@ -149,7 +153,8 @@ pub enum AccountBuildError {
     AccountInitSeedNotSet,
     AccountSeedGenerationFailure(AccountError),
     ComponentInitializationError(AccountError),
-    AssetVaultError(AssetVaultError),
+    #[cfg(feature = "testing")]
+    AssetVaultBuildError(AssetVaultError),
 }
 
 impl Display for AccountBuildError {
@@ -165,7 +170,8 @@ impl Display for AccountBuildError {
             AccountBuildError::ComponentInitializationError(account_error) => {
                 write!(f, "account components failed to build: {account_error}")
             },
-            AccountBuildError::AssetVaultError(asset_vault_error) => {
+            #[cfg(feature = "testing")]
+            AccountBuildError::AssetVaultBuildError(asset_vault_error) => {
                 write!(f, "account asset vault failed to build: {asset_vault_error}")
             },
         }
@@ -174,6 +180,9 @@ impl Display for AccountBuildError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for AccountBuildError {}
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {
@@ -246,8 +255,6 @@ mod tests {
         let storage_slot0 = 25;
         let storage_slot1 = 12;
         let storage_slot2 = 42;
-        let nonce = Felt::ONE;
-        let vault = AssetVault::mock();
 
         let (account, seed) = Account::builder()
             .init_seed([5; 32])
@@ -256,12 +263,11 @@ mod tests {
                 slot0: storage_slot1,
                 slot1: storage_slot2,
             })
-            .with_assets(vault.assets())
-            .nonce(nonce)
             .build()
             .unwrap();
 
-        assert_eq!(account.nonce(), nonce);
+        // Account should be new, i.e. nonce = zero.
+        assert_eq!(account.nonce(), Felt::ZERO);
 
         let computed_id =
             AccountId::new(seed, account.code.commitment(), account.storage.commitment()).unwrap();
@@ -307,7 +313,5 @@ mod tests {
             account.storage().get_item(2).unwrap(),
             [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(storage_slot2)].into()
         );
-
-        assert_eq!(account.vault, vault);
     }
 }
