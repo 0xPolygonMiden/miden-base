@@ -7,7 +7,10 @@ use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-use crate::{ApiServer, ProveTransactionRequest, ProveTransactionResponse, ProverApi};
+use crate::generated::{
+    api_server::{Api as ProverApi, ApiServer},
+    ProveTransactionRequest, ProveTransactionResponse,
+};
 
 pub struct RpcListener {
     pub api_service: ApiServer<ProverRpcApi>,
