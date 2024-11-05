@@ -5,6 +5,10 @@ use alloc::{
     vec::Vec,
 };
 
+use ::assembly::{
+    ast::{Module, ModuleKind},
+    LibraryPath,
+};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
@@ -13,8 +17,9 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        AccountCode, AccountComponent, AccountStorage, AccountType,
+        AccountCode, AccountComponent, AccountStorage, AccountType, StorageSlot,
     },
+    assembly::DefaultSourceManager,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
@@ -900,4 +905,100 @@ fn test_tx_script() {
         "Transaction execution failed {:?}",
         executed_transaction,
     );
+}
+
+/// Tests that an account can call code in a custom library when loading that library into the
+/// executor.
+///
+/// The call chain and dependency graph in this test is:
+/// `tx script -> account code -> external library`
+#[test]
+fn transaction_executor_account_code_using_custom_library() {
+    const EXTERNAL_LIBRARY_CODE: &str = "
+      use.miden::account
+
+      export.incr_nonce_by_four
+        dup eq.4 assert.err=42 exec.account::incr_nonce
+      end";
+
+    const ACCOUNT_COMPONENT_CODE: &str = "
+      use.external_library::external_module
+
+      export.custom_nonce_incr
+        push.4 exec.external_module::incr_nonce_by_four
+      end";
+
+    let source_manager = Arc::new(DefaultSourceManager::default());
+    let external_library_module = Module::parser(ModuleKind::Library)
+        .parse_str(
+            LibraryPath::new("external_library::external_module").unwrap(),
+            EXTERNAL_LIBRARY_CODE,
+            &source_manager,
+        )
+        .unwrap();
+    let external_library = TransactionKernel::assembler()
+        .assemble_library([external_library_module])
+        .unwrap();
+
+    let mut assembler = TransactionKernel::assembler();
+    assembler.add_library(&external_library).unwrap();
+
+    let account_component_module = Module::parser(ModuleKind::Library)
+        .parse_str(
+            LibraryPath::new("account_component::account_module").unwrap(),
+            ACCOUNT_COMPONENT_CODE,
+            &source_manager,
+        )
+        .unwrap();
+
+    let account_component_lib =
+        assembler.clone().assemble_library([account_component_module]).unwrap();
+
+    let tx_script_src = "\
+          use.account_component::account_module
+
+          begin
+            call.account_module::custom_nonce_incr
+          end";
+
+    let account_component =
+        AccountComponent::new(account_component_lib.clone(), vec![StorageSlot::empty_value()])
+            .unwrap()
+            .with_supports_all_types();
+
+    let (native_account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_component(account_component)
+        .build()
+        .unwrap();
+
+    let tx_context =
+        TransactionContextBuilder::new(native_account).account_seed(Some(seed)).build();
+
+    let tx_script = TransactionScript::compile(
+        tx_script_src,
+        [],
+        // Add the account component library since the transaction script is calling the account's
+        // procedure.
+        assembler.with_library(&account_component_lib).unwrap(),
+    )
+    .unwrap();
+
+    let tx_args = TransactionArgs::new(
+        Some(tx_script),
+        None,
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
+
+    let mut executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
+    // Load the external library into the executor to make it available during transaction
+    // execution.
+    executor.load_library(&external_library);
+
+    let account_id = tx_context.account().id();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+
+    let executed_tx = executor.execute_transaction(account_id, block_ref, &[], tx_args).unwrap();
+
+    // Account nonce should have been incremented by 4.
+    assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(4));
 }

@@ -3,6 +3,7 @@ use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{AccountCode, AccountId},
+    assembly::Library,
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
@@ -99,14 +100,22 @@ impl TransactionExecutor {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Loads the provided code into the internal MAST forest store and adds the commitment of the
-    /// provided code to the commitments set.
+    /// Loads the provided account code into the internal MAST forest store and adds the commitment
+    /// of the provided code to the commitments set.
     pub fn load_account_code(&mut self, code: &AccountCode) {
         // load the code mast forest to the mast store
         self.mast_store.load_account_code(code);
 
         // store the commitment of the foreign account code in the set
         self.account_codes.insert(code.clone());
+    }
+
+    /// Loads the provided library code into the internal MAST forest store.
+    ///
+    /// TODO: this is a work-around to support accounts which were complied with user-defined
+    /// libraries. Once Miden Assembler supports library vendoring, this should go away.
+    pub fn load_library(&mut self, library: &Library) {
+        self.mast_store.insert(library.mast_forest().clone());
     }
 
     // TRANSACTION EXECUTION

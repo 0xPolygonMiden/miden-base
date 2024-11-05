@@ -5,6 +5,7 @@ use alloc::{sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
+    assembly::Library,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 use miden_prover::prove;
@@ -47,14 +48,20 @@ pub struct LocalTransactionProver {
 }
 
 impl LocalTransactionProver {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
     /// Creates a new [LocalTransactionProver] instance.
     pub fn new(proof_options: ProvingOptions) -> Self {
         Self {
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options,
         }
+    }
+
+    /// Loads the provided library code into the internal MAST forest store.
+    ///
+    /// TODO: this is a work-around to support accounts which were complied with user-defined
+    /// libraries. Once Miden Assembler supports library vendoring, this should go away.
+    pub fn load_library(&mut self, library: &Library) {
+        self.mast_store.insert(library.mast_forest().clone());
     }
 }
 
