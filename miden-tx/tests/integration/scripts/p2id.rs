@@ -272,7 +272,7 @@ fn prove_consume_note_with_new_account() {
     .unwrap();
 
     let tx_context = TransactionContextBuilder::new(target_account.clone())
-        .account_seed(Some(seed))
+        .account_seed(seed)
         .input_notes(vec![note.clone()])
         .build();
 
@@ -361,14 +361,14 @@ fn prove_consume_multiple_notes() {
 // HELPER FUNCTIONS
 // ===============================================================================================
 
-fn create_new_account() -> (Account, Word, Arc<dyn TransactionAuthenticator>) {
+fn create_new_account() -> (Account, Option<Word>, Arc<dyn TransactionAuthenticator>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
     let (account, seed) = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(BasicWallet)
         .with_component(RpoFalcon512::new(PublicKey::new(pub_key)))
-        .build()
+        .build_testing()
         .unwrap();
 
     (account, seed, falcon_auth)

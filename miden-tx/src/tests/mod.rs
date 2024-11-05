@@ -129,7 +129,7 @@ fn executed_transaction_account_delta_new() {
         )
         .with_assets(account_assets)
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let mut tx_context = TransactionContextBuilder::new(account)

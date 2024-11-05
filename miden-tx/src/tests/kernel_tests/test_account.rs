@@ -263,7 +263,7 @@ fn test_get_map_item() {
             .unwrap(),
         )
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
@@ -411,7 +411,7 @@ fn test_set_map_item() {
             .unwrap(),
         )
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
@@ -556,7 +556,7 @@ fn test_account_component_storage_offset() {
         .with_component(component1)
         .with_component(component2)
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     // Assert that the storage offset and size have been set correctly.

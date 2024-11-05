@@ -670,7 +670,7 @@ fn test_load_foreign_account_basic() {
             .unwrap(),
         )
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let account_id = foreign_account.id();
@@ -750,7 +750,7 @@ fn test_load_foreign_account_basic() {
             .unwrap(),
         )
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let account_id = foreign_account.id();
@@ -837,7 +837,7 @@ fn test_load_foreign_account_twice() {
             .unwrap(),
         )
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let account_id = foreign_account.id();

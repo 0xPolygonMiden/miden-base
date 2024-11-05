@@ -406,9 +406,9 @@ pub fn test_prologue_create_account() {
             .unwrap()
             .with_supported_type(AccountType::RegularAccountUpdatableCode),
         )
-        .build()
+        .build_testing()
         .unwrap();
-    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
+    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
 
     let code = "
     use.kernel::prologue
@@ -535,7 +535,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
-        .build()
+        .build_testing()
         .unwrap();
 
     let code = "
@@ -552,7 +552,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
     let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(Some(account_seed))
+        .account_seed(account_seed)
         .advice_inputs(adv_inputs)
         .build();
     let process = tx_context.execute_code(code);

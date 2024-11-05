@@ -382,8 +382,10 @@ impl MockChain {
                 let sec_key = SecretKey::with_rng(&mut rng);
                 let pub_key = sec_key.public_key();
 
-                let (acc, seed) =
-                    account_builder.with_component(RpoFalcon512::new(pub_key)).build().unwrap();
+                let (acc, seed) = account_builder
+                    .with_component(RpoFalcon512::new(pub_key))
+                    .build_testing()
+                    .unwrap();
 
                 let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
                     &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
@@ -393,12 +395,11 @@ impl MockChain {
                 (acc, seed, Some(authenticator))
             },
             Auth::NoAuth => {
-                let (account, seed) = account_builder.build().unwrap();
+                let (account, seed) = account_builder.build_testing().unwrap();
                 (account, seed, None)
             },
         };
 
-        let seed = account.is_new().then_some(seed);
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
         self.add_account(account.clone());
