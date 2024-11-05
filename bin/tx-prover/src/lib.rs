@@ -48,6 +48,9 @@ impl std::fmt::Display for RemoteTransactionProverError {
 }
 
 /// Configuration of the CLI
+///
+/// It is stored in a TOML file, which will be created by the `init` command.
+/// It allows manual modification of the configuration file.
 #[derive(Serialize, Deserialize)]
 pub struct CliConfig {
     /// List of workers to start
@@ -65,12 +68,14 @@ impl Default for CliConfig {
     }
 }
 
+/// Configuration for a worker
 #[derive(Default, Serialize, Deserialize)]
 pub struct WorkerConfig {
     pub host: String,
     pub port: u16,
 }
 
+/// Configuration for the proxy
 #[derive(Default, Serialize, Deserialize)]
 pub struct ProxyConfig {
     pub host: String,
@@ -79,7 +84,12 @@ pub struct ProxyConfig {
 
 /// Root CLI struct
 #[derive(Parser, Debug)]
-#[clap(name = "Miden", about = "Miden client", version, rename_all = "kebab-case")]
+#[clap(
+    name = "Miden",
+    about = "Miden transaction prover CLI",
+    version,
+    rename_all = "kebab-case"
+)]
 pub struct Cli {
     #[clap(subcommand)]
     action: Command,
@@ -88,7 +98,7 @@ pub struct Cli {
 /// CLI actions
 #[derive(Debug, Parser)]
 pub enum Command {
-    /// Initialize the CLI and creates a config file.
+    /// Creates a config file.
     Init(Init),
     /// Starts the workers defined in the config file.
     StartWorker(StartWorker),
@@ -102,6 +112,7 @@ pub enum Command {
 impl Cli {
     pub fn execute(&self) -> Result<(), String> {
         match &self.action {
+            // For the `StartWorker` command, we need to create a new runtime and run the worker
             Command::StartWorker(worker_init) => {
                 let rt = tokio::runtime::Runtime::new()
                     .map_err(|e| format!("Failed to create runtime: {:?}", e))?;

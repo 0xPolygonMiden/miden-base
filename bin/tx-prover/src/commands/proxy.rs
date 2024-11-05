@@ -9,6 +9,10 @@ use crate::{proxy::WorkerLoadBalancer, utils::load_config_from_file};
 pub struct StartProxy;
 
 impl StartProxy {
+    /// Starts the proxy defined in the config file.
+    ///
+    /// This method will first read the config file to get the list of workers to start. It will
+    /// then start a proxy with each worker as a backend.
     pub fn execute(&self) -> Result<(), String> {
         tracing_subscriber::fmt::init();
         let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");

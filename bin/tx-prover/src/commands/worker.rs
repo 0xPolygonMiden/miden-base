@@ -10,6 +10,10 @@ use crate::{api::RpcListener, utils::load_config_from_file};
 pub struct StartWorker;
 
 impl StartWorker {
+    /// Starts the workers defined in the config file.
+    ///
+    /// This method will first read the config file to get the list of workers to start. It will
+    /// then start a server for each worker and wait for all servers to complete.
     pub async fn execute(&self) -> Result<(), String> {
         tracing_subscriber::fmt::init();
         let cli_config = load_config_from_file()?;

@@ -9,6 +9,10 @@ use crate::{CliConfig, PROVER_SERVICE_CONFIG_FILE_NAME};
 pub struct Init;
 
 impl Init {
+    /// Initializes the CLI and creates a config file.
+    ///
+    /// This method will create a new config file in the current working directory with default
+    /// values.
     pub fn execute(&self) -> Result<(), String> {
         let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
         current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
