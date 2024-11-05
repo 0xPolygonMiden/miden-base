@@ -1,8 +1,13 @@
 use alloc::vec::Vec;
 use core::fmt::Display;
 
+use vm_processor::Digest;
+
 use crate::{
-    accounts::{Account, AccountComponent, AccountId, AccountStorageMode, AccountType},
+    accounts::{
+        Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
+        AccountType,
+    },
     assets::{Asset, AssetVault},
     AccountError, AssetVaultError, Felt, Word, ZERO,
 };
@@ -83,22 +88,10 @@ impl AccountBuilder {
         self
     }
 
-    /// Builds an [`Account`] out of the configured builder.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The init seed is not set.
-    /// - Any of the components does not support the set account type.
-    /// - The number of procedures in all merged components is 0 or exceeds
-    ///   [`AccountCode::MAX_NUM_PROCEDURES`](crate::accounts::AccountCode::MAX_NUM_PROCEDURES).
-    /// - Two or more libraries export a procedure with the same MAST root.
-    /// - The number of [`StorageSlot`](crate::accounts::StorageSlot)s of all components exceeds
-    ///   255.
-    /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on the given components.
-    /// - If duplicate assets were added to the builder (only under the `testing` feature).
-    /// - If the vault is not empty on new accounts (only under the `testing` feature).
-    pub fn build(self) -> Result<(Account, Word), AccountBuildError> {
+    /// Builds the common parts of testing and non-testing code.
+    fn build_inner(
+        &self,
+    ) -> Result<([u8; 32], AssetVault, AccountCode, AccountStorage), AccountBuildError> {
         let init_seed = self.init_seed.ok_or(AccountBuildError::AccountInitSeedNotSet)?;
 
         let vault = if cfg!(feature = "testing") {
@@ -116,9 +109,16 @@ impl AccountBuilder {
             Account::initialize_from_components(self.account_type, &self.components)
                 .map_err(AccountBuildError::ComponentInitializationError)?;
 
-        let code_commitment = code.commitment();
-        let storage_commitment = storage.commitment();
+        Ok((init_seed, vault, code, storage))
+    }
 
+    /// Grinds a new [`AccountId`] using the `init_seed` as a starting point.
+    fn grind_account_id(
+        &self,
+        init_seed: [u8; 32],
+        code_commitment: Digest,
+        storage_commitment: Digest,
+    ) -> Result<(AccountId, Word), AccountBuildError> {
         let seed = AccountId::get_account_seed(
             init_seed,
             self.account_type,
@@ -131,10 +131,62 @@ impl AccountBuilder {
         let account_id = AccountId::new(seed, code_commitment, storage_commitment)
             .expect("get_account_seed should provide a suitable seed");
 
+        Ok((account_id, seed))
+    }
+
+    /// Builds an [`Account`] out of the configured builder.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The init seed is not set.
+    /// - Any of the components does not support the set account type.
+    /// - The number of procedures in all merged components is 0 or exceeds
+    ///   [`AccountCode::MAX_NUM_PROCEDURES`](crate::accounts::AccountCode::MAX_NUM_PROCEDURES).
+    /// - Two or more libraries export a procedure with the same MAST root.
+    /// - The number of [`StorageSlot`](crate::accounts::StorageSlot)s of all components exceeds
+    ///   255.
+    /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on the given components.
+    /// - If duplicate assets were added to the builder (only under the `testing` feature).
+    /// - If the vault is not empty on new accounts (only under the `testing` feature).
+    pub fn build(self) -> Result<(Account, Word), AccountBuildError> {
+        let (init_seed, vault, code, storage) = self.build_inner()?;
+
+        let (account_id, seed) =
+            self.grind_account_id(init_seed, code.commitment(), storage.commitment())?;
+
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
 
         let account = Account::from_parts(account_id, vault, storage, code, self.nonce);
+
+        Ok((account, seed))
+    }
+
+    /// The build method optimized for testing scenarios. The only difference between this method
+    /// and the [`Self::build`] method is that when building existing accounts, this function
+    /// returns `None` for the seed, skips the grinding of an account id and constructs one
+    /// instead. Hence it is always preferable to use this method in testing code.
+    ///
+    /// For possible errors, see the documentation of [`Self::build`].
+    #[cfg(feature = "testing")]
+    pub fn build_testing(self) -> Result<(Account, Option<Word>), AccountBuildError> {
+        let (init_seed, vault, code, storage) = self.build_inner()?;
+
+        let (account_id, seed) = if self.nonce == ZERO {
+            let (account_id, seed) =
+                self.grind_account_id(init_seed, code.commitment(), storage.commitment())?;
+
+            (account_id, Some(seed))
+        } else {
+            let account_id =
+                Self::construct_account_id(self.account_type, self.storage_mode, init_seed);
+
+            (account_id, None)
+        };
+
+        let account = Account::from_parts(account_id, vault, storage, code, self.nonce);
+
         Ok((account, seed))
     }
 }
@@ -155,6 +207,37 @@ impl AccountBuilder {
     pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
+    }
+
+    /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
+    /// mode and using the first 8 bytes of the `init_seed` as part of the account id.
+    fn construct_account_id(
+        account_type: AccountType,
+        storage_mode: AccountStorageMode,
+        init_seed: [u8; 32],
+    ) -> AccountId {
+        let id_high_nibble = (storage_mode as u8) << 6 | (account_type as u8) << 4;
+
+        let mut bytes =
+            <[u8; 8]>::try_from(&init_seed[0..8]).expect("we have sliced exactly 8 bytes off");
+
+        // Clear the highest five bits of the most significant byte.
+        // The high nibble must be cleared so we can set it to the storage mode and account type
+        // we've constructed.
+        // The 5th most significant bit is cleared to ensure the resulting id is a valid Felt even
+        // when all other bits are set.
+        bytes[0] &= 0x07;
+        // Set high nibble of the most significant byte.
+        bytes[0] |= id_high_nibble;
+
+        let account_id = Felt::try_from(u64::from_be_bytes(bytes))
+            .expect("must be a valid felt after clearing the 5th highest bit");
+        let account_id = AccountId::new_unchecked(account_id);
+
+        debug_assert_eq!(account_id.account_type(), account_type);
+        debug_assert_eq!(account_id.storage_mode(), storage_mode);
+
+        account_id
     }
 }
 
@@ -350,5 +433,26 @@ mod tests {
             .unwrap_err();
 
         assert!(matches!(build_error, AccountBuildError::NewAccountAssetVaultNotEmpty))
+    }
+
+    #[cfg(feature = "testing")]
+    #[test]
+    fn account_builder_id_construction() {
+        // Use the highest possible input to check if the constructed id is a valid Felt in that
+        // scenario.
+        let init_seed = [0xff; 32];
+
+        for account_type in [
+            AccountType::FungibleFaucet,
+            AccountType::NonFungibleFaucet,
+            AccountType::RegularAccountImmutableCode,
+            AccountType::RegularAccountUpdatableCode,
+        ] {
+            for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
+                // This function contains debug assertions already so we don't asset anything
+                // additional
+                AccountBuilder::construct_account_id(account_type, storage_mode, init_seed);
+            }
+        }
     }
 }
