@@ -140,10 +140,7 @@ impl AccountBuilder {
             storage_commitment,
         )
         .map_err(|err| {
-            AccountError::BuildError(
-                "account seed generation failed".into(),
-                Some(Box::new(err)),
-            )
+            AccountError::BuildError("account seed generation failed".into(), Some(Box::new(err)))
         })?;
 
         let account_id = AccountId::new(seed, code_commitment, storage_commitment)
