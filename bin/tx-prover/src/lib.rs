@@ -7,7 +7,7 @@ use figment::{
 use proxy::WorkerLoadBalancer;
 use serde::{Deserialize, Serialize};
 use tracing::info;
-mod api;
+pub mod api;
 mod proxy;
 use alloc::string::String;
 use std::{fs::File, io::Write};
@@ -16,7 +16,7 @@ use clap::Parser;
 use pingora::prelude::LoadBalancer;
 use tokio::{net::TcpListener, task};
 use tokio_stream::wrappers::TcpListenerStream;
-pub(crate) mod generated;
+pub mod generated;
 use crate::api::RpcListener;
 
 #[cfg(feature = "async")]

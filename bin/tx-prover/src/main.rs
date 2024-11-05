@@ -31,12 +31,12 @@ mod test {
         testing::mock_chain::{Auth, MockChain},
         utils::Serializable,
     };
+    use miden_tx_prover::{
+        api::ProverRpcApi,
+        generated::{api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest},
+    };
     use tokio::net::TcpListener;
     use tonic::Request;
-
-    use crate::{
-        api::ProverRpcApi, generated::api_client::ApiClient, ApiServer, ProveTransactionRequest,
-    };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {
