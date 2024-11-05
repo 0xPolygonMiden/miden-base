@@ -248,16 +248,6 @@ impl StartProxy {
         logic.server_options = Some(http_server_options);
 
         server.add_service(lb);
-
-        // Spawn a blocking task to run `run_forever` so it does not interfere with the async
-        // runtime.
-        // tokio::task::spawn_blocking(|| {
-        //         server.run_forever()
-        //     }
-        //     )
-        //     .await
-        //     .map_err(|e| format!("Failed to spawn blocking server task: {:?}", e))?;
-
         server.run_forever();
 
         Ok(())
