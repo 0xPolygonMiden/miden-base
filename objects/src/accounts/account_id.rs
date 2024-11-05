@@ -226,7 +226,6 @@ impl AccountId {
         Self::new(seed, code_commitment, storage_commitment).unwrap()
     }
 
-    #[cfg(feature = "testing")]
     /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
     /// mode.
     ///
@@ -236,6 +235,7 @@ impl AccountId {
     /// - The 5th most significant bit is cleared.
     /// - The bytes are then converted to a `u64` in big-endian format. Due to clearing the 5th most
     ///   significant bit, the resulting `u64` will be a valid [`Felt`].
+    #[cfg(any(feature = "testing", test))]
     pub fn new_with_type_and_mode(
         mut bytes: [u8; 8],
         account_type: AccountType,
@@ -742,7 +742,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "testing")]
     #[test]
     fn account_id_construction() {
         // Use the highest possible input to check if the constructed id is a valid Felt in that
