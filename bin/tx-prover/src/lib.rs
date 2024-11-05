@@ -249,8 +249,6 @@ impl StartProxy {
 
         server.add_service(lb);
         server.run_forever();
-
-        Ok(())
     }
 }
 
