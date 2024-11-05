@@ -110,12 +110,23 @@ pub enum Command {
 
 /// CLI entry point
 impl Cli {
-    pub async fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), String> {
         match &self.action {
-            Command::StartWorker(worker_init) => worker_init.execute().await,
-            Command::StartProxy(proxy_init) => proxy_init.execute().await,
-            Command::Init(init) => init.execute().await,
-            Command::RestartProxy => todo!(),
+            Command::StartWorker(worker_init) => {
+                let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {:?}", e))?;
+                rt.block_on(worker_init.execute())
+            }
+            Command::StartProxy(proxy_init) => {
+                proxy_init.execute()
+            }
+            Command::Init(init) => {
+                // Init does not require async, so run directly
+                init.execute()
+            }
+            Command::RestartProxy => {
+                // You can implement this in a similar way if needed.
+                todo!()
+            }
         }
     }
 }
@@ -125,7 +136,7 @@ impl Cli {
 pub struct Init;
 
 impl Init {
-    pub async fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), String> {
         let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
         current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
 
@@ -209,7 +220,7 @@ impl StartWorker {
 pub struct StartProxy;
 
 impl StartProxy {
-    pub async fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), String> {
         let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
         server.bootstrap();
 
@@ -236,6 +247,16 @@ impl StartProxy {
         logic.server_options = Some(http_server_options);
 
         server.add_service(lb);
+
+        // Spawn a blocking task to run `run_forever` so it does not interfere with the async
+        // runtime.
+        // tokio::task::spawn_blocking(|| {
+        //         server.run_forever()
+        //     }
+        //     )
+        //     .await
+        //     .map_err(|e| format!("Failed to spawn blocking server task: {:?}", e))?;
+
 
         server.run_forever();
 
