@@ -1,7 +1,6 @@
 use alloc::{
     boxed::Box,
     string::{String, ToString},
-    sync::Arc,
 };
 
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
@@ -19,13 +18,12 @@ use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
 ///
 /// The transport layer connection is established lazily when the first transaction is proven.
-#[derive(Clone)]
 pub struct RemoteTransactionProver {
     #[cfg(target_arch = "wasm32")]
-    client: Arc<RwLock<Option<ApiClient<tonic_web_wasm_client::Client>>>>,
+    client: RwLock<Option<ApiClient<tonic_web_wasm_client::Client>>>,
 
     #[cfg(not(target_arch = "wasm32"))]
-    client: Arc<RwLock<Option<ApiClient<tonic::transport::Channel>>>>,
+    client: RwLock<Option<ApiClient<tonic::transport::Channel>>>,
 
     endpoint: String,
 }
@@ -36,7 +34,7 @@ impl RemoteTransactionProver {
     pub fn new(endpoint: &str) -> Self {
         RemoteTransactionProver {
             endpoint: endpoint.to_string(),
-            client: Arc::new(RwLock::new(None)),
+            client: RwLock::new(None),
         }
     }
 
