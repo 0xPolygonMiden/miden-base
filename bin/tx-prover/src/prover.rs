@@ -2,10 +2,9 @@ use alloc::{
     boxed::Box,
     string::{String, ToString},
 };
-use core::cell::RefCell;
 
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
-use miden_tx::{TransactionProver, TransactionProverError};
+use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
 use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 
@@ -19,13 +18,12 @@ use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
 ///
 /// The transport layer connection is established lazily when the first transaction is proven.
-#[derive(Clone)]
 pub struct RemoteTransactionProver {
     #[cfg(target_arch = "wasm32")]
-    client: RefCell<Option<ApiClient<tonic_web_wasm_client::Client>>>,
+    client: RwLock<Option<ApiClient<tonic_web_wasm_client::Client>>>,
 
     #[cfg(not(target_arch = "wasm32"))]
-    client: RefCell<Option<ApiClient<tonic::transport::Channel>>>,
+    client: RwLock<Option<ApiClient<tonic::transport::Channel>>>,
 
     endpoint: String,
 }
@@ -36,7 +34,7 @@ impl RemoteTransactionProver {
     pub fn new(endpoint: &str) -> Self {
         RemoteTransactionProver {
             endpoint: endpoint.to_string(),
-            client: RefCell::new(None),
+            client: RwLock::new(None),
         }
     }
 
@@ -44,7 +42,7 @@ impl RemoteTransactionProver {
     /// mantained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
     async fn connect(&self) -> Result<(), RemoteTransactionProverError> {
-        let mut client = self.client.borrow_mut();
+        let mut client = self.client.write();
         if client.is_some() {
             return Ok(());
         }
@@ -82,7 +80,7 @@ impl TransactionProver for RemoteTransactionProver {
             ))
         })?;
 
-        let mut client = self.client.borrow_mut();
+        let mut client = self.client.write();
 
         let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
             transaction_witness: tx_witness.to_bytes(),
