@@ -1,28 +1,18 @@
 extern crate alloc;
 
-use figment::{
-    providers::{Format, Toml},
-    Figment,
-};
-use proxy::WorkerLoadBalancer;
+use clap::Parser;
+use commands::{init::Init, proxy::StartProxy, worker::StartWorker};
 use serde::{Deserialize, Serialize};
-use tracing::info;
 pub mod api;
 mod proxy;
 use alloc::string::String;
-use std::{fs::File, io::Write};
 
-use clap::Parser;
-use pingora::prelude::LoadBalancer;
-use tokio::{net::TcpListener, task};
-use tokio_stream::wrappers::TcpListenerStream;
+mod commands;
 pub mod generated;
-use crate::api::RpcListener;
+mod utils;
 
 #[cfg(feature = "async")]
 mod prover;
-use pingora::{apps::HttpServerOptions, prelude::Opt, server::Server};
-use pingora_proxy::http_proxy_service;
 #[cfg(feature = "async")]
 pub use prover::RemoteTransactionProver;
 
@@ -128,140 +118,4 @@ impl Cli {
             },
         }
     }
-}
-
-/// Initializes the CLI and creates a config file.
-#[derive(Debug, Parser)]
-pub struct Init;
-
-impl Init {
-    pub fn execute(&self) -> Result<(), String> {
-        let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
-        current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
-
-        if current_dir.exists() {
-            return Err(format!(
-                "The file \"{}\" already exists in the working directory.",
-                PROVER_SERVICE_CONFIG_FILE_NAME
-            )
-            .to_string());
-        }
-
-        let cli_config = CliConfig::default();
-
-        let config_as_toml_string = toml::to_string_pretty(&cli_config)
-            .map_err(|err| format!("Error formatting config: {err}"))?;
-
-        let mut file_handle = File::options()
-            .write(true)
-            .create_new(true)
-            .open(&current_dir)
-            .map_err(|err| format!("Error opening the file: {err}"))?;
-
-        file_handle
-            .write(config_as_toml_string.as_bytes())
-            .map_err(|err| format!("Error writing to file: {err}"))?;
-
-        println!("Config file successfully created at: {:?}", current_dir);
-
-        Ok(())
-    }
-}
-
-/// Starts the workers defined in the config file.
-#[derive(Debug, Parser)]
-pub struct StartWorker;
-
-impl StartWorker {
-    pub async fn execute(&self) -> Result<(), String> {
-        tracing_subscriber::fmt::init();
-        let cli_config = load_config_from_file()?;
-        let workers_addrs = cli_config
-            .workers
-            .iter()
-            .map(|worker| format!("{}:{}", worker.host, worker.port))
-            .collect::<Vec<String>>();
-
-        let mut handles = Vec::new();
-
-        for worker_addr in workers_addrs {
-            let handle = task::spawn(async move {
-                let rpc = RpcListener::new(
-                    TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?,
-                );
-
-                info!(
-                    "Server listening on {}",
-                    rpc.listener.local_addr().map_err(|err| err.to_string())?
-                );
-
-                tonic::transport::Server::builder()
-                    .accept_http1(true)
-                    .add_service(tonic_web::enable(rpc.api_service))
-                    .serve_with_incoming(TcpListenerStream::new(rpc.listener))
-                    .await
-                    .map_err(|err| err.to_string())
-            });
-
-            handles.push(handle);
-        }
-
-        // Wait for all server tasks to complete
-        for handle in handles {
-            handle.await.map_err(|err| err.to_string())??;
-        }
-
-        Ok(())
-    }
-}
-
-/// Starts the proxy defined in the config file.
-#[derive(Debug, Parser)]
-pub struct StartProxy;
-
-impl StartProxy {
-    pub fn execute(&self) -> Result<(), String> {
-        tracing_subscriber::fmt::init();
-        let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
-        server.bootstrap();
-
-        let cli_config = load_config_from_file()?;
-
-        let workers = cli_config
-            .workers
-            .iter()
-            .map(|worker| format!("{}:{}", worker.host, worker.port));
-
-        let workers = LoadBalancer::try_from_iter(workers).expect("PROVER_WORKERS is invalid");
-
-        // Set up the load balancer
-        let mut lb = http_proxy_service(&server.configuration, WorkerLoadBalancer::new(workers));
-
-        let proxy_host = cli_config.proxy.host;
-        let proxy_port = cli_config.proxy.port.to_string();
-        lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
-        let logic = lb.app_logic_mut().expect("No app logic found");
-        let mut http_server_options = HttpServerOptions::default();
-
-        // Enable HTTP/2 for plaintext
-        http_server_options.h2c = true;
-        logic.server_options = Some(http_server_options);
-
-        server.add_service(lb);
-        server.run_forever();
-    }
-}
-
-/// Loads config file from current directory and default filename and returns it
-///
-/// This function will look for the configuration file at the provided path. If the path is
-/// relative, searches in parent directories all the way to the root as well.
-pub(crate) fn load_config_from_file() -> Result<CliConfig, String> {
-    let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
-    current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
-    let config_path = current_dir.as_path();
-
-    Figment::from(Toml::file(config_path))
-        .extract()
-        .map_err(|err| format!("Failed to load {} config file: {err}", config_path.display()))
 }
