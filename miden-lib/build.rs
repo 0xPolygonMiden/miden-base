@@ -145,7 +145,7 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     let masb_file_path = target_dir.join("tx_kernel.masb");
     kernel_main.write_to_file(masb_file_path).into_diagnostic()?;
 
-    #[cfg(feature = "testing")]
+    #[cfg(any(feature = "testing", test))]
     {
         // Build kernel as a library and save it to file.
         // This is needed in test assemblers to access individual procedures which would otherwise

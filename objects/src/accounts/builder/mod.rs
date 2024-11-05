@@ -35,7 +35,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
     nonce: Felt,
-    #[cfg(feature = "testing")]
+    #[cfg(any(feature = "testing", test))]
     assets: Vec<Asset>,
     components: Vec<AccountComponent>,
     account_type: AccountType,
@@ -48,7 +48,7 @@ impl AccountBuilder {
     pub fn new() -> Self {
         Self {
             nonce: ZERO,
-            #[cfg(feature = "testing")]
+            #[cfg(any(feature = "testing", test))]
             assets: vec![],
             components: vec![],
             init_seed: None,
@@ -104,7 +104,7 @@ impl AccountBuilder {
             AssetVault::default()
         };
 
-        #[cfg(feature = "testing")]
+        #[cfg(any(feature = "testing", test))]
         if self.nonce == ZERO && !vault.is_empty() {
             return Err(AccountError::BuildError(
                 "account asset vault must be empty on new accounts".into(),
@@ -367,7 +367,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "testing")]
     #[test]
     fn account_builder_non_empty_vault_on_new_account() {
         let storage_slot0 = 25;

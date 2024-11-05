@@ -13,7 +13,7 @@ pub mod block;
 pub mod notes;
 pub mod transaction;
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", test))]
 pub mod testing;
 
 mod constants;

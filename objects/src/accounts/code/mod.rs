@@ -45,7 +45,7 @@ impl AccountCode {
     /// Creates a new [`AccountCode`] from the provided components' libraries.
     ///
     /// For testing use only.
-    #[cfg(feature = "testing")]
+    #[cfg(any(feature = "testing", test))]
     pub fn from_components(
         components: &[AccountComponent],
         account_type: AccountType,

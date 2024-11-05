@@ -294,7 +294,7 @@ impl Account {
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
-    #[cfg(feature = "testing")]
+    #[cfg(any(feature = "testing", test))]
     /// Returns a mutable reference to the vault of this account.
     pub fn vault_mut(&mut self) -> &mut AssetVault {
         &mut self.vault

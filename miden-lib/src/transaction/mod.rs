@@ -1,6 +1,6 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", test))]
 use miden_objects::accounts::AccountCode;
 use miden_objects::{
     accounts::AccountId,
@@ -294,7 +294,7 @@ impl TransactionKernel {
     }
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", test))]
 impl TransactionKernel {
     const KERNEL_TESTING_LIB_BYTES: &'static [u8] =
         include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/kernel_library.masl"));

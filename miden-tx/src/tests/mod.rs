@@ -966,8 +966,9 @@ fn transaction_executor_account_code_using_custom_library() {
             .unwrap()
             .with_supports_all_types();
 
-    let (native_account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(account_component)
+    let (native_account, seed) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(account_component)
         .build()
         .unwrap();
 
