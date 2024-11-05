@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use core::fmt;
 
 use vm_processor::DeserializationError;
@@ -36,6 +36,7 @@ pub enum AccountError {
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
+    BuildError(String, Option<Box<AccountError>>),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
@@ -71,7 +72,16 @@ pub enum AccountError {
 
 impl fmt::Display for AccountError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            AccountError::BuildError(msg, err) => {
+                write!(f, "account build error: {msg}")?;
+                if let Some(err) = err {
+                    write!(f, ": {err}")?;
+                }
+                Ok(())
+            },
+            other => write!(f, "{other:?}"),
+        }
     }
 }
 

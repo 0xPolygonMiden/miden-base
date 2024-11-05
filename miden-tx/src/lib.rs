@@ -28,7 +28,7 @@ pub use errors::{
 
 pub mod auth;
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", test))]
 pub mod testing;
 
 #[cfg(test)]

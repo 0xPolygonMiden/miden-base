@@ -14,11 +14,14 @@ pub mod auth;
 
 pub use auth::AuthSecretKey;
 
-mod component;
-pub use component::AccountComponent;
+mod builder;
+pub use builder::AccountBuilder;
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
+
+mod component;
+pub use component::AccountComponent;
 
 pub mod delta;
 pub use delta::{
@@ -147,6 +150,11 @@ impl Account {
         let storage = AccountStorage::from_components(components, account_type)?;
 
         Ok((code, storage))
+    }
+
+    /// Returns a new [`AccountBuilder`]. See its documentation for details.
+    pub fn builder() -> AccountBuilder {
+        AccountBuilder::new()
     }
 
     // PUBLIC ACCESSORS
@@ -286,7 +294,7 @@ impl Account {
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
-    #[cfg(feature = "testing")]
+    #[cfg(any(feature = "testing", test))]
     /// Returns a mutable reference to the vault of this account.
     pub fn vault_mut(&mut self) -> &mut AssetVault {
         &mut self.vault

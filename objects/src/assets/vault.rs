@@ -89,6 +89,11 @@ impl AssetVault {
         &self.asset_tree
     }
 
+    /// Returns a bool indicating whether the vault is empty.
+    pub fn is_empty(&self) -> bool {
+        self.asset_tree.is_empty()
+    }
+
     // PUBLIC MODIFIERS
     // --------------------------------------------------------------------------------------------
 

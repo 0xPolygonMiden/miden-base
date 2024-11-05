@@ -10,16 +10,14 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountCode, AccountComponent, AccountId, AccountStorage, AccountType, StorageSlot,
+        AccountBuilder, AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
+        StorageSlot,
     },
     assembly::Library,
-    testing::{
-        account_builder::AccountBuilder, account_component::AccountMockComponent, prepare_word,
-        storage::STORAGE_LEAVES_2,
-    },
+    testing::{account_component::AccountMockComponent, prepare_word, storage::STORAGE_LEAVES_2},
     transaction::TransactionScript,
 };
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, MemAdviceProvider, ProcessState};
 
@@ -255,8 +253,9 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(
+    let (account, _) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
                 vec![AccountStorage::mock_item_2().slot],
@@ -264,7 +263,7 @@ fn test_get_map_item() {
             .unwrap(),
         )
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
@@ -402,8 +401,9 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let (account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(
+    let (account, _) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
                 vec![AccountStorage::mock_item_2().slot],
@@ -411,7 +411,7 @@ fn test_set_map_item() {
             .unwrap(),
         )
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
@@ -551,11 +551,12 @@ fn test_account_component_storage_offset() {
     .unwrap()
     .with_supported_type(AccountType::RegularAccountUpdatableCode);
 
-    let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(component1)
-        .add_component(component2)
+    let (mut account, _) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(component1)
+        .with_component(component2)
         .nonce(ONE)
-        .build()
+        .build_testing()
         .unwrap();
 
     // Assert that the storage offset and size have been set correctly.

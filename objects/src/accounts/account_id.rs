@@ -226,6 +226,42 @@ impl AccountId {
         Self::new(seed, code_commitment, storage_commitment).unwrap()
     }
 
+    /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
+    /// mode.
+    ///
+    /// This function does the following:
+    /// - The bit representation of the account type and storage mode is prepended to the most
+    ///   significant byte of `bytes`.
+    /// - The 5th most significant bit is cleared.
+    /// - The bytes are then converted to a `u64` in big-endian format. Due to clearing the 5th most
+    ///   significant bit, the resulting `u64` will be a valid [`Felt`].
+    #[cfg(any(feature = "testing", test))]
+    pub fn new_with_type_and_mode(
+        mut bytes: [u8; 8],
+        account_type: AccountType,
+        storage_mode: AccountStorageMode,
+    ) -> AccountId {
+        let id_high_nibble = (storage_mode as u8) << 6 | (account_type as u8) << 4;
+
+        // Clear the highest five bits of the most significant byte.
+        // The high nibble must be cleared so we can set it to the storage mode and account type
+        // we've constructed.
+        // The 5th most significant bit is cleared to ensure the resulting id is a valid Felt even
+        // when all other bits are set.
+        bytes[0] &= 0x07;
+        // Set high nibble of the most significant byte.
+        bytes[0] |= id_high_nibble;
+
+        let account_id = Felt::try_from(u64::from_be_bytes(bytes))
+            .expect("must be a valid felt after clearing the 5th highest bit");
+        let account_id = AccountId::new_unchecked(account_id);
+
+        debug_assert_eq!(account_id.account_type(), account_type);
+        debug_assert_eq!(account_id.storage_mode(), storage_mode);
+
+        account_id
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -576,6 +612,7 @@ pub mod testing {
 
 // TESTS
 // ================================================================================================
+
 #[cfg(test)]
 mod tests {
     use miden_crypto::utils::{Deserializable, Serializable};
@@ -704,5 +741,25 @@ mod tests {
             (REGULAR_ACCOUNT_UPDATABLE_CODE << ACCOUNT_TYPE_MASK_SHIFT) & ACCOUNT_ISFAUCET_MASK,
             0
         );
+    }
+
+    #[test]
+    fn account_id_construction() {
+        // Use the highest possible input to check if the constructed id is a valid Felt in that
+        // scenario.
+        let bytes = [0xff; 8];
+
+        for account_type in [
+            AccountType::FungibleFaucet,
+            AccountType::NonFungibleFaucet,
+            AccountType::RegularAccountImmutableCode,
+            AccountType::RegularAccountUpdatableCode,
+        ] {
+            for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
+                // This function contains debug assertions already so we don't asset anything
+                // additional
+                AccountId::new_with_type_and_mode(bytes, account_type, storage_mode);
+            }
+        }
     }
 }

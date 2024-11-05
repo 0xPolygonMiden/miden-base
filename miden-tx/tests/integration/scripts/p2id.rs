@@ -13,14 +13,14 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        Account, AccountId, AccountType,
+        Account, AccountBuilder, AccountId,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::PublicKey, rand::RpoRandomCoin},
     notes::NoteType,
-    testing::{account_builder::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{TransactionArgs, TransactionScript},
-    Felt, FieldElement,
+    Felt,
 };
 use miden_tx::{
     auth::TransactionAuthenticator,
@@ -30,7 +30,7 @@ use miden_tx::{
     },
     TransactionExecutor,
 };
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
 
@@ -272,7 +272,7 @@ fn prove_consume_note_with_new_account() {
     .unwrap();
 
     let tx_context = TransactionContextBuilder::new(target_account.clone())
-        .account_seed(Some(seed))
+        .account_seed(seed)
         .input_notes(vec![note.clone()])
         .build();
 
@@ -361,15 +361,14 @@ fn prove_consume_multiple_notes() {
 // HELPER FUNCTIONS
 // ===============================================================================================
 
-fn create_new_account() -> (Account, Word, Arc<dyn TransactionAuthenticator>) {
+fn create_new_account() -> (Account, Option<Word>, Arc<dyn TransactionAuthenticator>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_component(BasicWallet)
-        .add_component(RpoFalcon512::new(PublicKey::new(pub_key)))
-        .account_type(AccountType::RegularAccountUpdatableCode)
-        .nonce(Felt::ZERO)
-        .build()
+    let (account, seed) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(BasicWallet)
+        .with_component(RpoFalcon512::new(PublicKey::new(pub_key)))
+        .build_testing()
         .unwrap();
 
     (account, seed, falcon_auth)

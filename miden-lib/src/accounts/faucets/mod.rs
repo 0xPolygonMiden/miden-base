@@ -2,7 +2,7 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountComponent, AccountId, AccountStorageMode, AccountType, StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType, StorageSlot,
     },
     assets::TokenSymbol,
     AccountError, Felt, FieldElement, Word,
@@ -93,24 +93,17 @@ pub fn create_basic_fungible_faucet(
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
     // faucet contract.
-    let auth_component = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key).into(),
+    let auth_component: RpoFalcon512 = match auth_scheme {
+        AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key),
     };
-    let faucet_component = BasicFungibleFaucet::new(symbol, decimals, max_supply)?.into();
 
-    let account_type = AccountType::FungibleFaucet;
-    let (account_code, account_storage) =
-        Account::initialize_from_components(account_type, &[auth_component, faucet_component])?;
-
-    let account_seed = AccountId::get_account_seed(
-        init_seed,
-        account_type,
-        account_storage_mode,
-        account_code.commitment(),
-        account_storage.commitment(),
-    )?;
-
-    let account = Account::new(account_seed, account_code, account_storage)?;
+    let (account, account_seed) = AccountBuilder::new()
+        .init_seed(init_seed)
+        .account_type(AccountType::FungibleFaucet)
+        .storage_mode(account_storage_mode)
+        .with_component(auth_component)
+        .with_component(BasicFungibleFaucet::new(symbol, decimals, max_supply)?)
+        .build()?;
 
     Ok((account, account_seed))
 }
