@@ -612,6 +612,7 @@ pub mod testing {
 
 // TESTS
 // ================================================================================================
+
 #[cfg(test)]
 mod tests {
     use miden_crypto::utils::{Deserializable, Serializable};

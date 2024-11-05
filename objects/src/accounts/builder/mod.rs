@@ -179,7 +179,7 @@ impl AccountBuilder {
     }
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", test))]
 impl AccountBuilder {
     /// Sets the nonce of the account. This method is optional.
     ///
