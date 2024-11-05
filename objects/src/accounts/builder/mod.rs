@@ -194,8 +194,11 @@ impl AccountBuilder {
 
             (account_id, Some(seed))
         } else {
+            let bytes = <[u8; 8]>::try_from(&init_seed[0..8])
+                .expect("we should have sliced exactly 8 bytes off");
+
             let account_id =
-                Self::construct_account_id(self.account_type, self.storage_mode, init_seed);
+                AccountId::new_with_type_and_mode(bytes, self.account_type, self.storage_mode);
 
             (account_id, None)
         };
@@ -222,37 +225,6 @@ impl AccountBuilder {
     pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
-    }
-
-    /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
-    /// mode and using the first 8 bytes of the `init_seed` as part of the account id.
-    fn construct_account_id(
-        account_type: AccountType,
-        storage_mode: AccountStorageMode,
-        init_seed: [u8; 32],
-    ) -> AccountId {
-        let id_high_nibble = (storage_mode as u8) << 6 | (account_type as u8) << 4;
-
-        let mut bytes =
-            <[u8; 8]>::try_from(&init_seed[0..8]).expect("we have sliced exactly 8 bytes off");
-
-        // Clear the highest five bits of the most significant byte.
-        // The high nibble must be cleared so we can set it to the storage mode and account type
-        // we've constructed.
-        // The 5th most significant bit is cleared to ensure the resulting id is a valid Felt even
-        // when all other bits are set.
-        bytes[0] &= 0x07;
-        // Set high nibble of the most significant byte.
-        bytes[0] |= id_high_nibble;
-
-        let account_id = Felt::try_from(u64::from_be_bytes(bytes))
-            .expect("must be a valid felt after clearing the 5th highest bit");
-        let account_id = AccountId::new_unchecked(account_id);
-
-        debug_assert_eq!(account_id.account_type(), account_type);
-        debug_assert_eq!(account_id.storage_mode(), storage_mode);
-
-        account_id
     }
 }
 
@@ -411,26 +383,5 @@ mod tests {
         assert!(
             matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
         )
-    }
-
-    #[cfg(feature = "testing")]
-    #[test]
-    fn account_builder_id_construction() {
-        // Use the highest possible input to check if the constructed id is a valid Felt in that
-        // scenario.
-        let init_seed = [0xff; 32];
-
-        for account_type in [
-            AccountType::FungibleFaucet,
-            AccountType::NonFungibleFaucet,
-            AccountType::RegularAccountImmutableCode,
-            AccountType::RegularAccountUpdatableCode,
-        ] {
-            for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                // This function contains debug assertions already so we don't asset anything
-                // additional
-                AccountBuilder::construct_account_id(account_type, storage_mode, init_seed);
-            }
-        }
     }
 }
