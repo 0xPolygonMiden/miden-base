@@ -1,10 +1,18 @@
 # Changelog
 
-## 0.6.0 (TBD)
+## 0.6.0 (2024-11-05)
+
+### Features
+
+- Created a proving service that receives `TransactionWitness` and returns the proof using gRPC (#881).
+- Implemented ability to invoke procedures against the foreign account (#882, #890, #896).
+- Implemented kernel procedure to set transaction expiration block delta (#897).
+- [BREAKING] Introduce a new way to build `Account`s from `AccountComponent`s (#941).
+- [BREAKING] Introduce an `AccountBuilder` (#952).
+
+### Changes
 
 - [BREAKING] Changed `TransactionExecutor` and `TransactionHost` to use trait objects (#897).
-- Implemented kernel procedure to set transaction expiration block delta (#897).
-- Created a proving service that receives `TransactionWitness` and returns the proof using gRPC (#881).
 - Made note scripts public (#880).
 - Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
 - [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).
@@ -13,14 +21,12 @@
 - [BREAKING] `AccountStorageType` enum was renamed to `AccountStorageMode` along with its variants (#854).
 - [BREAKING] `AccountStub` structure was renamed to `AccountHeader` (#855).
 - [BREAKING] Kernel procedures now have to be invoked using `dynexec` instruction (#803).
-- Refactored `AccountStorage` from `Smt` to `sequential hash` (#846).
+- Refactored `AccountStorage` from `Smt` to sequential hash (#846).
 - [BREAKING] Refactored batch/block note trees (#834).
 - Set all procedures storage offsets of faucet accounts to `1` (#875).
 - Added `AccountStorageHeader` (#876).
 - Implemented generation of transaction kernel procedure hashes in build.rs (#887).
 - [BREAKING] `send_asset` procedure was removed from the basic wallet (#829).
-- Updated roadmap for docs (#877).
-- Implemented ability to invoke procedures against the foreign account (#882, #890, #896).
 - [BREAKING] Updated limits, introduced additional limits (#889).
 - Introduced `AccountDelta` maximum size limit of 32 KiB (#889).
 - [BREAKING] Moved `MAX_NUM_FOREIGN_ACCOUNTS` into `miden-objects` (#904).
@@ -31,9 +37,7 @@
 - [BREAKING] Changed type of `EMPTY_STORAGE_MAP_ROOT` constant to `RpoDigst`, which references constant from `miden-crypto` (#916).
 - Added `RemoteTransactionProver` struct to `miden-tx-prover` (#921).
 - [BREAKING] Migrated to v0.11 version of Miden VM (#929).
-- [BREAKING] Introduce a new way to build `Account`s from `AccountComponent`s (#941).
 - Added `total_cycles` and `trace_length` to the `TransactionMeasurements` (#953).
-- [BREAKING] Introduce an `AccountBuilder` (#952).
 - Added ability to load libraries into `TransactionExecutor` and `LocalTransactionProver` (#954).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
