@@ -69,17 +69,42 @@ impl Default for CliConfig {
 }
 
 /// Configuration for a worker
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct WorkerConfig {
     pub host: String,
     pub port: u16,
 }
 
+impl Default for WorkerConfig {
+    fn default() -> Self {
+        Self { host: "0.0.0.0".into(), port: 8080 }
+    }
+}
+
 /// Configuration for the proxy
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ProxyConfig {
     pub host: String,
     pub port: u16,
+    pub timeout_secs: u64,
+    pub connection_timeout_secs: u64,
+    pub max_queue_items: usize,
+    pub max_retries_per_request: usize,
+    pub max_req_per_sec: isize,
+}
+
+impl Default for ProxyConfig {
+    fn default() -> Self {
+        Self {
+            host: "0.0.0.0".into(),
+            port: 8082,
+            timeout_secs: 100,
+            connection_timeout_secs: 10,
+            max_queue_items: 10,
+            max_retries_per_request: 1,
+            max_req_per_sec: 5,
+        }
+    }
 }
 
 /// Root CLI struct

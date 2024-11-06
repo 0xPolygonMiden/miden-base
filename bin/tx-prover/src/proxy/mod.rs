@@ -14,31 +14,38 @@ use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::error;
 
-/// Timeout duration for the requests
-const TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(100));
-
-/// Timeout duration for the connection
-const CONNECTION_TIMEOUT_SECS: Option<Duration> = Some(Duration::from_secs(10));
-
-/// Maximum number of items per queue
-const MAX_QUEUE_ITEMS: usize = 10;
-
-/// Maximum number of retries per request
-const MAX_RETRIES_PER_REQUEST: usize = 1;
+use crate::CliConfig;
 
 /// Load balancer that uses a round robin strategy
-pub struct WorkerLoadBalancer(Arc<LoadBalancer<RoundRobin>>);
+pub struct WorkerLoadBalancer {
+    lb: Arc<LoadBalancer<RoundRobin>>,
+    timeout_secs: Duration,
+    connection_timeout_secs: Duration,
+    max_queue_items: usize,
+    max_retries_per_request: usize,
+    max_req_per_sec: isize,
+}
 
 impl WorkerLoadBalancer {
-    pub fn new(workers: LoadBalancer<RoundRobin>) -> Self {
-        Self(Arc::new(workers))
+    pub fn new(workers: LoadBalancer<RoundRobin>, config: &CliConfig) -> Self {
+        Self {
+            lb: Arc::new(workers),
+            timeout_secs: Duration::from_secs(config.proxy.timeout_secs),
+            connection_timeout_secs: Duration::from_secs(config.proxy.connection_timeout_secs),
+            max_queue_items: config.proxy.max_queue_items,
+            max_retries_per_request: config.proxy.max_retries_per_request,
+            max_req_per_sec: config.proxy.max_req_per_sec,
+        }
     }
 
     /// Create a 429 response for too many requests
-    pub async fn create_too_many_requests_response(session: &mut Session) -> Result<bool> {
+    pub async fn create_too_many_requests_response(
+        session: &mut Session,
+        max_request_per_second: isize,
+    ) -> Result<bool> {
         // Rate limited, return 429
         let mut header = ResponseHeader::build(429, None)?;
-        header.insert_header("X-Rate-Limit-Limit", MAX_REQ_PER_SEC.to_string())?;
+        header.insert_header("X-Rate-Limit-Limit", max_request_per_second.to_string())?;
         header.insert_header("X-Rate-Limit-Remaining", "0")?;
         header.insert_header("X-Rate-Limit-Reset", "1")?;
         session.set_keepalive(None);
@@ -77,9 +84,6 @@ impl WorkerLoadBalancer {
 
 /// Rate limiter
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
-
-/// Maximum amount of request per second per client
-static MAX_REQ_PER_SEC: isize = 5;
 
 /// Shared state. It is a map of workers to a vector of request IDs
 static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
@@ -136,8 +140,8 @@ impl ProxyHttp for WorkerLoadBalancer {
         // Retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
 
-        if curr_window_requests > MAX_REQ_PER_SEC {
-            return Self::create_too_many_requests_response(session).await;
+        if curr_window_requests > self.max_req_per_sec {
+            return Self::create_too_many_requests_response(session, self.max_req_per_sec).await;
         };
         Ok(false)
     }
@@ -160,7 +164,7 @@ impl ProxyHttp for WorkerLoadBalancer {
         }
 
         // Select the worker in a round-robin fashion
-        let worker = self.0.select(b"", 256).ok_or(Error::new_str("Worker not found"))?;
+        let worker = self.lb.select(b"", 256).ok_or(Error::new_str("Worker not found"))?;
 
         // Read request ID from headers
         let request_id = Self::get_request_id(session)?;
@@ -171,8 +175,8 @@ impl ProxyHttp for WorkerLoadBalancer {
             let mut ctx_guard = QUEUES.write().await;
             let worker_queue = ctx_guard.entry(worker.clone()).or_insert_with(Vec::new);
 
-            // Limit queue length to MAX_QUEUE_ITEMS requests
-            if worker_queue.len() >= MAX_QUEUE_ITEMS {
+            // Limit queue length
+            if worker_queue.len() >= self.max_queue_items {
                 return Err(Error::new_str("Too many requests in the queue"));
             }
 
@@ -201,11 +205,11 @@ impl ProxyHttp for WorkerLoadBalancer {
             http_peer.get_mut_peer_options().ok_or(Error::new(ErrorType::InternalError))?;
 
         // Timeout settings
-        peer_opts.total_connection_timeout = TIMEOUT_SECS;
-        peer_opts.connection_timeout = CONNECTION_TIMEOUT_SECS;
-        peer_opts.read_timeout = TIMEOUT_SECS;
-        peer_opts.write_timeout = TIMEOUT_SECS;
-        peer_opts.idle_timeout = TIMEOUT_SECS;
+        peer_opts.total_connection_timeout = Some(self.timeout_secs);
+        peer_opts.connection_timeout = Some(self.connection_timeout_secs);
+        peer_opts.read_timeout = Some(self.timeout_secs);
+        peer_opts.write_timeout = Some(self.timeout_secs);
+        peer_opts.idle_timeout = Some(self.timeout_secs);
 
         // Enable HTTP/2
         peer_opts.alpn = ALPN::H2;
@@ -248,7 +252,7 @@ impl ProxyHttp for WorkerLoadBalancer {
         ctx: &mut Self::CTX,
         mut e: Box<Error>,
     ) -> Box<Error> {
-        if ctx.tries > MAX_RETRIES_PER_REQUEST {
+        if ctx.tries > self.max_retries_per_request {
             return e;
         }
         ctx.tries += 1;

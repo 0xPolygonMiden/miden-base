@@ -27,8 +27,10 @@ impl StartProxy {
 
         let workers = LoadBalancer::try_from_iter(workers).expect("PROVER_WORKERS is invalid");
 
+        let worker_lb = WorkerLoadBalancer::new(workers, &cli_config);
+
         // Set up the load balancer
-        let mut lb = http_proxy_service(&server.configuration, WorkerLoadBalancer::new(workers));
+        let mut lb = http_proxy_service(&server.configuration, worker_lb);
 
         let proxy_host = cli_config.proxy.host;
         let proxy_port = cli_config.proxy.port.to_string();
