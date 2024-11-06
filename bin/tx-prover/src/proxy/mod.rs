@@ -109,7 +109,7 @@ pub struct TriesCounter {
 ///   [Self::upstream_request_filter()] method is called. In this method, we ensure that the correct
 ///   headers are forwarded for gRPC requests.
 /// - If the connection fails, the [Self::fail_to_connect()] method is called. In this method, we
-///   retry the request [MAX_RETRIES_PER_REQUEST] times.
+///   retry the request [self.max_retries_per_request] times.
 /// - Once the worker processes the request (either successfully or with a failure),
 ///   [Self::logging()] method is called. In this method, we remove the request from the worker's
 ///   queue, allowing the worker to process the next request.
