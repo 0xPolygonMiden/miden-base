@@ -1,5 +1,3 @@
-use alloc::string::ToString;
-
 use super::{
     accounts::{AccountId, AccountType, ACCOUNT_ISFAUCET_MASK},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -64,7 +62,6 @@ pub use vault::AssetVault;
 /// to be different as per the faucet creation logic. Collision resistance for non-fungible assets
 /// issued by the same faucet is ~2^95.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Asset {
     Fungible(FungibleAsset),
     NonFungible(NonFungibleAsset),
@@ -147,21 +144,6 @@ impl From<&Asset> for Word {
     }
 }
 
-impl From<Asset> for [u8; 32] {
-    fn from(asset: Asset) -> Self {
-        match asset {
-            Asset::Fungible(asset) => asset.into(),
-            Asset::NonFungible(asset) => asset.into(),
-        }
-    }
-}
-
-impl From<&Asset> for [u8; 32] {
-    fn from(value: &Asset) -> Self {
-        (*value).into()
-    }
-}
-
 impl TryFrom<&Word> for Asset {
     type Error = AssetError;
 
@@ -182,58 +164,50 @@ impl TryFrom<Word> for Asset {
     }
 }
 
-impl TryFrom<[u8; 32]> for Asset {
-    type Error = AssetError;
-
-    fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
-        parse_word(value)?.try_into()
-    }
-}
-
-impl TryFrom<&[u8; 32]> for Asset {
-    type Error = AssetError;
-
-    fn try_from(value: &[u8; 32]) -> Result<Self, Self::Error> {
-        (*value).try_into()
-    }
-}
-
 // SERIALIZATION
 // ================================================================================================
 
 impl Serializable for Asset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let data: [u8; 32] = self.into();
-        target.write_bytes(&data);
+        match self {
+            Asset::Fungible(fungible_asset) => fungible_asset.write_into(target),
+            Asset::NonFungible(non_fungible_asset) => non_fungible_asset.write_into(target),
+        }
+    }
+
+    fn get_size_hint(&self) -> usize {
+        match self {
+            Asset::Fungible(fungible_asset) => fungible_asset.get_size_hint(),
+            Asset::NonFungible(non_fungible_asset) => non_fungible_asset.get_size_hint(),
+        }
     }
 }
 
 impl Deserializable for Asset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let data_vec = source.read_vec(32)?;
-        let data_array: [u8; 32] = data_vec.try_into().expect("Vec must be of size 32");
+        // Both asset types have their faucet ID as the first element, so we can use it to inspect
+        // what type of asset it is.
+        let account_id: AccountId = source.read()?;
+        let account_type = account_id.account_type();
 
-        let asset = Asset::try_from(&data_array)
-            .map_err(|error| DeserializationError::InvalidValue(format!("{error}")))?;
-        Ok(asset)
+        match account_type {
+            AccountType::FungibleFaucet => {
+              FungibleAsset::deserialize_with_account_id(account_id, source).map(Asset::from)
+            },
+            AccountType::NonFungibleFaucet => {
+                NonFungibleAsset::deserialize_with_account_id(account_id, source).map(Asset::from)
+            },
+            other_type => {
+                 Err(DeserializationError::InvalidValue(format!(
+                    "failed to deserialize asset: expected an account ID of type faucet, found {other_type:?}"
+                )))
+            },
+        }
     }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-fn parse_word(bytes: [u8; 32]) -> Result<Word, AssetError> {
-    Ok([
-        parse_felt(&bytes[..8])?,
-        parse_felt(&bytes[8..16])?,
-        parse_felt(&bytes[16..24])?,
-        parse_felt(&bytes[24..])?,
-    ])
-}
-
-fn parse_felt(bytes: &[u8]) -> Result<Felt, AssetError> {
-    Felt::try_from(bytes).map_err(|err| AssetError::InvalidFieldElement(err.to_string()))
-}
 
 /// Returns `true` if asset in [Word] is not a non-fungible asset.
 ///
@@ -250,6 +224,7 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
 
 #[cfg(test)]
 mod tests {
+
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Word,

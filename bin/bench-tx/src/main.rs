@@ -3,6 +3,7 @@ use std::{
     fs::{read_to_string, write, File},
     io::Write,
     path::Path,
+    sync::Arc,
 };
 
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
@@ -19,7 +20,7 @@ use vm_processor::ONE;
 
 mod utils;
 use utils::{
-    get_account_with_default_account_code, get_new_pk_and_authenticator,
+    get_account_with_basic_authenticated_wallet, get_new_pk_and_authenticator,
     write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
@@ -39,7 +40,7 @@ impl fmt::Display for Benchmark {
 
 fn main() -> Result<(), String> {
     // create a template file for benchmark results
-    let path = Path::new("bench-tx/bench-tx.json");
+    let path = Path::new("bin/bench-tx/bench-tx.json");
     let mut file = File::create(path).map_err(|e| e.to_string())?;
     file.write_all(b"{}").map_err(|e| e.to_string())?;
 
@@ -74,8 +75,8 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None).with_tracing();
+    let executor: TransactionExecutor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .map_err(|e| e.to_string())?;
@@ -97,7 +98,7 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Create the note
     let note = create_p2id_note(
@@ -115,7 +116,8 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
         .build();
 
     let executor =
-        TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone())).with_tracing();
+        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth.clone()))
+            .with_tracing();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context

@@ -7,29 +7,29 @@ use.kernel::memory
 # ERRORS
 # =================================================================================================
 
-# The get_balance procedure can be called only with a fungible faucet
-const.ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE=0x0002002B
+# The get_balance procedure can only be called on a fungible faucet
+const.ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET=0x00020018
 
-# The has_non_fungible_asset procedure can be called only with a non-fungible faucet
-const.ERR_VAULT_HAS_NON_FUNGIBLE_WRONG_ACCOUNT_TYPE=0x0002002C
+# The has_non_fungible_asset procedure can only be called on a non-fungible faucet
+const.ERR_VAULT_HAS_NON_FUNGIBLE_ASSET_PROC_CAN_BE_CALLED_ONLY_WITH_NON_FUNGIBLE_ASSET=0x00020019
 
-# Adding the fungible asset would exceed the max_amount of 9223372036854775807
-const.ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x0002002D
+# Adding the fungible asset to the vault would exceed the max amount of 9223372036854775807
+const.ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x0002001A
 
-# Adding the asset to the account vault failed, something is wrong with the current value before the update
-const.ERR_VAULT_ADD_FUNGIBLE_ASSET_MISMATCH=0x0002002E
+# Failed to add fungible asset to the asset vault due to the initial value being invalid
+const.ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID=0x0002001B
 
-# The non-fungible asset already exists, can not be added again
-const.ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTS=0x0002002F
+# The non-fungible asset already exists in the asset vault
+const.ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x0002001C
 
-# Removing the fungible asset results in an underflow or negative balance
-const.ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW=0x00020030
+# Failed to remove the fungible asset from the vault since the amount of the asset in the vault is less than the amount to remove
+const.ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW=0x0002001D
 
-# Removing the asset from the account vault failed, something is wrong with the current value before the update
-const.ERR_VAULT_REMOVE_FUNGIBLE_ASSET_MISMATCH=0x00020031
+# Failed to remove fungible asset from the asset vault due to the initial value being invalid
+const.ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID=0x0002001E
 
-# Removing inexistent non-fungible asset
-const.ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET=0x00020032
+# Failed to remove non-existent non-fungible asset from the vault
+const.ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND=0x0002001F
 
 # ACCESSORS
 # =================================================================================================
@@ -45,7 +45,7 @@ const.ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET=0x00020032
 #! - balance is the vault balance of the fungible asset.
 export.get_balance
     # assert that the faucet id is a fungible faucet
-    dup exec.account::is_fungible_faucet assert.err=ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE
+    dup exec.account::is_fungible_faucet assert.err=ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [faucet_id, vault_root_ptr]
 
     # get the asset vault root
@@ -76,7 +76,7 @@ end
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.has_non_fungible_asset
     # check if the asset is a non-fungible asset
-    exec.asset::is_non_fungible_asset assert.err=ERR_VAULT_HAS_NON_FUNGIBLE_WRONG_ACCOUNT_TYPE
+    exec.asset::is_non_fungible_asset assert.err=ERR_VAULT_HAS_NON_FUNGIBLE_ASSET_PROC_CAN_BE_CALLED_ONLY_WITH_NON_FUNGIBLE_ASSET
     # => [ASSET, vault_root_ptr]
 
     # prepare the stack to read non-fungible asset from vault
@@ -119,7 +119,7 @@ export.add_fungible_asset
     # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
     # significant element with the faucet_id to construct the CUR_ASSET.
     padw dup.10 mem_loadw swapw
-    adv.push_smtpeek push.15329 drop            # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.push_smtpeek push.15329 drop            # TODO: remove line, see miden-vm/#1122
     adv_loadw swapw dupw.1 drop movup.11
     # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
 
@@ -145,7 +145,7 @@ export.add_fungible_asset
 
     # update asset in vault and assert the old value is equivalent to the value provided via the
     # decorator
-    exec.smt::set movupw.2 assert_eqw.err=ERR_VAULT_ADD_FUNGIBLE_ASSET_MISMATCH
+    exec.smt::set movupw.2 assert_eqw.err=ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID
     # => [VAULT_ROOT', ASSET', vault_root_ptr]
 
     # update the vault root
@@ -173,7 +173,7 @@ export.add_non_fungible_asset
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was empty
-    padw assert_eqw.err=ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTS
+    padw assert_eqw.err=ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
@@ -241,7 +241,7 @@ export.remove_fungible_asset
     # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
     # significant element with the faucet_id to construct the CUR_ASSET.
     padw dup.14 mem_loadw swapw
-    adv.push_smtpeek push.15413 drop            # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.push_smtpeek push.15413 drop            # TODO: remove line, see miden-vm/#1122
     adv_loadw dupw movdnw.2 drop movup.11
     # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, ASSET, vault_root_ptr]
 
@@ -250,7 +250,7 @@ export.remove_fungible_asset
     # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     # assert amount <= cur_amount
-    lte assert.err=ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW
+    lte assert.err=ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW
     # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     # asset amount + cur_amount < max_amount
@@ -273,7 +273,7 @@ export.remove_fungible_asset
 
     # update asset in vault and assert the old value is equivalent to the value provided via the
     # decorator
-    exec.smt::set movupw.2 assert_eqw.err=ERR_VAULT_REMOVE_FUNGIBLE_ASSET_MISMATCH
+    exec.smt::set movupw.2 assert_eqw.err=ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
@@ -302,7 +302,7 @@ export.remove_non_fungible_asset
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was not empty (we only need to check ASSET[1] which is the faucet id)
-    drop drop eq.0 assertz.err=ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET drop
+    drop drop eq.0 assertz.err=ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND drop
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root

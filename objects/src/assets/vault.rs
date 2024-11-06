@@ -89,6 +89,11 @@ impl AssetVault {
         &self.asset_tree
     }
 
+    /// Returns a bool indicating whether the vault is empty.
+    pub fn is_empty(&self) -> bool {
+        self.asset_tree.is_empty()
+    }
+
     // PUBLIC MODIFIERS
     // --------------------------------------------------------------------------------------------
 
@@ -260,17 +265,28 @@ impl Serializable for AssetVault {
         // TODO: determine total number of assets in the vault without allocating the vector
         let assets = self.assets().collect::<Vec<_>>();
 
-        // TODO: either enforce that number of assets in the vault is never greater than
-        // u32::MAX or use variable-length encoding for the number of assets
-        assert!(assets.len() <= u32::MAX as usize, "too many assets in the vault");
-        target.write_u32(assets.len() as u32);
+        target.write_usize(assets.len());
         target.write_many(&assets);
+    }
+
+    fn get_size_hint(&self) -> usize {
+        let mut size = 0;
+        let mut count: usize = 0;
+
+        for asset in self.assets() {
+            size += asset.get_size_hint();
+            count += 1;
+        }
+
+        size += count.get_size_hint();
+
+        size
     }
 }
 
 impl Deserializable for AssetVault {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num_assets = source.read_u32()? as usize;
+        let num_assets = source.read_usize()?;
         let assets = source.read_many::<Asset>(num_assets)?;
         Self::new(&assets).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }

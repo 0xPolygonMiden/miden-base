@@ -1,4 +1,5 @@
 use std::{
+    collections::{BTreeMap, BTreeSet},
     env, fs,
     fs::File,
     io::{self, BufRead, BufReader, Write},
@@ -11,6 +12,7 @@ use assembly::{
     utils::Serializable,
     Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace,
 };
+use regex::Regex;
 
 // CONSTANTS
 // ================================================================================================
@@ -19,7 +21,9 @@ const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
 const ASM_MIDEN_DIR: &str = "miden";
 const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
+const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
+const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -31,6 +35,7 @@ const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 fn main() -> Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed=asm");
+    println!("cargo:rerun-if-changed={KERNEL_V0_RS_FILE}");
 
     // Copies the MASM code to the build directory
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -57,8 +62,11 @@ fn main() -> Result<()> {
     compile_note_scripts(
         &source_dir.join(ASM_NOTE_SCRIPTS_DIR),
         &target_dir.join(ASM_NOTE_SCRIPTS_DIR),
-        assembler,
+        assembler.clone(),
     )?;
+
+    // compile account components
+    compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
 
     Ok(())
 }
@@ -77,8 +85,9 @@ fn main() -> Result<()> {
 ///
 /// The complied files are written as follows:
 ///
-/// - {target_dir}/tx_kernel.masl   -> contains kernel library compiled from api.masm.
-/// - {target_dir}/tx_kernel.masb   -> contains the executable compiled from main.masm.
+/// - {target_dir}/tx_kernel.masl               -> contains kernel library compiled from api.masm.
+/// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
+/// - src/transaction/procedures/kernel_v0.rs   -> contains the kernel procedures table.
 ///
 /// When the `testing` feature is enabled, the POW requirements for account ID generation are
 /// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
@@ -117,6 +126,9 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
         assembler,
     )?;
 
+    // generate `kernel_v0.rs` file
+    generate_kernel_proc_hash_file(kernel_lib.clone())?;
+
     let output_file = target_dir.join("tx_kernel").with_extension(Library::LIBRARY_EXTENSION);
     kernel_lib.write_to_file(output_file).into_diagnostic()?;
 
@@ -133,7 +145,7 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     let masb_file_path = target_dir.join("tx_kernel.masb");
     kernel_main.write_to_file(masb_file_path).into_diagnostic()?;
 
-    #[cfg(feature = "testing")]
+    #[cfg(any(feature = "testing", test))]
     {
         // Build kernel as a library and save it to file.
         // This is needed in test assemblers to access individual procedures which would otherwise
@@ -162,6 +174,83 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
         line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=64 # reduced via build.rs");
     }
     Ok(line)
+}
+
+/// Generates `kernel_v0.rs` file based on the kernel library
+fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
+    let (_, module_info, _) = kernel.into_parts();
+
+    let to_exclude = BTreeSet::from_iter(["exec_kernel_proc"]);
+    let offsets_filename = Path::new(ASM_DIR).join(ASM_MIDEN_DIR).join("kernel_proc_offsets.masm");
+    let offsets = parse_proc_offsets(&offsets_filename)?;
+    let generated_procs: BTreeMap<usize, String> = module_info
+        .procedures()
+        .filter(|(_, proc_info)| !to_exclude.contains::<str>(proc_info.name.as_ref()))
+        .map(|(_, proc_info)| {
+            let name = proc_info.name.to_string();
+
+            let Some(&offset) = offsets.get(&name) else {
+                panic!("Offset constant for function `{name}` not found in `{offsets_filename:?}`");
+            };
+
+            (
+                offset,
+                format!(
+                    "    // {name}\n    digest!({}),",
+                    proc_info
+                        .digest
+                        .as_elements()
+                        .iter()
+                        .map(|v| format!("{:#016x}", v.as_int()))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                ),
+            )
+        })
+        .collect();
+
+    let proc_count = generated_procs.len();
+    let generated_procs: String = generated_procs.into_iter().enumerate().map(|(index, (offset, txt))| {
+        if index != offset {
+            panic!("Offset constants in the file `{offsets_filename:?}` are not contiguous (missing offset: {index})");
+        }
+
+        txt
+    }).collect::<Vec<_>>().join("\n");
+
+    fs::write(
+        KERNEL_V0_RS_FILE,
+        format!(
+            r#"/// This file is generated by build.rs, do not modify
+
+use miden_objects::{{digest, Digest, Felt}};
+
+// KERNEL V0 PROCEDURES
+// ================================================================================================
+
+/// Hashes of all dynamically executed procedures from the kernel 0.
+pub const KERNEL0_PROCEDURES: [Digest; {proc_count}] = [
+{generated_procs}
+];
+"#,
+        ),
+    )
+    .into_diagnostic()
+}
+
+fn parse_proc_offsets(filename: impl AsRef<Path>) -> Result<BTreeMap<String, usize>> {
+    let regex: Regex = Regex::new(r"^const\.(?P<name>\w+)_OFFSET\s*=\s*(?P<offset>\d+)").unwrap();
+    let mut result = BTreeMap::new();
+    for line in fs::read_to_string(filename).into_diagnostic()?.lines() {
+        if let Some(captures) = regex.captures(line) {
+            result.insert(
+                captures["name"].to_string().to_lowercase(),
+                captures["offset"].parse().into_diagnostic()?,
+            );
+        }
+    }
+
+    Ok(result)
 }
 
 // COMPILE MIDEN LIB
@@ -211,6 +300,41 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
         masb_file_path.set_extension("masb");
         fs::write(masb_file_path, bytes).unwrap();
     }
+    Ok(())
+}
+
+// COMPILE DEFAULT ACCOUNT COMPONENTS
+// ================================================================================================
+
+const BASIC_WALLET_CODE: &str = "
+    export.::miden::contracts::wallets::basic::receive_asset
+    export.::miden::contracts::wallets::basic::create_note
+    export.::miden::contracts::wallets::basic::move_asset_to_note
+";
+
+const RPO_FALCON_AUTH_CODE: &str = "
+    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+";
+
+const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
+    export.::miden::contracts::faucets::basic_fungible::distribute
+    export.::miden::contracts::faucets::basic_fungible::burn
+";
+
+/// Compiles the default account components into a MASL library and stores the complied files in
+/// `target_dir`.
+fn compile_account_components(target_dir: &Path, assembler: Assembler) -> Result<()> {
+    for (component_name, component_code) in [
+        ("basic_wallet", BASIC_WALLET_CODE),
+        ("rpo_falcon_512", RPO_FALCON_AUTH_CODE),
+        ("basic_fungible_faucet", BASIC_FUNGIBLE_FAUCET_CODE),
+    ] {
+        let component_library = assembler.clone().assemble_library([component_code])?;
+        let component_file_path =
+            target_dir.join(component_name).with_extension(Library::LIBRARY_EXTENSION);
+        component_library.write_to_file(component_file_path).into_diagnostic()?;
+    }
+
     Ok(())
 }
 

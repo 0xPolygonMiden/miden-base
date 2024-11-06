@@ -27,7 +27,7 @@ use crate::{
 ///   different from note inputs, as the user executing the transaction can specify arbitrary note
 ///   args.
 /// - Advice inputs: Provides data needed by the runtime, like the details of public output notes.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
@@ -70,6 +70,13 @@ impl TransactionArgs {
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
     pub fn with_note_args(note_args: BTreeMap<NoteId, Word>) -> Self {
         Self::new(None, Some(note_args), AdviceMap::default())
+    }
+
+    /// Returns the provided [TransactionArgs] with advice inputs extended with the passed-in
+    /// `advice_inputs`.
+    pub fn with_advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
+        self.advice_inputs.extend(advice_inputs);
+        self
     }
 
     // PUBLIC ACCESSORS
@@ -145,6 +152,24 @@ impl TransactionArgs {
     }
 }
 
+impl Serializable for TransactionArgs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.tx_script.write_into(target);
+        self.note_args.write_into(target);
+        self.advice_inputs.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionArgs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let tx_script = Option::<TransactionScript>::read_from(source)?;
+        let note_args = BTreeMap::<NoteId, Word>::read_from(source)?;
+        let advice_inputs = AdviceInputs::read_from(source)?;
+
+        Ok(Self { tx_script, note_args, advice_inputs })
+    }
+}
+
 // TRANSACTION SCRIPT
 // ================================================================================================
 
@@ -172,7 +197,7 @@ impl TransactionScript {
     pub fn new(code: Program, inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>) -> Self {
         Self {
             entrypoint: code.entrypoint(),
-            mast: Arc::new(code.into()),
+            mast: code.mast_forest().clone(),
             inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
         }
     }
@@ -243,5 +268,22 @@ impl Deserializable for TransactionScript {
         let inputs = BTreeMap::<Digest, Vec<Felt>>::read_from(source)?;
 
         Ok(Self::from_parts(Arc::new(mast), entrypoint, inputs))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vm_core::utils::{Deserializable, Serializable};
+    use vm_processor::AdviceMap;
+
+    use crate::transaction::TransactionArgs;
+
+    #[test]
+    fn test_tx_args_serialization() {
+        let args = TransactionArgs::new(None, None, AdviceMap::default());
+        let bytes: std::vec::Vec<u8> = args.to_bytes();
+        let decoded = TransactionArgs::read_from_bytes(&bytes).unwrap();
+
+        assert_eq!(args, decoded);
     }
 }

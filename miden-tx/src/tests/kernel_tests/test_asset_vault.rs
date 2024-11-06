@@ -16,7 +16,18 @@ use miden_objects::{
 };
 
 use super::{Felt, Word, ONE, ZERO};
-use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_mem_value};
+use crate::{
+    assert_execution_error,
+    errors::tx_kernel_errors::{
+        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
+        ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
+        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND,
+    },
+    testing::TransactionContextBuilder,
+    tests::kernel_tests::read_root_mem_value,
+};
 
 #[test]
 fn test_get_balance() {
@@ -32,6 +43,9 @@ fn test_get_balance() {
             exec.prologue::prepare_transaction
             push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.account::get_balance
+
+            # truncate the stack
+            swap drop
         end
         "
     );
@@ -62,7 +76,10 @@ fn test_get_balance_non_fungible_fails() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(
+        process,
+        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
+    );
 }
 
 #[test]
@@ -79,6 +96,9 @@ fn test_has_non_fungible_asset() {
             exec.prologue::prepare_transaction
             push.{non_fungible_asset_key}
             exec.account::has_non_fungible_asset
+
+            # truncate the stack
+            swap drop
         end
         ",
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
@@ -106,7 +126,10 @@ fn test_add_fungible_asset_success() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
@@ -120,7 +143,7 @@ fn test_add_fungible_asset_success() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -143,7 +166,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
@@ -151,7 +174,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED);
     assert!(account_vault.add_asset(add_fungible_asset).is_err());
 }
 
@@ -175,7 +198,10 @@ fn test_add_non_fungible_asset_success() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
@@ -189,7 +215,7 @@ fn test_add_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -212,7 +238,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
         begin
             exec.prologue::prepare_transaction
             push.{NON_FUNGIBLE_ASSET}
-            exec.account::add_asset
+            call.account::add_asset
         end
         ",
         NON_FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
@@ -220,7 +246,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS);
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
 }
 
@@ -239,7 +265,10 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
         begin
             exec.::kernel::prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.::miden::account::remove_asset
+            call.::miden::account::remove_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -253,7 +282,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -274,7 +303,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -282,7 +311,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW);
 }
 
 #[test]
@@ -303,7 +332,10 @@ fn test_remove_fungible_asset_success_balance_remaining() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
@@ -317,7 +349,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -347,7 +379,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&non_existent_non_fungible_asset.into())
@@ -355,7 +387,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
 
     let process = tx_context.execute_code(&code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND);
     assert_eq!(
         account_vault.remove_asset(non_existent_non_fungible_asset),
         Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
@@ -381,7 +413,10 @@ fn test_remove_non_fungible_asset_success() {
         begin
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            exec.account::remove_asset
+            call.account::remove_asset
+
+            # truncate the stack
+            swapw dropw
         end
         ",
         FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
@@ -395,7 +430,7 @@ fn test_remove_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }

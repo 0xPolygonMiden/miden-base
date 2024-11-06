@@ -1,35 +1,51 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::collections::BTreeMap;
 
-use miden_lib::transaction::{
-    memory::{
-        MemoryOffset, ACCT_CODE_COMMITMENT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR,
-        ACCT_ID_PTR, ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_ROOT_PTR,
-        ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
-        BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
-        INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
-        INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
-        INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET,
-        INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET,
-        NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, NUM_ACCT_PROCEDURES_PTR, PREV_BLOCK_HASH_PTR,
-        PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+use miden_lib::{
+    accounts::wallets::BasicWallet,
+    transaction::{
+        memory::{
+            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
+            BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+            INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
+            INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
+            INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
+            INPUT_NOTE_NUM_ASSETS_OFFSET, INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET,
+            INPUT_NOTE_SERIAL_NUM_OFFSET, KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR,
+            NATIVE_ACCT_ID_AND_NONCE_PTR, NATIVE_ACCT_PROCEDURES_SECTION_PTR,
+            NATIVE_ACCT_STORAGE_COMMITMENT_PTR, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
+            NATIVE_ACCT_VAULT_ROOT_PTR, NATIVE_NUM_ACCT_PROCEDURES_PTR,
+            NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
+            PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR,
+            TX_SCRIPT_ROOT_PTR,
+        },
+        TransactionKernel,
     },
-    TransactionKernel,
 };
 use miden_objects::{
+    accounts::{
+        AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage, AccountType,
+        StorageSlot,
+    },
     testing::{
-        account::AccountBuilder,
+        account_component::BASIC_WALLET_CODE,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ONE};
 
 use super::{Felt, Process, Word, ZERO};
 use crate::{
+    assert_execution_error,
+    errors::tx_kernel_errors::{
+        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
+        ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
+        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
+    },
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
@@ -165,9 +181,9 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &Transactio
     );
 
     assert_eq!(
-        read_root_mem_value(process, NOTE_ROOT_PTR),
-        inputs.tx_inputs().block_header().note_root().as_elements(),
-        "The note root should be stored at the NOTE_ROOT_PTR"
+        read_root_mem_value(process, KERNEL_ROOT_PTR),
+        inputs.tx_inputs().block_header().kernel_root().as_elements(),
+        "The kernel root should be stored at the KERNEL_ROOT_PTR"
     );
 
     assert_eq!(
@@ -193,6 +209,12 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &Transactio
         inputs.tx_inputs().block_header().timestamp().into(),
         "The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]"
     );
+
+    assert_eq!(
+        read_root_mem_value(process, NOTE_ROOT_PTR),
+        inputs.tx_inputs().block_header().note_root().as_elements(),
+        "The note root should be stored at the NOTE_ROOT_PTR"
+    );
 }
 
 fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &TransactionContext) {
@@ -217,59 +239,76 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Transa
 
 fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_value(process, ACCT_ID_AND_NONCE_PTR),
+        read_root_mem_value(process, NATIVE_ACCT_ID_AND_NONCE_PTR),
         [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()],
-        "The account id should be stored at ACCT_ID_AND_NONCE_PTR[0]"
+        "The account id should be stored at NATIVE_ACCT_ID_AND_NONCE_PTR[0]"
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(process, NATIVE_ACCT_VAULT_ROOT_PTR),
         inputs.account().vault().commitment().as_elements(),
-        "The account vault root commitment should be stored at ACCT_VAULT_ROOT_PTR"
+        "The account vault root commitment should be stored at NATIVE_ACCT_VAULT_ROOT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_STORAGE_ROOT_PTR),
-        Word::from(inputs.account().storage().root()),
-        "The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR"
+        read_root_mem_value(process, NATIVE_ACCT_STORAGE_COMMITMENT_PTR),
+        Word::from(inputs.account().storage().commitment()),
+        "The account storage commitment should be stored at NATIVE_ACCT_STORAGE_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_CODE_COMMITMENT_PTR),
+        read_root_mem_value(process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
         inputs.account().code().commitment().as_elements(),
-        "account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)"
+        "account code commitment should be stored at NATIVE_ACCT_CODE_COMMITMENT_PTR"
     );
 
-    for (types, types_ptr) in inputs
+    assert_eq!(
+        read_root_mem_value(process, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR),
+        [
+            u16::try_from(inputs.account().storage().slots().len()).unwrap().into(),
+            ZERO,
+            ZERO,
+            ZERO
+        ],
+        "The number of initialised storage slots should be stored at NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR"
+    );
+
+    for (i, elements) in inputs
         .account()
         .storage()
-        .layout()
-        .chunks(4)
-        .zip(ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET..)
+        .as_elements()
+        .chunks(StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT / 2)
+        .enumerate()
     {
         assert_eq!(
-            read_root_mem_value(process, types_ptr),
-            Word::try_from(types.iter().map(Felt::from).collect::<Vec<_>>()).unwrap(),
-            "The account types data should be stored in (ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET..ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET + 64)"
-        );
+            read_root_mem_value(process, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + i as u32),
+            Word::try_from(elements).unwrap(),
+            "The account storage slots should be stored starting at NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR"
+        )
     }
 
     assert_eq!(
-        read_root_mem_value(process, NUM_ACCT_PROCEDURES_PTR),
+        read_root_mem_value(process, NATIVE_NUM_ACCT_PROCEDURES_PTR),
         [
             u16::try_from(inputs.account().code().procedures().len()).unwrap().into(),
             ZERO,
             ZERO,
             ZERO
         ],
-        "The number of procedures should be stored at NUM_ACCT_PROCEDURES_PTR"
+        "The number of procedures should be stored at NATIVE_NUM_ACCT_PROCEDURES_PTR"
     );
 
-    for (i, elements) in inputs.account().code().as_elements().chunks(4).enumerate() {
+    for (i, elements) in inputs
+        .account()
+        .code()
+        .as_elements()
+        .chunks(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC / 2)
+        .enumerate()
+    {
         assert_eq!(
-            read_root_mem_value(process, ACCT_PROCEDURES_SECTION_OFFSET + i as u32),
+            read_root_mem_value(process, NATIVE_ACCT_PROCEDURES_SECTION_PTR + i as u32),
             Word::try_from(elements).unwrap(),
-            "The account procedures and storage offsets should be stored starting at ACCT_PROCEDURES_SECTION_OFFSET"
+            "The account procedures and storage offsets should be stored starting at NATIVE_ACCT_PROCEDURES_SECTION_PTR"
         );
     }
 }
@@ -356,16 +395,26 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .build(TransactionKernel::assembler_testing())
+    let (account, seed) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(
+            AccountComponent::compile(
+                BASIC_WALLET_CODE,
+                TransactionKernel::testing_assembler(),
+                AccountStorage::mock_storage_slots(),
+            )
+            .unwrap()
+            .with_supported_type(AccountType::RegularAccountUpdatableCode),
+        )
+        .build_testing()
         .unwrap();
-    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
+    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
 
     let code = "
     use.kernel::prologue
 
     begin
-        call.prologue::prepare_transaction
+        exec.prologue::prepare_transaction
     end
     ";
 
@@ -393,8 +442,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_code(code);
-    assert!(process.is_ok());
+    tx_context.execute_code(code).unwrap();
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -402,7 +450,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler(),
     );
 
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
@@ -422,7 +470,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     ";
 
     let process = tx_context.execute_code(code);
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY);
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -474,15 +522,20 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
     let process = tx_context.execute_code(code);
 
-    assert!(process.is_err());
+    assert_execution_error!(
+        process,
+        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT
+    );
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(TransactionKernel::assembler_testing())
+    let (acct, account_seed) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .account_type(AccountType::RegularAccountUpdatableCode)
+        .with_component(BasicWallet)
+        .build_testing()
         .unwrap();
 
     let code = "
@@ -499,11 +552,12 @@ pub fn test_prologue_create_account_invalid_seed() {
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
     let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(Some(account_seed))
+        .account_seed(account_seed)
         .advice_inputs(adv_inputs)
         .build();
     let process = tx_context.execute_code(code);
-    assert!(process.is_err());
+
+    assert_execution_error!(process, ERR_ACCOUNT_SEED_DIGEST_MISMATCH)
 }
 
 #[test]
@@ -516,6 +570,9 @@ fn test_get_blk_version() {
     begin
         exec.prologue::prepare_transaction
         exec.memory::get_blk_version
+
+        # truncate the stack 
+        swap drop
     end
     ";
 
@@ -534,6 +591,9 @@ fn test_get_blk_timestamp() {
     begin
         exec.prologue::prepare_transaction
         exec.memory::get_blk_timestamp
+
+        # truncate the stack 
+        swap drop
     end
     ";
 

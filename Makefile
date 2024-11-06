@@ -8,7 +8,7 @@ help:
 
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
-ALL_FEATURES_BUT_ASYNC=--features concurrent,testing,serde
+ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -52,6 +52,7 @@ doc-serve: ## Serves documentation site
 test-build: ## Build the test binary
 	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
 
+
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
 	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
@@ -80,7 +81,13 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib
+
+
+.PHONY: build-no-std-testing
+build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --exclude miden-prover-proxy --features testing
+
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)
@@ -92,3 +99,18 @@ build-async: ## Build with the `async` feature enabled (only libraries)
 .PHONY: bench-tx
 bench-tx: ## Run transaction benchmarks
 	cargo run --bin bench-tx
+
+
+# --- installing ----------------------------------------------------------------------------------
+
+.PHONY: install-prover
+install-prover-worker: ## Installs prover worker
+	cargo install --path bin/tx-prover --bin miden-tx-prover-worker --locked
+
+.PHONY: install-prover-testing
+install-prover-worker-testing: ## Installs prover worker intended for testing purposes
+	cargo install --path bin/tx-prover --bin miden-tx-prover-worker --locked --features testing
+
+.PHONY: install-prover-proxy
+install-prover-proxy: ## Install prover's proxy
+	cargo install --path bin/tx-prover --bin miden-tx-prover-proxy --locked

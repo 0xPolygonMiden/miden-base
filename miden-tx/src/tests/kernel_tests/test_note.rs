@@ -8,6 +8,8 @@ use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 
 use super::{Felt, Process, ZERO};
 use crate::{
+    assert_execution_error,
+    errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
@@ -36,7 +38,7 @@ fn test_get_sender_no_sender() {
 
     let process = tx_context.execute_code(code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT);
 }
 
 #[test]
@@ -56,6 +58,9 @@ fn test_get_sender() {
             exec.note_internal::prepare_note
             dropw dropw dropw dropw
             exec.note::get_sender
+
+            # truncate the stack
+            swap drop
         end
         ";
 
@@ -76,16 +81,15 @@ fn test_get_vault_data() {
     // calling get_assets_info should return assets info
     let code = format!(
         "
+        use.std::sys
+
         use.kernel::prologue
         use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
 
-            # prepare note 0
-            exec.note::prepare_note
-
-            # get the assets info
+            # get the assets info about note 0
             exec.note::get_assets_info
 
             # assert the assets data is correct
@@ -95,15 +99,15 @@ fn test_get_vault_data() {
             # increment current input note pointer
             exec.note::increment_current_input_note_ptr
 
-            # prepare note 1
-            exec.note::prepare_note
-
-            # get the assets data
+            # get the assets info about note 1
             exec.note::get_assets_info
 
             # assert the assets data is correct
             push.{note_1_asset_hash} assert_eqw
             push.{note_1_num_assets} assert_eq
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         ",
         note_0_asset_hash = prepare_word(&notes.get_note(0).note().assets().commitment()),
@@ -142,6 +146,8 @@ fn test_get_assets() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
+        use.std::sys
+
         use.kernel::prologue
         use.kernel::note->note_internal
         use.miden::note
@@ -210,6 +216,9 @@ fn test_get_assets() {
 
             # process note 1
             call.process_note_1
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
         ",
         note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
@@ -305,6 +314,10 @@ fn test_note_setup() {
         begin
             exec.prologue::prepare_transaction
             exec.note::prepare_note
+            padw movup.4 mem_loadw
+
+            # truncate the stack
+            swapdw dropw dropw
         end
         ";
 
@@ -333,9 +346,12 @@ fn test_note_script_and_note_args() {
         begin
             exec.prologue::prepare_transaction
             exec.memory::get_num_input_notes push.2 assert_eq
-            exec.note::prepare_note dropw
+            exec.note::prepare_note drop
             exec.note::increment_current_input_note_ptr drop
-            exec.note::prepare_note dropw
+            exec.note::prepare_note drop
+
+            # truncate the stack
+            swapdw dropw dropw
         end
         ";
 
@@ -395,6 +411,9 @@ fn test_get_note_serial_number() {
             exec.note_internal::prepare_note
             dropw dropw dropw dropw
             exec.note::get_serial_number
+
+            # truncate the stack
+            swapw dropw
         end
         ";
 
@@ -411,6 +430,8 @@ fn test_get_inputs_hash() {
         .build();
 
     let code = "
+        use.std::sys
+
         use.miden::note
 
         begin
@@ -441,6 +462,9 @@ fn test_get_inputs_hash() {
             # empty word
             exec.note::compute_inputs_hash
             # => [0, 0, 0, 0, HASH_15, HASH_8, HASH_5]
+
+            # truncate the stack
+            exec.sys::truncate_stack
         end
     ";
 

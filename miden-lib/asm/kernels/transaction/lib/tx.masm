@@ -15,16 +15,25 @@ const.ENCRYPTED_NOTE=3  # 0b11
 # Two raised to the power of 38 (2^38), used for shifting the note type value
 const.TWO_POW_38=274877906944
 
+# Max value for U16, used as the upper limit for expiration block delta
+const.EXPIRY_UPPER_LIMIT=0xFFFF+1
+
+# The note type must be PUBLIC, unless the high bits are `0b11`. (See the table below.)
+const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
+
+# Max U32 value, used for initializing the expiration block number
+const.MAX_BLOCK_NUM=0xFFFFFFFF
+
 # ERRORS
 # =================================================================================================
 
-# Output notes exceeded the maximum limit of 4096
-const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
+# Number of output notes in the transaction exceeds the maximum limit of 1024
+const.ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT=0x00020042
 
 # Invalid note type
-const.ERR_INVALID_NOTE_TYPE=0x00020044
+const.ERR_NOTE_INVALID_TYPE=0x00020043
 
-# The 2 highest bits in the u32 tag has the following meaning:
+# The 2 highest bits in the u32 tag have the following meaning:
 #
 # | bits | Execution | Target    | Note type |
 # | ---- | --------- | --------- | --------- |
@@ -36,30 +45,31 @@ const.ERR_INVALID_NOTE_TYPE=0x00020044
 # Execution: Is a hint for the network, to check if the note can be consumed by a network controlled
 #   account
 # Target: Is a hint for the type of target. Use case means the note may be consumed by anyone,
-#   specific means there is an specific target for the note (the target may be a public key, a user
+#   specific means there is a specific target for the note (the target may be a public key, a user
 #   that knows some secret, or a specific account id)
 #
 # Only the note type from the above list is enforced. The other values are only hints intended as a
 # best effort optimization strategy. A badly formatted note may 1. not be consumed because honest
 # users won't see the note 2. generate slightly more load as extra validation is performed for the
 # invalid tags. None of these scenarios have any significant impact.
-#
-const.ERR_NOTE_INVALID_TYPE_FOR_TAG=0x00020045
 
-# The note type must be PUBLIC, unless the high bits are `0b11`. (See the table above)
-const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
+# Invalid note type for the given note tag prefix
+const.ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX=0x00020044
 
-# The note's tag must be an u32 so the high 32bits must be zero.
-const.ERR_NOTE_TAG_MUST_BE_U32=0x00020046
+# The note's tag must fit into a u32 so the 32 most significant bits must be zero.
+const.ERR_NOTE_TAG_MUST_BE_U32=0x00020045
 
 # Adding a fungible asset to a note cannot exceed the max_amount of 9223372036854775807
-const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x00020050
+const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x00020046
 
 # Non-fungible asset that already exists in the note cannot be added again
-const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020051
+const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020047
 
-# Note idx must be within [0, num_of_notes]
-const.ERR_INVALID_NOTE_IDX=0x00020052
+# Failed to find note at the given index; index must be within [0, num_of_notes]
+const.ERR_NOTE_INVALID_INDEX=0x00020048
+
+# Transaction expiration block delta must be within 0x1 and 0xFFFF.
+const.ERR_TX_INVALID_EXPIRATION_DELTA=0x00020049
 
 # EVENTS
 # =================================================================================================
@@ -121,7 +131,7 @@ proc.increment_num_output_notes
     # => [note_idx]
 
     # assert that there is space for a new note
-    dup exec.constants::get_max_num_output_notes lt assert.err=ERR_TX_OUTPUT_NOTES_OVERFLOW
+    dup exec.constants::get_max_num_output_notes lt assert.err=ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT
     # => [note_idx]
 
     # increment the number of output notes
@@ -177,6 +187,62 @@ proc.add_non_fungible_asset_to_note
     swap add.1 dup.1 exec.memory::set_output_note_num_assets
     # => [note_ptr, note_idx]
 end
+
+#! Updates the transaction expiration block number.
+#!
+#! The input block_height_delta is added to the block reference number in order to output an upper
+#! limit at which the transaction will be considered valid (not expired).
+#! This value can be later decreased, but not increased.
+#!
+#! Inputs: [block_height_delta, ...]
+#! Output: [...]
+#!
+#! Where:
+#! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
+export.update_expiration_block_num
+    # Ensure block_height_delta is between 1 and 0xFFFF (inclusive)
+    dup neq.0 assert.err=ERR_TX_INVALID_EXPIRATION_DELTA
+    dup push.EXPIRY_UPPER_LIMIT lt assert.err=ERR_TX_INVALID_EXPIRATION_DELTA
+    # => [block_height_delta]
+
+    exec.get_block_number add
+    # => [absolute_expiration_num]
+
+    # Load the current stored delta from memory
+    dup exec.memory::get_expiration_block_num
+    # => [stored_expiration_block_num, absolute_expiration_num, absolute_expiration_num]
+
+    # Check if block_height_delta is greater
+    u32lt
+    if.true
+        # Set new expiration delta
+        exec.memory::set_expiration_block_num
+    else
+        drop
+    end
+end
+
+#! Gets the transaction expiration delta.
+#!
+#! Inputs: [...]
+#! Output: [block_height_delta, ...]
+#!
+#! Where:
+#! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
+export.get_expiration_delta
+    exec.memory::get_expiration_block_num
+    # => [stored_expiration_block_num]
+
+    dup eq.MAX_BLOCK_NUM
+    if.true
+        # The delta was not set
+        drop push.0
+    else
+        # Calculate the delta
+        exec.get_block_number sub
+    end
+end
+
 
 #! Adds a fungible asset to a note. If the note already holds an asset issued by the
 #! same faucet id the two quantities are summed up and the new quantity is stored at the
@@ -262,7 +328,7 @@ end
 proc.build_note_metadata
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
-    dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_NOTE_INVALID_TYPE
     # => [tag, aux, note_type, execution_hint]
 
     # copy data to validate the tag
@@ -273,7 +339,7 @@ proc.build_note_metadata
     # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint]
 
     # enforce the note type depending on the tag' bits
-    u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_TYPE_FOR_TAG
+    u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX
     # => [tag, aux, note_type, execution_hint]
 
     # encode note_type and execution_hint into a single element
@@ -304,7 +370,7 @@ end
 #! - the note_type is not valid.
 #! - the note_tag is not an u32.
 #! - if note_tag starts with anything but 0b11 and note_type is not public.
-#! - the number of output notes exceeds the maximum limit of 4096.
+#! - the number of output notes exceeds the maximum limit of 1024.
 export.create_note
     push.20983 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.NOTE_BEFORE_CREATED_EVENT
@@ -351,7 +417,7 @@ end
 #! - the total number of ASSETs exceeds the maximum of 256.
 export.add_asset_to_note
     # check if the note exists, it must be within [0, num_of_notes]
-    dup exec.memory::get_num_output_notes lte assert.err=ERR_INVALID_NOTE_IDX
+    dup exec.memory::get_num_output_notes lte assert.err=ERR_NOTE_INVALID_INDEX
     # => [note_idx, ASSET]
 
     # get a pointer to the memory address of the note at which the asset will be stored

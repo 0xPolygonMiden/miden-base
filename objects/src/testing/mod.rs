@@ -7,7 +7,7 @@ use vm_core::Word;
 
 pub mod account;
 pub mod account_code;
-pub mod account_id;
+pub mod account_component;
 pub mod assets;
 pub mod block;
 pub mod constants;

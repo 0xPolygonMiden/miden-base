@@ -1,12 +1,11 @@
+extern crate alloc;
+
 mod scripts;
 mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage,
-        SlotItem,
-    },
+    accounts::{account_id::testing::ACCOUNT_ID_SENDER, Account, AccountId},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
@@ -15,7 +14,9 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
-use miden_tx::{TransactionProver, TransactionVerifier, TransactionVerifierError};
+use miden_tx::{
+    LocalTransactionProver, TransactionProver, TransactionVerifier, TransactionVerifierError,
+};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
@@ -30,8 +31,8 @@ pub fn prove_and_verify_transaction(
     // Prove the transaction
 
     let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+    let prover = LocalTransactionProver::new(proof_options);
+    let proven_transaction = prover.prove(executed_transaction.into()).unwrap();
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 
@@ -47,11 +48,11 @@ pub fn prove_and_verify_transaction(
 
 #[cfg(test)]
 pub fn get_new_pk_and_authenticator(
-) -> (Word, std::rc::Rc<miden_tx::auth::BasicAuthenticator<rand::rngs::StdRng>>) {
-    use std::rc::Rc;
+) -> (Word, std::sync::Arc<dyn miden_tx::auth::TransactionAuthenticator>) {
+    use alloc::sync::Arc;
 
     use miden_objects::accounts::AuthSecretKey;
-    use miden_tx::auth::BasicAuthenticator;
+    use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
     use rand::rngs::StdRng;
 
     let seed = [0_u8; 32];
@@ -63,24 +64,37 @@ pub fn get_new_pk_and_authenticator(
     let authenticator =
         BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
 
-    (pub_key, Rc::new(authenticator))
+    (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }
 
 #[cfg(test)]
-pub fn get_account_with_default_account_code(
+pub fn get_account_with_basic_authenticated_wallet(
     account_id: AccountId,
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    use std::collections::BTreeMap;
-
-    use miden_objects::testing::account_code::DEFAULT_ACCOUNT_CODE;
-    let account_code_src = DEFAULT_ACCOUNT_CODE;
+    use miden_lib::accounts::auth::RpoFalcon512;
+    use miden_objects::{
+        accounts::{AccountComponent, StorageMap, StorageSlot},
+        crypto::dsa::rpo_falcon512::PublicKey,
+        testing::account_component::BASIC_WALLET_CODE,
+    };
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
+    // This component supports all types of accounts for testing purposes.
+    let wallet_component = AccountComponent::compile(
+        BASIC_WALLET_CODE,
+        assembler.clone(),
+        vec![StorageSlot::Value(Word::default()), StorageSlot::Map(StorageMap::default())],
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let (account_code, account_storage) = Account::initialize_from_components(
+        account_id.account_type(),
+        &[RpoFalcon512::new(PublicKey::new(public_key)).into(), wallet_component],
+    )
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

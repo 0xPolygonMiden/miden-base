@@ -19,13 +19,13 @@ use crate::utils::serde::{
 /// - `note_root` is a commitment to all notes created in the current block.
 /// - `tx_hash` is a commitment to a set of IDs of transactions which affected accounts in the
 ///   block.
+/// - `kernel_root` a commitment to all transaction kernels supported by this block.
 /// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
 /// - `timestamp` is the time when the block was created, in seconds since UNIX epoch. Current
 ///   representation is sufficient to represent time up to year 2106.
 /// - `sub_hash` is a sequential hash of all fields except the note_root.
 /// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
     version: u32,
     prev_hash: Digest,
@@ -35,6 +35,7 @@ pub struct BlockHeader {
     nullifier_root: Digest,
     note_root: Digest,
     tx_hash: Digest,
+    kernel_root: Digest,
     proof_hash: Digest,
     timestamp: u32,
     sub_hash: Digest,
@@ -53,6 +54,7 @@ impl BlockHeader {
         nullifier_root: Digest,
         note_root: Digest,
         tx_hash: Digest,
+        kernel_root: Digest,
         proof_hash: Digest,
         timestamp: u32,
     ) -> Self {
@@ -64,6 +66,7 @@ impl BlockHeader {
             account_root,
             nullifier_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
             block_num,
@@ -84,6 +87,7 @@ impl BlockHeader {
             nullifier_root,
             note_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
             sub_hash,
@@ -151,6 +155,13 @@ impl BlockHeader {
         self.tx_hash
     }
 
+    /// Returns the kernel root.
+    ///
+    /// Kernel root is computed as a sequential hash of all kernel hashes.
+    pub fn kernel_root(&self) -> Digest {
+        self.kernel_root
+    }
+
     /// Returns the proof hash.
     pub fn proof_hash(&self) -> Digest {
         self.proof_hash
@@ -168,7 +179,8 @@ impl BlockHeader {
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
     /// `prev_hash`, `chain_root`, `account_root`, `nullifier_root`, `note_root`, `tx_hash`,
-    /// `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the `note_root`).
+    /// `kernel_root`, `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the
+    /// `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         version: u32,
@@ -177,6 +189,7 @@ impl BlockHeader {
         account_root: Digest,
         nullifier_root: Digest,
         tx_hash: Digest,
+        kernel_root: Digest,
         proof_hash: Digest,
         timestamp: u32,
         block_num: u32,
@@ -187,9 +200,9 @@ impl BlockHeader {
         elements.extend_from_slice(account_root.as_elements());
         elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(tx_hash.as_elements());
+        elements.extend_from_slice(kernel_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
         elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
-        elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
     }
 }
@@ -204,6 +217,7 @@ impl Serializable for BlockHeader {
         self.nullifier_root.write_into(target);
         self.note_root.write_into(target);
         self.tx_hash.write_into(target);
+        self.kernel_root.write_into(target);
         self.proof_hash.write_into(target);
         self.timestamp.write_into(target);
     }
@@ -219,6 +233,7 @@ impl Deserializable for BlockHeader {
         let nullifier_root = source.read()?;
         let note_root = source.read()?;
         let tx_hash = source.read()?;
+        let kernel_root = source.read()?;
         let proof_hash = source.read()?;
         let timestamp = source.read()?;
 
@@ -231,6 +246,7 @@ impl Deserializable for BlockHeader {
             nullifier_root,
             note_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
         ))
@@ -248,7 +264,14 @@ mod tests {
     fn test_serde() {
         let chain_root: Word = rand_array();
         let note_root: Word = rand_array();
-        let header = BlockHeader::mock(0, Some(chain_root.into()), Some(note_root.into()), &[]);
+        let kernel_root: Word = rand_array();
+        let header = BlockHeader::mock(
+            0,
+            Some(chain_root.into()),
+            Some(note_root.into()),
+            &[],
+            kernel_root.into(),
+        );
         let serialized = header.to_bytes();
         let deserialized = BlockHeader::read_from_bytes(&serialized).unwrap();
 

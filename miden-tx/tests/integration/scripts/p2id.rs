@@ -1,6 +1,10 @@
-use std::rc::Rc;
+use alloc::sync::Arc;
 
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_lib::{
+    accounts::{auth::RpoFalcon512, wallets::BasicWallet},
+    notes::create_p2id_note,
+    transaction::TransactionKernel,
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -9,30 +13,30 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        Account, AccountId, AccountType, SlotItem,
+        Account, AccountBuilder, AccountId,
     },
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::rand::RpoRandomCoin,
+    crypto::{dsa::rpo_falcon512::PublicKey, rand::RpoRandomCoin},
     notes::NoteType,
-    testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{TransactionArgs, TransactionScript},
-    Felt, FieldElement,
+    Felt,
 };
 use miden_tx::{
-    auth::BasicAuthenticator,
+    auth::TransactionAuthenticator,
     testing::{
         mock_chain::{Auth, MockChain},
         TransactionContextBuilder,
     },
     TransactionExecutor,
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
 
 use crate::{
-    build_default_auth_script, get_account_with_default_account_code, get_new_pk_and_authenticator,
-    prove_and_verify_transaction,
+    build_default_auth_script, get_account_with_basic_authenticated_wallet,
+    get_new_pk_and_authenticator, prove_and_verify_transaction,
 };
 
 // P2ID TESTS
@@ -53,7 +57,7 @@ fn prove_p2id_script() {
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Create the note
     let note = create_p2id_note(
@@ -72,7 +76,8 @@ fn prove_p2id_script() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -111,13 +116,15 @@ fn prove_p2id_script() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
-        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
+        get_account_with_basic_authenticated_wallet(malicious_account_id, malicious_pub_key, None);
 
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
         .build();
-    let executor_2 =
-        TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
+    let executor_2 = TransactionExecutor::new(
+        Arc::new(tx_context_malicious_account.clone()),
+        Some(malicious_falcon_auth),
+    );
 
     let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
@@ -160,7 +167,7 @@ fn p2id_script_multiple_assets() {
 
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Create the note
     let note = create_p2id_note(
@@ -179,7 +186,7 @@ fn p2id_script_multiple_assets() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -215,13 +222,15 @@ fn p2id_script_multiple_assets() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
-        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
+        get_account_with_basic_authenticated_wallet(malicious_account_id, malicious_pub_key, None);
 
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
         .build();
-    let executor_2 =
-        TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
+    let executor_2 = TransactionExecutor::new(
+        Arc::new(tx_context_malicious_account.clone()),
+        Some(malicious_falcon_auth),
+    );
     let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
@@ -263,13 +272,13 @@ fn prove_consume_note_with_new_account() {
     .unwrap();
 
     let tx_context = TransactionContextBuilder::new(target_account.clone())
-        .account_seed(Some(seed))
+        .account_seed(seed)
         .input_notes(vec![note.clone()])
         .build();
 
     assert!(target_account.is_new());
 
-    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -352,16 +361,14 @@ fn prove_consume_multiple_notes() {
 // HELPER FUNCTIONS
 // ===============================================================================================
 
-fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
+fn create_new_account() -> (Account, Option<Word>, Arc<dyn TransactionAuthenticator>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
-    let storage_item = SlotItem::new_value(0, 0, pub_key);
-
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_item(storage_item)
-        .account_type(AccountType::RegularAccountUpdatableCode)
-        .nonce(Felt::ZERO)
-        .build(TransactionKernel::assembler())
+    let (account, seed) = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(BasicWallet)
+        .with_component(RpoFalcon512::new(PublicKey::new(pub_key)))
+        .build_testing()
         .unwrap();
 
     (account, seed, falcon_auth)

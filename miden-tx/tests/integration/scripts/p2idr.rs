@@ -1,3 +1,5 @@
+use alloc::sync::Arc;
+
 use miden_lib::notes::create_p2idr_note;
 use miden_objects::{
     accounts::{
@@ -17,7 +19,8 @@ use miden_objects::{
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
 use crate::{
-    build_default_auth_script, get_account_with_default_account_code, get_new_pk_and_authenticator,
+    build_default_auth_script, get_account_with_basic_authenticated_wallet,
+    get_new_pk_and_authenticator,
 };
 
 // P2IDR TESTS
@@ -36,21 +39,21 @@ fn p2idr_script() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
     let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
     let sender_account =
-        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
+        get_account_with_basic_authenticated_wallet(sender_account_id, sender_pub_key, None);
 
     // Now create the target account
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
 
     // Now create the malicious account
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
-        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
+        get_account_with_basic_authenticated_wallet(malicious_account_id, malicious_pub_key, None);
 
     // --------------------------------------------------------------------------------------------
     // Create notes
@@ -90,7 +93,7 @@ fn p2idr_script() {
     // consume the note.
     //
     // Case "reclaimable": block height is 4, reclaim block height is 3. Target and sender account
-    // can consume the note.  The malicious account should never be able to consume the note.
+    // can consume the note. The malicious account should never be able to consume the note.
     // --------------------------------------------------------------------------------------------
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Target Account Execution Success)
     // --------------------------------------------------------------------------------------------
@@ -98,7 +101,7 @@ fn p2idr_script() {
         .input_notes(vec![note_in_time.clone()])
         .build();
     let executor_1 =
-        TransactionExecutor::new(tx_context_1.clone(), Some(target_falcon_auth.clone()));
+        TransactionExecutor::new(Arc::new(tx_context_1.clone()), Some(target_falcon_auth.clone()));
 
     let block_ref_1 = tx_context_1.tx_inputs().block_header().block_num();
     let note_ids = tx_context_1.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -127,7 +130,7 @@ fn p2idr_script() {
         .input_notes(vec![note_in_time.clone()])
         .build();
     let executor_2 =
-        TransactionExecutor::new(tx_context_2.clone(), Some(sender_falcon_auth.clone()));
+        TransactionExecutor::new(Arc::new(tx_context_2.clone()), Some(sender_falcon_auth.clone()));
     let tx_script_sender = build_default_auth_script();
     let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
@@ -151,8 +154,10 @@ fn p2idr_script() {
     let tx_context_3 = TransactionContextBuilder::new(malicious_account.clone())
         .input_notes(vec![note_in_time.clone()])
         .build();
-    let executor_3 =
-        TransactionExecutor::new(tx_context_3.clone(), Some(malicious_falcon_auth.clone()));
+    let executor_3 = TransactionExecutor::new(
+        Arc::new(tx_context_3.clone()),
+        Some(malicious_falcon_auth.clone()),
+    );
 
     let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
@@ -177,7 +182,8 @@ fn p2idr_script() {
     let tx_context_4 = TransactionContextBuilder::new(target_account.clone())
         .input_notes(vec![note_reclaimable.clone()])
         .build();
-    let executor_4 = TransactionExecutor::new(tx_context_4.clone(), Some(target_falcon_auth));
+    let executor_4 =
+        TransactionExecutor::new(Arc::new(tx_context_4.clone()), Some(target_falcon_auth));
 
     let block_ref_4 = tx_context_4.tx_inputs().block_header().block_num();
     let note_ids_4 = tx_context_4.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -207,7 +213,8 @@ fn p2idr_script() {
     let tx_context_5 = TransactionContextBuilder::new(sender_account.clone())
         .input_notes(vec![note_reclaimable.clone()])
         .build();
-    let executor_5 = TransactionExecutor::new(tx_context_5.clone(), Some(sender_falcon_auth));
+    let executor_5 =
+        TransactionExecutor::new(Arc::new(tx_context_5.clone()), Some(sender_falcon_auth));
 
     let block_ref_5 = tx_context_5.tx_inputs().block_header().block_num();
     let note_ids_5 = tx_context_5.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -233,12 +240,12 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
-
     let tx_context_6 = TransactionContextBuilder::new(malicious_account.clone())
         .input_notes(vec![note_reclaimable.clone()])
         .build();
 
-    let executor_6 = TransactionExecutor::new(tx_context_6.clone(), Some(malicious_falcon_auth));
+    let executor_6 =
+        TransactionExecutor::new(Arc::new(tx_context_6.clone()), Some(malicious_falcon_auth));
 
     let block_ref_6 = tx_context_6.tx_inputs().block_header().block_num();
     let note_ids_6 = tx_context_6.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();

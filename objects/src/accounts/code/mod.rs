@@ -1,12 +1,12 @@
-use alloc::{string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
-use assembly::{Assembler, Compile, Library};
 use vm_core::mast::MastForest;
 
 use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
     Hasher, Serializable,
 };
+use crate::accounts::{AccountComponent, AccountType};
 
 pub mod procedure;
 use procedure::AccountProcedureInfo;
@@ -19,17 +19,14 @@ use procedure::AccountProcedureInfo;
 /// Account's public interface consists of a set of account procedures, each procedure being a
 /// Miden VM program. Thus, MAST root of each procedure commits to the underlying program.
 ///
-/// Each exported procedure is associated with a storage offset. This offset is applied to any
-/// accesses made from within the procedure to the associated account's storage. For example, if
-/// storage offset for a procedure is set ot 1, a call to the account::get_item(storage_slot=4)
-/// made from this procedure would actually access storage slot with index 5.
+/// Each exported procedure is associated with a storage offset and a storage size.
 ///
 /// We commit to the entire account interface by building a sequential hash of all procedure MAST
 /// roots and associated storage_offset's. Specifically, each procedure contributes exactly 8 field
 /// elements to the sequence of elements to be hashed. These elements are defined as follows:
 ///
 /// ```text
-/// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+/// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, storage_size]
 /// ```
 #[derive(Debug, Clone)]
 pub struct AccountCode {
@@ -39,32 +36,87 @@ pub struct AccountCode {
 }
 
 impl AccountCode {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
     /// The maximum number of account interface procedures.
     pub const MAX_NUM_PROCEDURES: usize = 256;
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [AccountCode] instantiated from the provided [Library].
+    /// Creates a new [`AccountCode`] from the provided components' libraries.
     ///
-    /// All procedures exported from the provided library will become members of the account's
-    /// public interface.
+    /// For testing use only.
+    #[cfg(any(feature = "testing", test))]
+    pub fn from_components(
+        components: &[AccountComponent],
+        account_type: AccountType,
+    ) -> Result<Self, AccountError> {
+        super::validate_components_support_account_type(components, account_type)?;
+        Self::from_components_unchecked(components, account_type)
+    }
+
+    /// Creates a new [`AccountCode`] from the provided components' libraries.
+    ///
+    /// # Warning
+    ///
+    /// This does not check whether the provided components are valid when combined.
     ///
     /// # Errors
-    /// Returns an error if the number of procedures exported from the provided library is smaller
-    /// than 1 or greater than 256.
-    pub fn new(library: Library) -> Result<Self, AccountError> {
-        // extract procedure information from the library exports
-        // TODO: currently, offsets for all procedures are set to 0; instead they should be read
-        // from the Library metadata
-        let mut procedures: Vec<AccountProcedureInfo> = Vec::new();
-        for module in library.module_infos() {
-            for proc_mast_root in module.procedure_digests() {
-                procedures.push(AccountProcedureInfo::new(proc_mast_root, 0));
+    ///
+    /// Returns an error if:
+    /// - The number of procedures in all merged libraries is 0 or exceeds
+    ///   [`AccountCode::MAX_NUM_PROCEDURES`].
+    /// - Two or more libraries export a procedure with the same MAST root.
+    /// - The number of [`StorageSlot`](crate::accounts::StorageSlot)s of a component or of all
+    ///   components exceeds 255.
+    /// - [`MastForest::merge`] fails on all libraries.
+    pub(super) fn from_components_unchecked(
+        components: &[AccountComponent],
+        account_type: AccountType,
+    ) -> Result<Self, AccountError> {
+        let (merged_mast_forest, _) =
+            MastForest::merge(components.iter().map(|component| component.mast_forest()))
+                .map_err(|err| AccountError::AccountCodeMergeError(err.to_string()))?;
+
+        let mut procedures = Vec::new();
+        let mut proc_root_set = BTreeSet::new();
+
+        // Slot 0 is globally reserved for faucet accounts so the accessible slots begin at 1 if
+        // there is a faucet component present.
+        let mut component_storage_offset = if account_type.is_faucet() { 1 } else { 0 };
+
+        for component in components {
+            let component_storage_size = component.storage_size();
+
+            for module in component.library().module_infos() {
+                for proc_mast_root in module.procedure_digests() {
+                    // We cannot support procedures from multiple components with the same MAST root
+                    // since storage offsets/sizes are set per MAST root. Setting them again for
+                    // procedures where the offset has already been inserted would cause that
+                    // procedure of the earlier component to write to the wrong slot.
+                    if !proc_root_set.insert(proc_mast_root) {
+                        return Err(AccountError::AccountCodeMergeError(format!(
+                            "procedure with MAST root {proc_mast_root} is present in multiple account components"
+                        )));
+                    }
+
+                    // Components that do not access storage need to have offset and size set to 0.
+                    let (storage_offset, storage_size) = if component_storage_size == 0 {
+                        (0, 0)
+                    } else {
+                        (component_storage_offset, component_storage_size)
+                    };
+
+                    // Note: Offset and size are validated in `AccountProcedureInfo::new`.
+                    procedures.push(AccountProcedureInfo::new(
+                        proc_mast_root,
+                        storage_offset,
+                        storage_size,
+                    )?);
+                }
             }
+
+            component_storage_offset = component_storage_offset.checked_add(component_storage_size)
+              .expect("account procedure info constructor should return an error if the addition overflows");
         }
 
         // make sure the number of procedures is between 1 and 256 (both inclusive)
@@ -80,27 +132,8 @@ impl AccountCode {
         Ok(Self {
             commitment: build_procedure_commitment(&procedures),
             procedures,
-            mast: Arc::new(library.into()),
+            mast: Arc::new(merged_mast_forest),
         })
-    }
-
-    /// Returns a new [AccountCode] compiled from the provided source code using the specified
-    /// assembler.
-    ///
-    /// All procedures exported from the provided code will become members of the account's
-    /// public interface.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - Compilation of the provided source code fails.
-    /// - The number of procedures exported from the provided library is smaller than 1 or greater
-    ///   than 256.
-    pub fn compile(source_code: impl Compile, assembler: Assembler) -> Result<Self, AccountError> {
-        let library = assembler
-            .assemble_library([source_code])
-            .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
-
-        Self::new(library)
     }
 
     /// Returns a new [AccountCode] deserialized from the provided bytes.
@@ -182,9 +215,9 @@ impl AccountCode {
 
     /// Converts procedure information in this [AccountCode] into a vector of field elements.
     ///
-    /// This is done by first converting each procedure into exactly 8 elements as follows:
+    /// This is done by first converting each procedure into 8 field elements as follows:
     /// ```text
-    /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+    /// [PROCEDURE_MAST_ROOT, storage_offset, storage_size, 0, 0]
     /// ```
     /// And then concatenating the resulting elements into a single vector.
     pub fn as_elements(&self) -> Vec<Felt> {
@@ -202,6 +235,18 @@ impl PartialEq for AccountCode {
     }
 }
 
+impl Ord for AccountCode {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.commitment.cmp(&other.commitment)
+    }
+}
+
+impl PartialOrd for AccountCode {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl Eq for AccountCode {}
 
 // SERIALIZATION
@@ -214,6 +259,22 @@ impl Serializable for AccountCode {
         // number as a single byte - but we do have to subtract 1 to store 256 as 255.
         target.write_u8((self.procedures.len() - 1) as u8);
         target.write_many(self.procedures());
+    }
+
+    fn get_size_hint(&self) -> usize {
+        // TODO: Replace with proper calculation.
+        let mut mast_forest_target = Vec::new();
+        self.mast.write_into(&mut mast_forest_target);
+
+        // Size of the serialized procedures length.
+        let u8_size = 0u8.get_size_hint();
+        let mut size = u8_size + mast_forest_target.len();
+
+        for procedure in self.procedures() {
+            size += procedure.get_size_hint();
+        }
+
+        size
     }
 }
 
@@ -250,11 +311,17 @@ fn build_procedure_commitment(procedures: &[AccountProcedureInfo]) -> Digest {
 #[cfg(test)]
 mod tests {
 
+    use assembly::Assembler;
+    use vm_core::Word;
+
     use super::{AccountCode, Deserializable, Serializable};
-    use crate::accounts::code::build_procedure_commitment;
+    use crate::{
+        accounts::{code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot},
+        AccountError,
+    };
 
     #[test]
-    fn test_serde() {
+    fn test_serde_account_code() {
         let code = AccountCode::mock();
         let serialized = code.to_bytes();
         let deserialized = AccountCode::read_from_bytes(&serialized).unwrap();
@@ -266,5 +333,40 @@ mod tests {
         let code = AccountCode::mock();
         let procedure_commitment = build_procedure_commitment(code.procedures());
         assert_eq!(procedure_commitment, code.commitment())
+    }
+
+    #[test]
+    fn test_account_code_procedure_offset_out_of_bounds() {
+        let code1 = "export.foo add end";
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+        let code2 = "export.bar sub end";
+        let library2 = Assembler::default().assemble_library([code2]).unwrap();
+
+        let component1 =
+            AccountComponent::new(library1, vec![StorageSlot::Value(Word::default()); 250])
+                .unwrap()
+                .with_supports_all_types();
+        let mut component2 =
+            AccountComponent::new(library2, vec![StorageSlot::Value(Word::default()); 5])
+                .unwrap()
+                .with_supports_all_types();
+
+        // This is fine as the offset+size for component 2 is <= 255.
+        AccountCode::from_components(
+            &[component1.clone(), component2.clone()],
+            AccountType::RegularAccountUpdatableCode,
+        )
+        .unwrap();
+
+        // Push one more slot so offset+size exceeds 255.
+        component2.storage_slots.push(StorageSlot::Value(Word::default()));
+
+        let err = AccountCode::from_components(
+            &[component1, component2],
+            AccountType::RegularAccountUpdatableCode,
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, AccountError::StorageOffsetOutOfBounds { actual: 256, .. }))
     }
 }

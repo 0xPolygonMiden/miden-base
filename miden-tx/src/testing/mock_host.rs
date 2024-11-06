@@ -5,7 +5,7 @@ use alloc::{rc::Rc, string::ToString, sync::Arc};
 
 use miden_lib::transaction::TransactionEvent;
 use miden_objects::{
-    accounts::{AccountStub, AccountVaultDelta},
+    accounts::{AccountHeader, AccountVaultDelta},
     Digest,
 };
 use vm_processor::{
@@ -31,13 +31,13 @@ pub struct MockHost {
 impl MockHost {
     /// Returns a new [MockHost] instance with the provided [AdviceInputs].
     pub fn new(
-        account: AccountStub,
+        account: AccountHeader,
         advice_inputs: AdviceInputs,
         mast_store: Rc<TransactionMastStore>,
     ) -> Self {
         let adv_provider: MemAdviceProvider = advice_inputs.into();
         let proc_index_map =
-            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider);
+            AccountProcedureIndexMap::new([account.code_commitment()], &adv_provider);
         Self {
             adv_provider,
             acct_procedure_index_map: proc_index_map.unwrap(),

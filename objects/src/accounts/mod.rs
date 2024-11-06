@@ -6,15 +6,22 @@ use crate::{
 
 pub mod account_id;
 pub use account_id::{
-    AccountId, AccountStorageType, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
+    AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
     ACCOUNT_TYPE_MASK_SHIFT,
 };
 
 pub mod auth;
+
 pub use auth::AuthSecretKey;
+
+mod builder;
+pub use builder::AccountBuilder;
 
 pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
+
+mod component;
+pub use component::AccountComponent;
 
 pub mod delta;
 pub use delta::{
@@ -26,10 +33,10 @@ mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
-pub use storage::{AccountStorage, SlotItem, StorageMap, StorageSlot, StorageSlotType};
+pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
 
-mod stub;
-pub use stub::AccountStub;
+mod header;
+pub use header::AccountHeader;
 
 mod data;
 pub use data::AccountData;
@@ -77,7 +84,7 @@ impl Account {
         code: AccountCode,
         storage: AccountStorage,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.commitment(), storage.root())?;
+        let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -94,12 +101,68 @@ impl Account {
         Self { id, vault, storage, code, nonce }
     }
 
+    /// Creates an account's [`AccountCode`] and [`AccountStorage`] from the provided components.
+    ///
+    /// This merges all libraries of the components into a single
+    /// [`MastForest`](vm_processor::MastForest) to produce the [`AccountCode`]. For each
+    /// procedure in the resulting forest, the storage offset and size are set so that the
+    /// procedure can only access the storage slots of the component in which it was defined and
+    /// each component's storage offset is the total number of slots in the previous components.
+    /// To illustrate, given two components with one and two storage slots respectively:
+    ///
+    /// - RpoFalcon512 Component: Component slot 0 stores the public key.
+    /// - Custom Component: Component slot 0 stores a custom [`StorageSlot::Value`] and component
+    ///   slot 1 stores a custom [`StorageSlot::Map`].
+    ///
+    /// When combined, their assigned slots in the [`AccountStorage`] would be:
+    ///
+    /// - The RpoFalcon512 Component has offset 0 and size 1: Account slot 0 stores the public key.
+    /// - The Custom Component has offset 1 and size 2: Account slot 1 stores the value and account
+    ///   slot 2 stores the map.
+    ///
+    /// The resulting commitments from code and storage can then be used to construct an
+    /// [`AccountId`]. Finally, a new account can then be instantiated from those parts using
+    /// [`Account::new`].
+    ///
+    /// If the account type is faucet the reserved slot (slot 0) will be initialized.
+    /// - For Fungible Faucets the value is [`StorageSlot::empty_value`].
+    /// - For Non-Fungible Faucets the value is [`StorageSlot::empty_map`].
+    ///
+    /// If the storage needs to be initialized with certain values in that slot, those can be added
+    /// after construction with the standard set methods for items and maps.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Any of the components does not support `account_type`.
+    /// - The number of procedures in all merged libraries is 0 or exceeds
+    ///   [`AccountCode::MAX_NUM_PROCEDURES`].
+    /// - Two or more libraries export a procedure with the same MAST root.
+    /// - The number of [`StorageSlot`]s of all components exceeds 255.
+    /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on all libraries.
+    pub fn initialize_from_components(
+        account_type: AccountType,
+        components: &[AccountComponent],
+    ) -> Result<(AccountCode, AccountStorage), AccountError> {
+        validate_components_support_account_type(components, account_type)?;
+
+        let code = AccountCode::from_components_unchecked(components, account_type)?;
+        let storage = AccountStorage::from_components(components, account_type)?;
+
+        Ok((code, storage))
+    }
+
+    /// Returns a new [`AccountBuilder`]. See its documentation for details.
+    pub fn builder() -> AccountBuilder {
+        AccountBuilder::new()
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns hash of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root,
+    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
     /// code_commitment). Computing the account hash requires 2 permutations of the hash
     /// function.
     pub fn hash(&self) -> Digest {
@@ -107,7 +170,7 @@ impl Account {
             self.id,
             self.nonce,
             self.vault.commitment(),
-            self.storage.root(),
+            self.storage.commitment(),
             self.code.commitment(),
         )
     }
@@ -169,9 +232,9 @@ impl Account {
         self.id.is_regular_account()
     }
 
-    /// Returns true if this account is on-chain.
-    pub fn is_on_chain(&self) -> bool {
-        self.id.is_on_chain()
+    /// Returns true if this account is public.
+    pub fn is_public(&self) -> bool {
+        self.id.is_public()
     }
 
     /// Returns true if the account is new (i.e. it has not been initialized yet).
@@ -231,7 +294,7 @@ impl Account {
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
-    #[cfg(feature = "testing")]
+    #[cfg(any(feature = "testing", test))]
     /// Returns a mutable reference to the vault of this account.
     pub fn vault_mut(&mut self) -> &mut AssetVault {
         &mut self.vault
@@ -251,6 +314,14 @@ impl Serializable for Account {
         code.write_into(target);
         nonce.write_into(target);
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.id.get_size_hint()
+            + self.vault.get_size_hint()
+            + self.storage.get_size_hint()
+            + self.code.get_size_hint()
+            + self.nonce.get_size_hint()
+    }
 }
 
 impl Deserializable for Account {
@@ -265,46 +336,45 @@ impl Deserializable for Account {
     }
 }
 
-#[cfg(feature = "serde")]
-impl serde::Serialize for Account {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let bytes = self.to_bytes();
-        serializer.serialize_bytes(&bytes)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Account {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use alloc::vec::Vec;
-
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-        Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
-    }
-}
-
 // HELPERS
 // ================================================================================================
 
-/// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code
-/// commitment.
+/// Returns hash of an account with the specified ID, nonce, vault root, storage commitment, and
+/// code commitment.
 ///
-/// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_commitment).
-/// Computing the account hash requires 2 permutations of the hash function.
+/// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
+/// code_commitment). Computing the account hash requires 2 permutations of the hash function.
 pub fn hash_account(
     id: AccountId,
     nonce: Felt,
     vault_root: Digest,
-    storage_root: Digest,
+    storage_commitment: Digest,
     code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
     elements[0] = id.into();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
-    elements[8..12].copy_from_slice(&*storage_root);
+    elements[8..12].copy_from_slice(&*storage_commitment);
     elements[12..].copy_from_slice(&*code_commitment);
     Hasher::hash_elements(&elements)
+}
+
+/// Validates that all `components` support the given `account_type`.
+fn validate_components_support_account_type(
+    components: &[AccountComponent],
+    account_type: AccountType,
+) -> Result<(), AccountError> {
+    for (component_index, component) in components.iter().enumerate() {
+        if !component.supports_type(account_type) {
+            return Err(AccountError::UnsupportedComponentForAccountType {
+                account_type,
+                component_index,
+            });
+        }
+    }
+
+    Ok(())
 }
 
 // TESTS
@@ -312,8 +382,7 @@ pub fn hash_account(
 
 #[cfg(test)]
 mod tests {
-    use alloc::collections::BTreeMap;
-
+    use assembly::Assembler;
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Felt, Word,
@@ -322,10 +391,13 @@ mod tests {
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
-        accounts::{Account, SlotItem, StorageMap, StorageMapDelta},
+        accounts::{
+            Account, AccountComponent, AccountType, StorageMap, StorageMapDelta, StorageSlot,
+        },
         testing::storage::{
             build_account, build_account_delta, build_assets, AccountStorageDeltaBuilder,
         },
+        AccountError,
     };
 
     #[test]
@@ -333,8 +405,8 @@ mod tests {
         let init_nonce = Felt::new(1);
         let (asset_0, _) = build_assets();
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let slot_item = SlotItem::new_value(0, 0, word);
-        let account = build_account(vec![asset_0], init_nonce, vec![slot_item], None);
+        let storage_slot = StorageSlot::Value(word);
+        let account = build_account(vec![asset_0], init_nonce, vec![storage_slot]);
 
         let serialized = account.to_bytes();
         let deserialized = Account::read_from_bytes(&serialized).unwrap();
@@ -347,7 +419,7 @@ mod tests {
         let (asset_0, asset_1) = build_assets();
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_values([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
             .unwrap();
         let account_delta =
@@ -364,12 +436,12 @@ mod tests {
         let init_nonce = Felt::new(1);
         let (asset_0, asset_1) = build_assets();
 
-        // Simple SlotItem
-        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let slot_item = SlotItem::new_value(0, 0, word);
-
-        // StorageMap with values
-        let storage_map_leaves_2: [(Digest, Word); 2] = [
+        // build storage slots
+        let storage_slot_value_0 =
+            StorageSlot::Value([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+        let storage_slot_value_1 =
+            StorageSlot::Value([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
+        let mut storage_map = StorageMap::with_entries([
             (
                 Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
                 [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
@@ -378,34 +450,32 @@ mod tests {
                 Digest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
                 [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
             ),
-        ];
-        let mut storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
-        let mut maps = BTreeMap::new();
-        maps.insert(2u8, storage_map.clone());
-        let storage_map_root_as_slot_item = SlotItem::new_map(2u8, 0, storage_map.root().into());
+        ])
+        .unwrap();
+        let storage_slot_map = StorageSlot::Map(storage_map.clone());
 
         let mut account = build_account(
             vec![asset_0],
             init_nonce,
-            vec![slot_item, storage_map_root_as_slot_item],
-            Some(maps.clone()),
+            vec![storage_slot_value_0, storage_slot_value_1, storage_slot_map],
         );
 
+        // update storage map
         let new_map_entry = (
             Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
             [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
         );
+
         let updated_map =
             StorageMapDelta::from_iters([], [(new_map_entry.0.into(), new_map_entry.1)]);
         storage_map.insert(new_map_entry.0, new_map_entry.1);
-        maps.insert(2u8, storage_map.clone());
 
         // build account delta
         let final_nonce = Felt::new(2);
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
-            .add_updated_maps([(2_u8, updated_map)])
+            .add_updated_values([(1, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_maps([(2, updated_map)])
             .build()
             .unwrap();
         let account_delta =
@@ -418,11 +488,10 @@ mod tests {
             vec![asset_1],
             final_nonce,
             vec![
-                SlotItem::new_value(0, 0, Word::default()),
-                SlotItem::new_value(1, 0, word),
-                SlotItem::new_map(2, 0, storage_map.root().into()),
+                StorageSlot::Value(Word::default()),
+                StorageSlot::Value([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+                StorageSlot::Map(storage_map),
             ],
-            Some(maps),
         );
 
         // assert account is what it should be
@@ -435,17 +504,13 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let (asset, _) = build_assets();
-        let mut account = build_account(
-            vec![asset],
-            init_nonce,
-            vec![SlotItem::new_value(0, 0, Word::default())],
-            None,
-        );
+        let mut account =
+            build_account(vec![asset], init_nonce, vec![StorageSlot::Value(Word::default())]);
 
         // build account delta
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_values([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
             .unwrap();
         let account_delta = build_account_delta(vec![], vec![asset], init_nonce, storage_delta);
@@ -460,18 +525,14 @@ mod tests {
         // build account
         let init_nonce = Felt::new(2);
         let (asset, _) = build_assets();
-        let mut account = build_account(
-            vec![asset],
-            init_nonce,
-            vec![SlotItem::new_value(0, 0, Word::default())],
-            None,
-        );
+        let mut account =
+            build_account(vec![asset], init_nonce, vec![StorageSlot::Value(Word::default())]);
 
         // build account delta
         let final_nonce = Felt::new(1);
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_values([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
             .unwrap();
         let account_delta = build_account_delta(vec![], vec![asset], final_nonce, storage_delta);
@@ -485,8 +546,8 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let slot_item = SlotItem::new_value(0, 0, word);
-        let mut account = build_account(vec![], init_nonce, vec![slot_item], None);
+        let storage_slot = StorageSlot::Value(word);
+        let mut account = build_account(vec![], init_nonce, vec![storage_slot]);
 
         // build account delta
         let final_nonce = Felt::new(2);
@@ -499,5 +560,56 @@ mod tests {
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()
+    }
+
+    /// Tests that initializing code and storage from a component which does not support the given
+    /// account type returns an error.
+    #[test]
+    fn test_account_unsupported_component_type() {
+        let code1 = "export.foo add end";
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+
+        // This component support all account types except the regular account with updatable code.
+        let component1 = AccountComponent::new(library1, vec![])
+            .unwrap()
+            .with_supported_type(AccountType::FungibleFaucet)
+            .with_supported_type(AccountType::NonFungibleFaucet)
+            .with_supported_type(AccountType::RegularAccountImmutableCode);
+
+        let err = Account::initialize_from_components(
+            AccountType::RegularAccountUpdatableCode,
+            &[component1],
+        )
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            AccountError::UnsupportedComponentForAccountType {
+                account_type: AccountType::RegularAccountUpdatableCode,
+                component_index: 0
+            }
+        ))
+    }
+
+    /// Two components who export a procedure with the same MAST root should fail to convert into
+    /// code and storage.
+    #[test]
+    fn test_account_duplicate_exported_mast_root() {
+        let code1 = "export.foo add eq.1 end";
+        let code2 = "export.bar add eq.1 end";
+
+        let library1 = Assembler::default().assemble_library([code1]).unwrap();
+        let library2 = Assembler::default().assemble_library([code2]).unwrap();
+
+        let component1 = AccountComponent::new(library1, vec![]).unwrap().with_supports_all_types();
+        let component2 = AccountComponent::new(library2, vec![]).unwrap().with_supports_all_types();
+
+        let err = Account::initialize_from_components(
+            AccountType::RegularAccountUpdatableCode,
+            &[component1, component2],
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, AccountError::AccountCodeMergeError(_)))
     }
 }

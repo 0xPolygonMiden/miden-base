@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use core::fmt;
 
 use vm_processor::DeserializationError;
@@ -8,11 +8,13 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    Digest, Word, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
+    MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
     notes::NoteType,
+    ACCOUNT_UPDATE_MAX_SIZE,
 };
 
 // ACCOUNT ERROR
@@ -21,33 +23,65 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
     AccountCodeAssemblyError(String), // TODO: use Report
+    AccountCodeMergeError(String),    // TODO: use MastForestError once it implements Clone
     AccountCodeDeserializationError(DeserializationError),
     AccountCodeNoProcedures,
-    AccountCodeTooManyProcedures { max: usize, actual: usize },
+    AccountCodeTooManyProcedures {
+        max: usize,
+        actual: usize,
+    },
     AccountCodeProcedureInvalidStorageOffset,
+    AccountCodeProcedureInvalidStorageSize,
     AccountCodeProcedureInvalidPadding,
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
+    BuildError(String, Option<Box<AccountError>>),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
+    HeaderDataIncorrectLength(usize, usize),
     HexParseError(String),
-    InvalidAccountStorageType,
+    InvalidAccountStorageMode,
     MapsUpdateToNonMapsSlot(u8, StorageSlotType),
-    NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
-    SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
-    StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
-    StorageSlotIsReserved(u8),
-    StorageSlotMapOrArrayNotAllowed(u8, StorageSlotType),
-    StorageMapNotFound(u8),
-    StorageMapTooManyMaps { expected: usize, actual: usize },
-    StubDataIncorrectLength(usize, usize),
+    NonceNotMonotonicallyIncreasing {
+        current: u64,
+        new: u64,
+    },
+    SeedDigestTooFewTrailingZeros {
+        expected: u32,
+        actual: u32,
+    },
+    StorageSlotNotMap(u8),
+    StorageSlotNotValue(u8),
+    StorageIndexOutOfBounds {
+        max: u8,
+        actual: u8,
+    },
+    StorageTooManySlots(u64),
+    StorageOffsetOutOfBounds {
+        max: u8,
+        actual: u16,
+    },
+    PureProcedureWithStorageOffset,
+    UnsupportedComponentForAccountType {
+        account_type: AccountType,
+        component_index: usize,
+    },
 }
 
 impl fmt::Display for AccountError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            AccountError::BuildError(msg, err) => {
+                write!(f, "account build error: {msg}")?;
+                if let Some(err) = err {
+                    write!(f, ": {err}")?;
+                }
+                Ok(())
+            },
+            other => write!(f, "{other:?}"),
+        }
     }
 }
 
@@ -66,7 +100,6 @@ pub enum AccountDeltaError {
         this: i64,
         other: i64,
     },
-    ImmutableStorageSlot(usize),
     IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
     InconsistentNonceUpdate(String),
     NotAFungibleFaucetId(AccountId),
@@ -274,12 +307,12 @@ impl std::error::Error for TransactionInputError {}
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
     FinalAccountDataNotFound,
-    FinalAccountStubDataInvalid(AccountError),
+    FinalAccountHeaderDataInvalid(AccountError),
     OutputNoteDataNotFound,
     OutputNoteDataInvalid(NoteError),
     OutputNotesCommitmentInconsistent(Digest, Digest),
     OutputStackInvalid(String),
-    TooManyOutputNotes { max: usize, actual: usize },
+    TooManyOutputNotes(usize),
 }
 
 impl fmt::Display for TransactionOutputError {
@@ -305,6 +338,7 @@ pub enum ProvenTransactionError {
     NewOnChainAccountRequiresFullDetails(AccountId),
     ExistingOnChainAccountRequiresDeltaDetails(AccountId),
     OutputNotesError(TransactionOutputError),
+    AccountUpdateSizeLimitExceeded(AccountId, usize),
 }
 
 impl fmt::Display for ProvenTransactionError {
@@ -340,6 +374,9 @@ impl fmt::Display for ProvenTransactionError {
             ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
                 write!(f, "Existing on-chain account {account_id} should only provide deltas")
             },
+            ProvenTransactionError::AccountUpdateSizeLimitExceeded(account_id, size) => {
+                write!(f, "Update on account {account_id} of size {size} exceeds the allowed limit of {ACCOUNT_UPDATE_MAX_SIZE}")
+            },
         }
     }
 }
@@ -353,7 +390,10 @@ impl std::error::Error for ProvenTransactionError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlockError {
     DuplicateNoteFound(NoteId),
+    TooManyAccountUpdates(usize),
     TooManyNotesInBatch(usize),
+    TooManyNotesInBlock(usize),
+    TooManyNullifiersInBlock(usize),
     TooManyTransactionBatches(usize),
 }
 
@@ -363,8 +403,20 @@ impl fmt::Display for BlockError {
             BlockError::DuplicateNoteFound(id) => {
                 write!(f, "Duplicate note {id} found in the block")
             },
+            BlockError::TooManyAccountUpdates(actual) => {
+                write!(f, "Too many accounts updated in a block. Max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {actual}")
+            },
             BlockError::TooManyNotesInBatch(actual) => {
-                write!(f, "Too many notes in a batch. Max: {MAX_NOTES_PER_BATCH}, actual: {actual}")
+                write!(f, "Too many notes in a batch. Max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {actual}")
+            },
+            BlockError::TooManyNotesInBlock(actual) => {
+                write!(f, "Too many notes in a block. Max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {actual}")
+            },
+            BlockError::TooManyNullifiersInBlock(actual) => {
+                write!(
+                    f,
+                    "Too many nullifiers in a block. Max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {actual}"
+                )
             },
             BlockError::TooManyTransactionBatches(actual) => {
                 write!(

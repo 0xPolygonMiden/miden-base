@@ -70,12 +70,7 @@ impl TransactionInputs {
                         .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
                 };
 
-                if !is_in_block(note, proof, block_header) {
-                    return Err(TransactionInputError::InputNoteNotInBlock(
-                        note.id(),
-                        note_block_num,
-                    ));
-                }
+                validate_is_in_block(note, proof, block_header)?;
             }
         }
 
@@ -131,6 +126,28 @@ impl TransactionInputs {
             self.block_chain,
             self.input_notes,
         )
+    }
+}
+
+impl Serializable for TransactionInputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.account.write_into(target);
+        self.account_seed.write_into(target);
+        self.block_header.write_into(target);
+        self.block_chain.write_into(target);
+        self.input_notes.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let account = Account::read_from(source)?;
+        let account_seed = source.read()?;
+        let block_header = BlockHeader::read_from(source)?;
+        let block_chain = ChainMmr::read_from(source)?;
+        let input_notes = InputNotes::read_from(source)?;
+        Self::new(account, account_seed, block_header, block_chain, input_notes)
+            .map_err(|err| DeserializationError::InvalidValue(format!("{}", err)))
     }
 }
 
@@ -322,7 +339,6 @@ const UNAUTHENTICATED: u8 = 1;
 
 /// An input note for a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum InputNote {
     /// Input notes whose existences in the chain is verified by the transaction kernel.
     Authenticated { note: Note, proof: NoteInclusionProof },
@@ -376,11 +392,20 @@ impl InputNote {
     }
 }
 
-/// Returns true if this note belongs to the note tree of the specified block.
-fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHeader) -> bool {
+/// Validates whether the provided note belongs to the note tree of the specified block.
+fn validate_is_in_block(
+    note: &Note,
+    proof: &NoteInclusionProof,
+    block_header: &BlockHeader,
+) -> Result<(), TransactionInputError> {
     let note_index = proof.location().node_index_in_block().into();
     let note_hash = note.hash();
-    proof.note_path().verify(note_index, note_hash, &block_header.note_root())
+    proof
+        .note_path()
+        .verify(note_index, note_hash, &block_header.note_root())
+        .map_err(|_| {
+            TransactionInputError::InputNoteNotInBlock(note.id(), proof.location().block_num())
+        })
 }
 
 impl ToInputNoteCommitments for InputNote {
@@ -450,7 +475,7 @@ pub fn validate_account_seed(
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
             let account_id =
-                AccountId::new(seed, account.code().commitment(), account.storage().root())
+                AccountId::new(seed, account.code().commitment(), account.storage().commitment())
                     .map_err(TransactionInputError::InvalidAccountSeed)?;
             if account_id != account.id() {
                 return Err(TransactionInputError::InconsistentAccountSeed {

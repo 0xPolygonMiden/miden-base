@@ -1,16 +1,16 @@
 extern crate alloc;
 pub use alloc::{collections::BTreeMap, string::String};
-use std::rc::Rc;
+use std::sync::Arc;
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AuthSecretKey, SlotItem},
+    accounts::{Account, AccountId, AuthSecretKey},
     assets::{Asset, AssetVault},
-    crypto::dsa::rpo_falcon512::SecretKey,
+    crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     transaction::TransactionMeasurements,
     Felt, Word,
 };
-use miden_tx::auth::BasicAuthenticator;
+use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
 use rand::rngs::StdRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use serde::Serialize;
@@ -29,13 +29,6 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
     begin
         call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
     end
-";
-
-pub const DEFAULT_ACCOUNT_CODE: &str = "
-    export.::miden::contracts::wallets::basic::receive_asset
-    export.::miden::contracts::wallets::basic::create_note
-    export.::miden::contracts::wallets::basic::move_asset_to_note
-    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
 // MEASUREMENTS PRINTER
@@ -68,17 +61,16 @@ impl From<TransactionMeasurements> for MeasurementsPrinter {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn get_account_with_default_account_code(
+pub fn get_account_with_basic_authenticated_wallet(
     account_id: AccountId,
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    let account_code_src = DEFAULT_ACCOUNT_CODE;
-    let assembler = TransactionKernel::assembler();
-
-    let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
+    let (account_code, account_storage) = Account::initialize_from_components(
+        account_id.account_type(),
+        &[BasicWallet.into(), RpoFalcon512::new(PublicKey::new(public_key)).into()],
+    )
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),
@@ -88,7 +80,7 @@ pub fn get_account_with_default_account_code(
     Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
 
-pub fn get_new_pk_and_authenticator() -> (Word, Rc<BasicAuthenticator<StdRng>>) {
+pub fn get_new_pk_and_authenticator() -> (Word, Arc<dyn TransactionAuthenticator>) {
     let seed = [0_u8; 32];
     let mut rng = ChaCha20Rng::from_seed(seed);
 
@@ -98,7 +90,7 @@ pub fn get_new_pk_and_authenticator() -> (Word, Rc<BasicAuthenticator<StdRng>>) 
     let authenticator =
         BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
 
-    (pub_key, Rc::new(authenticator))
+    (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }
 
 pub fn write_bench_results_to_json(
@@ -109,14 +101,14 @@ pub fn write_bench_results_to_json(
     let benchmark_file = read_to_string(path).map_err(|e| e.to_string())?;
     let mut benchmark_json: Value = from_str(&benchmark_file).map_err(|e| e.to_string())?;
 
-    // fill becnhmarks JSON with results of each benchmark
+    // fill benchmarks JSON with results of each benchmark
     for (bench_type, tx_progress) in tx_benchmarks {
         let tx_benchmark_json = serde_json::to_value(tx_progress).map_err(|e| e.to_string())?;
 
         benchmark_json[bench_type.to_string()] = tx_benchmark_json;
     }
 
-    // write the becnhmarks JSON to the results file
+    // write the benchmarks JSON to the results file
     write(
         path,
         to_string_pretty(&benchmark_json).expect("failed to convert json to String"),

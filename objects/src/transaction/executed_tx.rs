@@ -2,10 +2,11 @@ use alloc::vec::Vec;
 use core::cell::OnceCell;
 
 use super::{
-    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNote,
+    Account, AccountDelta, AccountHeader, AccountId, AdviceInputs, BlockHeader, InputNote,
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionWitness,
 };
+use crate::accounts::AccountCode;
 
 // EXECUTED TRANSACTION
 // ================================================================================================
@@ -25,6 +26,7 @@ pub struct ExecutedTransaction {
     id: OnceCell<TransactionId>,
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
+    account_codes: Vec<AccountCode>,
     account_delta: AccountDelta,
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
@@ -42,6 +44,7 @@ impl ExecutedTransaction {
     pub fn new(
         tx_inputs: TransactionInputs,
         tx_outputs: TransactionOutputs,
+        account_codes: Vec<AccountCode>,
         account_delta: AccountDelta,
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
@@ -54,6 +57,7 @@ impl ExecutedTransaction {
             id: OnceCell::new(),
             tx_inputs,
             tx_outputs,
+            account_codes,
             account_delta,
             tx_args,
             advice_witness,
@@ -80,7 +84,7 @@ impl ExecutedTransaction {
     }
 
     /// Returns description of the account after the transaction was executed.
-    pub fn final_account(&self) -> &AccountStub {
+    pub fn final_account(&self) -> &AccountHeader {
         &self.tx_outputs.account
     }
 
@@ -120,6 +124,12 @@ impl ExecutedTransaction {
         &self.advice_witness
     }
 
+    /// Returns a reference to the transaction measurements which are the cycle counts for
+    /// each stage.
+    pub fn measurements(&self) -> &TransactionMeasurements {
+        &self.tx_measurements
+    }
+
     // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
@@ -131,6 +141,7 @@ impl ExecutedTransaction {
             tx_inputs: self.tx_inputs,
             tx_args: self.tx_args,
             advice_witness: self.advice_witness,
+            account_codes: self.account_codes,
         };
         (self.account_delta, self.tx_outputs, tx_witness, self.tx_measurements)
     }
@@ -162,4 +173,18 @@ pub struct TransactionMeasurements {
     pub note_execution: Vec<(NoteId, usize)>,
     pub tx_script_processing: usize,
     pub epilogue: usize,
+}
+
+impl TransactionMeasurements {
+    /// Returns the total number of cycles spent executing the transaction.
+    pub fn total_cycles(&self) -> usize {
+        self.prologue + self.notes_processing + self.tx_script_processing + self.epilogue
+    }
+
+    /// Returns the trace length of the transaction which is the next power of 2 of the total cycles
+    /// spent executing the transaction.
+    pub fn trace_length(&self) -> usize {
+        let total_cycles = self.total_cycles();
+        total_cycles.next_power_of_two()
+    }
 }

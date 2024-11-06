@@ -26,7 +26,6 @@ const PUBLIC_USECASE: u32 = 0x80000000;
 ///
 /// The goal of the hint is to allow for a network node to quickly filter notes that are not
 /// intended for network execution, and skip the validation steps mentioned above.
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum NoteExecutionMode {
@@ -63,7 +62,6 @@ pub enum NoteExecutionMode {
 /// public note for local execution is intended to allow users to search for notes that can be
 /// consumed right away, without requiring an off-band communication channel.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteTag(u32);
 
 impl NoteTag {
@@ -80,11 +78,11 @@ impl NoteTag {
     /// - For network execution, the most significant bit is set to `0b0` and the remaining bits are
     ///   set to the 31 most significant bits of the account ID. Note that this results in the two
     ///   most significant bits of the tag being set to `0b00`, because the network execution
-    ///   requires an on-chain account which always have the high bit set to 0.
+    ///   requires a public account which always have the high bit set to 0.
     ///
     /// # Errors
     ///
-    /// This will return an error if the account_id is not for an on-chain account and the execution
+    /// This will return an error if the account_id is not for a public account and the execution
     /// hint is set to [NoteExecutionMode::Network].
     pub fn from_account_id(
         account_id: AccountId,
@@ -98,7 +96,7 @@ impl NoteTag {
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
-                if !account_id.is_on_chain() {
+                if !account_id.is_public() {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
                     let id: u64 = account_id.into();
@@ -550,7 +548,7 @@ mod tests {
             let onchain = highbit == 0;
 
             assert_eq!(
-                acct.is_on_chain(),
+                acct.is_public(),
                 onchain,
                 "The account_id encoding changed, this breaks the assumptions built in the NoteTag"
             );

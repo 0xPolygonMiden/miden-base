@@ -1,12 +1,12 @@
-use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
-use core::cell::RefCell;
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
+use miden_lib::utils::sync::RwLock;
 use miden_objects::accounts::{AccountDelta, AuthSecretKey};
 use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
 
 use super::signatures::get_falcon_signature;
-use crate::error::AuthenticationError;
+use crate::errors::AuthenticationError;
 
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================
@@ -46,7 +46,7 @@ pub trait TransactionAuthenticator {
 pub struct BasicAuthenticator<R> {
     /// pub_key |-> secret_key mapping
     keys: BTreeMap<Digest, AuthSecretKey>,
-    rng: RefCell<R>,
+    rng: Arc<RwLock<R>>,
 }
 
 impl<R: Rng> BasicAuthenticator<R> {
@@ -64,7 +64,10 @@ impl<R: Rng> BasicAuthenticator<R> {
             key_map.insert(word.into(), secret_key.clone());
         }
 
-        BasicAuthenticator { keys: key_map, rng: RefCell::new(rng) }
+        BasicAuthenticator {
+            keys: key_map,
+            rng: Arc::new(RwLock::new(rng)),
+        }
     }
 }
 
@@ -85,7 +88,7 @@ impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
         account_delta: &AccountDelta,
     ) -> Result<Vec<Felt>, AuthenticationError> {
         let _ = account_delta;
-        let mut rng = self.rng.borrow_mut();
+        let mut rng = self.rng.write();
 
         match self.keys.get(&pub_key.into()) {
             Some(key) => match key {

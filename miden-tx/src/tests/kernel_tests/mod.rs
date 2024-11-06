@@ -10,7 +10,7 @@ use miden_objects::{
     vm::StackInputs,
     Felt, Hasher, Word, ONE, ZERO,
 };
-use vm_processor::{ContextId, Host, MemAdviceProvider, Process, ProcessState};
+use vm_processor::{ContextId, Host, Process, ProcessState};
 
 mod test_account;
 mod test_asset;
@@ -21,11 +21,35 @@ mod test_note;
 mod test_prologue;
 mod test_tx;
 
+// HELPER MACROS
+// ================================================================================================
+
+#[macro_export]
+macro_rules! assert_execution_error {
+    ($execution_result:expr, $expected_err_code:expr) => {
+        match $execution_result {
+            Err(vm_processor::ExecutionError::FailedAssertion { clk: _, err_code, err_msg: _ }) => {
+                assert!(
+                    err_code == $expected_err_code,
+                    "Execution failed on assertion with an unexpected error code (Actual err_code: {}, expected {}).",
+                    err_code, $expected_err_code
+                );
+            },
+            Ok(_) => panic!("Execution was unexpectedly successful"),
+            Err(_) => panic!("Execution error was not as expected"),
+        }
+    };
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
 pub fn read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Word {
     process.get_mem_value(ContextId::root(), addr).unwrap()
+}
+
+pub fn try_read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Option<Word> {
+    process.get_mem_value(ContextId::root(), addr)
 }
 
 pub fn output_notes_data_procedure(notes: &[Note]) -> String {

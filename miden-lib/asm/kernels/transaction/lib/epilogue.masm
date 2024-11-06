@@ -3,15 +3,18 @@ use.kernel::asset_vault
 use.kernel::constants
 use.kernel::memory
 use.kernel::note
+use.kernel::tx
+
+use.std::crypto::hashes::rpo
 
 # ERRORS
 # =================================================================================================
 
-# The nonce did not increase after a state changing transaction.
-const.ERR_NONCE_DID_NOT_INCREASE=0x00020009
+# Account nonce did not increase after a state changing transaction
+const.ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE=0x00020028
 
 # Total number of assets in the account and all involved notes must stay the same
-const.ERR_EPILOGUE_ASSETS_DONT_ADD_UP=0x0002000A
+const.ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME=0x00020029
 
 # OUTPUT NOTES PROCEDURES
 # =================================================================================================
@@ -41,7 +44,7 @@ proc.copy_output_notes_to_advice_map
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
         # insert created data into the advice map
-        adv.insert_mem push.15511 drop          # FIX: wrap the decorator to ensure MAST uniqueness
+        adv.insert_mem push.15511 drop          # TODO: remove line, see miden-vm/#1122
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
         # drop output note pointers
@@ -161,6 +164,56 @@ proc.update_account_code
     # => []
 end
 
+
+# ACCOUNT STORAGE UPDATE
+# =================================================================================================
+
+#! Updates the account storage commitment by hashing the storage slots and setting the storage
+#! commitment to the newly computed storage hash.
+#!
+#! Stack: []
+#! Output: []
+proc.update_account_storage_commitment
+    # get number of storage slots
+    exec.memory::get_num_storage_slots
+    # => [num_storage_slots]
+
+    # check if there are storage slots
+    dup push.0 neq
+    # => [storage_slots_is_not_empty, num_storage_slots]
+
+    # only loop and hash over storage if there are storage slots
+    if.true
+        # setup start and end ptr
+        mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
+        # => [start_ptr, end_ptr]
+
+        # pad stack to read and hash from memory
+        padw padw padw
+        # => [PAD, PAD, PAD, start_ptr, end_ptr]
+
+        # hash elements from memory
+        exec.rpo::absorb_double_words_from_memory
+        # => [PERM, PERM, PERM, start_ptr, end_ptr]
+
+        # extract the digest
+        exec.rpo::squeeze_digest
+        # => [DIGEST, end_ptr, end_ptr]
+
+        # clean stack
+        movup.4 drop movup.4 drop
+        # => [DIGEST]
+
+        # set new account storage commitment
+        exec.memory::set_acct_storage_commitment dropw
+        # => []
+    else
+        # drop number of storage slots
+        drop
+        # => []
+    end
+end
+
 # TRANSACTION EPILOGUE PROCEDURE
 # =================================================================================================
 
@@ -172,13 +225,20 @@ end
 #! - asserts that the input and output vault roots are equal
 #!
 #! Stack: []
-#! Output: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Output: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 #!
 #! - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
+    # make sure that the context was switched back to the native account
+    exec.memory::assert_native_account
+
     # update account code
     exec.update_account_code
+    # => []
+
+    # update account storage commitment
+    exec.update_account_storage_commitment
     # => []
 
     # get the initial account hash
@@ -190,7 +250,7 @@ export.finalize_transaction
     # => [acct_data_end_ptr, INIT_ACCT_HASH]
 
     # get the offset for the start of the account data section
-    exec.memory::get_acct_data_ptr
+    exec.memory::get_current_account_data_ptr
     # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # compute the final account hash
@@ -198,7 +258,7 @@ export.finalize_transaction
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # insert final account data into the advice map
-    adv.insert_mem push.15619 drop              # FIX: wrap the decorator to ensure MAST uniqueness
+    adv.insert_mem push.15619 drop              # TODO: remove line, see miden-vm/#1122
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # drop account data section pointers
@@ -219,8 +279,10 @@ export.finalize_transaction
         exec.memory::get_acct_nonce
         # => [current_nonce, init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
+        push.1005 drop                              # TODO: remove line, see miden-vm/#1122
+
         # assert that initial nonce is less than current nonce
-        lt assert.err=ERR_NONCE_DID_NOT_INCREASE
+        lt assert.err=ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE
         # => [FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
     end
 
@@ -245,6 +307,11 @@ export.finalize_transaction
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
-    exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_EPILOGUE_ASSETS_DONT_ADD_UP
+    exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+
+    swapdw
+    exec.memory::get_expiration_block_num
+    swap drop swapdw
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 end

@@ -13,7 +13,7 @@ pub mod block;
 pub mod notes;
 pub mod transaction;
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", test))]
 pub mod testing;
 
 mod constants;
@@ -50,6 +50,14 @@ pub mod utils {
     pub mod serde {
         pub use miden_crypto::utils::{
             ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+        };
+    }
+
+    /// Construct a new `Digest` from four `u64` values.
+    #[macro_export]
+    macro_rules! digest {
+        ($a:expr, $b:expr, $c:expr, $d:expr) => {
+            Digest::new([Felt::new($a), Felt::new($b), Felt::new($c), Felt::new($d)])
         };
     }
 }

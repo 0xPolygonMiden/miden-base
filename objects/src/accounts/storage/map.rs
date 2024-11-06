@@ -1,5 +1,7 @@
+use miden_crypto::merkle::EmptySubtreeRoots;
+
 use super::{
-    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
+    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest,
     Serializable, Word,
 };
 use crate::{
@@ -12,18 +14,14 @@ use crate::{
 
 // ACCOUNT STORAGE MAP
 // ================================================================================================
+
 /// Empty storage map root.
-pub const EMPTY_STORAGE_MAP_ROOT: Word = [
-    Felt::new(15321474589252129342),
-    Felt::new(17373224439259377994),
-    Felt::new(15071539326562317628),
-    Felt::new(3312677166725950353),
-];
+pub const EMPTY_STORAGE_MAP_ROOT: Digest =
+    *EmptySubtreeRoots::entry(StorageMap::STORAGE_MAP_TREE_DEPTH, 0);
 
 /// Account storage map is a Sparse Merkle Tree of depth 64. It can be used to store more data as
 /// there is in plain usage of the storage slots. The root of the SMT consumes one account storage
 /// slot.
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StorageMap {
     map: Smt,
@@ -129,6 +127,10 @@ impl Serializable for StorageMap {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.map.write_into(target)
     }
+
+    fn get_size_hint(&self) -> usize {
+        self.map.get_size_hint()
+    }
 }
 
 impl Deserializable for StorageMap {
@@ -171,6 +173,6 @@ mod tests {
     #[test]
     fn test_empty_storage_map_constants() {
         // If these values don't match, update the constants.
-        assert_eq!(*StorageMap::default().root(), EMPTY_STORAGE_MAP_ROOT);
+        assert_eq!(StorageMap::default().root(), EMPTY_STORAGE_MAP_ROOT);
     }
 }
