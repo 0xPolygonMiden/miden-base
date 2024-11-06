@@ -1,6 +1,10 @@
-use miden_tx_prover::Cli;
-
 extern crate alloc;
+
+pub mod api;
+pub mod commands;
+mod proxy;
+mod utils;
+use commands::Cli;
 
 fn main() -> Result<(), String> {
     use clap::Parser;
@@ -31,12 +35,13 @@ mod test {
         testing::mock_chain::{Auth, MockChain},
         utils::Serializable,
     };
-    use miden_tx_prover::{
-        api::ProverRpcApi,
-        generated::{api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest},
+    use miden_tx_prover::generated::{
+        api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest,
     };
     use tokio::net::TcpListener;
     use tonic::Request;
+
+    use crate::api::ProverRpcApi;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {

@@ -14,7 +14,7 @@ use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::error;
 
-use crate::CliConfig;
+use crate::commands::CliConfig;
 
 /// Load balancer that uses a round robin strategy
 pub struct WorkerLoadBalancer {

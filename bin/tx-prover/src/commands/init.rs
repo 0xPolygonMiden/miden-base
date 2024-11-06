@@ -1,8 +1,9 @@
 use std::{fs::File, io::Write};
 
 use clap::Parser;
+use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 
-use crate::{CliConfig, PROVER_SERVICE_CONFIG_FILE_NAME};
+use crate::commands::CliConfig;
 
 /// Initializes the CLI and creates a config file.
 #[derive(Debug, Parser)]

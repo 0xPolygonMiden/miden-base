@@ -2,8 +2,9 @@ use figment::{
     providers::{Format, Toml},
     Figment,
 };
+use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 
-use crate::{CliConfig, PROVER_SERVICE_CONFIG_FILE_NAME};
+use crate::commands::CliConfig;
 
 /// Loads config file from current directory and default filename and returns it
 ///
