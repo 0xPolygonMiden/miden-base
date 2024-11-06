@@ -11,10 +11,20 @@ const ASM_DIR: &str = "../miden-lib/asm";
 const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 const MASM_FILE_EXTENSION: &str = "masm";
 
+/// Generates error mappings for transaction kernel errors.
+///
+/// This is done only if BUILD_KERNEL_ERRORS environment variable is set to `1` to avoid running
+/// the script on crates.io where MASM files from miden-lib are not available.
 fn main() -> Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed={ASM_DIR}");
     println!("cargo:rerun-if-changed={KERNEL_ERRORS_FILE}");
+    println!("cargo::rerun-if-env-changed=BUILD_KERNEL_ERRORS");
+
+    // Skip this build script in BUILD_KERNEL_ERRORS environment variable is not set to `1`.
+    if env::var("BUILD_KERNEL_ERRORS").unwrap_or("0".to_string()) == "0" {
+        return Ok(());
+    }
 
     // Copies the MASM code to the build directory
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();

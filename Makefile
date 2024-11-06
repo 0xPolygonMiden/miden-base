@@ -9,6 +9,7 @@ help:
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
+BUILD_KERNEL_ERRORS=BUILD_KERNEL_ERRORS=1
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -70,18 +71,18 @@ test: test-default test-prove ## Run all tests
 
 .PHONY: check
 check: ## Check all targets and features for errors without code generation
-	cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+	${BUILD_KERNEL_ERRORS} cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
 
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
 build: ## By default we should build in release mode
-	cargo build --release
+	${BUILD_KERNEL_ERRORS} cargo build --release
 
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib
+	${BUILD_KERNEL_ERRORS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib
 
 
 .PHONY: build-no-std-testing
@@ -91,7 +92,7 @@ build-no-std-testing: ## Build without the standard library. Includes the `testi
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)
-	cargo build --lib --release --features async
+	${BUILD_KERNEL_ERRORS} cargo build --lib --release --features async
 
 
 # --- benchmarking --------------------------------------------------------------------------------

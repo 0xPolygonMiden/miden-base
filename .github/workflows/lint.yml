@@ -71,3 +71,18 @@ jobs:
           override: true
       - name: check rust versions
         run: ./scripts/check-rust-version.sh
+
+  kernel_errors:
+    name: kernel errors check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - name: Rustup
+        run: rustup update --no-self-update
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
+      - name: Rebuild kernel errors
+        run: BUILD_KERNEL_ERRORS=1 cargo check -p miden-tx
+      - name: Diff check
+        run: git diff --exit-code
