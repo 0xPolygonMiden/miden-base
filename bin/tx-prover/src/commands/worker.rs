@@ -19,8 +19,7 @@ pub struct StartWorker {
 impl StartWorker {
     /// Starts the workers defined in the config file.
     ///
-    /// This method will first read the config file to get the list of workers to start. It will
-    /// then start a server for each worker and wait for all servers to complete.
+    /// This method receives the host and port from the CLI and starts a worker on that address.
     pub async fn execute(&self) -> Result<(), String> {
         tracing_subscriber::fmt::init();
         let worker_addr = format!("{}:{}", self.host, self.port);
