@@ -3,9 +3,12 @@ pub mod commands;
 mod proxy;
 mod utils;
 use commands::Cli;
+use utils::setup_tracing;
 
 fn main() -> Result<(), String> {
     use clap::Parser;
+
+    setup_tracing();
 
     // read command-line args
     let cli = Cli::parse();

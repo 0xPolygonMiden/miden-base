@@ -4,10 +4,7 @@ use pingora::{
 };
 use pingora_proxy::http_proxy_service;
 
-use crate::{
-    proxy::LoadBalancer,
-    utils::{load_config_from_file, setup_tracing},
-};
+use crate::{proxy::LoadBalancer, utils::load_config_from_file};
 
 /// Starts the proxy defined in the config file.
 #[derive(Debug, Parser)]
@@ -19,8 +16,6 @@ impl StartProxy {
     /// This method will first read the config file to get the list of workers to start. It will
     /// then start a proxy with each worker as a backend.
     pub fn execute(&self) -> Result<(), String> {
-        setup_tracing();
-
         let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
         server.bootstrap();
 
