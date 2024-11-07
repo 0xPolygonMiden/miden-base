@@ -41,44 +41,50 @@ make install-prover-cli-testing
 Once installed, you need to initialize the CLI with:
 
 ```bash
-miden-tx-prover-cli init
+miden-tx-prover init
 ```
 
-This will create the `miden-prover-service.toml` file in your current directory. This file will hold the configuration for both workers and the proxy. You can modify the configuration changing the host and ports of the services, and add workers. An example of a valid configuration is:
+This will create the `miden-tx-prover.toml` file in your current directory. This file will hold the configuration for the proxy. You can modify the configuration by changing the host and ports of the services, and add workers. An example of a valid configuration is:
 
 ```toml
-[[workers]]
-host = "0.0.0.0"
-port = 8080
-
-[[workers]]
-host = "0.0.0.0"
-port = 8081
-
-[proxy]
 host = "0.0.0.0"
 port = 8082
+timeout_secs = 100
+connection_timeout_secs = 10
+max_queue_items = 10
+max_retries_per_request = 1
+max_req_per_sec = 5
+
+[[workers]]
+host = "0.0.0.0"
+port = 8083
+
+[[workers]]
+host = "0.0.0.0"
+port = 8084
 ```
 
 To add more workers, you will need to add more items with the `[[workers]]` tags.
 
-To start the worker service, once you have configurated at least one in the config file, you will need to run:
+To start the worker service you will need to run:
 
 ```bash
-RUST_LOG=info miden-tx-prover-cli start-worker
+miden-tx-prover start-worker --host 0.0.0.0 --port 8082
 ```
 
-This will start all of your configured workers in the same terminal, using the hosts and ports defined in the configuration file.
+This will a worker using the hosts and ports defined in the command options. In case that one of the values is not present, the CLI will default to `0.0.0.0` for the host and `50051` for the port.
 
 To start the proxy service, you will need to run:
 
 ```bash
-RUST_LOG=info miden-tx-prover-cli start-proxy
+miden-tx-prover-cli start-proxy
 ```
 
 This command will start the proxy using the workers defined in the configuration file to send transaction witness to prove.
 
-At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fashion. The amount of retries is configurable changing the `MAX_RETRIES_PER_REQUEST` constant. To remove the worker from the set of availables, we will need to implement a health check in the worker service.
+At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fashion. The amount of retries is configurable changing the `max_retries_per_request` value in the configuration file.
+
+Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
 
 ## Features
 
