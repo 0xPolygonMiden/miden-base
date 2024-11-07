@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.6.1 (TBD)
+## 0.6.1 (2024-11-08)
 
 ### Features
 
 - [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
+
+### Fixes
+
+- Fixed `AccountId::new_with_type_and_mode()` (#958). 
 
 ## 0.6.0 (2024-11-05)
 
