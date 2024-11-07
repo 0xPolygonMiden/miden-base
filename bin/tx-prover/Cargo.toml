@@ -12,13 +12,9 @@ rust-version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "miden-tx-prover-worker"
-path = "src/worker_main.rs"
+name = "miden-tx-prover"
+path = "src/main.rs"
 required-features = ["std"]
-
-[[bin]]
-name = "miden-tx-prover-proxy"
-path = "src/proxy_main.rs"
 
 [lib]
 crate-type = ["lib"]
@@ -46,13 +42,17 @@ pingora-limits = "0.3"
 [dependencies]
 async-trait = "0.1"
 axum = {version = "0.7", optional = true }
+clap = { version = "4.5", features = ["derive"] }
+figment = { version = "0.10", features = ["toml", "env"] }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false }
 miden-tx = { workspace = true, default-features = false }
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.38", optional = true, features = ["full"] }
 tokio-stream = { version = "0.1", optional = true, features = [ "net" ]}
+toml = { version = "0.8" }
 tonic-web = { version = "0.12", optional = true }
 tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"], optional = true }
