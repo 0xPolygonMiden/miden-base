@@ -71,72 +71,76 @@ end
 
 #! Returns the account id.
 #!
-#! Stack: [0]
-#! Output: [acct_id]
+#! Stack: [pad(16)]
+#! Output: [acct_id, pad(15)]
 #!
 #! Where:
 #! - acct_id is the account id.
 export.get_account_id
     # get the account id
     exec.account::get_id
-    # => [acct_id, 0]
+    # => [acct_id, pad(16)]
 
+    # truncate the stack
     swap drop
-    # => [acct_id]
+    # => [acct_id, pad(15)]
 end
 
 #! Returns the account nonce.
 #!
-#! Stack: [0]
-#! Output: [nonce]
+#! Stack: [pad(16)]
+#! Output: [nonce, pad(15)]
 #!
 #! Where:
 #! - nonce is the account nonce.
 export.get_account_nonce
     # get the account nonce
     exec.account::get_nonce
-    # => [0, nonce]
+    # => [nonce, pad(16)]
 
+    # truncate the stack
     swap drop
-    # => [nonce]
+    # => [nonce, pad(15)]
 end
 
 #! Returns the initial account hash.
 #!
-#! Stack: [0, 0, 0, 0]
-#! Output: [H]
+#! Stack: [pad(16)]
+#! Output: [H, pad(12)]
 #!
 #! Where:
 #! - H is the initial account hash.
 export.get_initial_account_hash
     # get the initial account hash
     exec.account::get_initial_hash
-    # => [H, 0, 0, 0, 0]
+    # => [H, pad(16)]
 
+    # truncate the stack
     swapw dropw
-    # => [H]
+    # => [H, pad(12)]
 end
 
 #! Computes and returns the account hash from account data stored in memory.
 #!
-#! Stack: [0, 0, 0, 0]
-#! Output: [ACCT_HASH]
+#! Stack: [pad(16)]
+#! Output: [ACCT_HASH, pad(12)]
 #!
 #! Where:
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_account_hash
     # get the current account hash
     exec.account::get_current_hash
-    # => [ACCT_HASH, 0, 0, 0, 0]
+    # => [ACCT_HASH, pad(16)]
 
+    # truncate the stack
     swapw dropw
-    # => [ACCT_HASH]
+    # => [ACCT_HASH, pad(12)]
 end
 
 #! Increments the account nonce by the provided value.
 #!
-#! Stack: [value]
-#! Output: [0]
+#! Stack: [value, pad(15)]
+#! Output: [pad(16)]
 #!
 #! Where:
 #! - value is the value to increment the nonce by.
@@ -147,24 +151,21 @@ end
 export.incr_account_nonce
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [value, pad(15)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [value]
-
-    # arrange stack
-    push.0 swap
-    # => [value, 0]
+    # => [value, pad(15)]
 
     # increment the account nonce
     exec.account::incr_nonce
-    # => [0]
+    # => [pad(16)]
 end
 
 #! Gets an item from the account storage.
 #!
-#! Stack: [index, 0, 0, 0]
-#! Output: [VALUE]
+#! Stack: [index, pad(15)]
+#! Output: [VALUE, pad(12)]
 #!
 #! Where:
 #! - index is the index of the item to get.
@@ -175,25 +176,25 @@ end
 export.get_account_item
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [storage_offset, storage_size, index, 0, 0, 0]
+    # => [storage_offset, storage_size, index, pad(15)]
 
     # apply offset to storage slot index
     exec.account::apply_storage_offset
-    # => [index_with_offset, 0, 0, 0]
+    # => [index_with_offset, pad(15)]
 
     # fetch the account storage item
     exec.account::get_item
-    # => [VALUE, 0, 0, 0]
+    # => [VALUE, pad(15)]
 
-    # organize the stack for return
+    # truncate the stack
     movup.4 drop movup.4 drop movup.4 drop
-    # => [VALUE]
+    # => [VALUE, pad(12)]
 end
 
 #! Sets an item in the account storage.
 #!
-#! Stack: [index, V', 0, 0, 0]
-#! Output: [R', V]
+#! Stack: [index, V', pad(11)]
+#! Output: [R', V, pad(8)]
 #!
 #! Where:
 #! - index is the index of the item to set.
@@ -207,35 +208,36 @@ end
 export.set_account_item
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [index, V', pad(11)]
 
     # if the transaction is being executed against a faucet account then assert
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
     dup exec.account::get_faucet_storage_data_slot eq
     exec.account::get_id exec.account::is_faucet
     and assertz.err=ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED
-    # => [index, V', 0, 0, 0]
+    # => [index, V', pad(11)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [storage_offset, storage_size, index, V', 0, 0, 0]
+    # => [storage_offset, storage_size, index, V', pad(11)]
 
     # apply offset to storage slot index
     exec.account::apply_storage_offset
-    # => [index_with_offset, V', 0, 0, 0]
+    # => [index_with_offset, V', pad(11)]
 
     # set the account storage item
     exec.account::set_item
-    # => [R', V, 0, 0, 0]
+    # => [R', V, pad(11)]
 
-    # organize the stack for return
+    # truncate the stack
     movup.8 drop movup.8 drop movup.8 drop
-    # => [R', V]
+    # => [R', V, pad(8)]
 end
 
 #! Returns VALUE located under specified KEY in map in specified account storage slot.
 #!
-#! Stack: [index, KEY, ...]
-#! Output: [VALUE, 0]
+#! Stack: [index, KEY, pad(11)]
+#! Output: [VALUE, pad(12)]
 #!
 #! Where:
 #! - index is the index of the item to get.
@@ -247,37 +249,37 @@ end
 export.get_account_map_item
     # check if storage type is map
     dup exec.account::get_storage_slot_type
-    # => [slot_type, index, KEY, ...]
+    # => [slot_type, index, KEY, pad(11)]
 
     # check if type == map
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
-    # => [index, KEY, ...]
+    # => [index, KEY, pad(11)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [storage_offset, storage_size, index, KEY, ...]
+    # => [storage_offset, storage_size, index, KEY, pad(11)]
 
     # apply offset to storage slot index
     exec.account::apply_storage_offset
-    # => [index_with_offset, KEY, ...]
+    # => [index_with_offset, KEY, pad(11)]
 
     # fetch the account storage item, which is ROOT of the map
     exec.account::get_item swapw
-    # => [KEY, ROOT ...]
+    # => [KEY, ROOT, pad(11)]
 
     # fetch the VALUE located under KEY in the tree
     exec.smt::get
-    # => [VALUE, ROOT, ...]
+    # => [VALUE, ROOT, pad(11)]
 
-    # prepare the stack for return
+    # remove the ROOT from the stack
     swapw dropw
-    # => [VALUE, 0]
+    # => [VALUE, pad(12)]
 end
 
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
 #!
-#! Stack: [index, KEY, NEW_VALUE, ...]
-#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
+#! Stack: [index, KEY, NEW_VALUE, pad(7)]
+#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, pad(8)]
 #!
 #! Where:
 #! - index is the index of the item to get.
@@ -295,38 +297,35 @@ end
 export.set_account_map_item.1
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [index, KEY, NEW_VALUE, pad(7)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [storage_offset, storage_size, index, KEY, NEW_VALUE, ...]
+    # => [storage_offset, storage_size, index, KEY, NEW_VALUE, pad(7)]
 
     # apply offset to storage slot index
     exec.account::apply_storage_offset
-    # => [index_with_offset, KEY, NEW_VALUE, ...]
+    # => [index_with_offset, KEY, NEW_VALUE, pad(7)]
 
     # store index for later
     dup loc_store.0
-    # => [index, KEY, NEW_VALUE, ...]
+    # => [index, KEY, NEW_VALUE, pad(7)]
 
     # fetch the account storage item, which is ROOT of the map
     exec.account::get_item movdnw.2
-    # => [KEY, NEW_VALUE, OLD_MAP_ROOT, ...]
+    # => [KEY, NEW_VALUE, OLD_MAP_ROOT, pad(7)]
 
     # set the new map item
     loc_load.0 exec.account::set_map_item
-    # => [OLD_MAP_ROOT, OLD_VALUE, ...]
-
-    # organize the stack for return (16 elements)
-    movupw.2 dropw
-    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0, ...]
+    # => [OLD_MAP_ROOT, OLD_VALUE, pad(8)]
 end
 
 #! Sets the code of the account the transaction is being executed against.
 #! This procedure can only be executed on regular accounts with updatable code. Otherwise, this
 #! procedure fails.
 #!
-#! Stack: [CODE_COMMITMENT]
-#! Output: [0, 0, 0, 0]
+#! Stack: [CODE_COMMITMENT, pad(12)]
+#! Output: [pad(16)]
 #!
 #! Where:
 #! - CODE_COMMITMENT is the hash of the code to set.
@@ -336,24 +335,21 @@ end
 export.set_account_code
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [CODE_COMMITMENT, pad(12)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [CODE_COMMITMENT]
-
-    # arrange stack
-    padw swapw
-    # => [CODE_COMMITMENT, 0, 0, 0, 0]
+    # => [CODE_COMMITMENT, pad(12)]
 
     # set the account code
     exec.account::set_code
-    # => [0, 0, 0, 0]
+    # => [pad(16)]
 end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Stack: [faucet_id]
-#! Output: [balance]
+#! Stack: [faucet_id, pad(15)]
+#! Output: [balance, pad(15)]
 #!
 #! Where:
 #! - faucet_id is the faucet id of the fungible asset of interest.
@@ -364,17 +360,17 @@ end
 export.account_vault_get_balance
     # get the vault root
     exec.memory::get_acct_vault_root_ptr swap
-    # => [faucet_id, acct_vault_root_ptr]
+    # => [faucet_id, acct_vault_root_ptr, pad(15)]
 
     # get the asset balance
     exec.asset_vault::get_balance
-    # => [balance]
+    # => [balance, pad(15)]
 end
 
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
 #!
-#! Stack: [ASSET]
-#! Output: [has_asset, 0, 0, 0]
+#! Stack: [ASSET, pad(12)]
+#! Output: [has_asset, pad(15)]
 #!
 #! Where:
 #! - ASSET is the non-fungible asset of interest
@@ -383,19 +379,19 @@ end
 #! Panics if:
 #! - the ASSET is a fungible asset.
 export.account_vault_has_non_fungible_asset
-    # arrange stack and get the vault root
-    push.0 movdn.4 push.0 movdn.4 push.0 movdn.4 exec.memory::get_acct_vault_root_ptr movdn.4
-    # => [ASSET, 0, 0, 0]
+    # get the vault root
+    exec.memory::get_acct_vault_root_ptr movdn.4
+    # => [ASSET, vault_root_ptr, pad(12)]
 
     # check if the account vault has the non-fungible asset
     exec.asset_vault::has_non_fungible_asset
-    # => [has_asset, 0, 0, 0]
+    # => [has_asset, pad(15)]
 end
 
 #! Add the specified asset to the vault.
 #!
-#! Stack: [ASSET]
-#! Output: [ASSET']
+#! Stack: [ASSET, pad(12)]
+#! Output: [ASSET', pad(12)]
 #!
 #! Where:
 #! - ASSET is the asset to add to the vault.
@@ -412,38 +408,39 @@ end
 export.account_vault_add_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [ASSET, pad(12)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     push.19891 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     # duplicate the ASSET to be able to emit an event after an asset is being added
     dupw
-    # => [ASSET, ASSET]
+    # => [ASSET, ASSET, pad(12)]
 
     # fetch the vault root
     exec.memory::get_acct_vault_root_ptr movdn.4
-    # => [ASSET, acct_vault_root_ptr, ASSET]
+    # => [ASSET, acct_vault_root_ptr, ASSET, pad(12)]
 
     # add the asset to the account vault
     exec.asset_vault::add_asset
-    # => [ASSET', ASSET]
+    # => [ASSET', ASSET, pad(12)]
 
     # emit event to signal that an asset is being added to the account vault
     swapw
     push.21383 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
-    # => [ASSET']
+    # => [ASSET', pad(12)]
 end
 
 #! Remove the specified asset from the vault.
 #!
-#! Stack: [ASSET]
-#! Output: [ASSET]
+#! Stack: [ASSET, pad(12)]
+#! Output: [ASSET, pad(12)]
 #!
 #! Where:
 #! - ASSET is the asset to remove from the vault.
@@ -456,33 +453,34 @@ end
 export.account_vault_remove_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [ASSET, pad(12)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     push.20071 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     # fetch the vault root
     exec.memory::get_acct_vault_root_ptr movdn.4
-    # => [ASSET, acct_vault_root_ptr]
+    # => [ASSET, acct_vault_root_ptr, pad(12)]
 
     # remove the asset from the account vault
     exec.asset_vault::remove_asset
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     # emit event to signal that an asset is being removed from the account vault
     push.20149 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 end
 
 #! Returns the number of assets and the assets hash of the note currently being processed.
 #!
-#! Inputs: [0, 0, 0, 0, 0]
-#! Outputs: [ASSETS_HASH, num_assets]
+#! Inputs: [pad(16)]
+#! Outputs: [ASSETS_HASH, num_assets, pad(11)]
 #!
 #! Where:
 #! - num_assets is the number of assets in the note currently being processed.
@@ -493,32 +491,35 @@ end
 export.get_note_assets_info
     # get the assets info
     exec.note::get_assets_info
-    # => [ASSETS_HASH, num_assets, 0, 0, 0, 0, 0]
+    # => [ASSETS_HASH, num_assets, pad(16)]
 
-    # organize the stack for return
-    movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
-    # => [ASSETS_HASH, num_assets]
+    # truncate the stack
+    repeat.5
+        movup.5 drop
+    end
+    # => [ASSETS_HASH, num_assets, pad(11)]
 end
 
 #! Returns the current note's inputs hash.
 #!
-#! Inputs: [EMPTY_WORD]
-#! Outputs: [NOTE_INPUTS_HASH]
+#! Inputs: [pad(16)]
+#! Outputs: [NOTE_INPUTS_HASH, pad(12)]
 #!
 #! Where:
 #! - NOTE_INPUTS_HASH is the current note's inputs hash.
 export.get_note_inputs_hash
     exec.note::get_note_inputs_hash
-    # => [NOTE_INPUTS_HASH, EMPTY_WORD]
+    # => [NOTE_INPUTS_HASH, pad(16)]
 
+    # truncate the stack
     swapw dropw
-    # => [NOTE_INPUTS_HASH]
+    # => [NOTE_INPUTS_HASH, pad(12)]
 end
 
 #! Returns the sender of the note currently being processed.
 #!
-#! Inputs: [0]
-#! Outputs: [sender]
+#! Inputs: [pad(16)]
+#! Outputs: [sender, pad(15)]
 #!
 #! Where:
 #! - sender is the sender of the note currently being processed.
@@ -526,81 +527,90 @@ end
 #! Panics if:
 #! - a note is not being processed.
 export.get_note_sender
-    exec.note::get_sender swap drop
-    # => [sender]
+    exec.note::get_sender 
+    # => [sender, pad(16)]
+    
+    # truncate the stack
+    swap drop
+    # => [sender, pad(15)]
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.
 #!
-#! Inputs: [0]
-#! Outputs: [num]
+#! Inputs: [pad(16)]
+#! Outputs: [num, pad(15)]
 #!
 #! Where:
 #! - num is the last known block number.
 export.get_block_number
     # get the block number
     exec.tx::get_block_number
-    # => [num, 0]
+    # => [num, pad(16)]
 
-    # organize the stack for return
+    # truncate the stack
     swap drop
-    # => [num]
+    # => [num, pad(15)]
 end
 
 #! Returns the block hash of the reference block.
 #!
-#! Stack: [EMPTY_WORD]
-#! Output: [BLOCK_HASH]
+#! Stack: [pad(16)]
+#! Output: [BLOCK_HASH, pad(12)]
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
 export.get_block_hash
-    dropw exec.tx::get_block_hash
-    # => [BLOCK_HASH]
+    exec.tx::get_block_hash
+    # => [BLOCK_HASH, pad(16)]
+
+    # truncate the stack
+    swapw dropw
+    # => [BLOCK_HASH, pad(12)]
 end
 
 #! Returns the input notes commitment.
 #!
-#! This is computed as a sequential hash of `(NULLIFIER, EMPTY_WORD_OR_NOTE_HASH)` over all input notes. The
-#! data `EMPTY_WORD_OR_NOTE_HASH` functions as a flag, if the value is set to zero, then the notes are
-#! authenticated by the transaction kernel. If the value is non-zero, then note authentication will
-#! be delayed to the batch/block kernel. The delayed authentication allows a transaction to consume a
-#! public note that is not yet included to a block.
+#! This is computed as a sequential hash of `(NULLIFIER, EMPTY_WORD_OR_NOTE_HASH)` over all input 
+#! notes. The data `EMPTY_WORD_OR_NOTE_HASH` functions as a flag, if the value is set to zero, then 
+#! the notes are authenticated by the transaction kernel. If the value is non-zero, then note 
+#! authentication will be delayed to the batch/block kernel. The delayed authentication allows a 
+#! transaction to consume a public note that is not yet included to a block.
 #!
-#! Inputs: [0, 0, 0, 0]
-#! Outputs: [INPUT_NOTES_COMMITMENT]
+#! Inputs: [pad(16)]
+#! Outputs: [INPUT_NOTES_COMMITMENT, pad(12)]
 #!
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
 export.get_input_notes_commitment
     exec.tx::get_input_notes_commitment
-    # => [COM, 0, 0, 0, 0]
+    # => [INPUT_NOTES_COMMITMENT, pad(16)]
 
+    # truncate the stack
     swapw dropw
-    # => [COM]
+    # => [INPUT_NOTES_COMMITMENT, pad(12)]
 end
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
-#! tuples over all output notes.
+#! Returns the output notes commitment. This is computed as a sequential hash of 
+#! (note_id, note_metadata) tuples over all output notes.
 #!
-#! Inputs: [0, 0, 0, 0]
-#! Outputs: [COM]
+#! Inputs: [pad(16)]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - COM is the output notes hash.
-export.get_output_notes_hash
+#! - OUTPUT_NOTES_COMMITMENT is the output notes hash.
+export.get_output_notes_commitment
     # get the output notes hash
-    exec.tx::get_output_notes_hash
-    # => [COM, 0, 0, 0, 0]
+    exec.tx::get_output_notes_commitment
+    # => [OUTPUT_NOTES_COMMITMENT, pad(16)]
 
-    # organize the stack for return
+    # truncate the stack
     swapw dropw
-    # => [COM]
+    # => [OUTPUT_NOTES_COMMITMENT, pad(12)]
 end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT, pad(4)]
+#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
 #! Outputs: [note_idx, pad(15)]
 #!
 #! Where:
@@ -617,6 +627,7 @@ end
 export.create_note
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
@@ -628,7 +639,7 @@ end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs:  [note_idx, ASSET, pad(7)]
+#! Inputs:  [note_idx, ASSET, pad(11)]
 #! Outputs: [note_idx, ASSET, pad(11)]
 #!
 #! Where:
@@ -641,40 +652,41 @@ end
 export.add_asset_to_note
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [note_idx, ASSET, pad(11)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [note_idx, ASSET]
+    # => [note_idx, ASSET, pad(11)]
 
     # duplicate the asset word to be able to return it
     movdn.4 dupw movup.8
-    # => [note_idx, ASSET, ASSET]
+    # => [note_idx, ASSET, ASSET, pad(11)]
 
     exec.tx::add_asset_to_note
-    # => [note_idx, ASSET]
+    # => [note_idx, ASSET, pad(11)]
 end
 
 #! Returns a commitment to the account vault the transaction is being executed against.
 #!
-#! Stack: [0, 0, 0, 0]
-#! Outputs: [COM]
+#! Stack: [pad(16)]
+#! Outputs: [VAULT_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - COM is the commitment to the account vault.
+#! - VAULT_COMMITMENT is the commitment to the account vault.
 export.get_account_vault_commitment
     # fetch the account vault root
     exec.memory::get_acct_vault_root
-    # => [COM, 0, 0, 0, 0]
+    # => [VAULT_COMMITMENT, pad(16)]
 
-    # organize the stack for return
+    # truncate the stack
     swapw dropw
-    # => [COM]
+    # => [VAULT_COMMITMENT, pad(12)]
 end
 
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
-#! Stack: [ASSET]
-#! Outputs: [ASSET]
+#! Stack: [ASSET, pad(12)]
+#! Outputs: [ASSET, pad(12)]
 #!
 #! Where:
 #! - ASSET is the asset that was minted.
@@ -692,20 +704,21 @@ end
 export.mint_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [ASSET, pad(12)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     # mint the asset
     exec.faucet::mint
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 end
 
 #! Burn an asset from the faucet the transaction is being executed against.
 #!
-#! Stack: [ASSET]
-#! Outputs: [ASSET]
+#! Stack: [ASSET, pad(12)]
+#! Outputs: [ASSET, pad(12)]
 #!
 #! Where:
 #! - ASSET is the asset that was burned.
@@ -724,20 +737,21 @@ end
 export.burn_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
+    # => [ASSET, pad(12)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     # burn the asset
     exec.faucet::burn
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 end
 
 #! Returns the total issuance of the fungible faucet the transaction is being executed against.
 #!
-#! Stack: [0]
-#! Outputs: [total_issuance]
+#! Stack: [pad(16)]
+#! Outputs: [total_issuance, pad(15)]
 #!
 #! Where:
 #! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
@@ -748,21 +762,21 @@ end
 export.get_fungible_faucet_total_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
     exec.account::get_id exec.account::is_fungible_faucet assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
-    # => [0]
+    # => [pad(16)]
 
     # get the total issuance
     exec.faucet::get_total_issuance
-    # => [total_issuance]
+    # => [total_issuance, pad(16)]
 
-    # drop the padding
+    # truncate the stack
     swap drop
-    # => []
+    # => [total_issuance, pad(15)]
 end
 
 #! Returns the serial number of the note currently being processed.
 #!
-#! Inputs: []
-#! Outputs: [SERIAL_NUMBER]
+#! Inputs: [pad(16)]
+#! Outputs: [SERIAL_NUMBER, pad(12)]
 #!
 #! Where:
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
@@ -771,11 +785,11 @@ end
 #! - no note is not being processed.
 export.get_note_serial_number
     exec.note::get_serial_number
-    # => [SERIAL_NUMBER]
+    # => [SERIAL_NUMBER, pad(16)]
 
-    # drop the padding
+    # truncate the stack
     swapw dropw
-    # => [SERIAL_NUMBER]
+    # => [SERIAL_NUMBER, pad(12)]
 end
 
 #! Tells the transaction kernel that we are about to execute a procedure on a foreign account.
@@ -784,14 +798,14 @@ end
 #! Moves the account pointer to the currently accessing foreign account.
 #!
 #! Inputs:
-#!   Operand stack: [foreign_account_id, pad(11)]
+#!   Operand stack: [foreign_account_id, pad(15)]
 #!   Advice map: {
 #!     FOREIGN_ACCOUNT_ID: [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
 #!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
 #!     CODE_ROOT: [num_procs, [ACCOUNT_PROCEDURE_DATA]]
 #!   }
 #! Outputs:
-#!   Operand stack: []
+#!   Operand stack: [pad(16)]
 #!
 #! Where:
 #! - foreign_account_id is the ID of the foreign account whose procedure is going to be executed.
@@ -811,69 +825,69 @@ end
 export.start_foreign_context
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-    # OS => [foreign_account_id]
+    # OS => [foreign_account_id, pad(15)]
 
     # get the memory address and a flag whether this account was already loaded.
     exec.account::get_foreign_account_ptr
-    # OS => [was_loaded, ptr, foreign_account_id]
+    # OS => [was_loaded, ptr, foreign_account_id, pad(15)]
 
     if.true
         exec.memory::set_current_account_data_ptr drop
-        # OS => []
+        # OS => [pad(16)]
     else
         exec.memory::set_current_account_data_ptr
-        # OS => [foreign_account_id]
+        # OS => [foreign_account_id, pad(15)]
 
         # construct the word with account ID to load the core account data from the advice map
         push.0.0.0
-        # OS => [0, 0, 0, foreign_account_id]
+        # OS => [0, 0, 0, foreign_account_id, pad(15)]
 
         # move the core account data to the advice stack
         adv.push_mapval
-        # OS => [0, 0, 0, foreign_account_id]
+        # OS => [0, 0, 0, foreign_account_id, pad(15)]
         # AS => [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the id and nonce of the foreign account to the memory
         dropw adv_loadw
         exec.memory::set_acct_id_and_nonce dropw
-        # OS => []
+        # OS => [pad(16)]
         # AS => [VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the vault root of the foreign account to the memory
         adv_loadw exec.memory::set_acct_vault_root dropw
-        # OS => []
+        # OS => [pad(16)]
         # AS => [STORAGE_ROOT, CODE_ROOT]
 
         # move the storage root and the code root to the operand stack
         adv_loadw padw adv_loadw
-        # OS => [CODE_ROOT, STORAGE_ROOT]
+        # OS => [CODE_ROOT, STORAGE_ROOT, pad(16)]
         # AS => []
 
         # store the code root into the memory
         exec.memory::set_acct_code_commitment
-        # OS => [CODE_ROOT, STORAGE_ROOT]
+        # OS => [CODE_ROOT, STORAGE_ROOT, pad(16)]
         # AS => []
 
         # save the account procedure data into the memory
         exec.account::save_account_procedure_data
-        # OS => [STORAGE_ROOT]
+        # OS => [STORAGE_ROOT, pad(16)]
         # AS => []
 
         # store the storage root to the memory
         exec.memory::set_acct_storage_commitment
-        # OS => [STORAGE_ROOT]
+        # OS => [STORAGE_ROOT, pad(16)]
         # AS => []
 
         # save the storage slots data into the memory
         exec.account::save_account_storage_data
-        # OS => []
+        # OS => [pad(16)]
         # AS => []
     end
 
     # make sure that the state of the loaded foreign account corresponds to this commitment in the
     # account database
     exec.account::validate_current_foreign_account
-    # => []
+    # => [pad(16)]
 end
 
 #! Tells the transaction kernel that we are done executing a procedure on a foreign account.
@@ -893,24 +907,30 @@ end
 #! The input block height delta is added to the reference block in order to output an upper limit
 #! up until which the transaction will be considered valid (not expired).
 #!
-#! Inputs: [block_height_delta, ...]
-#! Output: [...]
+#! Inputs: [block_height_delta, pad(15)]
+#! Output: [pad(16)]
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
 export.update_expiration_block_num
     exec.tx::update_expiration_block_num
+    # => [pad(16)]
 end
 
 #! Gets the transaction expiration delta.
 #!
-#! Inputs: [...]
-#! Output: [block_height_delta, ...]
+#! Inputs: [pad(16)]
+#! Output: [block_height_delta, pad(15)]
 #!
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
 export.get_expiration_delta
     exec.tx::get_expiration_delta
+    # => [block_height_delta, pad(16)]
+
+    # truncate the stack
+    swap drop
+    # => [block_height_delta, pad(15)]
 end
 
 #! Executes a kernel procedure specified by its offset.

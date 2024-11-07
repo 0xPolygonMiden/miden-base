@@ -205,7 +205,7 @@ fn test_create_note_too_many_notes() {
 }
 
 #[test]
-fn test_get_output_notes_hash() {
+fn test_get_output_notes_commitment() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
@@ -301,7 +301,7 @@ fn test_get_output_notes_hash() {
             # => []
 
             # compute the output notes hash
-            exec.tx::get_output_notes_hash
+            exec.tx::get_output_notes_commitment
             # => [COM]
 
             # truncate the stack

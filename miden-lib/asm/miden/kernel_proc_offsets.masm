@@ -31,7 +31,7 @@ const.GET_NOTE_ASSETS_INFO_OFFSET=21
 const.GET_NOTE_INPUTS_HASH_OFFSET=22
 const.GET_NOTE_SENDER_OFFSET=23
 const.GET_NOTE_SERIAL_NUMBER_OFFSET=24
-const.GET_OUTPUT_NOTES_HASH_OFFSET=25
+const.GET_OUTPUT_NOTES_COMMITMENT_OFFSET=25
 
 # Transaction
 const.GET_BLOCK_HASH_OFFSET=26
@@ -308,16 +308,16 @@ export.get_input_notes_commitment_offset
     push.GET_INPUT_NOTES_COMMITMENT_OFFSET
 end
 
-#! Returns an offset of the `get_output_notes_hash` kernel procedure.
+#! Returns an offset of the `get_output_notes_commitment` kernel procedure.
 #!
 #! Stack: []
 #! Output: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_output_notes_hash` kernel procedure required to get the
+#! - proc_offset is the offset of the `get_output_notes_commitment` kernel procedure required to get the
 #! address where this procedure is stored.
-export.get_output_notes_hash_offset
-    push.GET_OUTPUT_NOTES_HASH_OFFSET
+export.get_output_notes_commitment_offset
+    push.GET_OUTPUT_NOTES_COMMITMENT_OFFSET
 end
 
 #! Returns an offset of the `create_note` kernel procedure.

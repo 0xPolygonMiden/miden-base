@@ -77,12 +77,12 @@ end
 #! Outputs: [COM]
 #!
 #! COM is the output notes hash.
-export.get_output_notes_hash
+export.get_output_notes_commitment
     # pad the stack
     padw padw padw push.0.0.0
     # => [PAD(15)]
 
-    exec.kernel_proc_offsets::get_output_notes_hash_offset
+    exec.kernel_proc_offsets::get_output_notes_commitment_offset
     # => [offset, PAD(15)]
 
     syscall.exec_kernel_proc

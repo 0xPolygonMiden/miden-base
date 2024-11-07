@@ -18,7 +18,7 @@ export.get_id
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, 0, PAD(14)]
+    # => [offset, PAD(15)]
 
     syscall.exec_kernel_proc
     # => [acct_id, PAD(15)]

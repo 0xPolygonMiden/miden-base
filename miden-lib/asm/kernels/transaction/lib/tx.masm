@@ -112,14 +112,15 @@ export.memory::get_blk_num->get_block_number
 #! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
 export.memory::get_input_notes_commitment
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
-#! tuples over all output notes.
+#! Returns the output notes commitment hash. This is computed as a sequential hash of 
+#! (note_id, note_metadata) tuples over all output notes.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [COM]
 #!
-#! COM is the output notes hash.
-export.note::compute_output_notes_commitment->get_output_notes_hash
+#! Where:
+#! - COM is the output notes hash.
+export.note::compute_output_notes_commitment->get_output_notes_commitment
 
 #! Increments the number of output notes by one. Returns the index of the next note to be created.
 #!

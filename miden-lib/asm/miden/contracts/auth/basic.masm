@@ -14,7 +14,7 @@ const.PUBLIC_KEY_SLOT=0
 #!
 export.auth_tx_rpo_falcon512
     # Get commitments to output notes
-    exec.tx::get_output_notes_hash
+    exec.tx::get_output_notes_commitment
     # => [OUTPUT_NOTES_HASH, ...]
 
     exec.tx::get_input_notes_commitment
