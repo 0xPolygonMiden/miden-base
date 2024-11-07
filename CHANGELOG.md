@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 (TBD)
+
+### Features
+
+- [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
+
 ## 0.6.0 (2024-11-05)
 
 ### Features
@@ -12,7 +18,6 @@
 
 ### Changes
 
-- [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
 - [BREAKING] Changed `TransactionExecutor` and `TransactionHost` to use trait objects (#897).
 - Made note scripts public (#880).
 - Implemented serialization for `TransactionWitness`, `ChainMmr`, `TransactionInputs` and `TransactionArgs` (#888).
