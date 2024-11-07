@@ -20,7 +20,7 @@ pub struct ProxyConfig {
     pub host: String,
     /// Port of the proxy.
     pub port: u16,
-    /// Maximum time in seconds to complete the entire request..
+    /// Maximum time in seconds to complete the entire request.
     pub timeout_secs: u64,
     /// Maximum time in seconds to establish a connection.
     pub connection_timeout_secs: u64,
