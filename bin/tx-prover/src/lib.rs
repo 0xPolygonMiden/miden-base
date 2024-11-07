@@ -13,7 +13,7 @@ pub use prover::RemoteTransactionProver;
 pub const PROTO_MESSAGES: &str = include_str!("../proto/api.proto");
 
 /// Name of the configuration file
-pub const PROVER_SERVICE_CONFIG_FILE_NAME: &str = "miden-prover-service.toml";
+pub const PROVER_SERVICE_CONFIG_FILE_NAME: &str = "miden-tx-prover.toml";
 
 /// ERRORS
 /// ===============================================================================================

@@ -1,5 +1,3 @@
-extern crate alloc;
-
 pub mod api;
 pub mod commands;
 mod proxy;

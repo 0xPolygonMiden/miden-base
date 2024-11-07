@@ -1,8 +1,10 @@
 use clap::Parser;
-use pingora::{apps::HttpServerOptions, lb::LoadBalancer, prelude::Opt, server::Server};
+use pingora::{
+    apps::HttpServerOptions, lb::LoadBalancer as PingoraLoadBalancer, prelude::Opt, server::Server,
+};
 use pingora_proxy::http_proxy_service;
 
-use crate::{proxy::WorkerLoadBalancer, utils::load_config_from_file};
+use crate::{proxy::LoadBalancer, utils::load_config_from_file};
 
 /// Starts the proxy defined in the config file.
 #[derive(Debug, Parser)]
@@ -25,9 +27,10 @@ impl StartProxy {
             .iter()
             .map(|worker| format!("{}:{}", worker.host, worker.port));
 
-        let workers = LoadBalancer::try_from_iter(workers).expect("PROVER_WORKERS is invalid");
+        let workers =
+            PingoraLoadBalancer::try_from_iter(workers).expect("PROVER_WORKERS is invalid");
 
-        let worker_lb = WorkerLoadBalancer::new(workers, &cli_config);
+        let worker_lb = LoadBalancer::new(workers, &cli_config);
 
         // Set up the load balancer
         let mut lb = http_proxy_service(&server.configuration, worker_lb);

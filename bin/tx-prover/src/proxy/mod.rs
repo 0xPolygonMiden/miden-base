@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
     lb::Backend,
-    prelude::*,
+    prelude::{LoadBalancer as PingoraLoadBalancer, *},
     upstreams::peer::{Peer, ALPN},
 };
 use pingora_core::{upstreams::peer::HttpPeer, Result};
@@ -17,8 +17,8 @@ use tracing::error;
 use crate::commands::CliConfig;
 
 /// Load balancer that uses a round robin strategy
-pub struct WorkerLoadBalancer {
-    lb: Arc<LoadBalancer<RoundRobin>>,
+pub struct LoadBalancer {
+    lb: Arc<PingoraLoadBalancer<RoundRobin>>,
     timeout_secs: Duration,
     connection_timeout_secs: Duration,
     max_queue_items: usize,
@@ -26,8 +26,8 @@ pub struct WorkerLoadBalancer {
     max_req_per_sec: isize,
 }
 
-impl WorkerLoadBalancer {
-    pub fn new(workers: LoadBalancer<RoundRobin>, config: &CliConfig) -> Self {
+impl LoadBalancer {
+    pub fn new(workers: PingoraLoadBalancer<RoundRobin>, config: &CliConfig) -> Self {
         Self {
             lb: Arc::new(workers),
             timeout_secs: Duration::from_secs(config.proxy.timeout_secs),
@@ -98,8 +98,8 @@ pub struct TriesCounter {
 /// Implements load-balancing of incoming requests across a pool of workers.
 ///
 /// At the backend-level, a request lifecycle works as follows:
-/// - When a new requests arrives, [WorkerLoadBalancer::request_filter()] method is called. In this
-///   method we apply IP-based rate-limiting to the request and assign a unique ID to it.
+/// - When a new requests arrives, [LoadBalancer::request_filter()] method is called. In this method
+///   we apply IP-based rate-limiting to the request and assign a unique ID to it.
 /// - Next, the [Self::upstream_peer()] method is called. We use it to figure out which worker will
 ///   process the request. Inside `upstream_peer()`, we pick a worker in a round-robin fashion and
 ///   add the request to the queue of requests for that worker. Once the request gets to the front
@@ -114,7 +114,7 @@ pub struct TriesCounter {
 ///   [Self::logging()] method is called. In this method, we remove the request from the worker's
 ///   queue, allowing the worker to process the next request.
 #[async_trait]
-impl ProxyHttp for WorkerLoadBalancer {
+impl ProxyHttp for LoadBalancer {
     type CTX = TriesCounter;
     fn new_ctx(&self) -> Self::CTX {
         TriesCounter { tries: 0 }

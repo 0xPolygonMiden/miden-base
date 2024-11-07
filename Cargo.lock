@@ -2022,7 +2022,6 @@ dependencies = [
  "protox",
  "rand",
  "serde",
- "serde_json",
  "tokio",
  "tokio-stream",
  "toml",

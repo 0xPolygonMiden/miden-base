@@ -87,7 +87,7 @@ build-no-std: ## Build without the standard library
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover-cli --features testing
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
 
 
 .PHONY: build-async
@@ -106,8 +106,8 @@ bench-tx: ## Run transaction benchmarks
 
 .PHONY: install-prover-cli
 install-prover-cli: ## Install prover's CLI
-	cargo install --path bin/tx-prover --bin miden-tx-prover-cli --locked
+	cargo install --path bin/tx-prover --bin miden-tx-prover --locked
 
 .PHONY: install-prover-cli-testing
 install-prover-cli-testing: ## Install prover's CLI intended for testing purposes
-	cargo install --path bin/tx-prover --bin miden-tx-prover-cli --locked --features testing
+	cargo install --path bin/tx-prover --bin miden-tx-prover --locked --features testing
