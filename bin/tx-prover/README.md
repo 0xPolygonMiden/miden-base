@@ -1,10 +1,12 @@
 # Miden transaction prover
 
-A service for generating Miden transaction proofs on-demand. It includes a CLI to control both workers and proxy for the Miden's remote transaction prover service, and a client, `RemoteTransactionProver` to interact with the service from a Rust codebase.
+A service for generating Miden transaction proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote transaction prover service. 
 
 The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can only handle one request at a time and returns an error if is already in use.
 
-The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue for each one. Further information about Pingora and it's features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
+The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue for each one, load balancing incoming requests in a round-robin manner. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
+
+Additionally, the library can be imported to utilize `RemoteTransactionProver`, a client struct that can be used to interact with the prover service from a Rust codebase.
 
 ## Installation
 
