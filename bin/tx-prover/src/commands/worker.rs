@@ -3,7 +3,7 @@ use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
 
-use crate::api::RpcListener;
+use crate::{api::RpcListener, utils::setup_tracing};
 
 /// Starts the workers defined in the config file.
 #[derive(Debug, Parser)]
@@ -21,7 +21,8 @@ impl StartWorker {
     ///
     /// This method receives the host and port from the CLI and starts a worker on that address.
     pub async fn execute(&self) -> Result<(), String> {
-        tracing_subscriber::fmt::init();
+        setup_tracing();
+
         let worker_addr = format!("{}:{}", self.host, self.port);
         let rpc =
             RpcListener::new(TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?);

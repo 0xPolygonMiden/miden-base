@@ -19,3 +19,11 @@ pub(crate) fn load_config_from_file() -> Result<ProxyConfig, String> {
         .extract()
         .map_err(|err| format!("Failed to load {} config file: {err}", config_path.display()))
 }
+
+pub(crate) fn setup_tracing() {
+    // Set a default log level if `RUST_LOG` is not set
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info"); // Default to 'info' level
+    }
+    tracing_subscriber::fmt::init();
+}

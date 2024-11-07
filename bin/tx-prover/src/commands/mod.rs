@@ -77,13 +77,17 @@ pub struct Cli {
 #[derive(Debug, Parser)]
 pub enum Command {
     /// Creates a config file for the proxy.
+    ///
+    /// This method will create a new config file in the current working directory with default
+    /// values. The file will be named as defined in the
+    /// [miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME] constant.
     Init(Init),
     /// Starts the workers defined in the config file.
     StartWorker(StartWorker),
     /// Starts the proxy defined in the config file.
     StartProxy(StartProxy),
-    /// Gracefully restart the proxy.
-    RestartProxy,
+    // /// Gracefully restart the proxy.
+    // RestartProxy,
 }
 
 /// CLI entry point
@@ -101,10 +105,10 @@ impl Cli {
                 // Init does not require async, so run directly
                 init.execute()
             },
-            Command::RestartProxy => {
-                // Gracefully restart the proxy
-                todo!()
-            },
+            // Command::RestartProxy => {
+            //     // Gracefully restart the proxy
+            //     todo!()
+            // },
         }
     }
 }
