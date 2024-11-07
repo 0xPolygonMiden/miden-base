@@ -14,21 +14,21 @@ pub mod worker;
 /// It allows manual modification of the configuration file.
 #[derive(Serialize, Deserialize)]
 pub struct ProxyConfig {
-    /// List of workers to start
+    /// List of workers used by the proxy.
     pub workers: Vec<WorkerConfig>,
     /// Host of the proxy.
     pub host: String,
     /// Port of the proxy.
     pub port: u16,
-    /// Timeout in seconds.
+    /// Maximum time in seconds to complete the entire request..
     pub timeout_secs: u64,
-    /// Connection timeout in seconds.
+    /// Maximum time in seconds to establish a connection.
     pub connection_timeout_secs: u64,
     /// Maximum number of items in the queue.
     pub max_queue_items: usize,
     /// Maximum number of retries per request.
     pub max_retries_per_request: usize,
-    /// Maximum number of requests per second.
+    /// Maximum number of requests per second per IP address.
     pub max_req_per_sec: isize,
 }
 
