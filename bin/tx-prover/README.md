@@ -1,6 +1,6 @@
-# Miden transaction prover CLI
+# Miden transaction prover
 
-A CLI to control both workers and proxy for the Miden's remote transaction prover.
+A service for generating Miden transaction proofs on-demand. It includes a CLI to control both workers and proxy for the Miden's remote transaction prover service, and a client, `RemoteTransactionProver` to interact with the service from a Rust codebase.
 
 The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can only handle one request at a time and returns an error if is already in use.
 
@@ -12,20 +12,19 @@ The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), w
 <!-- Install the CLI for production using `cargo`:
 
 ```sh
-cargo install miden-tx-prover-cli --locked
+cargo install miden-tx-prover --locked
 ```
 
 This will install the latest official version of the prover. You can install a specific version using `--version <x.y.z>`:
 
 ```sh
-cargo install miden-tx-prover-worker --locked --version x.y.z
-cargo install miden-tx-prover-proxy --locked --version x.y.z
+cargo install miden-tx-prover --locked --version x.y.z
 ``` -->
 
 To build the CLI from a local version, from the root of the workspace you can run:
 
 ```bash
-make install-prover-cli
+make install-tx-prover
 ```
 
 The CLI can be installed from the source code using specific git revisions with `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only.
@@ -33,7 +32,7 @@ The CLI can be installed from the source code using specific git revisions with 
 Note that for the prover worker you might need to enable the `testing` feature in case the transactions were executed with reduced proof-of-work requirements (or otherwise, the proving process will fail). This step will also generate the necessary protobuf-related files. You can achieve that by generating the binary with:
 
 ```bash
-make install-prover-cli-testing
+make install-tx-prover-testing
 ```
 
 ## Usage
