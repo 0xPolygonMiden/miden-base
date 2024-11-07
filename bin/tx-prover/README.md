@@ -10,20 +10,7 @@ Additionally, the library can be imported to utilize `RemoteTransactionProver`, 
 
 ## Installation
 
-<!-- The following documentation is documented since the CLI is not on crates-io yet -->
-<!-- Install the CLI for production using `cargo`:
-
-```sh
-cargo install miden-tx-prover --locked
-```
-
-This will install the latest official version of the prover. You can install a specific version using `--version <x.y.z>`:
-
-```sh
-cargo install miden-tx-prover --locked --version x.y.z
-``` -->
-
-To build the CLI from a local version, from the root of the workspace you can run:
+To build the service from a local version, from the root of the workspace you can run:
 
 ```bash
 make install-tx-prover
@@ -37,9 +24,19 @@ Note that for the prover worker you might need to enable the `testing` feature i
 make install-tx-prover-testing
 ```
 
-## Usage
+## Worker
 
-Once installed, you need to initialize the CLI with:
+To start the worker service you will need to run:
+
+```bash
+miden-tx-prover start-worker --host 0.0.0.0 --port 8082
+```
+
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
+
+## Proxy
+
+First, you need to create a configuration file for the proxy with:
 
 ```bash
 miden-tx-prover init
@@ -48,12 +45,19 @@ miden-tx-prover init
 This will create the `miden-tx-prover.toml` file in your current directory. This file will hold the configuration for the proxy. You can modify the configuration by changing the host and ports of the services, and add workers. An example of a valid configuration is:
 
 ```toml
+# Host of the proxy server
 host = "0.0.0.0"
+# Port of the proxy server
 port = 8082
+# Timeout for a new request to be completed
 timeout_secs = 100
+# Timeout for establishing a connection to the worker
 connection_timeout_secs = 10
+# Maximum amount of items that a queue can handle
 max_queue_items = 10
+# Maximum amount of retries that a request can take
 max_retries_per_request = 1
+# Maximum amount of requests that a given IP address can make per second
 max_req_per_sec = 5
 
 [[workers]]
@@ -67,18 +71,10 @@ port = 8084
 
 To add more workers, you will need to add more items with the `[[workers]]` tags.
 
-To start the worker service you will need to run:
+Then, to start the proxy service, you will need to run:
 
 ```bash
-miden-tx-prover start-worker --host 0.0.0.0 --port 8082
-```
-
-This will a worker using the hosts and ports defined in the command options. In case that one of the values is not present, the CLI will default to `0.0.0.0` for the host and `50051` for the port.
-
-To start the proxy service, you will need to run:
-
-```bash
-miden-tx-prover-cli start-proxy
+miden-tx-prover start-proxy
 ```
 
 This command will start the proxy using the workers defined in the configuration file to send transaction witness to prove.
