@@ -63,8 +63,8 @@ impl WorkerConfig {
 /// Root CLI struct
 #[derive(Parser, Debug)]
 #[clap(
-    name = "Miden",
-    about = "Miden transaction prover CLI",
+    name = "miden-tx-prover",
+    about = "A stand-alone service for proving Miden transactions.",
     version,
     rename_all = "kebab-case"
 )]
