@@ -233,6 +233,7 @@ impl AccountId {
     /// - The bit representation of the account type and storage mode is prepended to the most
     ///   significant byte of `bytes`.
     /// - The 5th most significant bit is cleared.
+    /// - The lowest 5 bits are set to ensure the id has at least [`Self::MIN_ACCOUNT_ONES`].
     /// - The bytes are then converted to a `u64` in big-endian format. Due to clearing the 5th most
     ///   significant bit, the resulting `u64` will be a valid [`Felt`].
     #[cfg(any(feature = "testing", test))]
@@ -251,10 +252,14 @@ impl AccountId {
         bytes[0] &= 0x07;
         // Set high nibble of the most significant byte.
         bytes[0] |= id_high_nibble;
+        // Set the lowest 5 bits to ensure we have at least MIN_ACCOUNT_ONES.
+        bytes[7] |= 0x1f;
 
-        let account_id = Felt::try_from(u64::from_be_bytes(bytes))
-            .expect("must be a valid felt after clearing the 5th highest bit");
-        let account_id = AccountId::new_unchecked(account_id);
+        let account_id = account_id_from_felt(
+            Felt::try_from(u64::from_be_bytes(bytes))
+                .expect("must be a valid felt after clearing the 5th highest bit"),
+        )
+        .expect("account id shoult satisfy criteria of a valid ID");
 
         debug_assert_eq!(account_id.account_type(), account_type);
         debug_assert_eq!(account_id.storage_mode(), storage_mode);
@@ -747,18 +752,20 @@ mod tests {
     fn account_id_construction() {
         // Use the highest possible input to check if the constructed id is a valid Felt in that
         // scenario.
-        let bytes = [0xff; 8];
-
-        for account_type in [
-            AccountType::FungibleFaucet,
-            AccountType::NonFungibleFaucet,
-            AccountType::RegularAccountImmutableCode,
-            AccountType::RegularAccountUpdatableCode,
-        ] {
-            for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                // This function contains debug assertions already so we don't asset anything
-                // additional
-                AccountId::new_with_type_and_mode(bytes, account_type, storage_mode);
+        // Use the lowest possible input to check whether the constructor satisfies
+        // MIN_ACCOUNT_ONES.
+        for input in [[0xff; 8], [0; 8]] {
+            for account_type in [
+                AccountType::FungibleFaucet,
+                AccountType::NonFungibleFaucet,
+                AccountType::RegularAccountImmutableCode,
+                AccountType::RegularAccountUpdatableCode,
+            ] {
+                for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
+                    let id = AccountId::new_with_type_and_mode(input, account_type, storage_mode);
+                    // Do a serialization roundtrip to ensure validity.
+                    AccountId::read_from_bytes(&id.to_bytes()).unwrap();
+                }
             }
         }
     }
