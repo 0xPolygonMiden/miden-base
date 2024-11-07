@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::api::RpcListener;
 
-/// Starts the workers defined in the config file.
+/// Starts a worker.
 #[derive(Debug, Parser)]
 pub struct StartWorker {
     /// The host of the worker
@@ -17,9 +17,11 @@ pub struct StartWorker {
 }
 
 impl StartWorker {
-    /// Starts the workers defined in the config file.
+    /// Starts a worker.
     ///
     /// This method receives the host and port from the CLI and starts a worker on that address.
+    /// In case that one of the parameters is not provided, it will default to `0.0.0.0` for the
+    /// host and `50051` for the port.
     pub async fn execute(&self) -> Result<(), String> {
         let worker_addr = format!("{}:{}", self.host, self.port);
         let rpc =
