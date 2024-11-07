@@ -4,13 +4,13 @@ use figment::{
 };
 use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 
-use crate::commands::CliConfig;
+use crate::commands::ProxyConfig;
 
 /// Loads config file from current directory and default filename and returns it
 ///
 /// This function will look for the configuration file with the name defined at the
 /// [PROVER_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
-pub(crate) fn load_config_from_file() -> Result<CliConfig, String> {
+pub(crate) fn load_config_from_file() -> Result<ProxyConfig, String> {
     let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
     current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
     let config_path = current_dir.as_path();

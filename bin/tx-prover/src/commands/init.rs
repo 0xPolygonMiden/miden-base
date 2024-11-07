@@ -3,7 +3,7 @@ use std::{fs::File, io::Write};
 use clap::Parser;
 use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 
-use crate::commands::CliConfig;
+use crate::commands::ProxyConfig;
 
 /// Initializes the CLI and creates a config file.
 #[derive(Debug, Parser)]
@@ -26,7 +26,7 @@ impl Init {
             .to_string());
         }
 
-        let cli_config = CliConfig::default();
+        let cli_config = ProxyConfig::default();
 
         let config_as_toml_string = toml::to_string_pretty(&cli_config)
             .map_err(|err| format!("Error formatting config: {err}"))?;

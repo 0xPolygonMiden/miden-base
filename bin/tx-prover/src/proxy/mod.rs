@@ -14,7 +14,7 @@ use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::error;
 
-use crate::commands::CliConfig;
+use crate::commands::ProxyConfig;
 
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
@@ -27,14 +27,14 @@ pub struct LoadBalancer {
 }
 
 impl LoadBalancer {
-    pub fn new(workers: PingoraLoadBalancer<RoundRobin>, config: &CliConfig) -> Self {
+    pub fn new(workers: PingoraLoadBalancer<RoundRobin>, config: &ProxyConfig) -> Self {
         Self {
             lb: Arc::new(workers),
-            timeout_secs: Duration::from_secs(config.proxy.timeout_secs),
-            connection_timeout_secs: Duration::from_secs(config.proxy.connection_timeout_secs),
-            max_queue_items: config.proxy.max_queue_items,
-            max_retries_per_request: config.proxy.max_retries_per_request,
-            max_req_per_sec: config.proxy.max_req_per_sec,
+            timeout_secs: Duration::from_secs(config.timeout_secs),
+            connection_timeout_secs: Duration::from_secs(config.connection_timeout_secs),
+            max_queue_items: config.max_queue_items,
+            max_retries_per_request: config.max_retries_per_request,
+            max_req_per_sec: config.max_req_per_sec,
         }
     }
 

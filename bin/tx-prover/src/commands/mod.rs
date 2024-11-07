@@ -8,23 +8,41 @@ pub mod init;
 pub mod proxy;
 pub mod worker;
 
-/// Configuration of the CLI
+/// Configuration of the proxy.
 ///
 /// It is stored in a TOML file, which will be created by the `init` command.
 /// It allows manual modification of the configuration file.
 #[derive(Serialize, Deserialize)]
-pub struct CliConfig {
+pub struct ProxyConfig {
     /// List of workers to start
     pub workers: Vec<WorkerConfig>,
-    /// Proxy configuration
-    pub proxy: ProxyConfig,
+    /// Host of the proxy.
+    pub host: String,
+    /// Port of the proxy.
+    pub port: u16,
+    /// Timeout in seconds.
+    pub timeout_secs: u64,
+    /// Connection timeout in seconds.
+    pub connection_timeout_secs: u64,
+    /// Maximum number of items in the queue.
+    pub max_queue_items: usize,
+    /// Maximum number of retries per request.
+    pub max_retries_per_request: usize,
+    /// Maximum number of requests per second.
+    pub max_req_per_sec: isize,
 }
 
-impl Default for CliConfig {
+impl Default for ProxyConfig {
     fn default() -> Self {
         Self {
-            workers: vec![WorkerConfig::default(), WorkerConfig::default()],
-            proxy: ProxyConfig::default(),
+            workers: vec![WorkerConfig::new("0.0.0.0", 8083), WorkerConfig::new("0.0.0.0", 8084)],
+            host: "0.0.0.0".into(),
+            port: 8082,
+            timeout_secs: 100,
+            connection_timeout_secs: 10,
+            max_queue_items: 10,
+            max_retries_per_request: 1,
+            max_req_per_sec: 5,
         }
     }
 }
@@ -36,35 +54,9 @@ pub struct WorkerConfig {
     pub port: u16,
 }
 
-impl Default for WorkerConfig {
-    fn default() -> Self {
-        Self { host: "0.0.0.0".into(), port: 8080 }
-    }
-}
-
-/// Configuration for the proxy
-#[derive(Serialize, Deserialize)]
-pub struct ProxyConfig {
-    pub host: String,
-    pub port: u16,
-    pub timeout_secs: u64,
-    pub connection_timeout_secs: u64,
-    pub max_queue_items: usize,
-    pub max_retries_per_request: usize,
-    pub max_req_per_sec: isize,
-}
-
-impl Default for ProxyConfig {
-    fn default() -> Self {
-        Self {
-            host: "0.0.0.0".into(),
-            port: 8082,
-            timeout_secs: 100,
-            connection_timeout_secs: 10,
-            max_queue_items: 10,
-            max_retries_per_request: 1,
-            max_req_per_sec: 5,
-        }
+impl WorkerConfig {
+    fn new(host: &str, port: u16) -> Self {
+        Self { host: host.into(), port }
     }
 }
 
@@ -84,7 +76,7 @@ pub struct Cli {
 /// CLI actions
 #[derive(Debug, Parser)]
 pub enum Command {
-    /// Creates a config file.
+    /// Creates a config file for the proxy.
     Init(Init),
     /// Starts the workers defined in the config file.
     StartWorker(StartWorker),

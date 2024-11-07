@@ -20,9 +20,9 @@ impl StartProxy {
         let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
         server.bootstrap();
 
-        let cli_config = load_config_from_file()?;
+        let proxy_config = load_config_from_file()?;
 
-        let workers = cli_config
+        let workers = proxy_config
             .workers
             .iter()
             .map(|worker| format!("{}:{}", worker.host, worker.port));
@@ -30,13 +30,13 @@ impl StartProxy {
         let workers =
             PingoraLoadBalancer::try_from_iter(workers).expect("PROVER_WORKERS is invalid");
 
-        let worker_lb = LoadBalancer::new(workers, &cli_config);
+        let worker_lb = LoadBalancer::new(workers, &proxy_config);
 
         // Set up the load balancer
         let mut lb = http_proxy_service(&server.configuration, worker_lb);
 
-        let proxy_host = cli_config.proxy.host;
-        let proxy_port = cli_config.proxy.port.to_string();
+        let proxy_host = proxy_config.host;
+        let proxy_port = proxy_config.port.to_string();
         lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
         let logic = lb.app_logic_mut().expect("No app logic found");
         let mut http_server_options = HttpServerOptions::default();
