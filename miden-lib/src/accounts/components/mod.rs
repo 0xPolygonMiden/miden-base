@@ -40,3 +40,38 @@ pub fn rpo_falcon_512_library() -> Library {
 pub fn basic_fungible_faucet_library() -> Library {
     BASIC_FUNGIBLE_FAUCET_LIBRARY.clone()
 }
+
+#[cfg(test)]
+mod tests {
+    use miden_objects::assembly::Assembler;
+
+    use super::*;
+
+    /// Test that the account component libraries can be used to link against from other MASM code
+    /// and in particular that they are all available under the same library namespace
+    /// ("account_components").
+    #[test]
+    fn test_account_component_libraries_can_be_linked() {
+        let source = r#"
+        use.account_components::basic_wallet
+        use.account_components::rpo_falcon_512
+        use.account_components::basic_fungible_faucet
+
+        begin
+          call.basic_wallet::receive_asset
+          call.rpo_falcon_512::auth_tx_rpo_falcon512
+          call.basic_fungible_faucet::distribute
+        end
+        "#;
+
+        Assembler::default()
+            .with_library(basic_wallet_library())
+            .unwrap()
+            .with_library(rpo_falcon_512_library())
+            .unwrap()
+            .with_library(basic_fungible_faucet_library())
+            .unwrap()
+            .assemble_program(source)
+            .expect("we should be able to link against the account component libraries");
+    }
+}
