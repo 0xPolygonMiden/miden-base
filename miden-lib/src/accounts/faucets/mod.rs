@@ -4,6 +4,7 @@ use miden_objects::{
     accounts::{
         Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType, StorageSlot,
     },
+    assembly::Library,
     assets::TokenSymbol,
     AccountError, Felt, FieldElement, Word,
 };
@@ -46,6 +47,15 @@ impl BasicFungibleFaucet {
         }
 
         Ok(Self { symbol, decimals, max_supply })
+    }
+
+    /// Returns a reference to the Basic Fungible Faucet library whose procedures can be imported
+    /// from `account_components::basic_fungible_faucet`.
+    ///
+    /// This can be used in the assembly of programs that want to call procedures from this
+    /// component.
+    pub fn library() -> &'static Library {
+        basic_fungible_faucet_library()
     }
 }
 
