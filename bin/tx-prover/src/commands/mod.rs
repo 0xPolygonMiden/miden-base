@@ -86,8 +86,6 @@ pub enum Command {
     StartWorker(StartWorker),
     /// Starts the proxy defined in the config file.
     StartProxy(StartProxy),
-    // /// Gracefully restart the proxy.
-    // RestartProxy,
 }
 
 /// CLI entry point
@@ -105,10 +103,6 @@ impl Cli {
                 // Init does not require async, so run directly
                 init.execute()
             },
-            // Command::RestartProxy => {
-            //     // Gracefully restart the proxy
-            //     todo!()
-            // },
         }
     }
 }
