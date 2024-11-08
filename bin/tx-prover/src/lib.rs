@@ -4,9 +4,7 @@ use alloc::string::String;
 
 pub mod generated;
 
-#[cfg(feature = "async")]
 mod prover;
-#[cfg(feature = "async")]
 pub use prover::RemoteTransactionProver;
 
 /// Contains the protobuf definitions
