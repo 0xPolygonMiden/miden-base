@@ -519,7 +519,9 @@ fn test_create_note_and_add_same_nft_twice() {
 
         begin
             exec.prologue::prepare_transaction
+            # => []
 
+            padw padw
             push.{recipient}
             push.{execution_hint_always}
             push.{PUBLIC_NOTE}
@@ -527,15 +529,18 @@ fn test_create_note_and_add_same_nft_twice() {
             push.{tag}
 
             call.wallet::create_note
-            # => [note_idx]
+            # => [note_idx, pad(15)]
 
             push.{nft} 
             call.account::add_asset_to_note
-            dropw dropw dropw
+            # => [NFT, note_idx, pad(15)]
+            dropw
 
             push.{nft} 
             call.account::add_asset_to_note
-            # => [note_idx]
+            # => [NFT, note_idx, pad(15)]
+
+            repeat.5 dropw end
         end
         ",
         recipient = prepare_word(&recipient),

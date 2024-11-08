@@ -7,8 +7,8 @@ const.PUBLIC_NOTE=1
 
 #! Adds the provided asset to the current account.
 #!
-#! Inputs: [ASSET]
-#! Outputs: [0, 0, 0, 0, ...]
+#! Inputs: [ASSET, pad(12)]
+#! Outputs: [pad(16)]
 #!
 #! - ASSET is the asset to be received, can be fungible or non-fungible
 #!
@@ -18,7 +18,11 @@ const.PUBLIC_NOTE=1
 #!   the total amount would be greater than 2^63.
 export.receive_asset
     exec.account::add_asset
-    padw swapw dropw
+    # => [ASSET', pad(12)]
+
+    # drop the final asset
+    dropw
+    # => [pad(16)]
 end
 
 #! Creates a new note.

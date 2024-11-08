@@ -44,8 +44,22 @@ begin
     push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
-    # load the ASSET and add it to the account
-    mem_loadw call.wallet::receive_asset dropw
+    # load the ASSET
+    mem_loadw
+    # => [ASSET]
+    
+    # pad the stack before call
+    padw swapw padw padw swapdw
+    # => [ASSET, pad(12)]
+
+    # add the ASSET to the account
+    call.wallet::receive_asset
+    # => [pad(16)]
+
+    # clean the stack
+    repeat.4
+        dropw
+    end
     # => []
 
     # store note inputs into memory starting at address 0
