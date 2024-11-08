@@ -1,84 +1,87 @@
 # Miden transaction prover
 
-A service for generating Miden transaction proofs on-demand. It is split in two binaries: worker and proxy.
+A service for generating Miden transaction proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote transaction prover service. 
 
 The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can only handle one request at a time and returns an error if is already in use.
 
-The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue for each one. Further information about Pingora and it's features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
+The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue for each one, load balancing incoming requests in a round-robin manner. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
+
+Additionally, the library can be imported to utilize `RemoteTransactionProver`, a client struct that can be used to interact with the prover service from a Rust codebase.
 
 ## Installation
 
-Install the prover worker and proxy binaries for production using `cargo`:
-
-```sh
-cargo install miden-tx-prover-worker --locked
-cargo install miden-tx-prover-proxy --locked
-```
-
-This will install the latest official version of the prover. You can install a specific version using `--version <x.y.z>`:
-
-```sh
-cargo install miden-tx-prover-worker --locked --version x.y.z
-cargo install miden-tx-prover-proxy --locked --version x.y.z
-```
-
-Both services can be installed at once from the source code using specific git revisions with `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only.
-
-If you want to build from a local version, from the root of the workspace you can run:
+To build the service from a local version, from the root of the workspace you can run:
 
 ```bash
-make install-prover-worker
-make install-prover-proxy
+make install-tx-prover
 ```
+
+The CLI can be installed from the source code using specific git revisions with `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only.
 
 Note that for the prover worker you might need to enable the `testing` feature in case the transactions were executed with reduced proof-of-work requirements (or otherwise, the proving process will fail). This step will also generate the necessary protobuf-related files. You can achieve that by generating the binary with:
 
 ```bash
-make install-prover-worker-testing
+make install-tx-prover-testing
 ```
 
-## Running the Service
+## Worker
 
-Once installed, you can run the worker with:
+To start the worker service you will need to run:
 
 ```bash
-RUST_LOG=info miden-tx-prover-worker
+miden-tx-prover start-worker --host 0.0.0.0 --port 8082
 ```
 
-By default, the server will start on `0.0.0.0:50051`. You can change this and the log level by setting the following environment variables:
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
+
+## Proxy
+
+First, you need to create a configuration file for the proxy with:
 
 ```bash
-PROVER_SERVICE_HOST=<your-host>
-PROVER_SERVICE_PORT=<your-port>
-RUST_LOG=<log-level>
+miden-tx-prover init
 ```
 
-And to run the proxy:
+This will create the `miden-tx-prover.toml` file in your current directory. This file will hold the configuration for the proxy. You can modify the configuration by changing the host and ports of the services, and add workers. An example of a valid configuration is:
+
+```toml
+# Host of the proxy server
+host = "0.0.0.0"
+# Port of the proxy server
+port = 8082
+# Timeout for a new request to be completed
+timeout_secs = 100
+# Timeout for establishing a connection to the worker
+connection_timeout_secs = 10
+# Maximum amount of items that a queue can handle
+max_queue_items = 10
+# Maximum amount of retries that a request can take
+max_retries_per_request = 1
+# Maximum amount of requests that a given IP address can make per second
+max_req_per_sec = 5
+
+[[workers]]
+host = "0.0.0.0"
+port = 8083
+
+[[workers]]
+host = "0.0.0.0"
+port = 8084
+```
+
+To add more workers, you will need to add more items with the `[[workers]]` tags.
+
+Then, to start the proxy service, you will need to run:
 
 ```bash
-RUST_LOG=info miden-tx-prover-proxy
+miden-tx-prover start-proxy
 ```
 
-By default, the server will start on `0.0.0.0:6188`. This can be changed by setting:
+This command will start the proxy using the workers defined in the configuration file to send transaction witness to prove.
 
-```bash
-PROXY_HOST=<your-host>
-PROXY_PORT=<your-port>
-```
+At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fashion. The amount of retries is configurable changing the `max_retries_per_request` value in the configuration file.
 
-Also, it is mandatory to set at least one prover worker by setting the `PROVER_WORKERS` env var:
-
-```bash
-PROVER_WORKERS=<your-worker>
-
-# For only 1 worker
-PROVER_WORKERS="0.0.0.0:50051"
-
-# For multiple workers
-PROVER_WORKERS="0.0.0.0:8080,0.0.0.0:50051,165.75.2.4:1010,10.2.2.1:9999"
-```
-
-At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fashion. The amount of retries is configurable changing the `MAX_RETRIES_PER_REQUEST` constant. To remove the worker from the set of availables, we will need to implement a health check in the worker service.
+Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
 
 ## Features
 

@@ -1,38 +1,20 @@
-use std::env;
+pub mod api;
+pub mod commands;
+mod proxy;
+mod utils;
+use commands::Cli;
+use utils::setup_tracing;
 
-use api::RpcListener;
-use tokio::net::TcpListener;
-use tokio_stream::wrappers::TcpListenerStream;
-use tracing::info;
-mod api;
+fn main() -> Result<(), String> {
+    use clap::Parser;
 
-mod generated;
-pub use generated::{
-    api_server::{Api as ProverApi, ApiServer},
-    ProveTransactionRequest, ProveTransactionResponse,
-};
+    setup_tracing();
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize tracing subscriber with default settings for console output
-    tracing_subscriber::fmt::init();
+    // read command-line args
+    let cli = Cli::parse();
 
-    let host = env::var("PROVER_SERVICE_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = env::var("PROVER_SERVICE_PORT").unwrap_or_else(|_| "50051".to_string());
-    let addr = format!("{}:{}", host, port);
-
-    let rpc = RpcListener::new(TcpListener::bind(addr).await?);
-
-    info!("Server listening on {}", rpc.listener.local_addr()?);
-
-    // build our application with a route
-    tonic::transport::Server::builder()
-        .accept_http1(true)
-        .add_service(tonic_web::enable(rpc.api_service))
-        .serve_with_incoming(TcpListenerStream::new(rpc.listener))
-        .await?;
-
-    Ok(())
+    // execute cli action
+    cli.execute()
 }
 
 // TESTS
@@ -54,12 +36,13 @@ mod test {
         testing::mock_chain::{Auth, MockChain},
         utils::Serializable,
     };
+    use miden_tx_prover::generated::{
+        api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest,
+    };
     use tokio::net::TcpListener;
     use tonic::Request;
 
-    use crate::{
-        api::ProverRpcApi, generated::api_client::ApiClient, ApiServer, ProveTransactionRequest,
-    };
+    use crate::api::ProverRpcApi;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {

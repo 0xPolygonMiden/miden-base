@@ -1,7 +1,8 @@
 extern crate alloc;
+
 use alloc::string::String;
 
-pub(crate) mod generated;
+pub mod generated;
 
 #[cfg(feature = "async")]
 mod prover;
@@ -10,6 +11,9 @@ pub use prover::RemoteTransactionProver;
 
 /// Contains the protobuf definitions
 pub const PROTO_MESSAGES: &str = include_str!("../proto/api.proto");
+
+/// Name of the configuration file
+pub const PROVER_SERVICE_CONFIG_FILE_NAME: &str = "miden-tx-prover.toml";
 
 /// ERRORS
 /// ===============================================================================================
