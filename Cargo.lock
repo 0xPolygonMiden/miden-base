@@ -2001,7 +2001,7 @@ dependencies = [
 
 [[package]]
 name = "miden-tx-prover"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "async-trait",
  "axum",
