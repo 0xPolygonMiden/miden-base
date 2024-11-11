@@ -32,7 +32,7 @@ impl RpoFalcon512 {
 impl From<RpoFalcon512> for AccountComponent {
     fn from(falcon: RpoFalcon512) -> Self {
         AccountComponent::new(
-            rpo_falcon_512_library().clone(),
+            rpo_falcon_512_library(),
             vec![StorageSlot::Value(falcon.public_key.into())],
         )
         .expect("falcon component should satisfy the requirements of a valid account component")
