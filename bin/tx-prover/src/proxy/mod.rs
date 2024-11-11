@@ -177,7 +177,17 @@ impl ProxyHttp for LoadBalancer {
 
             // Limit queue length
             if worker_queue.len() >= self.max_queue_items {
-                return Err(Error::new_str("Too many requests in the queue"));
+                let mut error = Error::new(ErrorType::HTTPStatus(503))
+                    .more_context("Too many requests in the queue")
+                    .into_in();
+                error.set_cause("Too many requests in the queue");
+                // Set grpc-message header to "Too many requests in the queue"
+                // This is meant to be used by a Tonic interceptor to return a gRPC error
+                let mut response_header = ResponseHeader::build(503, None)?;
+                response_header.insert_header("grpc-message", "Too many requests in the queue")?;
+
+                session.write_response_header(Box::new(response_header), false).await?;
+                return Err(error);
             }
 
             worker_queue.push(request_id.to_string());
