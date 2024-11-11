@@ -1,6 +1,5 @@
 use miden_objects::{
     accounts::{AccountComponent, StorageSlot},
-    assembly::Library,
     crypto::dsa::rpo_falcon512::PublicKey,
 };
 
@@ -22,15 +21,6 @@ impl RpoFalcon512 {
     /// Creates a new [`RpoFalcon512`] component with the given `public_key`.
     pub fn new(public_key: PublicKey) -> Self {
         Self { public_key }
-    }
-
-    /// Returns a reference to the RPO Falcon 512 library whose procedures can be imported from
-    /// `account_components::rpo_falcon_512`.
-    ///
-    /// This can be used in the assembly of programs that want to call procedures from this
-    /// component.
-    pub fn library() -> &'static Library {
-        rpo_falcon_512_library()
     }
 }
 

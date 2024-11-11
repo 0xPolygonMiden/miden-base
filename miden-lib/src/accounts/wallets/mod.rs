@@ -2,7 +2,6 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType},
-    assembly::Library,
     AccountError, Word,
 };
 
@@ -25,17 +24,6 @@ use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
 ///
 /// This component supports all account types.
 pub struct BasicWallet;
-
-impl BasicWallet {
-    /// Returns a reference to the Basic Wallet library whose procedures can be imported from
-    /// `account_components::basic_wallet`.
-    ///
-    /// This can be used in the assembly of programs that want to call procedures from this
-    /// component.
-    pub fn library() -> &'static Library {
-        basic_wallet_library()
-    }
-}
 
 impl From<BasicWallet> for AccountComponent {
     fn from(_: BasicWallet) -> Self {

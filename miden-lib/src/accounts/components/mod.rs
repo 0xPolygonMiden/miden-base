@@ -26,17 +26,17 @@ static BASIC_FUNGIBLE_FAUCET_LIBRARY: LazyLock<Library> = LazyLock::new(|| {
     Library::read_from_bytes(bytes).expect("Shipped Basic Fungible Faucet library is well-formed")
 });
 
-/// Returns a reference to the Basic Wallet Library.
+/// Returns the Basic Wallet Library.
 pub fn basic_wallet_library() -> &'static Library {
     BASIC_WALLET_LIBRARY.as_ref()
 }
 
-/// Returns a reference to the Rpo Falcon 512 Library.
+/// Returns the Rpo Falcon 512 Library.
 pub fn rpo_falcon_512_library() -> &'static Library {
     RPO_FALCON_512_LIBRARY.as_ref()
 }
 
-/// Returns a reference to the Basic Fungible Faucet Library.
+/// Returns the Basic Fungible Faucet Library.
 pub fn basic_fungible_faucet_library() -> &'static Library {
     BASIC_FUNGIBLE_FAUCET_LIBRARY.as_ref()
 }
