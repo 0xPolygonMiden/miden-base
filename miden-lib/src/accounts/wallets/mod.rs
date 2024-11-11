@@ -13,7 +13,10 @@ use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
 
 /// An [`AccountComponent`] implementing a basic wallet.
 ///
-/// Its exported procedures are:
+/// It reexports the procedures from `miden::contracts::wallets::basic`. When linking against this
+/// component, the `miden` library (i.e. [`MidenLib`](crate::MidenLib)) must be available to the
+/// assembler which is the case when using [`TransactionKernel::assembler()`][kasm]. The procedures
+/// of this component are:
 /// - `receive_asset`, which can be used to add an asset to the account.
 /// - `create_note`, which can be used to create a new note without any assets attached to it.
 /// - `move_asset_to_note`, which can be used to remove the specified asset from the account and add
@@ -23,6 +26,8 @@ use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
 /// providing authentication.
 ///
 /// This component supports all account types.
+///
+/// [kasm]: crate::transaction::TransactionKernel::assembler
 pub struct BasicWallet;
 
 impl From<BasicWallet> for AccountComponent {

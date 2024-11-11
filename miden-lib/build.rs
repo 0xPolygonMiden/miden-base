@@ -8,7 +8,6 @@ use std::{
 };
 
 use assembly::{
-    ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Result},
     utils::Serializable,
     Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace,
@@ -88,7 +87,7 @@ fn main() -> Result<()> {
 /// - {source_dir}/main.masm        -> defines the executable program of the transaction kernel.
 /// - {source_dir}/lib              -> contains common modules used by both api.masm and main.masm.
 ///
-/// The complied files are written as follows:
+/// The compiled files are written as follows:
 ///
 /// - {target_dir}/tx_kernel.masl               -> contains kernel library compiled from api.masm.
 /// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
@@ -262,7 +261,7 @@ fn parse_proc_offsets(filename: impl AsRef<Path>) -> Result<BTreeMap<String, usi
 // ================================================================================================
 
 /// Reads the MASM files from "{source_dir}/miden" directory, compiles them into a Miden assembly
-/// library, saves the library into "{target_dir}/miden.masl", and returns the complied library.
+/// library, saves the library into "{target_dir}/miden.masl", and returns the compiled library.
 fn compile_miden_lib(
     source_dir: &Path,
     target_dir: &Path,
@@ -283,7 +282,7 @@ fn compile_miden_lib(
 // ================================================================================================
 
 /// Reads all MASM files from the "{source_dir}", compiles each file individually into a MASB
-/// file, and stores the complied files into the "{target_dir}".
+/// file, and stores the compiled files into the "{target_dir}".
 ///
 /// The source files are expected to contain executable programs.
 fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembler) -> Result<()> {
@@ -311,12 +310,8 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
 // COMPILE ACCOUNT COMPONENTS
 // ================================================================================================
 
-/// Compiles the account components into a MASL library and stores the complied files in
-/// `target_dir`. Those libraries have `account_components` as their namespace and the name of the
-/// file as the module name.
-///
-/// For example, a `basic_wallet.masm` file could be imported as
-/// `use.account_components::basic_wallet`.
+/// Compiles the account components in `source_dir` into MASL libraries and stores the compiled
+/// files in `target_dir`.
 fn compile_account_components(
     source_dir: &Path,
     target_dir: &Path,
@@ -334,22 +329,14 @@ fn compile_account_components(
             .expect("file stem should be valid UTF-8")
             .to_owned();
 
-        // Parse the module as a library with the given path so we can make all components available
-        // under the same library namespace without putting them in the same library.
-        // This is why we're not using Library::from_dir here because it would do that.
-        let component_module = Module::parser(ModuleKind::Library)
-            .parse_file(
-                format!("account_components::{component_name}")
-                    .parse()
-                    .expect("library path should be valid"),
-                &masm_file_path,
-                &DefaultSourceManager::default(),
-            )
-            .expect("module parsing should succeed");
+        // Read the source code to string instead of passing it to assemble_library directly since
+        // that would attempt to interpret the path as a LibraryPath which would fail.
+        let component_source_code = fs::read_to_string(masm_file_path)
+            .expect("reading the component's MASM source code should succeed");
 
         let component_library = assembler
             .clone()
-            .assemble_library([component_module])
+            .assemble_library([component_source_code])
             .expect("library assembly should succeed");
 
         let component_file_path =
