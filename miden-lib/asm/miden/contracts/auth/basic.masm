@@ -9,9 +9,8 @@ use.std::crypto::dsa::rpo_falcon512
 const.PUBLIC_KEY_SLOT=0
 
 #! Authenticate a transaction using the Falcon signature scheme
-#! Stack: []
-#! Output: []
-#!
+#! Inputs:  []
+#! Outputs: []
 export.auth_tx_rpo_falcon512
     # Get commitments to output notes
     exec.tx::get_output_notes_commitment
@@ -38,7 +37,7 @@ export.auth_tx_rpo_falcon512
 
     # Update the nonce
     push.1 exec.account::incr_nonce
-    # => []
+    # => [PUB_KEY, M]
 
     # Verify the signature against the public key and the message. The procedure gets as
     # inputs the hash of the public key and the hash of the message via the operand

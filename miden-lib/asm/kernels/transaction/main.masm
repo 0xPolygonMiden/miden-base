@@ -49,8 +49,8 @@ const.EPILOGUE_END=131081
 #! See `prologue::prepare_transaction` for additional details on the VM's initial state, including the
 #! advice provider.
 #!
-#! Stack:   [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
-#! Output:  [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Inputs:  [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.

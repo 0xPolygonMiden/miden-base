@@ -26,9 +26,9 @@ pub(crate) const MOCK_ACCOUNT_CODE: &str = "
         export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
         export.::miden::contracts::faucets::basic_fungible::distribute
 
-        ### Note: all account's export procedures below should be only called or dyncalled, so it is
-        ### assumed that the operand stack at the beginning of their execution is paded and doesn't 
-        ### have any other valuable information.
+        ### Note: all account's export procedures below should be only called or dyncall'ed, so it 
+        ### is assumed that the operand stack at the beginning of their execution is pad'ed and 
+        ### doesn't have any other valuable information.
 
         # Stack:  [value, pad(15)]
         # Output: [pad(16)]

@@ -5,10 +5,13 @@ use.miden::kernel_proc_offsets
 
 #! Returns the account id.
 #!
-#! Stack: []
-#! Output: [acct_id]
+#! Inputs:  []
+#! Outputs: [acct_id]
 #!
+#! Where:
 #! - acct_id is the account id.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_id
     # start padding the stack
     push.0.0.0
@@ -30,10 +33,13 @@ end
 
 #! Returns the account nonce.
 #!
-#! Stack: []
-#! Output: [nonce]
+#! Inputs:  []
+#! Outputs: [nonce]
 #!
+#! Where:
 #! - nonce is the account nonce.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_nonce
     # start padding the stack
     push.0.0.0
@@ -55,10 +61,13 @@ end
 
 #! Returns the initial account hash.
 #!
-#! Stack: []
-#! Output: [H]
+#! Inputs:  []
+#! Outputs: [H]
 #!
+#! Where:
 #! - H is the initial account hash.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_initial_hash
     # pad the stack
     padw padw padw push.0.0.0
@@ -77,10 +86,13 @@ end
 
 #! Computes and returns the account hash from account data stored in memory.
 #!
-#! Stack: []
-#! Output: [ACCT_HASH]
+#! Inputs:  []
+#! Outputs: [ACCT_HASH]
 #!
+#! Where:
 #! - ACCT_HASH is the hash of the account data.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_current_hash
     # pad the stack
     padw padw padw push.0.0.0
@@ -99,11 +111,14 @@ end
 
 #! Increments the account nonce by the provided value.
 #!
-#! Stack: [value]
-#! Output: []
+#! Inputs:  [value]
+#! Outputs: []
 #!
+#! Where:
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
+#!
+#! Annotation hint: is used only with `exec`
 export.incr_nonce
     # start padding the stack
     push.0.0 movup.2
@@ -124,11 +139,17 @@ end
 
 #! Gets an item from the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index]
-#! Output: [VALUE]
+#! Inputs:  [index]
+#! Outputs: [VALUE]
 #!
+#! Where:
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index of the requested item is out of bounds.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_item
     push.0.0 movup.2
     # => [index, 0, 0]
@@ -150,13 +171,19 @@ end
 
 #! Sets an item in the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index, V']
-#! Output: [R', V]
+#! Inputs:  [index, V']
+#! Outputs: [R', V]
 #!
+#! Where:
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 #! - R' is the new storage commitment.
+#!
+#! Panics if: 
+#! - the index of the item is out of bounds.
+#!
+#! Annotation hint: is used only with `exec`
 export.set_item
     exec.kernel_proc_offsets::set_account_item_offset
     # => [offset, index, V']
@@ -173,16 +200,21 @@ export.set_item
     # => [R', V]
 end
 
-#! Gets a map item from the account storage. Panics if
-#! - the index for the map is out of bounds, means >255
-#! - the slot item at index is not a map
+#! Gets a map item from the account storage. 
 #!
-#! Stack: [index, KEY]
-#! Output: [VALUE]
+#! Inputs:  [index, KEY]
+#! Outputs: [VALUE]
 #!
+#! Where:
 #! - index is the index of the map where the KEY VALUE should be read.
 #! - KEY is the key of the item to get.
 #! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index for the map is out of bounds, means >255.
+#! - the slot item at index is not a map.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_map_item
     exec.kernel_proc_offsets::get_account_map_item_offset
     # => [offset, index, KEY]
@@ -199,18 +231,23 @@ export.get_map_item
     # => [VALUE]
 end
 
-#! Sets a map item in the account storage. Panics if
-#! - the index for the map is out of bounds, means >255
-#! - the slot item at index is not a map
+#! Sets a map item in the account storage. 
 #!
-#! Stack: [index, KEY, VALUE]
-#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE]
+#! Inputs:  [index, KEY, VALUE]
+#! Outputs: [OLD_MAP_ROOT, OLD_MAP_VALUE]
 #!
+#! Where:
 #! - index is the index of the map where the KEY VALUE should be set.
 #! - KEY is the key to set at VALUE.
 #! - VALUE is the value to set at KEY.
 #! - OLD_MAP_ROOT is the old map root.
 #! - OLD_MAP_VALUE is the old value at KEY.
+#!
+#! Panics if:
+#! - the index for the map is out of bounds, means >255.
+#! - the slot item at index is not a map.
+#!
+#! Annotation hint: is used only with `exec`
 export.set_map_item
     exec.kernel_proc_offsets::set_account_map_item_offset
     # => [offset, index, KEY, VALUE]
@@ -227,13 +264,18 @@ export.set_map_item
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE]
 end
 
-#! Sets the code of the account the transaction is being executed against. This procedure can only
-#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#! Sets the code of the account the transaction is being executed against.
 #!
-#! Stack: [CODE_COMMITMENT]
-#! Output: []
+#! Inputs:  [CODE_COMMITMENT]
+#! Outputs: []
 #!
+#! Where:
 #! - CODE_COMMITMENT is the hash of the code to set.
+#!
+#! Panics if:
+#! - this procedure is executed on the account which type differs from `basic mutable`.
+#!
+#! Annotation hint: is used only with `exec`
 export.set_code
     exec.kernel_proc_offsets::set_account_code_offset
     # => [offset, CODE_COMMITMENT]
@@ -251,13 +293,18 @@ export.set_code
 end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
-#! Panics if the asset is not a fungible asset.
 #!
-#! Stack: [faucet_id]
-#! Output: [balance]
+#! Inputs:  [faucet_id]
+#! Outputs: [balance]
 #!
+#! Where:
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
+#! 
+#! Panics if:
+#! - the asset is not a fungible asset.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_balance
     exec.kernel_proc_offsets::account_vault_get_balance_offset
     # => [offset, faucet_id]
@@ -275,13 +322,18 @@ export.get_balance
 end
 
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
-#! Panics if the ASSET is a fungible asset.
 #!
-#! Stack: [ASSET]
-#! Output: [has_asset]
+#! Inputs:  [ASSET]
+#! Outputs: [has_asset]
 #!
+#! Where:
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
+#!
+#! Panics if:
+#! - the ASSET is a fungible asset.
+#!
+#! Annotation hint: is used only with `exec`
 export.has_non_fungible_asset
     exec.kernel_proc_offsets::account_vault_has_non_fungible_asset_offset
     # => [offset, ASSET]
@@ -300,18 +352,21 @@ end
 
 #! Add the specified asset to the vault.
 #!
-#! Panics:
-#! - If the asset is not valid.
-#! - If the total value of two fungible assets is greater than or equal to 2^63.
-#! - If the vault already contains the same non-fungible asset.
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET']
 #!
-#! Stack: [ASSET]
-#! Output: [ASSET']
-#!
-#! - ASSET' final asset in the account vault defined as follows:
+#! Where:
+#! - ASSET' is a final asset in the account vault defined as follows:
 #!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
+#!
+#! Panics if:
+#! - the asset is not valid.
+#! - the total value of two fungible assets is greater than or equal to 2^63.
+#! - the vault already contains the same non-fungible asset.
+#!
+#! Annotation hint: is used only with `exec`
 export.add_asset
     exec.kernel_proc_offsets::account_vault_add_asset_offset
     # => [offset, ASSET]
@@ -330,15 +385,18 @@ end
 
 #! Remove the specified asset from the vault.
 #!
-#! Panics:
-#! - The fungible asset is not found in the vault.
-#! - The amount of the fungible asset in the vault is less than the amount to be removed.
-#! - The non-fungible asset is not found in the vault.
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET]
 #!
-#! Stack: [ASSET]
-#! Output: [ASSET]
-#!
+#! Where:
 #! - ASSET is the asset to remove from the vault.
+#!
+#! Panics if:
+#! - the fungible asset is not found in the vault.
+#! - the amount of the fungible asset in the vault is less than the amount to be removed.
+#! - the non-fungible asset is not found in the vault.
+#!
+#! Annotation hint: is used only with `exec`
 export.remove_asset
     exec.kernel_proc_offsets::account_vault_remove_asset_offset
     # => [offset, ASSET]
@@ -357,10 +415,13 @@ end
 
 #! Returns a commitment to the account vault.
 #!
-#! Stack: []
-#! Output: [COM]
+#! Inputs:  []
+#! Outputs: [COM]
 #!
+#! Where:
 #! - COM is a commitment to the account vault.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_vault_commitment
     # pad the stack for syscall invocation
     padw padw padw push.0.0.0

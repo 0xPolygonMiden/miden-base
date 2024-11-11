@@ -15,26 +15,29 @@ const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020055
 # SWAP script requires exactly 1 note asset
 const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020056
 
-# Swap script: adds an asset from the note into consumers account and
-# creates a note consumable by note issuer containing requested ASSET.
-#
-# Requires that the account exposes:
-#
-# Inputs: [SCRIPT_ROOT]
-# Outputs: []
-#
-# Note inputs are assumed to be as follows:
-# - RECIPIENT
-# - ASSET
-# - TAG = [tag, 0, 0, 0]
-#
-# FAILS if:
-# - Account does not expose miden::contracts::wallets::basic::receive_asset procedure
-# - Account does not expose miden::contracts::wallets::basic::create_note procedure
-# - Account does not expose miden::contracts::wallets::basic::move_asset_to_note procedure
-# - Account vault does not contain the requested asset
-# - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
-#   greater than 2^63
+#! Swap script: adds an asset from the note into consumers account and
+#! creates a note consumable by note issuer containing requested ASSET.
+#!
+#! Requires that the account exposes:
+#! - miden::contracts::wallets::basic::receive_asset procedure.
+#! - miden::contracts::wallets::basic::create_note procedure.
+#! - miden::contracts::wallets::basic::move_asset_to_note procedure.
+#!
+#! Inputs:  [SCRIPT_ROOT]
+#! Outputs: []
+#!
+#! Note inputs are assumed to be as follows:
+#! - RECIPIENT
+#! - ASSET
+#! - TAG = [tag, 0, 0, 0]
+#!
+#! Panics if:
+#! - account does not expose miden::contracts::wallets::basic::receive_asset procedure.
+#! - account does not expose miden::contracts::wallets::basic::create_note procedure.
+#! - account does not expose miden::contracts::wallets::basic::move_asset_to_note procedure.
+#! - account vault does not contain the requested asset.
+#! - adding a fungible asset would result in amount overflow, i.e., the total amount would be
+#!   greater than 2^63.
 begin
     # drop the transaction script root
     dropw

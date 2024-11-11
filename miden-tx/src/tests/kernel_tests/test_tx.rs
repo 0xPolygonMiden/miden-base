@@ -579,22 +579,32 @@ fn test_build_recipient_hash() {
         use.miden::tx
         begin
             exec.prologue::prepare_transaction
+
+            # pad the stack before call
+            padw
+
             # input
             push.{input_hash}
             # SCRIPT_HASH
             push.{script_hash}
             # SERIAL_NUM
             push.{output_serial_no}
+            # => [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH, pad(4)]
+
             call.tx::build_recipient_hash
+            # => [RECIPIENT, pad(12)]
 
             push.{execution_hint}
             push.{PUBLIC_NOTE}
             push.{aux}
             push.{tag}
+            # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(12)]
+
             call.tx::create_note
+            # => [note_idx, pad(19)]
 
             # clean the stack
-            dropw dropw dropw dropw
+            dropw dropw dropw dropw dropw
         end
         ",
         input_hash = input_hash,

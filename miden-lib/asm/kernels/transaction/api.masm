@@ -51,8 +51,8 @@ const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
 
 #! Authenticates that the invocation of a kernel procedure originates from the account context.
 #!
-#! Stack: []
-#! Output: [storage_offset, storage_size]
+#! Inputs:  []
+#! Outputs: [storage_offset, storage_size]
 #!
 #! Panics if:
 #! - the invocation of the kernel procedure does not originate from the account context.
@@ -71,8 +71,8 @@ end
 
 #! Returns the account id.
 #!
-#! Stack: [pad(16)]
-#! Output: [acct_id, pad(15)]
+#! Inputs:  [pad(16)]
+#! Outputs: [acct_id, pad(15)]
 #!
 #! Where:
 #! - acct_id is the account id.
@@ -88,8 +88,8 @@ end
 
 #! Returns the account nonce.
 #!
-#! Stack: [pad(16)]
-#! Output: [nonce, pad(15)]
+#! Inputs:  [pad(16)]
+#! Outputs: [nonce, pad(15)]
 #!
 #! Where:
 #! - nonce is the account nonce.
@@ -105,8 +105,8 @@ end
 
 #! Returns the initial account hash.
 #!
-#! Stack: [pad(16)]
-#! Output: [H, pad(12)]
+#! Inputs:  [pad(16)]
+#! Outputs: [H, pad(12)]
 #!
 #! Where:
 #! - H is the initial account hash.
@@ -122,8 +122,8 @@ end
 
 #! Computes and returns the account hash from account data stored in memory.
 #!
-#! Stack: [pad(16)]
-#! Output: [ACCT_HASH, pad(12)]
+#! Inputs:  [pad(16)]
+#! Outputs: [ACCT_HASH, pad(12)]
 #!
 #! Where:
 #! - ACCT_HASH is the hash of the account data.
@@ -139,8 +139,8 @@ end
 
 #! Increments the account nonce by the provided value.
 #!
-#! Stack: [value, pad(15)]
-#! Output: [pad(16)]
+#! Inputs:  [value, pad(15)]
+#! Outputs: [pad(16)]
 #!
 #! Where:
 #! - value is the value to increment the nonce by.
@@ -164,8 +164,8 @@ end
 
 #! Gets an item from the account storage.
 #!
-#! Stack: [index, pad(15)]
-#! Output: [VALUE, pad(12)]
+#! Inputs:  [index, pad(15)]
+#! Outputs: [VALUE, pad(12)]
 #!
 #! Where:
 #! - index is the index of the item to get.
@@ -193,8 +193,8 @@ end
 
 #! Sets an item in the account storage.
 #!
-#! Stack: [index, V', pad(11)]
-#! Output: [R', V, pad(8)]
+#! Inputs:  [index, V', pad(11)]
+#! Outputs: [R', V, pad(8)]
 #!
 #! Where:
 #! - index is the index of the item to set.
@@ -236,8 +236,8 @@ end
 
 #! Returns VALUE located under specified KEY in map in specified account storage slot.
 #!
-#! Stack: [index, KEY, pad(11)]
-#! Output: [VALUE, pad(12)]
+#! Inputs:  [index, KEY, pad(11)]
+#! Outputs: [VALUE, pad(12)]
 #!
 #! Where:
 #! - index is the index of the item to get.
@@ -278,8 +278,8 @@ end
 
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
 #!
-#! Stack: [index, KEY, NEW_VALUE, pad(7)]
-#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, pad(8)]
+#! Inputs:  [index, KEY, NEW_VALUE, pad(7)]
+#! Outputs: [OLD_MAP_ROOT, OLD_MAP_VALUE, pad(8)]
 #!
 #! Where:
 #! - index is the index of the item to get.
@@ -324,8 +324,8 @@ end
 #! This procedure can only be executed on regular accounts with updatable code. Otherwise, this
 #! procedure fails.
 #!
-#! Stack: [CODE_COMMITMENT, pad(12)]
-#! Output: [pad(16)]
+#! Inputs:  [CODE_COMMITMENT, pad(12)]
+#! Outputs: [pad(16)]
 #!
 #! Where:
 #! - CODE_COMMITMENT is the hash of the code to set.
@@ -348,8 +348,8 @@ end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Stack: [faucet_id, pad(15)]
-#! Output: [balance, pad(15)]
+#! Inputs:  [faucet_id, pad(15)]
+#! Outputs: [balance, pad(15)]
 #!
 #! Where:
 #! - faucet_id is the faucet id of the fungible asset of interest.
@@ -369,8 +369,8 @@ end
 
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
 #!
-#! Stack: [ASSET, pad(12)]
-#! Output: [has_asset, pad(15)]
+#! Inputs:  [ASSET, pad(12)]
+#! Outputs: [has_asset, pad(15)]
 #!
 #! Where:
 #! - ASSET is the non-fungible asset of interest
@@ -390,8 +390,8 @@ end
 
 #! Add the specified asset to the vault.
 #!
-#! Stack: [ASSET, pad(12)]
-#! Output: [ASSET', pad(12)]
+#! Inputs:  [ASSET, pad(12)]
+#! Outputs: [ASSET', pad(12)]
 #!
 #! Where:
 #! - ASSET is the asset to add to the vault.
@@ -439,8 +439,8 @@ end
 
 #! Remove the specified asset from the vault.
 #!
-#! Stack: [ASSET, pad(12)]
-#! Output: [ASSET, pad(12)]
+#! Inputs:  [ASSET, pad(12)]
+#! Outputs: [ASSET, pad(12)]
 #!
 #! Where:
 #! - ASSET is the asset to remove from the vault.
@@ -479,7 +479,7 @@ end
 
 #! Returns the number of assets and the assets hash of the note currently being processed.
 #!
-#! Inputs: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [ASSETS_HASH, num_assets, pad(11)]
 #!
 #! Where:
@@ -502,7 +502,7 @@ end
 
 #! Returns the current note's inputs hash.
 #!
-#! Inputs: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [NOTE_INPUTS_HASH, pad(12)]
 #!
 #! Where:
@@ -518,7 +518,7 @@ end
 
 #! Returns the sender of the note currently being processed.
 #!
-#! Inputs: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [sender, pad(15)]
 #!
 #! Where:
@@ -537,7 +537,7 @@ end
 
 #! Returns the block number of the last known block at the time of transaction execution.
 #!
-#! Inputs: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [num, pad(15)]
 #!
 #! Where:
@@ -554,8 +554,8 @@ end
 
 #! Returns the block hash of the reference block.
 #!
-#! Stack: [pad(16)]
-#! Output: [BLOCK_HASH, pad(12)]
+#! Inputs:  [pad(16)]
+#! Outputs: [BLOCK_HASH, pad(12)]
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
@@ -576,7 +576,7 @@ end
 #! authentication will be delayed to the batch/block kernel. The delayed authentication allows a 
 #! transaction to consume a public note that is not yet included to a block.
 #!
-#! Inputs: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [INPUT_NOTES_COMMITMENT, pad(12)]
 #!
 #! Where:
@@ -593,7 +593,7 @@ end
 #! Returns the output notes commitment. This is computed as a sequential hash of 
 #! (note_id, note_metadata) tuples over all output notes.
 #!
-#! Inputs: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [OUTPUT_NOTES_COMMITMENT, pad(12)]
 #!
 #! Where:
@@ -610,7 +610,7 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
+#! Inputs:  [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
 #! Outputs: [note_idx, pad(15)]
 #!
 #! Where:
@@ -668,7 +668,7 @@ end
 
 #! Returns a commitment to the account vault the transaction is being executed against.
 #!
-#! Stack: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [VAULT_COMMITMENT, pad(12)]
 #!
 #! Where:
@@ -685,7 +685,7 @@ end
 
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
-#! Stack: [ASSET, pad(12)]
+#! Inputs:  [ASSET, pad(12)]
 #! Outputs: [ASSET, pad(12)]
 #!
 #! Where:
@@ -717,7 +717,7 @@ end
 
 #! Burn an asset from the faucet the transaction is being executed against.
 #!
-#! Stack: [ASSET, pad(12)]
+#! Inputs:  [ASSET, pad(12)]
 #! Outputs: [ASSET, pad(12)]
 #!
 #! Where:
@@ -750,7 +750,7 @@ end
 
 #! Returns the total issuance of the fungible faucet the transaction is being executed against.
 #!
-#! Stack: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [total_issuance, pad(15)]
 #!
 #! Where:
@@ -775,7 +775,7 @@ end
 
 #! Returns the serial number of the note currently being processed.
 #!
-#! Inputs: [pad(16)]
+#! Inputs:  [pad(16)]
 #! Outputs: [SERIAL_NUMBER, pad(12)]
 #!
 #! Where:
@@ -935,7 +935,7 @@ end
 
 #! Executes a kernel procedure specified by its offset.
 #!
-#! Inputs: [procedure_offset, <procedure_inputs>, <pad>]
+#! Inputs:  [procedure_offset, <procedure_inputs>, <pad>]
 #! Outputs: [<procedure_outputs>, <pad>]
 #!
 #! Where:

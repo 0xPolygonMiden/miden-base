@@ -34,9 +34,10 @@ export.basic::auth_tx_rpo_falcon512
 
 #! Distributes freshly minted fungible assets to the provided recipient.
 #!
-#! Inputs:  [amount, tag, aux, note_type, execution_hint, RECIPIENT]
-#! Outputs: [note_idx, 0, 0, 0, 0, 0, 0, 0, 0, ...]
+#! Inputs:  [amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
+#! Outputs: [note_idx, pad(15)]
 #!
+#! Where:
 #! - amount is the amount to be minted and sent.
 #! - tag is the tag to be included in the note.
 #! - aux is the auxiliary data to be included in the note.
@@ -47,67 +48,69 @@ export.basic::auth_tx_rpo_falcon512
 #! - note_idx is the index of the output note.
 #!   This cannot directly be accessed from another context.
 #!
-#! FAILS if:
-#! - The transaction is being executed against an account that is not a fungible asset faucet.
-#! - The total issuance after minting is greater than the maximum allowed supply.
+#! Panics if:
+#! - the transaction is being executed against an account that is not a fungible asset faucet.
+#! - the total issuance after minting is greater than the maximum allowed supply.
 export.distribute.1
     # get max supply of this faucet. We assume it is stored at pos 3 of slot 1
     push.METADATA_SLOT exec.account::get_item drop drop drop
-    # => [max_supply, amount, tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [max_supply, amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
 
     # get total issuance of this faucet so far and add amount to be minted
     exec.faucet::get_total_issuance
-    # => [total_issuance, max_supply, amount, tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [total_issuance, max_supply, amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
 
     # compute maximum amount that can be minted, max_mint_amount = max_supply - total_issuance
     sub
-    # => [max_supply - total_issuance, amount, tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [max_supply - total_issuance, amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
 
     # check that amount =< max_supply - total_issuance, fails if otherwise
     dup.1 gte assert.err=ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED
-    # => [asset, tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
 
     # creating the asset
     exec.asset::create_fungible_asset
-    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
 
     # mint the asset; this is needed to satisfy asset preservation logic.
     exec.faucet::mint
-    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
 
     # store and drop the ASSET
     loc_storew.0 dropw
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
 
     # create a note
     exec.tx::create_note
-    # => [note_idx, EMPTY_WORD, EMPTY_WORD, ...]
+    # => [note_idx, pad(15)]
 
     # load the ASSET and add it to the note
     movdn.4 loc_loadw.0 exec.tx::add_asset_to_note movup.4
-    # => [note_idx, ASSET, EMPTY_WORD, ...]
+    # => [note_idx, ASSET, pad(11)]
 end
 
 #! Burns fungible assets.
 #!
-#! Input: [ASSET]
-#! Outputs: []
+#! Inputs:  [ASSET, pad(12)]
+#! Outputs: [pad(16)]
 #!
+#! Where:
 #! - ASSET is the fungible asset to be burned.
 #!
-#! Fails if:
-#! - The transaction is executed against an account which is not a fungible asset faucet.
-#! - The transaction is executed against a faucet which is not the origin of the specified asset.
-#! - The amount about to be burned is greater than the outstanding supply of the asset.
+#! Panics if:
+#! - the transaction is executed against an account which is not a fungible asset faucet.
+#! - the transaction is executed against a faucet which is not the origin of the specified asset.
+#! - the amount about to be burned is greater than the outstanding supply of the asset.
 export.burn
     # burning the asset
     exec.faucet::burn
-    # => [ASSET]
+    # => [ASSET, pad(12)]
 
     # increments the nonce (anyone should be able to call that function)
     push.1 exec.account::incr_nonce
+    # => [ASSET, pad(12)]
 
     # clear the stack
-    padw swapw dropw
-    # => [...]
+    dropw
+    # => [pad(16)]
 end

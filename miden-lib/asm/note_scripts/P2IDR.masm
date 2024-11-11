@@ -17,9 +17,8 @@ const.ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED=0x00020054
 
 #! Helper procedure to add all assets of a note to an account.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: []
-#!
 proc.add_note_assets_to_account
     push.0 exec.note::get_assets
     # => [num_of_assets, 0 = ptr, ...]
@@ -68,26 +67,29 @@ proc.add_note_assets_to_account
     drop dropw drop
 end
 
-# Pay to ID reclaimable: adds all assets from the note to the account, assuming ID of the account
-# matches target account ID specified by the note inputs OR matches the sender ID if the note is
-# consumed after the reclaim block height specified by the note inputs.
-#
-# Inputs: [SCRIPT_ROOT]
-# Outputs: []
-#
-# Note inputs are assumed to be as follows:
-# - target_account_id is the ID of the account for which the note is intended.
-# - reclaim_block_height is the block height at which the note can be reclaimed by the sender.
-#
-# FAILS if:
-# - Account does not expose miden::contracts::wallets::basic::receive_asset procedure.
-# - Before reclaim block height: account ID of executing account is not equal to specified
-#   account ID.
-# - At and after reclaim block height: account ID of executing account is not equal to
-#   specified account ID or Sender account ID.
-# - The same non-fungible asset already exists in the account.
-# - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
-#   greater than 2^63.
+#! Pay to ID reclaimable: adds all assets from the note to the account, assuming ID of the account
+#! matches target account ID specified by the note inputs OR matches the sender ID if the note is
+#! consumed after the reclaim block height specified by the note inputs.
+#!
+#! Requires that the account exposes: 
+#! - miden::contracts::wallets::basic::receive_asset procedure.
+#!
+#! Inputs:  [SCRIPT_ROOT]
+#! Outputs: []
+#!
+#! Note inputs are assumed to be as follows:
+#! - target_account_id is the ID of the account for which the note is intended.
+#! - reclaim_block_height is the block height at which the note can be reclaimed by the sender.
+#!
+#! Panics if:
+#! - Account does not expose miden::contracts::wallets::basic::receive_asset procedure.
+#! - Before reclaim block height: account ID of executing account is not equal to specified
+#!   account ID.
+#! - At and after reclaim block height: account ID of executing account is not equal to
+#!   specified account ID or Sender account ID.
+#! - The same non-fungible asset already exists in the account.
+#! - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
+#!   greater than 2^63.
 begin
     # drop the note script root
     dropw

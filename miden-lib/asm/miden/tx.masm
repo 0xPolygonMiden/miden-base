@@ -2,10 +2,13 @@ use.miden::kernel_proc_offsets
 
 #! Returns the block number of the last known block at the time of transaction execution.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [num]
 #!
-#! num is the last known block number.
+#! Where:
+#! - num is the last known block number.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_block_number
     # pad the stack
     padw padw padw push.0.0.0
@@ -24,11 +27,13 @@ end
 
 #! Returns the block hash of the reference block.
 #!
-#! Stack: [EMPTY_WORD]
-#! Output: [BLOCK_HASH]
+#! Inputs:  [EMPTY_WORD]
+#! Outputs: [BLOCK_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_block_hash
     # pad the stack
     padw padw padw push.0.0.0
@@ -49,11 +54,13 @@ end
 #!
 #! See `transaction::api::get_input_notes_commitment` for details.
 #!
-#! Stack: []
+#! Inputs:  []
 #! Outputs: [INPUT_NOTES_COMMITMENT]
 #!
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_input_notes_commitment
     # pad the stack
     padw padw padw push.0.0.0
@@ -73,10 +80,13 @@ end
 #! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
-#! Inputs: [0, 0, 0, 0]
+#! Inputs:  [0, 0, 0, 0]
 #! Outputs: [COM]
 #!
-#! COM is the output notes hash.
+#! Where:
+#! - COM is the output notes hash.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_output_notes_commitment
     # pad the stack
     padw padw padw push.0.0.0
@@ -98,12 +108,15 @@ end
 #! Inputs:  [tag, aux, note_type, execution_hint, RECIPIENT, ...]
 #! Outputs: [note_idx, ...]
 #!
-#! tag is the tag to be included in the note.
-#! aux is the auxiliary metadata to be included in the note.
-#! note_type is the storage type of the note
-#! execution_hint is the note's execution hint
-#! RECIPIENT is the recipient of the note.
-#! note_idx is the index of the crated note.
+#! Where:
+#! - tag is the tag to be included in the note.
+#! - aux is the auxiliary metadata to be included in the note.
+#! - note_type is the storage type of the note
+#! - execution_hint is the note's execution hint
+#! - RECIPIENT is the recipient of the note.
+#! - note_idx is the index of the crated note.
+#!
+#! Annotation hint: is used with both `exec` and `call`
 export.create_note
     # pad the stack before the syscall to prevent accidental modification of the deeper stack
     # elements
@@ -126,8 +139,11 @@ end
 #! Inputs:  [ASSET, note_idx, ...]
 #! Outputs: [ASSET, note_idx, ...]
 #!
-#! note_idx is the index of the note to which the asset is added.
-#! ASSET can be a fungible or non-fungible asset.
+#! Where:
+#! - note_idx is the index of the note to which the asset is added.
+#! - ASSET can be a fungible or non-fungible asset.
+#!
+#! Annotation hint: is used with both `exec` and `call`
 export.add_asset_to_note
     movup.4 exec.kernel_proc_offsets::add_asset_to_note_offset
     # => [offset, note_idx, ASSET]
@@ -147,18 +163,25 @@ end
 
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash
 #!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
-#! Outputs: [RECIPIENT]
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH, pad(4)]
+#! Outputs: [RECIPIENT, pad(12)]
 #!
+#! Where:
+#! - SERIAL_NUM is the serial number of the recipient.
+#! - SCRIPT_HASH is the commitment of the note script.
+#! - INPUT_HASH is the commitment of the note inputs.
+#! - RECIPIENT is the recipient of the note.
+#!
+#! Annotation hint: is used only with `call`
 export.build_recipient_hash
   padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH, pad(4)]
 
   swapw hmerge
-  # => [MERGE_SCRIPT, INPUT_HASH]
+  # => [MERGE_SCRIPT, INPUT_HASH, pad(8)]
 
   swapw hmerge
-  # [RECIPIENT]
+  # [RECIPIENT, pad(12)]
 end
 
 #! Executes the provided procedure against the foreign account.
@@ -173,6 +196,8 @@ end
 #! Where:
 #! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the 
 #!   moment of the foreign procedure execution (n = 16 - mem_addr_size - foreign_inputs_len)
+#!
+#! Annotation hint: is used only with `exec`
 export.execute_foreign_procedure.1
     # pad the stack before the syscall
     push.0.0 movup.2
@@ -220,6 +245,8 @@ end
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
+#!
+#! Annotation hint: is not used anywhere
 export.update_expiration_block_delta
     exec.kernel_proc_offsets::update_expiration_block_num_offset
     # => [offset, expiration_delta, ...]
@@ -241,6 +268,8 @@ end
 #!
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
+#!
+#! Annotation hint: is not used anywhere
 export.get_expiration_block_delta
     # pad the stack
     padw padw padw push.0.0.0

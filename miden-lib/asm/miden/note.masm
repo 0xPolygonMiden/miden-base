@@ -16,6 +16,8 @@ const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
 #!
 #! Inputs:  [start_ptr, end_ptr, HASH]
 #! Outputs: []
+#!
+#! Annotation hint: is used only with `exec`
 proc.write_advice_data_to_memory
     # prepare the stack for reading from the advice stack
     padw padw padw
@@ -40,11 +42,14 @@ end
 
 #! Writes the assets of the currently executing note into memory starting at the specified address.
 #!
-#! Inputs: [dest_ptr]
+#! Inputs:  [dest_ptr]
 #! Outputs: [num_assets, dest_ptr]
 #!
+#! Where:
 #! - dest_ptr is the memory address to write the assets.
 #! - num_assets is the number of assets in the currently executing note.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_assets
     # pad the stack
     padw padw padw push.0.0.0
@@ -90,6 +95,8 @@ end
 #! - INPUTS_HASH, sequential hash of the padded note's inputs.
 #! - inputs_len, the note's input count.
 #! - INPUTS, the data corresponding to the note's inputs.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_inputs
     # pad the stack
     padw padw padw push.0.0.0
@@ -133,13 +140,18 @@ export.get_inputs
     # => [num_inputs, dest_ptr]
 end
 
-#! Returns the sender of the note currently being processed. Panics if a note is not being
-#! processed.
+#! Returns the sender of the note currently being processed.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [sender]
 #!
+#! Where:
 #! - sender is the sender of the note currently being processed.
+#!
+#! Panics if:
+#! - no note is being processed.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_sender
     # pad the stack
     padw padw padw push.0.0.0
@@ -157,12 +169,17 @@ export.get_sender
 end
 
 #! Returns the serial number of the note currently being processed.
-#! Panics if no note is not being processed.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [SERIAL_NUMBER]
 #!
+#! Where:
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
+#!
+#! Panics if:
+#! - no note is being processed.
+#!
+#! Annotation hint: is used only with `exec`
 export.get_serial_number
     # pad the stack
     padw padw padw push.0.0.0
@@ -189,11 +206,15 @@ end
 #!
 #! Inputs:  [inputs_ptr, num_inputs]
 #! Outputs: [HASH]
+#!
 #! Cycles:
 #! - If number of elements divides by 8: 56 cycles + 3 * words
 #! - Else: 189 cycles + 3 * words
 #!
-#! Panics if num_inputs is greater than 128.
+#! Panics if:
+#! - num_inputs is greater than 128.
+#!
+#! Annotation hint: is used only with `exec`
 export.compute_inputs_hash
     # check that number of inputs is less than 128
     dup.1 push.128 u32assert2 u32lte assert

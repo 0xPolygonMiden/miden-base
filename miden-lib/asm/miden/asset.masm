@@ -26,12 +26,15 @@ const.FUNGIBLE_BITMASK_U32=0x20000000
 
 #! Builds a fungible asset for the specified fungible faucet and amount.
 #!
-#! Stack: [faucet_id, amount]
-#! Output: [ASSET]
+#! Inputs:  [faucet_id, amount]
+#! Outputs: [ASSET]
 #!
+#! Where:
 #! - faucet_id is the faucet to create the asset for.
 #! - amount is the amount of the asset to create.
 #! - ASSET is the built fungible asset.
+#!
+#! Annotation hint: is not used anywhere except this file
 export.build_fungible_asset
     # assert the faucet is a fungible faucet
     dup exec.account::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID
@@ -48,11 +51,14 @@ end
 
 #! Creates a fungible asset for the faucet the transaction is being executed against.
 #!
-#! Stack: [amount]
-#! Output: [ASSET]
+#! Inputs:  [amount]
+#! Outputs: [ASSET]
 #!
+#! Where:
 #! - amount is the amount of the asset to create.
 #! - ASSET is the created fungible asset.
+#!
+#! Annotation hint: is used only with `exec`
 export.create_fungible_asset
     # fetch the id of the faucet the transaction is being executed against.
     exec.account::get_id
@@ -65,12 +71,15 @@ end
 
 #! Builds a non fungible asset for the specified non-fungible faucet and amount.
 #!
-#! Stack: [faucet_id, DATA_HASH]
-#! Output: [ASSET]
+#! Inputs:  [faucet_id, DATA_HASH]
+#! Outputs: [ASSET]
 #!
+#! Where:
 #! - faucet_id is the faucet to create the asset for.
 #! - DATA_HASH is the data hash of the non-fungible asset to build.
 #! - ASSET is the built non-fungible asset.
+#!
+#! Annotation hint: is not used anywhere except this file
 export.build_non_fungible_asset
     # assert the faucet is a non-fungible faucet
     dup exec.account::is_non_fungible_faucet assert.err=ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID
@@ -87,11 +96,14 @@ end
 
 #! Creates a non-fungible asset for the faucet the transaction is being executed against.
 #!
-#! Stack: [DATA_HASH]
-#! Output: [ASSET]
+#! Inputs:  [DATA_HASH]
+#! Outputs: [ASSET]
 #!
+#! Where:
 #! - DATA_HASH is the data hash of the non-fungible asset to create.
 #! - ASSET is the created non-fungible asset.
+#!
+#! Annotation hint: is used only with `exec`
 export.create_non_fungible_asset
     # get the id of the faucet the transaction is being executed against
     exec.account::get_id
