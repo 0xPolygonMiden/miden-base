@@ -1,5 +1,13 @@
 # Changelog
 
+## TBD
+
+### Changes
+
+- [BREAKING] Better error display when queues are full in the prover service (#967).
+
+## 0.6.1 (2024-11-08)
+
 ### Features
 
 - [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
