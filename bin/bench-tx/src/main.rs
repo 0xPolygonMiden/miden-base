@@ -16,6 +16,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
+use pollster::FutureExt;
 use vm_processor::ONE;
 
 mod utils;
@@ -79,6 +80,7 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
         TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
+        .block_on()
         .map_err(|e| e.to_string())?;
 
     Ok(executed_transaction.into())
@@ -135,6 +137,7 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     // execute transaction
     let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .block_on()
         .unwrap();
 
     Ok(executed_transaction.into())

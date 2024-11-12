@@ -93,7 +93,7 @@ mod test {
             .tx_script(tx_script)
             .build();
 
-        let executed_transaction = tx_context.execute().unwrap();
+        let executed_transaction = tx_context.execute().await.unwrap();
 
         let transaction_witness = TransactionWitness::from(executed_transaction);
 

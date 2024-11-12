@@ -7,6 +7,7 @@ use miden_tx_prover::generated::{
     api_server::{Api as ProverApi, ApiServer},
     ProveTransactionRequest, ProveTransactionResponse,
 };
+use pollster::FutureExt;
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
 use tracing::info;
@@ -51,7 +52,7 @@ impl ProverApi for ProverRpcApi {
             TransactionWitness::read_from_bytes(&request.get_ref().transaction_witness)
                 .map_err(invalid_argument)?;
 
-        let proof = prover.prove(transaction_witness).map_err(internal_error)?;
+        let proof = prover.prove(transaction_witness).block_on().map_err(internal_error)?;
 
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
     }
