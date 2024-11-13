@@ -658,7 +658,7 @@ fn test_load_foreign_account_basic() {
     // GET ITEM
     // --------------------------------------------------------------------------------------------
     let storage_slot = AccountStorage::mock_item_0().slot;
-    let (foreign_account, _) = AccountBuilder::new()
+    let foreign_account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -667,8 +667,7 @@ fn test_load_foreign_account_basic() {
             )
             .unwrap(),
         )
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
@@ -741,7 +740,7 @@ fn test_load_foreign_account_basic() {
     // GET MAP ITEM
     // --------------------------------------------------------------------------------------------
     let storage_slot = AccountStorage::mock_item_2().slot;
-    let (foreign_account, _) = AccountBuilder::new()
+    let foreign_account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -750,8 +749,7 @@ fn test_load_foreign_account_basic() {
             )
             .unwrap(),
         )
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     let foreign_account_id = foreign_account.id();
@@ -835,7 +833,7 @@ fn test_load_foreign_account_basic() {
 #[test]
 fn test_load_foreign_account_twice() {
     let storage_slot = AccountStorage::mock_item_0().slot;
-    let (foreign_account, _) = AccountBuilder::new()
+    let foreign_account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -844,8 +842,7 @@ fn test_load_foreign_account_twice() {
             )
             .unwrap(),
         )
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     let foreign_account_id = foreign_account.id();

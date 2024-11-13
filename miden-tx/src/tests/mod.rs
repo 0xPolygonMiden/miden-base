@@ -122,7 +122,7 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let (account, _) = AccountBuilder::new()
+    let account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -132,8 +132,7 @@ fn executed_transaction_account_delta_new() {
             .unwrap(),
         )
         .with_assets(account_assets)
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     let mut tx_context = TransactionContextBuilder::new(account)

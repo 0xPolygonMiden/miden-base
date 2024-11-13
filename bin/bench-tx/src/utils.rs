@@ -15,7 +15,6 @@ use rand::rngs::StdRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use serde::Serialize;
 use serde_json::{from_str, to_string_pretty, Value};
-use vm_processor::ONE;
 
 use super::{read_to_string, write, Benchmark, Path};
 
@@ -70,15 +69,13 @@ pub fn get_account_with_basic_authenticated_wallet(
 ) -> Account {
     AccountBuilder::new()
         .init_seed(init_seed)
-        .nonce(ONE)
         .account_type(account_type)
         .storage_mode(storage_mode)
         .with_assets(assets)
         .with_component(BasicWallet)
         .with_component(RpoFalcon512::new(PublicKey::new(public_key)))
-        .build_testing()
+        .build_existing()
         .unwrap()
-        .0
 }
 
 pub fn get_new_pk_and_authenticator() -> (Word, Arc<dyn TransactionAuthenticator>) {
