@@ -11,6 +11,7 @@
 ### Features
 
 - [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
+- [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 
 ### Fixes
 
