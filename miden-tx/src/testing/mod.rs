@@ -3,9 +3,10 @@ pub mod executor;
 pub use mock_host::MockHost;
 mod mock_host;
 
-pub mod mock_chain;
+mod mock_chain;
+pub use mock_chain::{Auth, MockChain, MockFungibleFaucet};
 
-pub use tx_context::{TransactionContext, TransactionContextBuilder};
 mod tx_context;
+pub use tx_context::{TransactionContext, TransactionContextBuilder};
 
 pub mod utils;

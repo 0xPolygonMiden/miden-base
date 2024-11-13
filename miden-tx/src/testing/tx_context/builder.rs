@@ -8,10 +8,10 @@ use miden_objects::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
         },
-        Account, AccountId,
+        Account, AccountCode, AccountId,
     },
     assembly::Assembler,
     assets::{Asset, FungibleAsset, NonFungibleAsset},
@@ -25,28 +25,63 @@ use miden_objects::{
         prepare_word,
         storage::prepare_assets,
     },
-    transaction::{OutputNote, TransactionArgs, TransactionScript},
+    transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    FieldElement,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, AdviceMap, Felt, Word};
 
 use super::TransactionContext;
-use crate::testing::mock_chain::{MockAuthenticator, MockChain, MockChainBuilder};
+use crate::{auth::BasicAuthenticator, testing::MockChain};
 
+pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
+
+// TRANSACTION CONTEXT BUILDER
+// ================================================================================================
+
+/// [TransactionContextBuilder] is a utility to construct [TransactionContext] for testing
+/// purposes. It allows users to build accounts, create notes, provide advice inputs, and
+/// execute code.
+///
+/// # Examples
+///
+/// Create a new account and execute code:
+/// ```
+/// let tx_context = TransactionContextBuilder::with_fungible_faucet(
+///     acct_id.into(),
+///     Felt::ZERO,
+///     Felt::new(1000),
+/// )
+/// .build();
+///
+/// let code = "
+/// use.kernel::prologue
+/// use.test::account
+///
+/// begin
+///     exec.prologue::prepare_transaction
+///     push.0
+///     exec.account::get_item
+/// end
+/// ";
+///
+/// let process = tx_context.execute_code(code);
+/// assert!(process.is_ok());
+/// ```
 pub struct TransactionContextBuilder {
     assembler: Assembler,
     account: Account,
     account_seed: Option<Word>,
-    advice_map: Option<AdviceMap>,
     advice_inputs: AdviceInputs,
     authenticator: Option<MockAuthenticator>,
-    input_notes: Vec<Note>,
     expected_output_notes: Vec<Note>,
+    foreign_account_codes: Vec<AccountCode>,
+    input_notes: Vec<Note>,
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
+    transaction_inputs: Option<TransactionInputs>,
     rng: ChaCha20Rng,
-    mock_chain: Option<MockChain>,
 }
 
 impl TransactionContextBuilder {
@@ -57,16 +92,17 @@ impl TransactionContextBuilder {
             account_seed: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            advice_map: None,
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
             tx_script: None,
             authenticator: None,
             advice_inputs: Default::default(),
+            transaction_inputs: None,
             note_args: BTreeMap::new(),
-            mock_chain: None,
+            foreign_account_codes: vec![],
         }
     }
 
+    /// Initializes a [TransactionContextBuilder] with a mocked standard wallet.
     pub fn with_standard_account(nonce: Felt) -> Self {
         // Build standard account with normal assembler because the testing one already contains it
         let account = Account::mock(
@@ -84,15 +120,16 @@ impl TransactionContextBuilder {
             authenticator: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            advice_map: None,
             advice_inputs: Default::default(),
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
             tx_script: None,
+            transaction_inputs: None,
             note_args: BTreeMap::new(),
-            mock_chain: None,
+            foreign_account_codes: vec![],
         }
     }
 
+    /// Initializes a [TransactionContextBuilder] with a mocked fungible faucet.
     pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
         let account = Account::mock_fungible_faucet(
             acct_id,
@@ -100,24 +137,11 @@ impl TransactionContextBuilder {
             initial_balance,
             TransactionKernel::testing_assembler(),
         );
-        let assembler = TransactionKernel::testing_assembler_with_mock_account();
 
-        Self {
-            assembler,
-            account,
-            account_seed: None,
-            authenticator: None,
-            input_notes: Vec::new(),
-            expected_output_notes: Vec::new(),
-            advice_inputs: Default::default(),
-            advice_map: None,
-            rng: ChaCha20Rng::from_seed([0_u8; 32]),
-            tx_script: None,
-            note_args: BTreeMap::new(),
-            mock_chain: None,
-        }
+        Self { account, ..Self::default() }
     }
 
+    /// Initializes a [TransactionContextBuilder] with a mocked non-fungible faucet.
     pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
         let account = Account::mock_non_fungible_faucet(
             acct_id,
@@ -125,49 +149,53 @@ impl TransactionContextBuilder {
             empty_reserved_slot,
             TransactionKernel::testing_assembler(),
         );
-        let assembler = TransactionKernel::testing_assembler_with_mock_account();
 
-        Self {
-            assembler,
-            account,
-            account_seed: None,
-            authenticator: None,
-            input_notes: Vec::new(),
-            expected_output_notes: Vec::new(),
-            advice_map: None,
-            advice_inputs: Default::default(),
-            rng: ChaCha20Rng::from_seed([0_u8; 32]),
-            tx_script: None,
-            note_args: BTreeMap::new(),
-            mock_chain: None,
-        }
+        Self { account, ..Self::default() }
     }
 
+    /// Override and set the account seed manually
     pub fn account_seed(mut self, account_seed: Option<Word>) -> Self {
         self.account_seed = account_seed;
         self
     }
 
+    /// Override and set the [AdviceInputs]
     pub fn advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
         self.advice_inputs = advice_inputs;
         self
     }
 
+    /// Set the authenticator for the transaction (if needed)
     pub fn authenticator(mut self, authenticator: Option<MockAuthenticator>) -> Self {
         self.authenticator = authenticator;
         self
     }
 
+    /// Set foreign account codes that are used by the transaction
+    pub fn foreign_account_codes(mut self, codes: Vec<AccountCode>) -> Self {
+        self.foreign_account_codes = codes;
+        self
+    }
+
+    /// Extend the set of used input notes
     pub fn input_notes(mut self, input_notes: Vec<Note>) -> Self {
         self.input_notes.extend(input_notes);
         self
     }
 
+    /// Set the desired transaction script
     pub fn tx_script(mut self, tx_script: TransactionScript) -> Self {
         self.tx_script = Some(tx_script);
         self
     }
 
+    /// Set the desired transaction inputs
+    pub fn tx_inputs(mut self, tx_inputs: TransactionInputs) -> Self {
+        self.transaction_inputs = Some(tx_inputs);
+        self
+    }
+
+    /// Defines the expected output notes
     pub fn expected_notes(mut self, output_notes: Vec<OutputNote>) -> Self {
         let output_notes = output_notes.into_iter().filter_map(|n| match n {
             OutputNote::Full(note) => Some(note),
@@ -196,6 +224,7 @@ impl TransactionContextBuilder {
         note
     }
 
+    /// Add a note from a [NoteBuilder]
     fn input_note_simple(
         &mut self,
         sender: AccountId,
@@ -210,6 +239,7 @@ impl TransactionContextBuilder {
             .unwrap()
     }
 
+    /// Adds one input note with a note script that creates another ouput note.
     fn input_note_with_one_output_note(
         &mut self,
         sender: AccountId,
@@ -255,6 +285,7 @@ impl TransactionContextBuilder {
             .unwrap()
     }
 
+    /// Adds one input note with a note script that creates 2 ouput notes.
     fn input_note_with_two_output_notes(
         &mut self,
         sender: AccountId,
@@ -359,6 +390,8 @@ impl TransactionContextBuilder {
             .unwrap()
     }
 
+    /// Adds a set of input notes that output notes where inputs are smaller than needed and
+    /// do not add up to match the output.
     pub fn with_mock_notes_too_few_input(mut self) -> Self {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
@@ -393,6 +426,7 @@ impl TransactionContextBuilder {
         self.input_notes(vec![input_note1])
     }
 
+    /// Adds a set of input notes that output notes in an asset-preserving manner.
     pub fn with_mock_notes_preserved(mut self) -> Self {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
@@ -447,10 +481,7 @@ impl TransactionContextBuilder {
             FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
-        let nonfungible_asset_1: Asset = NonFungibleAsset::mock(
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            &NON_FUNGIBLE_ASSET_DATA_2,
-        );
+        let nonfungible_asset_1: Asset = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA_2);
 
         let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
         let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
@@ -532,10 +563,7 @@ impl TransactionContextBuilder {
             FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
-        let nonfungible_asset_1: Asset = NonFungibleAsset::mock(
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            &NON_FUNGIBLE_ASSET_DATA_2,
-        );
+        let nonfungible_asset_1: Asset = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA_2);
 
         let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
         let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
@@ -559,48 +587,56 @@ impl TransactionContextBuilder {
         self.input_notes(vec![input_note1, input_note2, input_note4])
     }
 
+    /// Builds the [TransactionContext].
+    ///
+    /// If no transaction inputs were provided manually, an ad-hoc MockChain is created in order
+    /// to generate valid block data for the required notes.
     pub fn build(self) -> TransactionContext {
-        let mut mock_chain = if let Some(mock_chain) = self.mock_chain {
-            mock_chain
-        } else {
-            MockChainBuilder::default().notes(self.input_notes.clone()).build()
+        let tx_inputs = match self.transaction_inputs {
+            Some(tx_inputs) => tx_inputs,
+            None => {
+                // If no specific transaction inputs was provided, initialize an ad-hoc mockchain
+                // to generate valid block header/MMR data
+
+                let mut mock_chain = MockChain::default();
+                for i in self.input_notes {
+                    mock_chain.add_note(i);
+                }
+
+                mock_chain.seal_block(None);
+                mock_chain.seal_block(None);
+
+                let input_note_ids: Vec<NoteId> =
+                    mock_chain.available_notes().iter().map(|n| n.id()).collect();
+
+                mock_chain.get_transaction_inputs(
+                    self.account.clone(),
+                    self.account_seed,
+                    &input_note_ids,
+                    &[],
+                )
+            },
         };
 
-        for _ in 0..4 {
-            mock_chain.seal_block(None);
-        }
-
-        let mut tx_args = TransactionArgs::new(
-            self.tx_script,
-            Some(self.note_args),
-            self.advice_map.unwrap_or_default(),
-        )
-        .with_advice_inputs(self.advice_inputs.clone());
-
-        let input_note_ids: Vec<NoteId> =
-            mock_chain.available_notes().iter().map(|n| n.id()).collect();
-
-        let tx_inputs = mock_chain.get_transaction_inputs(
-            self.account.clone(),
-            self.account_seed,
-            &input_note_ids,
-        );
+        let mut tx_args =
+            TransactionArgs::new(self.tx_script, Some(self.note_args), AdviceMap::default());
 
         tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
 
         TransactionContext {
-            mock_chain,
             expected_output_notes: self.expected_output_notes,
             tx_args,
             tx_inputs,
             authenticator: self.authenticator,
             advice_inputs: self.advice_inputs,
             assembler: self.assembler,
+            foreign_codes: self.foreign_account_codes,
         }
     }
+}
 
-    pub fn mock_chain(mut self, mock_chain: MockChain) -> TransactionContextBuilder {
-        self.mock_chain = Some(mock_chain);
-        self
+impl Default for TransactionContextBuilder {
+    fn default() -> Self {
+        Self::with_standard_account(Felt::ZERO)
     }
 }

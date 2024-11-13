@@ -1,97 +1,141 @@
 use miden_lib::{notes::create_swap_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, Account, AccountId},
-    assets::{Asset, AssetVault, NonFungibleAsset, NonFungibleAssetDetails},
+    accounts::AccountId,
+    assets::{Asset, NonFungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::{
-        NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteMetadata,
-        NoteTag, NoteType,
-    },
-    testing::account_code::DEFAULT_AUTH_SCRIPT,
-    transaction::TransactionScript,
-    Felt, ZERO,
+    notes::{Note, NoteDetails, NoteType},
+    testing::prepare_word,
+    transaction::{OutputNote, TransactionScript},
+    Felt,
 };
-use miden_tx::testing::mock_chain::{Auth, MockChain};
+use miden_tx::testing::{Auth, MockChain};
 
 use crate::prove_and_verify_transaction;
 
+// Creates a swap note and sends it with send_asset
 #[test]
-fn prove_swap_script() {
-    // Create assets
-    let mut chain = MockChain::new();
-    let faucet = chain.add_existing_faucet(Auth::NoAuth, "POL", 100000u64);
-    let offered_asset = faucet.mint(100);
+pub fn prove_send_swap_note() {
+    let mut mock_chain = MockChain::new();
+    let offered_asset = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64).mint(2000);
+    let requested_asset = NonFungibleAsset::mock(&[1, 2, 3, 4]);
+    let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![offered_asset]);
 
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let requested_asset: Asset = NonFungibleAsset::new(
-        &NonFungibleAssetDetails::new(faucet_id_2, vec![1, 2, 3, 4]).unwrap(),
-    )
-    .unwrap()
-    .into();
+    let (note, _payback) = get_swap_notes(sender_account.id(), offered_asset, requested_asset);
 
-    // Create sender and target account
-    let sender_account = chain.add_existing_wallet(Auth::BasicAuth, vec![offered_asset]);
-    let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
-
-    // Create the note containing the SWAP script
-    let (note, payback_note) = create_swap_note(
-        sender_account.id(),
-        offered_asset,
-        requested_asset,
-        NoteType::Public,
-        Felt::new(27),
-        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
-    )
-    .unwrap();
-
-    chain.add_note(note.clone());
-    chain.seal_block(None);
-
-    // CONSTRUCT AND EXECUTE TX (Success)
+    // CREATE SWAP NOTE TX
     // --------------------------------------------------------------------------------------------
-    let transaction_script =
-        TransactionScript::compile(DEFAULT_AUTH_SCRIPT, vec![], TransactionKernel::assembler())
+
+    let tx_script_src = &format!(
+        "
+        begin
+            push.{recipient}
+            push.{note_execution_hint}
+            push.{note_type}
+            push.0              # aux
+            push.{tag}
+            call.::miden::contracts::wallets::basic::create_note
+
+            push.{asset}
+            call.::miden::contracts::wallets::basic::move_asset_to_note
+            dropw dropw dropw dropw
+            call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+        end
+        ",
+        recipient = prepare_word(&note.recipient().digest()),
+        note_type = NoteType::Public as u8,
+        tag = Felt::new(note.metadata().tag().into()),
+        asset = prepare_word(&offered_asset.into()),
+        note_execution_hint = Felt::from(note.metadata().execution_hint())
+    );
+
+    let tx_script =
+        TransactionScript::compile(tx_script_src, vec![], TransactionKernel::testing_assembler())
             .unwrap();
 
-    let executed_transaction = chain
-        .build_tx_context(target_account.id())
-        .tx_script(transaction_script)
+    let create_swap_note_tx = mock_chain
+        .build_tx_context(sender_account.id(), &[], &[])
+        .tx_script(tx_script)
+        .expected_notes(vec![OutputNote::Full(note.clone())])
         .build()
         .execute()
         .unwrap();
 
-    // target account vault delta
-    let target_account_after: Account = Account::from_parts(
-        target_account.id(),
-        AssetVault::new(&[offered_asset]).unwrap(),
-        target_account.storage().clone(),
-        target_account.code().clone(),
-        Felt::new(2),
+    let sender_account = mock_chain.apply_executed_transaction(&create_swap_note_tx);
+
+    assert!(create_swap_note_tx.output_notes().iter().any(|n| n.hash() == note.hash()));
+    assert_eq!(sender_account.vault().assets().count(), 0); // Offered asset should be gone
+    let swap_output_note = create_swap_note_tx.output_notes().iter().next().unwrap();
+    assert_eq!(swap_output_note.assets().unwrap().iter().next().unwrap(), &offered_asset);
+    assert!(prove_and_verify_transaction(create_swap_note_tx).is_ok());
+}
+
+// Consumes the swap note (same as the one used in the above test) and proves the transaction
+// The sender account also consumes the payback note
+#[test]
+fn prove_consume_swap_note() {
+    let mut mock_chain = MockChain::new();
+    let offered_asset = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100000u64).mint(2000);
+    let requested_asset = NonFungibleAsset::mock(&[1, 2, 3, 4]);
+    let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![offered_asset]);
+
+    let (note, payback_note) = get_swap_notes(sender_account.id(), offered_asset, requested_asset);
+
+    // CONSUME CREATED NOTE
+    // --------------------------------------------------------------------------------------------
+
+    let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
+    mock_chain.add_note(note.clone());
+    mock_chain.seal_block(None);
+
+    let consume_swap_note_tx = mock_chain
+        .build_tx_context(target_account.id(), &[note.id()], &[])
+        .build()
+        .execute()
+        .unwrap();
+
+    let target_account = mock_chain.apply_executed_transaction(&consume_swap_note_tx);
+
+    let output_payback_note = consume_swap_note_tx.output_notes().iter().next().unwrap().clone();
+    assert!(output_payback_note.id() == payback_note.id());
+    assert_eq!(output_payback_note.assets().unwrap().iter().next().unwrap(), &requested_asset);
+
+    assert!(prove_and_verify_transaction(consume_swap_note_tx).is_ok());
+    assert!(target_account.vault().assets().count() == 1);
+    assert!(target_account.vault().assets().any(|asset| asset == offered_asset));
+
+    // CONSUME PAYBACK P2ID NOTE
+    // --------------------------------------------------------------------------------------------
+
+    let full_payback_note = Note::new(
+        payback_note.assets().clone(),
+        *output_payback_note.metadata(),
+        payback_note.recipient().clone(),
     );
 
-    // Check that the target account has received the asset from the note
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    let consume_payback_tx = mock_chain
+        .build_tx_context(sender_account.id(), &[], &[full_payback_note])
+        .build()
+        .execute()
+        .unwrap();
 
-    // Check if only one `Note` has been created
-    assert_eq!(executed_transaction.output_notes().num_notes(), 1);
+    let sender_account = mock_chain.apply_executed_transaction(&consume_payback_tx);
+    assert!(sender_account.vault().assets().any(|asset| asset == requested_asset));
+    assert!(prove_and_verify_transaction(consume_payback_tx).is_ok());
+}
 
-    // Check if the output `Note` is what we expect
-    let recipient = payback_note.recipient().clone();
-    let tag = NoteTag::from_account_id(sender_account.id(), NoteExecutionMode::Local).unwrap();
-    let note_metadata = NoteMetadata::new(
-        target_account.id(),
-        NoteType::Private,
-        tag,
-        NoteExecutionHint::Always,
-        ZERO,
+fn get_swap_notes(
+    sender_account_id: AccountId,
+    offered_asset: Asset,
+    requested_asset: Asset,
+) -> (Note, NoteDetails) {
+    // Create the note containing the SWAP script
+    create_swap_note(
+        sender_account_id,
+        offered_asset,
+        requested_asset,
+        NoteType::Public,
+        Felt::new(0),
+        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
-    .unwrap();
-    let assets = NoteAssets::new(vec![requested_asset]).unwrap();
-    let note_id = NoteId::new(recipient.digest(), assets.commitment());
-
-    let output_note = executed_transaction.output_notes().get_note(0);
-    assert_eq!(NoteHeader::from(output_note), NoteHeader::new(note_id, note_metadata));
-
-    // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    .unwrap()
 }

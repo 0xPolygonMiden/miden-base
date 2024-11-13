@@ -33,7 +33,7 @@ mod test {
         transaction::{ProvenTransaction, TransactionScript, TransactionWitness},
     };
     use miden_tx::{
-        testing::mock_chain::{Auth, MockChain},
+        testing::{Auth, MockChain},
         utils::Serializable,
     };
     use miden_tx_prover::generated::{
@@ -81,6 +81,7 @@ mod test {
                 account.id(),
                 &[fungible_asset_1],
                 NoteType::Private,
+                None,
             )
             .unwrap();
 
@@ -88,7 +89,7 @@ mod test {
             TransactionScript::compile(DEFAULT_AUTH_SCRIPT, vec![], TransactionKernel::assembler())
                 .unwrap();
         let tx_context = mock_chain
-            .build_tx_context(account.id())
+            .build_tx_context(account.id(), &[], &[])
             .input_notes(vec![note_1])
             .tx_script(tx_script)
             .build();

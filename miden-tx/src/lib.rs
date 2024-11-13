@@ -21,10 +21,7 @@ mod verifier;
 pub use verifier::TransactionVerifier;
 
 mod errors;
-pub use errors::{
-    tx_kernel_errors::TX_KERNEL_ERRORS, AuthenticationError, DataStoreError,
-    TransactionExecutorError, TransactionProverError, TransactionVerifierError,
-};
+pub use errors::*;
 
 pub mod auth;
 

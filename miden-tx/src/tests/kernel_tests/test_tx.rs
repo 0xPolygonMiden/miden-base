@@ -16,7 +16,6 @@ use miden_objects::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
         Account, AccountBuilder, AccountCode, AccountComponent, AccountId, AccountProcedureInfo,
@@ -44,10 +43,7 @@ use crate::{
     errors::tx_kernel_errors::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
-    testing::{
-        mock_chain::{MockChain, MockChainBuilder},
-        MockHost, TransactionContextBuilder,
-    },
+    testing::{MockChain, MockHost, TransactionContextBuilder},
     tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
 };
 
@@ -429,8 +425,7 @@ fn test_create_note_and_add_multiple_assets() {
     let asset_3 = [Felt::new(30), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
     let asset_2_and_3 =
         [Felt::new(50), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
-    let non_fungible_asset =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA_2);
+    let non_fungible_asset = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA_2);
     let non_fungible_asset_encoded = Word::from(non_fungible_asset);
 
     let code = format!(
@@ -511,8 +506,7 @@ fn test_create_note_and_add_same_nft_twice() {
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
-    let non_fungible_asset =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
+    let non_fungible_asset = NonFungibleAsset::mock(&[1, 2, 3]);
     let encoded = Word::from(non_fungible_asset);
 
     let code = format!(
@@ -625,7 +619,7 @@ fn test_build_recipient_hash() {
 // FOREIGN PROCEDURE INVOCATION TESTS
 // ================================================================================================
 
-/// Assert that mock account's `get_item` procedure has index 6
+/// Assert that mock account's `get_item` procedure has index 8
 #[test]
 fn test_check_get_item_index() {
     // keep this code the same as the actual code of the account's `get_item` procedure
@@ -633,7 +627,11 @@ fn test_check_get_item_index() {
         use.miden::account
         export.get_item
             exec.account::get_item
+            # => [VALUE, pad(15)]
+
+            # truncate the stack
             movup.8 drop movup.8 drop movup.8 drop
+            # => [VALUE, pad(12)]
         end
     ";
     let component = AccountComponent::compile(
@@ -673,25 +671,23 @@ fn test_load_foreign_account_basic() {
         .build_testing()
         .unwrap();
 
-    let account_id = foreign_account.id();
-    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
-    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
-
     // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
     // account which is required for this test to pass right now.
     let native_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let native_account = Account::from_parts(
+    let account = Account::from_parts(
         native_account_id,
         AssetVault::mock(),
         foreign_account.storage().clone(),
         foreign_account.code().clone(),
         ONE,
     );
-    let tx_context = TransactionContextBuilder::new(native_account)
-        .mock_chain(mock_chain)
-        .advice_inputs(advice_inputs.clone())
-        .build();
+
+    let mut mock_chain = MockChain::with_accounts(&[foreign_account.clone(), account.clone()]);
+    mock_chain.seal_block(None);
+
+    let foreign_account_id = foreign_account.id();
+    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
 
     let code = format!(
         "
@@ -711,21 +707,26 @@ fn test_load_foreign_account_basic() {
             push.0
 
             # get the hash of the `get_item` account procedure
-            push.{get_item_foreign_hash}
+            procref.::test::account::get_item
 
             # push the foreign account id
-            push.{account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+            push.{foreign_account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
 
             # truncate the stack
             exec.sys::truncate_stack
-        end
-        ",
-        get_item_foreign_hash = get_root_of_get_item_procedure(),
+            end
+            ",
     );
+
+    let tx_context = mock_chain
+        .build_tx_context(account.id(), &[], &[])
+        .foreign_account_codes(vec![foreign_account.code().clone()])
+        .advice_inputs(advice_inputs.clone())
+        .build();
 
     let process = tx_context.execute_code(&code).unwrap();
 
@@ -753,24 +754,28 @@ fn test_load_foreign_account_basic() {
         .build_testing()
         .unwrap();
 
-    let account_id = foreign_account.id();
-    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
-    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
+    let foreign_account_id = foreign_account.id();
 
     // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
     // account which is required for this test to pass right now.
     let native_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let native_account = Account::from_parts(
+    let account = Account::from_parts(
         native_account_id,
         AssetVault::mock(),
         foreign_account.storage().clone(),
         foreign_account.code().clone(),
         ONE,
     );
-    let tx_context = TransactionContextBuilder::new(native_account)
-        .mock_chain(mock_chain)
-        .advice_inputs(advice_inputs)
+    let mut mock_chain = MockChain::with_accounts(&[foreign_account.clone(), account.clone()]);
+    mock_chain.seal_block(None);
+
+    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
+
+    let tx_context = mock_chain
+        .build_tx_context(account.id(), &[], &[])
+        .foreign_account_codes(vec![foreign_account.code().clone()])
+        .advice_inputs(advice_inputs.clone())
         .build();
 
     let code = format!(
@@ -798,7 +803,7 @@ fn test_load_foreign_account_basic() {
             procref.account::get_map_item
 
             # push the foreign account id
-            push.{account_id}
+            push.{foreign_account_id}
             # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
             exec.tx::execute_foreign_procedure
@@ -824,6 +829,9 @@ fn test_load_foreign_account_basic() {
 
 /// This test checks that invoking two foreign procedures from the same account results in reuse of
 /// the loaded account.
+///
+/// The namespace ::test::account contains the testing account code as an imported library, to make
+/// references to its code simpler.
 #[test]
 fn test_load_foreign_account_twice() {
     let storage_slot = AccountStorage::mock_item_0().slot;
@@ -840,23 +848,26 @@ fn test_load_foreign_account_twice() {
         .build_testing()
         .unwrap();
 
-    let account_id = foreign_account.id();
-    let mock_chain = MockChainBuilder::default().accounts(vec![foreign_account.clone()]).build();
-    let advice_inputs = get_mock_advice_inputs(&foreign_account, &mock_chain);
+    let foreign_account_id = foreign_account.id();
 
     // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
     // account which is required for this test to pass right now.
     let native_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let native_account = Account::from_parts(
+    let account = Account::from_parts(
         native_account_id,
         AssetVault::mock(),
         foreign_account.storage().clone(),
         foreign_account.code().clone(),
         ONE,
     );
-    let tx_context = TransactionContextBuilder::new(native_account)
-        .mock_chain(mock_chain)
+
+    let mut mock_chain = MockChain::with_accounts(&[foreign_account.clone(), account.clone()]);
+
+    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
+    let tx_context = mock_chain
+        .build_tx_context(account.id(), &[], &[])
+        .foreign_account_codes(vec![foreign_account.code().clone()])
         .advice_inputs(advice_inputs.clone())
         .build();
 
@@ -879,10 +890,10 @@ fn test_load_foreign_account_twice() {
             push.0
 
             # get the hash of the `get_item` account procedure
-            push.{get_item_foreign_hash}
+            procref.::test::account::get_item
 
             # push the foreign account id
-            push.{account_id}
+            push.{foreign_account_id}
             # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure dropw
@@ -897,10 +908,10 @@ fn test_load_foreign_account_twice() {
             push.0
 
             # get the hash of the `get_item` account procedure
-            push.{get_item_foreign_hash}
+            procref.::test::account::get_item
 
             # push the foreign account id
-            push.{account_id}
+            push.{foreign_account_id}
             # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
@@ -909,7 +920,6 @@ fn test_load_foreign_account_twice() {
             exec.sys::truncate_stack
         end
         ",
-        get_item_foreign_hash = get_root_of_get_item_procedure(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -924,7 +934,7 @@ fn test_load_foreign_account_twice() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn get_mock_advice_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
+fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
     let foreign_id_root = Digest::from([foreign_account.id().into(), ZERO, ZERO, ZERO]);
     let foreign_id_and_nonce = [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()];
     let foreign_vault_root = foreign_account.vault().commitment();
@@ -1033,7 +1043,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
 /// in the array of account's mock procedures.
 fn get_root_of_get_item_procedure() -> Digest {
     // keep in sync with actual index of the `get_item`
-    let proc_index = 6;
+    let proc_index = 8;
 
     let mock_component: AccountComponent =
         AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())

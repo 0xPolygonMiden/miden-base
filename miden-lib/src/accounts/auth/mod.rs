@@ -8,16 +8,11 @@ use crate::accounts::components::rpo_falcon_512_library;
 /// An [`AccountComponent`] implementing the RpoFalcon512 signature scheme for authentication of
 /// transactions.
 ///
-/// It reexports the procedures from `miden::contracts::auth::basic`. When linking against this
-/// component, the `miden` library (i.e. [`MidenLib`](crate::MidenLib)) must be available to the
-/// assembler which is the case when using [`TransactionKernel::assembler()`][kasm]. The procedures
-/// of this component are:
+/// Its exported procedures are:
 /// - `auth_tx_rpo_falcon512`, which can be used to verify a signature provided via the advice stack
 ///   to authenticate a transaction.
 ///
 /// This component supports all account types.
-///
-/// [kasm]: crate::transaction::TransactionKernel::assembler
 pub struct RpoFalcon512 {
     public_key: PublicKey,
 }
