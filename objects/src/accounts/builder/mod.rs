@@ -9,7 +9,7 @@ use crate::{
         AccountType,
     },
     assets::{Asset, AssetVault},
-    AccountError, Felt, Word, ZERO,
+    AccountError, Felt, Word,
 };
 
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
@@ -35,7 +35,6 @@ use crate::{
 /// - Set assets which will be placed in the account's vault.
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
-    nonce: Felt,
     #[cfg(any(feature = "testing", test))]
     assets: Vec<Asset>,
     components: Vec<AccountComponent>,
@@ -48,7 +47,6 @@ impl AccountBuilder {
     /// Creates a new builder for a single account.
     pub fn new() -> Self {
         Self {
-            nonce: ZERO,
             #[cfg(any(feature = "testing", test))]
             assets: vec![],
             components: vec![],
@@ -174,7 +172,7 @@ impl AccountBuilder {
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
 
-        let account = Account::from_parts(account_id, vault, storage, code, self.nonce);
+        let account = Account::from_parts(account_id, vault, storage, code, Felt::ZERO);
 
         Ok((account, seed))
     }
@@ -195,10 +193,7 @@ impl AccountBuilder {
     /// The [`AccountId`] is constructed by slightly modifying `init_seed[0..8]` to be a valid ID.
     ///
     /// For possible errors, see the documentation of [`Self::build`].
-    pub fn build_existing(mut self) -> Result<Account, AccountError> {
-        // Set nonce to one so that the asset-vault-empty-on-new-account check does not trigger.
-        self.nonce = Felt::ONE;
-
+    pub fn build_existing(self) -> Result<Account, AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
         let account_id = {
