@@ -140,7 +140,7 @@ impl Account {
     /// - Two or more libraries export a procedure with the same MAST root.
     /// - The number of [`StorageSlot`]s of all components exceeds 255.
     /// - [`MastForest::merge`](vm_processor::MastForest::merge) fails on all libraries.
-    pub fn initialize_from_components(
+    pub(super) fn initialize_from_components(
         account_type: AccountType,
         components: &[AccountComponent],
     ) -> Result<(AccountCode, AccountStorage), AccountError> {
