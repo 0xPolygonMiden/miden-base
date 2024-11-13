@@ -17,7 +17,7 @@ use crate::{
 ///
 /// This will build a valid new account with these properties:
 /// - An empty [`AssetVault`].
-/// - The nonce set to [`ZERO`].
+/// - The nonce set to [`Felt::ZERO`].
 /// - A seed which results in an [`AccountId`] valid for the configured account type and storage
 ///   mode.
 ///
@@ -182,7 +182,8 @@ impl AccountBuilder {
 impl AccountBuilder {
     /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
     ///
-    /// Must only be called when nonce is non-[`ZERO`] since new accounts must have an empty vault.
+    /// Must only be called when nonce is non-[`Felt::ZERO`] since new accounts must have an empty
+    /// vault.
     pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
