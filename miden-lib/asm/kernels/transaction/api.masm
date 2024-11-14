@@ -21,7 +21,8 @@ use.kernel::tx
 # ERRORS
 # =================================================================================================
 
-# For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item
+# For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with 
+# set_account_item
 const.ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED=0x00020000
 
 # The get_fungible_faucet_total_issuance procedure can only be called on a fungible faucet
@@ -252,7 +253,8 @@ export.get_account_map_item
     # => [slot_type, index, KEY, pad(11)]
 
     # check if type == map
-    exec.constants::get_storage_slot_type_map eq assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
+    exec.constants::get_storage_slot_type_map eq 
+    assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY, pad(11)]
 
     # authenticate that the procedure invocation originates from the account context
@@ -730,9 +732,9 @@ end
 #!   against.
 #! - the asset is not well formed.
 #! - For fungible faucets:
-#!   - if the amount being burned is greater than the total input to the transaction.
+#!   - the amount being burned is greater than the total input to the transaction.
 #! - For non-fungible faucets:
-#!   - if the non-fungible asset being burned does not exist or was not provided as input to the
+#!   - the non-fungible asset being burned does not exist or was not provided as input to the
 #!     transaction via a note or the accounts vault.
 export.burn_asset
     # check that this procedure was executed against the native account
@@ -761,7 +763,8 @@ end
 #! - the transaction is not being executed against a fungible faucet.
 export.get_fungible_faucet_total_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
-    exec.account::get_id exec.account::is_fungible_faucet assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
+    exec.account::get_id exec.account::is_fungible_faucet 
+    assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [pad(16)]
 
     # get the total issuance
@@ -800,7 +803,8 @@ end
 #! Inputs:
 #!   Operand stack: [foreign_account_id, pad(15)]
 #!   Advice map: {
-#!     FOREIGN_ACCOUNT_ID: [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
+#!     FOREIGN_ACCOUNT_ID: [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, 
+#!                          CODE_ROOT],
 #!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
 #!     CODE_ROOT: [num_procs, [ACCOUNT_PROCEDURE_DATA]]
 #!   }

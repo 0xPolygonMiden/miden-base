@@ -314,8 +314,8 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `get_output_notes_commitment` kernel procedure required to get the
-#!   address where this procedure is stored.
+#! - proc_offset is the offset of the `get_output_notes_commitment` kernel procedure required to get
+#!   the address where this procedure is stored.
 export.get_output_notes_commitment_offset
     push.GET_OUTPUT_NOTES_COMMITMENT_OFFSET
 end

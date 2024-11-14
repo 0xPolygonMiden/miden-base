@@ -190,7 +190,7 @@ end
 #! than 15 elements back. Otherwise exceeding elements will not be provided to the procedure and
 #! will not be returned from it.
 #!
-#! Inputs:  [foreign_account_id, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
+#! Inputs:  [foreign_account_id, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 #! Outputs: [<values returned from the foreign procedure>]
 #!
 #! Where:
@@ -203,20 +203,20 @@ export.execute_foreign_procedure.1
     push.0.0 movup.2
     exec.kernel_proc_offsets::start_foreign_context_offset
     padw swapw padw padw swapdw
-    # => [offset, foreign_account_id, pad(14), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
+    # => [offset, foreign_account_id, pad(14), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
     # load the foreign account to the memory
     syscall.exec_kernel_proc
-    # => [pad(16), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
+    # => [pad(16), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
     # prepare the stack for the dyncall
     dropw dropw dropw dropw
-    # => [FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n), ...]
+    # => [FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
     # store the foreign procedure root to the first local memory slot and get its absolute memory 
     # address
     loc_storew.0 dropw locaddr.0
-    # => [foreign_proc_root_ptr, <foreign account inputs>, pad(n), ...]
+    # => [foreign_proc_root_ptr, <foreign account inputs>, pad(n)]
 
     # execute the foreign procedure
     dyncall
@@ -233,10 +233,10 @@ end
 #! Updates the transaction expiration delta.
 #!
 #! The transaction expiration delta specifies how close to the transaction's reference block the
-#! transaction must be included into the chain. For example, if the transaction's reference block
-#! is 100 and transaction expiration delta is 10, the transaction can be included into the chain
-#! by block 110. If this does not happen, the transaction is considered expired and cannot be
-#! included into the chain.
+#! transaction must be included into the chain. For example, if the transaction's reference block is
+#! 100 and transaction expiration delta is 10, the transaction can be included into the chain by
+#! block 110. If this does not happen, the transaction is considered expired and cannot be included
+#! into the chain.
 #!
 #! Once set, transaction expiration delta can be decreased, but not increased.
 #!

@@ -40,25 +40,24 @@ const.EPILOGUE_END=131081
 #!
 #! This is the entry point of the transaction kernel, the program will perform the following
 #! operations:
-#!
 #! 1. Run the prologue to prepare the transaction's root context.
 #! 2. Run all the notes' scripts.
 #! 3. Run the transaction script.
 #! 4. Run the epilogue to compute and validate the final state.
 #!
-#! See `prologue::prepare_transaction` for additional details on the VM's initial state, including the
-#! advice provider.
+#! See `prologue::prepare_transaction` for additional details on the VM's initial state, including 
+#! the advice provider.
 #!
 #! Inputs:  [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
 #! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
 #! Where:
-#! - BLOCK_HASH, reference block for the transaction execution.
-#! - account_id, the account that the transaction is being executed against.
-#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
+#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - account_id is the the account that the transaction is being executed against.
+#! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-#! - OUTPUT_NOTES_COMMITMENT, commitment to the notes created by the transaction.
-#! - FINAL_ACCOUNT_HASH, account's hash after execution the transaction.
+#! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes created by the transaction.
+#! - FINAL_ACCOUNT_HASH is the account's hash after execution the transaction.
 proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------

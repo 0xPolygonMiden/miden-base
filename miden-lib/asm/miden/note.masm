@@ -120,7 +120,8 @@ export.get_inputs
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # validate the input length
-    dup exec.get_max_inputs_per_note lte assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
+    dup exec.get_max_inputs_per_note lte 
+    assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # calculate the number of words required to store the inputs

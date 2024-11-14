@@ -28,13 +28,16 @@ const.OUTPUT_NOTE_HASHING_MEM_DIFF=510
 # INPUT NOTE PROCEDURES
 # =================================================================================================
 
-#! Returns the sender of the note currently being processed. Panics if a note is not being
-#! processed.
+#! Returns the sender of the note currently being processed.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [sender]
 #!
+#! Where:
 #! - sender is the sender of the note currently being processed.
+#!
+#! Panics if:
+#! - the note is not being processed.
 export.get_sender
     # get the current input note pointer
     exec.memory::get_current_input_note_ptr
@@ -50,14 +53,17 @@ export.get_sender
     # => [sender]
 end
 
-#! Returns the number of assets and the assets hash of the note currently being processed. Panics
-#! if a note is not being processed.
+#! Returns the number of assets and the assets hash of the note currently being processed. 
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [ASSETS_HASH, num_assets]
 #!
+#! Where:
 #! - num_assets is the number of assets in the note currently being processed.
 #! - ASSETS_HASH is the vault hash of the note currently being processed.
+#!
+#! Panics if:
+#! - the note is not being processed.
 export.get_assets_info
     # get the current input note pointer
     exec.memory::get_current_input_note_ptr
@@ -79,13 +85,14 @@ end
 
 #! Returns the commitment to the note's inputs.
 #!
-#! Panics if a note is not being processed.
-#!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [NOTE_INPUTS_HASH]
 #!
 #! Where:
 #! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
+#!
+#! Panics if:
+#! - the note is not being processed.
 export.get_note_inputs_hash
     exec.memory::get_current_input_note_ptr
     # => [ptr]
@@ -102,7 +109,7 @@ end
 
 #! Move the current input note pointer to the next note and returns the pointer value.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [current_input_note_ptr]
 #!
 #! Where:
@@ -124,7 +131,7 @@ end
 #! Sets the current input note pointer to 0. This should be called after all input notes have
 #! been processed.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: []
 export.note_processing_teardown
     # set the current input note pointer to 0
@@ -136,8 +143,8 @@ end
 #!
 #! Loads the note's script root address and args onto the stack.
 #!
-#! Stack: []
-#! Output: [note_script_root_ptr, NOTE_ARGS]
+#! Inputs:  []
+#! Outputs: [note_script_root_ptr, NOTE_ARGS]
 #!
 #! Where:
 #! - note_script_root_ptr, the memory address where note's script root is stored.
@@ -162,9 +169,10 @@ end
 #! odd number of assets, then for the final hashing permutation we pad the last word of the hasher
 #! rate with zeros. If the note contains no assets, ASSET_HASH is set to EMPTY_WORD.
 #!
-#! Stack: [note_data_ptr]
-#! Output: [ASSETS_HASH]
+#! Inputs:  [note_data_ptr]
+#! Outputs: [ASSETS_HASH]
 #!
+#! Where:
 #! - note_data_ptr is a pointer to the data section of the output note.
 #! - ASSETS_HASH is the hash of the assets of the output note located at note_data_ptr.
 proc.compute_output_note_assets_hash
@@ -227,9 +235,10 @@ end
 #! - we then compute the output note ID as:
 #!       hash(recipient, assets_hash)
 #!
-#! Stack: [note_data_ptr]
-#! Output: [NOTE_ID]
+#! Inputs:  [note_data_ptr]
+#! Outputs: [NOTE_ID]
 #!
+#! Where:
 #! - note_data_ptr is a pointer to the data section of the output note.
 #! - NOTE_ID is the ID of the output note located at note_data_ptr.
 proc.compute_output_note_id
@@ -252,9 +261,10 @@ end
 #! Computes a commitment to the output notes. This is computed as a sequential hash of
 #! (note_id, note_metadata) tuples.
 #!
-#! Stack: []
-#! Output: [OUTPUT_NOTES_COMMITMENT]
+#! Inputs:  []
+#! Outputs: [OUTPUT_NOTES_COMMITMENT]
 #!
+#! Where:
 #! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes output by the transaction.
 export.compute_output_notes_commitment
     # get the number of output notes from memory
@@ -311,12 +321,15 @@ export.compute_output_notes_commitment
 end
 
 #! Returns the serial number of the note currently being processed.
-#! Panics if no note is not being processed.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [SERIAL_NUMBER]
 #!
+#! Where:
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
+#!
+#! Panics if:
+#! - no note is being processed.
 export.get_serial_number
     exec.memory::get_current_input_note_ptr
     # => [note_ptr, ...]

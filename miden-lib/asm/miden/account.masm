@@ -273,7 +273,7 @@ end
 #! - CODE_COMMITMENT is the hash of the code to set.
 #!
 #! Panics if:
-#! - this procedure is executed on the account which type differs from `basic mutable`.
+#! - this procedure is executed on the account which type differs from the `basic mutable`.
 #!
 #! Annotation hint: is used only with `exec`
 export.set_code
@@ -441,13 +441,15 @@ end
 # PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
 # =================================================================================================
 
-# Given the most significant half of an account id, this mask defines the bits used to determine the account type.
+# Given the most significant half of an account id, this mask defines the bits used to determine the
+# account type.
 const.ACCOUNT_TYPE_U32MASK=805306368 # 0b00110000_00000000_00000000_00000000
 
 # Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
 const.FUNGIBLE_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 
-# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been applied.
+# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been 
+# applied.
 const.NON_FUNGIBLE_FAUCET_ACCOUNT=805306368 # 0b00110000_00000000_00000000_00000000
 
 #! Returns the most significant half with the account type bits masked out.
