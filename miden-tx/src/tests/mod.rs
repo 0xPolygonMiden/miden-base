@@ -14,7 +14,6 @@ use miden_objects::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
         AccountBuilder, AccountCode, AccountComponent, AccountStorage, AccountType, StorageSlot,
@@ -175,8 +174,7 @@ fn executed_transaction_account_delta_new() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+    let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
 
     let tag1 = NoteTag::from_account_id(
@@ -459,8 +457,7 @@ fn test_send_note_proc() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+    let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
 
     let tag = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
@@ -607,8 +604,7 @@ fn executed_transaction_output_notes() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+    let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
     let removed_asset_4 = Asset::Fungible(
         FungibleAsset::new(
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),

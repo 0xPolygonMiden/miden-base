@@ -36,7 +36,7 @@ pub use tx_progress::TransactionProgress;
 
 use crate::{
     auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
-    TX_KERNEL_ERRORS,
+    tx_kernel_errors::TX_KERNEL_ERRORS,
 };
 
 // TRANSACTION HOST

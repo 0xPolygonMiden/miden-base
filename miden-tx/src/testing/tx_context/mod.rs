@@ -2,9 +2,10 @@
 use alloc::boxed::Box;
 use alloc::{rc::Rc, sync::Arc, vec::Vec};
 
+use builder::MockAuthenticator;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountId},
+    accounts::{Account, AccountCode, AccountId},
     assembly::Assembler,
     notes::{Note, NoteId},
     transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
@@ -12,11 +13,7 @@ use miden_objects::{
 use vm_processor::{AdviceInputs, ExecutionError, Process};
 use winter_maybe_async::*;
 
-use super::{
-    executor::CodeExecutor,
-    mock_chain::{MockAuthenticator, MockChain},
-    MockHost,
-};
+use super::{executor::CodeExecutor, MockHost};
 use crate::{
     auth::TransactionAuthenticator, DataStore, DataStoreError, TransactionExecutor,
     TransactionExecutorError, TransactionMastStore,
@@ -34,10 +31,10 @@ pub use builder::TransactionContextBuilder;
 /// It implements [DataStore], so transactions may be executed with
 /// [TransactionExecutor](crate::TransactionExecutor)
 pub struct TransactionContext {
-    mock_chain: MockChain,
     expected_output_notes: Vec<Note>,
     tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
+    foreign_codes: Vec<AccountCode>,
     advice_inputs: AdviceInputs,
     authenticator: Option<MockAuthenticator>,
     assembler: Assembler,
@@ -69,6 +66,11 @@ impl TransactionContext {
 
         let program = self.assembler.clone().assemble_program(code).unwrap();
         mast_store.insert(program.mast_forest().clone());
+
+        for code in &self.foreign_codes {
+            mast_store.insert(code.mast());
+        }
+
         mast_store.load_transaction_code(&self.tx_inputs, &self.tx_args);
 
         CodeExecutor::new(MockHost::new(self.tx_inputs.account().into(), advice_inputs, mast_store))
@@ -86,7 +88,12 @@ impl TransactionContext {
         let authenticator = self
             .authenticator
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
-        let tx_executor = TransactionExecutor::new(Arc::new(mock_data_store), authenticator);
+        let mut tx_executor = TransactionExecutor::new(Arc::new(mock_data_store), authenticator);
+
+        for code in self.foreign_codes {
+            tx_executor.load_account_code(&code);
+        }
+
         let notes: Vec<NoteId> = self.tx_inputs.input_notes().into_iter().map(|n| n.id()).collect();
 
         maybe_await!(tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args))
@@ -100,16 +107,12 @@ impl TransactionContext {
         &self.expected_output_notes
     }
 
-    pub fn mock_chain(&self) -> &MockChain {
-        &self.mock_chain
-    }
-
-    pub fn input_notes(&self) -> InputNotes<InputNote> {
-        InputNotes::new(self.mock_chain.available_notes().clone()).unwrap()
-    }
-
     pub fn tx_args(&self) -> &TransactionArgs {
         &self.tx_args
+    }
+
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
+        self.tx_inputs.input_notes()
     }
 
     pub fn set_tx_args(&mut self, tx_args: TransactionArgs) {

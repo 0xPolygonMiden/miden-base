@@ -23,8 +23,10 @@ use vm_processor::{Digest, MemAdviceProvider, ProcessState};
 
 use super::{Felt, StackInputs, Word, ONE, ZERO};
 use crate::{
+    assert_execution_error,
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
+    tx_kernel_errors::ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES,
 };
 
 // ACCOUNT CODE TESTS
@@ -174,7 +176,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
 
     let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
 
-    assert!(result.is_err());
+    assert_execution_error!(result, ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES);
 }
 
 #[test]
