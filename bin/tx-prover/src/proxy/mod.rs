@@ -16,6 +16,8 @@ use tracing::error;
 
 use crate::commands::ProxyConfig;
 
+const RESOURCE_EXHAUSTED_CODE: u16 = 8;
+
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
     lb: Arc<PingoraLoadBalancer<RoundRobin>>,
@@ -51,6 +53,25 @@ impl LoadBalancer {
         session.set_keepalive(None);
         session.write_response_header(Box::new(header), true).await?;
         Ok(true)
+    }
+
+    /// Create a 503 response for a full queue
+    pub async fn create_queue_full_response(session: &mut Session) -> Result<bool> {
+        // Set grpc-message header to "Too many requests in the queue"
+        // This is meant to be used by a Tonic interceptor to return a gRPC error
+        let mut header = ResponseHeader::build(503, None)?;
+        header.insert_header("grpc-message", "Too many requests in the queue".to_string())?;
+        header.insert_header("grpc-status", RESOURCE_EXHAUSTED_CODE)?;
+        session.set_keepalive(None);
+        session.write_response_header(Box::new(header.clone()), true).await?;
+
+        let mut error = Error::new(ErrorType::HTTPStatus(503))
+            .more_context("Too many requests in the queue")
+            .into_in();
+        error.set_cause("Too many requests in the queue");
+
+        session.write_response_header(Box::new(header), false).await?;
+        Err(error)
     }
 
     /// Remove the request ID from the corresponding worker queue
@@ -167,7 +188,10 @@ impl ProxyHttp for LoadBalancer {
         let worker = self.lb.select(b"", 256).ok_or(Error::new_str("Worker not found"))?;
 
         // Read request ID from headers
-        let request_id = Self::get_request_id(session)?;
+        let request_id = {
+            let id = Self::get_request_id(session)?;
+            id.to_string()
+        };
 
         // Enqueue the request ID in the worker queue
         // We use a new scope to release the lock after the operation
@@ -177,17 +201,7 @@ impl ProxyHttp for LoadBalancer {
 
             // Limit queue length
             if worker_queue.len() >= self.max_queue_items {
-                let mut error = Error::new(ErrorType::HTTPStatus(503))
-                    .more_context("Too many requests in the queue")
-                    .into_in();
-                error.set_cause("Too many requests in the queue");
-                // Set grpc-message header to "Too many requests in the queue"
-                // This is meant to be used by a Tonic interceptor to return a gRPC error
-                let mut response_header = ResponseHeader::build(503, None)?;
-                response_header.insert_header("grpc-message", "Too many requests in the queue")?;
-
-                session.write_response_header(Box::new(response_header), false).await?;
-                return Err(error);
+                Self::create_queue_full_response(session).await?;
             }
 
             worker_queue.push(request_id.to_string());
