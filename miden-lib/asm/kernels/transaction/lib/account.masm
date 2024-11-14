@@ -552,8 +552,8 @@ end
 #! Note:
 #! - We assume that index has been validated and is within bounds.
 #!
-#! Inputs:  [index, KEY, NEW_VALUE, OLD_ROOT, ...]
-#! Outputs: [OLD_VALUE, NEW_ROOT, ...]
+#! Inputs:  [index, KEY, NEW_VALUE, OLD_ROOT]
+#! Outputs: [OLD_VALUE, NEW_ROOT]
 #!
 #! Where:
 #! - OLD_ROOT is the root of the map to set the KEY NEW_VALUE pair.
@@ -614,8 +614,8 @@ end
 
 #! Returns the type of the requested storage slot.
 #!
-#! Inputs:  [index, ...]
-#! Outputs: [slot_type, ...]
+#! Inputs:  [index]
+#! Outputs: [slot_type]
 #!
 #! Where:
 #! - index is the location in memory of the storage slot.
@@ -639,7 +639,7 @@ end
 
 #! Returns the procedure information.
 #!
-#! Inputs:  [index, ...]
+#! Inputs:  [index]
 #! Outputs: [PROC_ROOT, storage_offset, storage_size]
 #!
 #! Where:

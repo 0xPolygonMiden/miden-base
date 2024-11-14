@@ -264,10 +264,13 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
     let code = format!(
         "
+        use.kernel::prologue
+        use.test::account
+
         begin
-            exec.::kernel::prologue::prepare_transaction
+            exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            call.::miden::account::remove_asset
+            call.account::remove_asset
 
             # truncate the stack
             swapw dropw

@@ -105,18 +105,18 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs:  [tag, aux, note_type, execution_hint, RECIPIENT, ...]
-#! Outputs: [note_idx, ...]
+#! Inputs:  [tag, aux, note_type, execution_hint, RECIPIENT]
+#! Outputs: [note_idx]
 #!
 #! Where:
 #! - tag is the tag to be included in the note.
 #! - aux is the auxiliary metadata to be included in the note.
-#! - note_type is the storage type of the note
-#! - execution_hint is the note's execution hint
+#! - note_type is the storage type of the note.
+#! - execution_hint is the note's execution hint.
 #! - RECIPIENT is the recipient of the note.
 #! - note_idx is the index of the crated note.
 #!
-#! Annotation hint: is used with both `exec` and `call`
+#! Annotation hint: is used only with `exec`
 export.create_note
     # pad the stack before the syscall to prevent accidental modification of the deeper stack
     # elements
@@ -136,14 +136,14 @@ end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs:  [ASSET, note_idx, ...]
-#! Outputs: [ASSET, note_idx, ...]
+#! Inputs:  [ASSET, note_idx]
+#! Outputs: [ASSET, note_idx]
 #!
 #! Where:
 #! - note_idx is the index of the note to which the asset is added.
 #! - ASSET can be a fungible or non-fungible asset.
 #!
-#! Annotation hint: is used with both `exec` and `call`
+#! Annotation hint: is used only with `exec`
 export.add_asset_to_note
     movup.4 exec.kernel_proc_offsets::add_asset_to_note_offset
     # => [offset, note_idx, ASSET]
@@ -163,8 +163,8 @@ end
 
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash
 #!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH, pad(4)]
-#! Outputs: [RECIPIENT, pad(12)]
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
+#! Outputs: [RECIPIENT]
 #!
 #! Where:
 #! - SERIAL_NUM is the serial number of the recipient.
@@ -172,16 +172,16 @@ end
 #! - INPUT_HASH is the commitment of the note inputs.
 #! - RECIPIENT is the recipient of the note.
 #!
-#! Annotation hint: is used only with `call`
+#! Annotation hint: is used only with `exec`
 export.build_recipient_hash
   padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH, pad(4)]
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
 
   swapw hmerge
-  # => [MERGE_SCRIPT, INPUT_HASH, pad(8)]
+  # => [MERGE_SCRIPT, INPUT_HASH]
 
   swapw hmerge
-  # [RECIPIENT, pad(12)]
+  # [RECIPIENT]
 end
 
 #! Executes the provided procedure against the foreign account.
@@ -195,7 +195,7 @@ end
 #!
 #! Where:
 #! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the 
-#!   moment of the foreign procedure execution (n = 16 - mem_addr_size - foreign_inputs_len)
+#!   moment of the foreign procedure execution (n = 16 - mem_addr_size - foreign_inputs_len).
 #!
 #! Annotation hint: is used only with `exec`
 export.execute_foreign_procedure.1

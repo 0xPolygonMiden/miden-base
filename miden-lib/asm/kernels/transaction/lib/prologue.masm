@@ -845,9 +845,9 @@ end
 #!      ASSET_0, ..., ASSET_N,
 #!      is_authenticated,
 #!      (
-#!          block_num,
-#!          BLOCK_SUB_HASH,
-#!          NOTE_ROOT,
+#!        block_num,
+#!        BLOCK_SUB_HASH,
+#!        NOTE_ROOT,
 #!      )?
 #!   ]
 #! Outputs: 
@@ -1042,7 +1042,7 @@ proc.process_input_notes_data
     # => [idx+1, num_notes]
 
     drop drop
-    # => [...]
+    # => []
 end
 
 # TRANSACTION SCRIPT

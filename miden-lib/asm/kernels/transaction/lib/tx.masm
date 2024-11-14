@@ -210,8 +210,8 @@ end
 #! limit at which the transaction will be considered valid (not expired).
 #! This value can be later decreased, but not increased.
 #!
-#! Inputs:  [block_height_delta, ...]
-#! Outputs: [...]
+#! Inputs:  [block_height_delta]
+#! Outputs: []
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
@@ -240,8 +240,8 @@ end
 
 #! Gets the transaction expiration delta.
 #!
-#! Inputs:  [...]
-#! Outputs: [block_height_delta, ...]
+#! Inputs:  []
+#! Outputs: [block_height_delta]
 #!
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).

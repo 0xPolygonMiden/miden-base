@@ -22,15 +22,15 @@ const.ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME=0x00020029
 #! Copies output note data to the advice map. If no notes were created by a transaction, nothing
 #! is copied to the advice map.
 #!
-#! Inputs:  [OUTPUT_NOTES_COMMITMENT, ...]
-#! Outputs: [OUTPUT_NOTES_COMMITMENT, ...]
+#! Inputs:  [OUTPUT_NOTES_COMMITMENT]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT]
 #!
 #! Where:
 #! - OUTPUT_NOTES_COMMITMENT is the note commitment computed from note's id and metadata.
 proc.copy_output_notes_to_advice_map
     # get the number of notes created by the transaction
     exec.memory::get_num_output_notes
-    # => [num_notes, OUTPUT_NOTES_COMMITMENT, ...]
+    # => [num_notes, OUTPUT_NOTES_COMMITMENT]
 
     # if there are output notes, add them to the advice map
     dup eq.0
@@ -40,20 +40,20 @@ proc.copy_output_notes_to_advice_map
     else
         # compute the end boundary of the output notes section
         exec.memory::get_output_note_ptr movdn.4
-        # => [OUTPUT_NOTES_COMMITMENT, output_notes_end_ptr, ...]
+        # => [OUTPUT_NOTES_COMMITMENT, output_notes_end_ptr]
 
         # compute the start boundary of the output notes section
         exec.memory::get_output_note_data_offset movdn.4
-        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
+        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr]
 
         # insert created data into the advice map
         adv.insert_mem push.15511 drop          # TODO: remove line, see miden-vm/#1122
-        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
+        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr]
 
         # drop output note pointers
         movup.4 drop movup.4 drop
     end
-    # => [OUTPUT_NOTES_COMMITMENT, ...]
+    # => [OUTPUT_NOTES_COMMITMENT]
 end
 
 # BUILD OUTPUT VAULT
