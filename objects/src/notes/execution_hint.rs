@@ -5,14 +5,6 @@ use vm_core::Felt;
 
 use crate::NoteError;
 
-// CONSTANTS
-// ================================================================================================
-
-const NONE_TAG: u8 = 0;
-const ALWAYS_TAG: u8 = 1;
-const AFTER_BLOCK_TAG: u8 = 2;
-const ON_BLOCK_SLOT_TAG: u8 = 3;
-
 /// Specifies the conditions under which a note is ready to be consumed.
 /// These conditions are meant to be encoded in the note script as well.
 ///
@@ -20,7 +12,7 @@ const ON_BLOCK_SLOT_TAG: u8 = 3;
 /// The tag specifies the variant of the hint, and the payload encodes the hint data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NoteExecutionHint {
-    /// Unspecified note execution hint. Implies it is not knorn under which conditions the note
+    /// Unspecified note execution hint. Implies it is not known under which conditions the note
     /// is consumable.
     None,
     /// The note's script can be executed at any time.
@@ -48,6 +40,14 @@ pub enum NoteExecutionHint {
 }
 
 impl NoteExecutionHint {
+    // CONSTANTS
+    // ------------------------------------------------------------------------------------------------
+
+    pub(crate) const NONE_TAG: u8 = 0;
+    pub(crate) const ALWAYS_TAG: u8 = 1;
+    pub(crate) const AFTER_BLOCK_TAG: u8 = 2;
+    pub(crate) const ON_BLOCK_SLOT_TAG: u8 = 3;
+
     // CONSTRUCTORS
     // ------------------------------------------------------------------------------------------------
 
@@ -73,20 +73,20 @@ impl NoteExecutionHint {
 
     pub fn from_parts(tag: u8, payload: u32) -> Result<NoteExecutionHint, NoteError> {
         match tag {
-            NONE_TAG => {
+            Self::NONE_TAG => {
                 if payload != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
                 }
                 Ok(NoteExecutionHint::None)
             },
-            ALWAYS_TAG => {
+            Self::ALWAYS_TAG => {
                 if payload != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
                 }
                 Ok(NoteExecutionHint::Always)
             },
-            AFTER_BLOCK_TAG => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
-            ON_BLOCK_SLOT_TAG => {
+            Self::AFTER_BLOCK_TAG => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
+            Self::ON_BLOCK_SLOT_TAG => {
                 let remainder = (payload >> 24 & 0xff) as u8;
                 if remainder != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
@@ -134,13 +134,13 @@ impl NoteExecutionHint {
 
     pub fn into_parts(&self) -> (u8, u32) {
         match self {
-            NoteExecutionHint::None => (NONE_TAG, 0),
-            NoteExecutionHint::Always => (ALWAYS_TAG, 0),
-            NoteExecutionHint::AfterBlock { block_num } => (AFTER_BLOCK_TAG, *block_num),
+            NoteExecutionHint::None => (Self::NONE_TAG, 0),
+            NoteExecutionHint::Always => (Self::ALWAYS_TAG, 0),
+            NoteExecutionHint::AfterBlock { block_num } => (Self::AFTER_BLOCK_TAG, *block_num),
             NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset } => {
                 let payload: u32 =
                     ((*epoch_len as u32) << 16) | ((*slot_len as u32) << 8) | (*slot_offset as u32);
-                (ON_BLOCK_SLOT_TAG, payload)
+                (Self::ON_BLOCK_SLOT_TAG, payload)
             },
         }
     }
@@ -253,11 +253,11 @@ mod tests {
 
     #[test]
     fn test_parts_validity() {
-        NoteExecutionHint::from_parts(NONE_TAG, 1).unwrap_err();
-        NoteExecutionHint::from_parts(ALWAYS_TAG, 12).unwrap_err();
+        NoteExecutionHint::from_parts(NoteExecutionHint::NONE_TAG, 1).unwrap_err();
+        NoteExecutionHint::from_parts(NoteExecutionHint::ALWAYS_TAG, 12).unwrap_err();
         // 4th byte should be blank for tag 3 (OnBlockSlot)
-        NoteExecutionHint::from_parts(ON_BLOCK_SLOT_TAG, 1 << 24).unwrap_err();
-        NoteExecutionHint::from_parts(ON_BLOCK_SLOT_TAG, 0).unwrap();
+        NoteExecutionHint::from_parts(NoteExecutionHint::ON_BLOCK_SLOT_TAG, 1 << 24).unwrap_err();
+        NoteExecutionHint::from_parts(NoteExecutionHint::ON_BLOCK_SLOT_TAG, 0).unwrap();
 
         NoteExecutionHint::from_parts(10, 1).unwrap_err();
     }
