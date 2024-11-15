@@ -29,7 +29,7 @@ pub struct FungibleAssetBuilder {
 impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
     pub fn new(faucet_id: AccountId, rng: T) -> Result<Self, AssetError> {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
-            return Err(AssetError::NotANonFungibleFaucetId(faucet_id));
+            return Err(AssetError::NonFungibleFaucetIdTypeMismatch(faucet_id));
         }
 
         Ok(Self { faucet_id, rng })
@@ -65,7 +65,7 @@ impl FungibleAssetBuilder {
     pub fn new(faucet_id: AccountId) -> Result<Self, AssetError> {
         let account_type = faucet_id.account_type();
         if !matches!(account_type, AccountType::FungibleFaucet) {
-            return Err(AssetError::NotAFungibleFaucetId(faucet_id, account_type));
+            return Err(AssetError::FungibleFaucetIdTypeMismatch(faucet_id));
         }
 
         Ok(Self { faucet_id, amount: Self::DEFAULT_AMOUNT })
@@ -73,7 +73,7 @@ impl FungibleAssetBuilder {
 
     pub fn amount(&mut self, amount: u64) -> Result<&mut Self, AssetError> {
         if amount > FungibleAsset::MAX_AMOUNT {
-            return Err(AssetError::AmountTooBig(amount));
+            return Err(AssetError::FungibleAssetAmountTooBig(amount));
         }
 
         self.amount = amount;

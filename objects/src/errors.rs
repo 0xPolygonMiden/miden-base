@@ -1,11 +1,12 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
-use core::fmt;
+use core::{error::Error, fmt};
 
+use thiserror::Error;
 use vm_processor::DeserializationError;
 
 use super::{
     accounts::{AccountId, StorageSlotType},
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    assets::{FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
     Digest, Word, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
@@ -117,59 +118,65 @@ impl fmt::Display for AccountDeltaError {
 // ASSET ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AssetError {
-    AmountTooBig(u64),
-    AssetAmountNotSufficient(u64, u64),
-    FungibleAssetInvalidTag(u32),
-    FungibleAssetInvalidWord(Word),
-    InconsistentFaucetIds(AccountId, AccountId),
-    InvalidAccountId(String),
-    InvalidFieldElement(String),
-    NonFungibleAssetInvalidTag(u32),
-    NotAFungibleFaucetId(AccountId, AccountType),
-    NotANonFungibleFaucetId(AccountId),
-    NotAnAsset(Word),
+    #[error(
+      "fungible asset amount {0} exceeds the max allowed amount of {max_amount}",
+      max_amount = FungibleAsset::MAX_AMOUNT
+    )]
+    FungibleAssetAmountTooBig(u64),
+    #[error("subtracting {subtrahend} from fungible asset amount {minuend} would overflow")]
+    FungibleAssetAmountNotSufficient { minuend: u64, subtrahend: u64 },
+    #[error("fungible asset word {0:?} does not contain expected ZEROs at word index 1 and 2")]
+    FungibleAssetExpectedZeroes(Word),
+    #[error("cannot add fungible asset with issuer {other_issuer} to fungible asset with issuer {original_issuer}")]
+    FungibleAssetInconsistentFaucetIds {
+        original_issuer: AccountId,
+        other_issuer: AccountId,
+    },
+    #[error("faucet account id in asset is invalid")]
+    InvalidFaucetAccountId(#[source] Box<dyn Error>),
+    #[error(
+      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for fungible assets",
+      id_type = _0.account_type(),
+      expected_ty = AccountType::FungibleFaucet
+    )]
+    FungibleFaucetIdTypeMismatch(AccountId),
+    #[error(
+      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for non fungible assets",
+      id_type = _0.account_type(),
+      expected_ty = AccountType::NonFungibleFaucet
+    )]
+    NonFungibleFaucetIdTypeMismatch(AccountId),
+    #[error("{0}")]
     TokenSymbolError(String),
 }
-
-impl fmt::Display for AssetError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AssetError {}
 
 // ASSET VAULT ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AssetVaultError {
-    AddFungibleAssetBalanceError(AssetError),
-    DuplicateAsset(MerkleError),
+    #[error("adding fungible asset amounts would exceed maximum allowed amount")]
+    AddFungibleAssetBalanceError(#[source] AssetError),
+    #[error("provided assets contain duplicates")]
+    DuplicateAsset(#[source] MerkleError),
+    #[error("non fungible asset {0} already exists in the vault")]
     DuplicateNonFungibleAsset(NonFungibleAsset),
+    #[error("fungible asset {0} does not exist in the vault")]
     FungibleAssetNotFound(FungibleAsset),
-    NotANonFungibleAsset(Asset),
+    #[error("faucet id {0} is not a fungible faucet id")]
     NotAFungibleFaucetId(AccountId),
+    #[error("non fungible asset {0} does not exist in the vault")]
     NonFungibleAssetNotFound(NonFungibleAsset),
-    SubtractFungibleAssetBalanceError(AssetError),
+    #[error("subtracting fungible asset amounts would underflow")]
+    SubtractFungibleAssetBalanceError(#[source] AssetError),
 }
-
-impl fmt::Display for AssetVaultError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AssetVaultError {}
 
 // NOTE ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
@@ -227,10 +234,13 @@ impl std::error::Error for NoteError {}
 // CHAIN MMR ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ChainMmrError {
+    #[error("block num {block_num} exceeds chain length {chain_length} implied by the chain MMR")]
     BlockNumTooBig { chain_length: usize, block_num: u32 },
+    #[error("duplicate block {block_num} in chain MMR")]
     DuplicateBlock { block_num: u32 },
+    #[error("chain MMR does not track authentication paths for block {block_num}")]
     UntrackedBlock { block_num: u32 },
 }
 
@@ -247,15 +257,6 @@ impl ChainMmrError {
         Self::UntrackedBlock { block_num }
     }
 }
-
-impl fmt::Display for ChainMmrError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ChainMmrError {}
 
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
