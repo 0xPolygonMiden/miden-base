@@ -40,7 +40,7 @@ impl NoteAssets {
     /// - There are duplicate assets in the list.
     pub fn new(assets: Vec<Asset>) -> Result<Self, NoteError> {
         if assets.len() > Self::MAX_NUM_ASSETS {
-            return Err(NoteError::too_many_assets(assets.len()));
+            return Err(NoteError::TooManyAssets(assets.len()));
         }
 
         // make sure all provided assets are unique
@@ -49,8 +49,8 @@ impl NoteAssets {
             // asset in the list, and if so return an error
             if assets[..i].iter().any(|a| a.is_same(asset)) {
                 return Err(match asset {
-                    Asset::Fungible(a) => NoteError::duplicate_fungible_asset(a.faucet_id()),
-                    Asset::NonFungible(a) => NoteError::duplicate_non_fungible_asset(*a),
+                    Asset::Fungible(asset) => NoteError::DuplicateFungibleAsset(asset.faucet_id()),
+                    Asset::NonFungible(asset) => NoteError::DuplicateNonFungibleAsset(*asset),
                 });
             }
         }
@@ -127,18 +127,18 @@ impl NoteAssets {
                     // the provided asset to it
                     let new_asset = f_own_asset
                         .add(asset.unwrap_fungible())
-                        .map_err(NoteError::InvalidAssetData)?;
+                        .map_err(NoteError::AddFungibleAssetBalanceError)?;
                     *own_asset = Asset::Fungible(new_asset);
                 },
                 Asset::NonFungible(nf_asset) => {
-                    return Err(NoteError::duplicate_non_fungible_asset(*nf_asset));
+                    return Err(NoteError::DuplicateNonFungibleAsset(*nf_asset));
                 },
             }
         } else {
             // if the asset is not in the list, add it to the list
             self.assets.push(asset);
             if self.assets.len() > Self::MAX_NUM_ASSETS {
-                return Err(NoteError::too_many_assets(self.assets.len()));
+                return Err(NoteError::TooManyAssets(self.assets.len()));
             }
         }
 

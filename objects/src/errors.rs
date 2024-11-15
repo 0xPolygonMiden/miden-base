@@ -1,6 +1,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{error::Error, fmt};
 
+use assembly::Report;
 use thiserror::Error;
 use vm_processor::DeserializationError;
 
@@ -14,8 +15,8 @@ use super::{
 };
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
-    notes::NoteType,
-    ACCOUNT_UPDATE_MAX_SIZE,
+    notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType},
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE,
 };
 
 // ACCOUNT ERROR
@@ -176,60 +177,59 @@ pub enum AssetVaultError {
 // NOTE ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum NoteError {
+    #[error("duplicate fungible asset from issuer {0} in note")]
     DuplicateFungibleAsset(AccountId),
+    #[error("duplicate non fungible asset {0} in note")]
     DuplicateNonFungibleAsset(NonFungibleAsset),
+    #[error("note type {0:?} is inconsistent with note tag {1}")]
     InconsistentNoteTag(NoteType, u64),
-    InvalidAssetData(AssetError),
-    InvalidNoteSender(AccountError),
-    InvalidNoteTagUseCase(u16),
-    InvalidNoteExecutionHintTag(u8),
+    #[error("adding fungible asset amounts would exceed maximum allowed amount")]
+    AddFungibleAssetBalanceError(#[source] AssetError),
+    #[error("note sender is not a valid account id")]
+    NoteSenderInvalidAccountId(#[source] AccountError),
+    #[error("note tag use case {0} must be less than 2^{exp}", exp = NoteTag::MAX_USE_CASE_ID_EXPONENT)]
+    NoteTagUseCaseTooLarge(u16),
+    #[error(
+        "note execution hint tag {0} must be in range {from}..={to}",
+        from = NoteExecutionHint::NONE_TAG,
+        to = NoteExecutionHint::ON_BLOCK_SLOT_TAG,
+    )]
+    NoteExecutionHintTagOutOfRange(u8),
+    #[error("invalid note execution hint payload {1} for tag {0}")]
     InvalidNoteExecutionHintPayload(u8, u32),
-    InvalidNoteType(NoteType),
-    InvalidNoteTypeValue(u64),
-    InvalidLocationIndex(String),
-    InvalidStubDataLen(usize),
+    #[error("note type {0:b} does not match any of the valid note types {public}, {private} or {encrypted}",
+      public = NoteType::Public as u8,
+      private = NoteType::Private as u8,
+      encrypted = NoteType::Encrypted as u8,
+    )]
+    InvalidNoteType(u64),
+    #[error("note location index {node_index_in_block} is out of bounds 0..={highest_index}")]
+    NoteLocationIndexOutOfBounds {
+        node_index_in_block: u16,
+        highest_index: usize,
+    },
+    #[error("note network execution requires account stored on chain")]
     NetworkExecutionRequiresOnChainAccount,
+    #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
-    NoteDeserializationError(DeserializationError),
-    NoteScriptAssemblyError(String), // TODO: use Report
+    // TODO: This includes Report instead of returning it as source because Report does *not*
+    // implement the core::error::Error trait and so it cannot be returned as `&dyn Error`.
+    // This is still an open TODO as simply invoking the Display impl of Report will swallow most
+    // of the useful information, so we should have a custom Report printer.
+    #[error("failed to assemble note script: {0}")]
+    NoteScriptAssemblyError(Report),
+    /// TODO: Turn into #[source] once it implements Error.
+    #[error("failed to deserialize note script: {0}")]
     NoteScriptDeserializationError(DeserializationError),
+    #[error("public use case requires a public note but note is of type {0:?}")]
     PublicUseCaseRequiresPublicNote(NoteType),
+    #[error("note contains {0} assets which exceeds the maximum of {max}", max = NoteAssets::MAX_NUM_ASSETS)]
     TooManyAssets(usize),
+    #[error("note contains {0} inputs which exceeds the maximum of {max}", max = MAX_INPUTS_PER_NOTE)]
     TooManyInputs(usize),
 }
-
-impl NoteError {
-    pub fn duplicate_fungible_asset(faucet_id: AccountId) -> Self {
-        Self::DuplicateFungibleAsset(faucet_id)
-    }
-
-    pub fn duplicate_non_fungible_asset(asset: NonFungibleAsset) -> Self {
-        Self::DuplicateNonFungibleAsset(asset)
-    }
-
-    pub fn invalid_location_index(msg: String) -> Self {
-        Self::InvalidLocationIndex(msg)
-    }
-
-    pub fn too_many_assets(num_assets: usize) -> Self {
-        Self::TooManyAssets(num_assets)
-    }
-
-    pub fn too_many_inputs(num_inputs: usize) -> Self {
-        Self::TooManyInputs(num_inputs)
-    }
-}
-
-impl fmt::Display for NoteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for NoteError {}
 
 // CHAIN MMR ERROR
 // ================================================================================================

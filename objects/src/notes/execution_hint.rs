@@ -99,7 +99,7 @@ impl NoteExecutionHint {
 
                 Ok(hint)
             },
-            _ => Err(NoteError::InvalidNoteExecutionHintTag(tag)),
+            _ => Err(NoteError::NoteExecutionHintTagOutOfRange(tag)),
         }
     }
 

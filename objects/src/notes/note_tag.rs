@@ -65,6 +65,13 @@ pub enum NoteExecutionMode {
 pub struct NoteTag(u32);
 
 impl NoteTag {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// The exponent of the maximum allowed use case id. In other words, 2^exponent is the maximum
+    /// allowed use case id.
+    pub(crate) const MAX_USE_CASE_ID_EXPONENT: u8 = 14;
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -127,7 +134,7 @@ impl NoteTag {
         execution: NoteExecutionMode,
     ) -> Result<Self, NoteError> {
         if (use_case_id >> 14) != 0 {
-            return Err(NoteError::InvalidNoteTagUseCase(use_case_id));
+            return Err(NoteError::NoteTagUseCaseTooLarge(use_case_id));
         }
 
         let execution_bits = match execution {
@@ -150,10 +157,10 @@ impl NoteTag {
     ///
     /// # Errors
     ///
-    /// - If `use_case_id` is larger than or equal to $2^{14}$.
+    /// - If `use_case_id` is larger than or equal to 2^14.
     pub fn for_local_use_case(use_case_id: u16, payload: u16) -> Result<Self, NoteError> {
-        if (use_case_id >> 14) != 0 {
-            return Err(NoteError::InvalidNoteTagUseCase(use_case_id));
+        if (use_case_id >> NoteTag::MAX_USE_CASE_ID_EXPONENT) != 0 {
+            return Err(NoteError::NoteTagUseCaseTooLarge(use_case_id));
         }
 
         let execution_bits = LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED;
@@ -464,11 +471,11 @@ mod tests {
 
         assert_matches!(
           NoteTag::for_public_use_case(1 << 15, 0b0, NoteExecutionMode::Local).unwrap_err(),
-          NoteError::InvalidNoteTagUseCase(use_case) if use_case == 1 << 15
+          NoteError::NoteTagUseCaseTooLarge(use_case) if use_case == 1 << 15
         );
         assert_matches!(
           NoteTag::for_public_use_case(1 << 14, 0b0, NoteExecutionMode::Local).unwrap_err(),
-          NoteError::InvalidNoteTagUseCase(use_case) if use_case == 1 << 14
+          NoteError::NoteTagUseCaseTooLarge(use_case) if use_case == 1 << 14
         );
     }
 
@@ -495,11 +502,11 @@ mod tests {
 
         assert_matches!(
           NoteTag::for_local_use_case(1 << 15, 0b0).unwrap_err(),
-          NoteError::InvalidNoteTagUseCase(use_case) if use_case == 1 << 15
+          NoteError::NoteTagUseCaseTooLarge(use_case) if use_case == 1 << 15
         );
         assert_matches!(
           NoteTag::for_local_use_case(1 << 14, 0b0).unwrap_err(),
-          NoteError::InvalidNoteTagUseCase(use_case) if use_case == 1 << 14
+          NoteError::NoteTagUseCaseTooLarge(use_case) if use_case == 1 << 14
         );
     }
 
