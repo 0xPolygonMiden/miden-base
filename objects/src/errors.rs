@@ -176,7 +176,7 @@ pub enum AssetVaultError {
 // NOTE ERROR
 // ================================================================================================
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
@@ -388,46 +388,20 @@ impl std::error::Error for ProvenTransactionError {}
 // BLOCK VALIDATION ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum BlockError {
+    #[error("duplicate note with id {0} in the block")]
     DuplicateNoteFound(NoteId),
+    #[error("too many accounts updated in the block (max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {0})")]
     TooManyAccountUpdates(usize),
+    #[error("too many notes in the batch (max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {0})")]
     TooManyNotesInBatch(usize),
+    #[error("too many notes in the block (max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {0})")]
     TooManyNotesInBlock(usize),
+    #[error("too many nullifiers in the block (max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {0})")]
     TooManyNullifiersInBlock(usize),
+    #[error(
+        "too many transaction batches in the block (max: {MAX_BATCHES_PER_BLOCK}, actual: {0})"
+    )]
     TooManyTransactionBatches(usize),
 }
-
-impl fmt::Display for BlockError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            BlockError::DuplicateNoteFound(id) => {
-                write!(f, "Duplicate note {id} found in the block")
-            },
-            BlockError::TooManyAccountUpdates(actual) => {
-                write!(f, "Too many accounts updated in a block. Max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {actual}")
-            },
-            BlockError::TooManyNotesInBatch(actual) => {
-                write!(f, "Too many notes in a batch. Max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {actual}")
-            },
-            BlockError::TooManyNotesInBlock(actual) => {
-                write!(f, "Too many notes in a block. Max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {actual}")
-            },
-            BlockError::TooManyNullifiersInBlock(actual) => {
-                write!(
-                    f,
-                    "Too many nullifiers in a block. Max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {actual}"
-                )
-            },
-            BlockError::TooManyTransactionBatches(actual) => {
-                write!(
-                    f,
-                    "Too many transaction batches. Max: {MAX_BATCHES_PER_BLOCK}, actual: {actual}"
-                )
-            },
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for BlockError {}
