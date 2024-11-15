@@ -189,9 +189,12 @@ fn executed_transaction_account_delta_new() {
 
     let note_types = [NoteType::Private; 3];
 
-    assert_eq!(tag1.validate(NoteType::Private), Ok(tag1));
-    assert_eq!(tag2.validate(NoteType::Private), Ok(tag2));
-    assert_eq!(tag3.validate(NoteType::Private), Ok(tag3));
+    tag1.validate(NoteType::Private)
+        .expect("note tag 1 should support private notes");
+    tag2.validate(NoteType::Private)
+        .expect("note tag 2 should support private notes");
+    tag3.validate(NoteType::Private)
+        .expect("note tag 3 should support private notes");
 
     let execution_hint_1 = Felt::from(NoteExecutionHint::always());
     let execution_hint_2 = Felt::from(NoteExecutionHint::none());
@@ -466,7 +469,7 @@ fn test_send_note_proc() {
     let aux = Felt::new(27);
     let note_type = NoteType::Private;
 
-    assert_eq!(tag.validate(note_type), Ok(tag));
+    tag.validate(note_type).expect("note tag should support private notes");
 
     // prepare the asset vector to be removed for each test variant
     let assets_matrix = vec![
@@ -627,9 +630,9 @@ fn executed_transaction_output_notes() {
     let note_type2 = NoteType::Public;
     let note_type3 = NoteType::Public;
 
-    assert_eq!(tag1.validate(note_type1), Ok(tag1));
-    assert_eq!(tag2.validate(note_type2), Ok(tag2));
-    assert_eq!(tag3.validate(note_type3), Ok(tag3));
+    tag1.validate(note_type1).expect("note tag 1 should support private notes");
+    tag2.validate(note_type2).expect("note tag 2 should support public notes");
+    tag3.validate(note_type3).expect("note tag 3 should support public notes");
 
     // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public
     // without assets.

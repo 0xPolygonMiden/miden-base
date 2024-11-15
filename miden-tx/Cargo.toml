@@ -36,5 +36,6 @@ winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]
 assembly = { workspace = true }
+assert_matches = { workspace = true }
 miden-tx = { path = ".", features = ["testing"] }
 rand_chacha = { version = "0.3", default-features = false }

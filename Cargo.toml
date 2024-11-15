@@ -43,3 +43,4 @@ miden-verifier = { version = "0.11", default-features = false }
 rand = { version = "0.8", default-features = false }
 vm-core = { package = "miden-core", version = "0.11", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.11", default-features = false }
+assert_matches = { version = "1.5.0", default-features = false }

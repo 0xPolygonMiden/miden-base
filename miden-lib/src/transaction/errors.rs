@@ -8,7 +8,7 @@ use miden_objects::{
 // TRANSACTION KERNEL ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum TransactionKernelError {
     AccountDeltaError(AccountDeltaError),
     FailedToAddAssetToNote(NoteError),
@@ -123,7 +123,7 @@ impl std::error::Error for TransactionKernelError {}
 // TRANSACTION EVENT PARSING ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum TransactionEventParsingError {
     InvalidTransactionEvent(u32),
     NotTransactionEvent(u32),
@@ -148,7 +148,7 @@ impl std::error::Error for TransactionEventParsingError {}
 // TRANSACTION TRACE PARSING ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum TransactionTraceParsingError {
     InvalidTransactionTrace(u32),
     NotTransactionTrace(u32),

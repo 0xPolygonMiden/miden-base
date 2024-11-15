@@ -1,3 +1,4 @@
+use assert_matches::assert_matches;
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
@@ -366,10 +367,10 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
     let nonfungible = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
     let non_existent_non_fungible_asset = Asset::NonFungible(nonfungible);
 
-    assert_eq!(
-        account_vault.remove_asset(non_existent_non_fungible_asset),
-        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
-        "Asset must not be in the vault before the test",
+    assert_matches!(
+        account_vault.remove_asset(non_existent_non_fungible_asset).unwrap_err(),
+        AssetVaultError::NonFungibleAssetNotFound(err_asset) if err_asset == nonfungible,
+        "asset must not be in the vault before the test",
     );
 
     let code = format!(
@@ -389,10 +390,10 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
     let process = tx_context.execute_code(&code);
 
     assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND);
-    assert_eq!(
-        account_vault.remove_asset(non_existent_non_fungible_asset),
-        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
-        "Asset should not be in the vault after the test",
+    assert_matches!(
+        account_vault.remove_asset(non_existent_non_fungible_asset).unwrap_err(),
+        AssetVaultError::NonFungibleAssetNotFound(err_asset) if err_asset == nonfungible,
+        "asset should not be in the vault after the test",
     );
 }
 

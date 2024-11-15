@@ -43,3 +43,4 @@ criterion = { version = "0.5", default-features = false, features = ["html_repor
 miden-objects = { path = ".", features = ["testing"] }
 rstest = { version = "0.23" }
 tempfile = { version = "3.14" }
+assert_matches = { workspace = true }

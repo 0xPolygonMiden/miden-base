@@ -11,7 +11,7 @@ use vm_processor::ExecutionError;
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionExecutorError {
     ExecuteTransactionProgramFailed(ExecutionError),
     FetchTransactionInputsFailed(DataStoreError),
@@ -39,7 +39,7 @@ impl std::error::Error for TransactionExecutorError {}
 // TRANSACTION PROVER ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionProverError {
     InternalError(String),
     InvalidAccountDelta(AccountError),
@@ -80,7 +80,7 @@ impl std::error::Error for TransactionProverError {}
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionVerifierError {
     TransactionVerificationFailed(VerificationError),
     InsufficientProofSecurityLevel(u32, u32),
@@ -98,7 +98,7 @@ impl std::error::Error for TransactionVerifierError {}
 // TRANSACTION HOST ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionHostError {
     AccountProcedureIndexMapError(String),
 }
@@ -115,7 +115,7 @@ impl std::error::Error for TransactionHostError {}
 // DATA STORE ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum DataStoreError {
     AccountNotFound(AccountId),
     BlockNotFound(u32),
@@ -137,7 +137,7 @@ impl std::error::Error for DataStoreError {}
 // AUTHENTICATION ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum AuthenticationError {
     InternalError(String),
     RejectedSignature(String),
