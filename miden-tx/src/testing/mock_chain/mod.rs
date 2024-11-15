@@ -7,7 +7,8 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountType, AuthSecretKey
+        delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
+        AccountId, AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
@@ -376,9 +377,8 @@ impl MockChain {
 
     /// Adds a new wallet with the specified authentication method and assets.
     pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder = AccountBuilder::new()
-            .init_seed(self.rng.gen())
-            .with_component(BasicWallet);
+        let account_builder =
+            AccountBuilder::new().init_seed(self.rng.gen()).with_component(BasicWallet);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::New)
     }
