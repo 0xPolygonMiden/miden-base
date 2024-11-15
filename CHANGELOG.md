@@ -5,13 +5,13 @@
 ### Changes
 
 - [BREAKING] Better error display when queues are full in the prover service (#967).
+- [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 
 ## 0.6.1 (2024-11-08)
 
 ### Features
 
 - [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
-- [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 
 ### Fixes
 
