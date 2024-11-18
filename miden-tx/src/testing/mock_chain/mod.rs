@@ -55,6 +55,30 @@ pub enum Auth {
     NoAuth,
 }
 
+impl Auth {
+    /// Converts `self` into its corresponding authentication [`AccountComponent`] and a
+    /// [`BasicAuthenticator`] or `None` when [`Auth::NoAuth`] is passed.
+    fn build_component(&self) -> Option<(AccountComponent, BasicAuthenticator<ChaCha20Rng>)> {
+        match self {
+            Auth::BasicAuth => {
+                let mut rng = ChaCha20Rng::from_seed(Default::default());
+                let sec_key = SecretKey::with_rng(&mut rng);
+                let pub_key = sec_key.public_key();
+
+                let component = RpoFalcon512::new(pub_key).into();
+
+                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
+                    &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
+                    rng,
+                );
+
+                Some((component, authenticator))
+            },
+            Auth::NoAuth => None,
+        }
+    }
+}
+
 // MOCK FUNGIBLE FAUCET
 // ================================================================================================
 
@@ -439,7 +463,7 @@ impl MockChain {
             .init_seed(self.rng.gen())
             .account_type(AccountType::FungibleFaucet);
 
-        let authenticator = match Self::build_authentication_component(auth_method) {
+        let authenticator = match auth_method.build_component() {
             Some((auth_component, authenticator)) => {
                 account_builder = account_builder.with_component(auth_component);
                 Some(authenticator)
@@ -474,7 +498,7 @@ impl MockChain {
         mut account_builder: AccountBuilder,
         account_state: AccountState,
     ) -> Account {
-        let authenticator = match Self::build_authentication_component(auth_method) {
+        let authenticator = match auth_method.build_component() {
             Some((auth_component, authenticator)) => {
                 account_builder = account_builder.with_component(auth_component);
                 Some(authenticator)
@@ -503,30 +527,6 @@ impl MockChain {
             AccountUpdateDetails::New(account),
             vec![],
         ));
-    }
-
-    /// Convert `auth_method` into its corresponding authentication [`AccountComponent`] and a
-    /// [`BasicAuthenticator`] or `None` when [`Auth::NoAuth`] is passed.
-    fn build_authentication_component(
-        auth_method: Auth,
-    ) -> Option<(AccountComponent, BasicAuthenticator<ChaCha20Rng>)> {
-        match auth_method {
-            Auth::BasicAuth => {
-                let mut rng = ChaCha20Rng::from_seed(Default::default());
-                let sec_key = SecretKey::with_rng(&mut rng);
-                let pub_key = sec_key.public_key();
-
-                let component = RpoFalcon512::new(pub_key).into();
-
-                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
-                    &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
-                    rng,
-                );
-
-                Some((component, authenticator))
-            },
-            Auth::NoAuth => None,
-        }
     }
 
     /// Initializes a [TransactionContextBuilder].
