@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{error::Error, fmt};
 
-use assembly::Report;
+use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
 use thiserror::Error;
 use vm_processor::DeserializationError;
 
@@ -139,13 +139,13 @@ pub enum AssetError {
     InvalidFaucetAccountId(#[source] Box<dyn Error>),
     #[error(
       "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for fungible assets",
-      id_type = _0.account_type(),
+      id_type = .0.account_type(),
       expected_ty = AccountType::FungibleFaucet
     )]
     FungibleFaucetIdTypeMismatch(AccountId),
     #[error(
       "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for non fungible assets",
-      id_type = _0.account_type(),
+      id_type = .0.account_type(),
       expected_ty = AccountType::NonFungibleFaucet
     )]
     NonFungibleFaucetIdTypeMismatch(AccountId),
@@ -214,11 +214,7 @@ pub enum NoteError {
     NetworkExecutionRequiresOnChainAccount,
     #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
-    // TODO: This includes Report instead of returning it as source because Report does *not*
-    // implement the core::error::Error trait and so it cannot be returned as `&dyn Error`.
-    // This is still an open TODO as simply invoking the Display impl of Report will swallow most
-    // of the useful information, so we should have a custom Report printer.
-    #[error("failed to assemble note script: {0}")]
+    #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]
     NoteScriptAssemblyError(Report),
     /// TODO: Turn into #[source] once it implements Error.
     #[error("failed to deserialize note script: {0}")]
@@ -261,19 +257,11 @@ impl ChainMmrError {
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum TransactionScriptError {
-    AssemblyError(String), // TODO: change to Report
+    #[error("failed to assemble transaction script:\n{}", PrintDiagnostic::new(.0))]
+    AssemblyError(Report),
 }
-
-impl fmt::Display for TransactionScriptError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionScriptError {}
 
 // TRANSACTION INPUT ERROR
 // ================================================================================================
