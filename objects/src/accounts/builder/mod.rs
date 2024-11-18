@@ -182,8 +182,8 @@ impl AccountBuilder {
 impl AccountBuilder {
     /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
     ///
-    /// Must only be called when nonce is non-[`Felt::ZERO`] since new accounts must have an empty
-    /// vault.
+    /// Must only be used when using [`Self::build_existing`] instead of [`Self::build`] since new
+    /// accounts must have an empty vault.
     pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
