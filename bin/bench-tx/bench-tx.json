@@ -7,7 +7,7 @@
       "0xbb5e3d1981ff0554ee88484ff417b5810e48f8c3b1ac34e23788bf6441f31974": 869
     },
     "tx_script_processing": 47,
-    "epilogue": 2425
+    "epilogue": 2434
   },
   "p2id": {
     "prologue": 2601,
@@ -15,7 +15,7 @@
     "note_execution": {
       "0xb380bacdb610da889051ff4c4ae946130bc0921bf3192beedd3155400297e7ca": 1376
     },
-    "tx_script_processing": 89149,
-    "epilogue": 414
+    "tx_script_processing": 89189,
+    "epilogue": 423
   }
 }
