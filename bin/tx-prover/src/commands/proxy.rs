@@ -1,10 +1,5 @@
 use clap::Parser;
-use pingora::{
-    apps::HttpServerOptions,
-    lb::Backend,
-    prelude::Opt,
-    server::Server,
-};
+use pingora::{apps::HttpServerOptions, lb::Backend, prelude::Opt, server::Server};
 use pingora_proxy::http_proxy_service;
 
 use crate::{proxy::LoadBalancer, utils::load_config_from_file};
