@@ -1,6 +1,9 @@
 use alloc::{collections::BTreeMap, string::String};
 
-use miden_lib::transaction::memory::CURRENT_INPUT_NOTE_PTR;
+use miden_lib::{
+    errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
+    transaction::memory::CURRENT_INPUT_NOTE_PTR,
+};
 use miden_objects::{
     notes::Note, testing::prepare_word, transaction::TransactionArgs, Hasher, WORD_SIZE,
 };
@@ -9,7 +12,6 @@ use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 use super::{Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
-    errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },

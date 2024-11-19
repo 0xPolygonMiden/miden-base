@@ -1,4 +1,13 @@
-use miden_lib::transaction::memory;
+use miden_lib::{
+    errors::tx_kernel_errors::{
+        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
+        ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
+        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND,
+    },
+    transaction::memory,
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -17,15 +26,7 @@ use miden_objects::{
 
 use super::{Felt, Word, ONE, ZERO};
 use crate::{
-    assert_execution_error,
-    errors::tx_kernel_errors::{
-        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
-        ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
-        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET,
-        ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS,
-        ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND,
-    },
-    testing::TransactionContextBuilder,
+    assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
 };
 

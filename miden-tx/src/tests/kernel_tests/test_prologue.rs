@@ -2,6 +2,11 @@ use alloc::collections::BTreeMap;
 
 use miden_lib::{
     accounts::wallets::BasicWallet,
+    errors::tx_kernel_errors::{
+        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
+        ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
+        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
+    },
     transaction::{
         memory::{
             MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
@@ -41,11 +46,6 @@ use vm_processor::{AdviceInputs, ONE};
 use super::{Felt, Process, Word, ZERO};
 use crate::{
     assert_execution_error,
-    errors::tx_kernel_errors::{
-        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
-        ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
-        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
-    },
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
