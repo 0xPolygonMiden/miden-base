@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{boxed::Box, string::String};
 use core::{error::Error, fmt};
 
 use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
@@ -286,7 +286,9 @@ pub enum TransactionInputError {
     InputNoteNotInBlock(NoteId, u32),
     #[error("account id computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountError),
-    #[error("total number of input notes is {0} which exceeds the maximum of {max}", max = MAX_INPUT_NOTES_PER_TX)]
+    #[error(
+        "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
+    )]
     TooManyInputNotes(usize),
 }
 
@@ -305,69 +307,47 @@ pub enum TransactionOutputError {
     OutputNotesCommitmentInconsistent { expected: Digest, actual: Digest },
     #[error("transaction kernel output stack is invalid: {0}")]
     OutputStackInvalid(String),
-    #[error("total number of output notes is {0} which exceeds the maximum of {max}", max = MAX_OUTPUT_NOTES_PER_TX)]
+    #[error("total number of output notes is {0} which exceeds the maximum of {MAX_OUTPUT_NOTES_PER_TX}")]
     TooManyOutputNotes(usize),
 }
 
 // PROVEN TRANSACTION ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ProvenTransactionError {
-    AccountFinalHashMismatch(Digest, Digest),
-    AccountIdMismatch(AccountId, AccountId),
+    #[error("proven transaction's final account hash {tx_final_hash} and account details hash {details_hash} must match")]
+    AccountFinalHashMismatch {
+        tx_final_hash: Digest,
+        details_hash: Digest,
+    },
+    #[error("proven transaction's final account id {tx_account_id} and account details id {details_account_id} must match")]
+    AccountIdMismatch {
+        tx_account_id: AccountId,
+        details_account_id: AccountId,
+    },
+    #[error("failed to construct input notes for proven transaction")]
     InputNotesError(TransactionInputError),
-    NoteDetailsForUnknownNotes(Vec<NoteId>),
+    #[error("off-chain account {0} should not have account details")]
     OffChainAccountWithDetails(AccountId),
+    #[error("on-chain account {0} is missing its account details")]
     OnChainAccountMissingDetails(AccountId),
+    #[error("new on-chain account {0} is missing its account details")]
     NewOnChainAccountRequiresFullDetails(AccountId),
+    #[error(
+        "existing on-chain account {0} should only provide delta updates instead of full details"
+    )]
     ExistingOnChainAccountRequiresDeltaDetails(AccountId),
+    #[error("failed to construct output notes for proven transaction")]
     OutputNotesError(TransactionOutputError),
-    AccountUpdateSizeLimitExceeded(AccountId, usize),
+    #[error(
+      "account update of size {update_size} for account {account_id} exceeds maximum update size of {ACCOUNT_UPDATE_MAX_SIZE}",
+    )]
+    AccountUpdateSizeLimitExceeded {
+        account_id: AccountId,
+        update_size: usize,
+    },
 }
-
-impl fmt::Display for ProvenTransactionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ProvenTransactionError::AccountFinalHashMismatch(account_final_hash, details_hash) => {
-                write!(f, "Proven transaction account_final_hash {account_final_hash} and account_details.hash must match {details_hash}.")
-            },
-            ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
-                write!(
-                    f,
-                    "Proven transaction account_id {tx_id} and account_details.id must match {details_id}.",
-                )
-            },
-            ProvenTransactionError::InputNotesError(inner) => {
-                write!(f, "Invalid input notes: {inner}")
-            },
-            ProvenTransactionError::NoteDetailsForUnknownNotes(note_ids) => {
-                write!(f, "Note details for unknown note ids: {note_ids:?}")
-            },
-            ProvenTransactionError::OffChainAccountWithDetails(account_id) => {
-                write!(f, "Off-chain account {account_id} should not have account details")
-            },
-            ProvenTransactionError::OnChainAccountMissingDetails(account_id) => {
-                write!(f, "On-chain account {account_id} missing account details")
-            },
-            ProvenTransactionError::OutputNotesError(inner) => {
-                write!(f, "Invalid output notes: {inner}")
-            },
-            ProvenTransactionError::NewOnChainAccountRequiresFullDetails(account_id) => {
-                write!(f, "New on-chain account {account_id} missing full details")
-            },
-            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
-                write!(f, "Existing on-chain account {account_id} should only provide deltas")
-            },
-            ProvenTransactionError::AccountUpdateSizeLimitExceeded(account_id, size) => {
-                write!(f, "Update on account {account_id} of size {size} exceeds the allowed limit of {ACCOUNT_UPDATE_MAX_SIZE}")
-            },
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ProvenTransactionError {}
 
 // BLOCK VALIDATION ERROR
 // ================================================================================================
