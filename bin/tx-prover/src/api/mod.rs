@@ -53,9 +53,6 @@ impl ProverApi for ProverRpcApi {
 
         let proof = prover.prove(transaction_witness).map_err(internal_error)?;
 
-        // Sleep for 1 second to simulate a long computation
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
     }
 }
