@@ -17,7 +17,7 @@ use.miden::kernel_proc_offsets
 #!   allowed.
 #! - for non-fungible faucets if the non-fungible asset being minted already exists.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.mint
     exec.kernel_proc_offsets::mint_asset_offset
     # => [offset, ASSET]
@@ -52,7 +52,7 @@ end
 #! - for non-fungible faucets if the non-fungible asset being burned does not exist or was not
 #!   provided as input to the transaction via a note or the accounts vault.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.burn
     exec.kernel_proc_offsets::burn_asset_offset
     # => [offset, ASSET]
@@ -81,7 +81,7 @@ end
 #! Panics if:
 #! - the transaction is not being executed against a fungible faucet.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.get_total_issuance
     # pad the stack
     padw padw padw push.0.0.0

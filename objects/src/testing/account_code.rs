@@ -138,7 +138,9 @@ pub(crate) const MOCK_ACCOUNT_CODE: &str = "
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "
     begin
+        padw padw padw padw
         call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+        dropw dropw dropw dropw
     end
 ";
 

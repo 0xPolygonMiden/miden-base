@@ -17,7 +17,7 @@ const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
 #! Inputs:  [start_ptr, end_ptr, HASH]
 #! Outputs: []
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 proc.write_advice_data_to_memory
     # prepare the stack for reading from the advice stack
     padw padw padw
@@ -49,7 +49,7 @@ end
 #! - dest_ptr is the memory address to write the assets.
 #! - num_assets is the number of assets in the currently executing note.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.get_assets
     # pad the stack
     padw padw padw push.0.0.0
@@ -96,7 +96,7 @@ end
 #! - inputs_len, the note's input count.
 #! - INPUTS, the data corresponding to the note's inputs.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.get_inputs
     # pad the stack
     padw padw padw push.0.0.0
@@ -152,7 +152,7 @@ end
 #! Panics if:
 #! - no note is being processed.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.get_sender
     # pad the stack
     padw padw padw push.0.0.0
@@ -180,7 +180,7 @@ end
 #! Panics if:
 #! - no note is being processed.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.get_serial_number
     # pad the stack
     padw padw padw push.0.0.0
@@ -215,7 +215,7 @@ end
 #! Panics if:
 #! - num_inputs is greater than 128.
 #!
-#! Annotation hint: is used only with `exec`
+#! Annotations: exec
 export.compute_inputs_hash
     # check that number of inputs is less than 128
     dup.1 push.128 u32assert2 u32lte assert

@@ -265,8 +265,8 @@ fn test_create_consume_multiple_notes() {
 
                 push.{asset_2}
                 call.::miden::contracts::wallets::basic::move_asset_to_note
-                dropw dropw dropw dropw
                 call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+                dropw dropw dropw dropw
             end
             ",
         recipient_1 = prepare_word(&output_note_1.recipient().digest()),

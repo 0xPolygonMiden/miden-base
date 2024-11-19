@@ -1295,11 +1295,11 @@ end
 #! Returns the output note recipient.
 #!
 #! Inputs:  [output_note_data_ptr]
-#! Outputs: [R]
+#! Outputs: [RECIPIENT]
 #!
 #! Where:
 #! - output_note_data_ptr is the memory address at which the output note data begins.
-#! - R is the recipient of the output note.
+#! - RECIPIENT is the recipient of the output note.
 export.get_output_note_recipient
     padw
     movup.4 push.OUTPUT_NOTE_RECIPIENT_OFFSET add
@@ -1312,7 +1312,7 @@ end
 #! Outputs: [RECIPIENT]
 #!
 #! Where:
-#! - recipient is the recipient of the note.
+#! - RECIPIENT is the recipient of the note.
 #! - note_ptr is the memory address at which the output note data begins.
 export.set_output_note_recipient
     push.OUTPUT_NOTE_RECIPIENT_OFFSET add

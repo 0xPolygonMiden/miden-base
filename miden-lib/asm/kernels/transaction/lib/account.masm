@@ -38,8 +38,7 @@ const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002000C
 # Provided storage slot index is out of bounds
 const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002000D
 
-# Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot 
-# for faucets)
+# Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)
 const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x0002000E
 
 # Computed account code commitment does not match recorded account code commitment
@@ -246,10 +245,10 @@ export.memory::get_acct_nonce->get_nonce
 #! Returns the initial account hash.
 #!
 #! Inputs:  []
-#! Outputs: [H]
+#! Outputs: [INIT_HASH]
 #!
 #! Where:
-#! - H is the initial account hash.
+#! - INIT_HASH is the initial account hash.
 export.memory::get_init_acct_hash->get_initial_hash
 
 #! Returns a boolean indicating whether the account is a fungible faucet.
@@ -351,7 +350,7 @@ end
 #! - CODE_COMMITMENT is the hash of the code to set.
 #!
 #! Panics if:
-#! - this procedure is executed on the account which type differs from the `basic mutable`.
+#! - this procedure is executed on an account whose type differs from `regular mutable`.
 export.set_code
     # get the account id
     exec.memory::get_account_id
@@ -391,7 +390,6 @@ end
 
 #! Validates all account procedures storage metadata by checking that:
 #! - All storage offsets and sizes are in bounds.
-#! - All storage offsets adhere to account type specific rules.
 #! - All procedures not accessing storage have offset and size set to 0.
 #! - No storage offset of a faucet account's procedure is 0 with a size != 0 (to prevent access to 
 #!   the reserved storage slot).

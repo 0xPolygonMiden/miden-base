@@ -21,8 +21,7 @@ use.kernel::tx
 # ERRORS
 # =================================================================================================
 
-# For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with 
-# set_account_item
+# For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item
 const.ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED=0x00020000
 
 # The get_fungible_faucet_total_issuance procedure can only be called on a fungible faucet
@@ -57,6 +56,8 @@ const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
 #!
 #! Panics if:
 #! - the invocation of the kernel procedure does not originate from the account context.
+#!
+#! Annotations: exec
 proc.authenticate_account_origin
     # get the hash of the caller
     padw caller
@@ -77,6 +78,8 @@ end
 #!
 #! Where:
 #! - acct_id is the account id.
+#!
+#! Annotations: dynexec
 export.get_account_id
     # get the account id
     exec.account::get_id
@@ -94,6 +97,8 @@ end
 #!
 #! Where:
 #! - nonce is the account nonce.
+#!
+#! Annotations: dynexec
 export.get_account_nonce
     # get the account nonce
     exec.account::get_nonce
@@ -107,18 +112,20 @@ end
 #! Returns the initial account hash.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [H, pad(12)]
+#! Outputs: [INIT_HASH, pad(12)]
 #!
 #! Where:
-#! - H is the initial account hash.
+#! - INIT_HASH is the initial account hash.
+#!
+#! Annotations: dynexec
 export.get_initial_account_hash
     # get the initial account hash
     exec.account::get_initial_hash
-    # => [H, pad(16)]
+    # => [INIT_HASH, pad(16)]
 
     # truncate the stack
     swapw dropw
-    # => [H, pad(12)]
+    # => [INIT_HASH, pad(12)]
 end
 
 #! Computes and returns the account hash from account data stored in memory.
@@ -128,6 +135,8 @@ end
 #!
 #! Where:
 #! - ACCT_HASH is the hash of the account data.
+#!
+#! Annotations: dynexec
 export.get_current_account_hash
     # get the current account hash
     exec.account::get_current_hash
@@ -140,23 +149,25 @@ end
 
 #! Increments the account nonce by the provided value.
 #!
-#! Inputs:  [value, pad(15)]
+#! Inputs:  [increment, pad(15)]
 #! Outputs: [pad(16)]
 #!
 #! Where:
-#! - value is the value to increment the nonce by.
+#! - increment is the value to increment the nonce by.
 #!
 #! Panics if:
 #! - the invocation of this procedure does not originate from the native account.
-#! - the value is greater than 2^32 - 1
+#! - the increment is greater than 2^32 - 1.
+#!
+#! Annotations: dynexec
 export.incr_account_nonce
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-    # => [value, pad(15)]
+    # => [increment, pad(15)]
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop drop
-    # => [value, pad(15)]
+    # => [increment, pad(15)]
 
     # increment the account nonce
     exec.account::incr_nonce
@@ -174,6 +185,8 @@ end
 #!
 #! Panics if:
 #! - the index is out of bounds.
+#!
+#! Annotations: dynexec
 export.get_account_item
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
@@ -206,6 +219,8 @@ end
 #! Panics if:
 #! - the index is out of bounds.
 #! - the invocation of this procedure does not originate from the native account.
+#!
+#! Annotations: dynexec
 export.set_account_item
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -246,7 +261,9 @@ end
 #!
 #! Panics if:
 #! - the index is out of bounds (>255).
-#! - the requested storage slot type is not map
+#! - the requested storage slot type is not map.
+#!
+#! Annotations: dynexec
 export.get_account_map_item
     # check if storage type is map
     dup exec.account::get_storage_slot_type
@@ -293,9 +310,11 @@ end
 #!
 #! Panics if:
 #! - the index is out of bounds (>255).
-#! - the requested storage slot type is not map
-#! - the procedure is called from a non-account context
+#! - the requested storage slot type is not map.
+#! - the procedure is called from a non-account context.
 #! - the invocation of this procedure does not originate from the native account.
+#!
+#! Annotations: dynexec
 export.set_account_map_item.1
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -334,6 +353,8 @@ end
 #!
 #! Panics if:
 #! - the invocation of this procedure does not originate from the native account.
+#!
+#! Annotations: dynexec
 export.set_account_code
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -359,6 +380,8 @@ end
 #!
 #! Panics if:
 #! - the asset is not a fungible asset.
+#!
+#! Annotations: dynexec
 export.account_vault_get_balance
     # get the vault root
     exec.memory::get_acct_vault_root_ptr swap
@@ -375,11 +398,13 @@ end
 #! Outputs: [has_asset, pad(15)]
 #!
 #! Where:
-#! - ASSET is the non-fungible asset of interest
-#! - has_asset is a boolean indicating whether the account vault has the asset of interest
+#! - ASSET is the non-fungible asset of interest.
+#! - has_asset is a boolean indicating whether the account vault has the asset of interest.
 #!
 #! Panics if:
 #! - the ASSET is a fungible asset.
+#!
+#! Annotations: dynexec
 export.account_vault_has_non_fungible_asset
     # get the vault root
     exec.memory::get_acct_vault_root_ptr movdn.4
@@ -407,6 +432,8 @@ end
 #! - the total value of two fungible assets is greater than or equal to 2^63.
 #! - the vault already contains the same non-fungible asset.
 #! - the invocation of this procedure does not originate from the native account.
+#!
+#! Annotations: dynexec
 export.account_vault_add_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -452,6 +479,8 @@ end
 #! - the amount of the fungible asset in the vault is less than the amount to be removed.
 #! - the non-fungible asset is not found in the vault.
 #! - the invocation of this procedure does not originate from the native account.
+#!
+#! Annotations: dynexec
 export.account_vault_remove_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -490,6 +519,8 @@ end
 #!
 #! Panics if:
 #! - a note is not being processed.
+#!
+#! Annotations: dynexec
 export.get_note_assets_info
     # get the assets info
     exec.note::get_assets_info
@@ -509,6 +540,8 @@ end
 #!
 #! Where:
 #! - NOTE_INPUTS_HASH is the current note's inputs hash.
+#!
+#! Annotations: dynexec
 export.get_note_inputs_hash
     exec.note::get_note_inputs_hash
     # => [NOTE_INPUTS_HASH, pad(16)]
@@ -528,6 +561,8 @@ end
 #!
 #! Panics if:
 #! - a note is not being processed.
+#!
+#! Annotations: dynexec
 export.get_note_sender
     exec.note::get_sender 
     # => [sender, pad(16)]
@@ -544,6 +579,8 @@ end
 #!
 #! Where:
 #! - num is the last known block number.
+#!
+#! Annotations: dynexec
 export.get_block_number
     # get the block number
     exec.tx::get_block_number
@@ -561,6 +598,8 @@ end
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
+#!
+#! Annotations: dynexec
 export.get_block_hash
     exec.tx::get_block_hash
     # => [BLOCK_HASH, pad(16)]
@@ -583,6 +622,8 @@ end
 #!
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
+#!
+#! Annotations: dynexec
 export.get_input_notes_commitment
     exec.tx::get_input_notes_commitment
     # => [INPUT_NOTES_COMMITMENT, pad(16)]
@@ -600,6 +641,8 @@ end
 #!
 #! Where:
 #! - OUTPUT_NOTES_COMMITMENT is the output notes hash.
+#!
+#! Annotations: dynexec
 export.get_output_notes_commitment
     # get the output notes hash
     exec.tx::get_output_notes_commitment
@@ -626,6 +669,8 @@ end
 #! Panics if:
 #! - the procedure is called from a non-account context.
 #! - the invocation of this procedure does not originate from the native account.
+#!
+#! Annotations: dynexec
 export.create_note
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -651,6 +696,8 @@ end
 #! Panics if:
 #! - the procedure is called from a non-account context.
 #! - the invocation of this procedure does not originate from the native account.
+#!
+#! Annotations: dynexec
 export.add_asset_to_note
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -675,6 +722,8 @@ end
 #!
 #! Where:
 #! - VAULT_COMMITMENT is the commitment to the account vault.
+#!
+#! Annotations: dynexec
 export.get_account_vault_commitment
     # fetch the account vault root
     exec.memory::get_acct_vault_root
@@ -703,6 +752,8 @@ end
 #!   - if the total issuance after minting is greater than the maximum amount allowed.
 #! - For non-fungible faucets:
 #!   - if the non-fungible asset being minted already exists.
+#!
+#! Annotations: dynexec
 export.mint_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -736,6 +787,8 @@ end
 #! - For non-fungible faucets:
 #!   - the non-fungible asset being burned does not exist or was not provided as input to the
 #!     transaction via a note or the accounts vault.
+#!
+#! Annotations: dynexec
 export.burn_asset
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -761,6 +814,8 @@ end
 #!
 #! Panics if:
 #! - the transaction is not being executed against a fungible faucet.
+#!
+#! Annotations: dynexec
 export.get_fungible_faucet_total_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
     exec.account::get_id exec.account::is_fungible_faucet 
@@ -786,6 +841,8 @@ end
 #!
 #! Panics if:
 #! - no note is not being processed.
+#!
+#! Annotations: dynexec
 export.get_note_serial_number
     exec.note::get_serial_number
     # => [SERIAL_NUMBER, pad(16)]
@@ -819,13 +876,15 @@ end
 #! - VAULT_ROOT is the commitment of the foreign account's vault.
 #! - STORAGE_ROOT is the commitment of the foreign account's storage.
 #! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows:
-#!   [SLOT_VALUE, slot_type, 0, 0, 0]
+#!   [SLOT_VALUE, slot_type, 0, 0, 0].
 #! - CODE_ROOT is the commitment of the foreign account's code.
 #! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as
-#!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+#!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0].
 #!
 #! Panics if:
 #! - the current context is not a native context.
+#!
+#! Annotations: dynexec
 export.start_foreign_context
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
@@ -896,13 +955,16 @@ end
 
 #! Tells the transaction kernel that we are done executing a procedure on a foreign account.
 #!
-#! Inputs:  [...]
-#! Outputs: [...]
+#! Inputs:  [pad(16)]
+#! Outputs: [pad(16)]
 #!
 #! Panics if:
 #! - the current context is a native context.
+#!
+#! Annotations: dynexec
 export.end_foreign_context
     exec.memory::set_current_account_data_ptr_to_native_account
+    # => [pad(16)]
 end
 
 #! Updates the transaction expiration time delta.
@@ -916,6 +978,8 @@ end
 #!
 #! Where:
 #! - block_height_delta is the desired expiration time delta (1 to 0xFFFF).
+#!
+#! Annotations: dynexec
 export.update_expiration_block_num
     exec.tx::update_expiration_block_num
     # => [pad(16)]
@@ -928,6 +992,8 @@ end
 #!
 #! Where:
 #! - block_height_delta is the stored expiration time delta (1 to 0xFFFF).
+#!
+#! Annotations: dynexec
 export.get_expiration_delta
     exec.tx::get_expiration_delta
     # => [block_height_delta, pad(16)]
@@ -952,6 +1018,8 @@ end
 #!
 #! Panics if:
 #! - the provided procedure offset exceeds the number of kernel procedures.
+#!
+#! Annotations: syscall
 export.exec_kernel_proc
     # check that the provided procedure offset is within expected bounds
     dup exec.memory::get_num_kernel_procedures

@@ -37,8 +37,8 @@ pub fn prove_send_swap_note() {
 
             push.{asset}
             call.::miden::contracts::wallets::basic::move_asset_to_note
-            dropw dropw dropw dropw
             call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+            dropw dropw dropw dropw
         end
         ",
         recipient = prepare_word(&note.recipient().digest()),

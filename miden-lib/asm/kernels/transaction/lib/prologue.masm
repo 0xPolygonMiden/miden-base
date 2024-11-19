@@ -279,8 +279,8 @@ end
 #!   Operand stack: []
 #!
 #! Where:
-#! - CHAIN_MMR_HASH is the is the sequential hash of the padded MMR peaks.
-#! - num_blocks is the is the number of blocks in the MMR.
+#! - CHAIN_MMR_HASH is the sequential hash of the padded MMR peaks.
+#! - num_blocks is the number of blocks in the MMR.
 #! - PEAK_1 .. PEAK_N are the MMR peaks.
 proc.process_chain_data
     exec.memory::get_chain_mmr_ptr dup

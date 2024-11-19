@@ -275,7 +275,7 @@ end
 #! - note_idx is the index of the note the asset will be added to.
 #!
 #! Panics if
-#! - the combined quantity exceeds the maximum for fungible assets (~overflow).
+#! - the summed amounts exceed the maximum amount of fungible assets.
 proc.add_fungible_asset_to_note
     dup.4 exec.memory::get_output_note_asset_data_ptr
     # => [asset_ptr, ASSET, note_ptr, num_of_assets, note_idx]

@@ -22,8 +22,7 @@ const.ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID=0x0002001B
 # The non-fungible asset already exists in the asset vault
 const.ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x0002001C
 
-# Failed to remove the fungible asset from the vault since the amount of the asset in the vault is 
-# less than the amount to remove
+# Failed to remove the fungible asset from the vault since the amount of the asset in the vault is less than the amount to remove
 const.ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW=0x0002001D
 
 # Failed to remove fungible asset from the asset vault due to the initial value being invalid

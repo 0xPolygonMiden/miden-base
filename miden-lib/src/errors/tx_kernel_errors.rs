@@ -136,11 +136,11 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
 
     (ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY, "Asset amount to burn can not exceed the existing total supply"),
     (ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET, "The burn_non_fungible_asset procedure can only be called on a non-fungible faucet"),
-    (ERR_FAUCET_INVALID_STORAGE_OFFSET, "for faucets)"),
+    (ERR_FAUCET_INVALID_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)"),
     (ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT, "Asset mint operation would cause the new total supply to exceed the maximum allowed asset amount"),
     (ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED, "Failed to mint new non-fungible asset because it was already issued"),
     (ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND, "Failed to burn non-existent non-fungible asset in the vault"),
-    (ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED, "set_account_item"),
+    (ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED, "For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item"),
 
     (ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID, "Provided foreign account ID is equal to the native account ID."),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "ID of the provided foreign account equals zero."),
@@ -162,7 +162,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
     (ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN, "The origin of the non-fungible asset is not this faucet"),
     (ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed non-fungible asset: ASSET[1] is not a valid non-fungible faucet id"),
     (ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO, "Malformed non-fungible asset: the most significant bit must be 0"),
-    (ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "faucet"),
+    (ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "Failed to build the non-fungible asset because the provided faucet id is not from a non-fungible faucet"),
 
     (ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT, "Attempted to access note assets from incorrect context"),
     (ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT, "Attempted to access note inputs from incorrect context"),
@@ -207,7 +207,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
     (ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT, "Number of output notes in the transaction exceeds the maximum limit of 1024"),
 
     (ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID, "Failed to add fungible asset to the asset vault due to the initial value being invalid"),
-    (ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW, "less than the amount to remove"),
+    (ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW, "Failed to remove the fungible asset from the vault since the amount of the asset in the vault is less than the amount to remove"),
     (ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED, "Adding the fungible asset to the vault would exceed the max amount of 9223372036854775807"),
     (ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET, "The get_balance procedure can only be called on a fungible faucet"),
     (ERR_VAULT_HAS_NON_FUNGIBLE_ASSET_PROC_CAN_BE_CALLED_ONLY_WITH_NON_FUNGIBLE_ASSET, "The has_non_fungible_asset procedure can only be called on a non-fungible faucet"),

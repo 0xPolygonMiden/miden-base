@@ -158,11 +158,14 @@ proc.main.1
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
-    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
+
+    # truncate the stack
+    movupw.3 dropw movupw.3 dropw movup.9 drop
 
     push.9 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_END
-    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 end
 
 begin

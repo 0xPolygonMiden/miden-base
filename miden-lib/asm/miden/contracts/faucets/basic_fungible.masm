@@ -51,6 +51,8 @@ export.basic::auth_tx_rpo_falcon512
 #! Panics if:
 #! - the transaction is being executed against an account that is not a fungible asset faucet.
 #! - the total issuance after minting is greater than the maximum allowed supply.
+#!
+#! Annotations: call
 export.distribute.1
     # get max supply of this faucet. We assume it is stored at pos 3 of slot 1
     push.METADATA_SLOT exec.account::get_item drop drop drop
@@ -103,6 +105,8 @@ end
 #! - the transaction is executed against an account which is not a fungible asset faucet.
 #! - the transaction is executed against a faucet which is not the origin of the specified asset.
 #! - the amount about to be burned is greater than the outstanding supply of the asset.
+#!
+#! Annotations: call
 export.burn
     # burning the asset
     exec.faucet::burn
