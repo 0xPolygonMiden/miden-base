@@ -15,8 +15,8 @@ use super::{
 };
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
-    notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType},
-    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE,
+    notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT ERROR
@@ -266,28 +266,29 @@ pub enum TransactionScriptError {
 // TRANSACTION INPUT ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum TransactionInputError {
+    #[error("account seed must be provided for new accounts")]
     AccountSeedNotProvidedForNewAccount,
+    #[error("account seed must not be provided for existing accounts")]
     AccountSeedProvidedForExistingAccount,
-    DuplicateInputNote(Digest),
+    #[error("transaction input note with nullifier {0} is a duplicate")]
+    DuplicateInputNote(Nullifier),
+    #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
+    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
     InconsistentChainLength { expected: u32, actual: u32 },
+    #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
     InconsistentChainRoot { expected: Digest, actual: Digest },
+    #[error("block in which input note with id {0} was created is not in chain mmr")]
     InputNoteBlockNotInChainMmr(NoteId),
+    #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, u32),
-    InvalidAccountSeed(AccountError),
-    TooManyInputNotes { max: usize, actual: usize },
+    #[error("account id computed from seed is invalid")]
+    InvalidAccountIdSeed(#[source] AccountError),
+    #[error("total number of notes is {0} which exceeds the maximum of {max}", max = MAX_INPUT_NOTES_PER_TX)]
+    TooManyInputNotes(usize),
 }
-
-impl fmt::Display for TransactionInputError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionInputError {}
 
 // TRANSACTION OUTPUT ERROR
 // ===============================================================================================
