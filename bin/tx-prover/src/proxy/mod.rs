@@ -30,8 +30,6 @@ pub struct LoadBalancer {
 
 impl LoadBalancer {
     pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
-        println!("Workers: {:?}", workers);
-
         Self {
             available_workers: Arc::new(RwLock::new(workers.clone())),
             timeout_secs: Duration::from_secs(config.timeout_secs),
@@ -92,10 +90,14 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 static QUEUE: Lazy<RwLock<Vec<u64>>> = Lazy::new(|| RwLock::new(Vec::new()));
 
 /// Custom context for the request/response lifecycle
-/// We use this context to keep track of the number of tries for a request.
+/// We use this context to keep track of the number of tries for a request, the unique ID for the
+/// request, and the worker that will process the request.
 pub struct RequestContext {
+    /// Number of tries for the request
     tries: usize,
+    /// Unique ID for the request
     request_id: u64,
+    /// Worker that will process the request
     worker: Option<Backend>,
 }
 
@@ -103,20 +105,20 @@ pub struct RequestContext {
 ///
 /// At the backend-level, a request lifecycle works as follows:
 /// - When a new requests arrives, [LoadBalancer::request_filter()] method is called. In this method
-///   we apply IP-based rate-limiting to the request and assign a unique ID to it.
+///   we apply IP-based rate-limiting to the request and check if the queue is full.
 /// - Next, the [Self::upstream_peer()] method is called. We use it to figure out which worker will
-///   process the request. Inside `upstream_peer()`, we pick a worker in a round-robin fashion and
-///   add the request to the queue of requests for that worker. Once the request gets to the front
-///   of the queue, we forward it to the worker. This step is also in charge of assinging the
-///   timeouts and enabling HTTP/2. Finally, we establish a connection with the worker.
+///   process the request. Inside `upstream_peer()`, we add the request to the queue of requests.
+///  Once the request gets to the front of the queue, we forward it to an available worker. This
+///  step is also in charge of setting the SNI, timeouts, and enabling HTTP/2. Finally, we
+///  establish a connection with the worker.
 /// - Before sending the request to the upstream server and if the connection succeed, the
 ///   [Self::upstream_request_filter()] method is called. In this method, we ensure that the correct
 ///   headers are forwarded for gRPC requests.
 /// - If the connection fails, the [Self::fail_to_connect()] method is called. In this method, we
 ///   retry the request [self.max_retries_per_request] times.
 /// - Once the worker processes the request (either successfully or with a failure),
-///   [Self::logging()] method is called. In this method, we remove the request from the worker's
-///   queue, allowing the worker to process the next request.
+///   [Self::logging()] method is called. In this method, we log the request lifecycle and set the
+///   worker as available.
 #[async_trait]
 impl ProxyHttp for LoadBalancer {
     type CTX = RequestContext;
@@ -130,11 +132,10 @@ impl ProxyHttp for LoadBalancer {
 
     /// Decide whether to filter the request or not.
     ///
-    /// Here we apply IP-based rate-limiting to the request. We assign a unique ID to the request
-    /// and check if the current window requests exceed the maximum allowed requests per second.
+    /// Here we apply IP-based rate-limiting to the request. We also check if the queue is full.
     ///
     /// If the request is rate-limited, we return a 429 response. Otherwise, we return false.
-    async fn request_filter(&self, session: &mut Session, ctx: &mut Self::CTX) -> Result<bool>
+    async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool>
     where
         Self::CTX: Send + Sync,
     {
@@ -152,18 +153,9 @@ impl ProxyHttp for LoadBalancer {
         // Check if the queue is full
         {
             let queue = QUEUE.read().await;
-            println!("Queue length: {:?}", queue.len());
-            println!("Max queue items: {:?}", self.max_queue_items);
             if queue.len() >= self.max_queue_items {
                 return Self::create_queue_full_response(session).await;
             }
-        }
-        // Append the requestId to the queue
-        {
-            let mut queue = QUEUE.write().await;
-            queue.push(ctx.request_id);
-            println!("Added element: {:?}", ctx.request_id);
-            println!("Queue after adding element: {:?}", queue);
         }
 
         Ok(false)
@@ -171,9 +163,8 @@ impl ProxyHttp for LoadBalancer {
 
     /// Returns [HttpPeer] corresponding to the worker that will handle the current request.
     ///
-    /// Here we select the next worker from the pool in a round-robin fashion. We then add the
-    /// request to the worker's queue and wait until it gets to the front of it. Then, we construct
-    /// and return the [HttpPeer]. The peer is configured with timeouts, and HTTP/2.
+    /// Here we enqueue the request and wait for it to be at the front of the queue and a worker
+    /// becomes available. We then set the SNI, timeouts, and enable HTTP/2.
     ///
     /// Note that the request is not removed from the queue here. It will be returned later in
     /// [Self::logging()] once the worker processes the it.
@@ -182,22 +173,19 @@ impl ProxyHttp for LoadBalancer {
         _session: &mut Session,
         ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
-        // If it's a retry, append the requestId to the queue
-        if ctx.tries > 0 {
-            let mut queue = QUEUE.write().await;
-            queue.push(ctx.request_id);
-        }
-
-        // Read request ID from headers
         let request_id = ctx.request_id;
+
+        // Add the request to the queue.
+        {
+            let mut queue = QUEUE.write().await;
+            queue.push(request_id);
+        }
 
         // Wait for the request to be at the front of the queue
         loop {
-            println!("Looping...");
             // We use a new scope for each iteration to release the lock before sleeping
             {
                 let queue = QUEUE.read().await;
-                println!("Queue in loop: {:?}", queue);
                 // The request is at the front of the queue.
                 if queue[0] != request_id {
                     continue;
@@ -205,13 +193,9 @@ impl ProxyHttp for LoadBalancer {
 
                 // Check if there is an available worker
                 if let Some(worker) = self.get_available_worker().await {
-                    println!("Worker selected: {:?}", worker);
                     ctx.worker = Some(worker.clone());
-                    println!("break");
                     break;
                 }
-
-                println!("No available workers");
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
@@ -239,7 +223,6 @@ impl ProxyHttp for LoadBalancer {
         peer_opts.alpn = ALPN::H2;
 
         let peer = Box::new(http_peer);
-        println!("Peer  {:?}", peer);
         Ok(peer)
     }
 
@@ -285,8 +268,7 @@ impl ProxyHttp for LoadBalancer {
         e
     }
 
-    /// Logs the request lifecycle in case that an error happened and removes the request from the
-    /// worker queue.
+    /// Logs the request lifecycle in case that an error happened and sets the worker as available.
     ///
     /// This method is the last one in the request lifecycle, no matter if the request was
     /// processed or not.
