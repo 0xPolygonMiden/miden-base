@@ -16,7 +16,7 @@ use super::{
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
-    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX,
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT ERROR
@@ -286,33 +286,28 @@ pub enum TransactionInputError {
     InputNoteNotInBlock(NoteId, u32),
     #[error("account id computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountError),
-    #[error("total number of notes is {0} which exceeds the maximum of {max}", max = MAX_INPUT_NOTES_PER_TX)]
+    #[error("total number of input notes is {0} which exceeds the maximum of {max}", max = MAX_INPUT_NOTES_PER_TX)]
     TooManyInputNotes(usize),
 }
 
 // TRANSACTION OUTPUT ERROR
 // ===============================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum TransactionOutputError {
+    #[error("transaction output note with id {0} is a duplicate")]
     DuplicateOutputNote(NoteId),
-    FinalAccountDataNotFound,
-    FinalAccountHeaderDataInvalid(AccountError),
-    OutputNoteDataNotFound,
-    OutputNoteDataInvalid(NoteError),
-    OutputNotesCommitmentInconsistent(Digest, Digest),
+    #[error("final account hash is not in the advice map")]
+    FinalAccountHashMissingInAdviceMap,
+    #[error("failed to parse final account header")]
+    FinalAccountHeaderParseFailure(#[source] AccountError),
+    #[error("output notes commitment {expected} from kernel does not match computed commitment {actual}")]
+    OutputNotesCommitmentInconsistent { expected: Digest, actual: Digest },
+    #[error("transaction kernel output stack is invalid: {0}")]
     OutputStackInvalid(String),
+    #[error("total number of output notes is {0} which exceeds the maximum of {max}", max = MAX_OUTPUT_NOTES_PER_TX)]
     TooManyOutputNotes(usize),
 }
-
-impl fmt::Display for TransactionOutputError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionOutputError {}
 
 // PROVEN TRANSACTION ERROR
 // ================================================================================================
