@@ -216,9 +216,8 @@ pub enum NoteError {
     NetworkExecutionRequiresPublicNote(NoteType),
     #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]
     NoteScriptAssemblyError(Report),
-    /// TODO: Turn into #[source] once it implements Error.
-    #[error("failed to deserialize note script: {0}")]
-    NoteScriptDeserializationError(DeserializationError),
+    #[error("failed to deserialize note script")]
+    NoteScriptDeserializationError(#[source] DeserializationError),
     #[error("public use case requires a public note but note is of type {0:?}")]
     PublicUseCaseRequiresPublicNote(NoteType),
     #[error("note contains {0} assets which exceeds the maximum of {max}", max = NoteAssets::MAX_NUM_ASSETS)]
