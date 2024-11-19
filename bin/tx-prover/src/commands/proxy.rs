@@ -1,6 +1,9 @@
 use clap::Parser;
 use pingora::{
-    apps::HttpServerOptions, lb::LoadBalancer as PingoraLoadBalancer, prelude::Opt, server::Server,
+    apps::HttpServerOptions,
+    lb::Backend,
+    prelude::Opt,
+    server::Server,
 };
 use pingora_proxy::http_proxy_service;
 
@@ -24,10 +27,9 @@ impl StartProxy {
         let workers = proxy_config
             .workers
             .iter()
-            .map(|worker| format!("{}:{}", worker.host, worker.port));
-
-        let workers =
-            PingoraLoadBalancer::try_from_iter(workers).expect("PROVER_WORKERS is invalid");
+            .map(|worker| format!("{}:{}", worker.host, worker.port))
+            .map(|worker| Backend::new(&worker).expect("Failed to create backend"))
+            .collect::<Vec<Backend>>();
 
         let worker_lb = LoadBalancer::new(workers, &proxy_config);
 

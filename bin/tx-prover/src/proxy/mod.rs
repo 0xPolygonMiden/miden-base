@@ -1,11 +1,11 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
     lb::Backend,
-    prelude::{LoadBalancer as PingoraLoadBalancer, *},
+    prelude::*,
     upstreams::peer::{Peer, ALPN},
 };
 use pingora_core::{upstreams::peer::HttpPeer, Result};
@@ -20,7 +20,7 @@ const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
-    lb: Arc<PingoraLoadBalancer<RoundRobin>>,
+    available_workers: Arc<RwLock<Vec<Backend>>>,
     timeout_secs: Duration,
     connection_timeout_secs: Duration,
     max_queue_items: usize,
@@ -29,9 +29,11 @@ pub struct LoadBalancer {
 }
 
 impl LoadBalancer {
-    pub fn new(workers: PingoraLoadBalancer<RoundRobin>, config: &ProxyConfig) -> Self {
+    pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
+        println!("Workers: {:?}", workers);
+
         Self {
-            lb: Arc::new(workers),
+            available_workers: Arc::new(RwLock::new(workers.clone())),
             timeout_secs: Duration::from_secs(config.timeout_secs),
             connection_timeout_secs: Duration::from_secs(config.connection_timeout_secs),
             max_queue_items: config.max_queue_items,
@@ -74,46 +76,27 @@ impl LoadBalancer {
         Err(error)
     }
 
-    /// Remove the request ID from the corresponding worker queue
-    pub async fn remove_request_from_queue(request_id: &str) {
-        let mut ctx_guard = QUEUES.write().await;
-
-        // Get the worker by checking each queue
-        let worker = ctx_guard
-            .iter()
-            .find(|(_, queue)| queue.contains(&request_id.to_string()))
-            .map(|(worker, _)| worker.clone())
-            .expect("Worker not found");
-
-        // Remove the request ID from the queue for the specific worker
-        if let Some(worker_queue) = ctx_guard.get_mut(&worker) {
-            if !worker_queue.is_empty() {
-                worker_queue.remove(0);
-            }
-        }
+    pub async fn get_available_worker(&self) -> Option<Backend> {
+        self.available_workers.write().await.pop()
     }
 
-    /// Get the request ID from the session headers
-    pub fn get_request_id(session: &Session) -> Result<&str> {
-        session
-            .get_header("X-Request-ID")
-            .ok_or(Error::new(ErrorType::InternalError))?
-            .to_str()
-            .map_err(|_| Error::new(ErrorType::InternalError))
+    pub async fn set_available_worker(&self, worker: Backend) {
+        self.available_workers.write().await.push(worker);
     }
 }
 
 /// Rate limiter
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
 
-/// Shared state. It is a map of workers to a vector of request IDs
-static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
-    Lazy::new(|| RwLock::new(HashMap::new()));
+/// Shared state. It keeps track of the order of the requests to then assign them to the workers.
+static QUEUE: Lazy<RwLock<Vec<u64>>> = Lazy::new(|| RwLock::new(Vec::new()));
 
 /// Custom context for the request/response lifecycle
 /// We use this context to keep track of the number of tries for a request.
-pub struct TriesCounter {
+pub struct RequestContext {
     tries: usize,
+    request_id: u64,
+    worker: Option<Backend>,
 }
 
 /// Implements load-balancing of incoming requests across a pool of workers.
@@ -136,9 +119,13 @@ pub struct TriesCounter {
 ///   queue, allowing the worker to process the next request.
 #[async_trait]
 impl ProxyHttp for LoadBalancer {
-    type CTX = TriesCounter;
+    type CTX = RequestContext;
     fn new_ctx(&self) -> Self::CTX {
-        TriesCounter { tries: 0 }
+        RequestContext {
+            tries: 0,
+            request_id: rand::random::<u64>(),
+            worker: None,
+        }
     }
 
     /// Decide whether to filter the request or not.
@@ -147,23 +134,38 @@ impl ProxyHttp for LoadBalancer {
     /// and check if the current window requests exceed the maximum allowed requests per second.
     ///
     /// If the request is rate-limited, we return a 429 response. Otherwise, we return false.
-    async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool>
+    async fn request_filter(&self, session: &mut Session, ctx: &mut Self::CTX) -> Result<bool>
     where
         Self::CTX: Send + Sync,
     {
         let client_addr = session.client_addr();
         let user_id = client_addr.map(|addr| addr.to_string());
 
-        // Request ID is a random number
-        let request_id = rand::random::<u64>().to_string();
-        session.req_header_mut().insert_header("X-Request-ID", request_id)?;
-
         // Retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
 
+        // Rate limit the request
         if curr_window_requests > self.max_req_per_sec {
             return Self::create_too_many_requests_response(session, self.max_req_per_sec).await;
         };
+
+        // Check if the queue is full
+        {
+            let queue = QUEUE.read().await;
+            println!("Queue length: {:?}", queue.len());
+            println!("Max queue items: {:?}", self.max_queue_items);
+            if queue.len() >= self.max_queue_items {
+                return Self::create_queue_full_response(session).await;
+            }
+        }
+        // Append the requestId to the queue
+        {
+            let mut queue = QUEUE.write().await;
+            queue.push(ctx.request_id);
+            println!("Added element: {:?}", ctx.request_id);
+            println!("Queue after adding element: {:?}", queue);
+        }
+
         Ok(false)
     }
 
@@ -177,54 +179,52 @@ impl ProxyHttp for LoadBalancer {
     /// [Self::logging()] once the worker processes the it.
     async fn upstream_peer(
         &self,
-        session: &mut Session,
+        _session: &mut Session,
         ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
+        // If it's a retry, append the requestId to the queue
         if ctx.tries > 0 {
-            Self::remove_request_from_queue(Self::get_request_id(session)?).await;
+            let mut queue = QUEUE.write().await;
+            queue.push(ctx.request_id);
         }
-
-        // Select the worker in a round-robin fashion
-        let worker = self.lb.select(b"", 256).ok_or(Error::new_str("Worker not found"))?;
 
         // Read request ID from headers
-        let request_id = {
-            let id = Self::get_request_id(session)?;
-            id.to_string()
-        };
-
-        // Enqueue the request ID in the worker queue
-        // We use a new scope to release the lock after the operation
-        {
-            let mut ctx_guard = QUEUES.write().await;
-            let worker_queue = ctx_guard.entry(worker.clone()).or_insert_with(Vec::new);
-
-            // Limit queue length
-            if worker_queue.len() >= self.max_queue_items {
-                Self::create_queue_full_response(session).await?;
-            }
-
-            worker_queue.push(request_id.to_string());
-        }
+        let request_id = ctx.request_id;
 
         // Wait for the request to be at the front of the queue
         loop {
-            // We use a new scope for each iteration to release the lock
+            println!("Looping...");
+            // We use a new scope for each iteration to release the lock before sleeping
             {
-                let ctx_guard = QUEUES.read().await;
-                if let Some(worker_queue) = ctx_guard.get(&worker) {
-                    if worker_queue[0] == request_id {
-                        break;
-                    }
-                } else {
-                    return Err(Error::new_str("Worker not found"));
+                let queue = QUEUE.read().await;
+                println!("Queue in loop: {:?}", queue);
+                // The request is at the front of the queue.
+                if queue[0] != request_id {
+                    continue;
                 }
+
+                // Check if there is an available worker
+                if let Some(worker) = self.get_available_worker().await {
+                    println!("Worker selected: {:?}", worker);
+                    ctx.worker = Some(worker.clone());
+                    println!("break");
+                    break;
+                }
+
+                println!("No available workers");
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
+        // Remove the request from the queue
+        {
+            let mut queue = QUEUE.write().await;
+            queue.remove(0);
+        }
+
         // Set SNI
-        let mut http_peer = HttpPeer::new(worker, false, "".to_string());
+        let mut http_peer =
+            HttpPeer::new(ctx.worker.clone().expect("Failed to get worker"), false, "".to_string());
         let peer_opts =
             http_peer.get_mut_peer_options().ok_or(Error::new(ErrorType::InternalError))?;
 
@@ -239,6 +239,7 @@ impl ProxyHttp for LoadBalancer {
         peer_opts.alpn = ALPN::H2;
 
         let peer = Box::new(http_peer);
+        println!("Peer  {:?}", peer);
         Ok(peer)
     }
 
@@ -289,7 +290,7 @@ impl ProxyHttp for LoadBalancer {
     ///
     /// This method is the last one in the request lifecycle, no matter if the request was
     /// processed or not.
-    async fn logging(&self, session: &mut Session, e: Option<&Error>, _ctx: &mut Self::CTX)
+    async fn logging(&self, _session: &mut Session, e: Option<&Error>, ctx: &mut Self::CTX)
     where
         Self::CTX: Send + Sync,
     {
@@ -297,12 +298,8 @@ impl ProxyHttp for LoadBalancer {
             error!("Error: {:?}", e);
         }
 
-        // Get the request ID from the session
-        let request_id = Self::get_request_id(session).expect("Request ID not found");
-
-        // Remove the completed request from the worker queue
-        // Maybe we can replace this with a read lock and using write only in the moment of the
-        // deletion.
-        Self::remove_request_from_queue(request_id).await;
+        // Mark the worker as available
+        self.set_available_worker(ctx.worker.take().expect("Failed to get worker"))
+            .await;
     }
 }
