@@ -3,7 +3,6 @@ use std::{sync::Arc, time::Duration};
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use pingora::{
-    http::ResponseHeader,
     lb::Backend,
     prelude::*,
     upstreams::peer::{Peer, ALPN},
@@ -12,11 +11,12 @@ use pingora_core::{upstreams::peer::HttpPeer, Result};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
-use tracing::error;
+use tracing::{error, info};
 
-use crate::commands::ProxyConfig;
-
-const RESOURCE_EXHAUSTED_CODE: u16 = 8;
+use crate::{
+    commands::ProxyConfig,
+    utils::{create_queue_full_response, create_too_many_requests_response},
+};
 
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
@@ -31,7 +31,7 @@ pub struct LoadBalancer {
 impl LoadBalancer {
     pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
         Self {
-            available_workers: Arc::new(RwLock::new(workers.clone())),
+            available_workers: Arc::new(RwLock::new(workers)),
             timeout_secs: Duration::from_secs(config.timeout_secs),
             connection_timeout_secs: Duration::from_secs(config.connection_timeout_secs),
             max_queue_items: config.max_queue_items,
@@ -40,54 +40,54 @@ impl LoadBalancer {
         }
     }
 
-    /// Create a 429 response for too many requests
-    pub async fn create_too_many_requests_response(
-        session: &mut Session,
-        max_request_per_second: isize,
-    ) -> Result<bool> {
-        // Rate limited, return 429
-        let mut header = ResponseHeader::build(429, None)?;
-        header.insert_header("X-Rate-Limit-Limit", max_request_per_second.to_string())?;
-        header.insert_header("X-Rate-Limit-Remaining", "0")?;
-        header.insert_header("X-Rate-Limit-Reset", "1")?;
-        session.set_keepalive(None);
-        session.write_response_header(Box::new(header), true).await?;
-        Ok(true)
-    }
-
-    /// Create a 503 response for a full queue
-    pub async fn create_queue_full_response(session: &mut Session) -> Result<bool> {
-        // Set grpc-message header to "Too many requests in the queue"
-        // This is meant to be used by a Tonic interceptor to return a gRPC error
-        let mut header = ResponseHeader::build(503, None)?;
-        header.insert_header("grpc-message", "Too many requests in the queue".to_string())?;
-        header.insert_header("grpc-status", RESOURCE_EXHAUSTED_CODE)?;
-        session.set_keepalive(None);
-        session.write_response_header(Box::new(header.clone()), true).await?;
-
-        let mut error = Error::new(ErrorType::HTTPStatus(503))
-            .more_context("Too many requests in the queue")
-            .into_in();
-        error.set_cause("Too many requests in the queue");
-
-        session.write_response_header(Box::new(header), false).await?;
-        Err(error)
-    }
-
     pub async fn get_available_worker(&self) -> Option<Backend> {
         self.available_workers.write().await.pop()
     }
 
     pub async fn set_available_worker(&self, worker: Backend) {
-        self.available_workers.write().await.push(worker);
+        let mut available_workers = self.available_workers.write().await;
+        if available_workers.contains(&worker) {
+            panic!("Worker already available - trying to duplicate worker");
+        }
+        available_workers.push(worker);
     }
 }
 
 /// Rate limiter
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
 
+/// Request queue
+pub struct RequestQueue {
+    queue: RwLock<Vec<u64>>,
+}
+
+impl RequestQueue {
+    pub fn new() -> Self {
+        Self { queue: RwLock::new(Vec::new()) }
+    }
+
+    pub async fn len(&self) -> usize {
+        self.queue.read().await.len()
+    }
+
+    pub async fn enqueue(&self, request_id: u64) {
+        let mut queue = self.queue.write().await;
+        queue.push(request_id);
+    }
+
+    pub async fn dequeue(&self) -> Option<u64> {
+        let mut queue = self.queue.write().await;
+        queue.pop()
+    }
+
+    pub async fn peek(&self) -> Option<u64> {
+        let queue = self.queue.read().await;
+        queue.first().copied()
+    }
+}
+
 /// Shared state. It keeps track of the order of the requests to then assign them to the workers.
-static QUEUE: Lazy<RwLock<Vec<u64>>> = Lazy::new(|| RwLock::new(Vec::new()));
+static QUEUE: Lazy<RequestQueue> = Lazy::new(RequestQueue::new);
 
 /// Custom context for the request/response lifecycle
 /// We use this context to keep track of the number of tries for a request, the unique ID for the
@@ -99,6 +99,20 @@ pub struct RequestContext {
     request_id: u64,
     /// Worker that will process the request
     worker: Option<Backend>,
+}
+
+impl RequestContext {
+    fn new() -> Self {
+        Self {
+            tries: 0,
+            request_id: rand::random::<u64>(),
+            worker: None,
+        }
+    }
+
+    fn set_worker(&mut self, worker: Backend) {
+        self.worker = Some(worker);
+    }
 }
 
 /// Implements load-balancing of incoming requests across a pool of workers.
@@ -123,11 +137,7 @@ pub struct RequestContext {
 impl ProxyHttp for LoadBalancer {
     type CTX = RequestContext;
     fn new_ctx(&self) -> Self::CTX {
-        RequestContext {
-            tries: 0,
-            request_id: rand::random::<u64>(),
-            worker: None,
-        }
+        RequestContext::new()
     }
 
     /// Decide whether to filter the request or not.
@@ -147,15 +157,17 @@ impl ProxyHttp for LoadBalancer {
 
         // Rate limit the request
         if curr_window_requests > self.max_req_per_sec {
-            return Self::create_too_many_requests_response(session, self.max_req_per_sec).await;
+            return create_too_many_requests_response(session, self.max_req_per_sec).await;
         };
 
+        let queue_len = QUEUE.len().await;
+
+        info!("New request with ID: {}", _ctx.request_id);
+        info!("Queue length: {}", queue_len);
+
         // Check if the queue is full
-        {
-            let queue = QUEUE.read().await;
-            if queue.len() >= self.max_queue_items {
-                return Self::create_queue_full_response(session).await;
-            }
+        if queue_len >= self.max_queue_items {
+            return create_queue_full_response(session).await;
         }
 
         Ok(false)
@@ -176,35 +188,30 @@ impl ProxyHttp for LoadBalancer {
         let request_id = ctx.request_id;
 
         // Add the request to the queue.
-        {
-            let mut queue = QUEUE.write().await;
-            queue.push(request_id);
-        }
+        QUEUE.enqueue(request_id).await;
 
         // Wait for the request to be at the front of the queue
         loop {
             // We use a new scope for each iteration to release the lock before sleeping
             {
-                let queue = QUEUE.read().await;
                 // The request is at the front of the queue.
-                if queue[0] != request_id {
+                if QUEUE.peek().await.expect("Queue should not be empty") != request_id {
                     continue;
                 }
 
                 // Check if there is an available worker
                 if let Some(worker) = self.get_available_worker().await {
-                    ctx.worker = Some(worker.clone());
+                    ctx.set_worker(worker);
+                    info!("Worker picked up the request with ID: {}", request_id);
                     break;
                 }
+                info!("All workers are busy");
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
         // Remove the request from the queue
-        {
-            let mut queue = QUEUE.write().await;
-            queue.remove(0);
-        }
+        QUEUE.dequeue().await;
 
         // Set SNI
         let mut http_peer =
