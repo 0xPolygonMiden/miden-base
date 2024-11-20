@@ -57,7 +57,8 @@ pub enum AccountError {
     FungibleFaucetMaxSupplyTooLarge { actual: u64, max: u64 },
     #[error("account header data has length {actual} but it must be of length {expected}")]
     HeaderDataIncorrectLength { actual: usize, expected: usize },
-    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in no-std.
+    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
+    // no-std.
     #[error("failed to parse hex string into account id: {0}")]
     AccountIdHexParseError(HexParseError),
     #[error("`{0}` is not a valid account storage mode")]
