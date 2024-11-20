@@ -5,6 +5,7 @@
 ### Changes
 
 - [BREAKING] Better error display when queues are full in the prover service (#967).
+- [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 
 ## 0.6.1 (2024-11-08)
 

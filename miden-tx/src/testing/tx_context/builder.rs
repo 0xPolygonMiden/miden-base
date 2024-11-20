@@ -600,7 +600,7 @@ impl TransactionContextBuilder {
 
                 let mut mock_chain = MockChain::default();
                 for i in self.input_notes {
-                    mock_chain.add_note(i);
+                    mock_chain.add_pending_note(i);
                 }
 
                 mock_chain.seal_block(None);

@@ -4,11 +4,11 @@ use std::sync::Arc;
 
 use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
 use miden_objects::{
-    accounts::{Account, AccountId, AuthSecretKey},
-    assets::{Asset, AssetVault},
+    accounts::{Account, AccountBuilder, AccountStorageMode, AccountType, AuthSecretKey},
+    assets::Asset,
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     transaction::TransactionMeasurements,
-    Felt, Word,
+    Word,
 };
 use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
 use rand::rngs::StdRng;
@@ -23,7 +23,6 @@ use super::{read_to_string, write, Benchmark, Path};
 
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0x200000000000001f; // 2305843009213693983
 pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001f; // 9223372036854775839
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0x900000000000003f; // 10376293541461622847
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "
     begin
@@ -62,22 +61,21 @@ impl From<TransactionMeasurements> for MeasurementsPrinter {
 // ================================================================================================
 
 pub fn get_account_with_basic_authenticated_wallet(
-    account_id: AccountId,
+    init_seed: [u8; 32],
+    account_type: AccountType,
+    storage_mode: AccountStorageMode,
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    let (account_code, account_storage) = Account::initialize_from_components(
-        account_id.account_type(),
-        &[BasicWallet.into(), RpoFalcon512::new(PublicKey::new(public_key)).into()],
-    )
-    .unwrap();
-
-    let account_vault = match assets {
-        Some(asset) => AssetVault::new(&[asset]).unwrap(),
-        None => AssetVault::new(&[]).unwrap(),
-    };
-
-    Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
+    AccountBuilder::new()
+        .init_seed(init_seed)
+        .account_type(account_type)
+        .storage_mode(storage_mode)
+        .with_assets(assets)
+        .with_component(BasicWallet)
+        .with_component(RpoFalcon512::new(PublicKey::new(public_key)))
+        .build_existing()
+        .unwrap()
 }
 
 pub fn get_new_pk_and_authenticator() -> (Word, Arc<dyn TransactionAuthenticator>) {

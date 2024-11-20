@@ -7,8 +7,8 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        delta::AccountUpdateDetails, Account, AccountBuilder, AccountDelta, AccountId, AccountType,
-        AuthSecretKey,
+        delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
+        AccountId, AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
@@ -22,7 +22,7 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
         TransactionId, TransactionInputs, TransactionScript,
     },
-    AccountError, BlockHeader, FieldElement, NoteError, ACCOUNT_TREE_DEPTH,
+    AccountError, BlockHeader, NoteError, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -53,6 +53,30 @@ pub enum Auth {
 
     /// Does not create any authentication mechanism for the account.
     NoAuth,
+}
+
+impl Auth {
+    /// Converts `self` into its corresponding authentication [`AccountComponent`] and a
+    /// [`BasicAuthenticator`] or `None` when [`Auth::NoAuth`] is passed.
+    fn build_component(&self) -> Option<(AccountComponent, BasicAuthenticator<ChaCha20Rng>)> {
+        match self {
+            Auth::BasicAuth => {
+                let mut rng = ChaCha20Rng::from_seed(Default::default());
+                let sec_key = SecretKey::with_rng(&mut rng);
+                let pub_key = sec_key.public_key();
+
+                let component = RpoFalcon512::new(pub_key).into();
+
+                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
+                    &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
+                    rng,
+                );
+
+                Some((component, authenticator))
+            },
+            Auth::NoAuth => None,
+        }
+    }
 }
 
 // MOCK FUNGIBLE FAUCET
@@ -270,7 +294,7 @@ impl MockChain {
     pub fn with_accounts(accounts: &[Account]) -> Self {
         let mut chain = MockChain::default();
         for acc in accounts {
-            chain.add_account(acc.clone());
+            chain.add_pending_account(acc.clone());
             chain.available_accounts.insert(
                 acc.id(),
                 MockAccount {
@@ -324,7 +348,7 @@ impl MockChain {
 
     /// Adds a public [Note] to the pending objects.
     /// A block has to be created to finalize the new entity.
-    pub fn add_note(&mut self, note: Note) {
+    pub fn add_pending_note(&mut self, note: Note) {
         self.pending_objects.output_note_batches.push(vec![OutputNote::Full(note)]);
     }
 
@@ -361,7 +385,7 @@ impl MockChain {
             )?
         };
 
-        self.add_note(note.clone());
+        self.add_pending_note(note.clone());
 
         Ok(note)
     }
@@ -377,22 +401,20 @@ impl MockChain {
 
     /// Adds a new wallet with the specified authentication method and assets.
     pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder = AccountBuilder::new()
-            .init_seed(self.rng.gen())
-            .nonce(Felt::ZERO)
-            .with_component(BasicWallet);
+        let account_builder =
+            AccountBuilder::new().init_seed(self.rng.gen()).with_component(BasicWallet);
 
-        self.add_from_account_builder(auth_method, account_builder)
+        self.add_from_account_builder(auth_method, account_builder, AccountState::New)
     }
 
     /// Adds an existing wallet (nonce == 1) with the specified authentication method and assets.
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new()
             .init_seed(self.rng.gen())
-            .nonce(Felt::ONE)
             .with_component(BasicWallet)
             .with_assets(assets);
-        self.add_from_account_builder(auth_method, account_builder)
+
+        self.add_from_account_builder(auth_method, account_builder, AccountState::Exists)
     }
 
     /// Adds a new faucet with the specified authentication method and metadata.
@@ -404,7 +426,6 @@ impl MockChain {
     ) -> MockFungibleFaucet {
         let account_builder = AccountBuilder::new()
             .init_seed(self.rng.gen())
-            .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
             .with_component(
                 BasicFungibleFaucet::new(
@@ -415,7 +436,11 @@ impl MockChain {
                 .unwrap(),
             );
 
-        MockFungibleFaucet(self.add_from_account_builder(auth_method, account_builder))
+        MockFungibleFaucet(self.add_from_account_builder(
+            auth_method,
+            account_builder,
+            AccountState::New,
+        ))
     }
 
     /// Adds an existing (nonce == 1) faucet with the specified authentication method and metadata.
@@ -426,7 +451,7 @@ impl MockChain {
         max_supply: u64,
         total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        let account_builder = AccountBuilder::new()
+        let mut account_builder = AccountBuilder::new()
             .with_component(
                 BasicFungibleFaucet::new(
                     TokenSymbol::new(token_symbol).unwrap(),
@@ -435,33 +460,17 @@ impl MockChain {
                 )
                 .unwrap(),
             )
-            .nonce(Felt::ONE)
             .init_seed(self.rng.gen())
             .account_type(AccountType::FungibleFaucet);
 
-        let (mut account, seed, authenticator) = match auth_method {
-            Auth::BasicAuth => {
-                let mut rng = ChaCha20Rng::from_seed(Default::default());
-                let sec_key = SecretKey::with_rng(&mut rng);
-                let pub_key = sec_key.public_key();
-
-                let (acc, seed) = account_builder
-                    .with_component(RpoFalcon512::new(pub_key))
-                    .build_testing()
-                    .unwrap();
-
-                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
-                    &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
-                    rng,
-                );
-
-                (acc, seed, Some(authenticator))
+        let authenticator = match auth_method.build_component() {
+            Some((auth_component, authenticator)) => {
+                account_builder = account_builder.with_component(auth_component);
+                Some(authenticator)
             },
-            Auth::NoAuth => {
-                let (account, seed) = account_builder.build_testing().unwrap();
-                (account, seed, None)
-            },
+            None => None,
         };
+        let mut account = account_builder.build_existing().unwrap();
 
         // The faucet's reserved slot is initialized to an empty word by default.
         // If total_issuance is set, overwrite it.
@@ -473,53 +482,45 @@ impl MockChain {
         }
 
         self.available_accounts
-            .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
+            .insert(account.id(), MockAccount::new(account.clone(), None, authenticator));
 
         MockFungibleFaucet(account)
     }
 
-    /// Adds a new `Account` from an `AccountBuilder` to the list of pending objects.
-    /// A block has to be created to finalize the new entity.
-    pub fn add_from_account_builder(
+    /// Adds the [`AccountComponent`] corresponding to `auth_method` to the account in the builder
+    /// and builds a new or existing account depending on `account_state`.
+    ///
+    /// This account is added to the available accounts and are immediately available without having
+    /// to seal a block.
+    fn add_from_account_builder(
         &mut self,
         auth_method: Auth,
-        account_builder: AccountBuilder,
+        mut account_builder: AccountBuilder,
+        account_state: AccountState,
     ) -> Account {
-        let (account, seed, authenticator) = match auth_method {
-            Auth::BasicAuth => {
-                let mut rng = ChaCha20Rng::from_seed(Default::default());
-                let sec_key = SecretKey::with_rng(&mut rng);
-                let pub_key = sec_key.public_key();
-
-                let (acc, seed) = account_builder
-                    .with_component(RpoFalcon512::new(pub_key))
-                    .build_testing()
-                    .unwrap();
-
-                let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
-                    &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
-                    rng,
-                );
-
-                (acc, seed, Some(authenticator))
+        let authenticator = match auth_method.build_component() {
+            Some((auth_component, authenticator)) => {
+                account_builder = account_builder.with_component(auth_component);
+                Some(authenticator)
             },
-            Auth::NoAuth => {
-                let (account, seed) = account_builder.build_testing().unwrap();
-                (account, seed, None)
-            },
+            None => None,
+        };
+
+        let (account, seed) = if let AccountState::New = account_state {
+            account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
+        } else {
+            account_builder.build_existing().map(|account| (account, None)).unwrap()
         };
 
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-
-        self.add_account(account.clone());
 
         account
     }
 
     /// Adds a new `Account` to the list of pending objects.
     /// A block has to be created to finalize the new entity.
-    pub fn add_account(&mut self, account: Account) {
+    pub fn add_pending_account(&mut self, account: Account) {
         self.pending_objects.updated_accounts.push(BlockAccountUpdate::new(
             account.id(),
             account.hash(),
@@ -765,6 +766,16 @@ impl MockChain {
     pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
         &self.accounts
     }
+}
+
+// HELPER TYPES
+// ================================================================================================
+
+/// Helper type for increased readability at call-sites. Indicates whether to build a new (nonce =
+/// ZERO) or existing account (nonce = ONE).
+enum AccountState {
+    New,
+    Exists,
 }
 
 // HELPER FUNCTIONS
