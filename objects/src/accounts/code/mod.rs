@@ -75,7 +75,7 @@ impl AccountCode {
     ) -> Result<Self, AccountError> {
         let (merged_mast_forest, _) =
             MastForest::merge(components.iter().map(|component| component.mast_forest()))
-                .map_err(|err| AccountError::AccountCodeMergeError(err.to_string()))?;
+                .map_err(|err| AccountError::AccountComponentMergeError(err.to_string()))?;
 
         let mut procedures = Vec::new();
         let mut proc_root_set = BTreeSet::new();
@@ -94,7 +94,7 @@ impl AccountCode {
                     // procedures where the offset has already been inserted would cause that
                     // procedure of the earlier component to write to the wrong slot.
                     if !proc_root_set.insert(proc_mast_root) {
-                        return Err(AccountError::AccountCodeMergeError(format!(
+                        return Err(AccountError::AccountComponentMergeError(format!(
                             "procedure with MAST root {proc_mast_root} is present in multiple account components"
                         )));
                     }
@@ -123,10 +123,7 @@ impl AccountCode {
         if procedures.is_empty() {
             return Err(AccountError::AccountCodeNoProcedures);
         } else if procedures.len() > Self::MAX_NUM_PROCEDURES {
-            return Err(AccountError::AccountCodeTooManyProcedures {
-                max: Self::MAX_NUM_PROCEDURES,
-                actual: procedures.len(),
-            });
+            return Err(AccountError::AccountCodeTooManyProcedures(procedures.len()));
         }
 
         Ok(Self {
@@ -367,6 +364,6 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(matches!(err, AccountError::StorageOffsetOutOfBounds { actual: 256, .. }))
+        assert!(matches!(err, AccountError::StorageOffsetPlusSizeOutOfBounds(256)))
     }
 }

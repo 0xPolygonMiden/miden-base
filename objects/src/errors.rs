@@ -1,12 +1,14 @@
 use alloc::{boxed::Box, string::String};
-use core::{error::Error, fmt};
+use core::error::Error;
 
 use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
+use miden_crypto::utils::HexParseError;
 use thiserror::Error;
+use vm_core::Felt;
 use vm_processor::DeserializationError;
 
 use super::{
-    accounts::{AccountId, StorageSlotType},
+    accounts::AccountId,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
@@ -14,7 +16,7 @@ use super::{
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-    accounts::AccountType,
+    accounts::{AccountCode, AccountStorage, AccountType},
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -22,72 +24,74 @@ use crate::{
 // ACCOUNT ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AccountError {
-    AccountCodeAssemblyError(String), // TODO: use Report
-    AccountCodeMergeError(String),    // TODO: use MastForestError once it implements Clone
-    AccountCodeDeserializationError(DeserializationError),
+    #[error("failed to assemble account component:\n{}", PrintDiagnostic::new(.0))]
+    AccountComponentAssemblyError(Report),
+    // TODO: Use MastForestError once it implements Error in no-std.
+    #[error("failed to merge account code: {0}")]
+    AccountComponentMergeError(String),
+    #[error("failed to deserialize account code")]
+    AccountCodeDeserializationError(#[source] DeserializationError),
+    #[error("account code does not contain procedures but must contain at least one procedure")]
     AccountCodeNoProcedures,
-    AccountCodeTooManyProcedures {
-        max: usize,
-        actual: usize,
-    },
-    AccountCodeProcedureInvalidStorageOffset,
-    AccountCodeProcedureInvalidStorageSize,
-    AccountCodeProcedureInvalidPadding,
-    AccountIdInvalidFieldElement(String),
-    AccountIdTooFewOnes(u32, u32),
-    AssetVaultUpdateError(AssetVaultError),
-    BuildError(String, Option<Box<AccountError>>),
-    DuplicateStorageItems(MerkleError),
-    FungibleFaucetIdInvalidFirstBit,
-    FungibleFaucetInvalidMetadata(String),
-    HeaderDataIncorrectLength(usize, usize),
-    HexParseError(String),
-    InvalidAccountStorageMode,
-    MapsUpdateToNonMapsSlot(u8, StorageSlotType),
-    NonceNotMonotonicallyIncreasing {
-        current: u64,
-        new: u64,
-    },
-    SeedDigestTooFewTrailingZeros {
-        expected: u32,
-        actual: u32,
-    },
+    #[error("account code contains {0} procedures but it may contain at most {max} procedures", max = AccountCode::MAX_NUM_PROCEDURES)]
+    AccountCodeTooManyProcedures(usize),
+    #[error("account procedure {0}'s storage offset {1} does not fit into u8")]
+    AccountCodeProcedureStorageOffsetTooLarge(Digest, Felt),
+    #[error("account procedure {0}'s storage size {1} does not fit into u8")]
+    AccountCodeProcedureStorageSizeTooLarge(Digest, Felt),
+    #[error("account procedure {0}'s final two elements must be Felt::ZERO")]
+    AccountCodeProcedureInvalidPadding(Digest),
+    #[error("failed to convert bytes into account id field element")]
+    AccountIdInvalidFieldElement(#[source] DeserializationError),
+    #[error("account id contains {0} 1s but must contain at least {min} 1s", min = AccountId::MIN_ACCOUNT_ONES)]
+    AccountIdTooFewOnes(u32),
+    #[error("failed to update asset vault")]
+    AssetVaultUpdateError(#[source] AssetVaultError),
+    #[error("account build error: {0}")]
+    BuildError(String, #[source] Option<Box<AccountError>>),
+    #[error("faucet metadata decimals is {actual} which exceeds max value of {max}")]
+    FungibleFaucetTooManyDecimals { actual: u8, max: u8 },
+    #[error("faucet metadata max supply is {actual} which exceeds max value of {max}")]
+    FungibleFaucetMaxSupplyTooLarge { actual: u64, max: u64 },
+    #[error("account header data has length {actual} but it must be of length {expected}")]
+    HeaderDataIncorrectLength { actual: usize, expected: usize },
+    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in no-std.
+    #[error("failed to parse hex string into account id: {0}")]
+    AccountIdHexParseError(HexParseError),
+    #[error("`{0}` is not a valid account storage mode")]
+    InvalidAccountStorageMode(String),
+    #[error("new account nonce {new} is less than the current nonce {current}")]
+    NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
+    #[error("digest of the seed has {actual} trailing zeroes but must have at least {expected} trailing zeroes")]
+    SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
+    #[error("storage slot at index {0} is not of type map")]
     StorageSlotNotMap(u8),
+    #[error("storage slot at index {0} is not of type value")]
     StorageSlotNotValue(u8),
-    StorageIndexOutOfBounds {
-        max: u8,
-        actual: u8,
-    },
+    #[error("storage slot index is {index} but the slots length is {slots_len}")]
+    StorageIndexOutOfBounds { slots_len: u8, index: u8 },
+    #[error("number of storage slots is {0} but max possible number is {max}", max = AccountStorage::MAX_NUM_STORAGE_SLOTS)]
     StorageTooManySlots(u64),
-    StorageOffsetOutOfBounds {
-        max: u8,
-        actual: u16,
-    },
+    #[error("procedure storage offset + size is {0} which exceeds the maximum value of {max}",
+      max = AccountStorage::MAX_NUM_STORAGE_SLOTS
+    )]
+    StorageOffsetPlusSizeOutOfBounds(u16),
+    #[error(
+        "procedure which does not access storage (storage size = 0) has non-zero storage offset"
+    )]
     PureProcedureWithStorageOffset,
+    #[error("account component at index {component_index} is incompatible with account of type {account_type:?}")]
     UnsupportedComponentForAccountType {
         account_type: AccountType,
         component_index: usize,
     },
+    /// This variant can be used by methods that are not inherent to the account but want to return
+    /// this error type.
+    #[error("assumption violated: {0}")]
+    AssumptionViolated(String),
 }
-
-impl fmt::Display for AccountError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AccountError::BuildError(msg, err) => {
-                write!(f, "account build error: {msg}")?;
-                if let Some(err) = err {
-                    write!(f, ": {err}")?;
-                }
-                Ok(())
-            },
-            other => write!(f, "{other:?}"),
-        }
-    }
-}
-
-impl core::error::Error for AccountError {}
 
 // ACCOUNT DELTA ERROR
 // ================================================================================================
