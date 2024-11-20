@@ -16,6 +16,7 @@ mod auth;
 pub use auth::AuthScheme;
 
 pub mod accounts;
+pub mod errors;
 pub mod notes;
 pub mod transaction;
 

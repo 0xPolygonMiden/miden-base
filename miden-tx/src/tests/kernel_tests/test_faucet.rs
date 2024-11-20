@@ -1,4 +1,14 @@
-use miden_lib::transaction::memory::NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR;
+use miden_lib::{
+    errors::tx_kernel_errors::{
+        ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET,
+        ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT,
+        ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED,
+        ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN,
+        ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN,
+        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
+    },
+    transaction::memory::NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
+};
 use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
@@ -18,18 +28,7 @@ use miden_objects::{
 use vm_processor::{Felt, ProcessState};
 
 use super::ONE;
-use crate::{
-    assert_execution_error,
-    errors::tx_kernel_errors::{
-        ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET,
-        ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT,
-        ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED,
-        ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN,
-        ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN,
-        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
-    },
-    testing::TransactionContextBuilder,
-};
+use crate::{assert_execution_error, testing::TransactionContextBuilder};
 
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================

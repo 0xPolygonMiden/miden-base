@@ -1,8 +1,14 @@
 use alloc::{string::ToString, vec::Vec};
 
-use miden_lib::transaction::{
-    memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
-    TransactionKernel,
+use miden_lib::{
+    errors::tx_kernel_errors::{
+        ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE,
+        ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_TX_INVALID_EXPIRATION_DELTA,
+    },
+    transaction::{
+        memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
+        TransactionKernel,
+    },
 };
 use miden_objects::{
     accounts::Account,
@@ -12,12 +18,7 @@ use vm_processor::{Felt, ProcessState, ONE};
 
 use super::{output_notes_data_procedure, ZERO};
 use crate::{
-    assert_execution_error,
-    errors::tx_kernel_errors::{
-        ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE,
-        ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_TX_INVALID_EXPIRATION_DELTA,
-    },
-    testing::TransactionContextBuilder,
+    assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
 };
 

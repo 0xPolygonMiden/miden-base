@@ -34,3 +34,4 @@ vm-processor = { workspace = true, features = ["testing"] }
 assembly = { workspace = true }
 miden-stdlib = { workspace = true }
 regex = { version = "1.10" }
+walkdir = { version = "2.5" }

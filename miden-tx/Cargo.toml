@@ -38,8 +38,3 @@ winter-maybe-async = { version = "0.10" }
 miden-tx = { path = ".", features = ["testing"] }
 rand_chacha = { version = "0.3", default-features = false }
 assembly = { workspace = true }
-
-[build-dependencies]
-assembly = { workspace = true }
-regex = { version = "1.10" }
-walkdir = { version = "2.5"}

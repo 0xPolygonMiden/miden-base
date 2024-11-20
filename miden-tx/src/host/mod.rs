@@ -5,9 +5,12 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_lib::transaction::{
-    memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
-    TransactionEvent, TransactionKernelError, TransactionTrace,
+use miden_lib::{
+    errors::tx_kernel_errors::TX_KERNEL_ERRORS,
+    transaction::{
+        memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
+        TransactionEvent, TransactionKernelError, TransactionTrace,
+    },
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountHeader},
@@ -36,7 +39,6 @@ pub use tx_progress::TransactionProgress;
 
 use crate::{
     auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
-    TX_KERNEL_ERRORS,
 };
 
 // TRANSACTION HOST

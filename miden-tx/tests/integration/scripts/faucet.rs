@@ -1,17 +1,14 @@
 extern crate alloc;
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
-use miden_lib::{
-    accounts::{auth::RpoFalcon512, faucets::BasicFungibleFaucet},
-    transaction::memory::FAUCET_STORAGE_DATA_SLOT,
-};
+use miden_lib::accounts::{auth::RpoFalcon512, faucets::BasicFungibleFaucet};
 use miden_objects::{
     accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountId},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::PublicKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::prepare_word,
+    testing::{prepare_word, storage::FAUCET_STORAGE_DATA_SLOT},
     Felt, Word, ZERO,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
