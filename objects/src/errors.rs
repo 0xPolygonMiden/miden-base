@@ -14,7 +14,7 @@ use super::{
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-    accounts::{delta::AccountUpdateDetails, AccountType},
+    accounts::AccountType,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -93,27 +93,32 @@ impl std::error::Error for AccountError {}
 // ACCOUNT DELTA ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AccountDeltaError {
-    DuplicateStorageItemUpdate(usize),
+    #[error("storage slot {0} was updated as a value and as a map")]
+    StorageSlotUsedAsDifferentTypes(u8),
+    #[error("non fungible vault can neither be added nor removed twice")]
     DuplicateNonFungibleVaultUpdate(NonFungibleAsset),
+    #[error("fungible asset issued by faucet {faucet_id} has delta {delta} which overflows when added to current value {current}")]
     FungibleAssetDeltaOverflow {
         faucet_id: AccountId,
-        this: i64,
-        other: i64,
+        current: i64,
+        delta: i64,
     },
-    IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
+    #[error("account update of type `{left_update_type}` cannot be merged with account update of type `{right_update_type}`")]
+    IncompatibleAccountUpdates {
+        left_update_type: &'static str,
+        right_update_type: &'static str,
+    },
+    #[error("account delta could not be applied to account {account_id}")]
+    AccountDeltaApplicationFailed {
+        account_id: AccountId,
+        source: AccountError,
+    },
+    #[error("inconsistent nonce update: {0}")]
     InconsistentNonceUpdate(String),
+    #[error("account id {0} in fungible asset delta is not of type fungible faucet")]
     NotAFungibleFaucetId(AccountId),
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AccountDeltaError {}
-
-impl fmt::Display for AccountDeltaError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 // ASSET ERROR
