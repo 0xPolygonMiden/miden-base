@@ -87,8 +87,7 @@ impl fmt::Display for AccountError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for AccountError {}
+impl core::error::Error for AccountError {}
 
 // ACCOUNT DELTA ERROR
 // ================================================================================================
@@ -165,8 +164,9 @@ pub enum AssetError {
 pub enum AssetVaultError {
     #[error("adding fungible asset amounts would exceed maximum allowed amount")]
     AddFungibleAssetBalanceError(#[source] AssetError),
-    #[error("provided assets contain duplicates")]
-    DuplicateAsset(#[source] MerkleError),
+    // TODO: Make #[source] and remove from msg once MerkleError implements Error trait in no-std.
+    #[error("provided assets contain duplicates: {0}")]
+    DuplicateAsset(MerkleError),
     #[error("non fungible asset {0} already exists in the vault")]
     DuplicateNonFungibleAsset(NonFungibleAsset),
     #[error("fungible asset {0} does not exist in the vault")]
