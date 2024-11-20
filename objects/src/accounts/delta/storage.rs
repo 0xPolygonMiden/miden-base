@@ -10,8 +10,10 @@ use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
     Word,
 };
-use crate::Digest;
-
+use crate::{
+    accounts::{AccountStorage, StorageMap, StorageSlot},
+    Digest,
+};
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
 
@@ -124,6 +126,27 @@ impl AccountStorageDelta {
             ),
             maps: BTreeMap::from_iter(updated_maps),
         }
+    }
+}
+
+/// Converts an [AccountStorage] into an [AccountStorageDelta] for initial delta construction.
+impl From<&AccountStorage> for AccountStorageDelta {
+    fn from(storage: &AccountStorage) -> Self {
+        let mut values = BTreeMap::new();
+        let mut maps = BTreeMap::new();
+        for (slot_idx, slot) in storage.slots().iter().enumerate() {
+            let slot_idx: u8 = slot_idx.try_into().expect("Slot index must fit into `u8`");
+            match slot {
+                StorageSlot::Value(value) => {
+                    values.insert(slot_idx, *value);
+                },
+                StorageSlot::Map(map) => {
+                    maps.insert(slot_idx, map.into());
+                },
+            }
+        }
+
+        Self { values, maps }
     }
 }
 
@@ -248,6 +271,13 @@ impl StorageMapDelta {
                 .map(|key| (key.into(), EMPTY_WORD))
                 .chain(updated_leaves.into_iter().map(|(key, value)| (key.into(), value))),
         ))
+    }
+}
+
+/// Converts a [StorageMap] into a [StorageMapDelta] for initial delta construction.
+impl From<&StorageMap> for StorageMapDelta {
+    fn from(map: &StorageMap) -> Self {
+        Self(map.leaves().flat_map(|(_, leaf)| leaf.entries().into_iter().cloned()).collect())
     }
 }
 

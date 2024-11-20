@@ -145,6 +145,17 @@ impl AccountUpdateDetails {
     }
 }
 
+/// Converts an [Account] into an [AccountDelta] for initial delta construction.
+impl From<&Account> for AccountDelta {
+    fn from(account: &Account) -> Self {
+        AccountDelta {
+            storage: account.storage().into(),
+            vault: account.vault().into(),
+            nonce: Some(account.nonce()),
+        }
+    }
+}
+
 // SERIALIZATION
 // ================================================================================================
 
