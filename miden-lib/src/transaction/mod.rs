@@ -272,18 +272,18 @@ impl TransactionKernel {
         let final_account_data: &[Word] = group_slice_elements(
             adv_map
                 .get(&final_acct_hash)
-                .ok_or(TransactionOutputError::FinalAccountDataNotFound)?,
+                .ok_or(TransactionOutputError::FinalAccountHashMissingInAdviceMap)?,
         );
         let account = parse_final_account_header(final_account_data)
-            .map_err(TransactionOutputError::FinalAccountHeaderDataInvalid)?;
+            .map_err(TransactionOutputError::FinalAccountHeaderParseFailure)?;
 
         // validate output notes
         let output_notes = OutputNotes::new(output_notes)?;
         if output_notes_hash != output_notes.commitment() {
-            return Err(TransactionOutputError::OutputNotesCommitmentInconsistent(
-                output_notes_hash,
-                output_notes.commitment(),
-            ));
+            return Err(TransactionOutputError::OutputNotesCommitmentInconsistent {
+                actual: output_notes.commitment(),
+                expected: output_notes_hash,
+            });
         }
 
         Ok(TransactionOutputs {

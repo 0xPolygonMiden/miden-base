@@ -89,7 +89,7 @@ impl AccountStorageDelta {
     fn validate(&self) -> Result<(), AccountDeltaError> {
         for slot in self.maps.keys() {
             if self.values.contains_key(slot) {
-                return Err(AccountDeltaError::DuplicateStorageItemUpdate(*slot as usize));
+                return Err(AccountDeltaError::StorageSlotUsedAsDifferentTypes(*slot));
             }
         }
 

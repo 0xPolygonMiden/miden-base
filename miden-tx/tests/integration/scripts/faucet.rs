@@ -35,7 +35,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let note_type = NoteType::Private;
     let amount = Felt::new(100);
 
-    assert_eq!(tag.validate(note_type), Ok(tag));
+    tag.validate(note_type).expect("note tag should support private notes");
 
     let tx_script_code = format!(
         "

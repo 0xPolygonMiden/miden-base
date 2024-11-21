@@ -31,6 +31,7 @@ log = { version = "0.4", optional = true }
 miden-crypto = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true, optional = true }
+thiserror = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
 winter-rand-utils = { version = "0.10", optional = true }
@@ -39,6 +40,7 @@ winter-rand-utils = { version = "0.10", optional = true }
 getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
+assert_matches = { workspace = true }
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
 miden-objects = { path = ".", features = ["testing"] }
 rstest = { version = "0.23" }

@@ -643,6 +643,6 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(matches!(err, AccountError::AccountCodeMergeError(_)))
+        assert!(matches!(err, AccountError::AccountComponentMergeError(_)))
     }
 }

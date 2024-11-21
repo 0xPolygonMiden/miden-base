@@ -51,8 +51,8 @@ impl AccountStorageHeader {
     /// - If the index is out of bounds.
     pub fn slot(&self, index: usize) -> Result<&(StorageSlotType, Word), AccountError> {
         self.slots.get(index).ok_or(AccountError::StorageIndexOutOfBounds {
-            max: self.slots.len() as u8,
-            actual: index as u8,
+            slots_len: self.slots.len() as u8,
+            index: index as u8,
         })
     }
 }

@@ -1,4 +1,4 @@
-use alloc::{string::ToString, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, vec::Vec};
 use core::fmt::Display;
 
 use assembly::{Assembler, Compile};
@@ -47,7 +47,7 @@ impl NoteScript {
     pub fn compile(source_code: impl Compile, assembler: Assembler) -> Result<Self, NoteError> {
         let program = assembler
             .assemble_program(source_code)
-            .map_err(|report| NoteError::NoteScriptAssemblyError(report.to_string()))?;
+            .map_err(NoteError::NoteScriptAssemblyError)?;
         Ok(Self::new(program))
     }
 
