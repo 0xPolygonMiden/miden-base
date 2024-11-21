@@ -33,8 +33,7 @@ impl fmt::Display for TransactionExecutorError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionExecutorError {}
+impl core::error::Error for TransactionExecutorError {}
 
 // TRANSACTION PROVER ERROR
 // ================================================================================================
@@ -74,8 +73,7 @@ impl Display for TransactionProverError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionProverError {}
+impl core::error::Error for TransactionProverError {}
 
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
@@ -92,8 +90,7 @@ impl fmt::Display for TransactionVerifierError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionVerifierError {}
+impl core::error::Error for TransactionVerifierError {}
 
 // TRANSACTION HOST ERROR
 // ================================================================================================
@@ -109,8 +106,7 @@ impl fmt::Display for TransactionHostError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionHostError {}
+impl core::error::Error for TransactionHostError {}
 
 // DATA STORE ERROR
 // ================================================================================================
@@ -131,8 +127,7 @@ impl fmt::Display for DataStoreError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for DataStoreError {}
+impl core::error::Error for DataStoreError {}
 
 // AUTHENTICATION ERROR
 // ================================================================================================
@@ -158,5 +153,4 @@ impl fmt::Display for AuthenticationError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for AuthenticationError {}
+impl core::error::Error for AuthenticationError {}

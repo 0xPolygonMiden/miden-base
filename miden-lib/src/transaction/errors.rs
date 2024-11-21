@@ -117,8 +117,7 @@ impl fmt::Display for TransactionKernelError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionKernelError {}
+impl core::error::Error for TransactionKernelError {}
 
 // TRANSACTION EVENT PARSING ERROR
 // ================================================================================================
@@ -142,8 +141,7 @@ impl fmt::Display for TransactionEventParsingError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionEventParsingError {}
+impl core::error::Error for TransactionEventParsingError {}
 
 // TRANSACTION TRACE PARSING ERROR
 // ================================================================================================
@@ -167,5 +165,4 @@ impl fmt::Display for TransactionTraceParsingError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionTraceParsingError {}
+impl core::error::Error for TransactionTraceParsingError {}
