@@ -99,6 +99,6 @@ To use the `RemoteTransactionProver` struct, enable `async`. Additionally, when 
 
 ```
 [dependencies]
-miden-tx-prover = { version = "0.6", features = ["async"], default-features = false } # Uses tonic-web-wasm-client transport
-miden-tx-prover = { version = "0.6", features = ["async"] } # Uses tonic's Channel transport
+miden-tx-prover = { version = "0.7", features = ["async"], default-features = false } # Uses tonic-web-wasm-client transport
+miden-tx-prover = { version = "0.7", features = ["async"] } # Uses tonic's Channel transport
 ```
