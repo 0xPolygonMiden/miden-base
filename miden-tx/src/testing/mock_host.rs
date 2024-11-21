@@ -1,4 +1,4 @@
-use alloc::{rc::Rc, string::ToString, sync::Arc};
+use alloc::{rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionEvent;
 use miden_objects::{
@@ -32,10 +32,11 @@ impl MockHost {
         account: AccountHeader,
         advice_inputs: AdviceInputs,
         mast_store: Rc<TransactionMastStore>,
+        mut foreign_code_commitments: Vec<Digest>,
     ) -> Self {
+        foreign_code_commitments.push(account.code_commitment());
         let adv_provider: MemAdviceProvider = advice_inputs.into();
-        let proc_index_map =
-            AccountProcedureIndexMap::new([account.code_commitment()], &adv_provider);
+        let proc_index_map = AccountProcedureIndexMap::new(foreign_code_commitments, &adv_provider);
         Self {
             adv_provider,
             acct_procedure_index_map: proc_index_map.unwrap(),
