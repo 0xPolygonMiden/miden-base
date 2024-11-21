@@ -1,16 +1,13 @@
 extern crate alloc;
 
-use miden_lib::transaction::TransactionKernel;
+use alloc::sync::Arc;
+
+use miden_lib::accounts::{auth::RpoFalcon512, faucets::BasicFungibleFaucet};
 use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::prepare_word,
-    transaction::TransactionScript,
-    Felt,
-};
-use miden_tx::{
-    testing::{Auth, MockChain},
-    tx_kernel_errors::ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED,
+    testing::{prepare_word, storage::FAUCET_STORAGE_DATA_SLOT},
+    Felt, Word, ZERO,
 };
 
 use crate::{

@@ -21,7 +21,10 @@ mod verifier;
 pub use verifier::TransactionVerifier;
 
 mod errors;
-pub use errors::*;
+pub use errors::{
+    AuthenticationError, DataStoreError, TransactionExecutorError, TransactionProverError,
+    TransactionVerifierError,
+};
 
 pub mod auth;
 

@@ -7,11 +7,18 @@ use std::{
 use miette::IntoDiagnostic;
 use protox::prost::Message;
 
+/// Defines whether the build script can write to /src.
+const CAN_WRITE_TO_SRC: bool = option_env!("DOCS_RS").is_none();
+
 /// Generates Rust protobuf bindings from .proto files.
 fn main() -> miette::Result<()> {
-    compile_tonic_server_proto()?;
+    // The docs.rs build pipeline has a read-only filesystem, so we want to return early or
+    // otherwise the docs will fail to build there.
+    if !CAN_WRITE_TO_SRC {
+        return Ok(());
+    }
 
-    Ok(())
+    compile_tonic_server_proto()
 }
 fn compile_tonic_server_proto() -> miette::Result<()> {
     let crate_root =

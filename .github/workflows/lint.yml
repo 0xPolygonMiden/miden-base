@@ -83,6 +83,6 @@ jobs:
         with:
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Rebuild kernel errors
-        run: BUILD_KERNEL_ERRORS=1 cargo check -p miden-tx
+        run: BUILD_KERNEL_ERRORS=1 cargo check -p miden-lib
       - name: Diff check
         run: git diff --exit-code
