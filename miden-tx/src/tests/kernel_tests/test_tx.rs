@@ -1,5 +1,5 @@
-use alloc::vec::Vec;
-use std::string::String;
+use alloc::{sync::Arc, vec::Vec};
+use std::string::{String, ToString};
 
 use miden_lib::{
     errors::tx_kernel_errors::{
@@ -21,12 +21,11 @@ use miden_objects::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        Account, AccountBuilder, AccountCode, AccountComponent, AccountId, AccountProcedureInfo,
-        AccountStorage, AccountType, StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
+        StorageSlot,
     },
-    assets::{AssetVault, NonFungibleAsset},
+    assets::NonFungibleAsset,
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
@@ -35,10 +34,9 @@ use miden_objects::{
         account_component::AccountMockComponent, constants::NON_FUNGIBLE_ASSET_DATA_2,
         prepare_word, storage::STORAGE_LEAVES_2,
     },
-    transaction::{OutputNote, OutputNotes},
+    transaction::{OutputNote, OutputNotes, TransactionScript},
     Digest, FieldElement,
 };
-use miden_tx::testing::{MockChain, MockHost};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
@@ -46,8 +44,9 @@ use vm_processor::AdviceInputs;
 use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
-    testing::TransactionContextBuilder,
+    testing::{MockChain, MockHost, TransactionContextBuilder},
     tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
+    TransactionExecutor,
 };
 
 #[test]
@@ -622,74 +621,74 @@ fn test_build_recipient_hash() {
 // FOREIGN PROCEDURE INVOCATION TESTS
 // ================================================================================================
 
-/// Assert that mock account's `get_item` procedure has index 8
 #[test]
-fn test_check_get_item_index() {
-    // keep this code the same as the actual code of the account's `get_item` procedure
-    let get_item_code_source = "
+fn test_fpi_memory() {
+    // Prepare the test data
+    let storage_slots =
+        vec![AccountStorage::mock_item_0().slot, AccountStorage::mock_item_2().slot];
+    let foreign_account_code_source = "
         use.miden::account
-        export.get_item
+
+        export.get_item_foreign
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.1 drop
             exec.account::get_item
-            # => [VALUE, pad(15)]
 
             # truncate the stack
-            movup.8 drop movup.8 drop movup.8 drop
-            # => [VALUE, pad(12)]
+            movup.6 movup.6 movup.6 drop drop drop
+        end
+
+        export.get_map_item_foreign
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.2 drop
+            exec.account::get_map_item
         end
     ";
-    let component = AccountComponent::compile(
-        get_item_code_source,
+
+    let foreign_account_component = AccountComponent::compile(
+        foreign_account_code_source,
         TransactionKernel::testing_assembler(),
-        vec![],
+        storage_slots.clone(),
     )
     .unwrap()
     .with_supports_all_types();
 
-    let expected_root =
-        *AccountCode::from_components(&[component], AccountType::RegularAccountUpdatableCode)
-            .unwrap()
-            .procedures()[0]
-            .mast_root();
-
-    let result_root = get_root_of_get_item_procedure();
-
-    assert_eq!(expected_root, result_root);
-}
-
-#[test]
-fn test_load_foreign_account_basic() {
-    // GET ITEM
-    // --------------------------------------------------------------------------------------------
-    let storage_slot = AccountStorage::mock_item_0().slot;
     let foreign_account = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(foreign_account_component)
+        .build_existing()
+        .unwrap();
+
+    let native_account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
-                vec![storage_slot.clone()],
+                vec![AccountStorage::mock_item_2().slot],
             )
             .unwrap(),
         )
         .build_existing()
         .unwrap();
 
-    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
-    // account which is required for this test to pass right now.
-    let native_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account = Account::from_parts(
-        native_account_id,
-        AssetVault::mock(),
-        foreign_account.storage().clone(),
-        foreign_account.code().clone(),
-        ONE,
-    );
-
-    let mut mock_chain = MockChain::with_accounts(&[foreign_account.clone(), account.clone()]);
-    mock_chain.seal_block(None);
-
     let foreign_account_id = foreign_account.id();
+    let mut mock_chain =
+        MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
+    mock_chain.seal_block(None);
     let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
+
+    let tx_context = mock_chain
+        .build_tx_context(native_account.id(), &[], &[])
+        .foreign_account_codes(vec![foreign_account.code().clone()])
+        .advice_inputs(advice_inputs.clone())
+        .build();
+
+    // GET ITEM
+    // --------------------------------------------------------------------------------------------
+    // Check the correctness of the memory layout after `get_item_foreign` account procedure
+    // invocation
 
     let code = format!(
         "
@@ -708,8 +707,8 @@ fn test_load_foreign_account_basic() {
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item` account procedure
-            procref.::test::account::get_item
+            # get the hash of the `get_item_foreign` procedure of the foreign account 
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{foreign_account_id}
@@ -722,19 +721,14 @@ fn test_load_foreign_account_basic() {
             exec.sys::truncate_stack
             end
             ",
+        get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
     );
-
-    let tx_context = mock_chain
-        .build_tx_context(account.id(), &[], &[])
-        .foreign_account_codes(vec![foreign_account.code().clone()])
-        .advice_inputs(advice_inputs.clone())
-        .build();
 
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
-        storage_slot.value(),
+        storage_slots[0].value(),
         "Value at the top of the stack (value in the storage at index 0) should be equal [1, 2, 3, 4]",
     );
 
@@ -742,42 +736,7 @@ fn test_load_foreign_account_basic() {
 
     // GET MAP ITEM
     // --------------------------------------------------------------------------------------------
-    let storage_slot = AccountStorage::mock_item_2().slot;
-    let foreign_account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
-        .with_component(
-            AccountMockComponent::new_with_slots(
-                TransactionKernel::testing_assembler(),
-                vec![storage_slot],
-            )
-            .unwrap(),
-        )
-        .build_existing()
-        .unwrap();
-
-    let foreign_account_id = foreign_account.id();
-
-    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
-    // account which is required for this test to pass right now.
-    let native_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account = Account::from_parts(
-        native_account_id,
-        AssetVault::mock(),
-        foreign_account.storage().clone(),
-        foreign_account.code().clone(),
-        ONE,
-    );
-    let mut mock_chain = MockChain::with_accounts(&[foreign_account.clone(), account.clone()]);
-    mock_chain.seal_block(None);
-
-    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
-
-    let tx_context = mock_chain
-        .build_tx_context(account.id(), &[], &[])
-        .foreign_account_codes(vec![foreign_account.code().clone()])
-        .advice_inputs(advice_inputs.clone())
-        .build();
+    // Check the correctness of the memory layout after `get_map_item` account procedure invocation
 
     let code = format!(
         "
@@ -785,12 +744,11 @@ fn test_load_foreign_account_basic() {
 
         use.kernel::prologue
         use.miden::tx
-        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
 
-            # pad the stack for the `execute_foreign_procedure`execution
+            # pad the stack for the `execute_foreign_procedure` execution
             padw padw push.0.0
             # => [pad(10)]
 
@@ -798,10 +756,10 @@ fn test_load_foreign_account_basic() {
             push.{map_key}
 
             # push the index of desired storage item
-            push.0
+            push.1
 
-            # get the hash of the `get_map_item` account procedure
-            procref.account::get_map_item
+            # get the hash of the `get_map_item_foreign` account procedure
+            push.{get_map_item_foreign_hash}
 
             # push the foreign account id
             push.{foreign_account_id}
@@ -815,6 +773,7 @@ fn test_load_foreign_account_basic() {
         end
         ",
         map_key = STORAGE_LEAVES_2[0].0,
+        get_map_item_foreign_hash = foreign_account.code().procedures()[1].mast_root(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -826,50 +785,12 @@ fn test_load_foreign_account_basic() {
     );
 
     foreign_account_data_memory_assertions(&foreign_account, &process);
-}
 
-/// This test checks that invoking two foreign procedures from the same account results in reuse of
-/// the loaded account.
-///
-/// The namespace ::test::account contains the testing account code as an imported library, to make
-/// references to its code simpler.
-#[test]
-fn test_load_foreign_account_twice() {
-    let storage_slot = AccountStorage::mock_item_0().slot;
-    let foreign_account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
-        .with_component(
-            AccountMockComponent::new_with_slots(
-                TransactionKernel::testing_assembler(),
-                vec![storage_slot],
-            )
-            .unwrap(),
-        )
-        .build_existing()
-        .unwrap();
-
-    let foreign_account_id = foreign_account.id();
-
-    // TODO: Temporary fix: Build a native account that has the same code commitment as the foreign
-    // account which is required for this test to pass right now.
-    let native_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account = Account::from_parts(
-        native_account_id,
-        AssetVault::mock(),
-        foreign_account.storage().clone(),
-        foreign_account.code().clone(),
-        ONE,
-    );
-
-    let mut mock_chain = MockChain::with_accounts(&[foreign_account.clone(), account.clone()]);
-
-    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
-    let tx_context = mock_chain
-        .build_tx_context(account.id(), &[], &[])
-        .foreign_account_codes(vec![foreign_account.code().clone()])
-        .advice_inputs(advice_inputs.clone())
-        .build();
+    // GET ITEM TWICE
+    // --------------------------------------------------------------------------------------------
+    // Check the correctness of the memory layout after two consecutive invocations of the
+    // `get_item` account procedures. Invoking two foreign procedures from the same account should
+    // result in reuse of the loaded account.
 
     let code = format!(
         "
@@ -889,8 +810,8 @@ fn test_load_foreign_account_twice() {
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item` account procedure
-            procref.::test::account::get_item
+            # get the hash of the `get_item_foreign` procedure of the foreign account 
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{foreign_account_id}
@@ -907,8 +828,8 @@ fn test_load_foreign_account_twice() {
             # push the index of desired storage item
             push.0
 
-            # get the hash of the `get_item` account procedure
-            procref.::test::account::get_item
+            # get the hash of the `get_item_foreign` procedure of the foreign account 
+            push.{get_item_foreign_hash}
 
             # push the foreign account id
             push.{foreign_account_id}
@@ -920,15 +841,180 @@ fn test_load_foreign_account_twice() {
             exec.sys::truncate_stack
         end
         ",
+        get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
 
+    // Check that the second invocation of the foreign procedure from the same account does not load
+    // the account data again: already loaded data should be reused.
+    //
+    // Native account:    [2048; 4095] <- initialized during prologue
+    // Foreign account:   [4096; 6143] <- initialized during first FPI
+    // Next account slot: [6144; 8191] <- should not be initialized
     assert_eq!(
         try_read_root_mem_value(&process, NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2),
         None,
         "Memory starting from 6144 should stay uninitialized"
     );
+}
+
+/// Test the correctness of the foreign procedure execution.
+///
+/// It checks the foreign account code loading, providing the mast forest to the executor,
+/// construction of the account procedure maps and execution the foreign procedure in order to
+/// obtain the data from the foreign account's storage slot.
+#[test]
+fn test_fpi_execute_foreign_procedure() {
+    // Prepare the test data
+    let storage_slots =
+        vec![AccountStorage::mock_item_0().slot, AccountStorage::mock_item_2().slot];
+    let foreign_account_code_source = "
+        use.miden::account
+
+        export.get_item_foreign
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.1 drop
+            exec.account::get_item
+
+            # truncate the stack
+            movup.6 movup.6 movup.6 drop drop drop
+        end
+
+        export.get_map_item_foreign
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.2 drop
+            exec.account::get_map_item
+        end
+    ";
+
+    let foreign_account_component = AccountComponent::compile(
+        foreign_account_code_source,
+        TransactionKernel::testing_assembler(),
+        storage_slots,
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let foreign_account = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(foreign_account_component)
+        .build_existing()
+        .unwrap();
+
+    let native_account = AccountBuilder::new()
+        .init_seed(ChaCha20Rng::from_entropy().gen())
+        .with_component(
+            AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
+                .unwrap(),
+        )
+        .build_existing()
+        .unwrap();
+
+    let mut mock_chain =
+        MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
+    mock_chain.seal_block(None);
+    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
+
+    let code = format!(
+        "
+        use.std::sys
+
+        use.miden::tx
+
+        begin
+            # get the storage item at index 0
+            # pad the stack for the `execute_foreign_procedure`execution
+            padw padw padw push.0.0
+            # => [pad(14)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
+
+            # push the foreign account id
+            push.{foreign_account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+            exec.tx::execute_foreign_procedure
+            # => [STORAGE_VALUE]
+
+            # assert the correctness of the obtained value
+            push.1.2.3.4 assert_eqw
+            # => []
+
+            # get the storage map at index 1
+            # pad the stack for the `execute_foreign_procedure` execution
+            padw padw push.0.0
+            # => [pad(10)]
+
+            # push the key of desired storage item
+            push.{map_key}
+
+            # push the index of desired storage item
+            push.1
+
+            # get the hash of the `get_map_item_foreign` account procedure
+            push.{get_map_item_foreign_hash}
+
+            # push the foreign account id
+            push.{foreign_account_id}
+            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
+
+            exec.tx::execute_foreign_procedure
+            # => [MAP_VALUE]
+
+            # assert the correctness of the obtained value
+            push.1.2.3.4 assert_eqw
+            # => []
+
+            # truncate the stack
+            exec.sys::truncate_stack
+        end
+        ",
+        foreign_account_id = foreign_account.id(),
+        get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
+        get_map_item_foreign_hash = foreign_account.code().procedures()[1].mast_root(),
+        map_key = STORAGE_LEAVES_2[0].0,
+    );
+
+    let tx_script =
+        TransactionScript::compile(code, vec![], TransactionKernel::testing_assembler()).unwrap();
+
+    let tx_context = mock_chain
+        .build_tx_context(native_account.id(), &[], &[])
+        .advice_inputs(advice_inputs.clone())
+        .tx_script(tx_script)
+        .build();
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    let mut executor: TransactionExecutor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
+
+    // load the mast forest of the foreign account's code to be able to create an account procedure
+    // index map and execute the specified foreign procedure
+    executor.load_account_code(foreign_account.code());
+
+    let _executed_transaction = executor
+        .execute_transaction(
+            native_account.id(),
+            block_ref,
+            &note_ids,
+            tx_context.tx_args().clone(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
 }
 
 // HELPER FUNCTIONS
@@ -941,7 +1027,7 @@ fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) ->
     let foreign_storage_root = foreign_account.storage().commitment();
     let foreign_code_root = foreign_account.code().commitment();
 
-    AdviceInputs::default()
+    let mut inputs = AdviceInputs::default()
         .with_map([
             // ACCOUNT_ID |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
             (
@@ -959,7 +1045,19 @@ fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) ->
             // CODE_ROOT |-> [[ACCOUNT_PROCEDURE_DATA]]
             (foreign_code_root, foreign_account.code().as_elements()),
         ])
-        .with_merkle_store(mock_chain.accounts().into())
+        .with_merkle_store(mock_chain.accounts().into());
+
+    for slot in foreign_account.storage().slots() {
+        // if there are storage maps, we populate the merkle store and advice map
+        if let StorageSlot::Map(map) = slot {
+            // extend the merkle store and map with the storage maps
+            inputs.extend_merkle_store(map.inner_nodes());
+            // populate advice map with Sparse Merkle Tree leaf nodes
+            inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+        }
+    }
+
+    inputs
 }
 
 fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process<MockHost>) {
@@ -1034,27 +1132,4 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
             Word::try_from(elements).unwrap(),
         );
     }
-}
-
-/// This helper function returns the root of the account's `get_item` mock procedure, which could be
-/// used for its dynamic call.
-///
-/// Index of the `get_item` procedure should be kept in sync with the actual index of this procedure
-/// in the array of account's mock procedures.
-fn get_root_of_get_item_procedure() -> Digest {
-    // keep in sync with actual index of the `get_item`
-    let proc_index = 8;
-
-    let mock_component: AccountComponent =
-        AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
-            .unwrap()
-            .into();
-
-    let code = AccountCode::from_components(
-        &[mock_component.with_supports_all_types()],
-        AccountType::RegularAccountUpdatableCode,
-    )
-    .unwrap();
-
-    *code.procedures()[proc_index].mast_root()
 }

@@ -73,9 +73,14 @@ impl TransactionContext {
 
         mast_store.load_transaction_code(&self.tx_inputs, &self.tx_args);
 
-        CodeExecutor::new(MockHost::new(self.tx_inputs.account().into(), advice_inputs, mast_store))
-            .stack_inputs(stack_inputs)
-            .execute_program(program)
+        CodeExecutor::new(MockHost::new(
+            self.tx_inputs.account().into(),
+            advice_inputs,
+            mast_store,
+            self.foreign_codes.iter().map(|code| code.commitment()).collect(),
+        ))
+        .stack_inputs(stack_inputs)
+        .execute_program(program)
     }
 
     /// Executes the transaction through a [TransactionExecutor]
