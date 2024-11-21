@@ -1,6 +1,3 @@
-// MOCK HOST
-// ================================================================================================
-
 use alloc::{rc::Rc, string::ToString, sync::Arc};
 
 use miden_lib::transaction::TransactionEvent;
@@ -15,6 +12,7 @@ use vm_processor::{
 };
 
 use crate::{host::AccountProcedureIndexMap, TransactionMastStore};
+
 // MOCK HOST
 // ================================================================================================
 

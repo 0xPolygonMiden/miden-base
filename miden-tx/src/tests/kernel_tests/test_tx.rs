@@ -38,6 +38,7 @@ use miden_objects::{
     transaction::{OutputNote, OutputNotes},
     Digest, FieldElement,
 };
+use miden_tx::testing::{MockChain, MockHost};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
@@ -45,10 +46,7 @@ use vm_processor::AdviceInputs;
 use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
-    testing::{
-        mock_chain::{MockChain, MockChainBuilder},
-        MockHost, TransactionContextBuilder,
-    },
+    testing::TransactionContextBuilder,
     tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
 };
 

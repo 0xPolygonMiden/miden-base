@@ -1,4 +1,7 @@
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_lib::{
+    errors::tx_kernel_errors::ERR_P2ID_TARGET_ACCT_MISMATCH, notes::create_p2id_note,
+    transaction::TransactionKernel,
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -15,10 +18,7 @@ use miden_objects::{
     transaction::{OutputNote, TransactionScript},
     Felt,
 };
-use miden_tx::{
-    testing::{Auth, MockChain},
-    tx_kernel_errors::ERR_P2ID_TARGET_ACCT_MISMATCH,
-};
+use miden_tx::testing::{Auth, MockChain};
 
 use crate::{assert_transaction_executor_error, prove_and_verify_transaction};
 

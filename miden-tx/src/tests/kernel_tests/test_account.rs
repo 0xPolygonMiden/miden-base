@@ -1,6 +1,9 @@
-use miden_lib::transaction::{
-    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
-    TransactionKernel,
+use miden_lib::{
+    errors::tx_kernel_errors::ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES,
+    transaction::{
+        memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
+        TransactionKernel,
+    },
 };
 use miden_objects::{
     accounts::{
@@ -26,7 +29,6 @@ use crate::{
     assert_execution_error,
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
-    tx_kernel_errors::ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES,
 };
 
 // ACCOUNT CODE TESTS
