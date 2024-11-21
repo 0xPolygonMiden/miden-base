@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 (2024-11-20)
+
+- Avoid writing to the filesystem during docs.rs build (#970).
+
+## 0.6.1 (2024-11-08)
+
 ### Features
 
 - [BREAKING] Added CLI for the transaction prover services both the workers and the proxy (#955).
