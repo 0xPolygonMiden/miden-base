@@ -106,8 +106,8 @@ bench-tx: ## Run transaction benchmarks
 
 .PHONY: install-tx-prover
 install-tx-prover: ## Install transaction prover's CLI
-	cargo install --path bin/tx-prover --bin miden-tx-prover --locked
+	cargo install --path bin/tx-prover --bin miden-tx-prover --locked --features concurrent
 
 .PHONY: install-tx-prover-testing
 install-tx-prover-testing: ## Install transaction prover's CLI intended for testing purposes
-	cargo install --path bin/tx-prover --bin miden-tx-prover --locked --features testing
+	cargo install --path bin/tx-prover --bin miden-tx-prover --locked --features concurrent,testing
