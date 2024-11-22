@@ -18,6 +18,9 @@ use crate::{
     utils::{create_queue_full_response, create_too_many_requests_response},
 };
 
+// LoadBalancer
+// ================================================================================================
+
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
     available_workers: Arc<RwLock<Vec<Backend>>>,
@@ -29,6 +32,7 @@ pub struct LoadBalancer {
 }
 
 impl LoadBalancer {
+    /// Create a new load balancer
     pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
         Self {
             available_workers: Arc::new(RwLock::new(workers)),
@@ -40,10 +44,19 @@ impl LoadBalancer {
         }
     }
 
+    /// Get an available worker
+    ///
+    /// This method will return the first available worker from the list of available workers, and
+    /// remove it from the list.
+    /// If no worker is available, it will return None.
     pub async fn get_available_worker(&self) -> Option<Backend> {
         self.available_workers.write().await.pop()
     }
 
+    /// Set an available worker
+    ///
+    /// This method will add a worker to the list of available workers.
+    /// If the worker is already available, it will panic.
     pub async fn set_available_worker(&self, worker: Backend) {
         let mut available_workers = self.available_workers.write().await;
         if available_workers.contains(&worker) {
@@ -56,30 +69,39 @@ impl LoadBalancer {
 /// Rate limiter
 static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
 
-/// Request queue
+// Request queue
+// ================================================================================================
+
+/// Request queue holds the list of requests that are waiting to be processed by the workers.
+/// It is used to keep track of the order of the requests to then assign them to the workers.
 pub struct RequestQueue {
     queue: RwLock<Vec<u64>>,
 }
 
 impl RequestQueue {
+    /// Create a new empty request queue
     pub fn new() -> Self {
         Self { queue: RwLock::new(Vec::new()) }
     }
 
+    /// Get the length of the queue
     pub async fn len(&self) -> usize {
         self.queue.read().await.len()
     }
 
+    /// Enqueue a request
     pub async fn enqueue(&self, request_id: u64) {
         let mut queue = self.queue.write().await;
         queue.push(request_id);
     }
 
+    /// Dequeue a request
     pub async fn dequeue(&self) -> Option<u64> {
         let mut queue = self.queue.write().await;
         queue.pop()
     }
 
+    /// Peek at the first request in the queue
     pub async fn peek(&self) -> Option<u64> {
         let queue = self.queue.read().await;
         queue.first().copied()
@@ -88,6 +110,9 @@ impl RequestQueue {
 
 /// Shared state. It keeps track of the order of the requests to then assign them to the workers.
 static QUEUE: Lazy<RequestQueue> = Lazy::new(RequestQueue::new);
+
+// RequestContext
+// ================================================================================================
 
 /// Custom context for the request/response lifecycle
 /// We use this context to keep track of the number of tries for a request, the unique ID for the
@@ -102,6 +127,7 @@ pub struct RequestContext {
 }
 
 impl RequestContext {
+    /// Create a new request context
     fn new() -> Self {
         Self {
             tries: 0,
@@ -110,6 +136,7 @@ impl RequestContext {
         }
     }
 
+    /// Set the worker that will process the request
     fn set_worker(&mut self, worker: Backend) {
         self.worker = Some(worker);
     }
