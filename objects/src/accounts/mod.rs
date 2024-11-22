@@ -4,6 +4,9 @@ use crate::{
     AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
+pub mod account_id2;
+pub use account_id2::*;
+
 pub mod account_id;
 pub use account_id::{
     AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
@@ -28,6 +31,8 @@ pub use delta::{
     AccountDelta, AccountStorageDelta, AccountVaultDelta, FungibleAssetDelta,
     NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
+
+mod seed2;
 
 mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
