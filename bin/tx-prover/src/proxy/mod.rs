@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::VecDeque, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
@@ -75,13 +75,13 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 /// Request queue holds the list of requests that are waiting to be processed by the workers.
 /// It is used to keep track of the order of the requests to then assign them to the workers.
 pub struct RequestQueue {
-    queue: RwLock<Vec<u64>>,
+    queue: RwLock<VecDeque<u64>>,
 }
 
 impl RequestQueue {
     /// Create a new empty request queue
     pub fn new() -> Self {
-        Self { queue: RwLock::new(Vec::new()) }
+        Self { queue: RwLock::new(VecDeque::new()) }
     }
 
     /// Get the length of the queue
@@ -92,19 +92,19 @@ impl RequestQueue {
     /// Enqueue a request
     pub async fn enqueue(&self, request_id: u64) {
         let mut queue = self.queue.write().await;
-        queue.push(request_id);
+        queue.push_back(request_id);
     }
 
     /// Dequeue a request
     pub async fn dequeue(&self) -> Option<u64> {
         let mut queue = self.queue.write().await;
-        queue.pop()
+        queue.pop_front()
     }
 
     /// Peek at the first request in the queue
     pub async fn peek(&self) -> Option<u64> {
         let queue = self.queue.read().await;
-        queue.first().copied()
+        queue.front().copied()
     }
 }
 
