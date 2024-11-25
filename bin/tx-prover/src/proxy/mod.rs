@@ -57,11 +57,9 @@ impl LoadBalancer {
     ///
     /// This method will add a worker to the list of available workers.
     /// If the worker is already available, it will panic.
-    pub async fn set_available_worker(&self, worker: Backend) {
+    pub async fn add_available_worker(&self, worker: Backend) {
         let mut available_workers = self.available_workers.write().await;
-        if available_workers.contains(&worker) {
-            panic!("Worker already available - trying to duplicate worker");
-        }
+        assert!(!available_workers.contains(&worker), "Worker already available");
         available_workers.push(worker);
     }
 }
@@ -315,7 +313,7 @@ impl ProxyHttp for LoadBalancer {
         }
 
         // Mark the worker as available
-        self.set_available_worker(ctx.worker.take().expect("Failed to get worker"))
+        self.add_available_worker(ctx.worker.take().expect("Failed to get worker"))
             .await;
     }
 }
