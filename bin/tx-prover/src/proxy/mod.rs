@@ -147,12 +147,12 @@ impl RequestContext {
 ///
 /// At the backend-level, a request lifecycle works as follows:
 /// - When a new requests arrives, [LoadBalancer::request_filter()] method is called. In this method
-///   we apply IP-based rate-limiting to the request and check if the queue is full.
+///   we apply IP-based rate-limiting to the request and check if the request queue is full.
 /// - Next, the [Self::upstream_peer()] method is called. We use it to figure out which worker will
 ///   process the request. Inside `upstream_peer()`, we add the request to the queue of requests.
-///  Once the request gets to the front of the queue, we forward it to an available worker. This
-///  step is also in charge of setting the SNI, timeouts, and enabling HTTP/2. Finally, we
-///  establish a connection with the worker.
+///   Once the request gets to the front of the queue, we forward it to an available worker. This
+///   step is also in charge of setting the SNI, timeouts, and enabling HTTP/2. Finally, we
+///   establish a connection with the worker.
 /// - Before sending the request to the upstream server and if the connection succeed, the
 ///   [Self::upstream_request_filter()] method is called. In this method, we ensure that the correct
 ///   headers are forwarded for gRPC requests.
@@ -173,7 +173,7 @@ impl ProxyHttp for LoadBalancer {
     /// Here we apply IP-based rate-limiting to the request. We also check if the queue is full.
     ///
     /// If the request is rate-limited, we return a 429 response. Otherwise, we return false.
-    async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool>
+    async fn request_filter(&self, session: &mut Session, ctx: &mut Self::CTX) -> Result<bool>
     where
         Self::CTX: Send + Sync,
     {
@@ -190,7 +190,7 @@ impl ProxyHttp for LoadBalancer {
 
         let queue_len = QUEUE.len().await;
 
-        info!("New request with ID: {}", _ctx.request_id);
+        info!("New request with ID: {}", ctx.request_id);
         info!("Queue length: {}", queue_len);
 
         // Check if the queue is full
@@ -220,21 +220,18 @@ impl ProxyHttp for LoadBalancer {
 
         // Wait for the request to be at the front of the queue
         loop {
-            // We use a new scope for each iteration to release the lock before sleeping
-            {
-                // The request is at the front of the queue.
-                if QUEUE.peek().await.expect("Queue should not be empty") != request_id {
-                    continue;
-                }
-
-                // Check if there is an available worker
-                if let Some(worker) = self.get_available_worker().await {
-                    ctx.set_worker(worker);
-                    info!("Worker picked up the request with ID: {}", request_id);
-                    break;
-                }
-                info!("All workers are busy");
+            // The request is at the front of the queue.
+            if QUEUE.peek().await.expect("Queue should not be empty") != request_id {
+                continue;
             }
+
+            // Check if there is an available worker
+            if let Some(worker) = self.get_available_worker().await {
+                ctx.set_worker(worker);
+                info!("Worker picked up the request with ID: {}", request_id);
+                break;
+            }
+            info!("All workers are busy");
             tokio::time::sleep(WORKER_CHECK_INTERVAL_MILLIS).await;
         }
 
