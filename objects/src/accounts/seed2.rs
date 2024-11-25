@@ -9,7 +9,7 @@ use std::{
 };
 
 use super::{
-    account_id2::compute_digest, AccountError, AccountStorageMode, AccountType, Digest, Felt, Word,
+    account_id2::compute_digest, AccountError, AccountStorageMode, AccountType2, Digest, Felt, Word,
 };
 use crate::accounts::account_id2::{validate_first_felt, AccountVersion};
 
@@ -21,7 +21,7 @@ use crate::accounts::account_id2::{validate_first_felt, AccountVersion};
 #[cfg(feature = "concurrent")]
 pub fn get_account_seed(
     init_seed: [u8; 32],
-    account_type: AccountType,
+    account_type: AccountType2,
     storage_mode: AccountStorageMode,
     version: AccountVersion,
     code_commitment: Digest,
@@ -76,7 +76,7 @@ pub fn get_account_seed_inner(
     send: Sender<(Digest, Word)>,
     stop: Arc<RwLock<bool>>,
     init_seed: [u8; 32],
-    account_type: AccountType,
+    account_type: AccountType2,
     storage_mode: AccountStorageMode,
     version: AccountVersion,
     code_commitment: Digest,
@@ -134,7 +134,7 @@ pub fn get_account_seed_inner(
 #[cfg(not(feature = "concurrent"))]
 pub fn get_account_seed(
     init_seed: [u8; 32],
-    account_type: AccountType,
+    account_type: AccountType2,
     storage_mode: AccountStorageMode,
     version: AccountVersion,
     code_commitment: Digest,
@@ -157,7 +157,7 @@ pub fn get_account_seed(
 #[cfg(not(feature = "concurrent"))]
 pub fn get_account_seed_single(
     init_seed: [u8; 32],
-    account_type: AccountType,
+    account_type: AccountType2,
     storage_mode: AccountStorageMode,
     version: AccountVersion,
     code_commitment: Digest,
@@ -214,7 +214,7 @@ mod log {
 
     use super::{
         super::{account_id::digest_pow, Digest, Word},
-        AccountType,
+        AccountType2,
     };
     use crate::accounts::AccountStorageMode;
 
@@ -240,7 +240,7 @@ mod log {
         pub fn start(
             digest: Digest,
             seed: Word,
-            account_type: AccountType,
+            account_type: AccountType2,
             storage_mode: AccountStorageMode,
         ) -> Self {
             log::info!(
