@@ -7,9 +7,6 @@ use crate::{
 pub mod account_id2;
 pub use account_id2::*;
 
-mod account_type;
-pub use account_type::*;
-
 pub mod account_id;
 pub use account_id::{
     AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
