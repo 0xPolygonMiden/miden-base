@@ -4,7 +4,7 @@
 
 ### Changes
 
-- Refactored to `miden-tx-prover` proxy load balancing strategy (#976).
+- Refactored `miden-tx-prover` proxy load balancing strategy (#976).
 - [BREAKING] Better error display when queues are full in the prover service (#967).
 - [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 - [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
