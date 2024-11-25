@@ -18,6 +18,9 @@ use crate::{
     utils::{create_queue_full_response, create_too_many_requests_response},
 };
 
+/// The interval between attempts to check for available workers.
+const WORKER_CHECK_INTERVAL_MILLIS: Duration = Duration::from_millis(20);
+
 // LoadBalancer
 // ================================================================================================
 
@@ -232,7 +235,7 @@ impl ProxyHttp for LoadBalancer {
                 }
                 info!("All workers are busy");
             }
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            tokio::time::sleep(WORKER_CHECK_INTERVAL_MILLIS).await;
         }
 
         // Remove the request from the queue
