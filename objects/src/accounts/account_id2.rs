@@ -21,7 +21,7 @@ use crate::{
 const ACCOUNT_VERSION_MASK_SHIFT: u64 = 4;
 const ACCOUNT_VERSION_MASK: u64 = 0b1111 << ACCOUNT_STORAGE_MASK_SHIFT;
 
-const ACCOUNT_EPOCH_MASK_SHIFT: u64 = 8;
+const ACCOUNT_EPOCH_MASK_SHIFT: u64 = 48;
 const ACCOUNT_EPOCH_MASK: u64 = 0xffff << ACCOUNT_EPOCH_MASK_SHIFT;
 
 // The higher two bits of the least significant nibble determines the account storage mode
@@ -31,6 +31,11 @@ const ACCOUNT_STORAGE_MASK: u64 = 0b11 << ACCOUNT_STORAGE_MASK_SHIFT;
 // The lower two bits of the least significant nibble determine the account type.
 const ACCOUNT_TYPE_MASK: u64 = 0b11;
 
+/// # Layout
+/// ```text
+/// 1st felt: [zero bit | random (55 bits) | version (4 bits) | storage mode (2 bits) | type (2 bits)]
+/// 2nd felt: [epoch (16 bits) | random (40 bits) | 8 zero bits]
+/// ```
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AccountId2([Felt; 2]);
 
@@ -51,23 +56,55 @@ impl AccountId2 {
             .try_into()
             .expect("we should have sliced off 2 elements");
 
-        // Manipulate second felt to meet requirements of the ID.
-        // Set epoch.
-        let mut second_felt = felts[1].as_int();
-        let epoch = (epoch as u64) << ACCOUNT_EPOCH_MASK_SHIFT;
-        second_felt &= epoch;
-        second_felt |= epoch;
-
-        // Set high bit and lower 8 bits to zero.
-        second_felt &= 0x7fff_ffff_ffff_ff00;
-
-        felts[1] = Felt::new(second_felt);
+        felts[1] = shape_second_felt(felts[1], epoch);
 
         account_id_from_felts(felts)
     }
 
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
         Self(elements)
+    }
+
+    #[cfg(any(feature = "testing", test))]
+    pub fn new_with_type_and_mode(
+        mut bytes: [u8; 15],
+        account_type: AccountType,
+        storage_mode: AccountStorageMode,
+    ) -> AccountId2 {
+        let version = AccountVersion::VERSION_0_NUMBER;
+        let low_nibble = (version << ACCOUNT_VERSION_MASK_SHIFT)
+            | (storage_mode as u8) << ACCOUNT_STORAGE_MASK_SHIFT
+            | (account_type as u8);
+
+        // Set least significant byte.
+        bytes[7] = low_nibble;
+
+        // Clear most significant bit.
+        bytes[0] &= 0b0111_1111;
+        // Set five one bits to satisfy MIN_ACCOUNT_ONES.
+        bytes[0] |= 0b0111_1100;
+
+        let first_felt_bytes =
+            bytes[0..8].try_into().expect("we should have sliced off exactly 8 bytes");
+        let first_felt = Felt::try_from(u64::from_be_bytes(first_felt_bytes))
+            .expect("should be a valid felt due to the most significant bit being zero");
+
+        let mut second_felt_bytes = [0; 8];
+        // Overwrite first 7 bytes, leaving the 8th byte 0 (which will be cleared by
+        // shape_second_felt anyway).
+        second_felt_bytes[..7].copy_from_slice(&bytes[8..]);
+        // If the value is too large modular reduction is performed, which is fine here.
+        let mut second_felt = Felt::new(u64::from_be_bytes(second_felt_bytes));
+
+        second_felt = shape_second_felt(second_felt, 0);
+
+        let account_id = account_id_from_felts([first_felt, second_felt])
+            .expect("we should have shaped the felts to produce a valid id");
+
+        debug_assert_eq!(account_id.account_type(), account_type);
+        debug_assert_eq!(account_id.storage_mode(), storage_mode);
+
+        account_id
     }
 
     pub fn get_account_seed(
@@ -149,7 +186,9 @@ pub(super) fn validate_first_felt(
 
     // Validate high bit of first felt is zero.
     if first_felt >> 63 != 0 {
-        return Err(AccountError::AssumptionViolated("TODO: Make proper error".into()));
+        return Err(AccountError::AssumptionViolated(
+            "TODO: Make proper error: first felt high bit must be zero".into(),
+        ));
     }
 
     // Validate storage bits.
@@ -166,14 +205,11 @@ pub(super) fn validate_first_felt(
 fn validate_second_felt(second_felt: Felt) -> Result<(), AccountError> {
     let second_felt = second_felt.as_int();
 
-    // Validate high bit of second felt is zero.
-    if second_felt >> 63 != 0 {
-        return Err(AccountError::AssumptionViolated("TODO: Make proper error".into()));
-    }
-
     // Validate lower 8 bits of second felt are zero.
     if second_felt & 0xff != 0 {
-        return Err(AccountError::AssumptionViolated("TODO: Make proper error".into()));
+        return Err(AccountError::AssumptionViolated(
+            "TODO: Make proper error: second felt lower 8 bits must be zero".into(),
+        ));
     }
 
     Ok(())
@@ -215,6 +251,24 @@ fn extract_type(first_felt: u64) -> AccountType {
 
 fn extract_epoch(second_felt: u64) -> u16 {
     ((second_felt & ACCOUNT_EPOCH_MASK) >> ACCOUNT_EPOCH_MASK_SHIFT) as u16
+}
+
+// Shapes the second felt so it meets the requirements of the [`AccountId2`].
+fn shape_second_felt(second_felt: Felt, epoch: u16) -> Felt {
+    if epoch == u16::MAX {
+        unimplemented!("TODO: Return error");
+    }
+
+    // Set epoch.
+    let mut second_felt = second_felt.as_int();
+    let epoch = (epoch as u64) << ACCOUNT_EPOCH_MASK_SHIFT;
+    second_felt &= epoch;
+    second_felt |= epoch;
+
+    // Set lower 8 bits to zero.
+    second_felt &= 0xffff_ffff_ffff_ff00;
+
+    Felt::try_from(second_felt).expect("felt should still be valid")
 }
 
 impl TryFrom<[Felt; 2]> for AccountId2 {
@@ -277,7 +331,7 @@ mod tests {
             Felt::new(13059402505343003170),
         ];
 
-        for epoch in [0, u16::MAX, 5000] {
+        for epoch in [0, u16::MAX - 1, 5000] {
             let id = AccountId2::new(
                 valid_seed,
                 epoch,
@@ -292,14 +346,38 @@ mod tests {
 
     #[test]
     fn test_account_id() {
-        let valid_second_felt = Felt::new(0x7fff_ffff_ffff_ff00);
-        let valid_first_felt_high_bits: u64 = 0x7fff_ffff_ffff_ff00;
+        let valid_second_felt = Felt::try_from(0xfffe_ffff_ffff_ff00u64).unwrap();
+        let valid_first_felt = Felt::try_from(0x7fff_ffff_ffff_ff00u64).unwrap();
 
-        let first_felt_1 = Felt::new(valid_first_felt_high_bits);
-        let id1 = AccountId2::new_unchecked([first_felt_1, valid_second_felt]);
+        let id1 = AccountId2::new_unchecked([valid_first_felt, valid_second_felt]);
         assert_eq!(id1.account_type(), AccountType::RegularAccountImmutableCode);
         assert_eq!(id1.storage_mode(), AccountStorageMode::Public);
         assert_eq!(id1.version(), AccountVersion::VERSION_0);
-        assert_eq!(id1.epoch(), u16::MAX);
+        assert_eq!(id1.epoch(), u16::MAX - 1);
+    }
+
+    #[test]
+    fn account_id_construction() {
+        // Use the highest possible input to check if the constructed id is a valid Felt in that
+        // scenario.
+        // Use the lowest possible input to check whether the constructor satisfies
+        // MIN_ACCOUNT_ONES.
+        for input in [[0xff; 15], [0; 15]] {
+            for account_type in [
+                AccountType::FungibleFaucet,
+                AccountType::NonFungibleFaucet,
+                AccountType::RegularAccountImmutableCode,
+                AccountType::RegularAccountUpdatableCode,
+            ] {
+                for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
+                    let id = AccountId2::new_with_type_and_mode(input, account_type, storage_mode);
+                    assert_eq!(id.account_type(), account_type);
+                    assert_eq!(id.storage_mode(), storage_mode);
+                    assert_eq!(id.epoch(), 0);
+                    // TODO: Do a serialization roundtrip to ensure validity.
+                    // AccountId2::read_from_bytes(&id.to_bytes()).unwrap();
+                }
+            }
+        }
     }
 }
