@@ -60,6 +60,65 @@ pub mod utils {
             Digest::new([Felt::new($a), Felt::new($b), Felt::new($c), Felt::new($d)])
         };
     }
+
+    /// Construct a new `Digest` from long hex value.
+    #[macro_export]
+    macro_rules! digest_from_hex {
+        ($hex:expr) => {{
+            // hex prefix offset
+            const START: usize = 2;
+
+            const fn parse_hex_digit(digit: u8) -> u8 {
+                match digit {
+                    b'0'..=b'9' => digit - b'0',
+                    b'A'..=b'F' => digit - b'A' + 10,
+                    b'a'..=b'f' => digit - b'a' + 10,
+                    _ => panic!("Invalid hex letter"),
+                }
+            }
+
+            // Returns a byte array of the u64 value decoded from the hex byte array.
+            //
+            // Where:
+            // - global_index is the index of the hex digit byte in the hex_bytes array
+            // - upper_limit is the index at which the bytes of the current u64 value end
+            const fn decode_u64_bytes(
+                mut global_index: usize,
+                mut hex_bytes: &[u8],
+                mut upper_limit: usize,
+            ) -> [u8; 8] {
+                let mut u64_bytes = [0u8; 8];
+
+                let mut local_index = 0;
+                while global_index < upper_limit {
+                    let upper = parse_hex_digit(hex_bytes[START + global_index]);
+                    let lower = parse_hex_digit(hex_bytes[START + global_index + 1]);
+                    u64_bytes[local_index] = upper << 4 | lower;
+
+                    local_index += 1;
+                    global_index += 2;
+                }
+
+                u64_bytes
+            }
+
+            let hex_bytes = $hex.as_bytes();
+
+            if hex_bytes[0] != b'0' || hex_bytes[1] != b'x' {
+                panic!("Hex string should start with \"0x\" prefix");
+            }
+            if hex_bytes.len() != 66 {
+                panic!("Hex string has invalid length");
+            }
+
+            let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
+            let v2 = u64::from_le_bytes(decode_u64_bytes(16, hex_bytes, 32));
+            let v3 = u64::from_le_bytes(decode_u64_bytes(32, hex_bytes, 48));
+            let v4 = u64::from_le_bytes(decode_u64_bytes(48, hex_bytes, 64));
+
+            Digest::new([Felt::new(v1), Felt::new(v2), Felt::new(v3), Felt::new(v4)])
+        }};
+    }
 }
 
 pub mod vm {
