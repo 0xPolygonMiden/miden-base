@@ -216,16 +216,16 @@ fn executed_transaction_account_delta_new() {
 
             # pad the stack before calling the `create_note`
             padw padw swapdw
-            # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+            # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
 
             # create the note
             call.::miden::contracts::wallets::basic::create_note
-            # => [note_idx, PAD(15)]
+            # => [note_idx, pad(15)]
 
             # move an asset to the created note to partially deplete fungible asset balance
             swapw dropw push.{REMOVED_ASSET}
             call.::miden::contracts::wallets::basic::move_asset_to_note
-            # => [ASSET, note_idx, PAD(11)]
+            # => [ASSET, note_idx, pad(11)]
 
             # clear the stack
             dropw dropw dropw dropw
@@ -519,7 +519,7 @@ fn test_send_note_proc() {
 
                 # pad the stack with zeros before calling the `create_note`.
                 padw padw swapdw
-                # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8) ...]
+                # => [tag, aux, execution_hint, note_type, RECIPIENT, pad(8) ...]
 
                 call.wallet::create_note
                 # => [note_idx, GARBAGE(15)]
@@ -676,10 +676,10 @@ fn executed_transaction_output_notes() {
             # pad the stack before the call to prevent accidental modification of the deeper stack
             # elements
             padw padw swapdw
-            # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8)]
+            # => [tag, aux, execution_hint, note_type, RECIPIENT, pad(8)]
 
             call.wallet::create_note
-            # => [note_idx, PAD(15)]
+            # => [note_idx, pad(15)]
 
             # remove excess PADs from the stack
             swapdw dropw dropw movdn.7 dropw drop drop drop

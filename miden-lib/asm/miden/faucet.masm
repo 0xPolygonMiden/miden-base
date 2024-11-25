@@ -17,17 +17,17 @@ use.miden::kernel_proc_offsets
 #!   allowed.
 #! - for non-fungible faucets if the non-fungible asset being minted already exists.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.mint
     exec.kernel_proc_offsets::mint_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET, PAD(12)]
+    # => [ASSET, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -52,17 +52,17 @@ end
 #! - for non-fungible faucets if the non-fungible asset being burned does not exist or was not
 #!   provided as input to the transaction via a note or the accounts vault.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.burn
     exec.kernel_proc_offsets::burn_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET, PAD(12)]
+    # => [ASSET, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -81,17 +81,17 @@ end
 #! Panics if:
 #! - the transaction is not being executed against a fungible faucet.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_total_issuance
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_fungible_faucet_total_issuance_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [total_issuance, PAD(15)]
+    # => [total_issuance, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop

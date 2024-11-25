@@ -11,7 +11,7 @@ use.miden::kernel_proc_offsets
 #! Where:
 #! - acct_id is the account id.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_id
     # start padding the stack
     push.0.0.0
@@ -21,10 +21,10 @@ export.get_id
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [acct_id, PAD(15)]
+    # => [acct_id, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -39,7 +39,7 @@ end
 #! Where:
 #! - nonce is the account nonce.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_nonce
     # start padding the stack
     push.0.0.0
@@ -49,10 +49,10 @@ export.get_nonce
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [nonce, PAD(15)]
+    # => [nonce, pad(15)]
     
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -67,17 +67,17 @@ end
 #! Where:
 #! - INIT_HASH is the initial account hash.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_initial_hash
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_initial_account_hash_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [INIT_HASH, PAD(12)]
+    # => [INIT_HASH, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -92,17 +92,17 @@ end
 #! Where:
 #! - ACCT_HASH is the hash of the account data.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_current_hash
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_current_account_hash_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [ACCT_HASH, PAD(12)]
+    # => [ACCT_HASH, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -118,7 +118,7 @@ end
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.incr_nonce
     # start padding the stack
     push.0.0 movup.2
@@ -129,10 +129,10 @@ export.incr_nonce
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, value, PAD(14)]
+    # => [offset, value, pad(14)]
 
     syscall.exec_kernel_proc
-    # => [PAD(16)]
+    # => [pad(16)]
 
     dropw dropw dropw dropw
 end
@@ -149,7 +149,7 @@ end
 #! Panics if:
 #! - the index of the requested item is out of bounds.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_item
     push.0.0 movup.2
     # => [index, 0, 0]
@@ -159,10 +159,10 @@ export.get_item
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, index, PAD(14)]
+    # => [offset, index, pad(14)]
 
     syscall.exec_kernel_proc
-    # => [VALUE, PAD(12)]
+    # => [VALUE, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -183,17 +183,17 @@ end
 #! Panics if: 
 #! - the index of the item is out of bounds.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.set_item
     exec.kernel_proc_offsets::set_account_item_offset
     # => [offset, index, V']
 
     # pad the stack
     push.0.0 movdn.7 movdn.7 padw padw swapdw 
-    # => [offset, index, V', PAD(10)]
+    # => [offset, index, V', pad(10)]
     
     syscall.exec_kernel_proc
-    # => [R', V, PAD(8)]
+    # => [R', V, pad(8)]
 
     # clean the stack
     swapdw dropw dropw
@@ -214,17 +214,17 @@ end
 #! - the index for the map is out of bounds, meaning > 255.
 #! - the slot item at index is not a map.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_map_item
     exec.kernel_proc_offsets::get_account_map_item_offset
     # => [offset, index, KEY]
 
     # pad the stack
     push.0.0 movdn.7 movdn.7 padw padw swapdw 
-    # => [offset, index, KEY, PAD(10)]
+    # => [offset, index, KEY, pad(10)]
 
     syscall.exec_kernel_proc
-    # => [VALUE, PAD(12)]
+    # => [VALUE, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -247,17 +247,17 @@ end
 #! - the index for the map is out of bounds, meaning > 255.
 #! - the slot item at index is not a map.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.set_map_item
     exec.kernel_proc_offsets::set_account_map_item_offset
     # => [offset, index, KEY, VALUE]
 
     # pad the stack
     push.0.0 movdn.11 movdn.11 padw movdnw.3
-    # => [offset, index, KEY, VALUE, PAD(6)]
+    # => [offset, index, KEY, VALUE, pad(6)]
 
     syscall.exec_kernel_proc
-    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, PAD(8)]
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, pad(8)]
 
     # clean the stack
     swapdw dropw dropw
@@ -275,17 +275,17 @@ end
 #! Panics if:
 #! - this procedure is executed on an account whose type differs from `regular mutable`.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.set_code
     exec.kernel_proc_offsets::set_account_code_offset
     # => [offset, CODE_COMMITMENT]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, CODE_COMMITMENT, PAD(11)]
+    # => [offset, CODE_COMMITMENT, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [PAD(16)]
+    # => [pad(16)]
 
     # clean the stack
     dropw dropw dropw dropw 
@@ -304,17 +304,17 @@ end
 #! Panics if:
 #! - the asset is not a fungible asset.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_balance
     exec.kernel_proc_offsets::account_vault_get_balance_offset
     # => [offset, faucet_id]
 
     # pad the stack
     push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
-    # => [offset, faucet_id, PAD(14)]
+    # => [offset, faucet_id, pad(14)]
 
     syscall.exec_kernel_proc
-    # => [balance, PAD(15)]
+    # => [balance, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -333,17 +333,17 @@ end
 #! Panics if:
 #! - the ASSET is a fungible asset.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.has_non_fungible_asset
     exec.kernel_proc_offsets::account_vault_has_non_fungible_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw 
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [has_asset, PAD(15)]
+    # => [has_asset, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -366,17 +366,17 @@ end
 #! - the total value of two fungible assets is greater than or equal to 2^63.
 #! - the vault already contains the same non-fungible asset.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.add_asset
     exec.kernel_proc_offsets::account_vault_add_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET', PAD(12)]
+    # => [ASSET', pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -396,17 +396,17 @@ end
 #! - the amount of the fungible asset in the vault is less than the amount to be removed.
 #! - the non-fungible asset is not found in the vault.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.remove_asset
     exec.kernel_proc_offsets::account_vault_remove_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET, PAD(12)]
+    # => [ASSET, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -421,17 +421,17 @@ end
 #! Where:
 #! - COM is a commitment to the account vault.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_vault_commitment
     # pad the stack for syscall invocation
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_account_vault_commitment_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [COM, PAD(12)]
+    # => [COM, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw

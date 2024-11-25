@@ -19,8 +19,11 @@ const.ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME=0x00020029
 # OUTPUT NOTES PROCEDURES
 # =================================================================================================
 
-#! Copies output note data to the advice map. If no notes were created by a transaction, nothing
-#! is copied to the advice map.
+#! Copies the entire output note data to the advice map. If no notes were created by a transaction, 
+#! nothing is copied to the advice map.
+#!
+#! The output note data includes the note id, metadata, recipient, assets hash, number of assets and
+#! a set of assets for each note.  
 #!
 #! Inputs:  [OUTPUT_NOTES_COMMITMENT]
 #! Outputs: [OUTPUT_NOTES_COMMITMENT]

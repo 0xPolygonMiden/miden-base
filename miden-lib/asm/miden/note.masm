@@ -17,7 +17,7 @@ const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
 #! Inputs:  [start_ptr, end_ptr, HASH]
 #! Outputs: []
 #!
-#! Annotations: exec
+#! Invocation: exec
 proc.write_advice_data_to_memory
     # prepare the stack for reading from the advice stack
     padw padw padw
@@ -49,17 +49,17 @@ end
 #! - dest_ptr is the memory address to write the assets.
 #! - num_assets is the number of assets in the currently executing note.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_assets
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15), dest_ptr]
+    # => [pad(15), dest_ptr]
 
     exec.kernel_proc_offsets::get_note_assets_info_offset
-    # => [offset, PAD(15), dest_ptr]
+    # => [offset, pad(15), dest_ptr]
 
     syscall.exec_kernel_proc
-    # => [ASSETS_HASH, num_assets, PAD(11), dest_ptr]
+    # => [ASSETS_HASH, num_assets, pad(11), dest_ptr]
 
     # clean the stack
     swapdw dropw dropw movup.7 movup.7 movup.7 drop drop drop
@@ -96,17 +96,17 @@ end
 #! - inputs_len, the note's input count.
 #! - INPUTS, the data corresponding to the note's inputs.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_inputs
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15), dest_ptr]
+    # => [pad(15), dest_ptr]
 
     exec.kernel_proc_offsets::get_note_inputs_hash_offset
-    # => [offset, PAD(15), dest_ptr]
+    # => [offset, pad(15), dest_ptr]
 
     syscall.exec_kernel_proc
-    # => [INPUTS_HASH, PAD(12), dest_ptr]
+    # => [INPUTS_HASH, pad(12), dest_ptr]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -152,17 +152,17 @@ end
 #! Panics if:
 #! - no note is being processed.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_sender
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_note_sender_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [sender, PAD(15)]
+    # => [sender, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -180,17 +180,17 @@ end
 #! Panics if:
 #! - no note is being processed.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.get_serial_number
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_note_serial_number_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [SERIAL_NUMBER, PAD(12)]
+    # => [SERIAL_NUMBER, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -215,7 +215,7 @@ end
 #! Panics if:
 #! - num_inputs is greater than 128.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.compute_inputs_hash
     # check that number of inputs is less than 128
     dup.1 push.128 u32assert2 u32lte assert

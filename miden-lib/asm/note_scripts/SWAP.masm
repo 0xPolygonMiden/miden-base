@@ -39,10 +39,6 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020056
 #! - adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #!   greater than 2^63.
 begin
-    # drop the transaction script root
-    dropw
-    # => []
-
     # store ASSET into memory at address 3
     push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
@@ -98,16 +94,16 @@ begin
 
     # create a note using inputs
     padw swapdw padw movdnw.2
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8), ASSET]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8), ASSET]
     call.wallet::create_note
-    # => [note_idx, PAD(15), ASSET]
+    # => [note_idx, pad(15), ASSET]
 
     swapw dropw movupw.3 
-    # => [ASSET, note_idx, PAD(11)]
+    # => [ASSET, note_idx, pad(11)]
 
     # move asset to the note
     call.wallet::move_asset_to_note
-    # => [ASSET, note_idx, PAD(11)]
+    # => [ASSET, note_idx, pad(11)]
 
     # clean stack
     dropw dropw dropw dropw

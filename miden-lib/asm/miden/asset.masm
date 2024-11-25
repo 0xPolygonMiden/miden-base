@@ -59,7 +59,7 @@ end
 #! - amount is the amount of the asset to create.
 #! - ASSET is the created fungible asset.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.create_fungible_asset
     # fetch the id of the faucet the transaction is being executed against.
     exec.account::get_id
@@ -105,7 +105,7 @@ end
 #! - DATA_HASH is the data hash of the non-fungible asset to create.
 #! - ASSET is the created non-fungible asset.
 #!
-#! Annotations: exec
+#! Invocation: exec
 export.create_non_fungible_asset
     # get the id of the faucet the transaction is being executed against
     exec.account::get_id
