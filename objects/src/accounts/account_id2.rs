@@ -1,8 +1,14 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
-use vm_core::{Felt, Word};
-use vm_processor::Digest;
+use vm_core::{
+    utils::{ByteReader, Deserializable, Serializable},
+    Felt, Word,
+};
+use vm_processor::{DeserializationError, Digest};
 
 use super::Hasher;
 use crate::{
@@ -38,7 +44,10 @@ pub(super) const ACCOUNT_TYPE_MASK: u64 = 0b11;
 /// 2nd felt: [epoch (16 bits) | random (40 bits) | 8 zero bits]
 /// ```
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct AccountId2([Felt; 2]);
+pub struct AccountId2 {
+    first_felt: Felt,
+    second_felt: Felt,
+}
 
 impl AccountId2 {
     /// Specifies a minimum number of ones for a valid account ID.
@@ -63,7 +72,10 @@ impl AccountId2 {
     }
 
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
-        Self(elements)
+        Self {
+            first_felt: elements[0],
+            second_felt: elements[1],
+        }
     }
 
     #[cfg(any(feature = "testing", test))]
@@ -184,11 +196,11 @@ impl AccountId2 {
     }
 
     fn first_felt(&self) -> Felt {
-        self.0[0]
+        self.first_felt
     }
 
     fn second_felt(&self) -> Felt {
-        self.0[1]
+        self.second_felt
     }
 }
 
@@ -197,7 +209,7 @@ impl AccountId2 {
 
 impl From<AccountId2> for [Felt; 2] {
     fn from(id: AccountId2) -> Self {
-        id.0
+        [id.first_felt, id.second_felt]
     }
 }
 
@@ -276,6 +288,29 @@ impl TryFrom<u128> for AccountId2 {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AccountId2 {
+    fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
+        let bytes: [u8; 15] = (*self).into();
+        bytes.write_into(target);
+    }
+
+    fn get_size_hint(&self) -> usize {
+        // TODO: Turn into constant?
+        15
+    }
+}
+
+impl Deserializable for AccountId2 {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        <[u8; 15]>::read_from(source)?
+            .try_into()
+            .map_err(|err: AccountError| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
 /// Returns an [AccountId] instantiated with the provided field elements.
 ///
 /// TODO
@@ -283,7 +318,10 @@ fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId2, AccountError
     validate_first_felt(elements[0])?;
     validate_second_felt(elements[1])?;
 
-    Ok(AccountId2(elements))
+    Ok(AccountId2 {
+        first_felt: elements[0],
+        second_felt: elements[1],
+    })
 }
 
 pub(super) fn validate_first_felt(
