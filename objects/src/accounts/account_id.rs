@@ -84,6 +84,13 @@ impl From<u64> for AccountType {
     }
 }
 
+/// Returns the [AccountType] given an integer representation of `account_id`.
+impl From<u128> for AccountType {
+    fn from(value: u128) -> Self {
+        account_type_from_u64((value >> 64) as u64)
+    }
+}
+
 // ACCOUNT STORAGE TYPES
 // ================================================================================================
 
