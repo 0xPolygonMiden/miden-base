@@ -44,7 +44,7 @@ impl StartProxy {
             |_| {
                 info!("Loading configuration file");
                 // options and conf loaded
-                ServerConf::load_yaml_with_opt_override(&opts)
+                ServerConf::load_yaml_with_opt_override(&opts).unwrap()
             },
         );
 
