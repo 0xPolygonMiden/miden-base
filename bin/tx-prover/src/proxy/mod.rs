@@ -76,7 +76,7 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 /// Request queue holds the list of requests that are waiting to be processed by the workers.
 /// It is used to keep track of the order of the requests to then assign them to the workers.
 pub struct RequestQueue {
-    queue: RwLock<VecDeque<u64>>,
+    queue: RwLock<VecDeque<u128>>,
 }
 
 impl RequestQueue {
@@ -91,19 +91,19 @@ impl RequestQueue {
     }
 
     /// Enqueue a request
-    pub async fn enqueue(&self, request_id: u64) {
+    pub async fn enqueue(&self, request_id: u128) {
         let mut queue = self.queue.write().await;
         queue.push_back(request_id);
     }
 
     /// Dequeue a request
-    pub async fn dequeue(&self) -> Option<u64> {
+    pub async fn dequeue(&self) -> Option<u128> {
         let mut queue = self.queue.write().await;
         queue.pop_front()
     }
 
     /// Peek at the first request in the queue
-    pub async fn peek(&self) -> Option<u64> {
+    pub async fn peek(&self) -> Option<u128> {
         let queue = self.queue.read().await;
         queue.front().copied()
     }
@@ -122,7 +122,7 @@ pub struct RequestContext {
     /// Number of tries for the request
     tries: usize,
     /// Unique ID for the request
-    request_id: u64,
+    request_id: u128,
     /// Worker that will process the request
     worker: Option<Backend>,
 }
@@ -132,7 +132,7 @@ impl RequestContext {
     fn new() -> Self {
         Self {
             tries: 0,
-            request_id: rand::random::<u64>(),
+            request_id: rand::random::<u128>(),
             worker: None,
         }
     }
