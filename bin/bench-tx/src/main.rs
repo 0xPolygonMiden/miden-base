@@ -8,7 +8,7 @@ use std::{
 
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountId, AccountStorageMode, AccountType},
     assets::{Asset, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
@@ -21,8 +21,8 @@ use vm_processor::ONE;
 mod utils;
 use utils::{
     get_account_with_basic_authenticated_wallet, get_new_pk_and_authenticator,
-    write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+    write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER,
+    DEFAULT_AUTH_SCRIPT,
 };
 pub enum Benchmark {
     Simple,
@@ -93,17 +93,20 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     // Create sender and target account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
-    let target_account =
-        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
+    let target_account = get_account_with_basic_authenticated_wallet(
+        [10; 32],
+        AccountType::RegularAccountUpdatableCode,
+        AccountStorageMode::Private,
+        target_pub_key,
+        None,
+    );
 
     // Create the note
     let note = create_p2id_note(
         sender_account_id,
-        target_account_id,
+        target_account.id(),
         vec![fungible_asset],
         NoteType::Public,
         Felt::new(0),
@@ -134,7 +137,7 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
 
     // execute transaction
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args_target)
         .unwrap();
 
     Ok(executed_transaction.into())

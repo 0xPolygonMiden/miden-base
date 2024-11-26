@@ -16,7 +16,7 @@ pub struct CodeExecutor<H> {
 impl<H: Host> CodeExecutor<H> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    pub fn new(host: H) -> Self {
+    pub(crate) fn new(host: H) -> Self {
         Self {
             host,
             stack_inputs: None,

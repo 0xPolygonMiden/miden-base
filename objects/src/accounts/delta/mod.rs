@@ -57,7 +57,7 @@ impl AccountDelta {
         match (&mut self.nonce, other.nonce) {
             (Some(old), Some(new)) if new.as_int() <= old.as_int() => {
                 return Err(AccountDeltaError::InconsistentNonceUpdate(format!(
-                    "New nonce {new} is not larger than the old nonce {old}"
+                    "new nonce {new} is not larger than the old nonce {old}"
                 )))
             },
             // Incoming nonce takes precedence.
@@ -85,7 +85,7 @@ impl AccountDelta {
         &self.vault
     }
 
-    /// Returns the new nonce, if the nonce was changes.
+    /// Returns the new nonce, if the nonce was changed.
     pub fn nonce(&self) -> Option<Felt> {
         self.nonce
     }
@@ -123,11 +123,11 @@ impl AccountUpdateDetails {
                 AccountUpdateDetails::Private
             },
             (AccountUpdateDetails::New(mut account), AccountUpdateDetails::Delta(delta)) => {
-                account.apply_delta(&delta).map_err(|_| {
-                    AccountDeltaError::IncompatibleAccountUpdates(
-                        AccountUpdateDetails::New(account.clone()),
-                        AccountUpdateDetails::Delta(delta),
-                    )
+                account.apply_delta(&delta).map_err(|err| {
+                    AccountDeltaError::AccountDeltaApplicationFailed {
+                        account_id: account.id(),
+                        source: err,
+                    }
                 })?;
 
                 AccountUpdateDetails::New(account)
@@ -137,11 +137,23 @@ impl AccountUpdateDetails {
                 AccountUpdateDetails::Delta(delta)
             },
             (left, right) => {
-                return Err(AccountDeltaError::IncompatibleAccountUpdates(left, right))
+                return Err(AccountDeltaError::IncompatibleAccountUpdates {
+                    left_update_type: left.as_tag_str(),
+                    right_update_type: right.as_tag_str(),
+                })
             },
         };
 
         Ok(merged_update)
+    }
+
+    /// Returns the tag of the [`AccountUpdateDetails`] as a string for inclusion in error messages.
+    pub(crate) const fn as_tag_str(&self) -> &'static str {
+        match self {
+            AccountUpdateDetails::Private => "private",
+            AccountUpdateDetails::New(_) => "new",
+            AccountUpdateDetails::Delta(_) => "delta",
+        }
     }
 }
 

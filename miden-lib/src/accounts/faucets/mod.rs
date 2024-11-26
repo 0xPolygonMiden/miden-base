@@ -1,5 +1,3 @@
-use alloc::string::ToString;
-
 use miden_objects::{
     accounts::{
         Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType, StorageSlot,
@@ -32,17 +30,27 @@ pub struct BasicFungibleFaucet {
 }
 
 impl BasicFungibleFaucet {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
+    const MAX_DECIMALS: u8 = 12;
+
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
     /// Creates a new [`BasicFungibleFaucet`] component from the given pieces of metadata.
     pub fn new(symbol: TokenSymbol, decimals: u8, max_supply: Felt) -> Result<Self, AccountError> {
         // First check that the metadata is valid.
-        if decimals > MAX_DECIMALS {
-            return Err(AccountError::FungibleFaucetInvalidMetadata(
-                "Decimals must be less than 13".to_string(),
-            ));
-        } else if max_supply.as_int() > MAX_MAX_SUPPLY {
-            return Err(AccountError::FungibleFaucetInvalidMetadata(
-                "Max supply must be < 2^63".to_string(),
-            ));
+        if decimals > Self::MAX_DECIMALS {
+            return Err(AccountError::FungibleFaucetTooManyDecimals {
+                actual: decimals,
+                max: Self::MAX_DECIMALS,
+            });
+        } else if max_supply.as_int() > Self::MAX_MAX_SUPPLY {
+            return Err(AccountError::FungibleFaucetMaxSupplyTooLarge {
+                actual: max_supply.as_int(),
+                max: Self::MAX_MAX_SUPPLY,
+            });
         }
 
         Ok(Self { symbol, decimals, max_supply })
@@ -64,9 +72,6 @@ impl From<BasicFungibleFaucet> for AccountComponent {
 
 // FUNGIBLE FAUCET
 // ================================================================================================
-
-const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
-const MAX_DECIMALS: u8 = 12;
 
 /// Creates a new faucet account with basic fungible faucet interface,
 /// account storage type, specified authentication scheme, and provided meta data (token symbol,

@@ -14,7 +14,6 @@ use miden_objects::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
         AccountBuilder, AccountCode, AccountComponent, AccountStorage, AccountType, StorageSlot,
@@ -123,7 +122,7 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let (account, _) = AccountBuilder::new()
+    let account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -133,8 +132,7 @@ fn executed_transaction_account_delta_new() {
             .unwrap(),
         )
         .with_assets(account_assets)
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     let mut tx_context = TransactionContextBuilder::new(account)
@@ -175,8 +173,7 @@ fn executed_transaction_account_delta_new() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+    let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
 
     let tag1 = NoteTag::from_account_id(
@@ -192,9 +189,12 @@ fn executed_transaction_account_delta_new() {
 
     let note_types = [NoteType::Private; 3];
 
-    assert_eq!(tag1.validate(NoteType::Private), Ok(tag1));
-    assert_eq!(tag2.validate(NoteType::Private), Ok(tag2));
-    assert_eq!(tag3.validate(NoteType::Private), Ok(tag3));
+    tag1.validate(NoteType::Private)
+        .expect("note tag 1 should support private notes");
+    tag2.validate(NoteType::Private)
+        .expect("note tag 2 should support private notes");
+    tag3.validate(NoteType::Private)
+        .expect("note tag 3 should support private notes");
 
     let execution_hint_1 = Felt::from(NoteExecutionHint::always());
     let execution_hint_2 = Felt::from(NoteExecutionHint::none());
@@ -459,8 +459,7 @@ fn test_send_note_proc() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+    let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
 
     let tag = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
@@ -470,7 +469,7 @@ fn test_send_note_proc() {
     let aux = Felt::new(27);
     let note_type = NoteType::Private;
 
-    assert_eq!(tag.validate(note_type), Ok(tag));
+    tag.validate(note_type).expect("note tag should support private notes");
 
     // prepare the asset vector to be removed for each test variant
     let assets_matrix = vec![
@@ -607,8 +606,7 @@ fn executed_transaction_output_notes() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 =
-        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+    let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
     let removed_asset_4 = Asset::Fungible(
         FungibleAsset::new(
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
@@ -632,9 +630,9 @@ fn executed_transaction_output_notes() {
     let note_type2 = NoteType::Public;
     let note_type3 = NoteType::Public;
 
-    assert_eq!(tag1.validate(note_type1), Ok(tag1));
-    assert_eq!(tag2.validate(note_type2), Ok(tag2));
-    assert_eq!(tag3.validate(note_type3), Ok(tag3));
+    tag1.validate(note_type1).expect("note tag 1 should support private notes");
+    tag2.validate(note_type2).expect("note tag 2 should support public notes");
+    tag3.validate(note_type3).expect("note tag 3 should support public notes");
 
     // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public
     // without assets.

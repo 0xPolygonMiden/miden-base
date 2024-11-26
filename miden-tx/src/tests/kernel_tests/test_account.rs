@@ -1,6 +1,9 @@
-use miden_lib::transaction::{
-    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
-    TransactionKernel,
+use miden_lib::{
+    errors::tx_kernel_errors::ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES,
+    transaction::{
+        memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
+        TransactionKernel,
+    },
 };
 use miden_objects::{
     accounts::{
@@ -23,6 +26,7 @@ use vm_processor::{Digest, MemAdviceProvider, ProcessState};
 
 use super::{Felt, StackInputs, Word, ONE, ZERO};
 use crate::{
+    assert_execution_error,
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
 };
@@ -174,7 +178,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
 
     let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
 
-    assert!(result.is_err());
+    assert_execution_error!(result, ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES);
 }
 
 #[test]
@@ -253,7 +257,7 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let (account, _) = AccountBuilder::new()
+    let account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -262,8 +266,7 @@ fn test_get_map_item() {
             )
             .unwrap(),
         )
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
@@ -401,7 +404,7 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let (account, _) = AccountBuilder::new()
+    let account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -410,8 +413,7 @@ fn test_set_map_item() {
             )
             .unwrap(),
         )
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     let tx_context = TransactionContextBuilder::new(account).build();
@@ -551,12 +553,11 @@ fn test_account_component_storage_offset() {
     .unwrap()
     .with_supported_type(AccountType::RegularAccountUpdatableCode);
 
-    let (mut account, _) = AccountBuilder::new()
+    let mut account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(component1)
         .with_component(component2)
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     // Assert that the storage offset and size have been set correctly.

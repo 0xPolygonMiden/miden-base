@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.6.2 (2024-11-20)
+## 0.7.0 (TBD)
 
-- Avoid writing to the filesystem during docs.rs build (#970).
+### Changes
+
+- [BREAKING] Better error display when queues are full in the prover service (#967).
+- [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
+- [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
 
 ## 0.6.1 (2024-11-08)
 
