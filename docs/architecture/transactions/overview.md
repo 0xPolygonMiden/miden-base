@@ -6,7 +6,9 @@ The Miden transaction architecture comprises a set of components that interact w
 
 The diagram shows the components responsible for Miden transactions and how they fit together.
 
-![Transactions architecture overview](../../img/architecture/transaction/tx-overview.png)
+<p style="text-align: center;">
+    <img src="../../img/architecture/transaction/tx-overview.png" alt="Transactions architecture overview"/>
+</p>
 
 > **Tip**
 > - The [transaction executor](execution.md) prepares, executes, and proves transactions. 

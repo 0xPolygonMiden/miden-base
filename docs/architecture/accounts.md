@@ -8,7 +8,9 @@ In Miden, an account is an entity that holds assets and defines rules about how 
 
 In Miden, every account is a smart contract. The diagram below illustrates the basic components of an account.
 
-![Architecture core concepts](../img/architecture/account/account-definition.png)
+<p style="text-align: center;">
+    <img src="../img/architecture/account/account-definition.png" style="width:30%;" alt="Account diagram"/>
+</p>
 
 > **Tip: Key to diagram**
 > - **Account ID**: A unique identifier for an account. This does not change throughout its lifetime.

@@ -6,7 +6,9 @@ The concept of notes is a key divergence from Ethereum’s account-based model.
 
 ## Note design
 
-![Architecture core concepts](../img/architecture/note/note.png)
+<p style="text-align: center;">
+    <img src="../img/architecture/note/note.png" style="width:30%;" alt="Note diagram"/>
+</p>
 
 > **Tip: Key to diagram**
 > - **Assets**: An [asset](assets.md) container for a note. It can contain up to `256` assets stored in an array which can be reduced to a single hash.
