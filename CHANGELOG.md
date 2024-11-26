@@ -10,6 +10,10 @@
 - [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
 - Implemented new `digest_from_hex!` macro (#984).
 
+## 0.6.2 (2024-11-20)
+
+- Avoid writing to the filesystem during docs.rs build (#970).
+
 ## 0.6.1 (2024-11-08)
 
 ### Features
