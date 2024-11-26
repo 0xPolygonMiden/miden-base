@@ -1,17 +1,13 @@
----
-comments: true
----
+In this section, we show you how to execute transactions and send funds to another account using the Miden client and [public notes](https://docs.polygon.technology/miden/miden-base/architecture/notes/#note-storage-mode).
 
-In this section, we show you how to execute transactions and send funds to another account using the Miden client and [public notes](https://docs.polygon.technology/miden/miden-base/architecture/notes/#note-storage-mode). 
-
-!!! important "Prerequisite steps"
-    - You should have already followed the [prerequisite steps](prerequisites.md) and [get started](create-account-use-faucet.md) documents.
-    - You should have *not* reset the state of your local client.
+> **Important: Prerequisite steps**
+> - You should have already followed the [prerequisite steps](prerequisites.md) and [get started](create-account-use-faucet.md) documents.
+> - You should have *not* reset the state of your local client.
 
 ## Create a second client
 
-!!! tip
-      Remember to use the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for clarifications.
+> **Tip**
+> Remember to use the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for clarifications.
 
 This is an alternative to the [private P2P transactions](p2p-private.md) process.
 
@@ -57,8 +53,8 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     miden send --sender <basic-account-id-A> --target <basic-account-id-C> --asset 50::<faucet-account-id> --note-type public
     ```
 
-    !!! note
-        The faucet account id is `0xad904b3138d71d3e` and can also be found on the [Miden faucet website](https://testnet.miden.io/) under the title **Miden faucet**.
+    > **Note**
+    > The faucet account id is `0xad904b3138d71d3e` and can also be found on the [Miden faucet website](https://testnet.miden.io/) under the title **Miden faucet**.
 
     This generates a Pay-to-ID (`P2ID`) note containing `50` tokens, transferred from one account to the other. As the note is public, the second account can receive the necessary details by syncing with the node.
 
@@ -82,8 +78,8 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     miden consume-notes --account <regular-account-ID-C> <input-note-id>
     ```
 
-    !!! tip
-        It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient, e.g. `0x6ae613a`.
+    > **Tip**
+    > It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient, e.g. `0x6ae613a`.
 
 That's it!
 

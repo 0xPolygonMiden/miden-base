@@ -1,8 +1,4 @@
----
-comments: true
----
-
-This section shows you how to get started with Miden by generating a new Miden account, requesting funds from a public faucet, consuming private notes, and creating public pay-to-id-notes.  
+This section shows you how to get started with Miden by generating a new Miden account, requesting funds from a public faucet, consuming private notes, and creating public pay-to-id-notes.
 
 By the end of this tutorial, you will have:
 
@@ -16,5 +12,3 @@ By the end of this tutorial, you will have:
 ### Rust
 
 Download from [the Rust website](https://www.rust-lang.org/learn/get-started).
-
-</br>

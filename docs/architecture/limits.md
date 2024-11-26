@@ -6,21 +6,21 @@ The following are the current limits enforced in the `miden-base` and `miden-nod
 - Max assets per account: **no limit**.
 - Max top-level storage slots per account: **255**. Each storage slot can contain an unlimited 
   amount of data (e.g., if the storage slot contains an array or a map).
-- Max code size per account: **no limit** (but we plan to enforce code size limit in the future, 
+- Max code size per account: **no limit** (but we plan to enforce a code size limit in the future, 
   at least for public accounts).
 
 ## Notes
 - Min assets per note: **0**.
 - Max assets per note: **255**.
-- Max inputs per note: **128**. The value can be represented using as a single byte while being 
+- Max inputs per note: **128**. The value can be represented as a single byte while being 
   evenly divisible by 8.
-- Max code size per note: **no limit** (but we plan to enforce code size limit in the future,
+- Max code size per note: **no limit** (but we plan to enforce a code size limit in the future,
   at least for public notes).
 
 ## Transactions
 - Max input notes per transaction: **1024**.
 - Max output notes per transaction: **1024**.
-- Max code size of tx script: **no limit** (but we plan to enforce code size limit in the future).
+- Max code size of tx script: **no limit** (but we plan to enforce a code size limit in the future).
 - Max number of VM cycles: **$2^{30}$**.
 
 ## Batches
