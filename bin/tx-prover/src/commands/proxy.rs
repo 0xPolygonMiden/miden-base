@@ -21,6 +21,9 @@ pub struct StartProxy {
     /// See [`ServerConf`] for more details of the configuration file.
     #[clap(short, long, help = "The path to the configuration file.", long_help = None)]
     pub conf: Option<String>,
+    /// Whether this server should run in the background
+    #[clap(short, long)]
+    pub daemon: bool,
 }
 
 impl StartProxy {
@@ -33,6 +36,7 @@ impl StartProxy {
 
         opts.upgrade = self.upgrade;
         opts.conf = self.conf.clone();
+        opts.daemon = self.daemon;
 
         info!("Starting proxy with options: {:?}", opts);
         let confs = opts.conf.as_ref().map_or_else(
