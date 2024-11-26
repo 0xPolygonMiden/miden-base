@@ -1,6 +1,12 @@
 use clap::Parser;
-use pingora::{apps::HttpServerOptions, lb::Backend, prelude::Opt, server::Server};
+use pingora::{
+    apps::HttpServerOptions,
+    lb::Backend,
+    prelude::Opt,
+    server::{configuration::ServerConf, Server},
+};
 use pingora_proxy::http_proxy_service;
+use tracing::info;
 
 use crate::{proxy::LoadBalancer, utils::load_config_from_file};
 
@@ -8,11 +14,7 @@ use crate::{proxy::LoadBalancer, utils::load_config_from_file};
 #[derive(Debug, Parser)]
 pub struct StartProxy {
     /// Whether this server should try to upgrade from a running old server
-    #[clap(
-        short,
-        long,
-        default_value = "false",
-    )]
+    #[clap(short, long, default_value = "false")]
     pub upgrade: bool,
     /// The path to the configuration file.
     ///
@@ -31,6 +33,22 @@ impl StartProxy {
 
         opts.upgrade = self.upgrade;
         opts.conf = self.conf.clone();
+
+        info!("Starting proxy with options: {:?}", opts);
+        let confs = opts.conf.as_ref().map_or_else(
+            || {
+                // options, no conf, generated
+                info!("No configuration file provided, generating default configuration");
+                ServerConf::new_with_opt_override(&opts).unwrap()
+            },
+            |_| {
+                info!("Loading configuration file");
+                // options and conf loaded
+                ServerConf::load_yaml_with_opt_override(&opts)
+            },
+        );
+
+        info!("Starting server with configuration: {:?}", confs);
 
         let mut server = Server::new(Some(opts)).expect("Failed to create server");
         server.bootstrap();
