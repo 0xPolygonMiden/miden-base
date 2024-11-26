@@ -123,7 +123,7 @@ fn test_add_fungible_asset_success() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -163,7 +163,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -195,7 +195,7 @@ fn test_add_non_fungible_asset_success() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -235,7 +235,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -264,10 +264,13 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
     let code = format!(
         "
+        use.kernel::prologue
+        use.test::account
+
         begin
-            exec.::kernel::prologue::prepare_transaction
+            exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            call.::miden::account::remove_asset
+            call.account::remove_asset
 
             # truncate the stack
             swapw dropw
@@ -300,7 +303,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -329,7 +332,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -376,7 +379,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -410,7 +413,7 @@ fn test_remove_non_fungible_asset_success() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction

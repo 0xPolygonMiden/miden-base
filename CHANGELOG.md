@@ -18,7 +18,8 @@
 
 ### Fixes
 
-- Fixed `AccountId::new_with_type_and_mode()` (#958). 
+- Fixed `AccountId::new_with_type_and_mode()` (#958).
+- Updated the ABI for the assembly procedures (#971).
 
 ## 0.6.0 (2024-11-05)
 

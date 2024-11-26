@@ -26,7 +26,9 @@ pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001f; // 9223372036854775839
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "
     begin
+        padw padw padw padw
         call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+        dropw dropw dropw dropw
     end
 ";
 

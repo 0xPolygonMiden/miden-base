@@ -19,15 +19,21 @@ const.ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME=0x00020029
 # OUTPUT NOTES PROCEDURES
 # =================================================================================================
 
-#! Copies output note data to the advice map. If no notes were created by a transaction, nothing
-#! is copied to the advice map.
+#! Copies the entire output note data to the advice map. If no notes were created by a transaction, 
+#! nothing is copied to the advice map.
 #!
-#! Stack: [OUTPUT_NOTES_COMMITMENT, ...]
-#! Output: [OUTPUT_NOTES_COMMITMENT, ...]
+#! The output note data includes the note id, metadata, recipient, assets hash, number of assets and
+#! a set of assets for each note.  
+#!
+#! Inputs:  [OUTPUT_NOTES_COMMITMENT]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT]
+#!
+#! Where:
+#! - OUTPUT_NOTES_COMMITMENT is the note commitment computed from note's id and metadata.
 proc.copy_output_notes_to_advice_map
     # get the number of notes created by the transaction
     exec.memory::get_num_output_notes
-    # => [num_notes, OUTPUT_NOTES_COMMITMENT, ...]
+    # => [num_notes, OUTPUT_NOTES_COMMITMENT]
 
     # if there are output notes, add them to the advice map
     dup eq.0
@@ -37,34 +43,34 @@ proc.copy_output_notes_to_advice_map
     else
         # compute the end boundary of the output notes section
         exec.memory::get_output_note_ptr movdn.4
-        # => [OUTPUT_NOTES_COMMITMENT, output_notes_end_ptr, ...]
+        # => [OUTPUT_NOTES_COMMITMENT, output_notes_end_ptr]
 
         # compute the start boundary of the output notes section
         exec.memory::get_output_note_data_offset movdn.4
-        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
+        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr]
 
         # insert created data into the advice map
         adv.insert_mem push.15511 drop          # TODO: remove line, see miden-vm/#1122
-        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
+        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr]
 
         # drop output note pointers
         movup.4 drop movup.4 drop
     end
-    # => [OUTPUT_NOTES_COMMITMENT, ...]
+    # => [OUTPUT_NOTES_COMMITMENT]
 end
 
 # BUILD OUTPUT VAULT
 # =================================================================================================
 
-#! Builds the output vault which is combination of the assets in the account vault at the end of
-#! the transaction and all the assets in the output notes.
+#! Builds the output vault which is combination of the assets in the account vault at the end of the
+#! transaction and all the assets in the output notes.
 #!
 #! The output vault is built as follows:
 #! - we first copy the account vault root to the output vault root.
 #! - we then loop over the output notes and insert their assets into the output vault.
 #!
-#! Stack: []
-#! Output: []
+#! Inputs:  []
+#! Outputs: []
 proc.build_output_vault
     # copy final account vault root to output account vault root
     exec.memory::get_acct_vault_root exec.memory::set_output_vault_root dropw
@@ -116,13 +122,13 @@ proc.build_output_vault
 
             # read the output note asset from memory
             padw dup.5 mem_loadw
-            # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
-            #     num_assets, note_data_ptr, output_notes_end_ptr]
+            # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr, 
+            #     output_vault_root_ptr, num_assets, note_data_ptr, output_notes_end_ptr]
 
             # insert output note asset into output vault
             exec.asset_vault::add_asset dropw
-            # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
-            #     output_notes_end_ptr]
+            # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, 
+            #     note_data_ptr, output_notes_end_ptr]
 
             # increment assets_start_ptr and asses if we should loop again
             add.1 dup.1 dup.1 neq
@@ -152,8 +158,8 @@ end
 #! not result in a change to the account code commitment if the `account::set_code` procedure has
 #! not been invoked in this transaction.
 #!
-#! Stack: []
-#! Output: []
+#! Inputs:  []
+#! Outputs: []
 proc.update_account_code
     # check if the account code commitment has been updated
     exec.memory::get_new_acct_code_commitment
@@ -171,8 +177,8 @@ end
 #! Updates the account storage commitment by hashing the storage slots and setting the storage
 #! commitment to the newly computed storage hash.
 #!
-#! Stack: []
-#! Output: []
+#! Inputs:  []
+#! Outputs: []
 proc.update_account_storage_commitment
     # get number of storage slots
     exec.memory::get_num_storage_slots
@@ -218,17 +224,19 @@ end
 # =================================================================================================
 
 #! Finalizes the transaction by performing the following steps:
-#! - computes the final account hash
+#! - computes the final account hash.
 #! - if the account has changed, assert that the final account nonce is greater than the initial
-#!   account nonce
-#! - computes the output notes commitment
-#! - asserts that the input and output vault roots are equal
+#!   account nonce.
+#! - computes the output notes commitment.
+#! - asserts that the input and output vault roots are equal.
 #!
-#! Stack: []
-#! Output: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
+#! Inputs:  []
+#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 #!
-#! - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes
-#! - FINAL_ACCOUNT_HASH is the final account hash
+#! Where:
+#! - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes.
+#! - FINAL_ACCOUNT_HASH is the final account hash.
+#! - tx_expiration_block_num is the transaction expiration block number.
 export.finalize_transaction
     # make sure that the context was switched back to the native account
     exec.memory::assert_native_account
@@ -302,16 +310,11 @@ export.finalize_transaction
     exec.copy_output_notes_to_advice_map
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    # truncate stack
-    swapdw dropw dropw
-    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
-
     # assert no net creation or destruction of assets over the transaction
-    exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME
+    exec.memory::get_input_vault_root exec.memory::get_output_vault_root 
+    assert_eqw.err=ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    swapdw
-    exec.memory::get_expiration_block_num
-    swap drop swapdw
+    exec.memory::get_expiration_block_num movdn.8
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 end

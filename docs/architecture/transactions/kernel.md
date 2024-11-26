@@ -134,7 +134,9 @@ The transaction script can be used to authenticate the transaction by increasing
     use.miden::contracts::auth::basic->auth_tx
 
     begin
+        padw padw padw padw
         call.auth_tx::auth_tx_rpo_falcon512
+        dropw dropw dropw dropw
     end
 ```
 
