@@ -7,6 +7,7 @@
 - [BREAKING] Better error display when queues are full in the prover service (#967).
 - [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 - [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
+- Implemented new `digest_from_hex!` macro (#984).
 
 ## 0.6.1 (2024-11-08)
 

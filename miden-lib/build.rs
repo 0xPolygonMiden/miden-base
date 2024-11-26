@@ -213,19 +213,7 @@ fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
                 panic!("Offset constant for function `{name}` not found in `{offsets_filename:?}`");
             };
 
-            (
-                offset,
-                format!(
-                    "    // {name}\n    digest!({}),",
-                    proc_info
-                        .digest
-                        .as_elements()
-                        .iter()
-                        .map(|v| format!("{:#016x}", v.as_int()))
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                ),
-            )
+            (offset, format!("    // {name}\n    digest!(\"{}\"),", proc_info.digest))
         })
         .collect();
 
