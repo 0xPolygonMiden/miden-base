@@ -30,6 +30,8 @@ impl StartProxy {
         let mut opts = Opt::default();
 
         opts.upgrade = self.upgrade;
+        opts.conf = self.conf.clone();
+
         let mut server = Server::new(Some(opts)).expect("Failed to create server");
         server.bootstrap();
 
