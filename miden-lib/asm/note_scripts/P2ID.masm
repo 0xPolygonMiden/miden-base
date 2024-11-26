@@ -69,7 +69,7 @@ end
 #! Requires that the account exposes: 
 #! - miden::contracts::wallets::basic::receive_asset procedure.
 #!
-#! Inputs:  [SCRIPT_ROOT]
+#! Inputs:  []
 #! Outputs: []
 #!
 #! Note inputs are assumed to be as follows:
@@ -95,12 +95,12 @@ begin
     # => [target_account_id]
 
     exec.account::get_id
-    # => [account_id, target_account_id, ...]
+    # => [account_id, target_account_id]
 
     # ensure account_id = target_account_id, fails otherwise
     assert_eq.err=ERR_P2ID_TARGET_ACCT_MISMATCH
-    # => [...]
+    # => []
 
     exec.add_note_assets_to_account
-    # => [...]
+    # => []
 end

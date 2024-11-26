@@ -74,7 +74,7 @@ end
 #! Requires that the account exposes: 
 #! - miden::contracts::wallets::basic::receive_asset procedure.
 #!
-#! Inputs:  [SCRIPT_ROOT]
+#! Inputs:  []
 #! Outputs: []
 #!
 #! Note inputs are assumed to be as follows:
@@ -104,11 +104,11 @@ begin
     # => [reclaim_block_height, target_account_id]
 
     exec.account::get_id dup
-    # => [account_id, account_id, reclaim_block_height, target_account_id, ...]
+    # => [account_id, account_id, reclaim_block_height, target_account_id]
 
     # determine if the current account is the target account
     movup.3 eq
-    # => [is_target, account_id, reclaim_block_height, ...]
+    # => [is_target, account_id, reclaim_block_height]
 
     if.true
         # if current account is the target, we don't need to check anything else
@@ -118,18 +118,18 @@ begin
     else
         # if current account is not the target, we need to ensure it is the sender
         exec.note::get_sender
-        # => [sender_account_id, account_id, reclaim_block_height, ...]
+        # => [sender_account_id, account_id, reclaim_block_height]
 
         assert_eq.err=ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
-        # => [reclaim_block_height, ...]
+        # => [reclaim_block_height]
 
         # now check that sender is allowed to reclaim, current block >= reclaim block height
         exec.tx::get_block_number
-        # => [current_block_height, reclaim_block_height, ...]
+        # => [current_block_height, reclaim_block_height]
 
         u32assert2 u32lte assert.err=ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED
     end
 
     exec.add_note_assets_to_account
-    # => [...]
+    # => []
 end
