@@ -6,7 +6,20 @@ use crate::{proxy::LoadBalancer, utils::load_config_from_file};
 
 /// Starts the proxy defined in the config file.
 #[derive(Debug, Parser)]
-pub struct StartProxy;
+pub struct StartProxy {
+    /// Whether this server should try to upgrade from a running old server
+    #[clap(
+        short,
+        long,
+        default_value = "false",
+    )]
+    pub upgrade: bool,
+    /// The path to the configuration file.
+    ///
+    /// See [`ServerConf`] for more details of the configuration file.
+    #[clap(short, long, help = "The path to the configuration file.", long_help = None)]
+    pub conf: Option<String>,
+}
 
 impl StartProxy {
     /// Starts the proxy defined in the config file.
@@ -14,7 +27,10 @@ impl StartProxy {
     /// This method will first read the config file to get the list of workers to start. It will
     /// then start a proxy with each worker as a backend.
     pub fn execute(&self) -> Result<(), String> {
-        let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
+        let mut opts = Opt::default();
+
+        opts.upgrade = self.upgrade;
+        let mut server = Server::new(Some(opts)).expect("Failed to create server");
         server.bootstrap();
 
         let proxy_config = load_config_from_file()?;
