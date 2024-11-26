@@ -47,19 +47,17 @@ impl LoadBalancer {
         }
     }
 
-    /// Get an available worker
+    /// Gets an available worker and removes it from the list of available workers.
     ///
-    /// This method will return the first available worker from the list of available workers, and
-    /// remove it from the list.
     /// If no worker is available, it will return None.
     pub async fn get_available_worker(&self) -> Option<Backend> {
         self.available_workers.write().await.pop()
     }
 
-    /// Set an available worker
+    /// Adds the provided worker to the list of available workers.
     ///
-    /// This method will add a worker to the list of available workers.
-    /// If the worker is already available, it will panic.
+    /// # Panics
+    /// Panics if the provided worker is already in the list of available workers.
     pub async fn add_available_worker(&self, worker: Backend) {
         let mut available_workers = self.available_workers.write().await;
         assert!(!available_workers.contains(&worker), "Worker already available");
