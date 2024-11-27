@@ -15,8 +15,14 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::{
-    commands::{ProxyConfig, UpdateWorkers},
-    utils::{create_queue_full_response, create_too_many_requests_response},
+    commands::{
+        update_workers::{Action, UpdateWorkers},
+        ProxyConfig, WorkerConfig,
+    },
+    utils::{
+        create_queue_full_response, create_response_with_error_message,
+        create_too_many_requests_response, create_workers_updated_response,
+    },
 };
 
 // LOAD BALANCER
@@ -24,7 +30,7 @@ use crate::{
 
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
-    available_workers: Arc<RwLock<Vec<Backend>>>,
+    total_workers: Arc<RwLock<Vec<(Backend, WorkerStatus)>>>,
     timeout_secs: Duration,
     connection_timeout_secs: Duration,
     max_queue_items: usize,
@@ -36,8 +42,10 @@ pub struct LoadBalancer {
 impl LoadBalancer {
     /// Create a new load balancer
     pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
+        let workers = workers.into_iter().map(|worker| (worker, WorkerStatus::Available)).collect();
+
         Self {
-            available_workers: Arc::new(RwLock::new(workers)),
+            total_workers: Arc::new(RwLock::new(workers)),
             timeout_secs: Duration::from_secs(config.timeout_secs),
             connection_timeout_secs: Duration::from_secs(config.connection_timeout_secs),
             max_queue_items: config.max_queue_items,
@@ -49,49 +57,172 @@ impl LoadBalancer {
         }
     }
 
-    /// Gets an available worker and removes it from the list of available workers.
+    /// Gets an available worker from the list of available workers and marks it as busy.
     ///
     /// If no worker is available, it will return None.
     pub async fn pop_available_worker(&self) -> Option<Backend> {
-        self.available_workers.write().await.pop()
+        let mut available_workers = self.total_workers.write().await;
+
+        // Find the first available worker
+        let worker = available_workers.iter_mut().find_map(|(worker, status)| {
+            if *status == WorkerStatus::Available {
+                *status = WorkerStatus::Busy;
+                Some(worker.clone())
+            } else {
+                None
+            }
+        });
+
+        worker
     }
 
-    /// Adds the provided worker to the list of available workers.
+    /// Changes the status of a worker to available.
     ///
-    /// # Panics
-    /// Panics if the provided worker is already in the list of available workers.
+    /// If the worker is Removed, it will be ignored.
     pub async fn add_available_worker(&self, worker: Backend) {
-        let mut available_workers = self.available_workers.write().await;
-        assert!(!available_workers.contains(&worker), "Worker already available");
-        info!("Worker {} is now available", worker.addr);
-        available_workers.push(worker);
+        let mut available_workers = self.total_workers.write().await;
+
+        if let Some((_, status)) = available_workers.iter_mut().find(|(w, _)| w == &worker) {
+            if *status == WorkerStatus::Busy {
+                *status = WorkerStatus::Available;
+            }
+        }
     }
 
-    pub async fn update_workers(&self, update_workers: UpdateWorkers) {
-        let mut available_workers = self.available_workers.write().await;
+    /// Updates the list of available workers.
+    ///
+    /// The `action` field can be either "add" or "remove".
+    /// If the action is "add" and the worker did not exist in the list of available workers or
+    /// was marked as Removed, it will be added with the status set to available. If it already
+    /// exists, it will be ignored.
+    /// If the action is "remove", the worker will be marked as Removed.
+    /// Then, it will persist the changes to the workers in the configuration file.
+    pub async fn update_workers(
+        &self,
+        update_workers: UpdateWorkers,
+    ) -> std::result::Result<(), String> {
+        let mut available_workers = self.total_workers.write().await;
+
         info!("Current workers: {:?}", available_workers);
 
-        let action = update_workers.action.as_str();
         let workers: Vec<_> = update_workers
             .workers
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<_, _>>()
-            .expect("Failed to create backend");
+            .map_err(|err| format!("Failed to create backend: {}", err))?;
 
-        match action {
-            "add" => {
+        match update_workers.action {
+            Action::Add => {
                 for worker in workers {
-                    if !available_workers.contains(&worker) {
-                        available_workers.push(worker);
+                    if let Some((_, status)) =
+                        available_workers.iter_mut().find(|(w, _)| w == &worker)
+                    {
+                        if *status == WorkerStatus::Removed {
+                            *status = WorkerStatus::Available;
+                        }
+                    } else {
+                        available_workers.push((worker, WorkerStatus::Available));
                     }
                 }
             },
-            "remove" => available_workers.retain(|w| !workers.contains(w)),
-            _ => warn!("Invalid action: {}", action),
+            Action::Remove => {
+                for worker in workers {
+                    if let Some((_, status)) =
+                        available_workers.iter_mut().find(|(w, _)| w == &worker)
+                    {
+                        *status = WorkerStatus::Removed;
+                    }
+                }
+            },
         }
 
+        // Persist the changes to the workers in the configuration file
+        let mut configuration = ProxyConfig::load_config_from_file()
+            .map_err(|err| format!("Failed to load configuration: {}", err))?;
+
+        let workers = available_workers
+            .iter()
+            .map(|(worker, _)| {
+                worker.as_inet().ok_or_else(|| "Failed to get worker address".to_string()).map(
+                    |worker_addr| {
+                        WorkerConfig::new(&worker_addr.ip().to_string(), worker_addr.port())
+                    },
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        configuration.workers = workers;
+
+        configuration
+            .save_to_config_file()
+            .map_err(|err| format!("Failed to save configuration: {}", err))?;
+
         info!("Workers updated: {:?}", available_workers);
+
+        Ok(())
+    }
+
+    /// Get the total number of operative workers.
+    ///
+    /// A worker is considered operative if it is available or busy.
+    pub async fn operative_workers_count(&self) -> usize {
+        let available_workers = self.total_workers.read().await;
+        available_workers
+            .iter()
+            .filter(|(_, status)| *status != WorkerStatus::Removed)
+            .count()
+    }
+
+    /// Handle the update workers request
+    ///
+    /// If an error is encountered, it will return a response with the error message.
+    /// If the workers are updated successfully, it will return a response with the number of
+    /// total workers.
+    pub async fn handle_update_workers_request(
+        &self,
+        session: &mut Session,
+    ) -> Option<Result<bool>> {
+        let http_session = session.as_downstream_mut();
+
+        // Attempt to read the HTTP request
+        if let Err(err) = http_session.read_request().await {
+            let error_message = format!("Failed to read request: {}", err);
+            error!("{}", error_message);
+            return Some(create_response_with_error_message(session, error_message).await);
+        }
+
+        // Extract and parse query parameters, if there are not any, return early to continue
+        // processing the request as a regular proving request.
+        let query_params = match http_session.req_header().as_ref().uri.query() {
+            Some(params) => params,
+            None => {
+                return None;
+            },
+        };
+
+        // Parse the query parameters
+        let update_workers: Result<UpdateWorkers, _> = serde_qs::from_str(query_params);
+        let update_workers = match update_workers {
+            Ok(workers) => workers,
+            Err(err) => {
+                let error_message = format!("Failed to parse query parameters: {}", err);
+                error!("{}", error_message);
+                return Some(create_response_with_error_message(session, error_message).await);
+            },
+        };
+
+        // Update workers and handle potential errors
+        if let Err(err) = self.update_workers(update_workers).await {
+            let error_message = format!("Failed to update workers: {}", err);
+            error!("{}", error_message);
+            return Some(create_response_with_error_message(session, error_message).await);
+        }
+
+        // Successfully updated workers
+        info!("Workers updated successfully");
+        let available_workers_count = self.operative_workers_count().await;
+        Some(create_workers_updated_response(session, available_workers_count).await)
     }
 }
 
@@ -205,25 +336,28 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        let client_addr = session.client_addr();
-
-        // Extract the address string early to drop the reference to session
-        let client_addr_str = client_addr.expect("No socket address").to_string();
-
-        info!("Client address: {:?}", client_addr_str);
-
-        if client_addr_str.contains("127.0.0.1") {
-            let session = session.as_downstream_mut();
-            session.read_request().await?;
-            if let Some(query_params) = session.req_header().as_ref().uri.query() {
-                let update_workers: UpdateWorkers =
-                    serde_qs::from_str(query_params).expect("Failed to parse query params");
-                self.update_workers(update_workers).await;
-                return Ok(true);
-            };
+        // Extract the client address early
+        let client_addr = match session.client_addr() {
+            Some(addr) => addr.to_string(),
+            None => {
+                return create_response_with_error_message(
+                    session,
+                    "No socket address".to_string(),
+                )
+                .await;
+            },
         };
 
-        let user_id = Some(client_addr_str);
+        info!("Client address: {:?}", client_addr);
+
+        // Special handling for localhost
+        if client_addr.contains("127.0.0.1") {
+            if let Some(response) = self.handle_update_workers_request(session).await {
+                return response;
+            }
+        }
+
+        let user_id = Some(client_addr);
 
         // Retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);

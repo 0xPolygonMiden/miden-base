@@ -1,28 +1,7 @@
-use figment::{
-    providers::{Format, Toml},
-    Figment,
-};
-use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use pingora::{http::ResponseHeader, Error, ErrorType};
 use pingora_proxy::Session;
 
-use crate::commands::ProxyConfig;
-
 const RESOURCE_EXHAUSTED_CODE: u16 = 8;
-
-/// Loads config file from current directory and default filename and returns it
-///
-/// This function will look for the configuration file with the name defined at the
-/// [PROVER_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
-pub(crate) fn load_config_from_file() -> Result<ProxyConfig, String> {
-    let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
-    current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
-    let config_path = current_dir.as_path();
-
-    Figment::from(Toml::file(config_path))
-        .extract()
-        .map_err(|err| format!("Failed to load {} config file: {err}", config_path.display()))
-}
 
 pub(crate) fn setup_tracing() {
     // Set a default log level if `RUST_LOG` is not set
@@ -63,6 +42,28 @@ pub async fn create_too_many_requests_response(
     header.insert_header("X-Rate-Limit-Limit", max_request_per_second.to_string())?;
     header.insert_header("X-Rate-Limit-Remaining", "0")?;
     header.insert_header("X-Rate-Limit-Reset", "1")?;
+    session.set_keepalive(None);
+    session.write_response_header(Box::new(header), true).await?;
+    Ok(true)
+}
+
+pub async fn create_workers_updated_response(
+    session: &mut Session,
+    workers: usize,
+) -> pingora_core::Result<bool> {
+    let mut header = ResponseHeader::build(200, None)?;
+    header.insert_header("X-Workers-Amount", workers.to_string())?;
+    session.set_keepalive(None);
+    session.write_response_header(Box::new(header), true).await?;
+    Ok(true)
+}
+
+pub async fn create_response_with_error_message(
+    session: &mut Session,
+    error_msg: String,
+) -> pingora_core::Result<bool> {
+    let mut header = ResponseHeader::build(400, None)?;
+    header.insert_header("X-Error-Message", error_msg)?;
     session.set_keepalive(None);
     session.write_response_header(Box::new(header), true).await?;
     Ok(true)

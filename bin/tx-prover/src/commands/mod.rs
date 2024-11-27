@@ -1,11 +1,20 @@
+use std::{fs::File, io::Write};
+
 use clap::Parser;
+use figment::{
+    providers::{Format, Toml},
+    Figment,
+};
 use init::Init;
+use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
+use update_workers::UpdateWorkers;
 use worker::StartWorker;
 
 pub mod init;
 pub mod proxy;
+pub mod update_workers;
 pub mod worker;
 
 /// Configuration of the proxy.
@@ -50,6 +59,45 @@ impl Default for ProxyConfig {
     }
 }
 
+impl ProxyConfig {
+    /// Loads config file from current directory and default filename and returns it
+    ///
+    /// This function will look for the configuration file with the name defined at the
+    /// [PROVER_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
+    pub(crate) fn load_config_from_file() -> Result<ProxyConfig, String> {
+        let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
+        current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
+        let config_path = current_dir.as_path();
+
+        Figment::from(Toml::file(config_path))
+            .extract()
+            .map_err(|err| format!("Failed to load {} config file: {err}", config_path.display()))
+    }
+
+    pub(crate) fn save_to_config_file(&self) -> Result<(), String> {
+        let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
+        current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
+        let config_path = current_dir.as_path();
+
+        let config_as_toml_string = toml::to_string_pretty(self)
+            .map_err(|err| format!("error formatting config: {err}"))?;
+
+        let mut file_handle = File::options()
+            .write(true)
+            .truncate(true)
+            .open(config_path)
+            .map_err(|err| format!("error opening the file: {err}"))?;
+
+        file_handle
+            .write(config_as_toml_string.as_bytes())
+            .map_err(|err| format!("error writing to file: {err}"))?;
+
+        println!("Config updated successfully");
+
+        Ok(())
+    }
+}
+
 /// Configuration for a worker
 #[derive(Serialize, Deserialize)]
 pub struct WorkerConfig {
@@ -58,7 +106,7 @@ pub struct WorkerConfig {
 }
 
 impl WorkerConfig {
-    fn new(host: &str, port: u16) -> Self {
+    pub fn new(host: &str, port: u16) -> Self {
         Self { host: host.into(), port }
     }
 }
@@ -89,6 +137,11 @@ pub enum Command {
     StartWorker(StartWorker),
     /// Starts the proxy defined in the config file.
     StartProxy(StartProxy),
+    /// Updates the workers defined in the config file.
+    ///
+    /// This method will make a request to the proxy defined in the config file to update the
+    /// workers. It will update the configuration file with the new list of workers.
+    UpdateWorkers(UpdateWorkers),
 }
 
 /// CLI entry point
@@ -106,13 +159,7 @@ impl Cli {
                 // Init does not require async, so run directly
                 init.execute()
             },
+            Command::UpdateWorkers(update_workers) => update_workers.execute(),
         }
     }
-}
-
-#[derive(Debug, PartialEq, Deserialize, Serialize, Parser)]
-pub struct UpdateWorkers {
-    // Add validations, actions should be "add" or "remove"
-    pub action: String,
-    pub workers: Vec<String>,
 }
