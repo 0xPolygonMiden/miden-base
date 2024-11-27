@@ -109,3 +109,10 @@ impl Cli {
         }
     }
 }
+
+#[derive(Debug, PartialEq, Deserialize, Serialize, Parser)]
+pub struct UpdateWorkers {
+    // Add validations, actions should be "add" or "remove"
+    pub action: String,
+    pub workers: Vec<String>,
+}

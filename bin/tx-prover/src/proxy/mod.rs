@@ -11,11 +11,11 @@ use pingora_core::{upstreams::peer::HttpPeer, Result};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::{
-    commands::ProxyConfig,
+    commands::{ProxyConfig, UpdateWorkers},
     utils::{create_queue_full_response, create_too_many_requests_response},
 };
 
@@ -65,6 +65,33 @@ impl LoadBalancer {
         assert!(!available_workers.contains(&worker), "Worker already available");
         info!("Worker {} is now available", worker.addr);
         available_workers.push(worker);
+    }
+
+    pub async fn update_workers(&self, update_workers: UpdateWorkers) {
+        let mut available_workers = self.available_workers.write().await;
+        info!("Current workers: {:?}", available_workers);
+
+        let action = update_workers.action.as_str();
+        let workers: Vec<_> = update_workers
+            .workers
+            .iter()
+            .map(|worker| Backend::new(worker))
+            .collect::<Result<_, _>>()
+            .expect("Failed to create backend");
+
+        match action {
+            "add" => {
+                for worker in workers {
+                    if !available_workers.contains(&worker) {
+                        available_workers.push(worker);
+                    }
+                }
+            },
+            "remove" => available_workers.retain(|w| !workers.contains(w)),
+            _ => warn!("Invalid action: {}", action),
+        }
+
+        info!("Workers updated: {:?}", available_workers);
     }
 }
 
@@ -179,7 +206,24 @@ impl ProxyHttp for LoadBalancer {
         Self::CTX: Send + Sync,
     {
         let client_addr = session.client_addr();
-        let user_id = client_addr.map(|addr| addr.to_string());
+
+        // Extract the address string early to drop the reference to session
+        let client_addr_str = client_addr.expect("No socket address").to_string();
+
+        info!("Client address: {:?}", client_addr_str);
+
+        if client_addr_str.contains("127.0.0.1") {
+            let session = session.as_downstream_mut();
+            session.read_request().await?;
+            if let Some(query_params) = session.req_header().as_ref().uri.query() {
+                let update_workers: UpdateWorkers =
+                    serde_qs::from_str(query_params).expect("Failed to parse query params");
+                self.update_workers(update_workers).await;
+                return Ok(true);
+            };
+        };
+
+        let user_id = Some(client_addr_str);
 
         // Retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
@@ -315,7 +359,8 @@ impl ProxyHttp for LoadBalancer {
         }
 
         // Mark the worker as available
-        self.add_available_worker(ctx.worker.take().expect("Failed to get worker"))
-            .await;
+        if let Some(worker) = ctx.worker.take() {
+            self.add_available_worker(worker).await;
+        }
     }
 }
