@@ -106,20 +106,35 @@ pub mod utils {
                 18 => {
                     let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
 
-                    Digest::new([Felt::new(v1), Felt::new(0u64), Felt::new(0u64), Felt::new(0u64)])
+                    $crate::Digest::new([
+                        $crate::Felt::new(v1),
+                        $crate::Felt::new(0u64),
+                        $crate::Felt::new(0u64),
+                        $crate::Felt::new(0u64),
+                    ])
                 },
                 34 => {
                     let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
                     let v2 = u64::from_le_bytes(decode_u64_bytes(16, hex_bytes, 32));
 
-                    Digest::new([Felt::new(v1), Felt::new(v2), Felt::new(0u64), Felt::new(0u64)])
+                    $crate::Digest::new([
+                        $crate::Felt::new(v1),
+                        $crate::Felt::new(v2),
+                        $crate::Felt::new(0u64),
+                        $crate::Felt::new(0u64),
+                    ])
                 },
                 50 => {
                     let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
                     let v2 = u64::from_le_bytes(decode_u64_bytes(16, hex_bytes, 32));
                     let v3 = u64::from_le_bytes(decode_u64_bytes(32, hex_bytes, 48));
 
-                    Digest::new([Felt::new(v1), Felt::new(v2), Felt::new(v3), Felt::new(0u64)])
+                    $crate::Digest::new([
+                        $crate::Felt::new(v1),
+                        $crate::Felt::new(v2),
+                        $crate::Felt::new(v3),
+                        $crate::Felt::new(0u64),
+                    ])
                 },
                 66 => {
                     let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
@@ -127,7 +142,12 @@ pub mod utils {
                     let v3 = u64::from_le_bytes(decode_u64_bytes(32, hex_bytes, 48));
                     let v4 = u64::from_le_bytes(decode_u64_bytes(48, hex_bytes, 64));
 
-                    Digest::new([Felt::new(v1), Felt::new(v2), Felt::new(v3), Felt::new(v4)])
+                    $crate::Digest::new([
+                        $crate::Felt::new(v1),
+                        $crate::Felt::new(v2),
+                        $crate::Felt::new(v3),
+                        $crate::Felt::new(v4),
+                    ])
                 },
                 _ => panic!("Hex string has invalid length"),
             }
@@ -137,7 +157,7 @@ pub mod utils {
     /// Test the correctness of the `digest!` macro for every supported hex string length.
     #[test]
     fn test_digest_macro() {
-        use crate::{Digest, Felt};
+        use crate::Digest;
 
         let digest_18_hex = "0x8B5563E13FE8135D";
         let expected =
