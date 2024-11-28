@@ -11,7 +11,7 @@ use pingora_core::{upstreams::peer::HttpPeer, Result};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::{
@@ -30,7 +30,8 @@ use crate::{
 
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
-    total_workers: Arc<RwLock<Vec<(Backend, WorkerStatus)>>>,
+    available_workers: Arc<RwLock<Vec<Backend>>>,
+    current_workers: Arc<RwLock<Vec<Backend>>>,
     timeout_secs: Duration,
     connection_timeout_secs: Duration,
     max_queue_items: usize,
@@ -42,10 +43,9 @@ pub struct LoadBalancer {
 impl LoadBalancer {
     /// Create a new load balancer
     pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
-        let workers = workers.into_iter().map(|worker| (worker, WorkerStatus::Available)).collect();
-
         Self {
-            total_workers: Arc::new(RwLock::new(workers)),
+            available_workers: Arc::new(RwLock::new(workers.clone())),
+            current_workers: Arc::new(RwLock::new(workers)),
             timeout_secs: Duration::from_secs(config.timeout_secs),
             connection_timeout_secs: Duration::from_secs(config.connection_timeout_secs),
             max_queue_items: config.max_queue_items,
@@ -57,51 +57,53 @@ impl LoadBalancer {
         }
     }
 
-    /// Gets an available worker from the list of available workers and marks it as busy.
+    /// Gets an available worker and removes it from the list of available workers.
     ///
     /// If no worker is available, it will return None.
     pub async fn pop_available_worker(&self) -> Option<Backend> {
-        let mut available_workers = self.total_workers.write().await;
-
-        // Find the first available worker
-        let worker = available_workers.iter_mut().find_map(|(worker, status)| {
-            if *status == WorkerStatus::Available {
-                *status = WorkerStatus::Busy;
-                Some(worker.clone())
-            } else {
-                None
-            }
-        });
-
-        worker
+        self.available_workers.write().await.pop()
     }
 
-    /// Changes the status of a worker to available.
+    /// Adds a worker to the list of available workers.
     ///
-    /// If the worker is Removed, it will be ignored.
+    /// If the worker is already in the list of available workers, it won't be added.
+    /// If the worker is not in the list of current workers, it won't be added.
     pub async fn add_available_worker(&self, worker: Backend) {
-        let mut available_workers = self.total_workers.write().await;
-
-        if let Some((_, status)) = available_workers.iter_mut().find(|(w, _)| w == &worker) {
-            if *status == WorkerStatus::Busy {
-                *status = WorkerStatus::Available;
-            }
+        let mut available_workers = self.available_workers.write().await;
+        let current_workers = self.current_workers.read().await;
+        if !available_workers.contains(&worker) && current_workers.contains(&worker) {
+            available_workers.push(worker);
         }
     }
 
-    /// Updates the list of available workers.
+    /// Updates the list of available workers based on the given action ("add" or "remove").
     ///
-    /// The `action` field can be either "add" or "remove".
-    /// If the action is "add" and the worker did not exist in the list of available workers or
-    /// was marked as Removed, it will be added with the status set to available. If it already
-    /// exists, it will be ignored.
-    /// If the action is "remove", the worker will be marked as Removed.
-    /// Then, it will persist the changes to the workers in the configuration file.
+    /// # Behavior
+    ///
+    /// ## Add Action
+    /// - If the worker exists in the current workers list, do nothing.
+    /// - If the worker does not exist in the current workers list, add it to both the current and
+    ///   available workers lists.
+    ///
+    /// ## Remove Action
+    /// - If the worker exists in the available workers list, remove it.
+    /// - If the worker exists in the current workers list, remove it.
+    /// - Otherwise, do nothing.
+    ///
+    /// Finally, updates the configuration file with the new list of workers.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The worker address cannot be cast into [Backend].
+    /// - The configuration file cannot be loaded or saved.
+    /// - A worker address cannot be retrieved.
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
     ) -> std::result::Result<(), String> {
-        let mut available_workers = self.total_workers.write().await;
+        let mut available_workers = self.available_workers.write().await;
+        let mut current_workers = self.current_workers.write().await;
 
         info!("Current workers: {:?}", available_workers);
 
@@ -115,35 +117,27 @@ impl LoadBalancer {
         match update_workers.action {
             Action::Add => {
                 for worker in workers {
-                    if let Some((_, status)) =
-                        available_workers.iter_mut().find(|(w, _)| w == &worker)
-                    {
-                        if *status == WorkerStatus::Removed {
-                            *status = WorkerStatus::Available;
-                        }
-                    } else {
-                        available_workers.push((worker, WorkerStatus::Available));
+                    if current_workers.contains(&worker) {
+                        continue;
                     }
+                    current_workers.push(worker.clone());
+                    available_workers.push(worker);
                 }
             },
             Action::Remove => {
                 for worker in workers {
-                    if let Some((_, status)) =
-                        available_workers.iter_mut().find(|(w, _)| w == &worker)
-                    {
-                        *status = WorkerStatus::Removed;
-                    }
+                    available_workers.retain(|w| w != &worker);
+                    current_workers.retain(|w| w != &worker);
                 }
             },
         }
 
-        // Persist the changes to the workers in the configuration file
         let mut configuration = ProxyConfig::load_config_from_file()
             .map_err(|err| format!("Failed to load configuration: {}", err))?;
 
-        let workers = available_workers
+        let new_list_of_workers = current_workers
             .iter()
-            .map(|(worker, _)| {
+            .map(|worker| {
                 worker.as_inet().ok_or_else(|| "Failed to get worker address".to_string()).map(
                     |worker_addr| {
                         WorkerConfig::new(&worker_addr.ip().to_string(), worker_addr.port())
@@ -152,7 +146,7 @@ impl LoadBalancer {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        configuration.workers = workers;
+        configuration.workers = new_list_of_workers;
 
         configuration
             .save_to_config_file()
@@ -163,22 +157,25 @@ impl LoadBalancer {
         Ok(())
     }
 
-    /// Get the total number of operative workers.
-    ///
-    /// A worker is considered operative if it is available or busy.
-    pub async fn operative_workers_count(&self) -> usize {
-        let available_workers = self.total_workers.read().await;
-        available_workers
-            .iter()
-            .filter(|(_, status)| *status != WorkerStatus::Removed)
-            .count()
+    /// Get the total number of current workers.
+    pub async fn current_workers_count(&self) -> usize {
+        self.current_workers.read().await.len()
     }
 
-    /// Handle the update workers request
+    /// Handles the update workers request.
     ///
-    /// If an error is encountered, it will return a response with the error message.
-    /// If the workers are updated successfully, it will return a response with the number of
-    /// total workers.
+    /// # Behavior
+    /// - Reads the HTTP request from the session.
+    /// - If query parameters are present, attempts to parse them as an `UpdateWorkers` object.
+    /// - If the parsing fails, returns an error response.
+    /// - If successful, updates the list of workers by calling `update_workers`.
+    /// - If the update is successful, returns the count of available workers.
+    ///
+    /// # Errors
+    /// - If the HTTP request cannot be read.
+    /// - If the query parameters cannot be parsed.
+    /// - If the workers cannot be updated.
+    /// - If the response cannot be created.
     pub async fn handle_update_workers_request(
         &self,
         session: &mut Session,
@@ -221,7 +218,7 @@ impl LoadBalancer {
 
         // Successfully updated workers
         info!("Workers updated successfully");
-        let available_workers_count = self.operative_workers_count().await;
+        let available_workers_count = self.current_workers_count().await;
         Some(create_workers_updated_response(session, available_workers_count).await)
     }
 }
@@ -306,7 +303,8 @@ impl RequestContext {
 ///
 /// At the backend-level, a request lifecycle works as follows:
 /// - When a new requests arrives, [LoadBalancer::request_filter()] method is called. In this method
-///   we apply IP-based rate-limiting to the request and check if the request queue is full.
+///   we apply IP-based rate-limiting to the request and check if the request queue is full. In this
+///   method we also handle the special case update workers request.
 /// - Next, the [Self::upstream_peer()] method is called. We use it to figure out which worker will
 ///   process the request. Inside `upstream_peer()`, we add the request to the queue of requests.
 ///   Once the request gets to the front of the queue, we forward it to an available worker. This
@@ -327,7 +325,8 @@ impl ProxyHttp for LoadBalancer {
         RequestContext::new()
     }
 
-    /// Decide whether to filter the request or not.
+    /// Decide whether to filter the request or not. Also, handle the special case of the update
+    /// workers request.
     ///
     /// Here we apply IP-based rate-limiting to the request. We also check if the queue is full.
     ///

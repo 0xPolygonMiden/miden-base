@@ -2,6 +2,8 @@ use clap::Parser;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+use crate::commands::ProxyConfig;
+
 #[derive(clap::ValueEnum, Clone, Debug, Serialize, Deserialize)]
 pub enum Action {
     Add,
@@ -33,7 +35,11 @@ impl UpdateWorkers {
 
         println!("Action: {:?}, with workers: {:?}", self.action, self.workers);
 
-        let url = format!("http://0.0.0.0:8082?{}", query_params);
+        // Get the proxy url from the configuration file.
+        let proxy_config = ProxyConfig::load_config_from_file()?;
+
+        // Create the full URL
+        let url = format!("http://{}:{}?{}", proxy_config.host, proxy_config.port, query_params);
 
         // Create an HTTP/2 client
         let client = Client::builder()

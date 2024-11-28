@@ -102,6 +102,8 @@ This changes will be persisted to the configuration file.
 
 Note that, in order to update the workers, the proxy must be running in the same computer as the command is being executed because it will check if the client address is localhost to avoid any security issues.
 
+## Logging
+
 Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
 
 ## Features
