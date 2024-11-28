@@ -1865,6 +1865,7 @@ name = "miden-lib"
 version = "0.7.0"
 dependencies = [
  "miden-assembly",
+ "miden-crypto",
  "miden-objects",
  "miden-processor",
  "miden-stdlib",

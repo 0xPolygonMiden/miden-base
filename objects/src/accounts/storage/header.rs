@@ -1,9 +1,12 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    ZERO,
+};
 use vm_processor::DeserializationError;
 
-use super::{AccountStorage, StorageSlotType, Word};
+use super::{AccountStorage, Felt, StorageSlotType, Word};
 use crate::AccountError;
 
 // ACCOUNT STORAGE HEADER
@@ -54,6 +57,25 @@ impl AccountStorageHeader {
             slots_len: self.slots.len() as u8,
             index: index as u8,
         })
+    }
+
+    /// Converts storage slots of this account storage header into a vector of field elements.
+    ///
+    /// This is done by first converting each storage slot into exactly 8 elements as follows:
+    /// ```text
+    /// [STORAGE_SLOT_VALUE, storage_slot_type, 0, 0, 0]
+    /// ```
+    /// And then concatenating the resulting elements into a single vector.
+    pub fn as_elements(&self) -> Vec<Felt> {
+        self.slots
+            .iter()
+            .flat_map(|slot| {
+                let mut elements = [ZERO; 8];
+                elements[0..4].copy_from_slice(&slot.1);
+                elements[4..8].copy_from_slice(&slot.0.as_word());
+                elements
+            })
+            .collect()
     }
 }
 

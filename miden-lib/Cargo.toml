@@ -23,6 +23,7 @@ testing = ["miden-objects/testing"]
 with-debug-info = ["miden-stdlib/with-debug-info"]
 
 [dependencies]
+miden-crypto = { workspace = true }
 miden-objects = { workspace = true }
 miden-stdlib = { workspace = true }
 

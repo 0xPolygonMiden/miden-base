@@ -99,7 +99,7 @@ impl AccountStorage {
 
     /// Converts storage slots of this account storage into a vector of field elements.
     ///
-    /// This is done by first converting each procedure into exactly 8 elements as follows:
+    /// This is done by first converting each storage slot into exactly 8 elements as follows:
     /// ```text
     /// [STORAGE_SLOT_VALUE, storage_slot_type, 0, 0, 0]
     /// ```
