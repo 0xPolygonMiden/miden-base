@@ -19,18 +19,36 @@ Each block should be separated from the others with a blank line.
 Example:
 
 ```masm
-#! Sets the code of the account the transaction is being executed against.
+#! This procedure is executed somewhere in the execution pipeline. Its responsibility is:
+#! 1. Do the first point of this list.
+#! 2. Compute some extremely important values which will be used in future.
+#! 3. Finally do the actions specified in the third point of this list.
 #!
-#! Inputs:  [CODE_COMMITMENT]
-#! Outputs: []
+#! Inputs:
+#!   Operand stack: [
+#!     single_felt,
+#!     [felt_1, 0, 0, felt_2],
+#!     SOME_WORD,
+#!     memory_value_ptr,
+#!   ]
+#!   Advice stack: [HASH_A, HASH_B, [ARRAY_OF_HASHES]]
+#!   Advice map: {
+#!      KEY_1: [VALUE_1],
+#!      KEY_2: [VALUE_2],
+#!   }
+#! Outputs:
+#!   Operand stack: []
+#!   Advice stack: []
 #!
 #! Where:
-#! - CODE_COMMITMENT is the hash of the code to set.
+#! - single_felt is the ordinary value placed on top of the stack.
+#! - SOME_WORD is the word specifying maybe some hash.
 #!
 #! Panics if:
-#! - this procedure is executed on the account which type differs from the `basic mutable`.
+#! - something went wrong.
+#! - some check is failed.
 #!
-#! Invocation: exec
+#! Invocation: call
 ```
 
 ## Procedure description
@@ -127,7 +145,25 @@ Each pair should start at the new line with additional two spaces offset relativ
 
 ### Outputs
 
-Outputs should show the final state of each container, used in the inputs, except for the advice map: almost always the final state of the advice map is unimportant, since it is always the same as at the beginning of the procedure execution (see the example in the `Formats` section below).
+Outputs should show the final state of each container, used in the inputs, except for the advice map. Advice map should be specified in the outputs section only if it was modified.
+
+Example:
+
+```masm
+#! Inputs:
+#!   Operand stack: [OUTPUT_NOTES_COMMITMENT]
+#! Outputs:
+#!   Operand stack: [OUTPUT_NOTES_COMMITMENT]
+#!   Advice map: {
+#!      OUTPUT_NOTES_COMMITMENT: [mem[output_note_ptr]...mem[output_notes_end_ptr]],
+#!   }
+#!
+#! Where:
+#! - OUTPUT_NOTES_COMMITMENT is the note commitment computed from note's id and metadata.
+#! - output_note_ptr is the start boundary of the output notes section.
+#! - output_notes_end_ptr is the end boundary of the output notes section.
+#! - mem[i] is the memory value stored at some address i.
+```
 
 ### Formats
 
