@@ -60,8 +60,9 @@ fn test_create_note() {
 
     let code = format!(
         "
+        use.miden::contracts::wallets::basic->wallet
+        
         use.kernel::prologue
-        use.miden::tx
 
         begin
             exec.prologue::prepare_transaction
@@ -72,7 +73,7 @@ fn test_create_note() {
             push.{aux}
             push.{tag}
 
-            call.tx::create_note
+            call.wallet::create_note
 
             # truncate the stack
             swapdw dropw dropw
@@ -141,8 +142,8 @@ fn test_create_note_with_invalid_tag() {
     fn note_creation_script(tag: Felt) -> String {
         format!(
             "
+            use.miden::contracts::wallets::basic->wallet
             use.kernel::prologue
-            use.miden::tx
     
             begin
                 exec.prologue::prepare_transaction
@@ -153,7 +154,7 @@ fn test_create_note_with_invalid_tag() {
                 push.{aux}
                 push.{tag}
     
-                call.tx::create_note
+                call.wallet::create_note
 
                 # clean the stack
                 dropw dropw
@@ -173,9 +174,9 @@ fn test_create_note_too_many_notes() {
 
     let code = format!(
         "
+        use.miden::contracts::wallets::basic->wallet
         use.kernel::constants
         use.kernel::memory
-        use.miden::tx
         use.kernel::prologue
 
         begin
@@ -189,7 +190,7 @@ fn test_create_note_too_many_notes() {
             push.{aux}
             push.{tag}
 
-            call.tx::create_note
+            call.wallet::create_note
         end
         ",
         tag = Felt::new(4),
@@ -205,7 +206,7 @@ fn test_create_note_too_many_notes() {
 }
 
 #[test]
-fn test_get_output_notes_hash() {
+fn test_get_output_notes_commitment() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
@@ -260,8 +261,11 @@ fn test_get_output_notes_hash() {
         "
         use.std::sys
 
-        use.kernel::prologue
+        use.miden::contracts::wallets::basic->wallet
         use.miden::tx
+
+        use.kernel::prologue
+        use.test::account
 
         begin
             # => [BH, acct_id, IAH, NC]
@@ -274,11 +278,11 @@ fn test_get_output_notes_hash() {
             push.{PUBLIC_NOTE}
             push.{aux_1}
             push.{tag_1}
-            call.tx::create_note
+            call.wallet::create_note
             # => [note_idx]
 
             push.{asset_1}
-            call.tx::add_asset_to_note
+            call.account::add_asset_to_note
             # => [ASSET, note_idx]
             
             dropw drop
@@ -290,18 +294,18 @@ fn test_get_output_notes_hash() {
             push.{PUBLIC_NOTE}
             push.{aux_2}
             push.{tag_2}
-            call.tx::create_note
+            call.wallet::create_note
             # => [note_idx]
 
             push.{asset_2} 
-            call.tx::add_asset_to_note
+            call.account::add_asset_to_note
             # => [ASSET, note_idx]
 
             dropw drop
             # => []
 
             # compute the output notes hash
-            exec.tx::get_output_notes_hash
+            exec.tx::get_output_notes_commitment
             # => [COM]
 
             # truncate the stack
@@ -366,9 +370,10 @@ fn test_create_note_and_add_asset() {
 
     let code = format!(
         "
+        use.miden::contracts::wallets::basic->wallet
+
         use.kernel::prologue
-        use.miden::tx
-        use.kernel::memory
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -379,11 +384,11 @@ fn test_create_note_and_add_asset() {
             push.{aux}
             push.{tag}
 
-            call.tx::create_note
+            call.wallet::create_note
             # => [note_idx]
 
             push.{asset}
-            call.tx::add_asset_to_note
+            call.account::add_asset_to_note
             # => [ASSET, note_idx]
 
             dropw
@@ -432,8 +437,10 @@ fn test_create_note_and_add_multiple_assets() {
 
     let code = format!(
         "
+        use.miden::contracts::wallets::basic->wallet
+
         use.kernel::prologue
-        use.miden::tx
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -443,23 +450,23 @@ fn test_create_note_and_add_multiple_assets() {
             push.{aux}
             push.{tag}
 
-            call.tx::create_note
+            call.wallet::create_note
             # => [note_idx]
 
             push.{asset}
-            call.tx::add_asset_to_note dropw
+            call.account::add_asset_to_note dropw
             # => [note_idx]
 
             push.{asset_2}
-            call.tx::add_asset_to_note dropw
+            call.account::add_asset_to_note dropw
             # => [note_idx]
 
             push.{asset_3}
-            call.tx::add_asset_to_note dropw
+            call.account::add_asset_to_note dropw
             # => [note_idx]
 
             push.{nft}
-            call.tx::add_asset_to_note dropw
+            call.account::add_asset_to_note dropw
             # => [note_idx]
 
             # truncate the stack
@@ -519,7 +526,9 @@ fn test_create_note_and_add_same_nft_twice() {
 
         begin
             exec.prologue::prepare_transaction
+            # => []
 
+            padw padw
             push.{recipient}
             push.{execution_hint_always}
             push.{PUBLIC_NOTE}
@@ -527,15 +536,18 @@ fn test_create_note_and_add_same_nft_twice() {
             push.{tag}
 
             call.wallet::create_note
-            # => [note_idx]
+            # => [note_idx, pad(15)]
 
             push.{nft} 
             call.account::add_asset_to_note
-            dropw dropw dropw
+            # => [NFT, note_idx, pad(15)]
+            dropw
 
             push.{nft} 
             call.account::add_asset_to_note
-            # => [note_idx]
+            # => [NFT, note_idx, pad(15)]
+
+            repeat.5 dropw end
         end
         ",
         recipient = prepare_word(&recipient),
@@ -570,26 +582,42 @@ fn test_build_recipient_hash() {
     let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
         "
-        use.kernel::prologue
+        use.miden::contracts::wallets::basic->wallet
         use.miden::tx
+        use.kernel::prologue
+
+        proc.build_recipient_hash
+            exec.tx::build_recipient_hash
+        end
+
         begin
             exec.prologue::prepare_transaction
+
+            # pad the stack before call
+            padw
+
             # input
             push.{input_hash}
             # SCRIPT_HASH
             push.{script_hash}
             # SERIAL_NUM
             push.{output_serial_no}
-            call.tx::build_recipient_hash
+            # => [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH, pad(4)]
+
+            call.build_recipient_hash
+            # => [RECIPIENT, pad(12)]
 
             push.{execution_hint}
             push.{PUBLIC_NOTE}
             push.{aux}
             push.{tag}
-            call.tx::create_note
+            # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(12)]
+
+            call.wallet::create_note
+            # => [note_idx, pad(19)]
 
             # clean the stack
-            dropw dropw dropw dropw
+            dropw dropw dropw dropw dropw
         end
         ",
         input_hash = input_hash,

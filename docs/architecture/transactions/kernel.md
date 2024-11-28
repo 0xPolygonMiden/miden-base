@@ -93,9 +93,11 @@ If provided, the transaction script is executed after all notes are consumed. Th
 ```arduino
 use.miden::contracts::auth::basic->auth_tx
 
-begin
-    call.auth_tx::auth_tx_rpo_falcon512
-end
+    begin
+        padw padw padw padw
+        call.auth_tx::auth_tx_rpo_falcon512
+        dropw dropw dropw dropw
+    end
 ```
 
 > **Note**

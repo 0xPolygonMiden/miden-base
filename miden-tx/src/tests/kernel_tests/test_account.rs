@@ -90,6 +90,9 @@ pub fn test_set_code_succeeds() {
             exec.account::incr_nonce
 
             exec.epilogue::finalize_transaction
+
+            # clean the stack
+            dropw dropw dropw dropw
         end
         "
     );

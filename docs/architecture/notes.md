@@ -156,13 +156,25 @@ end_ptr, ptr, ...]
 >         dup movdn.5
 >         # => [ptr, 0, 0, 0, 0, ptr, end_ptr, ...]
 > 
->         # load the asset and add it to the account
->         mem_loadw call.wallet::receive_asset
+>         # load the asset
+>         mem_loadw
 >         # => [ASSET, ptr, end_ptr, ...]
-> 
+>           
+>         # pad the stack before call
+>         padw swapw padw padw swapdw
+>         # => [ASSET, pad(12), ptr, end_ptr, ...]
+>
+>         # add asset to the account
+>         call.wallet::receive_asset
+>         # => [pad(16), ptr, end_ptr, ...]
+>
+>         # clean the stack after call
+>         dropw dropw dropw
+>         # => [0, 0, 0, 0, ptr, end_ptr, ...]
+>
 >         # increment the pointer and compare it to the end_ptr
 >         movup.4 add.1 dup dup.6 neq
->         # => [latch, ptr+1, ASSET, end_ptr, ...]
+>         # => [latch, ptr+1, 0, 0, 0, 0, end_ptr, ...]
 >     end
 > 
 >     # clear the stack
