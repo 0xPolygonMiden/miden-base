@@ -42,7 +42,6 @@ const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 fn main() -> Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed={ASM_DIR}");
-    println!("cargo:rerun-if-changed={KERNEL_V0_RS_FILE}");
     println!("cargo:rerun-if-changed={KERNEL_ERRORS_FILE}");
     println!("cargo::rerun-if-env-changed=BUILD_KERNEL_ERRORS");
 
