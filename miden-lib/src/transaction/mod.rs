@@ -1,9 +1,9 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
-use miden_crypto::merkle::{MerkleError, MerklePath};
 use miden_objects::{
     accounts::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
+    crypto::merkle::{MerkleError, MerklePath},
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
     },
@@ -161,45 +161,41 @@ impl TransactionKernel {
     }
 
     /// Extends the advice inputs with account data and Merkle proofs.
+    ///
+    /// Where:
+    /// - account_header is the header of the account which data will be used for the extension.
+    /// - account_code is the code of the account which will be used for the extension.
+    /// - storage_header is the header of the storage which data will be used for the extension.
+    /// - merkle_path is the path which corresponds to the note root for the account tree of the
+    ///   transaction block header.
     pub fn extend_advice_inputs_for_account(
         advice_inputs: &mut AdviceInputs,
         account_header: &AccountHeader,
         account_code: &AccountCode,
         storage_header: &AccountStorageHeader,
-        merkle_path: &MerklePath,
+        merkle_path: Option<&MerklePath>,
     ) -> Result<(), MerkleError> {
         let account_id = account_header.id();
-        let account_nonce = account_header.nonce();
-        let vault_root = account_header.vault_root();
         let storage_root = account_header.storage_commitment();
         let code_root = account_header.code_commitment();
-
         let foreign_id_root = Digest::from([account_id.into(), ZERO, ZERO, ZERO]);
-        let foreign_id_and_nonce = [account_id.into(), ZERO, ZERO, account_nonce];
 
         // Extend the advice inputs with the new data
         advice_inputs.extend_map([
             // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
-            (
-                foreign_id_root,
-                [
-                    &foreign_id_and_nonce,
-                    vault_root.as_elements(),
-                    storage_root.as_elements(),
-                    code_root.as_elements(),
-                ]
-                .concat(),
-            ),
+            (foreign_id_root, account_header.as_elements()),
             // STORAGE_ROOT -> [STORAGE_SLOT_DATA]
             (storage_root, storage_header.as_elements()),
             // CODE_ROOT -> [ACCOUNT_CODE_DATA]
             (code_root, account_code.as_elements()),
         ]);
 
-        // Extend the advice inputs with Merkle store data
-        advice_inputs.extend_merkle_store(
-            merkle_path.inner_nodes(account_id.into(), account_header.hash())?,
-        );
+        // Extend the advice inputs with Merkle store data if available
+        if let Some(merkle_path) = merkle_path {
+            advice_inputs.extend_merkle_store(
+                merkle_path.inner_nodes(account_id.into(), account_header.hash())?,
+            );
+        }
 
         Ok(())
     }

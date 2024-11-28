@@ -1,6 +1,8 @@
+use alloc::vec::Vec;
+
 use vm_core::utils::{Deserializable, Serializable};
 
-use super::{hash_account, Account, AccountId, Digest, Felt};
+use super::{hash_account, Account, AccountId, Digest, Felt, ZERO};
 
 // ACCOUNT HEADER
 // ================================================================================================
@@ -83,6 +85,28 @@ impl AccountHeader {
     /// Returns the code commitment of this account.
     pub fn code_commitment(&self) -> Digest {
         self.code_commitment
+    }
+
+    /// Converts the account header into a vector of field elements.
+    ///
+    /// This is done by first converting the account header data into an array of Words as follows:
+    /// ```text
+    /// [
+    ///     [account_id, 0, 0, account_nonce]
+    ///     [VAULT_COMMITMENT]
+    ///     [STORAGE_COMMITMENT]
+    ///     [CODE_COMMITMENT]
+    /// ]
+    /// ```
+    /// And then concatenating the resulting elements into a single vector.
+    pub fn as_elements(&self) -> Vec<Felt> {
+        [
+            &[self.id.into(), ZERO, ZERO, self.nonce],
+            self.vault_root.as_elements(),
+            self.storage_commitment.as_elements(),
+            self.code_commitment.as_elements(),
+        ]
+        .concat()
     }
 }
 
