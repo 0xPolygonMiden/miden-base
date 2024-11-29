@@ -166,8 +166,9 @@ impl TransactionKernel {
     /// - account_header is the header of the account which data will be used for the extension.
     /// - account_code is the code of the account which will be used for the extension.
     /// - storage_header is the header of the storage which data will be used for the extension.
-    /// - merkle_path is the path which corresponds to the note root for the account tree of the
-    ///   transaction block header.
+    /// - merkle_path is the authentication path from the account root of the block header to the
+    ///   account. It may not be specified if the function is used for advice inputs extension with
+    ///   foreign account data.
     pub fn extend_advice_inputs_for_account(
         advice_inputs: &mut AdviceInputs,
         account_header: &AccountHeader,
