@@ -5,6 +5,7 @@
 ### Changes
 
 - [BREAKING] Better error display when queues are full in the prover service (#967).
+- Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
 
 ## 0.6.1 (2024-11-08)
 
