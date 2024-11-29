@@ -9,6 +9,7 @@
 - [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 - [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
 - Implemented new `digest_from_hex!` macro (#984).
+- Added Format Guidebook to the `miden-lib` crate (#987).
 
 ## 0.6.2 (2024-11-20)
 
