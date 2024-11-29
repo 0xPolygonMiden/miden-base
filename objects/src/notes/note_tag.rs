@@ -13,9 +13,9 @@ const NETWORK_EXECUTION: u8 = 0;
 const LOCAL_EXECUTION: u8 = 1;
 
 // The 2 most significant bits are set to `0b11`
-const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xc0000000;
+const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xc000_0000;
 // The 2 most significant bits are set to `0b10`
-const PUBLIC_USECASE: u32 = 0x80000000;
+const PUBLIC_USECASE: u32 = 0x8000_0000;
 
 /// [super::Note]'s execution mode hints.
 ///
@@ -38,7 +38,7 @@ pub enum NoteExecutionMode {
 
 /// [NoteTag]`s are best effort filters for notes registered with the network.
 ///
-/// Tags are light-weight values used to speed up queries. The 2 most signification bits of the tags
+/// Tags are light-weight values used to speed up queries. The 2 most significant bits of the tags
 /// have the following interpretation:
 ///
 /// | Prefix | Execution hint | Target   | Allowed [NoteType] |
@@ -50,8 +50,9 @@ pub enum NoteExecutionMode {
 ///
 /// Where:
 ///
-/// - [NoteExecutionMode] is set to [NoteExecutionMode::Network] to hint a [super::Note] should be
-///   consumed by the network. These notes will be further validated and if possible consumed by it.
+/// - [`NoteExecutionMode`] is set to [`NoteExecutionMode::Network`] to hint a [`Note`](super::Note)
+///   should be consumed by the network. These notes will be further validated and if possible
+///   consumed by it.
 /// - Target describes how to further interpret the bits in the tag. For tags with a specific
 ///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning
 ///   of the rest of the tag is not specified by the protocol and can be used by applications built
@@ -97,23 +98,32 @@ impl NoteTag {
     ) -> Result<Self, NoteError> {
         match execution {
             NoteExecutionMode::Local => {
-                // TODO: Refactor.
-                let id: u128 = account_id.into();
-                // select 14 most significant bits of the account ID and shift them right by 2 bits
-                let high_bits = (id >> 34) as u32 & 0xffff0000;
+                let first_felt_id: u64 = account_id.first_felt().into();
+                // Consider the most significant bits to start at the 63rd bit, since the top bit is
+                // always zero and doesn't add any value.
+                let mut high_bits = first_felt_id << 1;
+                // Shift the high bits such that the most significant bits are in the range 0..30.
+                // The two most significant bits are then zero.
+                high_bits >>= 34;
+                // Select the upper half of the u32 which contains the 14 most significant bits of
+                // the account ID (without the top bit). The remaining bits will be zero.
+                let high_bits = (high_bits as u32) & 0xffff0000;
+                // Set the local execution tag.
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
                 if !account_id.is_public() {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
-                    // TODO: Refactor.
-                    let id: u128 = account_id.into();
-                    // select 31 most significant bits of account ID and shift them right by 1 bit
-                    let high_bits = (id >> 33) as u32;
-                    // the tag will have the form 0 + 31 high bits of account ID; note that the
-                    // second bit of the tag is guaranteed to be 0 because public account IDs start
-                    // with 0
+                    let first_felt_id: u64 = account_id.first_felt().into();
+                    // Select the 31 most significant bits of the account ID and shift them right by
+                    // 1 bit.
+                    // Note that we do not remove the top zero bit of the account ID since we can
+                    // use it as part of the tag.
+                    let high_bits = (first_felt_id >> 33) as u32;
+                    // The tag will have the form [zero bit | 31 high bits of account ID]. Note that
+                    // the second bit of the tag is guaranteed to be 0 because account IDs always
+                    // start with 0.
                     Ok(Self(high_bits))
                 }
             },
@@ -185,9 +195,8 @@ impl NoteTag {
 
     /// Returns note execution mode defined by this tag.
     ///
-    /// If the most significant bit of the tag is 0 or the 3 most significant bits are equal to
-    /// 0b101, the note is intended for local execution; otherwise, the note is intended for
-    /// network execution.
+    /// If the most significant bit of the tag is 0 the note is intended for local execution;
+    /// otherwise, the note is intended for network execution.
     pub fn execution_hint(&self) -> NoteExecutionMode {
         let first_bit = self.0 >> 31;
 
@@ -396,27 +405,35 @@ mod tests {
 
     #[test]
     fn test_from_account_id_values() {
-        let off_chain =
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-        let on_chain =
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        // Off-Chain Account ID with the 2nd and 16th most significant bit set.
+        const OFF_CHAIN_INT: u128 = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN
+            | 0x4001_0000_0000_0000_0000_0000_0000_0000;
+        let off_chain = AccountId::try_from(OFF_CHAIN_INT).unwrap();
+
+        // On-Chain Account ID with the 2nd and 16th most significant bit set.
+        let on_chain_int = ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN
+            | 0x4001_0000_0000_0000_0000_0000_0000_0000;
+        let on_chain = AccountId::try_from(on_chain_int).unwrap();
 
         assert_eq!(
             NoteTag::from_account_id(on_chain, NoteExecutionMode::Network).unwrap(),
-            NoteTag(0b00000000_00000000_00000000_00000000)
+            NoteTag(0b00100000_01010101_10000000_00000000)
         );
         assert_matches!(
             NoteTag::from_account_id(off_chain, NoteExecutionMode::Network),
             Err(NoteError::NetworkExecutionRequiresOnChainAccount)
         );
 
+        // We expect the 16th most significant bit to be cut off.
         assert_eq!(
             NoteTag::from_account_id(off_chain, NoteExecutionMode::Local).unwrap(),
-            NoteTag(0b11100100_00000000_00000000_00000000)
+            NoteTag(0b11100000_01100110_00000000_00000000)
         );
+
+        // We expect the 16th most significant bit to be cut off.
         assert_eq!(
             NoteTag::from_account_id(on_chain, NoteExecutionMode::Local).unwrap(),
-            NoteTag(0b11000000_00000000_00000000_00000000)
+            NoteTag(0b11100000_01010101_00000000_00000000)
         );
     }
 
@@ -516,7 +533,7 @@ mod tests {
     /// highbit set to 0. If the account id encoding ever changes, the note tag needs to be
     /// adjusted.
     #[test]
-    fn test_only_onchain_account_have_the_highbit_set_to_zero() {
+    fn test_accounts_have_the_highbit_set_to_zero() {
         // Create a list of valid account ids with every combination of account types
         let accounts = [
             // ON-CHAIN
@@ -540,15 +557,11 @@ mod tests {
             AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap(),
         ];
 
-        for acct in accounts {
-            // TODO: Fixed only to compile, likely incorrect.
-            let highbit = u128::from(acct) >> 63;
-            let onchain = highbit == 0;
-
-            assert_eq!(
-                acct.is_public(),
-                onchain,
-                "the account_id encoding changed, this breaks the assumptions built in the NoteTag"
+        for account in accounts {
+            let highbit = account.first_felt().as_int() >> 63;
+            assert!(
+                highbit == 0,
+                "the account_id encoding changed, this breaks the assumptions built into the NoteTag"
             );
         }
     }
