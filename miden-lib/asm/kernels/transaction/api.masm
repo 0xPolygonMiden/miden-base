@@ -852,6 +852,18 @@ export.get_note_serial_number
     # => [SERIAL_NUMBER, pad(12)]
 end
 
+#! Returns the script hash of the note currently being processed.
+#!
+#! Inputs:  [pad(16)]
+#! Outputs: [SCRIPT_HASH, pad(12)]
+#!
+#! Where:
+#! - SCRIPT_HASH is the script hash of the note currently being processed.
+#!
+#! Panics if:
+#! - no note is not being processed.
+#!
+#! Invocation: dynexec
 export.get_script_hash
     exec.note::get_script_hash
     # => [SCRIPT_HASH, pad(16)]

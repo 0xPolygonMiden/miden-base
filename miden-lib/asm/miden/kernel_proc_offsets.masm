@@ -405,6 +405,14 @@ export.get_note_serial_number_offset
     push.GET_NOTE_SERIAL_NUMBER_OFFSET
 end
 
+#! Returns an offset of the `get_script_hash` kernel procedure.
+#!
+#! Inputs:  []
+#! Outputs: [proc_offset]
+#!
+#! Where:
+#! - proc_offset is the offset of the `get_script_hash` kernel procedure required to get the
+#!   address where this procedure is stored.
 export.get_script_hash_offset
     push.GET_SCRIPT_HASH_OFFSET
 end
