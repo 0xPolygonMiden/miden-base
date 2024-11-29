@@ -39,3 +39,5 @@ impl std::fmt::Display for RemoteTransactionProverError {
         }
     }
 }
+
+impl core::error::Error for RemoteTransactionProverError {}

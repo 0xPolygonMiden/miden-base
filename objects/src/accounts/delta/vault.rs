@@ -277,8 +277,8 @@ impl FungibleAssetDelta {
                 let new = old.checked_add(delta).ok_or(
                     AccountDeltaError::FungibleAssetDeltaOverflow {
                         faucet_id,
-                        this: old,
-                        other: delta,
+                        current: old,
+                        delta,
                     },
                 )?;
 

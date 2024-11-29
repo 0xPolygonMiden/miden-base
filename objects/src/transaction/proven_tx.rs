@@ -119,16 +119,16 @@ impl ProvenTransaction {
                         );
                     }
                     if account.id() != self.account_id() {
-                        return Err(ProvenTransactionError::AccountIdMismatch(
-                            self.account_id(),
-                            account.id(),
-                        ));
+                        return Err(ProvenTransactionError::AccountIdMismatch {
+                            tx_account_id: self.account_id(),
+                            details_account_id: account.id(),
+                        });
                     }
                     if account.hash() != self.account_update.final_state_hash() {
-                        return Err(ProvenTransactionError::AccountFinalHashMismatch(
-                            self.account_update.final_state_hash(),
-                            account.hash(),
-                        ));
+                        return Err(ProvenTransactionError::AccountFinalHashMismatch {
+                            tx_final_hash: self.account_update.final_state_hash(),
+                            details_hash: account.hash(),
+                        });
                     }
                 },
                 AccountUpdateDetails::Delta(_) => {
@@ -391,10 +391,10 @@ impl TxAccountUpdate {
     pub fn validate(&self) -> Result<(), ProvenTransactionError> {
         let account_update_size = self.details().get_size_hint();
         if account_update_size > ACCOUNT_UPDATE_MAX_SIZE as usize {
-            Err(ProvenTransactionError::AccountUpdateSizeLimitExceeded(
-                self.account_id(),
-                account_update_size,
-            ))
+            Err(ProvenTransactionError::AccountUpdateSizeLimitExceeded {
+                account_id: self.account_id(),
+                update_size: account_update_size,
+            })
         } else {
             Ok(())
         }
@@ -603,7 +603,7 @@ mod tests {
         .unwrap_err();
 
         assert!(
-            matches!(err, ProvenTransactionError::AccountUpdateSizeLimitExceeded(_, size) if size == details_size)
+            matches!(err, ProvenTransactionError::AccountUpdateSizeLimitExceeded { update_size, .. } if update_size == details_size)
         );
     }
 }

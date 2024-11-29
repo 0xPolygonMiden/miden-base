@@ -7,7 +7,7 @@ use vm_core::{
 use vm_processor::DeserializationError;
 
 use super::{Digest, Felt};
-use crate::{accounts::AccountStorage, AccountError};
+use crate::AccountError;
 
 // ACCOUNT PROCEDURE INFO
 // ================================================================================================
@@ -58,10 +58,9 @@ impl AccountProcedureInfo {
         // Check if the addition would exceed AccountStorage::MAX_NUM_STORAGE_SLOTS (= 255) which is
         // the case if the addition overflows.
         if storage_offset.checked_add(storage_size).is_none() {
-            return Err(AccountError::StorageOffsetOutOfBounds {
-                max: AccountStorage::MAX_NUM_STORAGE_SLOTS as u8,
-                actual: storage_offset as u16 + storage_size as u16,
-            });
+            return Err(AccountError::StorageOffsetPlusSizeOutOfBounds(
+                storage_offset as u16 + storage_size as u16,
+            ));
         }
 
         Ok(Self { mast_root, storage_offset, storage_size })
@@ -111,18 +110,18 @@ impl TryFrom<[Felt; 8]> for AccountProcedureInfo {
         let mast_root = Digest::from(<[Felt; 4]>::try_from(&value[0..4]).unwrap());
 
         // get storage_offset form value[4]
-        let storage_offset: u8 = value[4]
-            .try_into()
-            .map_err(|_| AccountError::AccountCodeProcedureInvalidStorageOffset)?;
+        let storage_offset: u8 = value[4].try_into().map_err(|_| {
+            AccountError::AccountCodeProcedureStorageOffsetTooLarge(mast_root, value[4])
+        })?;
 
         // get storage_size form value[5]
-        let storage_size: u8 = value[5]
-            .try_into()
-            .map_err(|_| AccountError::AccountCodeProcedureInvalidStorageSize)?;
+        let storage_size: u8 = value[5].try_into().map_err(|_| {
+            AccountError::AccountCodeProcedureStorageSizeTooLarge(mast_root, value[5])
+        })?;
 
         // Check if the remaining values are 0
         if value[6] != Felt::ZERO || value[7] != Felt::ZERO {
-            return Err(AccountError::AccountCodeProcedureInvalidPadding);
+            return Err(AccountError::AccountCodeProcedureInvalidPadding(mast_root));
         }
 
         Ok(Self { mast_root, storage_offset, storage_size })

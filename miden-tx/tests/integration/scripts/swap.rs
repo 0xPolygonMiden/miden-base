@@ -37,8 +37,8 @@ pub fn prove_send_swap_note() {
 
             push.{asset}
             call.::miden::contracts::wallets::basic::move_asset_to_note
-            dropw dropw dropw dropw
             call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+            dropw dropw dropw dropw
         end
         ",
         recipient = prepare_word(&note.recipient().digest()),
@@ -84,7 +84,7 @@ fn prove_consume_swap_note() {
     // --------------------------------------------------------------------------------------------
 
     let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
-    mock_chain.add_note(note.clone());
+    mock_chain.add_pending_note(note.clone());
     mock_chain.seal_block(None);
 
     let consume_swap_note_tx = mock_chain

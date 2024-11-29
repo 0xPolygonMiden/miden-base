@@ -122,7 +122,7 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let (account, _) = AccountBuilder::new()
+    let account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
@@ -132,8 +132,7 @@ fn executed_transaction_account_delta_new() {
             .unwrap(),
         )
         .with_assets(account_assets)
-        .nonce(ONE)
-        .build_testing()
+        .build_existing()
         .unwrap();
 
     let mut tx_context = TransactionContextBuilder::new(account)
@@ -190,9 +189,12 @@ fn executed_transaction_account_delta_new() {
 
     let note_types = [NoteType::Private; 3];
 
-    assert_eq!(tag1.validate(NoteType::Private), Ok(tag1));
-    assert_eq!(tag2.validate(NoteType::Private), Ok(tag2));
-    assert_eq!(tag3.validate(NoteType::Private), Ok(tag3));
+    tag1.validate(NoteType::Private)
+        .expect("note tag 1 should support private notes");
+    tag2.validate(NoteType::Private)
+        .expect("note tag 2 should support private notes");
+    tag3.validate(NoteType::Private)
+        .expect("note tag 3 should support private notes");
 
     let execution_hint_1 = Felt::from(NoteExecutionHint::always());
     let execution_hint_2 = Felt::from(NoteExecutionHint::none());
@@ -214,16 +216,16 @@ fn executed_transaction_account_delta_new() {
 
             # pad the stack before calling the `create_note`
             padw padw swapdw
-            # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+            # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
 
             # create the note
             call.::miden::contracts::wallets::basic::create_note
-            # => [note_idx, PAD(15)]
+            # => [note_idx, pad(15)]
 
             # move an asset to the created note to partially deplete fungible asset balance
             swapw dropw push.{REMOVED_ASSET}
             call.::miden::contracts::wallets::basic::move_asset_to_note
-            # => [ASSET, note_idx, PAD(11)]
+            # => [ASSET, note_idx, pad(11)]
 
             # clear the stack
             dropw dropw dropw dropw
@@ -467,7 +469,7 @@ fn test_send_note_proc() {
     let aux = Felt::new(27);
     let note_type = NoteType::Private;
 
-    assert_eq!(tag.validate(note_type), Ok(tag));
+    tag.validate(note_type).expect("note tag should support private notes");
 
     // prepare the asset vector to be removed for each test variant
     let assets_matrix = vec![
@@ -517,7 +519,7 @@ fn test_send_note_proc() {
 
                 # pad the stack with zeros before calling the `create_note`.
                 padw padw swapdw
-                # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8) ...]
+                # => [tag, aux, execution_hint, note_type, RECIPIENT, pad(8) ...]
 
                 call.wallet::create_note
                 # => [note_idx, GARBAGE(15)]
@@ -628,9 +630,9 @@ fn executed_transaction_output_notes() {
     let note_type2 = NoteType::Public;
     let note_type3 = NoteType::Public;
 
-    assert_eq!(tag1.validate(note_type1), Ok(tag1));
-    assert_eq!(tag2.validate(note_type2), Ok(tag2));
-    assert_eq!(tag3.validate(note_type3), Ok(tag3));
+    tag1.validate(note_type1).expect("note tag 1 should support private notes");
+    tag2.validate(note_type2).expect("note tag 2 should support public notes");
+    tag3.validate(note_type3).expect("note tag 3 should support public notes");
 
     // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public
     // without assets.
@@ -668,18 +670,35 @@ fn executed_transaction_output_notes() {
         use.miden::contracts::wallets::basic->wallet
         use.test::account
 
+        # Inputs:  [tag, aux, note_type, execution_hint, RECIPIENT]
+        # Outputs: [note_idx]
         proc.create_note
-            # pad the stack before the syscall to prevent accidental modification of the deeper stack
+            # pad the stack before the call to prevent accidental modification of the deeper stack
             # elements
             padw padw swapdw
-            # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8)]
+            # => [tag, aux, execution_hint, note_type, RECIPIENT, pad(8)]
 
             call.wallet::create_note
-            # => [note_idx, PAD(15)]
+            # => [note_idx, pad(15)]
 
             # remove excess PADs from the stack
             swapdw dropw dropw movdn.7 dropw drop drop drop
             # => [note_idx]
+        end
+
+        # Inputs:  [ASSET, note_idx]
+        # Outputs: [ASSET, note_idx]
+        proc.move_asset_to_note
+            # pad the stack before call
+            push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
+            # => [ASSET, note_idx, pad(11)]
+
+            call.wallet::move_asset_to_note
+            # => [ASSET, note_idx, pad(11)]
+
+            # remove excess PADs from the stack
+            swapdw dropw dropw swapw movdn.7 drop drop drop
+            # => [ASSET, note_idx]
         end
 
         ## TRANSACTION SCRIPT
@@ -695,14 +714,15 @@ fn executed_transaction_output_notes() {
             push.{tag1}                         # tag
             exec.create_note
             # => [note_idx]
-            push.{REMOVED_ASSET_1}              # asset
+            
+            push.{REMOVED_ASSET_1}              # asset_1
             # => [ASSET, note_idx]
 
-            call.wallet::move_asset_to_note dropw
+            exec.move_asset_to_note dropw
             # => [note_idx]
 
             push.{REMOVED_ASSET_2}              # asset_2
-            call.wallet::move_asset_to_note dropw drop
+            exec.move_asset_to_note dropw drop
             # => []
 
             # send non-fungible asset
@@ -715,11 +735,11 @@ fn executed_transaction_output_notes() {
             # => [note_idx]
 
             push.{REMOVED_ASSET_3}              # asset_3
-            call.wallet::move_asset_to_note dropw
+            exec.move_asset_to_note dropw
             # => [note_idx]
 
             push.{REMOVED_ASSET_4}              # asset_4
-            call.wallet::move_asset_to_note dropw drop
+            exec.move_asset_to_note dropw drop
             # => []
 
             # create a public note without assets

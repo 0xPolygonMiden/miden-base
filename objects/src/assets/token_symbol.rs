@@ -1,4 +1,4 @@
-use alloc::string::{String, ToString};
+use alloc::string::String;
 
 use super::{AssetError, Felt};
 
@@ -39,7 +39,11 @@ impl TryFrom<Felt> for TokenSymbol {
     fn try_from(felt: Felt) -> Result<Self, Self::Error> {
         // Check if the felt value is within the valid range
         if felt.as_int() >= TokenSymbol::MAX_ENCODED_VALUE {
-            return Err(AssetError::TokenSymbolError("Encoded value is too large".to_string()));
+            return Err(AssetError::TokenSymbolError(format!(
+                "token symbol value {} cannot exceed {}",
+                felt.as_int(),
+                TokenSymbol::MAX_ENCODED_VALUE
+            )));
         }
         Ok(TokenSymbol(felt))
     }
@@ -51,13 +55,15 @@ impl TryFrom<Felt> for TokenSymbol {
 // characters , e.g., A = 0, ...
 fn encode_symbol_to_felt(s: &str) -> Result<Felt, AssetError> {
     if s.is_empty() || s.len() > TokenSymbol::MAX_SYMBOL_LENGTH {
-        return Err(AssetError::TokenSymbolError(
-            "Token symbol must be between 1 and 6 characters long.".to_string(),
-        ));
+        return Err(AssetError::TokenSymbolError(format!(
+            "token symbol of length {} is not between 1 and 6 characters long",
+            s.len()
+        )));
     } else if s.chars().any(|c| !c.is_ascii_uppercase()) {
-        return Err(AssetError::TokenSymbolError(
-            "Token Symbol contains characters that are not ASCII upper case".to_string(),
-        ));
+        return Err(AssetError::TokenSymbolError(format!(
+            "token symbol {} contains characters that are not uppercase ASCII",
+            s
+        )));
     }
 
     let mut encoded_value = 0;

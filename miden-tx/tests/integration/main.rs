@@ -5,8 +5,8 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_SENDER, Account, AccountId},
-    assets::{Asset, AssetVault, FungibleAsset},
+    accounts::{account_id::testing::ACCOUNT_ID_SENDER, AccountId},
+    assets::FungibleAsset,
     crypto::utils::Serializable,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
     transaction::{ExecutedTransaction, ProvenTransaction},
@@ -61,43 +61,6 @@ pub fn prove_and_verify_transaction(
     let verifier = TransactionVerifier::new(miden_objects::MIN_PROOF_SECURITY_LEVEL);
 
     verifier.verify(proven_transaction)
-}
-
-#[cfg(test)]
-pub fn get_account_with_basic_authenticated_wallet(
-    account_id: AccountId,
-    public_key: Word,
-    assets: Option<Asset>,
-) -> Account {
-    use miden_lib::accounts::auth::RpoFalcon512;
-    use miden_objects::{
-        accounts::{AccountComponent, StorageMap, StorageSlot},
-        crypto::dsa::rpo_falcon512::PublicKey,
-        testing::account_component::BASIC_WALLET_CODE,
-    };
-    let assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-    // This component supports all types of accounts for testing purposes.
-    let wallet_component = AccountComponent::compile(
-        BASIC_WALLET_CODE,
-        assembler.clone(),
-        vec![StorageSlot::Value(Word::default()), StorageSlot::Map(StorageMap::default())],
-    )
-    .unwrap()
-    .with_supports_all_types();
-
-    let (account_code, account_storage) = Account::initialize_from_components(
-        account_id.account_type(),
-        &[RpoFalcon512::new(PublicKey::new(public_key)).into(), wallet_component],
-    )
-    .unwrap();
-
-    let account_vault = match assets {
-        Some(asset) => AssetVault::new(&[asset]).unwrap(),
-        None => AssetVault::new(&[]).unwrap(),
-    };
-
-    Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
 
 #[cfg(test)]

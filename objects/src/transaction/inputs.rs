@@ -186,20 +186,17 @@ impl<T: ToInputNoteCommitments> InputNotes<T> {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The total number of notes is greater than 1024.
+    /// - The total number of notes is greater than [`MAX_INPUT_NOTES_PER_TX`].
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<T>) -> Result<Self, TransactionInputError> {
         if notes.len() > MAX_INPUT_NOTES_PER_TX {
-            return Err(TransactionInputError::TooManyInputNotes {
-                max: MAX_INPUT_NOTES_PER_TX,
-                actual: notes.len(),
-            });
+            return Err(TransactionInputError::TooManyInputNotes(notes.len()));
         }
 
         let mut seen_notes = BTreeSet::new();
         for note in notes.iter() {
             if !seen_notes.insert(note.nullifier().inner()) {
-                return Err(TransactionInputError::DuplicateInputNote(note.nullifier().inner()));
+                return Err(TransactionInputError::DuplicateInputNote(note.nullifier()));
             }
         }
 
@@ -476,7 +473,7 @@ pub fn validate_account_seed(
         (true, Some(seed)) => {
             let account_id =
                 AccountId::new(seed, account.code().commitment(), account.storage().commitment())
-                    .map_err(TransactionInputError::InvalidAccountSeed)?;
+                    .map_err(TransactionInputError::InvalidAccountIdSeed)?;
             if account_id != account.id() {
                 return Err(TransactionInputError::InconsistentAccountSeed {
                     expected: account.id(),

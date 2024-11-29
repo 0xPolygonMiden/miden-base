@@ -1,236 +1,251 @@
-use alloc::{boxed::Box, string::String, vec::Vec};
-use core::fmt;
+use alloc::{boxed::Box, string::String};
+use core::error::Error;
 
+use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
+use miden_crypto::utils::HexParseError;
+use thiserror::Error;
+use vm_core::Felt;
 use vm_processor::DeserializationError;
 
 use super::{
-    accounts::{AccountId, StorageSlotType},
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    accounts::AccountId,
+    assets::{FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
     Digest, Word, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-    accounts::{delta::AccountUpdateDetails, AccountType},
-    notes::NoteType,
-    ACCOUNT_UPDATE_MAX_SIZE,
+    accounts::{AccountCode, AccountStorage, AccountType},
+    notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum AccountError {
-    AccountCodeAssemblyError(String), // TODO: use Report
-    AccountCodeMergeError(String),    // TODO: use MastForestError once it implements Clone
-    AccountCodeDeserializationError(DeserializationError),
+    #[error("failed to assemble account component:\n{}", PrintDiagnostic::new(.0))]
+    AccountComponentAssemblyError(Report),
+    // TODO: Use MastForestError once it implements Error in no-std.
+    #[error("failed to merge account code: {0}")]
+    AccountComponentMergeError(String),
+    #[error("failed to deserialize account code")]
+    AccountCodeDeserializationError(#[source] DeserializationError),
+    #[error("account code does not contain procedures but must contain at least one procedure")]
     AccountCodeNoProcedures,
-    AccountCodeTooManyProcedures {
-        max: usize,
-        actual: usize,
-    },
-    AccountCodeProcedureInvalidStorageOffset,
-    AccountCodeProcedureInvalidStorageSize,
-    AccountCodeProcedureInvalidPadding,
-    AccountIdInvalidFieldElement(String),
-    AccountIdTooFewOnes(u32, u32),
-    AssetVaultUpdateError(AssetVaultError),
-    BuildError(String, Option<Box<AccountError>>),
-    DuplicateStorageItems(MerkleError),
-    FungibleFaucetIdInvalidFirstBit,
-    FungibleFaucetInvalidMetadata(String),
-    HeaderDataIncorrectLength(usize, usize),
-    HexParseError(String),
-    InvalidAccountStorageMode,
-    MapsUpdateToNonMapsSlot(u8, StorageSlotType),
-    NonceNotMonotonicallyIncreasing {
-        current: u64,
-        new: u64,
-    },
-    SeedDigestTooFewTrailingZeros {
-        expected: u32,
-        actual: u32,
-    },
+    #[error("account code contains {0} procedures but it may contain at most {max} procedures", max = AccountCode::MAX_NUM_PROCEDURES)]
+    AccountCodeTooManyProcedures(usize),
+    #[error("account procedure {0}'s storage offset {1} does not fit into u8")]
+    AccountCodeProcedureStorageOffsetTooLarge(Digest, Felt),
+    #[error("account procedure {0}'s storage size {1} does not fit into u8")]
+    AccountCodeProcedureStorageSizeTooLarge(Digest, Felt),
+    #[error("account procedure {0}'s final two elements must be Felt::ZERO")]
+    AccountCodeProcedureInvalidPadding(Digest),
+    #[error("failed to convert bytes into account id field element")]
+    AccountIdInvalidFieldElement(#[source] DeserializationError),
+    #[error("account id contains {0} 1s but must contain at least {min} 1s", min = AccountId::MIN_ACCOUNT_ONES)]
+    AccountIdTooFewOnes(u32),
+    #[error("failed to update asset vault")]
+    AssetVaultUpdateError(#[source] AssetVaultError),
+    #[error("account build error: {0}")]
+    BuildError(String, #[source] Option<Box<AccountError>>),
+    #[error("faucet metadata decimals is {actual} which exceeds max value of {max}")]
+    FungibleFaucetTooManyDecimals { actual: u8, max: u8 },
+    #[error("faucet metadata max supply is {actual} which exceeds max value of {max}")]
+    FungibleFaucetMaxSupplyTooLarge { actual: u64, max: u64 },
+    #[error("account header data has length {actual} but it must be of length {expected}")]
+    HeaderDataIncorrectLength { actual: usize, expected: usize },
+    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
+    // no-std.
+    #[error("failed to parse hex string into account id: {0}")]
+    AccountIdHexParseError(HexParseError),
+    #[error("`{0}` is not a valid account storage mode")]
+    InvalidAccountStorageMode(String),
+    #[error("new account nonce {new} is less than the current nonce {current}")]
+    NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
+    #[error("digest of the seed has {actual} trailing zeroes but must have at least {expected} trailing zeroes")]
+    SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
+    #[error("storage slot at index {0} is not of type map")]
     StorageSlotNotMap(u8),
+    #[error("storage slot at index {0} is not of type value")]
     StorageSlotNotValue(u8),
-    StorageIndexOutOfBounds {
-        max: u8,
-        actual: u8,
-    },
+    #[error("storage slot index is {index} but the slots length is {slots_len}")]
+    StorageIndexOutOfBounds { slots_len: u8, index: u8 },
+    #[error("number of storage slots is {0} but max possible number is {max}", max = AccountStorage::MAX_NUM_STORAGE_SLOTS)]
     StorageTooManySlots(u64),
-    StorageOffsetOutOfBounds {
-        max: u8,
-        actual: u16,
-    },
+    #[error("procedure storage offset + size is {0} which exceeds the maximum value of {max}",
+      max = AccountStorage::MAX_NUM_STORAGE_SLOTS
+    )]
+    StorageOffsetPlusSizeOutOfBounds(u16),
+    #[error(
+        "procedure which does not access storage (storage size = 0) has non-zero storage offset"
+    )]
     PureProcedureWithStorageOffset,
+    #[error("account component at index {component_index} is incompatible with account of type {account_type:?}")]
     UnsupportedComponentForAccountType {
         account_type: AccountType,
         component_index: usize,
     },
+    /// This variant can be used by methods that are not inherent to the account but want to return
+    /// this error type.
+    #[error("assumption violated: {0}")]
+    AssumptionViolated(String),
 }
-
-impl fmt::Display for AccountError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AccountError::BuildError(msg, err) => {
-                write!(f, "account build error: {msg}")?;
-                if let Some(err) = err {
-                    write!(f, ": {err}")?;
-                }
-                Ok(())
-            },
-            other => write!(f, "{other:?}"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AccountError {}
 
 // ACCOUNT DELTA ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum AccountDeltaError {
-    DuplicateStorageItemUpdate(usize),
+    #[error("storage slot {0} was updated as a value and as a map")]
+    StorageSlotUsedAsDifferentTypes(u8),
+    #[error("non fungible vault can neither be added nor removed twice")]
     DuplicateNonFungibleVaultUpdate(NonFungibleAsset),
+    #[error("fungible asset issued by faucet {faucet_id} has delta {delta} which overflows when added to current value {current}")]
     FungibleAssetDeltaOverflow {
         faucet_id: AccountId,
-        this: i64,
-        other: i64,
+        current: i64,
+        delta: i64,
     },
-    IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
+    #[error("account update of type `{left_update_type}` cannot be merged with account update of type `{right_update_type}`")]
+    IncompatibleAccountUpdates {
+        left_update_type: &'static str,
+        right_update_type: &'static str,
+    },
+    #[error("account delta could not be applied to account {account_id}")]
+    AccountDeltaApplicationFailed {
+        account_id: AccountId,
+        source: AccountError,
+    },
+    #[error("inconsistent nonce update: {0}")]
     InconsistentNonceUpdate(String),
+    #[error("account id {0} in fungible asset delta is not of type fungible faucet")]
     NotAFungibleFaucetId(AccountId),
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AccountDeltaError {}
-
-impl fmt::Display for AccountDeltaError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 // ASSET ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum AssetError {
-    AmountTooBig(u64),
-    AssetAmountNotSufficient(u64, u64),
-    FungibleAssetInvalidTag(u32),
-    FungibleAssetInvalidWord(Word),
-    InconsistentFaucetIds(AccountId, AccountId),
-    InvalidAccountId(String),
-    InvalidFieldElement(String),
-    NonFungibleAssetInvalidTag(u32),
-    NotAFungibleFaucetId(AccountId, AccountType),
-    NotANonFungibleFaucetId(AccountId),
-    NotAnAsset(Word),
+    #[error(
+      "fungible asset amount {0} exceeds the max allowed amount of {max_amount}",
+      max_amount = FungibleAsset::MAX_AMOUNT
+    )]
+    FungibleAssetAmountTooBig(u64),
+    #[error("subtracting {subtrahend} from fungible asset amount {minuend} would overflow")]
+    FungibleAssetAmountNotSufficient { minuend: u64, subtrahend: u64 },
+    #[error("fungible asset word {0:?} does not contain expected ZEROs at word index 1 and 2")]
+    FungibleAssetExpectedZeroes(Word),
+    #[error("cannot add fungible asset with issuer {other_issuer} to fungible asset with issuer {original_issuer}")]
+    FungibleAssetInconsistentFaucetIds {
+        original_issuer: AccountId,
+        other_issuer: AccountId,
+    },
+    #[error("faucet account id in asset is invalid")]
+    InvalidFaucetAccountId(#[source] Box<dyn Error + Send>),
+    #[error(
+      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for fungible assets",
+      id_type = .0.account_type(),
+      expected_ty = AccountType::FungibleFaucet
+    )]
+    FungibleFaucetIdTypeMismatch(AccountId),
+    #[error(
+      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for non fungible assets",
+      id_type = .0.account_type(),
+      expected_ty = AccountType::NonFungibleFaucet
+    )]
+    NonFungibleFaucetIdTypeMismatch(AccountId),
+    #[error("{0}")]
     TokenSymbolError(String),
 }
-
-impl fmt::Display for AssetError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AssetError {}
 
 // ASSET VAULT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum AssetVaultError {
-    AddFungibleAssetBalanceError(AssetError),
+    #[error("adding fungible asset amounts would exceed maximum allowed amount")]
+    AddFungibleAssetBalanceError(#[source] AssetError),
+    // TODO: Make #[source] and remove from msg once MerkleError implements Error trait in no-std.
+    #[error("provided assets contain duplicates: {0}")]
     DuplicateAsset(MerkleError),
+    #[error("non fungible asset {0} already exists in the vault")]
     DuplicateNonFungibleAsset(NonFungibleAsset),
+    #[error("fungible asset {0} does not exist in the vault")]
     FungibleAssetNotFound(FungibleAsset),
-    NotANonFungibleAsset(Asset),
+    #[error("faucet id {0} is not a fungible faucet id")]
     NotAFungibleFaucetId(AccountId),
+    #[error("non fungible asset {0} does not exist in the vault")]
     NonFungibleAssetNotFound(NonFungibleAsset),
-    SubtractFungibleAssetBalanceError(AssetError),
+    #[error("subtracting fungible asset amounts would underflow")]
+    SubtractFungibleAssetBalanceError(#[source] AssetError),
 }
-
-impl fmt::Display for AssetVaultError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AssetVaultError {}
 
 // NOTE ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum NoteError {
+    #[error("duplicate fungible asset from issuer {0} in note")]
     DuplicateFungibleAsset(AccountId),
+    #[error("duplicate non fungible asset {0} in note")]
     DuplicateNonFungibleAsset(NonFungibleAsset),
+    #[error("note type {0:?} is inconsistent with note tag {1}")]
     InconsistentNoteTag(NoteType, u64),
-    InvalidAssetData(AssetError),
-    InvalidNoteSender(AccountError),
-    InvalidNoteTagUseCase(u16),
-    InvalidNoteExecutionHintTag(u8),
+    #[error("adding fungible asset amounts would exceed maximum allowed amount")]
+    AddFungibleAssetBalanceError(#[source] AssetError),
+    #[error("note sender is not a valid account id")]
+    NoteSenderInvalidAccountId(#[source] AccountError),
+    #[error("note tag use case {0} must be less than 2^{exp}", exp = NoteTag::MAX_USE_CASE_ID_EXPONENT)]
+    NoteTagUseCaseTooLarge(u16),
+    #[error(
+        "note execution hint tag {0} must be in range {from}..={to}",
+        from = NoteExecutionHint::NONE_TAG,
+        to = NoteExecutionHint::ON_BLOCK_SLOT_TAG,
+    )]
+    NoteExecutionHintTagOutOfRange(u8),
+    #[error("invalid note execution hint payload {1} for tag {0}")]
     InvalidNoteExecutionHintPayload(u8, u32),
-    InvalidNoteType(NoteType),
-    InvalidNoteTypeValue(u64),
-    InvalidLocationIndex(String),
-    InvalidStubDataLen(usize),
+    #[error("note type {0:b} does not match any of the valid note types {public}, {private} or {encrypted}",
+      public = NoteType::Public as u8,
+      private = NoteType::Private as u8,
+      encrypted = NoteType::Encrypted as u8,
+    )]
+    InvalidNoteType(u64),
+    #[error("note location index {node_index_in_block} is out of bounds 0..={highest_index}")]
+    NoteLocationIndexOutOfBounds {
+        node_index_in_block: u16,
+        highest_index: usize,
+    },
+    #[error("note network execution requires account stored on chain")]
     NetworkExecutionRequiresOnChainAccount,
+    #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
-    NoteDeserializationError(DeserializationError),
-    NoteScriptAssemblyError(String), // TODO: use Report
-    NoteScriptDeserializationError(DeserializationError),
+    #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]
+    NoteScriptAssemblyError(Report),
+    #[error("failed to deserialize note script")]
+    NoteScriptDeserializationError(#[source] DeserializationError),
+    #[error("public use case requires a public note but note is of type {0:?}")]
     PublicUseCaseRequiresPublicNote(NoteType),
+    #[error("note contains {0} assets which exceeds the maximum of {max}", max = NoteAssets::MAX_NUM_ASSETS)]
     TooManyAssets(usize),
+    #[error("note contains {0} inputs which exceeds the maximum of {max}", max = MAX_INPUTS_PER_NOTE)]
     TooManyInputs(usize),
 }
-
-impl NoteError {
-    pub fn duplicate_fungible_asset(faucet_id: AccountId) -> Self {
-        Self::DuplicateFungibleAsset(faucet_id)
-    }
-
-    pub fn duplicate_non_fungible_asset(asset: NonFungibleAsset) -> Self {
-        Self::DuplicateNonFungibleAsset(asset)
-    }
-
-    pub fn invalid_location_index(msg: String) -> Self {
-        Self::InvalidLocationIndex(msg)
-    }
-
-    pub fn too_many_assets(num_assets: usize) -> Self {
-        Self::TooManyAssets(num_assets)
-    }
-
-    pub fn too_many_inputs(num_inputs: usize) -> Self {
-        Self::TooManyInputs(num_inputs)
-    }
-}
-
-impl fmt::Display for NoteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for NoteError {}
 
 // CHAIN MMR ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum ChainMmrError {
+    #[error("block num {block_num} exceeds chain length {chain_length} implied by the chain MMR")]
     BlockNumTooBig { chain_length: usize, block_num: u32 },
+    #[error("duplicate block {block_num} in chain MMR")]
     DuplicateBlock { block_num: u32 },
+    #[error("chain MMR does not track authentication paths for block {block_num}")]
     UntrackedBlock { block_num: u32 },
 }
 
@@ -248,185 +263,118 @@ impl ChainMmrError {
     }
 }
 
-impl fmt::Display for ChainMmrError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ChainMmrError {}
-
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum TransactionScriptError {
-    AssemblyError(String), // TODO: change to Report
+    #[error("failed to assemble transaction script:\n{}", PrintDiagnostic::new(.0))]
+    AssemblyError(Report),
 }
-
-impl fmt::Display for TransactionScriptError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionScriptError {}
 
 // TRANSACTION INPUT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum TransactionInputError {
+    #[error("account seed must be provided for new accounts")]
     AccountSeedNotProvidedForNewAccount,
+    #[error("account seed must not be provided for existing accounts")]
     AccountSeedProvidedForExistingAccount,
-    DuplicateInputNote(Digest),
+    #[error("transaction input note with nullifier {0} is a duplicate")]
+    DuplicateInputNote(Nullifier),
+    #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
+    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
     InconsistentChainLength { expected: u32, actual: u32 },
+    #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
     InconsistentChainRoot { expected: Digest, actual: Digest },
+    #[error("block in which input note with id {0} was created is not in chain mmr")]
     InputNoteBlockNotInChainMmr(NoteId),
+    #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, u32),
-    InvalidAccountSeed(AccountError),
-    TooManyInputNotes { max: usize, actual: usize },
+    #[error("account id computed from seed is invalid")]
+    InvalidAccountIdSeed(#[source] AccountError),
+    #[error(
+        "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
+    )]
+    TooManyInputNotes(usize),
 }
-
-impl fmt::Display for TransactionInputError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionInputError {}
 
 // TRANSACTION OUTPUT ERROR
 // ===============================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum TransactionOutputError {
+    #[error("transaction output note with id {0} is a duplicate")]
     DuplicateOutputNote(NoteId),
-    FinalAccountDataNotFound,
-    FinalAccountHeaderDataInvalid(AccountError),
-    OutputNoteDataNotFound,
-    OutputNoteDataInvalid(NoteError),
-    OutputNotesCommitmentInconsistent(Digest, Digest),
+    #[error("final account hash is not in the advice map")]
+    FinalAccountHashMissingInAdviceMap,
+    #[error("failed to parse final account header")]
+    FinalAccountHeaderParseFailure(#[source] AccountError),
+    #[error("output notes commitment {expected} from kernel does not match computed commitment {actual}")]
+    OutputNotesCommitmentInconsistent { expected: Digest, actual: Digest },
+    #[error("transaction kernel output stack is invalid: {0}")]
     OutputStackInvalid(String),
+    #[error("total number of output notes is {0} which exceeds the maximum of {MAX_OUTPUT_NOTES_PER_TX}")]
     TooManyOutputNotes(usize),
 }
-
-impl fmt::Display for TransactionOutputError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionOutputError {}
 
 // PROVEN TRANSACTION ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum ProvenTransactionError {
-    AccountFinalHashMismatch(Digest, Digest),
-    AccountIdMismatch(AccountId, AccountId),
+    #[error("proven transaction's final account hash {tx_final_hash} and account details hash {details_hash} must match")]
+    AccountFinalHashMismatch {
+        tx_final_hash: Digest,
+        details_hash: Digest,
+    },
+    #[error("proven transaction's final account id {tx_account_id} and account details id {details_account_id} must match")]
+    AccountIdMismatch {
+        tx_account_id: AccountId,
+        details_account_id: AccountId,
+    },
+    #[error("failed to construct input notes for proven transaction")]
     InputNotesError(TransactionInputError),
-    NoteDetailsForUnknownNotes(Vec<NoteId>),
+    #[error("off-chain account {0} should not have account details")]
     OffChainAccountWithDetails(AccountId),
+    #[error("on-chain account {0} is missing its account details")]
     OnChainAccountMissingDetails(AccountId),
+    #[error("new on-chain account {0} is missing its account details")]
     NewOnChainAccountRequiresFullDetails(AccountId),
+    #[error(
+        "existing on-chain account {0} should only provide delta updates instead of full details"
+    )]
     ExistingOnChainAccountRequiresDeltaDetails(AccountId),
+    #[error("failed to construct output notes for proven transaction")]
     OutputNotesError(TransactionOutputError),
-    AccountUpdateSizeLimitExceeded(AccountId, usize),
+    #[error(
+      "account update of size {update_size} for account {account_id} exceeds maximum update size of {ACCOUNT_UPDATE_MAX_SIZE}",
+    )]
+    AccountUpdateSizeLimitExceeded {
+        account_id: AccountId,
+        update_size: usize,
+    },
 }
-
-impl fmt::Display for ProvenTransactionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ProvenTransactionError::AccountFinalHashMismatch(account_final_hash, details_hash) => {
-                write!(f, "Proven transaction account_final_hash {account_final_hash} and account_details.hash must match {details_hash}.")
-            },
-            ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
-                write!(
-                    f,
-                    "Proven transaction account_id {tx_id} and account_details.id must match {details_id}.",
-                )
-            },
-            ProvenTransactionError::InputNotesError(inner) => {
-                write!(f, "Invalid input notes: {inner}")
-            },
-            ProvenTransactionError::NoteDetailsForUnknownNotes(note_ids) => {
-                write!(f, "Note details for unknown note ids: {note_ids:?}")
-            },
-            ProvenTransactionError::OffChainAccountWithDetails(account_id) => {
-                write!(f, "Off-chain account {account_id} should not have account details")
-            },
-            ProvenTransactionError::OnChainAccountMissingDetails(account_id) => {
-                write!(f, "On-chain account {account_id} missing account details")
-            },
-            ProvenTransactionError::OutputNotesError(inner) => {
-                write!(f, "Invalid output notes: {inner}")
-            },
-            ProvenTransactionError::NewOnChainAccountRequiresFullDetails(account_id) => {
-                write!(f, "New on-chain account {account_id} missing full details")
-            },
-            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
-                write!(f, "Existing on-chain account {account_id} should only provide deltas")
-            },
-            ProvenTransactionError::AccountUpdateSizeLimitExceeded(account_id, size) => {
-                write!(f, "Update on account {account_id} of size {size} exceeds the allowed limit of {ACCOUNT_UPDATE_MAX_SIZE}")
-            },
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ProvenTransactionError {}
 
 // BLOCK VALIDATION ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum BlockError {
+    #[error("duplicate note with id {0} in the block")]
     DuplicateNoteFound(NoteId),
+    #[error("too many accounts updated in the block (max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {0})")]
     TooManyAccountUpdates(usize),
+    #[error("too many notes in the batch (max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {0})")]
     TooManyNotesInBatch(usize),
+    #[error("too many notes in the block (max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {0})")]
     TooManyNotesInBlock(usize),
+    #[error("too many nullifiers in the block (max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {0})")]
     TooManyNullifiersInBlock(usize),
+    #[error(
+        "too many transaction batches in the block (max: {MAX_BATCHES_PER_BLOCK}, actual: {0})"
+    )]
     TooManyTransactionBatches(usize),
 }
-
-impl fmt::Display for BlockError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            BlockError::DuplicateNoteFound(id) => {
-                write!(f, "Duplicate note {id} found in the block")
-            },
-            BlockError::TooManyAccountUpdates(actual) => {
-                write!(f, "Too many accounts updated in a block. Max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {actual}")
-            },
-            BlockError::TooManyNotesInBatch(actual) => {
-                write!(f, "Too many notes in a batch. Max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {actual}")
-            },
-            BlockError::TooManyNotesInBlock(actual) => {
-                write!(f, "Too many notes in a block. Max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {actual}")
-            },
-            BlockError::TooManyNullifiersInBlock(actual) => {
-                write!(
-                    f,
-                    "Too many nullifiers in a block. Max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {actual}"
-                )
-            },
-            BlockError::TooManyTransactionBatches(actual) => {
-                write!(
-                    f,
-                    "Too many transaction batches. Max: {MAX_BATCHES_PER_BLOCK}, actual: {actual}"
-                )
-            },
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for BlockError {}

@@ -255,16 +255,24 @@ impl TransactionContextBuilder {
             begin
                 # NOTE
                 # ---------------------------------------------------------------------------------
+                padw padw
                 push.{recipient}
                 push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux}
                 push.{tag}
+                # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
+
                 call.wallet::create_note
+                # => [note_idx, pad(15)]
 
                 push.{asset}
                 call.account::add_asset_to_note
-                dropw dropw dropw
+                # => [ASSET, note_idx, pad(15)]
+
+                # clear the stack
+                repeat.5 dropw end
+                # => []
             end
             ",
             PUBLIC_NOTE = NoteType::Public as u8,
@@ -304,17 +312,23 @@ impl TransactionContextBuilder {
                 # NOTE 0
                 # ---------------------------------------------------------------------------------
 
+                padw padw
                 push.{recipient0}
                 push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux0}
                 push.{tag0}
+                # => [tag_0, aux_0, note_type, execution_hint, RECIPIENT_0, pad(8)]
 
                 call.wallet::create_note
+                # => [note_idx_0, pad(15)]
 
                 push.{asset0}
                 call.account::add_asset_to_note
+                # => [ASSET_0, note_idx_0, pad(15)]
+                
                 dropw dropw dropw
+                # => [pad(8)]
 
                 # NOTE 1
                 # ---------------------------------------------------------------------------------
@@ -323,11 +337,16 @@ impl TransactionContextBuilder {
                 push.{PUBLIC_NOTE}
                 push.{aux1}
                 push.{tag1}
-                call.wallet::create_note
+                # => [tag_1, aux_1, note_type, execution_hint, RECIPIENT_1, pad(8)]
 
+                call.wallet::create_note
+                # => [note_idx_1, pad(15)]
+                
                 push.{asset1}
                 call.account::add_asset_to_note
-                dropw dropw dropw
+                # => [ASSET_1, note_idx_1, pad(15)]
+
+                repeat.5 dropw end
             end
             ",
             PUBLIC_NOTE = NoteType::Public as u8,
@@ -370,15 +389,35 @@ impl TransactionContextBuilder {
                 # => [dest_ptr]
 
                 # add the first asset to the vault
-                padw dup.4 mem_loadw call.wallet::receive_asset dropw
-                # => [dest_ptr]
+                padw dup.4 mem_loadw 
+                # => [ASSET, dest_ptr]
+
+                # pad the stack before call
+                padw swapw padw padw swapdw
+                # => [ASSET, pad(12), dest_ptr]
+                
+                # add the first asset to the vault
+                call.wallet::receive_asset dropw movup.12
+                # => [dest_ptr, pad(12)]
 
                 # add the second asset to the vault
-                push.1 add padw dup.4 mem_loadw call.wallet::receive_asset dropw
-                # => [dest_ptr+1]
+                push.1 add dup movdn.13
+                # => [dest_ptr+1, pad(12), dest_ptr+1]
+
+                # load the asset
+                padw movup.4 mem_loadw
+                # => [ASSET, pad(12), dest_ptr+1]
+
+                # add the second asset to the vault
+                call.wallet::receive_asset dropw movup.12
+                # => [dest_ptr+1, pad(12)]
 
                 # add the third asset to the vault
-                push.1 add padw movup.4 mem_loadw call.wallet::receive_asset dropw
+                push.1 add padw movup.4 mem_loadw
+                # => [ASSET, pad(12)]
+                
+                call.wallet::receive_asset
+                dropw dropw dropw dropw
                 # => []
             end
         ";
@@ -600,7 +639,7 @@ impl TransactionContextBuilder {
 
                 let mut mock_chain = MockChain::default();
                 for i in self.input_notes {
-                    mock_chain.add_note(i);
+                    mock_chain.add_pending_note(i);
                 }
 
                 mock_chain.seal_block(None);
@@ -619,7 +658,8 @@ impl TransactionContextBuilder {
         };
 
         let mut tx_args =
-            TransactionArgs::new(self.tx_script, Some(self.note_args), AdviceMap::default());
+            TransactionArgs::new(self.tx_script, Some(self.note_args), AdviceMap::default())
+                .with_advice_inputs(self.advice_inputs.clone());
 
         tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
 

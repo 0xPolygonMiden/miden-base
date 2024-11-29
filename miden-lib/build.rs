@@ -1,8 +1,9 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env, fs,
-    fs::File,
-    io::{self, BufRead, BufReader, Write},
+    env,
+    fmt::Write,
+    fs::{self, File},
+    io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -10,12 +11,16 @@ use std::{
 use assembly::{
     diagnostics::{IntoDiagnostic, Result},
     utils::Serializable,
-    Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace,
+    Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, Report,
 };
 use regex::Regex;
+use walkdir::WalkDir;
 
 // CONSTANTS
 // ================================================================================================
+
+/// Defines whether the build script can write to /src.
+const CAN_WRITE_TO_SRC: bool = option_env!("DOCS_RS").is_none();
 
 const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
@@ -24,6 +29,8 @@ const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
+
+const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -34,8 +41,8 @@ const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
 /// - Compiles contents of asm/scripts directory into individual .masb files.
 fn main() -> Result<()> {
     // re-build when the MASM code changes
-    println!("cargo:rerun-if-changed=asm");
-    println!("cargo:rerun-if-changed={KERNEL_V0_RS_FILE}");
+    println!("cargo:rerun-if-changed={ASM_DIR}");
+    println!("cargo::rerun-if-env-changed=BUILD_KERNEL_ERRORS");
 
     // Copies the MASM code to the build directory
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -49,7 +56,6 @@ fn main() -> Result<()> {
 
     // set target directory to {OUT_DIR}/assets
     let target_dir = Path::new(&build_dir).join(ASSETS_DIR);
-
     // compile transaction kernel
     let mut assembler =
         compile_tx_kernel(&source_dir.join(ASM_TX_KERNEL_DIR), &target_dir.join("kernels"))?;
@@ -68,6 +74,12 @@ fn main() -> Result<()> {
     // compile account components
     compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
 
+    // Skip this build script in BUILD_KERNEL_ERRORS environment variable is not set to `1`.
+    if env::var("BUILD_KERNEL_ERRORS").unwrap_or("0".to_string()) == "1" {
+        // Generate kernel error constants.
+        generate_kernel_error_constants(&source_dir)?;
+    }
+
     Ok(())
 }
 
@@ -83,7 +95,7 @@ fn main() -> Result<()> {
 /// - {source_dir}/main.masm        -> defines the executable program of the transaction kernel.
 /// - {source_dir}/lib              -> contains common modules used by both api.masm and main.masm.
 ///
-/// The complied files are written as follows:
+/// The compiled files are written as follows:
 ///
 /// - {target_dir}/tx_kernel.masl               -> contains kernel library compiled from api.masm.
 /// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
@@ -107,10 +119,10 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
                 let modified = BufReader::new(read).lines().map(decrease_pow);
 
                 for line in modified {
-                    write.write_all(line.unwrap().as_bytes()).unwrap();
-                    write.write_all(b"\n").unwrap();
+                    io::Write::write_all(&mut write, line.unwrap().as_bytes()).unwrap();
+                    io::Write::write_all(&mut write, b"\n").unwrap();
                 }
-                write.flush().unwrap();
+                io::Write::flush(&mut write).unwrap();
             }
 
             fs::remove_file(&constants).unwrap();
@@ -178,6 +190,12 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
 
 /// Generates `kernel_v0.rs` file based on the kernel library
 fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
+    // Because the kernel Rust file will be stored under ./src, this should be a no-op if we can't
+    // write there
+    if !CAN_WRITE_TO_SRC {
+        return Ok(());
+    }
+
     let (_, module_info, _) = kernel.into_parts();
 
     let to_exclude = BTreeSet::from_iter(["exec_kernel_proc"]);
@@ -193,19 +211,7 @@ fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
                 panic!("Offset constant for function `{name}` not found in `{offsets_filename:?}`");
             };
 
-            (
-                offset,
-                format!(
-                    "    // {name}\n    digest!({}),",
-                    proc_info
-                        .digest
-                        .as_elements()
-                        .iter()
-                        .map(|v| format!("{:#016x}", v.as_int()))
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                ),
-            )
+            (offset, format!("    // {name}\n    digest!(\"{}\"),", proc_info.digest))
         })
         .collect();
 
@@ -223,7 +229,7 @@ fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
         format!(
             r#"/// This file is generated by build.rs, do not modify
 
-use miden_objects::{{digest, Digest, Felt}};
+use miden_objects::{{digest, Digest}};
 
 // KERNEL V0 PROCEDURES
 // ================================================================================================
@@ -431,4 +437,183 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
     } else {
         Ok(false)
     }
+}
+
+// KERNEL ERROR CONSTANTS
+// ================================================================================================
+
+/// Reads all MASM files from the `kernel_source_dir` and extracts its error constants and their
+/// associated comment as the error message and generates a Rust file from them. For example:
+///
+/// ```text
+/// # New account must have an empty vault
+/// const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x0002000F
+/// ```
+///
+/// would generate a Rust file with the following content:
+///
+/// ```rust
+/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x0002000f;
+/// ```
+///
+/// and add an entry in the constant -> error mapping array:
+///
+/// ```rust
+/// (ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY, "New account must have an empty vault"),
+/// ```
+///
+/// The caveats are that only the comment line directly above the constant is considered an error
+/// message. This could be extended if needed, but for now all errors can be described in one line.
+///
+/// We also ensure that a constant is not defined twice, except if their error code is the same.
+/// This can happen across multiple files.
+fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
+    // Because the error files will be written to ./src/errors, this should be a no-op if ./src is
+    // read-only
+    if !CAN_WRITE_TO_SRC {
+        return Ok(());
+    }
+
+    // We use a BTree here to order the errors by their categories which is the first part after the
+    // ERR_ prefix and to allow for the same error code to be defined multiple times in
+    // different files (as long as the constant names match).
+    let mut errors = BTreeMap::new();
+
+    // Walk all files of the kernel source directory.
+    for entry in WalkDir::new(kernel_source_dir) {
+        let entry = entry.into_diagnostic()?;
+        if !is_masm_file(entry.path()).into_diagnostic()? {
+            continue;
+        }
+        let file_contents = std::fs::read_to_string(entry.path()).into_diagnostic()?;
+        extract_kernel_errors(&mut errors, &file_contents)?;
+    }
+
+    // Check if any error code is used twice with different error names.
+    let mut error_codes = BTreeMap::new();
+    for (error_name, error) in errors.iter() {
+        if let Some(existing_error_name) = error_codes.get(&error.code) {
+            return Err(Report::msg(format!("Transaction kernel error code 0x{} is used multiple times; Non-exhaustive list: ERR_{existing_error_name}, ERR_{error_name}", error.code)));
+        }
+
+        error_codes.insert(error.code.clone(), error_name);
+    }
+
+    // Generate the errors file.
+    let error_file_content = generate_kernel_errors(errors)?;
+    std::fs::write(KERNEL_ERRORS_FILE, error_file_content).into_diagnostic()?;
+
+    Ok(())
+}
+
+fn extract_kernel_errors(
+    errors: &mut BTreeMap<ErrorName, ExtractedError>,
+    file_contents: &str,
+) -> Result<()> {
+    let regex =
+        Regex::new(r"(# (?<message>.*)\n)?const\.ERR_(?<name>.*)=0x(?<code>[\dABCDEFabcdef]*)")
+            .unwrap();
+
+    for capture in regex.captures_iter(file_contents) {
+        let error_name = capture
+            .name("name")
+            .expect("error name should be captured")
+            .as_str()
+            .trim()
+            .to_owned();
+        let error_code = capture
+            .name("code")
+            .expect("error code should be captured")
+            .as_str()
+            .trim()
+            .to_owned();
+
+        let error_message = match capture.name("message") {
+            Some(message) => message.as_str().trim().to_owned(),
+            None => {
+                return Err(Report::msg(format!("error message for constant ERR_{error_name} not found; add a comment above the constant to add an error message")));
+            },
+        };
+
+        if let Some(ExtractedError { code: existing_error_code, .. }) = errors.get(&error_name) {
+            if existing_error_code != &error_code {
+                return Err(Report::msg(format!("Transaction kernel error constant ERR_{error_name} is already defined elsewhere but its error code is different")));
+            }
+        }
+
+        errors.insert(error_name, ExtractedError { code: error_code, message: error_message });
+    }
+
+    Ok(())
+}
+
+fn is_new_error_category<'a>(last_error: &mut Option<&'a str>, current_error: &'a str) -> bool {
+    let is_new = match last_error {
+        Some(last_err) => {
+            let last_category =
+                last_err.split("_").next().expect("there should be at least one entry");
+            let new_category =
+                current_error.split("_").next().expect("there should be at least one entry");
+            last_category != new_category
+        },
+        None => false,
+    };
+
+    last_error.replace(current_error);
+
+    is_new
+}
+
+fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result<String> {
+    let mut output = String::new();
+
+    writeln!(
+        output,
+        "// This file is generated by build.rs, do not modify manually.
+// It is generated by extracting errors from the masm files in the `miden-lib/asm` directory.
+//
+// To add a new error, define a constant in masm of the pattern `const.ERR_<CATEGORY>_...`.
+// Try to fit the error into a pre-existing category if possible (e.g. Account, Prologue,
+// Non-Fungible-Asset, ...).
+//
+// The comment directly above the constant will be interpreted as the error message for that error.
+
+// KERNEL ASSERTION ERROR
+// ================================================================================================
+"
+    )
+    .into_diagnostic()?;
+
+    let mut last_error = None;
+    for (error_name, ExtractedError { code, .. }) in errors.iter() {
+        // Group errors into blocks separate by newlines.
+        if is_new_error_category(&mut last_error, error_name) {
+            writeln!(output).into_diagnostic()?;
+        }
+        writeln!(output, "pub const ERR_{error_name}: u32 = 0x{code};").into_diagnostic()?;
+    }
+    writeln!(output).into_diagnostic()?;
+
+    writeln!(output, "pub const TX_KERNEL_ERRORS: [(u32, &str); {}] = [", errors.len())
+        .into_diagnostic()?;
+
+    let mut last_error = None;
+    for (error_name, ExtractedError { message, .. }) in errors.iter() {
+        // Group errors into blocks separate by newlines.
+        if is_new_error_category(&mut last_error, error_name) {
+            writeln!(output).into_diagnostic()?;
+        }
+        writeln!(output, r#"    (ERR_{error_name}, "{message}"),"#).into_diagnostic()?;
+    }
+
+    writeln!(output, "];").into_diagnostic()?;
+
+    Ok(output)
+}
+
+type ErrorName = String;
+
+struct ExtractedError {
+    code: String,
+    message: String,
 }

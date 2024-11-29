@@ -1,14 +1,17 @@
 use miden_objects::transaction::ProvenTransaction;
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
 
+#[cfg(all(feature = "std", target_arch = "wasm32"))]
+compile_error!("The `std` feature cannot be used when targeting `wasm32`.");
+
 #[cfg(feature = "std")]
 mod std;
 #[cfg(feature = "std")]
 pub use std::api::*;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(not(feature = "std"))]
 mod nostd;
-#[cfg(target_arch = "wasm32")]
+#[cfg(not(feature = "std"))]
 pub use nostd::api::*;
 
 // CONVERSIONS

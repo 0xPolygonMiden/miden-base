@@ -1,15 +1,13 @@
+use miden_lib::errors::tx_kernel_errors::{
+    ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
+};
 use miden_objects::{
     accounts::Account,
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteType,
     Felt,
 };
-use miden_tx::{
-    testing::{Auth, MockChain},
-    tx_kernel_errors::{
-        ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
-    },
-};
+use miden_tx::testing::{Auth, MockChain};
 
 use crate::assert_transaction_executor_error;
 

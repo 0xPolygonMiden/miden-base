@@ -1,4 +1,14 @@
-use miden_lib::transaction::memory;
+use assert_matches::assert_matches;
+use miden_lib::{
+    errors::tx_kernel_errors::{
+        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
+        ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
+        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS,
+        ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND,
+    },
+    transaction::memory,
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -17,15 +27,7 @@ use miden_objects::{
 
 use super::{Felt, Word, ONE, ZERO};
 use crate::{
-    assert_execution_error,
-    errors::tx_kernel_errors::{
-        ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
-        ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED,
-        ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET,
-        ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS,
-        ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND,
-    },
-    testing::TransactionContextBuilder,
+    assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -121,7 +123,7 @@ fn test_add_fungible_asset_success() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -161,7 +163,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -193,7 +195,7 @@ fn test_add_non_fungible_asset_success() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -233,7 +235,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -262,10 +264,13 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
     let code = format!(
         "
+        use.kernel::prologue
+        use.test::account
+
         begin
-            exec.::kernel::prologue::prepare_transaction
+            exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
-            call.::miden::account::remove_asset
+            call.account::remove_asset
 
             # truncate the stack
             swapw dropw
@@ -298,7 +303,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -327,7 +332,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -365,16 +370,16 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
     let nonfungible = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
     let non_existent_non_fungible_asset = Asset::NonFungible(nonfungible);
 
-    assert_eq!(
-        account_vault.remove_asset(non_existent_non_fungible_asset),
-        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
-        "Asset must not be in the vault before the test",
+    assert_matches!(
+        account_vault.remove_asset(non_existent_non_fungible_asset).unwrap_err(),
+        AssetVaultError::NonFungibleAssetNotFound(err_asset) if err_asset == nonfungible,
+        "asset must not be in the vault before the test",
     );
 
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction
@@ -388,10 +393,10 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
     let process = tx_context.execute_code(&code);
 
     assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND);
-    assert_eq!(
-        account_vault.remove_asset(non_existent_non_fungible_asset),
-        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
-        "Asset should not be in the vault after the test",
+    assert_matches!(
+        account_vault.remove_asset(non_existent_non_fungible_asset).unwrap_err(),
+        AssetVaultError::NonFungibleAssetNotFound(err_asset) if err_asset == nonfungible,
+        "asset should not be in the vault after the test",
     );
 }
 
@@ -408,7 +413,7 @@ fn test_remove_non_fungible_asset_success() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
 
         begin
             exec.prologue::prepare_transaction

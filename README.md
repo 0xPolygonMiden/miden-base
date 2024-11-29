@@ -23,7 +23,7 @@ If you want to join the technical discussion or learn more about the project, pl
 
 ## Status and features
 
-Polygon Miden is currently on release v0.6. This is an early version of the protocol and its components. We expect to keep making changes (including breaking changes) to all components.
+Polygon Miden is currently on release v0.7. This is an early version of the protocol and its components. We expect to keep making changes (including breaking changes) to all components.
 
 ### Feature highlights
 
@@ -35,11 +35,10 @@ Polygon Miden is currently on release v0.6. This is an early version of the prot
 - **Standard account**. Users can create accounts using a small number of standard account interfaces (e.g., basic wallet). In the future, the set of standard smart contracts will be expanded.
 - **Standard notes**. Can create notes using standardized note scripts such as Pay-to-ID (`P2ID`) and atomic swap (`SWAP`). In the future, the set of standardized notes will be expanded.
 - **Delegated note inclusion proofs**. By delegating note inclusion proofs, users can create chains of dependent notes which are included into a block as a single batch.
+- **Transaction recency conditions**. Users are able to specify how close to the chain tip their transactions are to be executed. This enables things like rate limiting and oracles.
 
 ### Planned features
 
-- **More storage types**. In addition to simple storage slots and storage maps, the accounts will be able to store data in storage arrays.
-- **Transaction recency conditions**. Users will be able to specify how close to the chain tip their transactions are to be executed. This will enable things like rate limiting and oracles.
 - **Network transactions**. Users will be able to create notes intended for network execution. Such notes will be included into transactions executed and proven by the Miden operator.
 - **Encrypted notes**. With encrypted notes users will be able to put all note details on-chain, but the data contained withing the notes would be encrypted with the recipients key.
 

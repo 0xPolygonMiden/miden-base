@@ -1,6 +1,9 @@
 extern crate alloc;
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{
+    errors::tx_kernel_errors::ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED,
+    transaction::TransactionKernel,
+};
 use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
@@ -8,10 +11,7 @@ use miden_objects::{
     transaction::TransactionScript,
     Felt,
 };
-use miden_tx::{
-    testing::{Auth, MockChain},
-    tx_kernel_errors::ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED,
-};
+use miden_tx::testing::{Auth, MockChain};
 
 use crate::{
     assert_transaction_executor_error, get_note_with_fungible_asset_and_script,
@@ -35,11 +35,13 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let note_type = NoteType::Private;
     let amount = Felt::new(100);
 
-    assert_eq!(tag.validate(note_type), Ok(tag));
+    tag.validate(note_type).expect("note tag should support private notes");
 
     let tx_script_code = format!(
         "
             begin
+                # pad the stack before call
+                push.0.0.0 padw
 
                 push.{recipient}
                 push.{note_execution_hint}
@@ -47,10 +49,16 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
                 push.{aux}
                 push.{tag}
                 push.{amount}
+                # => [amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
+
                 call.::miden::contracts::faucets::basic_fungible::distribute
+                # => [note_idx, pad(15)]
 
                 call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-                dropw dropw drop
+                # => [note_idx, pad(15)]
+
+                # truncate the stack
+                dropw dropw dropw dropw
             end
             ",
         note_type = note_type as u8,
@@ -104,15 +112,25 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tx_script_code = format!(
         "
             begin
+                # pad the stack before call
+                push.0.0.0 padw
+
                 push.{recipient}
                 push.{note_type}
                 push.{aux}
                 push.{tag}
                 push.{amount}
+                # => [amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]
+
                 call.::miden::contracts::faucets::basic_fungible::distribute
+                # => [note_idx, pad(15)]
 
                 call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-                dropw dropw
+                # => [note_idx, pad(15)]
+
+                # truncate the stack
+                dropw dropw dropw dropw
+
             end
             ",
         note_type = NoteType::Private as u8,
@@ -158,15 +176,26 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let note_script = "
         # burn the asset
         begin
+            dropw
+
+            # pad the stack before call
+            padw padw padw padw
+            # => [pad(16)]
+
             exec.::miden::note::get_assets drop
             mem_loadw
+            # => [ASSET, pad(12)]
+
             call.::miden::contracts::faucets::basic_fungible::burn
+
+            # truncate the stack
+            dropw dropw dropw dropw
         end
         ";
 
     let note = get_note_with_fungible_asset_and_script(fungible_asset, note_script);
 
-    mock_chain.add_note(note.clone());
+    mock_chain.add_pending_note(note.clone());
     mock_chain.seal_block(None);
 
     // CONSTRUCT AND EXECUTE TX (Success)

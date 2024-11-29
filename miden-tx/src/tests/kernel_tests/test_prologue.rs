@@ -2,6 +2,11 @@ use alloc::collections::BTreeMap;
 
 use miden_lib::{
     accounts::wallets::BasicWallet,
+    errors::tx_kernel_errors::{
+        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
+        ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
+        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
+    },
     transaction::{
         memory::{
             MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
@@ -41,11 +46,6 @@ use vm_processor::{AdviceInputs, ONE};
 use super::{Felt, Process, Word, ZERO};
 use crate::{
     assert_execution_error,
-    errors::tx_kernel_errors::{
-        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
-        ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
-        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
-    },
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
@@ -406,9 +406,10 @@ pub fn test_prologue_create_account() {
             .unwrap()
             .with_supported_type(AccountType::RegularAccountUpdatableCode),
         )
-        .build_testing()
+        .build()
         .unwrap();
-    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
+
+    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
     let code = "
     use.kernel::prologue
@@ -535,7 +536,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
-        .build_testing()
+        .build()
         .unwrap();
 
     let code = "
@@ -552,7 +553,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
     let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(account_seed)
+        .account_seed(Some(account_seed))
         .advice_inputs(adv_inputs)
         .build();
     let process = tx_context.execute_code(code);

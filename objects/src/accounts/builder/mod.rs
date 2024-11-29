@@ -1,5 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 
+use vm_core::FieldElement;
 use vm_processor::Digest;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
         AccountType,
     },
     assets::{Asset, AssetVault},
-    AccountError, Felt, Word, ZERO,
+    AccountError, Felt, Word,
 };
 
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
@@ -16,7 +17,7 @@ use crate::{
 ///
 /// This will build a valid new account with these properties:
 /// - An empty [`AssetVault`].
-/// - The nonce set to [`ZERO`].
+/// - The nonce set to [`Felt::ZERO`].
 /// - A seed which results in an [`AccountId`] valid for the configured account type and storage
 ///   mode.
 ///
@@ -34,7 +35,6 @@ use crate::{
 /// - Set assets which will be placed in the account's vault.
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
-    nonce: Felt,
     #[cfg(any(feature = "testing", test))]
     assets: Vec<Asset>,
     components: Vec<AccountComponent>,
@@ -47,7 +47,6 @@ impl AccountBuilder {
     /// Creates a new builder for a single account.
     pub fn new() -> Self {
         Self {
-            nonce: ZERO,
             #[cfg(any(feature = "testing", test))]
             assets: vec![],
             components: vec![],
@@ -104,14 +103,6 @@ impl AccountBuilder {
         #[cfg(all(not(feature = "testing"), not(test)))]
         let vault = AssetVault::default();
 
-        #[cfg(any(feature = "testing", test))]
-        if self.nonce == ZERO && !vault.is_empty() {
-            return Err(AccountError::BuildError(
-                "account asset vault must be empty on new accounts".into(),
-                None,
-            ));
-        }
-
         let (code, storage) =
             Account::initialize_from_components(self.account_type, &self.components).map_err(
                 |err| {
@@ -167,13 +158,21 @@ impl AccountBuilder {
     pub fn build(self) -> Result<(Account, Word), AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
+        #[cfg(any(feature = "testing", test))]
+        if !vault.is_empty() {
+            return Err(AccountError::BuildError(
+                "account asset vault must be empty on new accounts".into(),
+                None,
+            ));
+        }
+
         let (account_id, seed) =
             self.grind_account_id(init_seed, code.commitment(), storage.commitment())?;
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
 
-        let account = Account::from_parts(account_id, vault, storage, code, self.nonce);
+        let account = Account::from_parts(account_id, vault, storage, code, Felt::ZERO);
 
         Ok((account, seed))
     }
@@ -181,49 +180,30 @@ impl AccountBuilder {
 
 #[cfg(any(feature = "testing", test))]
 impl AccountBuilder {
-    /// Sets the nonce of the account. This method is optional.
-    ///
-    /// If unset, the nonce will default to [`ZERO`].
-    pub fn nonce(mut self, nonce: Felt) -> Self {
-        self.nonce = nonce;
-        self
-    }
-
     /// Adds all the assets to the account's [`AssetVault`]. This method is optional.
     ///
-    /// Must only be called when nonce is non-[`ZERO`] since new accounts must have an empty vault.
+    /// Must only be used when using [`Self::build_existing`] instead of [`Self::build`] since new
+    /// accounts must have an empty vault.
     pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
     }
 
-    /// The build method optimized for testing scenarios. The only difference between this method
-    /// and the [`Self::build`] method is that when building existing accounts, this function
-    /// returns `None` for the seed, skips the grinding of an account id and constructs one
-    /// instead. Hence it is always preferable to use this method in testing code.
+    /// Builds the account as an existing account, that is, with the nonce set to [`Felt::ONE`].
+    ///
+    /// The [`AccountId`] is constructed by slightly modifying `init_seed[0..8]` to be a valid ID.
     ///
     /// For possible errors, see the documentation of [`Self::build`].
-    pub fn build_testing(self) -> Result<(Account, Option<Word>), AccountError> {
+    pub fn build_existing(self) -> Result<Account, AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
-        let (account_id, seed) = if self.nonce == ZERO {
-            let (account_id, seed) =
-                self.grind_account_id(init_seed, code.commitment(), storage.commitment())?;
-
-            (account_id, Some(seed))
-        } else {
+        let account_id = {
             let bytes = <[u8; 8]>::try_from(&init_seed[0..8])
                 .expect("we should have sliced exactly 8 bytes off");
-
-            let account_id =
-                AccountId::new_with_type_and_mode(bytes, self.account_type, self.storage_mode);
-
-            (account_id, None)
+            AccountId::new_with_type_and_mode(bytes, self.account_type, self.storage_mode)
         };
 
-        let account = Account::from_parts(account_id, vault, storage, code, self.nonce);
-
-        Ok((account, seed))
+        Ok(Account::from_parts(account_id, vault, storage, code, Felt::ONE))
     }
 }
 

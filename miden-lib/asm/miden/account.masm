@@ -5,10 +5,13 @@ use.miden::kernel_proc_offsets
 
 #! Returns the account id.
 #!
-#! Stack: []
-#! Output: [acct_id]
+#! Inputs:  []
+#! Outputs: [acct_id]
 #!
+#! Where:
 #! - acct_id is the account id.
+#!
+#! Invocation: exec
 export.get_id
     # start padding the stack
     push.0.0.0
@@ -18,10 +21,10 @@ export.get_id
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, 0, PAD(14)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [acct_id, PAD(15)]
+    # => [acct_id, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -30,10 +33,13 @@ end
 
 #! Returns the account nonce.
 #!
-#! Stack: []
-#! Output: [nonce]
+#! Inputs:  []
+#! Outputs: [nonce]
 #!
+#! Where:
 #! - nonce is the account nonce.
+#!
+#! Invocation: exec
 export.get_nonce
     # start padding the stack
     push.0.0.0
@@ -43,10 +49,10 @@ export.get_nonce
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [nonce, PAD(15)]
+    # => [nonce, pad(15)]
     
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -55,42 +61,48 @@ end
 
 #! Returns the initial account hash.
 #!
-#! Stack: []
-#! Output: [H]
+#! Inputs:  []
+#! Outputs: [INIT_HASH]
 #!
-#! - H is the initial account hash.
+#! Where:
+#! - INIT_HASH is the initial account hash.
+#!
+#! Invocation: exec
 export.get_initial_hash
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_initial_account_hash_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [H, PAD(12)]
+    # => [INIT_HASH, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [H]
+    # => [INIT_HASH]
 end
 
 #! Computes and returns the account hash from account data stored in memory.
 #!
-#! Stack: []
-#! Output: [ACCT_HASH]
+#! Inputs:  []
+#! Outputs: [ACCT_HASH]
 #!
+#! Where:
 #! - ACCT_HASH is the hash of the account data.
+#!
+#! Invocation: exec
 export.get_current_hash
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_current_account_hash_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [ACCT_HASH, PAD(12)]
+    # => [ACCT_HASH, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -99,11 +111,14 @@ end
 
 #! Increments the account nonce by the provided value.
 #!
-#! Stack: [value]
-#! Output: []
+#! Inputs:  [value]
+#! Outputs: []
 #!
+#! Where:
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
+#!
+#! Invocation: exec
 export.incr_nonce
     # start padding the stack
     push.0.0 movup.2
@@ -114,21 +129,27 @@ export.incr_nonce
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, value, PAD(14)]
+    # => [offset, value, pad(14)]
 
     syscall.exec_kernel_proc
-    # => [PAD(16)]
+    # => [pad(16)]
 
     dropw dropw dropw dropw
 end
 
 #! Gets an item from the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index]
-#! Output: [VALUE]
+#! Inputs:  [index]
+#! Outputs: [VALUE]
 #!
+#! Where:
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index of the requested item is out of bounds.
+#!
+#! Invocation: exec
 export.get_item
     push.0.0 movup.2
     # => [index, 0, 0]
@@ -138,10 +159,10 @@ export.get_item
 
     # pad the stack
     padw swapw padw padw swapdw
-    # => [offset, index, PAD(14)]
+    # => [offset, index, pad(14)]
 
     syscall.exec_kernel_proc
-    # => [VALUE, PAD(12)]
+    # => [VALUE, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -150,100 +171,121 @@ end
 
 #! Sets an item in the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index, V']
-#! Output: [R', V]
+#! Inputs:  [index, V']
+#! Outputs: [R', V]
 #!
+#! Where:
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 #! - R' is the new storage commitment.
+#!
+#! Panics if: 
+#! - the index of the item is out of bounds.
+#!
+#! Invocation: exec
 export.set_item
     exec.kernel_proc_offsets::set_account_item_offset
     # => [offset, index, V']
 
     # pad the stack
     push.0.0 movdn.7 movdn.7 padw padw swapdw 
-    # => [offset, index, V', PAD(10)]
+    # => [offset, index, V', pad(10)]
     
     syscall.exec_kernel_proc
-    # => [R', V, PAD(8)]
+    # => [R', V, pad(8)]
 
     # clean the stack
     swapdw dropw dropw
     # => [R', V]
 end
 
-#! Gets a map item from the account storage. Panics if
-#! - the index for the map is out of bounds, means >255
-#! - the slot item at index is not a map
+#! Gets a map item from the account storage. 
 #!
-#! Stack: [index, KEY]
-#! Output: [VALUE]
+#! Inputs:  [index, KEY]
+#! Outputs: [VALUE]
 #!
+#! Where:
 #! - index is the index of the map where the KEY VALUE should be read.
 #! - KEY is the key of the item to get.
 #! - VALUE is the value of the item.
+#!
+#! Panics if:
+#! - the index for the map is out of bounds, meaning > 255.
+#! - the slot item at index is not a map.
+#!
+#! Invocation: exec
 export.get_map_item
     exec.kernel_proc_offsets::get_account_map_item_offset
     # => [offset, index, KEY]
 
     # pad the stack
     push.0.0 movdn.7 movdn.7 padw padw swapdw 
-    # => [offset, index, KEY, PAD(10)]
+    # => [offset, index, KEY, pad(10)]
 
     syscall.exec_kernel_proc
-    # => [VALUE, PAD(12)]
+    # => [VALUE, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
     # => [VALUE]
 end
 
-#! Sets a map item in the account storage. Panics if
-#! - the index for the map is out of bounds, means >255
-#! - the slot item at index is not a map
+#! Sets a map item in the account storage. 
 #!
-#! Stack: [index, KEY, VALUE]
-#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE]
+#! Inputs:  [index, KEY, VALUE]
+#! Outputs: [OLD_MAP_ROOT, OLD_MAP_VALUE]
 #!
+#! Where:
 #! - index is the index of the map where the KEY VALUE should be set.
 #! - KEY is the key to set at VALUE.
 #! - VALUE is the value to set at KEY.
 #! - OLD_MAP_ROOT is the old map root.
 #! - OLD_MAP_VALUE is the old value at KEY.
+#!
+#! Panics if:
+#! - the index for the map is out of bounds, meaning > 255.
+#! - the slot item at index is not a map.
+#!
+#! Invocation: exec
 export.set_map_item
     exec.kernel_proc_offsets::set_account_map_item_offset
     # => [offset, index, KEY, VALUE]
 
     # pad the stack
     push.0.0 movdn.11 movdn.11 padw movdnw.3
-    # => [offset, index, KEY, VALUE, PAD(6)]
+    # => [offset, index, KEY, VALUE, pad(6)]
 
     syscall.exec_kernel_proc
-    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, PAD(8)]
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, pad(8)]
 
     # clean the stack
     swapdw dropw dropw
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE]
 end
 
-#! Sets the code of the account the transaction is being executed against. This procedure can only
-#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#! Sets the code of the account the transaction is being executed against.
 #!
-#! Stack: [CODE_COMMITMENT]
-#! Output: []
+#! Inputs:  [CODE_COMMITMENT]
+#! Outputs: []
 #!
+#! Where:
 #! - CODE_COMMITMENT is the hash of the code to set.
+#!
+#! Panics if:
+#! - this procedure is executed on an account whose type differs from `regular mutable`.
+#!
+#! Invocation: exec
 export.set_code
     exec.kernel_proc_offsets::set_account_code_offset
     # => [offset, CODE_COMMITMENT]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, CODE_COMMITMENT, PAD(11)]
+    # => [offset, CODE_COMMITMENT, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [PAD(16)]
+    # => [pad(16)]
 
     # clean the stack
     dropw dropw dropw dropw 
@@ -251,23 +293,28 @@ export.set_code
 end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
-#! Panics if the asset is not a fungible asset.
 #!
-#! Stack: [faucet_id]
-#! Output: [balance]
+#! Inputs:  [faucet_id]
+#! Outputs: [balance]
 #!
+#! Where:
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
+#! 
+#! Panics if:
+#! - the asset is not a fungible asset.
+#!
+#! Invocation: exec
 export.get_balance
     exec.kernel_proc_offsets::account_vault_get_balance_offset
     # => [offset, faucet_id]
 
     # pad the stack
     push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
-    # => [offset, faucet_id, PAD(14)]
+    # => [offset, faucet_id, pad(14)]
 
     syscall.exec_kernel_proc
-    # => [balance, PAD(15)]
+    # => [balance, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -275,23 +322,28 @@ export.get_balance
 end
 
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
-#! Panics if the ASSET is a fungible asset.
 #!
-#! Stack: [ASSET]
-#! Output: [has_asset]
+#! Inputs:  [ASSET]
+#! Outputs: [has_asset]
 #!
+#! Where:
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
+#!
+#! Panics if:
+#! - the ASSET is a fungible asset.
+#!
+#! Invocation: exec
 export.has_non_fungible_asset
     exec.kernel_proc_offsets::account_vault_has_non_fungible_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw 
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [has_asset, PAD(15)]
+    # => [has_asset, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -300,28 +352,31 @@ end
 
 #! Add the specified asset to the vault.
 #!
-#! Panics:
-#! - If the asset is not valid.
-#! - If the total value of two fungible assets is greater than or equal to 2^63.
-#! - If the vault already contains the same non-fungible asset.
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET']
 #!
-#! Stack: [ASSET]
-#! Output: [ASSET']
-#!
-#! - ASSET' final asset in the account vault defined as follows:
+#! Where:
+#! - ASSET' is a final asset in the account vault defined as follows:
 #!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
+#!
+#! Panics if:
+#! - the asset is not valid.
+#! - the total value of two fungible assets is greater than or equal to 2^63.
+#! - the vault already contains the same non-fungible asset.
+#!
+#! Invocation: exec
 export.add_asset
     exec.kernel_proc_offsets::account_vault_add_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET', PAD(12)]
+    # => [ASSET', pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -330,25 +385,28 @@ end
 
 #! Remove the specified asset from the vault.
 #!
-#! Panics:
-#! - The fungible asset is not found in the vault.
-#! - The amount of the fungible asset in the vault is less than the amount to be removed.
-#! - The non-fungible asset is not found in the vault.
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET]
 #!
-#! Stack: [ASSET]
-#! Output: [ASSET]
-#!
+#! Where:
 #! - ASSET is the asset to remove from the vault.
+#!
+#! Panics if:
+#! - the fungible asset is not found in the vault.
+#! - the amount of the fungible asset in the vault is less than the amount to be removed.
+#! - the non-fungible asset is not found in the vault.
+#!
+#! Invocation: exec
 export.remove_asset
     exec.kernel_proc_offsets::account_vault_remove_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET, PAD(12)]
+    # => [ASSET, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -357,20 +415,23 @@ end
 
 #! Returns a commitment to the account vault.
 #!
-#! Stack: []
-#! Output: [COM]
+#! Inputs:  []
+#! Outputs: [COM]
 #!
+#! Where:
 #! - COM is a commitment to the account vault.
+#!
+#! Invocation: exec
 export.get_vault_commitment
     # pad the stack for syscall invocation
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_account_vault_commitment_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [COM, PAD(12)]
+    # => [COM, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -380,13 +441,15 @@ end
 # PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
 # =================================================================================================
 
-# Given the most significant half of an account id, this mask defines the bits used to determine the account type.
+# Given the most significant half of an account id, this mask defines the bits used to determine the
+# account type.
 const.ACCOUNT_TYPE_U32MASK=805306368 # 0b00110000_00000000_00000000_00000000
 
 # Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
 const.FUNGIBLE_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 
-# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been applied.
+# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been 
+# applied.
 const.NON_FUNGIBLE_FAUCET_ACCOUNT=805306368 # 0b00110000_00000000_00000000_00000000
 
 #! Returns the most significant half with the account type bits masked out.

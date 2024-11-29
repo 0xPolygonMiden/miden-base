@@ -1,8 +1,14 @@
 use alloc::{string::ToString, vec::Vec};
 
-use miden_lib::transaction::{
-    memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
-    TransactionKernel,
+use miden_lib::{
+    errors::tx_kernel_errors::{
+        ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE,
+        ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_TX_INVALID_EXPIRATION_DELTA,
+    },
+    transaction::{
+        memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
+        TransactionKernel,
+    },
 };
 use miden_objects::{
     accounts::Account,
@@ -12,12 +18,7 @@ use vm_processor::{Felt, ProcessState, ONE};
 
 use super::{output_notes_data_procedure, ZERO};
 use crate::{
-    assert_execution_error,
-    errors::tx_kernel_errors::{
-        ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE,
-        ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_TX_INVALID_EXPIRATION_DELTA,
-    },
-    testing::TransactionContextBuilder,
+    assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -47,6 +48,9 @@ fn test_epilogue() {
             exec.account::incr_nonce
 
             exec.epilogue::finalize_transaction
+
+            # truncate the stack
+            movupw.3 dropw movupw.3 dropw movup.9 drop
         end
         "
     );
@@ -109,6 +113,9 @@ fn test_compute_output_note_id() {
                 exec.prologue::prepare_transaction
                 exec.create_mock_notes
                 exec.epilogue::finalize_transaction
+
+                # truncate the stack
+                movupw.3 dropw movupw.3 dropw movup.9 drop
             end
             "
         );
@@ -155,6 +162,9 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
             push.1
             call.account::incr_nonce
             exec.epilogue::finalize_transaction
+            
+            # truncate the stack
+            movupw.3 dropw movupw.3 dropw movup.9 drop
         end
         "
     );
@@ -186,6 +196,9 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
             push.1
             call.account::incr_nonce
             exec.epilogue::finalize_transaction
+                        
+            # truncate the stack
+            movupw.3 dropw movupw.3 dropw movup.9 drop
         end
         "
     );
@@ -215,6 +228,9 @@ fn test_block_expiration_height_monotonically_decreases() {
             push.{min_value} exec.tx::get_expiration_delta assert_eq
 
             exec.epilogue::finalize_transaction
+                        
+            # truncate the stack
+            movupw.3 dropw movupw.3 dropw movup.9 drop
         end
         ";
 
@@ -270,6 +286,9 @@ fn test_no_expiration_delta_set() {
         exec.tx::get_expiration_delta assertz
 
         exec.epilogue::finalize_transaction
+                    
+        # truncate the stack
+        movupw.3 dropw movupw.3 dropw movup.9 drop
     end
     ";
     let process = tx_context.execute_code(code_template).unwrap();
@@ -309,8 +328,8 @@ fn test_epilogue_increment_nonce_success() {
 
             exec.epilogue::finalize_transaction
 
-            # truncate the stack
-            drop drop
+            # clean the stack
+            dropw dropw dropw dropw
         end
         "
     );
@@ -346,6 +365,9 @@ fn test_epilogue_increment_nonce_violation() {
             dropw
 
             exec.epilogue::finalize_transaction
+
+            # truncate the stack
+            movupw.3 dropw movupw.3 dropw movup.9 drop
         end
         "
     );

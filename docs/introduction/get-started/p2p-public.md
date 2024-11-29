@@ -36,10 +36,10 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 3. On the new client, create a new [basic account](https://docs.polygon.technology/miden/miden-base/architecture/accounts/#account-types):
 
     ```shell
-    miden new-wallet --mutable -s on-chain
+    miden new-wallet --mutable -s public
     ```
 
-    We refer to this account as _Account C_. Note that we set the account's storage mode to `on-chain`, which means that the account details are public and its latest state can be retrieved from the node.
+    We refer to this account as _Account C_. Note that we set the account's storage mode to `public`, which means that the account details are public and its latest state can be retrieved from the node.
 
 4. List and view the account with the following command:
 
