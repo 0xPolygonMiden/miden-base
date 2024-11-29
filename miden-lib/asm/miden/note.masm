@@ -225,6 +225,22 @@ export.compute_inputs_hash
     # => [HASH]
 end
 
+export.get_note_script_hash
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [pad(15)]
+
+    exec.kernel_proc_offsets::get_note_script_hash_offset
+    # => [offset, pad(15)]
+
+    syscall.exec_kernel_proc
+    # => [SCRIPT_HASH, pad(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
+    # => [SCRIPT_HASH]
+end
+
 # PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
 # =================================================================================================
 

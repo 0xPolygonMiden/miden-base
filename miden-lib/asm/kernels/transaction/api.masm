@@ -852,6 +852,15 @@ export.get_note_serial_number
     # => [SERIAL_NUMBER, pad(12)]
 end
 
+export.get_note_script_hash
+    exec.note::get_note_script_hash
+    # => [SCRIPT_HASH, pad(16)]
+
+    # truncate the stack
+    swapw dropw
+    # => [SCRIPT_HASH, pad(12)]
+end
+
 #! Tells the transaction kernel that we are about to execute a procedure on a foreign account.
 #!
 #! Checks whether the current foreign account was already loaded to the memory, and loads it if not.

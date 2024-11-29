@@ -160,6 +160,18 @@ export.prepare_note
     # => [note_script_root_ptr, NOTE_ARGS]
 end
 
+#! Returns the current note script hash.
+#!
+#! Inputs:  []
+#! Outputs: [SCRIPT_HASH]
+export.get_note_script_hash
+    exec.memory::get_current_input_note_ptr
+    # => [note_ptr]
+
+    exec.memory::get_input_note_script_root
+    # => [SCRIPT_HASH]
+end
+
 # OUTPUT NOTE PROCEDURES
 # =================================================================================================
 
