@@ -7,9 +7,8 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::{
-    is_not_a_non_fungible_asset, AccountId, AccountType, Asset, AssetError, Felt, Word, ZERO,
-};
+use super::{is_not_a_non_fungible_asset, AccountType, Asset, AssetError, Felt, Word, ZERO};
+use crate::accounts::AccountId;
 
 // FUNGIBLE ASSET
 // ================================================================================================
@@ -50,7 +49,7 @@ impl FungibleAsset {
     /// Creates a new [FungibleAsset] without checking its validity.
     pub(crate) fn new_unchecked(value: Word) -> FungibleAsset {
         FungibleAsset {
-            faucet_id: AccountId::new_unchecked(value[3]),
+            faucet_id: AccountId::new_unchecked([value[2], value[3]]),
             amount: value[0].as_int(),
         }
     }
@@ -76,7 +75,9 @@ impl FungibleAsset {
     /// Returns the key which is used to store this asset in the account vault.
     pub fn vault_key(&self) -> Word {
         let mut key = Word::default();
-        key[3] = self.faucet_id.into();
+        let elements: [Felt; 2] = self.faucet_id.into();
+        key[2] = elements[0];
+        key[3] = elements[1];
         key
     }
 
@@ -149,8 +150,10 @@ impl FungibleAsset {
 impl From<FungibleAsset> for Word {
     fn from(asset: FungibleAsset) -> Self {
         let mut result = Word::default();
+        let id_elements: [Felt; 2] = asset.faucet_id.into();
         result[0] = Felt::new(asset.amount);
-        result[3] = asset.faucet_id.into();
+        result[2] = id_elements[0];
+        result[3] = id_elements[1];
         debug_assert!(is_not_a_non_fungible_asset(result));
         result
     }
@@ -166,11 +169,11 @@ impl TryFrom<Word> for FungibleAsset {
     type Error = AssetError;
 
     fn try_from(value: Word) -> Result<Self, Self::Error> {
-        if (value[1], value[2]) != (ZERO, ZERO) {
-            return Err(AssetError::FungibleAssetExpectedZeroes(value));
+        if value[1] != ZERO {
+            return Err(AssetError::FungibleAssetExpectedZero(value));
         }
-        let faucet_id = AccountId::try_from(value[3])
-            .map_err(|err| AssetError::InvalidFaucetAccountId(Box::new(err)))?;
+        let faucet_id = AccountId::try_from([value[2], value[3]])
+            .map_err(|err| AssetError::InvalidFaucetId(Box::new(err)))?;
         let amount = value[0].as_int();
         Self::new(faucet_id, amount)
     }
@@ -188,7 +191,7 @@ impl fmt::Display for FungibleAsset {
 impl Serializable for FungibleAsset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // All assets should serialize their faucet ID at the first position to allow them to be
-        // easily distinguishable during deserialization.
+        // distinguishable during deserialization.
         target.write(self.faucet_id);
         target.write(self.amount);
     }
@@ -201,18 +204,8 @@ impl Serializable for FungibleAsset {
 impl Deserializable for FungibleAsset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let faucet_id: AccountId = source.read()?;
-        FungibleAsset::deserialize_with_account_id(faucet_id, source)
-    }
-}
-
-impl FungibleAsset {
-    /// Deserializes a [`FungibleAsset`] from an [`AccountId`] and the remaining data from the given
-    /// `source`.
-    pub(super) fn deserialize_with_account_id<R: ByteReader>(
-        faucet_id: AccountId,
-        source: &mut R,
-    ) -> Result<Self, DeserializationError> {
         let amount: u64 = source.read()?;
+
         FungibleAsset::new(faucet_id, amount)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
@@ -224,10 +217,13 @@ impl FungibleAsset {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::accounts::account_id::testing::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+    use crate::accounts::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        },
+        AccountId,
     };
 
     #[test]
@@ -250,8 +246,12 @@ mod tests {
         let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
         let asset = FungibleAsset::new(account_id, 50).unwrap();
         let mut asset_bytes = asset.to_bytes();
+
+        let non_fungible_id =
+            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+
         // Set invalid Faucet ID.
-        asset_bytes[0..8].copy_from_slice(&ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN.to_le_bytes());
+        asset_bytes[0..15].copy_from_slice(&non_fungible_id.to_bytes());
         let err = FungibleAsset::read_from_bytes(&asset_bytes).unwrap_err();
         assert!(matches!(err, DeserializationError::InvalidValue(_)));
     }

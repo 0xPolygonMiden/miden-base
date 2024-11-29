@@ -4,25 +4,34 @@ use alloc::{
 };
 use core::{fmt, str::FromStr};
 
-use super::{
-    get_account_seed, AccountError, ByteReader, Deserializable, DeserializationError, Digest, Felt,
-    Hasher, Serializable, Word, ZERO,
+use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
+use vm_core::{
+    utils::{ByteReader, Deserializable, Serializable},
+    Felt, Word,
 };
-use crate::{crypto::merkle::LeafIndex, utils::hex_to_bytes, ACCOUNT_TREE_DEPTH};
+use vm_processor::{DeserializationError, Digest};
+
+use super::Hasher;
+use crate::{accounts::AccountIdPrefix, AccountError, ACCOUNT_TREE_DEPTH};
 
 // CONSTANTS
 // ================================================================================================
 
-// The higher two bits of the most significant nibble determines the account storage mode
-pub const ACCOUNT_STORAGE_MASK_SHIFT: u64 = 62;
-pub const ACCOUNT_STORAGE_MASK: u64 = 0b11 << ACCOUNT_STORAGE_MASK_SHIFT;
+const ACCOUNT_VERSION_MASK_SHIFT: u64 = 4;
+const ACCOUNT_VERSION_MASK: u64 = 0b1111 << ACCOUNT_VERSION_MASK_SHIFT;
 
-// The lower two bits of the most significant nibble determines the account type
-pub const ACCOUNT_TYPE_MASK_SHIFT: u64 = 60;
-pub const ACCOUNT_TYPE_MASK: u64 = 0b11 << ACCOUNT_TYPE_MASK_SHIFT;
-pub const ACCOUNT_ISFAUCET_MASK: u64 = 0b10 << ACCOUNT_TYPE_MASK_SHIFT;
+const ACCOUNT_BLOCK_EPOCH_MASK_SHIFT: u64 = 48;
+const ACCOUNT_BLOCK_EPOCH_MASK: u64 = 0xffff << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
 
-// ACCOUNT TYPES
+// The higher two bits of the least significant nibble determines the account storage mode
+const ACCOUNT_STORAGE_MASK_SHIFT: u64 = 2;
+const ACCOUNT_STORAGE_MASK: u64 = 0b11 << ACCOUNT_STORAGE_MASK_SHIFT;
+
+// The lower two bits of the least significant nibble determine the account type.
+pub(super) const ACCOUNT_TYPE_MASK: u64 = 0b11;
+pub const ACCOUNT_ISFAUCET_MASK: u64 = 0b10;
+
+// ACCOUNT TYPE
 // ================================================================================================
 
 pub const FUNGIBLE_FAUCET: u64 = 0b10;
@@ -51,7 +60,7 @@ impl AccountType {
     }
 }
 
-/// Extracts the [AccountType] encoded in an u64.
+/// Extracts the [AccountType2] encoded in an u64.
 ///
 /// The account id is encoded in the bits `[62,60]` of the u64, see [ACCOUNT_TYPE_MASK].
 ///
@@ -64,23 +73,26 @@ pub const fn account_type_from_u64(value: u64) -> AccountType {
         "This method assumes there are only 2bits in the mask"
     );
 
-    let bits = (value & ACCOUNT_TYPE_MASK) >> ACCOUNT_TYPE_MASK_SHIFT;
+    let bits = value & ACCOUNT_TYPE_MASK;
     match bits {
         REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
         REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
         FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
         NON_FUNGIBLE_FAUCET => AccountType::NonFungibleFaucet,
         _ => {
-            // "account_type mask contains only 2bits, there are 4 options total"
+            // account_type mask contains 2 bits and we exhaustively match all 4 possible options
             unreachable!()
         },
     }
 }
 
-/// Returns the [AccountType] given an integer representation of `account_id`.
-impl From<u64> for AccountType {
-    fn from(value: u64) -> Self {
-        account_type_from_u64(value)
+// TODO: Reconsider whether we need this and if yes, whether it needs to be publicly exposed
+// functionality.
+/// Returns the [AccountType2] given an integer representation of `account_id`.
+impl From<u128> for AccountType {
+    fn from(value: u128) -> Self {
+        let val = (value >> 64) as u64;
+        account_type_from_u64(val)
     }
 }
 
@@ -137,129 +149,81 @@ impl FromStr for AccountStorageMode {
 // ACCOUNT ID
 // ================================================================================================
 
-/// Unique identifier of an account.
-///
-/// Account ID consists of 1 field element (~64 bits). The most significant bits in the id are used
-/// to encode the account' storage and type.
-///
-/// The top two bits are used to encode the storage type. The values [PRIVATE] and [PUBLIC]
-/// encode the account's storage type. The next two bits encode the account type. The values
-/// [FUNGIBLE_FAUCET], [NON_FUNGIBLE_FAUCET], [REGULAR_ACCOUNT_IMMUTABLE_CODE], and
-/// [REGULAR_ACCOUNT_UPDATABLE_CODE] encode the account's type.
+/// # Layout
+/// ```text
+/// 1st felt: [zero bit | random (55 bits) | version (4 bits) | storage mode (2 bits) | type (2 bits)]
+/// 2nd felt: [block_epoch (16 bits) | random (40 bits) | 8 zero bits]
+/// ```
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct AccountId(Felt);
+pub struct AccountId {
+    first_felt: Felt,
+    second_felt: Felt,
+}
 
 impl AccountId {
-    /// Specifies a minimum number of trailing zeros required in the last element of the seed
-    /// digest.
-    ///
-    /// Note: The account id includes 4 bits of metadata, these bits determine the account type
-    /// (normal account, fungible token, non-fungible token), the storage type (on/off chain), and
-    /// for the normal accounts if the code is updatable or not. These metadata bits are also
-    /// checked by the PoW and add to the total work defined below.
-    #[cfg(not(any(feature = "testing", test)))]
-    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 23;
-    #[cfg(not(any(feature = "testing", test)))]
-    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 31;
-    #[cfg(any(feature = "testing", test))]
-    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 5;
-    #[cfg(any(feature = "testing", test))]
-    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 6;
-
     /// Specifies a minimum number of ones for a valid account ID.
     pub const MIN_ACCOUNT_ONES: u32 = 5;
 
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a new account ID derived from the specified seed, code commitment and storage
-    /// commitment.
-    ///
-    /// The account ID is computed by hashing the seed, code commitment and storage commitment and
-    /// using 1 element of the resulting digest to form the ID. Specifically we take element 0.
-    /// We also require that the last element of the seed digest has at least `23` trailing
-    /// zeros if it is a regular account, or `31` trailing zeros if it is a faucet account.
-    ///
-    /// The seed digest is computed using a sequential hash over
-    /// hash(SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ZERO).  This takes two permutations.
-    ///
-    /// # Errors
-    /// Returns an error if the resulting account ID does not comply with account ID rules:
-    /// - the metadata embedded in the ID (i.e., the first 4 bits) is valid.
-    /// - the ID has at least `5` ones.
-    /// - the last element of the seed digest has at least `23` trailing zeros for regular accounts.
-    /// - the last element of the seed digest has at least `31` trailing zeros for faucet accounts.
     pub fn new(
         seed: Word,
+        block_epoch: u16,
         code_commitment: Digest,
         storage_commitment: Digest,
+        block_hash: Digest,
     ) -> Result<Self, AccountError> {
-        let seed_digest = compute_digest(seed, code_commitment, storage_commitment);
+        let seed_digest = compute_digest(seed, code_commitment, storage_commitment, block_hash);
 
-        Self::validate_seed_digest(&seed_digest)?;
-        seed_digest[0].try_into()
+        let mut felts: [Felt; 2] = seed_digest.as_elements()[0..2]
+            .try_into()
+            .expect("we should have sliced off 2 elements");
+
+        felts[1] = shape_second_felt(felts[1], block_epoch);
+
+        account_id_from_felts(felts)
     }
 
-    /// Creates a new [AccountId] without checking its validity.
-    ///
-    /// This function requires that the provided value is a valid [Felt] representation of an
-    /// [AccountId].
-    pub fn new_unchecked(value: Felt) -> Self {
-        Self(value)
+    pub fn new_unchecked(elements: [Felt; 2]) -> Self {
+        Self {
+            first_felt: elements[0],
+            second_felt: elements[1],
+        }
     }
 
-    /// Creates a new dummy [AccountId] for testing purposes.
-    #[cfg(any(feature = "testing", test))]
-    pub fn new_dummy(init_seed: [u8; 32], account_type: AccountType) -> Self {
-        let code_commitment = Digest::default();
-        let storage_commitment = Digest::default();
-
-        let seed = get_account_seed(
-            init_seed,
-            account_type,
-            AccountStorageMode::Public,
-            code_commitment,
-            storage_commitment,
-        )
-        .unwrap();
-
-        Self::new(seed, code_commitment, storage_commitment).unwrap()
-    }
-
-    /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
-    /// mode.
-    ///
-    /// This function does the following:
-    /// - The bit representation of the account type and storage mode is prepended to the most
-    ///   significant byte of `bytes`.
-    /// - The 5th most significant bit is cleared.
-    /// - The lowest 5 bits are set to ensure the id has at least [`Self::MIN_ACCOUNT_ONES`].
-    /// - The bytes are then converted to a `u64` in big-endian format. Due to clearing the 5th most
-    ///   significant bit, the resulting `u64` will be a valid [`Felt`].
     #[cfg(any(feature = "testing", test))]
     pub fn new_with_type_and_mode(
-        mut bytes: [u8; 8],
+        mut bytes: [u8; 15],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
     ) -> AccountId {
-        let id_high_nibble = (storage_mode as u8) << 6 | (account_type as u8) << 4;
+        let version = AccountVersion::VERSION_0_NUMBER;
+        let low_nibble = (version << ACCOUNT_VERSION_MASK_SHIFT)
+            | (storage_mode as u8) << ACCOUNT_STORAGE_MASK_SHIFT
+            | (account_type as u8);
 
-        // Clear the highest five bits of the most significant byte.
-        // The high nibble must be cleared so we can set it to the storage mode and account type
-        // we've constructed.
-        // The 5th most significant bit is cleared to ensure the resulting id is a valid Felt even
-        // when all other bits are set.
-        bytes[0] &= 0x07;
-        // Set high nibble of the most significant byte.
-        bytes[0] |= id_high_nibble;
-        // Set the lowest 5 bits to ensure we have at least MIN_ACCOUNT_ONES.
-        bytes[7] |= 0x1f;
+        // Set least significant byte.
+        bytes[7] = low_nibble;
 
-        let account_id = account_id_from_felt(
-            Felt::try_from(u64::from_be_bytes(bytes))
-                .expect("must be a valid felt after clearing the 5th highest bit"),
-        )
-        .expect("account id shoult satisfy criteria of a valid ID");
+        // Clear most significant bit.
+        bytes[0] &= 0b0111_1111;
+        // Set five one bits to satisfy MIN_ACCOUNT_ONES.
+        bytes[0] |= 0b0111_1100;
+
+        let first_felt_bytes =
+            bytes[0..8].try_into().expect("we should have sliced off exactly 8 bytes");
+        let first_felt = Felt::try_from(u64::from_be_bytes(first_felt_bytes))
+            .expect("should be a valid felt due to the most significant bit being zero");
+
+        let mut second_felt_bytes = [0; 8];
+        // Overwrite first 7 bytes, leaving the 8th byte 0 (which will be cleared by
+        // shape_second_felt anyway).
+        second_felt_bytes[..7].copy_from_slice(&bytes[8..]);
+        // If the value is too large modular reduction is performed, which is fine here.
+        let mut second_felt = Felt::new(u64::from_be_bytes(second_felt_bytes));
+
+        second_felt = shape_second_felt(second_felt, 0);
+
+        let account_id = account_id_from_felts([first_felt, second_felt])
+            .expect("we should have shaped the felts to produce a valid id");
 
         debug_assert_eq!(account_id.account_type(), account_type);
         debug_assert_eq!(account_id.storage_mode(), storage_mode);
@@ -267,35 +231,46 @@ impl AccountId {
         account_id
     }
 
+    pub fn get_account_seed(
+        init_seed: [u8; 32],
+        account_type: AccountType,
+        storage_mode: AccountStorageMode,
+        version: AccountVersion,
+        code_commitment: Digest,
+        storage_commitment: Digest,
+        block_hash: Digest,
+    ) -> Result<Word, AccountError> {
+        crate::accounts::seed::get_account_seed(
+            init_seed,
+            account_type,
+            storage_mode,
+            version,
+            code_commitment,
+            storage_commitment,
+            block_hash,
+        )
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the type of this account ID.
     pub const fn account_type(&self) -> AccountType {
-        account_type_from_u64(self.0.as_int())
+        extract_type(self.first_felt().as_int())
     }
 
     /// Returns true if an account with this ID is a faucet (can issue assets).
     pub fn is_faucet(&self) -> bool {
-        matches!(
-            self.account_type(),
-            AccountType::FungibleFaucet | AccountType::NonFungibleFaucet
-        )
+        self.account_type().is_faucet()
     }
 
     /// Returns true if an account with this ID is a regular account.
     pub fn is_regular_account(&self) -> bool {
-        is_regular_account(self.0.as_int())
+        self.account_type().is_regular_account()
     }
 
-    /// Returns the storage mode of this account (e.g., public or private).
     pub fn storage_mode(&self) -> AccountStorageMode {
-        let bits = (self.0.as_int() & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
-        match bits {
-            PUBLIC => AccountStorageMode::Public,
-            PRIVATE => AccountStorageMode::Private,
-            _ => panic!("Account with invalid storage bits created"),
-        }
+        extract_storage_mode(self.first_felt().as_int())
+            .expect("account id should have been constructed with a valid storage mode")
     }
 
     /// Returns true if an account with this ID is a public account.
@@ -303,61 +278,277 @@ impl AccountId {
         self.storage_mode() == AccountStorageMode::Public
     }
 
-    /// Finds and returns a seed suitable for creating an account ID for the specified account type
-    /// using the provided initial seed as a starting point.
-    pub fn get_account_seed(
-        init_seed: [u8; 32],
-        account_type: AccountType,
-        storage_mode: AccountStorageMode,
-        code_commitment: Digest,
-        storage_commitment: Digest,
-    ) -> Result<Word, AccountError> {
-        get_account_seed(init_seed, account_type, storage_mode, code_commitment, storage_commitment)
+    pub fn version(&self) -> AccountVersion {
+        extract_version(self.first_felt().as_int())
+            .expect("account id should have been constructed with a valid version")
+    }
+
+    pub fn block_epoch(&self) -> u16 {
+        extract_block_epoch(self.second_felt().as_int())
     }
 
     /// Creates an Account Id from a hex string. Assumes the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
-    pub fn from_hex(hex_value: &str) -> Result<AccountId, AccountError> {
-        hex_to_bytes(hex_value).map_err(AccountError::AccountIdHexParseError).and_then(
-            |mut bytes: [u8; 8]| {
-                // `bytes` ends up being parsed as felt, and the input to that is assumed to be
-                // little-endian so we need to reverse the order
+    pub fn from_hex(hex_str: &str) -> Result<AccountId, AccountError> {
+        hex_to_bytes(hex_str).map_err(AccountError::AccountIdHexParseError).and_then(
+            |mut bytes: [u8; 15]| {
+                // TryFrom<[u8; 15]> expects little-endian order, so we need to convert the
+                // bytes representation from big endian to little endian by reversing.
                 bytes.reverse();
-                bytes.try_into()
+                AccountId::try_from(bytes)
             },
         )
     }
 
-    /// Returns a big-endian, hex-encoded string.
+    /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix, so it
+    /// encodes 15 bytes.
     pub fn to_hex(&self) -> String {
-        format!("0x{:016x}", self.0.as_int())
+        format!("0x{:016x}{:014x}", self.first_felt().as_int(), self.second_felt().as_int())
     }
 
-    // UTILITY METHODS
-    // --------------------------------------------------------------------------------------------
+    pub fn prefix(&self) -> AccountIdPrefix {
+        // SAFETY: We only construct accounts with valid first felts, so we don't have to validate
+        // it again.
+        AccountIdPrefix::new_unchecked(self.first_felt)
+    }
 
+    pub const fn first_felt(&self) -> Felt {
+        self.first_felt
+    }
+
+    pub const fn second_felt(&self) -> Felt {
+        self.second_felt
+    }
+}
+
+// CONVERSIONS FROM ACCOUNT ID
+// ================================================================================================
+
+impl From<AccountId> for [Felt; 2] {
+    fn from(id: AccountId) -> Self {
+        [id.first_felt, id.second_felt]
+    }
+}
+
+impl From<AccountId> for [u8; 15] {
+    fn from(id: AccountId) -> Self {
+        let mut result = [0_u8; 15];
+        result[..8].copy_from_slice(&id.first_felt().as_int().to_le_bytes());
+        result[8..].copy_from_slice(&id.second_felt().as_int().to_le_bytes()[..7]);
+        result
+    }
+}
+
+impl From<AccountId> for u128 {
+    fn from(id: AccountId) -> Self {
+        let mut le_bytes = [0_u8; 16];
+        le_bytes[..8].copy_from_slice(&id.second_felt().as_int().to_le_bytes());
+        le_bytes[8..].copy_from_slice(&id.first_felt().as_int().to_le_bytes());
+        u128::from_le_bytes(le_bytes)
+    }
+}
+
+/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
+impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
+    fn from(id: AccountId) -> Self {
+        LeafIndex::new_max_depth(id.first_felt().as_int())
+    }
+}
+
+// CONVERSIONS TO ACCOUNT ID
+// ================================================================================================
+
+impl TryFrom<[Felt; 2]> for AccountId {
+    type Error = AccountError;
+
+    /// Returns an [AccountId] instantiated with the provided field element.
+    ///
+    /// # Errors
     /// Returns an error if:
-    /// - There are fewer then:
-    ///   - 24 trailing ZEROs in the last element of the seed digest for regular accounts.
-    ///   - 32 trailing ZEROs in the last element of the seed digest for faucet accounts.
-    pub(super) fn validate_seed_digest(digest: &Digest) -> Result<(), AccountError> {
-        // check the id satisfies the proof-of-work requirement.
-        let required_zeros = if is_regular_account(digest[0].as_int()) {
-            Self::REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS
-        } else {
-            Self::FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS
-        };
-
-        let trailing_zeros = digest_pow(*digest);
-        if required_zeros > trailing_zeros {
-            return Err(AccountError::SeedDigestTooFewTrailingZeros {
-                expected: required_zeros,
-                actual: trailing_zeros,
-            });
-        }
-
-        Ok(())
+    /// - If there are fewer than [AccountId2::MIN_ACCOUNT_ONES] in the provided value.
+    /// - If the provided value contains invalid account ID metadata (i.e., the first 4 bits).
+    fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
+        account_id_from_felts(elements)
     }
+}
+
+impl TryFrom<[u8; 15]> for AccountId {
+    type Error = AccountError;
+
+    /// Converts a byte array in little-endian order to an [`AccountId`].
+    fn try_from(bytes: [u8; 15]) -> Result<Self, Self::Error> {
+        // This slice has 8 bytes.
+        let first_felt_slice = &bytes[..8];
+        // This slice has 7 bytes, since the 8th byte will always be zero.
+        let second_felt_slice = &bytes[8..15];
+
+        // The byte order is little-endian order, so prepending a 0 sets the least significant byte.
+        let mut second_felt_bytes = [0; 8];
+        second_felt_bytes[1..8].copy_from_slice(second_felt_slice);
+
+        let first_felt =
+            Felt::try_from(first_felt_slice).map_err(AccountError::AccountIdInvalidFieldElement)?;
+
+        let second_felt = Felt::try_from(second_felt_bytes.as_slice())
+            .map_err(AccountError::AccountIdInvalidFieldElement)?;
+
+        Self::try_from([first_felt, second_felt])
+    }
+}
+
+impl TryFrom<u128> for AccountId {
+    type Error = AccountError;
+
+    fn try_from(int: u128) -> Result<Self, Self::Error> {
+        let little_endian_bytes = int.to_le_bytes();
+        let mut bytes: [u8; 15] = [0; 15];
+
+        // Swap the positions of the Felts to match what the TryFrom<[u8; 15]> impl expects.
+        // This copies the first felt's 8 bytes.
+        bytes[..8].copy_from_slice(&little_endian_bytes[8..]);
+        // This copies the second felt's 7 bytes. The least significant byte is zero and is
+        // therefore skipped.
+        bytes[8..].copy_from_slice(&little_endian_bytes[1..8]);
+
+        Self::try_from(bytes)
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AccountId {
+    fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
+        let bytes: [u8; 15] = (*self).into();
+        bytes.write_into(target);
+    }
+
+    fn get_size_hint(&self) -> usize {
+        // TODO: Turn into constant?
+        15
+    }
+}
+
+impl Deserializable for AccountId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        <[u8; 15]>::read_from(source)?
+            .try_into()
+            .map_err(|err: AccountError| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+/// Returns an [AccountId] instantiated with the provided field elements.
+///
+/// TODO
+fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountError> {
+    validate_first_felt(elements[0])?;
+    validate_second_felt(elements[1])?;
+
+    Ok(AccountId {
+        first_felt: elements[0],
+        second_felt: elements[1],
+    })
+}
+
+pub(super) fn validate_first_felt(
+    first_felt: Felt,
+) -> Result<(AccountType, AccountStorageMode, AccountVersion), AccountError> {
+    let first_felt = first_felt.as_int();
+
+    // Validate min account ones.
+    // TODO: Describe why we only count ones on first felt.
+    let ones_count = first_felt.count_ones();
+    if ones_count < AccountId::MIN_ACCOUNT_ONES {
+        return Err(AccountError::AccountIdTooFewOnes(ones_count));
+    }
+
+    // Validate high bit of first felt is zero.
+    if first_felt >> 63 != 0 {
+        return Err(AccountError::AssumptionViolated(
+            "TODO: Make proper error: first felt high bit must be zero".into(),
+        ));
+    }
+
+    // Validate storage bits.
+    let storage_mode = extract_storage_mode(first_felt)?;
+
+    // Validate version bits.
+    let version = extract_version(first_felt)?;
+
+    let account_type = extract_type(first_felt);
+
+    Ok((account_type, storage_mode, version))
+}
+
+fn validate_second_felt(second_felt: Felt) -> Result<(), AccountError> {
+    let second_felt = second_felt.as_int();
+
+    // Validate lower 8 bits of second felt are zero.
+    if second_felt & 0xff != 0 {
+        return Err(AccountError::AssumptionViolated(
+            "TODO: Make proper error: second felt lower 8 bits must be zero".into(),
+        ));
+    }
+
+    Ok(())
+}
+
+pub(super) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode, AccountError> {
+    let bits = (first_felt & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
+    match bits {
+        PUBLIC => Ok(AccountStorageMode::Public),
+        PRIVATE => Ok(AccountStorageMode::Private),
+        _ => Err(AccountError::InvalidAccountStorageMode(format!("0b{bits:b}"))),
+    }
+}
+
+pub(super) fn extract_version(first_felt: u64) -> Result<AccountVersion, AccountError> {
+    let bits = (first_felt & ACCOUNT_VERSION_MASK) >> ACCOUNT_VERSION_MASK_SHIFT;
+    let version = bits.try_into().expect("TODO");
+    match version {
+        AccountVersion::VERSION_0_NUMBER => Ok(AccountVersion::VERSION_0),
+        other => Err(AccountError::AssumptionViolated(format!(
+            "TODO: Error. Unexpected version {other}"
+        ))),
+    }
+}
+
+pub(crate) const fn extract_type(first_felt: u64) -> AccountType {
+    let bits = first_felt & ACCOUNT_TYPE_MASK;
+    match bits {
+        REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
+        REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
+        FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
+        NON_FUNGIBLE_FAUCET => AccountType::NonFungibleFaucet,
+        _ => {
+            // account_type mask contains only 2bits, there are 4 options total.
+            unreachable!()
+        },
+    }
+}
+
+fn extract_block_epoch(second_felt: u64) -> u16 {
+    ((second_felt & ACCOUNT_BLOCK_EPOCH_MASK) >> ACCOUNT_BLOCK_EPOCH_MASK_SHIFT) as u16
+}
+
+// Shapes the second felt so it meets the requirements of the [`AccountId2`].
+fn shape_second_felt(second_felt: Felt, block_epoch: u16) -> Felt {
+    if block_epoch == u16::MAX {
+        unimplemented!("TODO: Return error");
+    }
+
+    // Set epoch.
+    let mut second_felt = second_felt.as_int();
+    let block_epoch = (block_epoch as u64) << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
+    second_felt &= block_epoch;
+    second_felt |= block_epoch;
+
+    // Set lower 8 bits to zero.
+    second_felt &= 0xffff_ffff_ffff_ff00;
+
+    // We disallow u16::MAX which is all ones, so at least one of the most significant bits will
+    // always be zero.
+    Felt::try_from(second_felt).expect("epoch is never all ones so felt should be valid")
 }
 
 impl PartialOrd for AccountId {
@@ -368,130 +559,28 @@ impl PartialOrd for AccountId {
 
 impl Ord for AccountId {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.0.as_int().cmp(&other.0.as_int())
+        let self_int: u128 = (*self).into();
+        let other_int: u128 = (*other).into();
+        self_int.cmp(&other_int)
     }
 }
 
 impl fmt::Display for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{:016x}", self.0.as_int())
+        write!(f, "{}", self.to_hex())
     }
 }
 
-// CONVERSIONS FROM ACCOUNT ID
-// ================================================================================================
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub struct AccountVersion(u8);
 
-impl From<AccountId> for Felt {
-    fn from(id: AccountId) -> Self {
-        id.0
+impl AccountVersion {
+    const VERSION_0_NUMBER: u8 = 0;
+    pub const VERSION_0: AccountVersion = AccountVersion(Self::VERSION_0_NUMBER);
+
+    pub const fn version_num(&self) -> u8 {
+        self.0
     }
-}
-
-impl From<AccountId> for [u8; 8] {
-    fn from(id: AccountId) -> Self {
-        let mut result = [0_u8; 8];
-        result[..8].copy_from_slice(&id.0.as_int().to_le_bytes());
-        result
-    }
-}
-
-impl From<AccountId> for u64 {
-    fn from(id: AccountId) -> Self {
-        id.0.as_int()
-    }
-}
-
-/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
-impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
-    fn from(id: AccountId) -> Self {
-        LeafIndex::new_max_depth(id.0.as_int())
-    }
-}
-
-// CONVERSIONS TO ACCOUNT ID
-// ================================================================================================
-
-/// Returns an [AccountId] instantiated with the provided field element.
-///
-/// # Errors
-/// Returns an error if:
-/// - If there are fewer than [AccountId::MIN_ACCOUNT_ONES] in the provided value.
-/// - If the provided value contains invalid account ID metadata (i.e., the first 4 bits).
-pub fn account_id_from_felt(value: Felt) -> Result<AccountId, AccountError> {
-    let int_value = value.as_int();
-
-    let count = int_value.count_ones();
-    if count < AccountId::MIN_ACCOUNT_ONES {
-        return Err(AccountError::AccountIdTooFewOnes(count));
-    }
-
-    let bits = (int_value & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
-    match bits {
-        PUBLIC | PRIVATE => (),
-        _ => return Err(AccountError::InvalidAccountStorageMode(format!("0b{bits:b}"))),
-    };
-
-    Ok(AccountId(value))
-}
-
-impl TryFrom<Felt> for AccountId {
-    type Error = AccountError;
-
-    /// Returns an [AccountId] instantiated with the provided field element.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - If there are fewer than [AccountId::MIN_ACCOUNT_ONES] in the provided value.
-    /// - If the provided value contains invalid account ID metadata (i.e., the first 4 bits).
-    fn try_from(value: Felt) -> Result<Self, Self::Error> {
-        account_id_from_felt(value)
-    }
-}
-
-impl TryFrom<[u8; 8]> for AccountId {
-    type Error = AccountError;
-
-    // Expects little-endian byte order
-    fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
-        let element = parse_felt(&value[..8])?;
-        Self::try_from(element)
-    }
-}
-
-impl TryFrom<u64> for AccountId {
-    type Error = AccountError;
-
-    fn try_from(value: u64) -> Result<Self, Self::Error> {
-        let element = parse_felt(&value.to_le_bytes())?;
-        Self::try_from(element)
-    }
-}
-
-// SERIALIZATION
-// ================================================================================================
-
-impl Serializable for AccountId {
-    fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
-        self.0.write_into(target);
-    }
-
-    fn get_size_hint(&self) -> usize {
-        self.0.get_size_hint()
-    }
-}
-
-impl Deserializable for AccountId {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Felt::read_from(source)?
-            .try_into()
-            .map_err(|err: AccountError| DeserializationError::InvalidValue(err.to_string()))
-    }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-fn parse_felt(bytes: &[u8]) -> Result<Felt, AccountError> {
-    Felt::try_from(bytes).map_err(AccountError::AccountIdInvalidFieldElement)
 }
 
 /// Returns the digest of two hashing permutations over the seed, code commitment, storage
@@ -500,27 +589,14 @@ pub(super) fn compute_digest(
     seed: Word,
     code_commitment: Digest,
     storage_commitment: Digest,
+    block_hash: Digest,
 ) -> Digest {
     let mut elements = Vec::with_capacity(16);
     elements.extend(seed);
     elements.extend(*code_commitment);
     elements.extend(*storage_commitment);
-    elements.resize(16, ZERO);
+    elements.extend(*block_hash);
     Hasher::hash_elements(&elements)
-}
-
-/// Given a [Digest] returns its proof-of-work.
-pub(super) fn digest_pow(digest: Digest) -> u32 {
-    digest.as_elements()[3].as_int().trailing_zeros()
-}
-
-/// Returns true if an account with this ID is a regular account.
-fn is_regular_account(account_id: u64) -> bool {
-    let account_type = account_id.into();
-    matches!(
-        account_type,
-        AccountType::RegularAccountUpdatableCode | AccountType::RegularAccountImmutableCode
-    )
 }
 
 // TESTING
@@ -528,73 +604,71 @@ fn is_regular_account(account_id: u64) -> bool {
 
 #[cfg(any(feature = "testing", test))]
 pub mod testing {
-    use super::{
-        AccountStorageMode, AccountType, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
-    };
+    use super::{AccountStorageMode, AccountType, ACCOUNT_STORAGE_MASK_SHIFT};
 
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
 
     // REGULAR ACCOUNTS - OFF-CHAIN
-    pub const ACCOUNT_ID_SENDER: u64 = account_id(
+    pub const ACCOUNT_ID_SENDER: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Private,
         0b0001_1111,
     );
-    pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u64 = account_id(
+    pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Private,
         0b0010_1111,
     );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = account_id(
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Private,
         0b0011_1111,
     );
     // REGULAR ACCOUNTS - ON-CHAIN
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = account_id(
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Public,
         0b0001_1111,
     );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u64 = account_id(
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Public,
         0b0010_1111,
     );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = account_id(
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Public,
         0b0011_1111,
     );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u64 = account_id(
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Public,
         0b0100_1111,
     );
 
     // FUNGIBLE TOKENS - OFF-CHAIN
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0b0001_1111);
     // FUNGIBLE TOKENS - ON-CHAIN
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0001_1111);
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0010_1111);
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0011_1111);
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0100_1111);
 
     // NON-FUNGIBLE TOKENS - OFF-CHAIN
-    pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 =
+    pub const ACCOUNT_ID_INSUFFICIENT_ONES: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0000_0000); // invalid
-    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
+    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0001_1111);
     // NON-FUNGIBLE TOKENS - ON-CHAIN
-    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
+    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0b0010_1111);
-    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
+    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0b0011_1111);
 
     // UTILITIES
@@ -603,15 +677,17 @@ pub mod testing {
     pub const fn account_id(
         account_type: AccountType,
         storage_mode: AccountStorageMode,
-        rest: u64,
-    ) -> u64 {
+        random: u32,
+    ) -> u128 {
         let mut id = 0;
 
-        id ^= (storage_mode as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
-        id ^= (account_type as u64) << ACCOUNT_TYPE_MASK_SHIFT;
-        id ^= rest;
+        id |= account_type as u128;
+        id |= (storage_mode as u128) << ACCOUNT_STORAGE_MASK_SHIFT;
+        // Shift the random part of the ID so we don't overwrite the metadata.
+        id |= (random as u128) << 8;
 
-        id
+        // Shifts in zeroes from the right so the second felt will be entirely 0.
+        id << 64
     }
 }
 
@@ -620,84 +696,133 @@ pub mod testing {
 
 #[cfg(test)]
 mod tests {
-    use miden_crypto::utils::{Deserializable, Serializable};
 
-    use super::{
-        testing::*, AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK,
-        ACCOUNT_TYPE_MASK_SHIFT, FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET,
-        REGULAR_ACCOUNT_IMMUTABLE_CODE, REGULAR_ACCOUNT_UPDATABLE_CODE,
+    use vm_core::StarkField;
+
+    use super::*;
+    use crate::accounts::testing::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     };
 
     #[test]
-    fn test_account_id() {
-        use crate::accounts::AccountId;
+    fn test_account_id_validation() {
+        let felt_max: Felt = Felt::new(Felt::MODULUS);
+        AccountId::try_from([felt_max, felt_max]).unwrap_err();
+    }
 
-        for account_type in [
-            AccountType::RegularAccountImmutableCode,
-            AccountType::RegularAccountUpdatableCode,
-            AccountType::NonFungibleFaucet,
+    #[test]
+    fn test_account_id_from_seed_with_epoch() {
+        let code_commitment: Digest = Digest::default();
+        let storage_commitment: Digest = Digest::default();
+        let block_hash: Digest = Digest::default();
+
+        let seed = AccountId::get_account_seed(
+            [10; 32],
             AccountType::FungibleFaucet,
-        ] {
-            for storage_mode in [AccountStorageMode::Public, AccountStorageMode::Private] {
-                let acc = AccountId::try_from(account_id(account_type, storage_mode, 0b1111_1111))
+            AccountStorageMode::Public,
+            AccountVersion::VERSION_0,
+            code_commitment,
+            storage_commitment,
+            block_hash,
+        )
+        .unwrap();
+
+        for block_epoch in [0, u16::MAX - 1, 5000] {
+            let id =
+                AccountId::new(seed, block_epoch, code_commitment, storage_commitment, block_hash)
                     .unwrap();
-                assert_eq!(acc.account_type(), account_type);
-                assert_eq!(acc.storage_mode(), storage_mode);
+            assert_eq!(id.block_epoch(), block_epoch);
+        }
+    }
+
+    #[test]
+    fn test_account_id() {
+        let valid_second_felt = Felt::try_from(0xfffe_ffff_ffff_ff00u64).unwrap();
+        let valid_first_felt = Felt::try_from(0x7fff_ffff_ffff_ff00u64).unwrap();
+
+        let id1 = AccountId::new_unchecked([valid_first_felt, valid_second_felt]);
+        assert_eq!(id1.account_type(), AccountType::RegularAccountImmutableCode);
+        assert_eq!(id1.storage_mode(), AccountStorageMode::Public);
+        assert_eq!(id1.version(), AccountVersion::VERSION_0);
+        assert_eq!(id1.block_epoch(), u16::MAX - 1);
+    }
+
+    #[test]
+    fn account_id_construction() {
+        // Use the highest possible input to check if the constructed id is a valid Felt in that
+        // scenario.
+        // Use the lowest possible input to check whether the constructor satisfies
+        // MIN_ACCOUNT_ONES.
+        for input in [[0xff; 15], [0; 15]] {
+            for account_type in [
+                AccountType::FungibleFaucet,
+                AccountType::NonFungibleFaucet,
+                AccountType::RegularAccountImmutableCode,
+                AccountType::RegularAccountUpdatableCode,
+            ] {
+                for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
+                    let id = AccountId::new_with_type_and_mode(input, account_type, storage_mode);
+                    assert_eq!(id.account_type(), account_type);
+                    assert_eq!(id.storage_mode(), storage_mode);
+                    assert_eq!(id.block_epoch(), 0);
+                    // Do a serialization roundtrip to ensure validity.
+                    AccountId::read_from_bytes(&id.to_bytes()).unwrap();
+                }
             }
         }
     }
 
     #[test]
-    fn test_account_id_from_hex_and_back() {
+    fn account_id_prefix_serialization_compatibility() {
+        // Ensure that an AccountIdPrefix can be read from the serialized bytes of an AccountId.
+        let account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
+        let id_bytes = account_id.to_bytes();
+        let deserialized_prefix = AccountIdPrefix::read_from_bytes(&id_bytes).unwrap();
+        assert_eq!(account_id.prefix(), deserialized_prefix);
+    }
+
+    // CONVERSION TESTS
+    // ================================================================================================
+
+    #[test]
+    fn test_account_id_conversion_roundtrip() {
         for account_id in [
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_OFF_CHAIN_SENDER,
         ] {
-            let acc = AccountId::try_from(account_id).expect("Valid account ID");
-            assert_eq!(acc, AccountId::from_hex(&acc.to_hex()).unwrap());
+            let id = AccountId::try_from(account_id).expect("account ID should be valid");
+            assert_eq!(id, AccountId::from_hex(&id.to_hex()).unwrap());
+            assert_eq!(id, AccountId::try_from(<[u8; 15]>::from(id)).unwrap());
+            assert_eq!(id, AccountId::try_from(u128::from(id)).unwrap());
+            assert_eq!(account_id, u128::from(id));
         }
-    }
-
-    #[test]
-    fn test_account_id_serde() {
-        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
-            .expect("Valid account ID");
-        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
-
-        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
-            .expect("Valid account ID");
-        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
-
-        let account_id =
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("Valid account ID");
-        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
-
-        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
-            .expect("Valid account ID");
-        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
     }
 
     #[test]
     fn test_account_id_account_type() {
         let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
-            .expect("Valid account ID");
+            .expect("valid account ID");
 
         let account_type: AccountType = ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.into();
         assert_eq!(account_type, account_id.account_type());
 
         let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
-            .expect("Valid account ID");
+            .expect("valid account ID");
         let account_type: AccountType = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN.into();
         assert_eq!(account_type, account_id.account_type());
 
         let account_id =
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("Valid account ID");
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("valid account ID");
         let account_type: AccountType = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.into();
         assert_eq!(account_type, account_id.account_type());
 
         let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
-            .expect("Valid account ID");
+            .expect("valid account ID");
         let account_type: AccountType = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN.into();
         assert_eq!(account_type, account_id.account_type());
     }
@@ -705,25 +830,25 @@ mod tests {
     #[test]
     fn test_account_id_tag_identifiers() {
         let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
-            .expect("Valid account ID");
+            .expect("valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountImmutableCode);
         assert!(account_id.is_public());
 
         let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
-            .expect("Valid account ID");
+            .expect("valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountUpdatableCode);
         assert!(!account_id.is_public());
 
         let account_id =
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("Valid account ID");
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::FungibleFaucet);
         assert!(account_id.is_public());
 
         let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
-            .expect("Valid account ID");
+            .expect("valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::NonFungibleFaucet);
         assert!(!account_id.is_public());
@@ -733,40 +858,14 @@ mod tests {
     /// normal.
     #[test]
     fn test_account_id_faucet_bit() {
+        const ACCOUNT_IS_FAUCET_MASK: u64 = 0b10;
+
         // faucets have a bit set
-        assert_ne!((FUNGIBLE_FAUCET << ACCOUNT_TYPE_MASK_SHIFT) & ACCOUNT_ISFAUCET_MASK, 0);
-        assert_ne!((NON_FUNGIBLE_FAUCET << ACCOUNT_TYPE_MASK_SHIFT) & ACCOUNT_ISFAUCET_MASK, 0);
+        assert_ne!((FUNGIBLE_FAUCET) & ACCOUNT_IS_FAUCET_MASK, 0);
+        assert_ne!((NON_FUNGIBLE_FAUCET) & ACCOUNT_IS_FAUCET_MASK, 0);
 
         // normal accounts do not have the faucet bit set
-        assert_eq!(
-            (REGULAR_ACCOUNT_IMMUTABLE_CODE << ACCOUNT_TYPE_MASK_SHIFT) & ACCOUNT_ISFAUCET_MASK,
-            0
-        );
-        assert_eq!(
-            (REGULAR_ACCOUNT_UPDATABLE_CODE << ACCOUNT_TYPE_MASK_SHIFT) & ACCOUNT_ISFAUCET_MASK,
-            0
-        );
-    }
-
-    #[test]
-    fn account_id_construction() {
-        // Use the highest possible input to check if the constructed id is a valid Felt in that
-        // scenario.
-        // Use the lowest possible input to check whether the constructor satisfies
-        // MIN_ACCOUNT_ONES.
-        for input in [[0xff; 8], [0; 8]] {
-            for account_type in [
-                AccountType::FungibleFaucet,
-                AccountType::NonFungibleFaucet,
-                AccountType::RegularAccountImmutableCode,
-                AccountType::RegularAccountUpdatableCode,
-            ] {
-                for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountId::new_with_type_and_mode(input, account_type, storage_mode);
-                    // Do a serialization roundtrip to ensure validity.
-                    AccountId::read_from_bytes(&id.to_bytes()).unwrap();
-                }
-            }
-        }
+        assert_eq!((REGULAR_ACCOUNT_IMMUTABLE_CODE) & ACCOUNT_IS_FAUCET_MASK, 0);
+        assert_eq!((REGULAR_ACCOUNT_UPDATABLE_CODE) & ACCOUNT_IS_FAUCET_MASK, 0);
     }
 }

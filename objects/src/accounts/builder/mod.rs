@@ -6,12 +6,13 @@ use vm_processor::Digest;
 use crate::{
     accounts::{
         Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
-        AccountType,
+        AccountType, AccountVersion,
     },
     assets::{Asset, AssetVault},
-    AccountError, Felt, Word,
+    AccountError, BlockHeader, Felt, Word,
 };
 
+// TODO: Update documentation for newly added fields.
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
 /// combining multiple [`AccountComponent`]s.
 ///
@@ -40,7 +41,10 @@ pub struct AccountBuilder {
     components: Vec<AccountComponent>,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
+    block_hash: Digest,
     init_seed: Option<[u8; 32]>,
+    version: AccountVersion,
+    block_epoch: Option<u16>,
 }
 
 impl AccountBuilder {
@@ -51,8 +55,11 @@ impl AccountBuilder {
             assets: vec![],
             components: vec![],
             init_seed: None,
+            block_hash: Digest::default(),
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
+            version: AccountVersion::VERSION_0,
+            block_epoch: None,
         }
     }
 
@@ -62,6 +69,36 @@ impl AccountBuilder {
     ///  This method **must** be called.
     pub fn init_seed(mut self, init_seed: [u8; 32]) -> Self {
         self.init_seed = Some(init_seed);
+        self
+    }
+
+    /// Sets `block_hash` and `epoch` from the given `block`.
+    ///
+    /// These values must match to create a valid [`AccountId`], so this method is preferred over
+    /// setting the values individually.
+    pub fn with_reference_block(mut self, block: &BlockHeader) -> Self {
+        let block_hash = block.hash();
+        let block_epoch = block.block_epoch();
+        self.block_hash = block_hash;
+        self.block_epoch = Some(block_epoch);
+        self
+    }
+
+    /// Sets the `block_hash` which is an input to the [`AccountId`] derivation process.
+    pub fn block_hash(mut self, block_hash: Digest) -> Self {
+        self.block_hash = block_hash;
+        self
+    }
+
+    /// Sets the [`AccountVersion`] of the account.
+    pub fn version(mut self, version: AccountVersion) -> Self {
+        self.version = version;
+        self
+    }
+
+    /// Sets the `epoch` of the account. Must be less than [`u16::MAX`] else building will fail.
+    pub fn block_epoch(mut self, epoch: u16) -> Self {
+        self.block_epoch = Some(epoch);
         self
     }
 
@@ -89,7 +126,8 @@ impl AccountBuilder {
     /// Builds the common parts of testing and non-testing code.
     fn build_inner(
         &self,
-    ) -> Result<([u8; 32], AssetVault, AccountCode, AccountStorage), AccountError> {
+    ) -> Result<([u8; 32], u16, AssetVault, AccountCode, AccountStorage, Digest), AccountError>
+    {
         let init_seed = self.init_seed.ok_or(AccountError::BuildError(
             "init_seed must be set on the account builder".into(),
             None,
@@ -103,6 +141,20 @@ impl AccountBuilder {
         #[cfg(all(not(feature = "testing"), not(test)))]
         let vault = AssetVault::default();
 
+        if self.block_hash == Digest::default() {
+            return Err(AccountError::BuildError(
+                "block hash must be set to a `Digest` different from the empty value".into(),
+                None,
+            ));
+        }
+
+        let block_epoch = match self.block_epoch {
+            Some(block_epoch) => block_epoch,
+            None => {
+                return Err(AccountError::BuildError("block epoch must be set".into(), None));
+            },
+        };
+
         let (code, storage) =
             Account::initialize_from_components(self.account_type, &self.components).map_err(
                 |err| {
@@ -113,31 +165,32 @@ impl AccountBuilder {
                 },
             )?;
 
-        Ok((init_seed, vault, code, storage))
+        Ok((init_seed, block_epoch, vault, code, storage, self.block_hash))
     }
 
     /// Grinds a new [`AccountId`] using the `init_seed` as a starting point.
     fn grind_account_id(
         &self,
         init_seed: [u8; 32],
+        version: AccountVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
-    ) -> Result<(AccountId, Word), AccountError> {
+        block_hash: Digest,
+    ) -> Result<Word, AccountError> {
         let seed = AccountId::get_account_seed(
             init_seed,
             self.account_type,
             self.storage_mode,
+            version,
             code_commitment,
             storage_commitment,
+            block_hash,
         )
         .map_err(|err| {
             AccountError::BuildError("account seed generation failed".into(), Some(Box::new(err)))
         })?;
 
-        let account_id = AccountId::new(seed, code_commitment, storage_commitment)
-            .expect("get_account_seed should provide a suitable seed");
-
-        Ok((account_id, seed))
+        Ok(seed)
     }
 
     /// Builds an [`Account`] out of the configured builder.
@@ -156,7 +209,7 @@ impl AccountBuilder {
     /// - If duplicate assets were added to the builder (only under the `testing` feature).
     /// - If the vault is not empty on new accounts (only under the `testing` feature).
     pub fn build(self) -> Result<(Account, Word), AccountError> {
-        let (init_seed, vault, code, storage) = self.build_inner()?;
+        let (init_seed, block_epoch, vault, code, storage, block_hash) = self.build_inner()?;
 
         #[cfg(any(feature = "testing", test))]
         if !vault.is_empty() {
@@ -166,8 +219,17 @@ impl AccountBuilder {
             ));
         }
 
-        let (account_id, seed) =
-            self.grind_account_id(init_seed, code.commitment(), storage.commitment())?;
+        let seed = self.grind_account_id(
+            init_seed,
+            self.version,
+            code.commitment(),
+            storage.commitment(),
+            self.block_hash,
+        )?;
+
+        let account_id =
+            AccountId::new(seed, block_epoch, code.commitment(), storage.commitment(), block_hash)
+                .expect("get_account_seed should provide a suitable seed");
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
@@ -195,11 +257,11 @@ impl AccountBuilder {
     ///
     /// For possible errors, see the documentation of [`Self::build`].
     pub fn build_existing(self) -> Result<Account, AccountError> {
-        let (init_seed, vault, code, storage) = self.build_inner()?;
+        let (init_seed, _block_epoch, vault, code, storage, _block_hash) = self.build_inner()?;
 
         let account_id = {
-            let bytes = <[u8; 8]>::try_from(&init_seed[0..8])
-                .expect("we should have sliced exactly 8 bytes off");
+            let bytes = <[u8; 15]>::try_from(&init_seed[0..15])
+                .expect("we should have sliced exactly 15 bytes off");
             AccountId::new_with_type_and_mode(bytes, self.account_type, self.storage_mode)
         };
 
@@ -288,8 +350,13 @@ mod tests {
         let storage_slot1 = 12;
         let storage_slot2 = 42;
 
+        let block_hash = Digest::new([Felt::new(42); 4]);
+        let block_epoch = 50_000;
+
         let (account, seed) = Account::builder()
             .init_seed([5; 32])
+            .block_hash(block_hash)
+            .block_epoch(block_epoch)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_component(CustomComponent2 {
                 slot0: storage_slot1,
@@ -301,8 +368,14 @@ mod tests {
         // Account should be new, i.e. nonce = zero.
         assert_eq!(account.nonce(), Felt::ZERO);
 
-        let computed_id =
-            AccountId::new(seed, account.code.commitment(), account.storage.commitment()).unwrap();
+        let computed_id = AccountId::new(
+            seed,
+            block_epoch,
+            account.code.commitment(),
+            account.storage.commitment(),
+            block_hash,
+        )
+        .unwrap();
         assert_eq!(account.id(), computed_id);
 
         // The merged code should have one procedure from each library.

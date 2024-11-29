@@ -565,7 +565,7 @@ mod tests {
             AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
         let details = AccountUpdateDetails::Delta(delta);
         TxAccountUpdate::new(
-            AccountId::new_unchecked(Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,
@@ -594,7 +594,7 @@ mod tests {
         let details_size = details.get_size_hint();
 
         let err = TxAccountUpdate::new(
-            AccountId::new_unchecked(Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,

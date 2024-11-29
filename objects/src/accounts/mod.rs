@@ -4,14 +4,13 @@ use crate::{
     AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
-pub mod account_id2;
-pub use account_id2::*;
-
 pub mod account_id;
-pub use account_id::{
-    AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
-    ACCOUNT_TYPE_MASK_SHIFT,
-};
+#[cfg(any(feature = "testing", test))]
+pub use account_id::testing;
+pub use account_id::{AccountId, AccountStorageMode, AccountType, AccountVersion};
+
+mod account_id_prefix;
+pub use account_id_prefix::AccountIdPrefix;
 
 pub mod auth;
 
@@ -32,10 +31,8 @@ pub use delta::{
     NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
 
-mod seed2;
-
 mod seed;
-pub use seed::{get_account_seed, get_account_seed_single};
+pub use seed::get_account_seed;
 
 mod storage;
 pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
@@ -86,10 +83,12 @@ impl Account {
     /// Returns an error if deriving account ID from the specified seed fails.
     pub fn new(
         seed: Word,
+        epoch: u16,
         code: AccountCode,
         storage: AccountStorage,
+        block_hash: Digest,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
+        let id = AccountId::new(seed, epoch, code.commitment(), storage.commitment(), block_hash)?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -126,7 +125,7 @@ impl Account {
     ///   slot 2 stores the map.
     ///
     /// The resulting commitments from code and storage can then be used to construct an
-    /// [`AccountId`]. Finally, a new account can then be instantiated from those parts using
+    /// [`AccountId2`]. Finally, a new account can then be instantiated from those parts using
     /// [`Account::new`].
     ///
     /// If the account type is faucet the reserved slot (slot 0) will be initialized.
@@ -368,7 +367,9 @@ pub fn hash_account(
     code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
-    elements[0] = id.into();
+    let account_id_felts: [Felt; 2] = id.into();
+    elements[0] = account_id_felts[0];
+    elements[1] = account_id_felts[1];
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_commitment);

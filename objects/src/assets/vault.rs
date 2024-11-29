@@ -5,7 +5,7 @@ use super::{
     FungibleAsset, NonFungibleAsset, Serializable, ZERO,
 };
 use crate::{
-    accounts::{AccountVaultDelta, NonFungibleDeltaAction},
+    accounts::{AccountIdPrefix, AccountVaultDelta, NonFungibleDeltaAction},
     crypto::merkle::Smt,
     AssetVaultError, Digest,
 };
@@ -63,7 +63,7 @@ impl AssetVault {
     ///
     /// # Errors
     /// Returns an error if the specified ID is not an ID of a fungible asset faucet.
-    pub fn get_balance(&self, faucet_id: AccountId) -> Result<u64, AssetVaultError> {
+    pub fn get_balance(&self, faucet_id: AccountIdPrefix) -> Result<u64, AssetVaultError> {
         if !matches!(faucet_id.account_type(), AccountType::FungibleFaucet) {
             return Err(AssetVaultError::NotAFungibleFaucetId(faucet_id));
         }

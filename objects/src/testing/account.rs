@@ -20,7 +20,7 @@ use crate::{
 
 impl Account {
     /// Creates a non-new mock account with a defined number of assets and storage
-    pub fn mock(account_id: u64, nonce: Felt, assembler: Assembler) -> Self {
+    pub fn mock(account_id: u128, nonce: Felt, assembler: Assembler) -> Self {
         let account_vault = if nonce == Felt::ZERO {
             AssetVault::default()
         } else {
@@ -41,7 +41,7 @@ impl Account {
     }
 
     pub fn mock_fungible_faucet(
-        account_id: u64,
+        account_id: u128,
         nonce: Felt,
         initial_balance: Felt,
         assembler: Assembler,
@@ -63,7 +63,7 @@ impl Account {
     }
 
     pub fn mock_non_fungible_faucet(
-        account_id: u64,
+        account_id: u128,
         nonce: Felt,
         empty_reserved_slot: bool,
         assembler: Assembler,
