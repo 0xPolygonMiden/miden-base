@@ -146,12 +146,13 @@ impl AccountUpdateDetails {
 }
 
 /// Converts an [Account] into an [AccountDelta] for initial delta construction.
-impl From<&Account> for AccountDelta {
-    fn from(account: &Account) -> Self {
+impl From<Account> for AccountDelta {
+    fn from(account: Account) -> Self {
+        let (_id, vault, storage, _code, nonce) = account.into_parts();
         AccountDelta {
-            storage: account.storage().into(),
-            vault: account.vault().into(),
-            nonce: Some(account.nonce()),
+            storage: storage.into(),
+            vault: (&vault).into(),
+            nonce: Some(nonce),
         }
     }
 }

@@ -247,6 +247,18 @@ impl AccountStorage {
     }
 }
 
+// ITERATORS
+// ================================================================================================
+
+impl IntoIterator for AccountStorage {
+    type Item = StorageSlot;
+    type IntoIter = alloc::vec::IntoIter<StorageSlot>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.slots.into_iter()
+    }
+}
+
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
