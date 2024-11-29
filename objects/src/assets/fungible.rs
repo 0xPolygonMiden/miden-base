@@ -1,10 +1,7 @@
 use alloc::{boxed::Box, string::ToString};
 use core::fmt;
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    FieldElement,
-};
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{is_not_a_non_fungible_asset, AccountType, Asset, AssetError, Felt, Word, ZERO};
@@ -30,8 +27,8 @@ impl FungibleAsset {
 
     /// The serialized size of a [`FungibleAsset`] in bytes.
     ///
-    /// Currently an account id (felt) plus an amount (u64).
-    pub const SERIALIZED_SIZE: usize = Felt::ELEMENT_BYTES + core::mem::size_of::<u64>();
+    /// Currently an account id (15 bytes) plus an amount (u64).
+    pub const SERIALIZED_SIZE: usize = AccountId::SERIALIZED_SIZE + core::mem::size_of::<u64>();
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -49,7 +46,7 @@ impl FungibleAsset {
     /// Creates a new [FungibleAsset] without checking its validity.
     pub(crate) fn new_unchecked(value: Word) -> FungibleAsset {
         FungibleAsset {
-            faucet_id: AccountId::new_unchecked([value[2], value[3]]),
+            faucet_id: AccountId::new_unchecked([value[3], value[2]]),
             amount: value[0].as_int(),
         }
     }
@@ -76,8 +73,8 @@ impl FungibleAsset {
     pub fn vault_key(&self) -> Word {
         let mut key = Word::default();
         let elements: [Felt; 2] = self.faucet_id.into();
-        key[2] = elements[0];
-        key[3] = elements[1];
+        key[2] = elements[1];
+        key[3] = elements[0];
         key
     }
 
@@ -152,8 +149,8 @@ impl From<FungibleAsset> for Word {
         let mut result = Word::default();
         let id_elements: [Felt; 2] = asset.faucet_id.into();
         result[0] = Felt::new(asset.amount);
-        result[2] = id_elements[0];
-        result[3] = id_elements[1];
+        result[2] = id_elements[1];
+        result[3] = id_elements[0];
         debug_assert!(is_not_a_non_fungible_asset(result));
         result
     }
@@ -246,12 +243,14 @@ mod tests {
         let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
         let asset = FungibleAsset::new(account_id, 50).unwrap();
         let mut asset_bytes = asset.to_bytes();
+        assert_eq!(asset_bytes.len(), asset.get_size_hint());
+        assert_eq!(asset.get_size_hint(), FungibleAsset::SERIALIZED_SIZE);
 
-        let non_fungible_id =
+        let non_fungible_faucet_id =
             AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
 
         // Set invalid Faucet ID.
-        asset_bytes[0..15].copy_from_slice(&non_fungible_id.to_bytes());
+        asset_bytes[0..15].copy_from_slice(&non_fungible_faucet_id.to_bytes());
         let err = FungibleAsset::read_from_bytes(&asset_bytes).unwrap_err();
         assert!(matches!(err, DeserializationError::InvalidValue(_)));
     }

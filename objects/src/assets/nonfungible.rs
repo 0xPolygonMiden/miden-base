@@ -244,6 +244,8 @@ impl NonFungibleAssetDetails {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+
     use super::*;
     use crate::accounts::{
         account_id::testing::{
@@ -273,9 +275,13 @@ mod tests {
         let details = NonFungibleAssetDetails::new(account.prefix(), vec![4, 5, 6, 7]).unwrap();
         let asset = NonFungibleAsset::new(&details).unwrap();
         let mut asset_bytes = asset.to_bytes();
-        // Set invalid Faucet ID.
-        asset_bytes[0..8].copy_from_slice(&ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN.to_le_bytes());
+
+        let fungible_faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+
+        // Set invalid Faucet ID Prefix.
+        asset_bytes[0..8].copy_from_slice(&fungible_faucet_id.prefix().to_bytes());
+
         let err = NonFungibleAsset::read_from_bytes(&asset_bytes).unwrap_err();
-        assert!(matches!(err, DeserializationError::InvalidValue(_)));
+        assert_matches!(err, DeserializationError::InvalidValue(msg) if msg.contains("must be of type NonFungibleFaucet"));
     }
 }

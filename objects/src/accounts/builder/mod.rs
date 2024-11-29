@@ -283,6 +283,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use assembly::{Assembler, Library};
+    use assert_matches::assert_matches;
     use vm_core::FieldElement;
 
     use super::*;
@@ -426,13 +427,13 @@ mod tests {
 
         let build_error = Account::builder()
             .init_seed([0xff; 32])
+            .block_hash([10; 32].try_into().unwrap())
+            .block_epoch(0)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_assets(AssetVault::mock().assets())
             .build()
             .unwrap_err();
 
-        assert!(
-            matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
-        )
+        assert_matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
     }
 }

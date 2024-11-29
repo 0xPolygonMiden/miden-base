@@ -164,6 +164,9 @@ impl AccountId {
     /// Specifies a minimum number of ones for a valid account ID.
     pub const MIN_ACCOUNT_ONES: u32 = 5;
 
+    /// The serialized size of an [`AccountId`] in bytes.
+    pub const SERIALIZED_SIZE: usize = 15;
+
     pub fn new(
         seed: Word,
         block_epoch: u16,
@@ -292,9 +295,13 @@ impl AccountId {
     pub fn from_hex(hex_str: &str) -> Result<AccountId, AccountError> {
         hex_to_bytes(hex_str).map_err(AccountError::AccountIdHexParseError).and_then(
             |mut bytes: [u8; 15]| {
-                // TryFrom<[u8; 15]> expects little-endian order, so we need to convert the
-                // bytes representation from big endian to little endian by reversing.
-                bytes.reverse();
+                // TryFrom<[u8; 15]> expects [first_felt, second_felt] in little-endian order, so we
+                // need to convert the bytes representation from big endian to little endian by
+                // reversing each felt. The first felt has 8 and the second felt has
+                // 7 bytes.
+                bytes[0..8].reverse();
+                bytes[8..15].reverse();
+
                 AccountId::try_from(bytes)
             },
         )
@@ -303,7 +310,13 @@ impl AccountId {
     /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix, so it
     /// encodes 15 bytes.
     pub fn to_hex(&self) -> String {
-        format!("0x{:016x}{:014x}", self.first_felt().as_int(), self.second_felt().as_int())
+        // We need to pad the second felt with 16 zeroes so it produces a correctly padded 8 byte
+        // big-endian hex string. Only then can we cut off the last zero byte by truncating. We
+        // cannot use `:014x` padding.
+        let mut hex_string =
+            format!("0x{:016x}{:016x}", self.first_felt().as_int(), self.second_felt().as_int());
+        hex_string.truncate(32);
+        hex_string
     }
 
     pub fn prefix(&self) -> AccountIdPrefix {
@@ -334,7 +347,9 @@ impl From<AccountId> for [u8; 15] {
     fn from(id: AccountId) -> Self {
         let mut result = [0_u8; 15];
         result[..8].copy_from_slice(&id.first_felt().as_int().to_le_bytes());
-        result[8..].copy_from_slice(&id.second_felt().as_int().to_le_bytes()[..7]);
+        // The last byte of the second felt is always zero, and in little endian this is the first
+        // byte, so we skip it here.
+        result[8..].copy_from_slice(&id.second_felt().as_int().to_le_bytes()[1..8]);
         result
     }
 }
@@ -424,8 +439,7 @@ impl Serializable for AccountId {
     }
 
     fn get_size_hint(&self) -> usize {
-        // TODO: Turn into constant?
-        15
+        Self::SERIALIZED_SIZE
     }
 }
 
@@ -613,81 +627,108 @@ pub mod testing {
     pub const ACCOUNT_ID_SENDER: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Private,
-        0b0001_1111,
+        0xaabb_ccdd,
     );
     pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Private,
-        0b0010_1111,
+        0xbbcc_ddee,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Private,
-        0b0011_1111,
+        0xccdd_eeff,
     );
     // REGULAR ACCOUNTS - ON-CHAIN
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Public,
-        0b0001_1111,
+        0xaabb_ccdd,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Public,
-        0b0010_1111,
+        0xbbcc_ddee,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Public,
-        0b0011_1111,
+        0xccdd_eeff,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Public,
-        0b0100_1111,
+        0xeeff_ccdd,
     );
 
     // FUNGIBLE TOKENS - OFF-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0b0001_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0xaabb_ccdd);
     // FUNGIBLE TOKENS - ON-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0001_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabb_ccdd);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0010_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xbbcc_ddee);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0011_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdd_eeff);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0100_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_ccdd);
 
     // NON-FUNGIBLE TOKENS - OFF-CHAIN
     pub const ACCOUNT_ID_INSUFFICIENT_ONES: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0000_0000); // invalid
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0001_1111);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0xaabb_ccdd);
     // NON-FUNGIBLE TOKENS - ON-CHAIN
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0b0010_1111);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbbcc_ddee);
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0b0011_1111);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdd_eeff);
 
     // UTILITIES
     // --------------------------------------------------------------------------------------------
 
+    /// Produces a valid account ID with the given account type and storage mode.
+    ///
+    /// - Version ist set to 0.
+    /// - Epoch is set to 0.
+    /// - The 2nd most significant bit is set to 1, so it is easier to test the note_tag, for
+    ///   example.
+    ///
+    /// Finally, distributes the given `random` value over the ID to produce reasonably realistic
+    /// values. This is easiest explained with an example. Suppose `random` is `0xaabb_ccdd`,
+    /// then the layout of the generated ID will be:
+    ///
+    /// ```text
+    /// 1st felt: [0b0100_0000 | 0xaa | 4 zero bytes | 0xbb | metadata byte]
+    /// 2nd felt: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
+    /// ```
     pub const fn account_id(
         account_type: AccountType,
         storage_mode: AccountStorageMode,
         random: u32,
     ) -> u128 {
-        let mut id = 0;
+        let mut first_felt: u64 = 0;
 
-        id |= account_type as u128;
-        id |= (storage_mode as u128) << ACCOUNT_STORAGE_MASK_SHIFT;
-        // Shift the random part of the ID so we don't overwrite the metadata.
-        id |= (random as u128) << 8;
+        first_felt |= account_type as u64;
+        first_felt |= (storage_mode as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
 
-        // Shifts in zeroes from the right so the second felt will be entirely 0.
-        id << 64
+        // Produce more realistic IDs by distributing the random value.
+        let random_1st_felt_upper = random & 0xff00_0000;
+        let random_1st_felt_lower = random & 0x00ff_0000;
+        let random_2nd_felt_upper = random & 0x0000_ff00;
+        let random_2nd_felt_lower = random & 0x0000_00ff;
+
+        // Shift the random part of the ID to start at the most significant end.
+        first_felt |= (random_1st_felt_upper as u64) << 24;
+        first_felt |= (random_1st_felt_lower as u64) >> 8;
+
+        let mut id = (first_felt as u128) << 64;
+
+        id |= (random_2nd_felt_upper as u128) << 32;
+        id |= (random_2nd_felt_lower as u128) << 8;
+
+        id
     }
 }
 
@@ -767,8 +808,11 @@ mod tests {
                     assert_eq!(id.account_type(), account_type);
                     assert_eq!(id.storage_mode(), storage_mode);
                     assert_eq!(id.block_epoch(), 0);
+
                     // Do a serialization roundtrip to ensure validity.
-                    AccountId::read_from_bytes(&id.to_bytes()).unwrap();
+                    let serialized_id = id.to_bytes();
+                    AccountId::read_from_bytes(&serialized_id).unwrap();
+                    assert_eq!(serialized_id.len(), AccountId::SERIALIZED_SIZE);
                 }
             }
         }
@@ -788,18 +832,21 @@ mod tests {
 
     #[test]
     fn test_account_id_conversion_roundtrip() {
-        for account_id in [
+        for (idx, account_id) in [
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             ACCOUNT_ID_OFF_CHAIN_SENDER,
-        ] {
+        ]
+        .into_iter()
+        .enumerate()
+        {
             let id = AccountId::try_from(account_id).expect("account ID should be valid");
-            assert_eq!(id, AccountId::from_hex(&id.to_hex()).unwrap());
-            assert_eq!(id, AccountId::try_from(<[u8; 15]>::from(id)).unwrap());
-            assert_eq!(id, AccountId::try_from(u128::from(id)).unwrap());
-            assert_eq!(account_id, u128::from(id));
+            assert_eq!(id, AccountId::from_hex(&id.to_hex()).unwrap(), "failed in {idx}");
+            assert_eq!(id, AccountId::try_from(<[u8; 15]>::from(id)).unwrap(), "failed in {idx}");
+            assert_eq!(id, AccountId::try_from(u128::from(id)).unwrap(), "failed in {idx}");
+            assert_eq!(account_id, u128::from(id), "failed in {idx}");
         }
     }
 
