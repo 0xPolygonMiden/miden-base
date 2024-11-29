@@ -157,7 +157,7 @@ impl From<&AssetVault> for AccountVaultDelta {
                 Asset::Fungible(asset) => {
                     fungible.insert(
                         asset.faucet_id(),
-                        asset.amount().try_into().expect("Amount must fit into `i64`"),
+                        asset.amount().try_into().expect("asset amount should be at most i64::MAX by construction"),
                     );
                 },
                 Asset::NonFungible(asset) => {
