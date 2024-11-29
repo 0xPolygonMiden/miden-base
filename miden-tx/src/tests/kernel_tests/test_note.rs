@@ -7,7 +7,7 @@ use miden_lib::{
 use miden_objects::{
     notes::Note, testing::prepare_word, transaction::TransactionArgs, Hasher, WORD_SIZE,
 };
-use vm_processor::{ProcessState, EMPTY_WORD, ONE};
+use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 
 use super::{Felt, Process, ZERO};
 use crate::{
@@ -519,4 +519,33 @@ fn test_get_inputs_hash() {
     expected_stack.extend_from_slice(&expected_5);
 
     assert_eq!(process.get_stack_state()[0..16], expected_stack);
+}
+
+#[test]
+fn test_get_current_script_hash() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
+
+    // calling get_note_script_hash should return script hash
+    let code = "
+    use.kernel::prologue
+    use.kernel::note->note_internal
+    use.kernel::note
+
+    begin
+        exec.prologue::prepare_transaction
+        exec.note_internal::prepare_note
+        dropw dropw dropw dropw
+        exec.note::get_note_script_hash
+
+        # truncate the stack
+        swapw dropw
+    end
+    ";
+
+    let process = tx_context.execute_code(code).unwrap();
+
+    let script_hash: Word = tx_context.input_notes().get_note(0).note().script().hash().into();
+    assert_eq!(process.stack.get_word(0), script_hash);
 }
