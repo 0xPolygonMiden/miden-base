@@ -1,3 +1,5 @@
+use vm_core::utils::{Deserializable, Serializable};
+
 use super::{hash_account, Account, AccountId, Digest, Felt};
 
 // ACCOUNT HEADER
@@ -99,5 +101,67 @@ impl From<&Account> for AccountHeader {
             storage_commitment: account.storage().commitment(),
             code_commitment: account.code().commitment(),
         }
+    }
+}
+
+impl Serializable for AccountHeader {
+    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
+        self.id.write_into(target);
+        self.nonce.write_into(target);
+        self.vault_root.write_into(target);
+        self.storage_commitment.write_into(target);
+        self.code_commitment.write_into(target);
+    }
+}
+
+impl Deserializable for AccountHeader {
+    fn read_from<R: vm_core::utils::ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, vm_processor::DeserializationError> {
+        let id = AccountId::read_from(source)?;
+        let nonce = Felt::read_from(source)?;
+        let vault_root = Digest::read_from(source)?;
+        let storage_commitment = Digest::read_from(source)?;
+        let code_commitment = Digest::read_from(source)?;
+
+        Ok(AccountHeader {
+            id,
+            nonce,
+            vault_root,
+            storage_commitment,
+            code_commitment,
+        })
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use vm_core::{
+        utils::{Deserializable, Serializable},
+        Felt,
+    };
+
+    use super::AccountHeader;
+    use crate::{
+        accounts::{tests::build_account, StorageSlot},
+        assets::FungibleAsset,
+    };
+
+    #[test]
+    fn test_serde_account_storage() {
+        let init_nonce = Felt::new(1);
+        let asset_0 = FungibleAsset::mock(99);
+        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+        let storage_slot = StorageSlot::Value(word);
+        let account = build_account(vec![asset_0], init_nonce, vec![storage_slot]);
+
+        let account_header: AccountHeader = account.into();
+
+        let header_bytes = account_header.to_bytes();
+        let deserialized_header = AccountHeader::read_from_bytes(&header_bytes).unwrap();
+        assert_eq!(deserialized_header, account_header);
     }
 }
