@@ -31,7 +31,7 @@ const.GET_NOTE_ASSETS_INFO_OFFSET=21
 const.GET_NOTE_INPUTS_HASH_OFFSET=22
 const.GET_NOTE_SENDER_OFFSET=23
 const.GET_NOTE_SERIAL_NUMBER_OFFSET=24
-const.GET_NOTE_SCRIPT_HASH_OFFSET=25
+const.GET_SCRIPT_HASH_OFFSET=25
 const.GET_OUTPUT_NOTES_COMMITMENT_OFFSET=26
 
 # Transaction
@@ -405,8 +405,8 @@ export.get_note_serial_number_offset
     push.GET_NOTE_SERIAL_NUMBER_OFFSET
 end
 
-export.get_note_script_hash_offset
-    push.GET_NOTE_SCRIPT_HASH_OFFSET
+export.get_script_hash_offset
+    push.GET_SCRIPT_HASH_OFFSET
 end
 
 #! Returns an offset of the `start_foreign_context` kernel procedure.

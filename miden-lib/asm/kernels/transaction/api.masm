@@ -852,8 +852,8 @@ export.get_note_serial_number
     # => [SERIAL_NUMBER, pad(12)]
 end
 
-export.get_note_script_hash
-    exec.note::get_note_script_hash
+export.get_script_hash
+    exec.note::get_script_hash
     # => [SCRIPT_HASH, pad(16)]
 
     # truncate the stack

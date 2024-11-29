@@ -524,14 +524,14 @@ fn test_get_current_script_hash() {
         .with_mock_notes_preserved()
         .build();
 
-    // calling get_note_script_hash should return script hash
+    // calling get_script_hash should return script hash
     let code = "
     use.kernel::prologue
     use.miden::note
 
     begin
         exec.prologue::prepare_transaction
-        exec.note::get_note_script_hash
+        exec.note::get_script_hash
 
         # truncate the stack
         swapw dropw
