@@ -4,7 +4,7 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_crypto::EMPTY_WORD;
+use miden_crypto::{merkle::SmtLeaf, EMPTY_WORD};
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
@@ -277,8 +277,21 @@ impl StorageMapDelta {
 /// Converts a [StorageMap] into a [StorageMapDelta] for initial delta construction.
 impl From<StorageMap> for StorageMapDelta {
     fn from(map: StorageMap) -> Self {
-        // TODO: implement `IntoIterator` for `Smt` and get rid of cloning here:
-        Self(map.leaves().flat_map(|(_, leaf)| leaf.entries().into_iter().cloned()).collect())
+        // TODO: implement `IntoIterator` for `Smt` and get rid of copying keys/values:
+        let mut delta = StorageMapDelta::new(BTreeMap::default());
+        for (_, leaf) in map.leaves() {
+            match leaf {
+                SmtLeaf::Empty(_) => continue,
+                SmtLeaf::Single((key, value)) => {
+                    delta.insert(*key, *value);
+                },
+                SmtLeaf::Multiple(vec) => {
+                    vec.iter().for_each(|(key, value)| delta.insert(*key, *value));
+                },
+            }
+        }
+
+        delta
     }
 }
 
