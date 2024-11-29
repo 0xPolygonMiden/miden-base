@@ -11,7 +11,7 @@ use super::{hash_account, Account, AccountId, Digest, Felt, ZERO};
 /// components of the account.
 ///
 /// The [AccountHeader] is composed of:
-/// - id: the account id ([AccountId]) of the account.
+/// - id: the account id ([AccountId2]) of the account.
 /// - nonce: the nonce of the account.
 /// - vault_root: a commitment to the account's vault ([super::AssetVault]).
 /// - storage_commitment: a commitment to the account's storage ([super::AccountStorage]).

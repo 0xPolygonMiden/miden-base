@@ -121,14 +121,13 @@ mod tests {
     };
 
     fn create_example_note() -> Note {
-        let faucet = AccountId::new_unchecked(Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN));
-        let target = AccountId::new_unchecked(Felt::new(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ));
+        let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let target =
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
 
         let serial_num = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
         let script = NoteScript::mock();
-        let note_inputs = NoteInputs::new(vec![target.into()]).unwrap();
+        let note_inputs = NoteInputs::new(vec![target.prefix().into()]).unwrap();
         let recipient = NoteRecipient::new(serial_num, script, note_inputs);
 
         let asset = Asset::Fungible(FungibleAsset::new(faucet, 100).unwrap());

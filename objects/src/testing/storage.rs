@@ -13,8 +13,8 @@ use crate::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        get_account_seed_single, Account, AccountId, AccountStorage, AccountStorageDelta,
-        AccountStorageMode, AccountType, StorageMap, StorageMapDelta, StorageSlot,
+        Account, AccountId, AccountStorage, AccountStorageDelta, AccountStorageMode, AccountType,
+        AccountVersion, StorageMap, StorageMapDelta, StorageSlot,
     },
     notes::NoteAssets,
     AccountDeltaError,
@@ -199,17 +199,25 @@ pub fn generate_account_seed(
         ),
     };
 
-    let seed = get_account_seed_single(
+    let seed = AccountId::get_account_seed(
         init_seed,
         account_type,
         AccountStorageMode::Public,
+        AccountVersion::VERSION_0,
         account.code().commitment(),
         account.storage().commitment(),
+        Digest::default(),
     )
     .unwrap();
 
-    let account_id =
-        AccountId::new(seed, account.code().commitment(), account.storage().commitment()).unwrap();
+    let account_id = AccountId::new(
+        seed,
+        0,
+        account.code().commitment(),
+        account.storage().commitment(),
+        Digest::default(),
+    )
+    .unwrap();
 
     (account_id, seed)
 }

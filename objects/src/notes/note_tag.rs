@@ -97,7 +97,8 @@ impl NoteTag {
     ) -> Result<Self, NoteError> {
         match execution {
             NoteExecutionMode::Local => {
-                let id: u64 = account_id.into();
+                // TODO: Refactor.
+                let id: u128 = account_id.into();
                 // select 14 most significant bits of the account ID and shift them right by 2 bits
                 let high_bits = (id >> 34) as u32 & 0xffff0000;
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
@@ -106,7 +107,8 @@ impl NoteTag {
                 if !account_id.is_public() {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
-                    let id: u64 = account_id.into();
+                    // TODO: Refactor.
+                    let id: u128 = account_id.into();
                     // select 31 most significant bits of account ID and shift them right by 1 bit
                     let high_bits = (id >> 33) as u32;
                     // the tag will have the form 0 + 31 high bits of account ID; note that the
@@ -539,7 +541,8 @@ mod tests {
         ];
 
         for acct in accounts {
-            let highbit = u64::from(acct) >> 63;
+            // TODO: Fixed only to compile, likely incorrect.
+            let highbit = u128::from(acct) >> 63;
             let onchain = highbit == 0;
 
             assert_eq!(

@@ -285,7 +285,7 @@ mod tests {
         accounts::{
             account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             delta::AccountUpdateDetails, Account, AccountCode, AccountId, AccountStorage,
-            AccountType, StorageMapDelta,
+            AccountStorageMode, AccountType, StorageMapDelta,
         },
         assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
         ONE, ZERO,
@@ -334,17 +334,28 @@ mod tests {
 
         let non_fungible: Asset = NonFungibleAsset::new(
             &NonFungibleAssetDetails::new(
-                AccountId::new_dummy([10; 32], AccountType::NonFungibleFaucet),
+                AccountId::new_with_type_and_mode(
+                    [10; 15],
+                    AccountType::NonFungibleFaucet,
+                    AccountStorageMode::Public,
+                )
+                .prefix(),
                 vec![6],
             )
             .unwrap(),
         )
         .unwrap()
         .into();
-        let fungible_2: Asset =
-            FungibleAsset::new(AccountId::new_dummy([10; 32], AccountType::FungibleFaucet), 10)
-                .unwrap()
-                .into();
+        let fungible_2: Asset = FungibleAsset::new(
+            AccountId::new_with_type_and_mode(
+                [10; 15],
+                AccountType::FungibleFaucet,
+                AccountStorageMode::Public,
+            ),
+            10,
+        )
+        .unwrap()
+        .into();
         let vault_delta = AccountVaultDelta::from_iters([non_fungible], [fungible_2]);
 
         assert_eq!(storage_delta.to_bytes().len(), storage_delta.get_size_hint());

@@ -5,7 +5,7 @@ use crate::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
-        AccountId, AccountType,
+        AccountId, AccountIdPrefix, AccountType,
     },
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     AssetError,
@@ -15,7 +15,7 @@ use crate::{
 /// times.
 #[derive(Debug, Clone)]
 pub struct NonFungibleAssetDetailsBuilder<T> {
-    faucet_id: AccountId,
+    faucet_id: AccountIdPrefix,
     rng: T,
 }
 
@@ -27,7 +27,7 @@ pub struct FungibleAssetBuilder {
 }
 
 impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
-    pub fn new(faucet_id: AccountId, rng: T) -> Result<Self, AssetError> {
+    pub fn new(faucet_id: AccountIdPrefix, rng: T) -> Result<Self, AssetError> {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
             return Err(AssetError::NonFungibleFaucetIdTypeMismatch(faucet_id));
         }
@@ -48,7 +48,7 @@ pub struct NonFungibleAssetBuilder<T> {
 }
 
 impl<T: Rng> NonFungibleAssetBuilder<T> {
-    pub fn new(faucet_id: AccountId, rng: T) -> Result<Self, AssetError> {
+    pub fn new(faucet_id: AccountIdPrefix, rng: T) -> Result<Self, AssetError> {
         let details_builder = NonFungibleAssetDetailsBuilder::new(faucet_id, rng)?;
         Ok(Self { details_builder })
     }
@@ -93,7 +93,7 @@ impl NonFungibleAsset {
     /// Returns a mocked non-fungible asset, issued by [ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN].
     pub fn mock(asset_data: &[u8]) -> Asset {
         let non_fungible_asset_details = NonFungibleAssetDetails::new(
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap().prefix(),
             asset_data.to_vec(),
         )
         .unwrap();
@@ -113,7 +113,8 @@ impl FungibleAsset {
     pub fn mock(amount: u64) -> Asset {
         Asset::Fungible(
             FungibleAsset::new(
-                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+                AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)
+                    .expect("id should be valid"),
                 amount,
             )
             .expect("asset is valid"),

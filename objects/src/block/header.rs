@@ -43,6 +43,13 @@ pub struct BlockHeader {
 }
 
 impl BlockHeader {
+    /// The length of an epoch expressed as a power of two. `2^(EPOCH_LENGTH_EXPONENT)` is the
+    /// number of blocks in an epoch.
+    ///
+    /// The epoch of a block can be obtained by shifting the block number to the right by this
+    /// exponent.
+    pub const EPOCH_LENGTH_EXPONENT: u8 = 16;
+
     /// Creates a new block header.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -124,6 +131,13 @@ impl BlockHeader {
     /// Returns the block number.
     pub fn block_num(&self) -> u32 {
         self.block_num
+    }
+
+    /// Returns the block epoch.
+    ///
+    /// This is the block number shifted right by [`Self::EPOCH_LENGTH_EXPONENT`].
+    pub fn block_epoch(&self) -> u16 {
+        (self.block_num >> Self::EPOCH_LENGTH_EXPONENT) as u16
     }
 
     /// Returns the chain root.

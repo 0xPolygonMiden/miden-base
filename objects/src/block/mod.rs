@@ -229,7 +229,8 @@ pub fn compute_tx_hash(
 ) -> Digest {
     let mut elements = vec![];
     for (transaction_id, account_id) in updated_accounts {
-        elements.extend_from_slice(&[account_id.into(), ZERO, ZERO, ZERO]);
+        let account_id_felts: [Felt; 2] = account_id.into();
+        elements.extend_from_slice(&[account_id_felts[0], account_id_felts[1], ZERO, ZERO]);
         elements.extend_from_slice(transaction_id.as_elements());
     }
 

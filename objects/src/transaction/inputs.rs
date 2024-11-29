@@ -471,15 +471,16 @@ pub fn validate_account_seed(
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
-            let account_id =
-                AccountId::new(seed, account.code().commitment(), account.storage().commitment())
-                    .map_err(TransactionInputError::InvalidAccountIdSeed)?;
-            if account_id != account.id() {
-                return Err(TransactionInputError::InconsistentAccountSeed {
-                    expected: account.id(),
-                    actual: account_id,
-                });
-            }
+            // let account_id =
+            //     AccountId::new(seed, account.code().commitment(), account.storage().commitment())
+            //         .map_err(TransactionInputError::InvalidAccountIdSeed)?;
+            // if account_id != account.id() {
+            //     return Err(TransactionInputError::InconsistentAccountSeed {
+            //         expected: account.id(),
+            //         actual: account_id,
+            //     });
+            // }
+            todo!();
 
             Ok(())
         },
