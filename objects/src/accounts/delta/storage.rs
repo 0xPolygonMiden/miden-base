@@ -135,7 +135,7 @@ impl From<&AccountStorage> for AccountStorageDelta {
         let mut values = BTreeMap::new();
         let mut maps = BTreeMap::new();
         for (slot_idx, slot) in storage.slots().iter().enumerate() {
-            let slot_idx: u8 = slot_idx.try_into().expect("Slot index must fit into `u8`");
+            let slot_idx: u8 = slot_idx.try_into().expect("slot index must fit into `u8`");
             match slot {
                 StorageSlot::Value(value) => {
                     values.insert(slot_idx, *value);
