@@ -55,117 +55,118 @@ pub mod utils {
 
     /// Construct a new `Digest` from a hex value.
     ///
-    /// Marco supports hex strings of length 18, 34, 50 and 66 (with prefix).
+    /// Expects a '0x' prefixed hex string followed by up to 64 hex digits.
     #[macro_export]
     macro_rules! digest {
         ($hex:expr) => {{
-            // hex prefix offset
-            const START: usize = 2;
-
             const fn parse_hex_digit(digit: u8) -> u8 {
                 match digit {
                     b'0'..=b'9' => digit - b'0',
-                    b'A'..=b'F' => digit - b'A' + 10,
-                    b'a'..=b'f' => digit - b'a' + 10,
+                    b'A'..=b'F' => digit - b'A' + 0x0a,
+                    b'a'..=b'f' => digit - b'a' + 0x0a,
                     _ => panic!("Invalid hex character"),
                 }
             }
 
-            // Returns a byte array of the u64 value decoded from the hex byte array.
-            //
-            // Where:
-            // - global_index is the index of the hex digit byte in the hex_bytes array
-            // - upper_limit is the index at which the bytes of the current u64 value end
-            const fn decode_u64_bytes(
-                mut global_index: usize,
-                hex_bytes: &[u8],
-                upper_limit: usize,
-            ) -> [u8; 8] {
-                let mut u64_bytes = [0u8; 8];
+            // Enforce and skip the '0x' prefix.
+            let hex_bytes = match $hex.as_bytes() {
+                [b'0', b'x', rest @ ..] => rest,
+                _ => panic!(r#"Hex string must have a "0x" prefix"#),
+            };
 
-                let mut local_index = 0;
-                while global_index < upper_limit {
-                    let upper = parse_hex_digit(hex_bytes[START + global_index]);
-                    let lower = parse_hex_digit(hex_bytes[START + global_index + 1]);
-                    u64_bytes[local_index] = upper << 4 | lower;
+            if hex_bytes.len() > 64 {
+                panic!("Hex string has more than 64 characters");
+            }
 
-                    local_index += 1;
-                    global_index += 2;
+            // Aggregate each byte into the appropriate felt value. Doing it this way also allows
+            // for variable string lengths.
+            let mut felts = [0u64; 4];
+            let mut i = 0;
+            // We are forced to use a while loop because the others aren't supported in const
+            // context.
+            while i < hex_bytes.len() {
+                // This digit's nibble offset within the felt. We need to invert the nibbles per
+                // byte for endianess reasons i.e. ABCD -> BADC.
+                let inibble = if i % 2 == 0 { (i + 1) % 16 } else { (i - 1) % 16 };
+
+                // SAFETY: u8 cast to u64 is safe. We cannot use u64::from in const context so we
+                // are forced to cast.
+                let value = (parse_hex_digit(hex_bytes[i]) as u64) << (inibble * 4);
+                felts[i / 2 / 8] += value;
+
+                i += 1;
+            }
+
+            // Ensure each felt is within bounds as `Felt::new` silently wraps around.
+            // This matches the behaviour of `Digest::try_from(String)`.
+            let mut i = 0;
+            while i < felts.len() {
+                use $crate::StarkField;
+                if felts[i] > $crate::Felt::MODULUS {
+                    panic!("Felt overflow");
                 }
-
-                u64_bytes
+                i += 1;
             }
 
-            let hex_bytes = $hex.as_bytes();
-
-            if hex_bytes[0] != b'0' || hex_bytes[1] != b'x' {
-                panic!("Hex string should start with \"0x\" prefix");
-            }
-
-            match hex_bytes.len() {
-                18 => {
-                    let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
-
-                    Digest::new([Felt::new(v1), Felt::new(0u64), Felt::new(0u64), Felt::new(0u64)])
-                },
-                34 => {
-                    let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
-                    let v2 = u64::from_le_bytes(decode_u64_bytes(16, hex_bytes, 32));
-
-                    Digest::new([Felt::new(v1), Felt::new(v2), Felt::new(0u64), Felt::new(0u64)])
-                },
-                50 => {
-                    let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
-                    let v2 = u64::from_le_bytes(decode_u64_bytes(16, hex_bytes, 32));
-                    let v3 = u64::from_le_bytes(decode_u64_bytes(32, hex_bytes, 48));
-
-                    Digest::new([Felt::new(v1), Felt::new(v2), Felt::new(v3), Felt::new(0u64)])
-                },
-                66 => {
-                    let v1 = u64::from_le_bytes(decode_u64_bytes(0, hex_bytes, 16));
-                    let v2 = u64::from_le_bytes(decode_u64_bytes(16, hex_bytes, 32));
-                    let v3 = u64::from_le_bytes(decode_u64_bytes(32, hex_bytes, 48));
-                    let v4 = u64::from_le_bytes(decode_u64_bytes(48, hex_bytes, 64));
-
-                    Digest::new([Felt::new(v1), Felt::new(v2), Felt::new(v3), Felt::new(v4)])
-                },
-                _ => panic!("Hex string has invalid length"),
-            }
+            $crate::Digest::new([
+                $crate::Felt::new(felts[0]),
+                $crate::Felt::new(felts[1]),
+                $crate::Felt::new(felts[2]),
+                $crate::Felt::new(felts[3]),
+            ])
         }};
     }
 
-    /// Test the correctness of the `digest!` macro for every supported hex string length.
-    #[test]
-    fn test_digest_macro() {
-        use crate::{Digest, Felt};
+    #[cfg(test)]
+    mod tests {
+        #[rstest::rstest]
+        #[case::missing_prefix("1234")]
+        #[case::invalid_character("1234567890abcdefg")]
+        #[case::too_long("0xx00000000000000000000000000000000000000000000000000000000000000001")]
+        #[case::overflow_felt0(
+            "0xffffffffffffffff000000000000000000000000000000000000000000000000"
+        )]
+        #[case::overflow_felt1(
+            "0x0000000000000000ffffffffffffffff00000000000000000000000000000000"
+        )]
+        #[case::overflow_felt2(
+            "0x00000000000000000000000000000000ffffffffffffffff0000000000000000"
+        )]
+        #[case::overflow_felt3(
+            "0x000000000000000000000000000000000000000000000000ffffffffffffffff"
+        )]
+        #[should_panic]
+        fn digest_macro_invalid(#[case] bad_input: &str) {
+            digest!(bad_input);
+        }
 
-        let digest_18_hex = "0x8B5563E13FE8135D";
-        let expected =
-            Digest::try_from("0x8B5563E13FE8135D000000000000000000000000000000000000000000000000")
-                .unwrap();
-        let result_18 = digest!(digest_18_hex);
-        assert_eq!(expected, result_18);
+        #[rstest::rstest]
+        #[case::each_digit("0x1234567890abcdef")]
+        #[case::empty("0x")]
+        #[case::zero("0x0")]
+        #[case::zero_full("0x0000000000000000000000000000000000000000000000000000000000000000")]
+        #[case::one_lsb("0x1")]
+        #[case::one_msb("0x0000000000000000000000000000000000000000000000000000000000000001")]
+        #[case::one_partial("0x0001")]
+        #[case::odd("0x123")]
+        #[case::even("0x1234")]
+        #[case::touch_each_felt(
+            "0x00000000000123450000000000067890000000000000abcd00000000000000ef"
+        )]
+        #[case::unique_felt("0x111111111111111155555555555555559999999999999999cccccccccccccccc")]
+        #[case::digits_on_repeat(
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        )]
+        fn digest_macro(#[case] input: &str) {
+            let uut = digest!(input);
 
-        let digest_34_hex = "0x64FA911355C7818D58E3EE5BC6D1452D";
-        let expected =
-            Digest::try_from("0x64FA911355C7818D58E3EE5BC6D1452D00000000000000000000000000000000")
-                .unwrap();
-        let result_34 = digest!(digest_34_hex);
-        assert_eq!(expected, result_34);
+            // Right pad to 64 hex digits (66 including prefix). This is required by the
+            // Digest::try_from(String) implementation.
+            let padded_input = format!("{input:<66}").replace(" ", "0");
+            let expected = crate::Digest::try_from(std::dbg!(padded_input)).unwrap();
 
-        let digest_50_hex = "0x12613C3D43EE1A4C7B528B8AB68A23A31A45336DAFDEDAC9";
-        let expected =
-            Digest::try_from("0x12613C3D43EE1A4C7B528B8AB68A23A31A45336DAFDEDAC90000000000000000")
-                .unwrap();
-        let result_50 = digest!(digest_50_hex);
-        assert_eq!(expected, result_50);
-
-        let digest_66_hex = "0x7F75ED9C5826FCAF77A5B227D66D6A874003027009783494C55FE741E87D89BC";
-        let expected =
-            Digest::try_from("0x7F75ED9C5826FCAF77A5B227D66D6A874003027009783494C55FE741E87D89BC")
-                .unwrap();
-        let result_66 = digest!(digest_66_hex);
-        assert_eq!(expected, result_66);
+            assert_eq!(uut, expected);
+        }
     }
 }
 
