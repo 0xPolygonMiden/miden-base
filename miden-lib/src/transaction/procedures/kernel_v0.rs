@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest, Felt};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 32] = [
+pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // account_vault_add_asset
     digest!("0xc69b608da541fea9a41322359cc049cac55f816858f530005e333d0b54f2f284"),
     // account_vault_get_balance
@@ -57,6 +57,8 @@ pub const KERNEL0_PROCEDURES: [Digest; 32] = [
     digest!("0xc579a0432b8f7b9640c13ab3f73c8afb6f0aa409b14a3cfaff536e60d04ea2fd"),
     // get_note_serial_number
     digest!("0xad91130ec219756213c6cadeaf8a38de8768e50c620cb7c347c531874c6054b6"),
+    // get_note_script_hash
+    digest!("0x82a32c90566e7de09e99b2151851c77a6b4117aa05aba20fe7d8244f065d6870"),
     // get_output_notes_commitment
     digest!("0x5d5aa6e32c3e7eafa7dd16683c090cd260c84d980199029d98ea7d5cec68998a"),
     // get_block_hash

@@ -403,13 +403,10 @@ fn test_get_note_serial_number() {
     // calling get_serial_number should return the serial number of the note
     let code = "
         use.kernel::prologue
-        use.kernel::note->note_internal
-        use.kernel::note
+        use.miden::note
 
         begin
             exec.prologue::prepare_transaction
-            exec.note_internal::prepare_note
-            dropw dropw dropw dropw
             exec.note::get_serial_number
 
             # truncate the stack
@@ -530,13 +527,10 @@ fn test_get_current_script_hash() {
     // calling get_note_script_hash should return script hash
     let code = "
     use.kernel::prologue
-    use.kernel::note->note_internal
-    use.kernel::note
+    use.miden::note
 
     begin
         exec.prologue::prepare_transaction
-        exec.note_internal::prepare_note
-        dropw dropw dropw dropw
         exec.note::get_note_script_hash
 
         # truncate the stack
