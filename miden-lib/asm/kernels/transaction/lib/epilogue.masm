@@ -25,11 +25,19 @@ const.ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME=0x00020029
 #! The output note data includes the note id, metadata, recipient, assets hash, number of assets and
 #! a set of assets for each note.  
 #!
-#! Inputs:  [OUTPUT_NOTES_COMMITMENT]
-#! Outputs: [OUTPUT_NOTES_COMMITMENT]
+#! Inputs:
+#!   Operand stack: [OUTPUT_NOTES_COMMITMENT]
+#! Outputs:
+#!   Operand stack: [OUTPUT_NOTES_COMMITMENT]
+#!   Advice map: {
+#!      OUTPUT_NOTES_COMMITMENT: [mem[output_note_ptr]...mem[output_notes_end_ptr]],
+#!   }
 #!
 #! Where:
 #! - OUTPUT_NOTES_COMMITMENT is the note commitment computed from note's id and metadata.
+#! - output_note_ptr is the start boundary of the output notes section.
+#! - output_notes_end_ptr is the end boundary of the output notes section.
+#! - mem[i] is the memory value stored at some address i.
 proc.copy_output_notes_to_advice_map
     # get the number of notes created by the transaction
     exec.memory::get_num_output_notes
