@@ -178,12 +178,12 @@ impl TransactionKernel {
         let account_id = account_header.id();
         let storage_root = account_header.storage_commitment();
         let code_root = account_header.code_commitment();
-        let foreign_id_root = Digest::from([account_id.into(), ZERO, ZERO, ZERO]);
+        let account_key = Digest::from([account_id.into(), ZERO, ZERO, ZERO]);
 
         // Extend the advice inputs with the new data
         advice_inputs.extend_map([
             // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
-            (foreign_id_root, account_header.as_elements()),
+            (account_key, account_header.as_elements()),
             // STORAGE_ROOT -> [STORAGE_SLOT_DATA]
             (storage_root, storage_header.as_elements()),
             // CODE_ROOT -> [ACCOUNT_CODE_DATA]
