@@ -26,6 +26,7 @@ use miden_objects::{
         StorageSlot,
     },
     assets::NonFungibleAsset,
+    crypto::merkle::{LeafIndex, MerklePath},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
@@ -35,7 +36,7 @@ use miden_objects::{
         prepare_word, storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes, TransactionScript},
-    FieldElement,
+    FieldElement, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -1049,13 +1050,22 @@ fn test_fpi_execute_foreign_procedure() {
 // ================================================================================================
 
 fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
-    let mut advice_inputs = AdviceInputs::default().with_merkle_store(mock_chain.accounts().into());
+    let mut advice_inputs = AdviceInputs::default();
     TransactionKernel::extend_advice_inputs_for_account(
         &mut advice_inputs,
         &foreign_account.clone().into(),
         foreign_account.code(),
         &foreign_account.storage().get_header(),
-        None,
+        // Provide the merkle path of the foreign account to be able to verify that the account
+        // database has the hash of the this foreign account. Verification is done during the
+        // execution of the `kernel::account::validate_current_foreign_account` procedure.
+        &MerklePath::new(
+            mock_chain
+                .accounts()
+                .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().into()).unwrap())
+                .path
+                .into(),
+        ),
     )
     .unwrap();
 

@@ -167,14 +167,13 @@ impl TransactionKernel {
     /// - account_code is the code of the account which will be used for the extension.
     /// - storage_header is the header of the storage which data will be used for the extension.
     /// - merkle_path is the authentication path from the account root of the block header to the
-    ///   account. It may not be specified if the function is used for advice inputs extension with
-    ///   foreign account data.
+    ///   account.
     pub fn extend_advice_inputs_for_account(
         advice_inputs: &mut AdviceInputs,
         account_header: &AccountHeader,
         account_code: &AccountCode,
         storage_header: &AccountStorageHeader,
-        merkle_path: Option<&MerklePath>,
+        merkle_path: &MerklePath,
     ) -> Result<(), MerkleError> {
         let account_id = account_header.id();
         let storage_root = account_header.storage_commitment();
@@ -191,12 +190,10 @@ impl TransactionKernel {
             (code_root, account_code.as_elements()),
         ]);
 
-        // Extend the advice inputs with Merkle store data if available
-        if let Some(merkle_path) = merkle_path {
-            advice_inputs.extend_merkle_store(
-                merkle_path.inner_nodes(account_id.into(), account_header.hash())?,
-            );
-        }
+        // Extend the advice inputs with Merkle store data
+        advice_inputs.extend_merkle_store(
+            merkle_path.inner_nodes(account_id.into(), account_header.hash())?,
+        );
 
         Ok(())
     }
