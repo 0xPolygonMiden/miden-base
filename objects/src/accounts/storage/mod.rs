@@ -13,7 +13,13 @@ mod map;
 pub use map::StorageMap;
 
 mod header;
-pub use header::AccountStorageHeader;
+pub use header::{AccountStorageHeader, StorageSlotHeader};
+
+// CONSTANTS
+// ================================================================================================
+
+/// The number of field elements needed to represent a [StorageSlot] in kernel memory.
+pub const NUM_ELEMENTS_PER_STORAGE_SLOT: usize = 8;
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -252,7 +258,10 @@ impl AccountStorage {
 
 /// Converts given slots into field elements
 fn slots_as_elements(slots: &[StorageSlot]) -> Vec<Felt> {
-    slots.iter().flat_map(|slot| slot.as_elements()).collect()
+    slots
+        .iter()
+        .flat_map(|slot| StorageSlotHeader::from(slot).as_elements())
+        .collect()
 }
 
 /// Computes the commitment to the given slots

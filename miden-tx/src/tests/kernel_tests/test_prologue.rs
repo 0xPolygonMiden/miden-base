@@ -29,7 +29,7 @@ use miden_lib::{
 use miden_objects::{
     accounts::{
         AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage, AccountType,
-        StorageSlot,
+        NUM_ELEMENTS_PER_STORAGE_SLOT,
     },
     testing::{
         account_component::BASIC_WALLET_CODE,
@@ -277,7 +277,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
         .account()
         .storage()
         .as_elements()
-        .chunks(StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT / 2)
+        .chunks(NUM_ELEMENTS_PER_STORAGE_SLOT / 2)
         .enumerate()
     {
         assert_eq!(

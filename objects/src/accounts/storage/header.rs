@@ -6,11 +6,35 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::{AccountStorage, Felt, StorageSlotType, Word};
+use super::{
+    AccountStorage, Felt, StorageSlot, StorageSlotType, Word, NUM_ELEMENTS_PER_STORAGE_SLOT,
+};
 use crate::AccountError;
 
 // ACCOUNT STORAGE HEADER
 // ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StorageSlotHeader(StorageSlotType, Word);
+
+impl From<&StorageSlot> for StorageSlotHeader {
+    fn from(value: &StorageSlot) -> Self {
+        Self(value.slot_type(), value.value())
+    }
+}
+
+impl StorageSlotHeader {
+    pub fn new(value: &(StorageSlotType, Word)) -> Self {
+        Self(value.0.clone(), value.1)
+    }
+
+    pub fn as_elements(&self) -> [Felt; NUM_ELEMENTS_PER_STORAGE_SLOT] {
+        let mut elements = [ZERO; NUM_ELEMENTS_PER_STORAGE_SLOT];
+        elements[0..4].copy_from_slice(&self.1);
+        elements[4..8].copy_from_slice(&self.0.as_word());
+        elements
+    }
+}
 
 /// Account storage header is a lighter version of the [AccountStorage] storing only the type and
 /// the top-level value for each storage slot.
@@ -69,12 +93,7 @@ impl AccountStorageHeader {
     pub fn as_elements(&self) -> Vec<Felt> {
         self.slots
             .iter()
-            .flat_map(|slot| {
-                let mut elements = [ZERO; 8];
-                elements[0..4].copy_from_slice(&slot.1);
-                elements[4..8].copy_from_slice(&slot.0.as_word());
-                elements
-            })
+            .flat_map(|slot| StorageSlotHeader::new(slot).as_elements())
             .collect()
     }
 }

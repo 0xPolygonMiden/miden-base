@@ -33,7 +33,10 @@ mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
-pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
+pub use storage::{
+    AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType,
+    NUM_ELEMENTS_PER_STORAGE_SLOT,
+};
 
 mod header;
 pub use header::AccountHeader;
