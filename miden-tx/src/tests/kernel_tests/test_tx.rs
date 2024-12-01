@@ -23,7 +23,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         },
         Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
-        StorageSlot, NUM_ELEMENTS_PER_STORAGE_SLOT,
+        StorageSlot,
     },
     assets::NonFungibleAsset,
     crypto::merkle::{LeafIndex, MerklePath},
@@ -1119,7 +1119,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
     for (i, elements) in foreign_account
         .storage()
         .as_elements()
-        .chunks(NUM_ELEMENTS_PER_STORAGE_SLOT / 2)
+        .chunks(StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT / 2)
         .enumerate()
     {
         assert_eq!(

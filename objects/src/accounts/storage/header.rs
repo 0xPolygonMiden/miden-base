@@ -6,33 +6,43 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::{
-    AccountStorage, Felt, StorageSlot, StorageSlotType, Word, NUM_ELEMENTS_PER_STORAGE_SLOT,
-};
+use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
 use crate::AccountError;
 
 // ACCOUNT STORAGE HEADER
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Storage slot header is a lighter version of the [StorageSlot] storing only the type and the
+/// top-level value for the slot, and being, in fact, just a thin wrapper around a tuple.
+///
+/// That is, for complex storage slot (e.g., storage map), the header contains only the commitment
+/// to the underlying data.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StorageSlotHeader(StorageSlotType, Word);
+
+impl StorageSlotHeader {
+    /// Returns a new instance of storage slot header from the provided storage slot type and value.
+    pub fn new(value: &(StorageSlotType, Word)) -> Self {
+        Self(value.0, value.1)
+    }
+
+    /// Returns this storage slot header as field elements.
+    ///
+    /// This is done by converting this storage slot into 8 field elements as follows:
+    /// ```text
+    /// [SLOT_VALUE, slot_type, 0, 0, 0]
+    /// ```
+    pub fn as_elements(&self) -> [Felt; StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT] {
+        let mut elements = [ZERO; StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT];
+        elements[0..4].copy_from_slice(&self.1);
+        elements[4..8].copy_from_slice(&self.0.as_word());
+        elements
+    }
+}
 
 impl From<&StorageSlot> for StorageSlotHeader {
     fn from(value: &StorageSlot) -> Self {
         Self(value.slot_type(), value.value())
-    }
-}
-
-impl StorageSlotHeader {
-    pub fn new(value: &(StorageSlotType, Word)) -> Self {
-        Self(value.0.clone(), value.1)
-    }
-
-    pub fn as_elements(&self) -> [Felt; NUM_ELEMENTS_PER_STORAGE_SLOT] {
-        let mut elements = [ZERO; NUM_ELEMENTS_PER_STORAGE_SLOT];
-        elements[0..4].copy_from_slice(&self.1);
-        elements[4..8].copy_from_slice(&self.0.as_word());
-        elements
     }
 }
 

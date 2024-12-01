@@ -10,7 +10,7 @@ use vm_processor::DeserializationError;
 // ================================================================================================
 
 /// An object that represents the type of a storage slot.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorageSlotType {
     /// Represents a slot that contains a value.
     Value,

@@ -15,12 +15,6 @@ pub use map::StorageMap;
 mod header;
 pub use header::{AccountStorageHeader, StorageSlotHeader};
 
-// CONSTANTS
-// ================================================================================================
-
-/// The number of field elements needed to represent a [StorageSlot] in kernel memory.
-pub const NUM_ELEMENTS_PER_STORAGE_SLOT: usize = 8;
-
 // ACCOUNT STORAGE
 // ================================================================================================
 
