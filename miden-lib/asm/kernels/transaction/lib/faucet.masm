@@ -29,18 +29,19 @@ const.ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND=0x0002002E
 #! Mints a fungible asset associated with the fungible faucet the transaction is being executed
 #! against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a fungible faucet.
-#! - If the fungible asset being minted is not associated with the faucet the transaction is
-#!   being executed against.
-#! - If the asset is not well formed.
-#! - If the total issuance after minting is greater than the maximum amount allowed.
-#!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [ASSET]
 #!
+#! Where:
 #! - amount is the amount of the fungible asset to mint.
 #! - ASSET is the asset that was minted.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a fungible faucet.
+#! - the fungible asset being minted is not associated with the faucet the transaction is being 
+#!   executed against.
+#! - the asset is not well formed.
+#! - the total issuance after minting is greater than the maximum amount allowed.
 export.mint_fungible_asset
     # assert that the asset is associated with the faucet the transaction is being executed against
     # and that the asset is valid
@@ -71,17 +72,18 @@ end
 #! Burns a fungible asset associated with the fungible faucet the transaction is being executed
 #! against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a fungible faucet.
-#! - If the fungible asset being burned is not associated with the faucet the transaction is
-#!   being executed against.
-#! - If the asset is not well formed.
-#! - If the amount being burned is greater than the total input to the transaction.
-#!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [ASSET]
 #!
+#! Where:
 #! - ASSET is the asset that was burned.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a fungible faucet.
+#! - the fungible asset being burned is not associated with the faucet the transaction is being 
+#!   executed against.
+#! - the asset is not well formed.
+#! - the amount being burned is greater than the total input to the transaction.
 proc.burn_fungible_asset
     # assert that the asset is associated with the faucet the transaction is being executed against
     # and that the asset is valid
@@ -107,9 +109,10 @@ end
 
 #! Returns the total issuance of the fungible faucet the transaction is being executed against.
 #!
-#! Stack: []
+#! Inputs:  []
 #! Outputs: [total_issuance]
 #!
+#! Where:
 #! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
 #!   against.
 export.get_total_issuance
@@ -128,16 +131,17 @@ end
 #! Mints a non-fungible asset associated with the non-fungible faucet the transaction is being
 #! executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a non-fungible faucet.
-#! - If the non-fungible asset being minted is not associated with the faucet the transaction is
-#!   being executed against.
-#! - If the non-fungible asset being minted already exists.
-#!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [ASSET]
 #!
+#! Where:
 #! - ASSET is the asset that was minted.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a non-fungible faucet.
+#! - the non-fungible asset being minted is not associated with the faucet the transaction is being 
+#!   executed against.
+#! - the non-fungible asset being minted already exists.
 proc.mint_non_fungible_asset
     # assert that the asset is associated with the faucet the transaction is being executed against
     # and that the asset is valid
@@ -156,8 +160,8 @@ proc.mint_non_fungible_asset
     exec.smt::set
     # => [OLD_VAL, SMT_ROOT', ASSET]
 
-    # assert the `OLD_VAL` is EMPTY_WORD, indicating that the non-fungible asset did not already exist
-    # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
+    # assert the `OLD_VAL` is EMPTY_WORD, indicating that the non-fungible asset did not already 
+    # exist we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
     drop drop eq.0 assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED drop
     # => [SMT_ROOT', ASSET]
 
@@ -173,20 +177,22 @@ end
 #! Burns a non-fungible asset associated with the non-fungible faucet the transaction is being
 #! executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a non-fungible faucet.
-#! - If the non-fungible asset being burned is not associated with the faucet the transaction is
-#!   being executed against.
-#! - If the non-fungible asset being burned does not exist or was not provided as input to the
-#!   transaction via a note or the accounts vault.
-#!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [ASSET]
 #!
+#! Where:
 #! - ASSET is the asset that was burned.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a non-fungible faucet.
+#! - the non-fungible asset being burned is not associated with the faucet the transaction is being 
+#!   executed against.
+#! - the non-fungible asset being burned does not exist or was not provided as input to the
+#!   transaction via a note or the accounts vault.
 proc.burn_non_fungible_asset
     # assert that we are executing a transaction against the non-fungible faucet (access checks)
-    exec.account::get_id exec.account::is_non_fungible_faucet assert.err=ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
+    exec.account::get_id exec.account::is_non_fungible_faucet 
+    assert.err=ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
     # => [ASSET]
 
     # duplicate asset
@@ -224,19 +230,20 @@ end
 
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a faucet.
-#! - If the asset being minted is not associated with the faucet the transaction is being executed
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET]
+#!
+#! Where:
+#! - ASSET is the asset that was minted.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a faucet.
+#! - the asset being minted is not associated with the faucet the transaction is being executed
 #!   against.
-#! - If the asset is not well formed.
+#! - the asset is not well formed.
 #! - For fungible faucets if the total issuance after minting is greater than the maximum amount
 #!   allowed.
 #! - For non-fungible faucets if the non-fungible asset being minted already exists.
-#!
-#! Stack: [ASSET]
-#! Outputs: [ASSET]
-#!
-#! - ASSET is the asset that was minted.
 export.mint
     # check if the asset is a fungible asset
     exec.asset::is_fungible_asset
@@ -255,20 +262,21 @@ end
 
 #! Burn an asset from the faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a faucet.
-#! - If the asset being burned is not associated with the faucet the transaction is being executed
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET]
+#!
+#! Where:
+#! - ASSET is the asset that was burned.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a faucet.
+#! - the asset being burned is not associated with the faucet the transaction is being executed
 #!   against.
-#! - If the asset is not well formed.
+#! - the asset is not well formed.
 #! - For fungible faucets if the amount being burned is greater than the total input to the
 #!   transaction.
 #! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
 #!   provided as input to the transaction via a note or the accounts vault.
-#!
-#! Stack: [ASSET]
-#! Outputs: [ASSET]
-#!
-#! - ASSET is the asset that was burned.
 export.burn
     # check if the asset is a fungible asset
     exec.asset::is_fungible_asset

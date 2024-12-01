@@ -9,58 +9,16 @@ use super::{constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word};
 use crate::{
     accounts::{
         account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
-        AccountStorageDelta, AccountStorageMode, AccountType, AccountVaultDelta, StorageMap,
-        StorageMapDelta, StorageSlot,
+        get_account_seed_single, Account, AccountId, AccountStorage, AccountStorageDelta,
+        AccountStorageMode, AccountType, StorageMap, StorageMapDelta, StorageSlot,
     },
-    assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
     AccountDeltaError,
 };
-
-#[derive(Default, Debug, Clone)]
-pub struct AccountStorageBuilder {
-    slots: Vec<StorageSlot>,
-}
-
-/// Builder for an `AccountStorage`, the builder can be configured and used multiple times.
-impl AccountStorageBuilder {
-    pub fn new() -> Self {
-        Self { slots: vec![] }
-    }
-
-    pub fn with_mock_data() -> Self {
-        Self {
-            slots: vec![
-                AccountStorage::mock_item_0().slot,
-                AccountStorage::mock_item_1().slot,
-                AccountStorage::mock_item_2().slot,
-            ],
-        }
-    }
-
-    pub fn add_slot(&mut self, slot: StorageSlot) -> &mut Self {
-        self.slots.push(slot);
-        self
-    }
-
-    pub fn add_slots<I: IntoIterator<Item = StorageSlot>>(&mut self, slots: I) -> &mut Self {
-        for slot in slots.into_iter() {
-            self.add_slot(slot);
-        }
-        self
-    }
-
-    pub fn build(&self) -> AccountStorage {
-        AccountStorage::new(self.slots.clone()).unwrap()
-    }
-}
 
 // ACCOUNT STORAGE DELTA BUILDER
 // ================================================================================================
@@ -259,37 +217,7 @@ pub fn generate_account_seed(
 // UTILITIES
 // --------------------------------------------------------------------------------------------
 
-pub fn build_account(assets: Vec<Asset>, nonce: Felt, slots: Vec<StorageSlot>) -> Account {
-    let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-    let code = AccountCode::mock();
-
-    let vault = AssetVault::new(&assets).unwrap();
-
-    let storage = AccountStorage::new(slots).unwrap();
-
-    Account::from_parts(id, vault, storage, code, nonce)
-}
-
-pub fn build_account_delta(
-    added_assets: Vec<Asset>,
-    removed_assets: Vec<Asset>,
-    nonce: Felt,
-    storage_delta: AccountStorageDelta,
-) -> AccountDelta {
-    let vault_delta = AccountVaultDelta::from_iters(added_assets, removed_assets);
-    AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
-}
-
-pub fn build_assets() -> (Asset, Asset) {
-    let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
-
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-    let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
-
-    (asset_0, asset_1)
-}
-
+/// Returns a list of strings, one for each note asset.
 pub fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
     let mut assets = Vec::new();
     for &asset in note_assets.iter() {

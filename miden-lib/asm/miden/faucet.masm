@@ -2,29 +2,32 @@ use.miden::kernel_proc_offsets
 
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a faucet.
-#! - If the asset being minted is not associated with the faucet the transaction is being executed
-#!   against.
-#! - If the asset is not well formed.
-#! - For fungible faucets if the total issuance after minting is greater than the maximum amount
-#!   allowed.
-#! - For non-fungible faucets if the non-fungible asset being minted already exists.
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET]
 #!
-#! Stack:  [ASSET]
-#! Output: [ASSET]
-#!
+#! Where:
 #! - ASSET is the asset that was minted.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a faucet.
+#! - the asset being minted is not associated with the faucet the transaction is being executed
+#!   against.
+#! - the asset is not well formed.
+#! - for fungible faucets if the total issuance after minting is greater than the maximum amount
+#!   allowed.
+#! - for non-fungible faucets if the non-fungible asset being minted already exists.
+#!
+#! Invocation: exec
 export.mint
     exec.kernel_proc_offsets::mint_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET, PAD(12)]
+    # => [ASSET, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -33,30 +36,33 @@ end
 
 #! Burn an asset from the faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a faucet.
-#! - If the asset being burned is not associated with the faucet the transaction is being executed
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET]
+#!
+#! Where:
+#! - ASSET is the asset that was burned.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a faucet.
+#! - the asset being burned is not associated with the faucet the transaction is being executed
 #!   against.
-#! - If the asset is not well formed.
-#! - For fungible faucets if the amount being burned is greater than the total input to the
+#! - the asset is not well formed.
+#! - for fungible faucets if the amount being burned is greater than the total input to the
 #!   transaction.
-#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
+#! - for non-fungible faucets if the non-fungible asset being burned does not exist or was not
 #!   provided as input to the transaction via a note or the accounts vault.
 #!
-#! Stack:  [ASSET]
-#! Output: [ASSET]
-#!
-#! - ASSET is the asset that was burned.
+#! Invocation: exec
 export.burn
     exec.kernel_proc_offsets::burn_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
     push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, ASSET, PAD(11)]
+    # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
-    # => [ASSET, PAD(12)]
+    # => [ASSET, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -65,24 +71,27 @@ end
 
 #! Returns the total issuance of the fungible faucet the transaction is being executed against.
 #!
-#! Panics:
-#! - If the transaction is not being executed against a fungible faucet.
-#!
-#! Stack: []
+#! Inputs:  []
 #! Outputs: [total_issuance]
 #!
+#! Where:
 #! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
 #!   against.
+#!
+#! Panics if:
+#! - the transaction is not being executed against a fungible faucet.
+#!
+#! Invocation: exec
 export.get_total_issuance
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_fungible_faucet_total_issuance_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [total_issuance, PAD(15)]
+    # => [total_issuance, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop

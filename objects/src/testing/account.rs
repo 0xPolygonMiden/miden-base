@@ -6,7 +6,7 @@ use crate::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         },
         Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot,
     },
@@ -71,10 +71,7 @@ impl Account {
         let entries = match empty_reserved_slot {
             true => vec![],
             false => {
-                let asset = NonFungibleAsset::mock(
-                    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-                    &constants::NON_FUNGIBLE_ASSET_DATA_2,
-                );
+                let asset = NonFungibleAsset::mock(&constants::NON_FUNGIBLE_ASSET_DATA_2);
                 vec![(Word::from(asset).into(), asset.into())]
             },
         };
@@ -121,10 +118,7 @@ impl AssetVault {
         let fungible_asset_2 =
             Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-        let non_fungible_asset = NonFungibleAsset::mock(
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            &NON_FUNGIBLE_ASSET_DATA,
-        );
+        let non_fungible_asset = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
         AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
             .unwrap()
     }

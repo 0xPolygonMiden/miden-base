@@ -20,7 +20,7 @@ pub enum NoteType {
     /// Notes with this type have only their hash published to the network.
     Private = PRIVATE,
 
-    /// Notes with type are shared with the network encrypted.
+    /// Notes with this type are shared with the network encrypted.
     Encrypted = ENCRYPTED,
 
     /// Notes with this type are fully shared with the network.
@@ -47,7 +47,7 @@ impl TryFrom<u8> for NoteType {
             PRIVATE => Ok(NoteType::Private),
             ENCRYPTED => Ok(NoteType::Encrypted),
             PUBLIC => Ok(NoteType::Public),
-            _ => Err(NoteError::InvalidNoteTypeValue(value.into())),
+            _ => Err(NoteError::InvalidNoteType(value.into())),
         }
     }
 }
@@ -72,7 +72,7 @@ impl TryFrom<u64> for NoteType {
     type Error = NoteError;
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
-        let value: u8 = value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value))?;
+        let value: u8 = value.try_into().map_err(|_| NoteError::InvalidNoteType(value))?;
         value.try_into()
     }
 }

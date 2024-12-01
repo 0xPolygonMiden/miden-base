@@ -38,10 +38,11 @@ const.FUNGIBLE_BITMASK_U32=0x20000000
 
 #! Returns the maximum amount of a fungible asset.
 #!
-#! Stack: []
+#! Inputs:  []
 #! Outputs: [fungible_asset_max_amount]
 #!
-#! fungible_asset_max_amount is the maximum amount of a fungible asset.
+#! Where:
+#! - fungible_asset_max_amount is the maximum amount of a fungible asset.
 export.get_fungible_asset_max_amount
     push.FUNGIBLE_ASSET_MAX_AMOUNT
     # => [fungible_asset_max_amount]
@@ -50,12 +51,16 @@ end
 # PROCEDURES
 # =================================================================================================
 
-#! Validates that a fungible asset is well formed. Panics if the asset is not well formed.
+#! Validates that a fungible asset is well formed.
 #!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [ASSET]
 #!
-#! ASSET is the asset to validate.
+#! Where:
+#! - ASSET is the asset to validate.
+#!
+#! Panics if:
+#! - the asset is not well formed.
 export.validate_fungible_asset
     # assert that ASSET[1] == ZERO
     dup.1 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO
@@ -70,21 +75,24 @@ export.validate_fungible_asset
     # => [ASSET]
 
     # assert that ASSET[3] is a fungible faucet
-    dup exec.account::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
+    dup exec.account::is_fungible_faucet 
+    assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
     # assert that the max amount (ASSET[0]) of a fungible asset is not exceeded
-    dup.3 push.FUNGIBLE_ASSET_MAX_AMOUNT lte assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS
+    dup.3 push.FUNGIBLE_ASSET_MAX_AMOUNT lte 
+    assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS
     # => [ASSET]
 end
 
 #! Returns a boolean indicating whether the asset is fungible.
 #!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [is_fungible_asset, ASSET]
 #!
-#! ASSET is the asset to check.
-#! is_fungible_asset is a boolean indicating whether the asset is fungible.
+#! Where:
+#! - ASSET is the asset to check.
+#! - is_fungible_asset is a boolean indicating whether the asset is fungible.
 export.is_fungible_asset
     # check the first element, it will be:
     # - zero for a fungible asset
@@ -93,33 +101,40 @@ export.is_fungible_asset
     # => [is_fungible_asset, ASSET]
 end
 
-#! Validates that a non fungible asset is well formed. Panics if the asset is not well formed.
+#! Validates that a non fungible asset is well formed.
 #!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [ASSET]
 #!
-#! ASSET is the asset to validate.
+#! Where:
+#! - ASSET is the asset to validate.
+#!
+#! Panics if:
+#! - the asset is not well formed.
 export.validate_non_fungible_asset
     # assert that ASSET[1] is a valid account id
     dup.2 exec.account::validate_id
     # => [ASSET]
 
     # assert that ASSET[1] is a fungible faucet
-    dup.2 exec.account::is_non_fungible_faucet assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID
+    dup.2 exec.account::is_non_fungible_faucet 
+    assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
     # assert the fungible bit is set to 0
-    dup u32split push.FUNGIBLE_BITMASK_U32 u32and assertz.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO drop
+    dup u32split push.FUNGIBLE_BITMASK_U32 u32and 
+    assertz.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO drop
     # => [ASSET]
 end
 
 #! Returns a boolean indicating whether the asset is non-fungible.
 #!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [is_non_fungible_asset, ASSET]
 #!
-#! ASSET is the asset to check.
-#! is_non_fungible_asset is a boolean indicating whether the asset is non-fungible.
+#! Where:
+#! - ASSET is the asset to check.
+#! - is_non_fungible_asset is a boolean indicating whether the asset is non-fungible.
 export.is_non_fungible_asset
     # check the first element, it will be:
     # - zero for a fungible asset
@@ -128,12 +143,16 @@ export.is_non_fungible_asset
     # => [is_non_fungible_asset, ASSET]
 end
 
-#! Validates that an asset is well formed. Panics if the asset is not well formed.
+#! Validates that an asset is well formed.
 #!
-#! Stack: [ASSET]
+#! Inputs:  [ASSET]
 #! Outputs: [ASSET]
 #!
-#! ASSET is the asset to validate.
+#! Where:
+#! - ASSET is the asset to validate.
+#!
+#! Panics if:
+#! - the asset is not well formed.
 export.validate_asset
     # check if the asset is fungible
     exec.is_fungible_asset
@@ -151,9 +170,10 @@ end
 
 #! Validates that a fungible asset is associated with the provided faucet_id.
 #!
-#! Stack: [faucet_id, ASSET]
-#! Output: [ASSET]
+#! Inputs:  [faucet_id, ASSET]
+#! Outputs: [ASSET]
 #!
+#! Where:
 #! - faucet_id is the account id of the faucet.
 #! - ASSET is the asset to validate.
 export.validate_fungible_asset_origin
@@ -168,9 +188,10 @@ end
 
 #! Validates that a non-fungible asset is associated with the provided faucet_id.
 #!
-#! Stack: [faucet_id, ASSET]
-#! Output: [ASSET]
+#! Inputs:  [faucet_id, ASSET]
+#! Outputs: [ASSET]
 #!
+#! Where:
 #! - faucet_id is the account id of the faucet.
 #! - ASSET is the asset to validate.
 export.validate_non_fungible_asset_origin

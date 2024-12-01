@@ -238,8 +238,6 @@ fn test_get_inputs() {
         .with_mock_notes_preserved()
         .build();
 
-    let notes = tx_context.mock_chain().available_notes();
-
     fn construct_input_assertions(note: &Note) -> String {
         let mut code = String::new();
         for input_chunk in note.inputs().values().chunks(WORD_SIZE) {
@@ -257,7 +255,7 @@ fn test_get_inputs() {
         code
     }
 
-    let note0 = notes[0].note();
+    let note0 = tx_context.input_notes().get_note(0).note();
 
     let code = format!(
         "

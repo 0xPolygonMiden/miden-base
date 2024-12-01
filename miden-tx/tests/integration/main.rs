@@ -5,23 +5,40 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_SENDER, Account, AccountId},
-    assets::{Asset, AssetVault, FungibleAsset},
-    crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
+    accounts::{account_id::testing::ACCOUNT_ID_SENDER, AccountId},
+    assets::FungibleAsset,
+    crypto::utils::Serializable,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
-    testing::account_code::DEFAULT_AUTH_SCRIPT,
-    transaction::{ExecutedTransaction, ProvenTransaction, TransactionArgs, TransactionScript},
+    transaction::{ExecutedTransaction, ProvenTransaction},
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use miden_tx::{
     LocalTransactionProver, TransactionProver, TransactionVerifier, TransactionVerifierError,
 };
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+#[macro_export]
+macro_rules! assert_transaction_executor_error {
+    ($execution_result:expr, $expected_err_code:expr) => {
+        match $execution_result {
+            Err(miden_tx::TransactionExecutorError::ExecuteTransactionProgramFailed(
+                miden_prover::ExecutionError::FailedAssertion { clk: _, err_code, err_msg: _ }
+            )) => {
+                assert!(
+                    err_code == $expected_err_code,
+                    "Execution failed on assertion with an unexpected error code (Actual err_code: {}, expected {}).",
+                    err_code, $expected_err_code
+                );
+            },
+            Ok(_) => panic!("Execution was unexpectedly successful"),
+            Err(other) => panic!("Execution error was not as expected: {}", other),
+        }
+    };
+}
 
 #[cfg(test)]
 pub fn prove_and_verify_transaction(
@@ -47,64 +64,6 @@ pub fn prove_and_verify_transaction(
 }
 
 #[cfg(test)]
-pub fn get_new_pk_and_authenticator(
-) -> (Word, std::sync::Arc<dyn miden_tx::auth::TransactionAuthenticator>) {
-    use alloc::sync::Arc;
-
-    use miden_objects::accounts::AuthSecretKey;
-    use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
-    use rand::rngs::StdRng;
-
-    let seed = [0_u8; 32];
-    let mut rng = ChaCha20Rng::from_seed(seed);
-
-    let sec_key = SecretKey::with_rng(&mut rng);
-    let pub_key: Word = sec_key.public_key().into();
-
-    let authenticator =
-        BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
-
-    (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
-}
-
-#[cfg(test)]
-pub fn get_account_with_basic_authenticated_wallet(
-    account_id: AccountId,
-    public_key: Word,
-    assets: Option<Asset>,
-) -> Account {
-    use miden_lib::accounts::auth::RpoFalcon512;
-    use miden_objects::{
-        accounts::{AccountComponent, StorageMap, StorageSlot},
-        crypto::dsa::rpo_falcon512::PublicKey,
-        testing::account_component::BASIC_WALLET_CODE,
-    };
-    let assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-    // This component supports all types of accounts for testing purposes.
-    let wallet_component = AccountComponent::compile(
-        BASIC_WALLET_CODE,
-        assembler.clone(),
-        vec![StorageSlot::Value(Word::default()), StorageSlot::Map(StorageMap::default())],
-    )
-    .unwrap()
-    .with_supports_all_types();
-
-    let (account_code, account_storage) = Account::initialize_from_components(
-        account_id.account_type(),
-        &[RpoFalcon512::new(PublicKey::new(public_key)).into(), wallet_component],
-    )
-    .unwrap();
-
-    let account_vault = match assets {
-        Some(asset) => AssetVault::new(&[asset]).unwrap(),
-        None => AssetVault::new(&[]).unwrap(),
-    };
-
-    Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
-}
-
-#[cfg(test)]
 pub fn get_note_with_fungible_asset_and_script(
     fungible_asset: FungibleAsset,
     note_script: &str,
@@ -124,16 +83,4 @@ pub fn get_note_with_fungible_asset_and_script(
     let recipient = NoteRecipient::new(SERIAL_NUM, note_script, inputs);
 
     Note::new(vault, metadata, recipient)
-}
-
-#[cfg(test)]
-pub fn build_default_auth_script() -> TransactionScript {
-    TransactionScript::compile(DEFAULT_AUTH_SCRIPT, [], TransactionKernel::assembler()).unwrap()
-}
-
-#[cfg(test)]
-pub fn build_tx_args_from_script(script_source: &str) -> TransactionArgs {
-    let tx_script =
-        TransactionScript::compile(script_source, [], TransactionKernel::assembler()).unwrap();
-    TransactionArgs::with_tx_script(tx_script)
 }

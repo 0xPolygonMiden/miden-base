@@ -113,7 +113,7 @@ impl TryFrom<&str> for AccountStorageMode {
         match value.to_lowercase().as_str() {
             "public" => Ok(AccountStorageMode::Public),
             "private" => Ok(AccountStorageMode::Private),
-            _ => Err(AccountError::InvalidAccountStorageMode),
+            _ => Err(AccountError::InvalidAccountStorageMode(value.into())),
         }
     }
 }
@@ -318,14 +318,14 @@ impl AccountId {
     /// Creates an Account Id from a hex string. Assumes the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_value: &str) -> Result<AccountId, AccountError> {
-        hex_to_bytes(hex_value)
-            .map_err(|err| AccountError::HexParseError(err.to_string()))
-            .and_then(|mut bytes: [u8; 8]| {
+        hex_to_bytes(hex_value).map_err(AccountError::AccountIdHexParseError).and_then(
+            |mut bytes: [u8; 8]| {
                 // `bytes` ends up being parsed as felt, and the input to that is assumed to be
                 // little-endian so we need to reverse the order
                 bytes.reverse();
                 bytes.try_into()
-            })
+            },
+        )
     }
 
     /// Returns a big-endian, hex-encoded string.
@@ -417,18 +417,18 @@ impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
 /// Returns an error if:
 /// - If there are fewer than [AccountId::MIN_ACCOUNT_ONES] in the provided value.
 /// - If the provided value contains invalid account ID metadata (i.e., the first 4 bits).
-pub const fn account_id_from_felt(value: Felt) -> Result<AccountId, AccountError> {
+pub fn account_id_from_felt(value: Felt) -> Result<AccountId, AccountError> {
     let int_value = value.as_int();
 
     let count = int_value.count_ones();
     if count < AccountId::MIN_ACCOUNT_ONES {
-        return Err(AccountError::AccountIdTooFewOnes(AccountId::MIN_ACCOUNT_ONES, count));
+        return Err(AccountError::AccountIdTooFewOnes(count));
     }
 
     let bits = (int_value & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
     match bits {
         PUBLIC | PRIVATE => (),
-        _ => return Err(AccountError::InvalidAccountStorageMode),
+        _ => return Err(AccountError::InvalidAccountStorageMode(format!("0b{bits:b}"))),
     };
 
     Ok(AccountId(value))
@@ -491,7 +491,7 @@ impl Deserializable for AccountId {
 // HELPER FUNCTIONS
 // ================================================================================================
 fn parse_felt(bytes: &[u8]) -> Result<Felt, AccountError> {
-    Felt::try_from(bytes).map_err(|err| AccountError::AccountIdInvalidFieldElement(err.to_string()))
+    Felt::try_from(bytes).map_err(AccountError::AccountIdInvalidFieldElement)
 }
 
 /// Returns the digest of two hashing permutations over the seed, code commitment, storage

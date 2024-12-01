@@ -1,6 +1,6 @@
 [package]
 name = "miden-tx-prover"
-version = "0.6.2"
+version = "0.7.0"
 description = "Miden rollup transaction prover"
 readme = "README.md"
 keywords = ["miden", "transaction"]

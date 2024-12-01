@@ -11,7 +11,7 @@ use vm_processor::ExecutionError;
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionExecutorError {
     ExecuteTransactionProgramFailed(ExecutionError),
     FetchTransactionInputsFailed(DataStoreError),
@@ -33,13 +33,12 @@ impl fmt::Display for TransactionExecutorError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionExecutorError {}
+impl core::error::Error for TransactionExecutorError {}
 
 // TRANSACTION PROVER ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionProverError {
     InternalError(String),
     InvalidAccountDelta(AccountError),
@@ -74,13 +73,12 @@ impl Display for TransactionProverError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionProverError {}
+impl core::error::Error for TransactionProverError {}
 
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionVerifierError {
     TransactionVerificationFailed(VerificationError),
     InsufficientProofSecurityLevel(u32, u32),
@@ -92,13 +90,12 @@ impl fmt::Display for TransactionVerifierError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionVerifierError {}
+impl core::error::Error for TransactionVerifierError {}
 
 // TRANSACTION HOST ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TransactionHostError {
     AccountProcedureIndexMapError(String),
 }
@@ -109,13 +106,12 @@ impl fmt::Display for TransactionHostError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionHostError {}
+impl core::error::Error for TransactionHostError {}
 
 // DATA STORE ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum DataStoreError {
     AccountNotFound(AccountId),
     BlockNotFound(u32),
@@ -131,13 +127,12 @@ impl fmt::Display for DataStoreError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for DataStoreError {}
+impl core::error::Error for DataStoreError {}
 
 // AUTHENTICATION ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum AuthenticationError {
     InternalError(String),
     RejectedSignature(String),
@@ -158,5 +153,4 @@ impl fmt::Display for AuthenticationError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for AuthenticationError {}
+impl core::error::Error for AuthenticationError {}

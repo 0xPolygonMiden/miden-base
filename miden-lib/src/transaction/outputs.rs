@@ -27,7 +27,10 @@ pub const EXPIRATION_BLOCK_ELEMENT_IDX: usize = 8;
 /// Returns a tuple of account ID, vault root, storage commitment, code commitment, and nonce.
 pub fn parse_final_account_header(elements: &[Word]) -> Result<AccountHeader, AccountError> {
     if elements.len() != ACCT_DATA_MEM_SIZE {
-        return Err(AccountError::HeaderDataIncorrectLength(elements.len(), ACCT_DATA_MEM_SIZE));
+        return Err(AccountError::HeaderDataIncorrectLength {
+            actual: elements.len(),
+            expected: ACCT_DATA_MEM_SIZE,
+        });
     }
 
     let id = AccountId::try_from(elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_ID_IDX])?;

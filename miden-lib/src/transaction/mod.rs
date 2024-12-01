@@ -1,16 +1,15 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
-#[cfg(any(feature = "testing", test))]
-use miden_objects::accounts::AccountCode;
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
+    crypto::merkle::{MerkleError, MerklePath},
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
     },
     utils::{group_slice_elements, serde::Deserializable},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
+    Digest, Felt, TransactionOutputError, Word, EMPTY_WORD, ZERO,
 };
 use miden_stdlib::StdLibrary;
 use outputs::EXPIRATION_BLOCK_ELEMENT_IDX;
@@ -161,6 +160,44 @@ impl TransactionKernel {
             .expect("Invalid stack input")
     }
 
+    /// Extends the advice inputs with account data and Merkle proofs.
+    ///
+    /// Where:
+    /// - account_header is the header of the account which data will be used for the extension.
+    /// - account_code is the code of the account which will be used for the extension.
+    /// - storage_header is the header of the storage which data will be used for the extension.
+    /// - merkle_path is the authentication path from the account root of the block header to the
+    ///   account.
+    pub fn extend_advice_inputs_for_account(
+        advice_inputs: &mut AdviceInputs,
+        account_header: &AccountHeader,
+        account_code: &AccountCode,
+        storage_header: &AccountStorageHeader,
+        merkle_path: &MerklePath,
+    ) -> Result<(), MerkleError> {
+        let account_id = account_header.id();
+        let storage_root = account_header.storage_commitment();
+        let code_root = account_header.code_commitment();
+        let account_key = Digest::from([account_id.into(), ZERO, ZERO, ZERO]);
+
+        // Extend the advice inputs with the new data
+        advice_inputs.extend_map([
+            // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+            (account_key, account_header.as_elements()),
+            // STORAGE_ROOT -> [STORAGE_SLOT_DATA]
+            (storage_root, storage_header.as_elements()),
+            // CODE_ROOT -> [ACCOUNT_CODE_DATA]
+            (code_root, account_code.as_elements()),
+        ]);
+
+        // Extend the advice inputs with Merkle store data
+        advice_inputs.extend_merkle_store(
+            merkle_path.inner_nodes(account_id.into(), account_header.hash())?,
+        );
+
+        Ok(())
+    }
+
     /// Builds the stack for expected transaction execution outputs.
     /// The transaction kernel's output stack is formed like so:
     ///
@@ -272,18 +309,18 @@ impl TransactionKernel {
         let final_account_data: &[Word] = group_slice_elements(
             adv_map
                 .get(&final_acct_hash)
-                .ok_or(TransactionOutputError::FinalAccountDataNotFound)?,
+                .ok_or(TransactionOutputError::FinalAccountHashMissingInAdviceMap)?,
         );
         let account = parse_final_account_header(final_account_data)
-            .map_err(TransactionOutputError::FinalAccountHeaderDataInvalid)?;
+            .map_err(TransactionOutputError::FinalAccountHeaderParseFailure)?;
 
         // validate output notes
         let output_notes = OutputNotes::new(output_notes)?;
         if output_notes_hash != output_notes.commitment() {
-            return Err(TransactionOutputError::OutputNotesCommitmentInconsistent(
-                output_notes_hash,
-                output_notes.commitment(),
-            ));
+            return Err(TransactionOutputError::OutputNotesCommitmentInconsistent {
+                actual: output_notes.commitment(),
+                expected: output_notes_hash,
+            });
         }
 
         Ok(TransactionOutputs {

@@ -13,7 +13,7 @@ mod map;
 pub use map::StorageMap;
 
 mod header;
-pub use header::AccountStorageHeader;
+pub use header::{AccountStorageHeader, StorageSlotHeader};
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -99,7 +99,7 @@ impl AccountStorage {
 
     /// Converts storage slots of this account storage into a vector of field elements.
     ///
-    /// This is done by first converting each procedure into exactly 8 elements as follows:
+    /// This is done by first converting each storage slot into exactly 8 elements as follows:
     /// ```text
     /// [STORAGE_SLOT_VALUE, storage_slot_type, 0, 0, 0]
     /// ```
@@ -116,8 +116,8 @@ impl AccountStorage {
         self.slots
             .get(index as usize)
             .ok_or(AccountError::StorageIndexOutOfBounds {
-                max: self.slots.len() as u8,
-                actual: index,
+                slots_len: self.slots.len() as u8,
+                index,
             })
             .map(|slot| slot.value().into())
     }
@@ -129,8 +129,8 @@ impl AccountStorage {
     /// - If the [StorageSlot] is not [StorageSlotType::Map]
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
         match self.slots.get(index as usize).ok_or(AccountError::StorageIndexOutOfBounds {
-            max: self.slots.len() as u8,
-            actual: index,
+            slots_len: self.slots.len() as u8,
+            index,
         })? {
             StorageSlot::Map(ref map) => Ok(map.get_value(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
@@ -159,7 +159,7 @@ impl AccountStorage {
             let storage_slot = self
                 .slots
                 .get_mut(idx as usize)
-                .ok_or(AccountError::StorageIndexOutOfBounds { max: len, actual: idx })?;
+                .ok_or(AccountError::StorageIndexOutOfBounds { slots_len: len, index: idx })?;
 
             let storage_map = match storage_slot {
                 StorageSlot::Map(map) => map,
@@ -191,8 +191,8 @@ impl AccountStorage {
 
         if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds {
-                max: self.slots.len() as u8,
-                actual: index,
+                slots_len: self.slots.len() as u8,
+                index,
             });
         }
 
@@ -227,8 +227,8 @@ impl AccountStorage {
 
         if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds {
-                max: self.slots.len() as u8,
-                actual: index,
+                slots_len: self.slots.len() as u8,
+                index,
             });
         }
 
@@ -252,7 +252,10 @@ impl AccountStorage {
 
 /// Converts given slots into field elements
 fn slots_as_elements(slots: &[StorageSlot]) -> Vec<Felt> {
-    slots.iter().flat_map(|slot| slot.as_elements()).collect()
+    slots
+        .iter()
+        .flat_map(|slot| StorageSlotHeader::from(slot).as_elements())
+        .collect()
 }
 
 /// Computes the commitment to the given slots

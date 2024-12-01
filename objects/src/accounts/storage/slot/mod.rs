@@ -1,10 +1,10 @@
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    EMPTY_WORD, ZERO,
+    EMPTY_WORD,
 };
 use vm_processor::DeserializationError;
 
-use super::{map::EMPTY_STORAGE_MAP_ROOT, Felt, StorageMap, Word};
+use super::{map::EMPTY_STORAGE_MAP_ROOT, StorageMap, Word};
 
 mod r#type;
 pub use r#type::StorageSlotType;
@@ -47,19 +47,6 @@ impl StorageSlot {
     /// Returns an empty [`StorageSlot::Map`].
     pub fn empty_map() -> Self {
         StorageSlot::Map(StorageMap::new())
-    }
-
-    /// Returns this storage slot as field elements
-    ///
-    /// This is done by converting this storage slot into 8 field elements as follows:
-    /// ```text
-    /// [SLOT_VALUE, slot_type, 0, 0, 0]
-    /// ```
-    pub fn as_elements(&self) -> [Felt; Self::NUM_ELEMENTS_PER_STORAGE_SLOT] {
-        let mut elements = [ZERO; 8];
-        elements[0..4].copy_from_slice(&self.value());
-        elements[4..8].copy_from_slice(&self.slot_type().as_word());
-        elements
     }
 
     /// Returns this storage slot value as a [Word]

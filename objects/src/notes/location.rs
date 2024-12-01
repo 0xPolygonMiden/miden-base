@@ -49,9 +49,10 @@ impl NoteInclusionProof {
     ) -> Result<Self, NoteError> {
         const HIGHEST_INDEX: usize = MAX_BATCHES_PER_BLOCK * MAX_OUTPUT_NOTES_PER_BATCH - 1;
         if node_index_in_block as usize > HIGHEST_INDEX {
-            return Err(NoteError::InvalidLocationIndex(format!(
-                "Node index ({node_index_in_block}) is out of bounds (0..={HIGHEST_INDEX})."
-            )));
+            return Err(NoteError::NoteLocationIndexOutOfBounds {
+                node_index_in_block,
+                highest_index: HIGHEST_INDEX,
+            });
         }
         let location = NoteLocation { block_num, node_index_in_block };
 

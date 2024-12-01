@@ -51,8 +51,8 @@ pub fn create_basic_wallet(
     account_storage_mode: AccountStorageMode,
 ) -> Result<(Account, Word), AccountError> {
     if matches!(account_type, AccountType::FungibleFaucet | AccountType::NonFungibleFaucet) {
-        return Err(AccountError::AccountIdInvalidFieldElement(
-            "Basic wallet accounts cannot have a faucet account type".to_string(),
+        return Err(AccountError::AssumptionViolated(
+            "basic wallet accounts cannot have a faucet account type".to_string(),
         ));
     }
 

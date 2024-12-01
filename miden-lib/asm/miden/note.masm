@@ -16,6 +16,8 @@ const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
 #!
 #! Inputs:  [start_ptr, end_ptr, HASH]
 #! Outputs: []
+#!
+#! Invocation: exec
 proc.write_advice_data_to_memory
     # prepare the stack for reading from the advice stack
     padw padw padw
@@ -40,21 +42,24 @@ end
 
 #! Writes the assets of the currently executing note into memory starting at the specified address.
 #!
-#! Inputs: [dest_ptr]
+#! Inputs:  [dest_ptr]
 #! Outputs: [num_assets, dest_ptr]
 #!
+#! Where:
 #! - dest_ptr is the memory address to write the assets.
 #! - num_assets is the number of assets in the currently executing note.
+#!
+#! Invocation: exec
 export.get_assets
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15), dest_ptr]
+    # => [pad(15), dest_ptr]
 
     exec.kernel_proc_offsets::get_note_assets_info_offset
-    # => [offset, PAD(15), dest_ptr]
+    # => [offset, pad(15), dest_ptr]
 
     syscall.exec_kernel_proc
-    # => [ASSETS_HASH, num_assets, PAD(11), dest_ptr]
+    # => [ASSETS_HASH, num_assets, pad(11), dest_ptr]
 
     # clean the stack
     swapdw dropw dropw movup.7 movup.7 movup.7 drop drop drop
@@ -90,16 +95,18 @@ end
 #! - INPUTS_HASH, sequential hash of the padded note's inputs.
 #! - inputs_len, the note's input count.
 #! - INPUTS, the data corresponding to the note's inputs.
+#!
+#! Invocation: exec
 export.get_inputs
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15), dest_ptr]
+    # => [pad(15), dest_ptr]
 
     exec.kernel_proc_offsets::get_note_inputs_hash_offset
-    # => [offset, PAD(15), dest_ptr]
+    # => [offset, pad(15), dest_ptr]
 
     syscall.exec_kernel_proc
-    # => [INPUTS_HASH, PAD(12), dest_ptr]
+    # => [INPUTS_HASH, pad(12), dest_ptr]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -113,7 +120,8 @@ export.get_inputs
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # validate the input length
-    dup exec.get_max_inputs_per_note lte assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
+    dup exec.get_max_inputs_per_note lte 
+    assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # calculate the number of words required to store the inputs
@@ -133,23 +141,28 @@ export.get_inputs
     # => [num_inputs, dest_ptr]
 end
 
-#! Returns the sender of the note currently being processed. Panics if a note is not being
-#! processed.
+#! Returns the sender of the note currently being processed.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [sender]
 #!
+#! Where:
 #! - sender is the sender of the note currently being processed.
+#!
+#! Panics if:
+#! - no note is being processed.
+#!
+#! Invocation: exec
 export.get_sender
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_note_sender_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [sender, PAD(15)]
+    # => [sender, pad(15)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
@@ -157,22 +170,27 @@ export.get_sender
 end
 
 #! Returns the serial number of the note currently being processed.
-#! Panics if no note is not being processed.
 #!
-#! Inputs: []
+#! Inputs:  []
 #! Outputs: [SERIAL_NUMBER]
 #!
+#! Where:
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
+#!
+#! Panics if:
+#! - no note is being processed.
+#!
+#! Invocation: exec
 export.get_serial_number
     # pad the stack
     padw padw padw push.0.0.0
-    # => [PAD(15)]
+    # => [pad(15)]
 
     exec.kernel_proc_offsets::get_note_serial_number_offset
-    # => [offset, PAD(15)]
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [SERIAL_NUMBER, PAD(12)]
+    # => [SERIAL_NUMBER, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
@@ -189,11 +207,15 @@ end
 #!
 #! Inputs:  [inputs_ptr, num_inputs]
 #! Outputs: [HASH]
+#!
 #! Cycles:
 #! - If number of elements divides by 8: 56 cycles + 3 * words
 #! - Else: 189 cycles + 3 * words
 #!
-#! Panics if num_inputs is greater than 128.
+#! Panics if:
+#! - num_inputs is greater than 128.
+#!
+#! Invocation: exec
 export.compute_inputs_hash
     # check that number of inputs is less than 128
     dup.1 push.128 u32assert2 u32lte assert

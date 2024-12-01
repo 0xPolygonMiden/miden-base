@@ -33,7 +33,7 @@ impl NoteInputs {
     /// Returns an error if the number of provided inputs is greater than 128.
     pub fn new(values: Vec<Felt>) -> Result<Self, NoteError> {
         if values.len() > MAX_INPUTS_PER_NOTE {
-            return Err(NoteError::too_many_inputs(values.len()));
+            return Err(NoteError::TooManyInputs(values.len()));
         }
 
         Ok(pad_and_build(values))

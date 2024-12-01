@@ -50,11 +50,7 @@ impl AssetVault {
     }
 
     /// Returns true if the specified non-fungible asset is stored in this vault.
-    pub fn has_non_fungible_asset(&self, asset: Asset) -> Result<bool, AssetVaultError> {
-        if asset.is_fungible() {
-            return Err(AssetVaultError::NotANonFungibleAsset(asset));
-        }
-
+    pub fn has_non_fungible_asset(&self, asset: NonFungibleAsset) -> Result<bool, AssetVaultError> {
         // check if the asset is stored in the vault
         match self.asset_tree.get_value(&asset.vault_key().into()) {
             asset if asset == Smt::EMPTY_VALUE => Ok(false),
@@ -140,7 +136,7 @@ impl AssetVault {
         })
     }
 
-    /// Add the specified fungible asset to the vault.  If the vault already contains an asset
+    /// Add the specified fungible asset to the vault. If the vault already contains an asset
     /// issued by the same faucet, the amounts are added together.
     ///
     /// # Errors

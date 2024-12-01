@@ -252,8 +252,8 @@ impl FungibleAssetDelta {
                 let new = old.checked_add(delta).ok_or(
                     AccountDeltaError::FungibleAssetDeltaOverflow {
                         faucet_id,
-                        this: old,
-                        other: delta,
+                        current: old,
+                        delta,
                     },
                 )?;
 
@@ -469,17 +469,16 @@ mod tests {
         accounts::{
             account_id::testing::{
                 ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             },
             AccountId,
         },
         assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-        testing::storage::build_assets,
     };
 
     #[test]
     fn test_serde_account_vault() {
-        let (asset_0, asset_1) = build_assets();
+        let asset_0 = FungibleAsset::mock(100);
+        let asset_1 = NonFungibleAsset::mock(&[10, 21, 32, 43]);
         let delta = AccountVaultDelta::from_iters([asset_0], [asset_1]);
 
         let serialized = delta.to_bytes();
@@ -567,7 +566,7 @@ mod tests {
             }
         }
 
-        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let account_id = NonFungibleAsset::mock_issuer();
 
         let mut delta_x = create_delta_with_non_fungible(account_id, x);
         let delta_y = create_delta_with_non_fungible(account_id, y);

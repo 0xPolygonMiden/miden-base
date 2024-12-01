@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 use core::ops::Deref;
 
 use assembly::{Assembler, Compile};
@@ -214,7 +214,7 @@ impl TransactionScript {
     ) -> Result<Self, TransactionScriptError> {
         let program = assembler
             .assemble_program(source_code)
-            .map_err(|report| TransactionScriptError::AssemblyError(report.to_string()))?;
+            .map_err(TransactionScriptError::AssemblyError)?;
         Ok(Self::new(program, inputs))
     }
 

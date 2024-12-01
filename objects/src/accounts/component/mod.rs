@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
+use alloc::{collections::BTreeSet, vec::Vec};
 
 use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
@@ -78,7 +78,7 @@ impl AccountComponent {
     ) -> Result<Self, AccountError> {
         let library = assembler
             .assemble_library([source_code])
-            .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
+            .map_err(AccountError::AccountComponentAssemblyError)?;
 
         Self::new(library, storage_slots)
     }

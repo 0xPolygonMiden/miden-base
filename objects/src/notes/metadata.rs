@@ -107,7 +107,7 @@ impl TryFrom<Word> for NoteMetadata {
     type Error = NoteError;
 
     fn try_from(elements: Word) -> Result<Self, Self::Error> {
-        let sender = elements[1].try_into().map_err(NoteError::InvalidNoteSender)?;
+        let sender = elements[1].try_into().map_err(NoteError::NoteSenderInvalidAccountId)?;
         let (note_type, note_execution_hint) = unmerge_type_and_hint(elements[2].into())?;
         let tag: u64 = elements[0].into();
         let tag: u32 =

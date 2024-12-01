@@ -1,4 +1,4 @@
-use alloc::{string::ToString, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, vec::Vec};
 
 use assembly::{ast::Module, Assembler, Library, LibraryPath};
 
@@ -43,11 +43,11 @@ impl AccountMockComponent {
                 MOCK_ACCOUNT_CODE,
                 &source_manager,
             )
-            .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
+            .map_err(AccountError::AccountComponentAssemblyError)?;
 
         let library = assembler
             .assemble_library(&[*module])
-            .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
+            .map_err(AccountError::AccountComponentAssemblyError)?;
 
         Ok(Self { library, storage_slots })
     }

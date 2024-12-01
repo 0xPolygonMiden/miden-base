@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::fmt;
 
 use vm_core::{FieldElement, WORD_SIZE};
@@ -70,7 +70,7 @@ impl NonFungibleAsset {
     /// Returns an error if the provided faucet ID is not for a non-fungible asset faucet.
     pub fn from_parts(faucet_id: AccountId, mut data_hash: Word) -> Result<Self, AssetError> {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
-            return Err(AssetError::NotANonFungibleFaucetId(faucet_id));
+            return Err(AssetError::NonFungibleFaucetIdTypeMismatch(faucet_id));
         }
         data_hash[FAUCET_ID_POS] = faucet_id.into();
 
@@ -129,11 +129,11 @@ impl NonFungibleAsset {
     /// - The most significant bit of the asset is not ZERO.
     fn validate(&self) -> Result<(), AssetError> {
         let faucet_id = AccountId::try_from(self.0[FAUCET_ID_POS])
-            .map_err(|e| AssetError::InvalidAccountId(e.to_string()))?;
+            .map_err(|err| AssetError::InvalidFaucetAccountId(Box::new(err)))?;
 
         let account_type = faucet_id.account_type();
         if !matches!(account_type, AccountType::NonFungibleFaucet) {
-            return Err(AssetError::NotAFungibleFaucetId(faucet_id, account_type));
+            return Err(AssetError::NonFungibleFaucetIdTypeMismatch(faucet_id));
         }
 
         Ok(())
@@ -232,7 +232,7 @@ impl NonFungibleAssetDetails {
     /// Returns an error if the provided faucet ID is not for a non-fungible asset faucet.
     pub fn new(faucet_id: AccountId, asset_data: Vec<u8>) -> Result<Self, AssetError> {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
-            return Err(AssetError::NotANonFungibleFaucetId(faucet_id));
+            return Err(AssetError::NonFungibleFaucetIdTypeMismatch(faucet_id));
         }
 
         Ok(Self { faucet_id, asset_data })
