@@ -13,7 +13,7 @@ mod map;
 pub use map::StorageMap;
 
 mod header;
-pub use header::AccountStorageHeader;
+pub use header::{AccountStorageHeader, StorageSlotHeader};
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -99,7 +99,7 @@ impl AccountStorage {
 
     /// Converts storage slots of this account storage into a vector of field elements.
     ///
-    /// This is done by first converting each procedure into exactly 8 elements as follows:
+    /// This is done by first converting each storage slot into exactly 8 elements as follows:
     /// ```text
     /// [STORAGE_SLOT_VALUE, storage_slot_type, 0, 0, 0]
     /// ```
@@ -252,7 +252,10 @@ impl AccountStorage {
 
 /// Converts given slots into field elements
 fn slots_as_elements(slots: &[StorageSlot]) -> Vec<Felt> {
-    slots.iter().flat_map(|slot| slot.as_elements()).collect()
+    slots
+        .iter()
+        .flat_map(|slot| StorageSlotHeader::from(slot).as_elements())
+        .collect()
 }
 
 /// Computes the commitment to the given slots

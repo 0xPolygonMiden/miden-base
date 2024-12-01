@@ -26,6 +26,7 @@ use miden_objects::{
         StorageSlot,
     },
     assets::NonFungibleAsset,
+    crypto::merkle::{LeafIndex, MerklePath},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
@@ -35,7 +36,7 @@ use miden_objects::{
         prepare_word, storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes, TransactionScript},
-    Digest, FieldElement,
+    FieldElement, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -1049,43 +1050,37 @@ fn test_fpi_execute_foreign_procedure() {
 // ================================================================================================
 
 fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
-    let foreign_id_root = Digest::from([foreign_account.id().into(), ZERO, ZERO, ZERO]);
-    let foreign_id_and_nonce = [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()];
-    let foreign_vault_root = foreign_account.vault().commitment();
-    let foreign_storage_root = foreign_account.storage().commitment();
-    let foreign_code_root = foreign_account.code().commitment();
-
-    let mut inputs = AdviceInputs::default()
-        .with_map([
-            // ACCOUNT_ID |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
-            (
-                foreign_id_root,
-                [
-                    &foreign_id_and_nonce,
-                    foreign_vault_root.as_elements(),
-                    foreign_storage_root.as_elements(),
-                    foreign_code_root.as_elements(),
-                ]
-                .concat(),
-            ),
-            // STORAGE_ROOT |-> [[STORAGE_SLOT_DATA]]
-            (foreign_storage_root, foreign_account.storage().as_elements()),
-            // CODE_ROOT |-> [[ACCOUNT_PROCEDURE_DATA]]
-            (foreign_code_root, foreign_account.code().as_elements()),
-        ])
-        .with_merkle_store(mock_chain.accounts().into());
+    let mut advice_inputs = AdviceInputs::default();
+    TransactionKernel::extend_advice_inputs_for_account(
+        &mut advice_inputs,
+        &foreign_account.clone().into(),
+        foreign_account.code(),
+        &foreign_account.storage().get_header(),
+        // Provide the merkle path of the foreign account to be able to verify that the account
+        // database has the hash of the this foreign account. Verification is done during the
+        // execution of the `kernel::account::validate_current_foreign_account` procedure.
+        &MerklePath::new(
+            mock_chain
+                .accounts()
+                .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().into()).unwrap())
+                .path
+                .into(),
+        ),
+    )
+    .unwrap();
 
     for slot in foreign_account.storage().slots() {
         // if there are storage maps, we populate the merkle store and advice map
         if let StorageSlot::Map(map) = slot {
             // extend the merkle store and map with the storage maps
-            inputs.extend_merkle_store(map.inner_nodes());
+            advice_inputs.extend_merkle_store(map.inner_nodes());
             // populate advice map with Sparse Merkle Tree leaf nodes
-            inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+            advice_inputs
+                .extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
         }
     }
 
-    inputs
+    advice_inputs
 }
 
 fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process<MockHost>) {

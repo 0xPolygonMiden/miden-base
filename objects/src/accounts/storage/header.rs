@@ -1,13 +1,50 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    ZERO,
+};
 use vm_processor::DeserializationError;
 
-use super::{AccountStorage, StorageSlotType, Word};
+use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
 use crate::AccountError;
 
 // ACCOUNT STORAGE HEADER
 // ================================================================================================
+
+/// Storage slot header is a lighter version of the [StorageSlot] storing only the type and the
+/// top-level value for the slot, and being, in fact, just a thin wrapper around a tuple.
+///
+/// That is, for complex storage slot (e.g., storage map), the header contains only the commitment
+/// to the underlying data.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StorageSlotHeader(StorageSlotType, Word);
+
+impl StorageSlotHeader {
+    /// Returns a new instance of storage slot header from the provided storage slot type and value.
+    pub fn new(value: &(StorageSlotType, Word)) -> Self {
+        Self(value.0, value.1)
+    }
+
+    /// Returns this storage slot header as field elements.
+    ///
+    /// This is done by converting this storage slot into 8 field elements as follows:
+    /// ```text
+    /// [SLOT_VALUE, slot_type, 0, 0, 0]
+    /// ```
+    pub fn as_elements(&self) -> [Felt; StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT] {
+        let mut elements = [ZERO; StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT];
+        elements[0..4].copy_from_slice(&self.1);
+        elements[4..8].copy_from_slice(&self.0.as_word());
+        elements
+    }
+}
+
+impl From<&StorageSlot> for StorageSlotHeader {
+    fn from(value: &StorageSlot) -> Self {
+        Self(value.slot_type(), value.value())
+    }
+}
 
 /// Account storage header is a lighter version of the [AccountStorage] storing only the type and
 /// the top-level value for each storage slot.
@@ -54,6 +91,20 @@ impl AccountStorageHeader {
             slots_len: self.slots.len() as u8,
             index: index as u8,
         })
+    }
+
+    /// Converts storage slots of this account storage header into a vector of field elements.
+    ///
+    /// This is done by first converting each storage slot into exactly 8 elements as follows:
+    /// ```text
+    /// [STORAGE_SLOT_VALUE, storage_slot_type, 0, 0, 0]
+    /// ```
+    /// And then concatenating the resulting elements into a single vector.
+    pub fn as_elements(&self) -> Vec<Felt> {
+        self.slots
+            .iter()
+            .flat_map(|slot| StorageSlotHeader::new(slot).as_elements())
+            .collect()
     }
 }
 
