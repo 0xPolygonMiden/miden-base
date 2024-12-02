@@ -1,7 +1,3 @@
----
-comments: true
----
-
 In Miden, users can create and trade arbitrary fungible and non-fungible assets.
 
 We differentiate between native and non-native assets in Miden. Native assets follow the Miden asset model. Non-native assets are all other data structures of value that can be exchanged.
@@ -29,13 +25,11 @@ The `faucet_id` identifies the faucet and starts with a different sequence depen
 
 Faucets can create assets and immediately distribute them by producing notes. However, assets can also stay in the faucet after creation to be sent later, e.g., in a bundle. That way, one can mint a million NFTs locally in a single transaction and then send them out as needed in separate transactions in the future.
 
-<center>
 ![Architecture core concepts](../img/architecture/asset/asset-issuance.png)
-</center>
 
 ### Fungible assets
 
-A fungible asset is encoded using the amount and the `faucet_id` of the faucet which issued the asset. The amount is guaranteed to be  `$2^{63} - 1$` or smaller, the maximum supply for any fungible asset. Examples of fungible assets are ETH and stablecoins, e.g., DAI, USDT, and USDC.
+A fungible asset is encoded using the amount and the `faucet_id` of the faucet which issued the asset. The amount is guaranteed to be  `$2^{63} - 1$ or smaller, the maximum supply for any fungible asset. Examples of fungible assets are ETH and stablecoins, e.g., DAI, USDT, and USDC.
 
 If the `faucet_id` of MATIC is `2`, 100 MATIC are encoded as `[100, 0, 0, 2]`; the `0`s in the middle distinguish between fungible and non-fungible assets.
 
@@ -49,9 +43,7 @@ Examples of non-fungible assets are all NFTs, e.g., a DevCon ticket. The ticket'
 
 [Accounts](accounts.md) and [notes](notes.md) contain asset vaults that are used to store assets. Accounts can keep unlimited assets in a sparse Merkle tree called `account vault`. Notes can store up to `255` distinct assets.
 
-<center>
 ![Architecture core concepts](../img/architecture/asset/asset-storage.png)
-</center>
 
 The information on which and how many assets are owned can be private depending on the account's or note's storage mode. This is true for any native asset in Miden.
 

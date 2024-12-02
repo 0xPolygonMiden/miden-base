@@ -2,7 +2,7 @@
 
 A rollup for high-throughput, private applications.
 
-Using Polygon Miden, builders can create novel, high-throughput, private applications for payments, DeFi, digital assets and gaming. Applications and users are secured by Ethereum and AggLayer.
+Using Polygon Miden, builders can create novel, high-throughput, private applications for payments, DeFi, digital assets, and gaming. Applications and users are secured by Ethereum and AggLayer.
 
 If you want to join the technical discussion, please check out the following:
 
@@ -10,18 +10,18 @@ If you want to join the technical discussion, please check out the following:
 * [Miden repo](https://github.com/0xPolygonMiden)
 * [Roadmap](introduction/roadmap.md)
 
-!!! info
-    - These docs are still work-in-progress. 
-    - Some topics have been discussed in greater depth, while others require additional clarification. 
+> **Info**
+> - These docs are still work-in-progress. 
+> - Some topics have been discussed in greater depth, while others require additional clarification.
 
 ## Status and features
 
-Polygon Miden is currently on release v0.6. This is an early version of the protocol and its components. 
+Polygon Miden is currently on release v0.7. This is an early version of the protocol and its components. 
 
-!!! important
-    We expect breaking changes on all components.
+> **Important**
+> We expect breaking changes on all components.
 
-At the time of writing, Polygon Miden doesn't offer all the features you may expect from a zkRollup. During 2024, we expect to gradually implement more features. 
+At the time of writing, Polygon Miden doesn't offer all the features you may expect from a zkRollup. During 2024, we expect to gradually implement more features.
 
 ### Feature highlights
 
@@ -35,19 +35,19 @@ Like private accounts, the Miden operator only tracks a commitment to notes in t
 
 #### Public accounts
 
-Polygon Miden supports public smart contracts like Ethereum. The code and state of those accounts is visible to the network and anyone can execute transactions against them.
+Polygon Miden supports public smart contracts like Ethereum. The code and state of those accounts are visible to the network and anyone can execute transactions against them.
 
 #### Public notes
 
 As with public accounts, public notes are also supported. That means, the Miden operator publicly stores note data. Note consumption is not private.
 
-#### Local transaction execution 
+#### Local transaction execution
 
 The Miden client allows for local transaction execution and proving. The Miden operator verifies the proof and, if valid, updates the state DBs with the new data.
 
 #### Simple smart contracts
 
-Currently, there are three different smart contracts available. A basic wallet smart contract that sends and receives assets, and fungible and non-fungible faucets to mint and burn assets. 
+Currently, there are three different smart contracts available. A basic wallet smart contract that sends and receives assets, and fungible and non-fungible faucets to mint and burn assets.
 
 All accounts are written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html).
 
@@ -57,7 +57,7 @@ Currently, there are three different note scripts available. Two different versi
 
 #### Simple block building
 
-The Miden operator running the Miden node builds the blocks containing transactions. 
+The Miden operator running the Miden node builds the blocks containing transactions.
 
 #### Maintaining state
 
@@ -65,8 +65,8 @@ The Miden node stores all necessary information in its state DBs and provides th
 
 ### Planned features
 
-!!! warning
-    The following features are at a planning stage only.
+> **Warning**
+> The following features are at a planning stage only.
 
 #### Customized smart contracts
 
