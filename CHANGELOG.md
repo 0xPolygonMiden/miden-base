@@ -19,6 +19,7 @@
 - [BREAKING] Added `miden::note::get_script_hash` procedure (#995).
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005).
 - Removed workers list from the proxy configuration file (#1018).
+- [BREAKING] Moved the duplicate `masm` procedures to the `utils` module (#1002).
 
 ## 0.6.2 (2024-11-20)
 

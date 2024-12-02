@@ -1,3 +1,5 @@
+use.utils::account->account_utils
+
 use.kernel::account
 
 # ERRORS
@@ -36,18 +38,6 @@ const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 # is used to identify the asset type
 const.FUNGIBLE_BITMASK_U32=0x20000000
 
-#! Returns the maximum amount of a fungible asset.
-#!
-#! Inputs:  []
-#! Outputs: [fungible_asset_max_amount]
-#!
-#! Where:
-#! - fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.get_fungible_asset_max_amount
-    push.FUNGIBLE_ASSET_MAX_AMOUNT
-    # => [fungible_asset_max_amount]
-end
-
 # PROCEDURES
 # =================================================================================================
 
@@ -75,7 +65,7 @@ export.validate_fungible_asset
     # => [ASSET]
 
     # assert that ASSET[3] is a fungible faucet
-    dup exec.account::is_fungible_faucet 
+    dup exec.account_utils::is_fungible_faucet 
     assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
@@ -117,7 +107,7 @@ export.validate_non_fungible_asset
     # => [ASSET]
 
     # assert that ASSET[1] is a fungible faucet
-    dup.2 exec.account::is_non_fungible_faucet 
+    dup.2 exec.account_utils::is_non_fungible_faucet 
     assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 

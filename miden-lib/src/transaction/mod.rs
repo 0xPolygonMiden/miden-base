@@ -14,7 +14,7 @@ use miden_objects::{
 use miden_stdlib::StdLibrary;
 use outputs::EXPIRATION_BLOCK_ELEMENT_IDX;
 
-use super::MidenLib;
+use super::{MidenLib, UtilsLib};
 
 pub mod memory;
 
@@ -120,6 +120,8 @@ impl TransactionKernel {
             .expect("failed to load std-lib")
             .with_library(MidenLib::default())
             .expect("failed to load miden-lib")
+            .with_library(UtilsLib::default())
+            .expect("failed to load utils lib")
     }
 
     // STACK INPUTS / OUTPUTS
@@ -355,6 +357,8 @@ impl TransactionKernel {
         Assembler::with_kernel(source_manager, Self::kernel())
             .with_library(StdLibrary::default())
             .expect("failed to load std-lib")
+            .with_library(UtilsLib::default())
+            .expect("failed to load utils library")
             .with_library(MidenLib::default())
             .expect("failed to load miden-lib")
             .with_library(kernel_library)

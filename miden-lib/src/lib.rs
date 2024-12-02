@@ -15,6 +15,9 @@ use miden_objects::{
 mod auth;
 pub use auth::AuthScheme;
 
+mod utils_lib;
+pub use utils_lib::UtilsLib;
+
 pub mod accounts;
 pub mod errors;
 pub mod notes;
