@@ -234,7 +234,7 @@ impl FungibleAssetDelta {
     }
 
     /// Returns the number of fungible assets affected in the delta.
-    pub fn count(&self) -> usize {
+    pub fn num_assets(&self) -> usize {
         self.0.len()
     }
 
@@ -376,7 +376,7 @@ impl NonFungibleAssetDelta {
     }
 
     /// Returns the number of non-fungible assets affected in the delta.
-    pub fn count(&self) -> usize {
+    pub fn num_assets(&self) -> usize {
         self.0.len()
     }
 
