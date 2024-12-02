@@ -43,6 +43,8 @@ To import the note procedures, set `use.miden::note` at the beginning of the fil
 | `get_inputs`          | `[dest_ptr]`               | `[dest_ptr]`             | note    | <ul> <li>Writes the inputs of the currently executed note into memory starting at the specified address, `dest_ptr`. </li> </ul>                                                                                 |
 | `get_sender`          | `[]`                       | `[sender]`               | note    | <ul> <li>Returns the `sender` of the note currently being processed. Panics if a note is not being processed. </li> </ul>                                                                                        |
 | `compute_inputs_hash` | `[inputs_ptr, num_inputs]` | `[HASH]`                 | note    | <ul> <li>Computes hash of note inputs starting at the specified memory address.</li> </ul>                                                                                                                       |
+| `get_note_serial_number`| `[]`                     | `[SERIAL_NUMBER]`        | note    | <ul> <li>Returns the serial number of the note currently being processed.</li> </ul>                                                                                                                          |
+| `get_script_hash`       | `[]`                     | `[SCRIPT_HASH]`          | note    | <ul> <li>Returns the script hash of the note currently being processed.</li> </ul>                                                                                                                            |
 
 ### Tx
 
