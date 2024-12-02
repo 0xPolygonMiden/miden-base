@@ -267,6 +267,11 @@ impl Deserializable for BlockHeader {
     }
 }
 
+/// Returns the block number of the epoch block for the given `epoch`.
+pub const fn block_num_from_epoch(epoch: u16) -> u32 {
+    (epoch as u32) << BlockHeader::EPOCH_LENGTH_EXPONENT
+}
+
 #[cfg(test)]
 mod tests {
     use vm_core::Word;
