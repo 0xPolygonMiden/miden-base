@@ -16,14 +16,14 @@ Miden is a zero-knowledge rollup for high-throughput and private applications. M
 
 If you want to join the technical discussion or learn more about the project, please check out
 
-* the [Documentation](https://docs.polygon.technology/miden/).
+* the [Documentation](https://0xpolygonmiden.github.io/miden-docs).
 * the [Discord](https://discord.gg/0xpolygonrnd)
 * the [Repo](https://github.com/0xPolygonMiden)
-* the [Roadmap](roadmap.md)
+* the [Roadmap](docs/roadmap.md)
 
 ## Status and features
 
-Polygon Miden is currently on release v0.6. This is an early version of the protocol and its components. We expect to keep making changes (including breaking changes) to all components.
+Polygon Miden is currently on release v0.7. This is an early version of the protocol and its components. We expect to keep making changes (including breaking changes) to all components.
 
 ### Feature highlights
 
