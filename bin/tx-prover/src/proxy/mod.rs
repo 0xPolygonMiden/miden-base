@@ -12,14 +12,12 @@ use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::{error, info};
+use uuid::Uuid;
 
 use crate::{
     commands::ProxyConfig,
     utils::{create_queue_full_response, create_too_many_requests_response},
 };
-
-/// The interval between attempts to check for available workers.
-const WORKER_CHECK_INTERVAL_MILLIS: Duration = Duration::from_millis(20);
 
 // LOAD BALANCER
 // ================================================================================================
@@ -32,6 +30,7 @@ pub struct LoadBalancer {
     max_queue_items: usize,
     max_retries_per_request: usize,
     max_req_per_sec: isize,
+    available_workers_polling_time: Duration,
 }
 
 impl LoadBalancer {
@@ -44,6 +43,9 @@ impl LoadBalancer {
             max_queue_items: config.max_queue_items,
             max_retries_per_request: config.max_retries_per_request,
             max_req_per_sec: config.max_req_per_sec,
+            available_workers_polling_time: Duration::from_millis(
+                config.available_workers_polling_time_ms,
+            ),
         }
     }
 
@@ -75,7 +77,7 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 /// Request queue holds the list of requests that are waiting to be processed by the workers.
 /// It is used to keep track of the order of the requests to then assign them to the workers.
 pub struct RequestQueue {
-    queue: RwLock<VecDeque<u128>>,
+    queue: RwLock<VecDeque<Uuid>>,
 }
 
 impl RequestQueue {
@@ -90,19 +92,19 @@ impl RequestQueue {
     }
 
     /// Enqueue a request
-    pub async fn enqueue(&self, request_id: u128) {
+    pub async fn enqueue(&self, request_id: Uuid) {
         let mut queue = self.queue.write().await;
         queue.push_back(request_id);
     }
 
     /// Dequeue a request
-    pub async fn dequeue(&self) -> Option<u128> {
+    pub async fn dequeue(&self) -> Option<Uuid> {
         let mut queue = self.queue.write().await;
         queue.pop_front()
     }
 
     /// Peek at the first request in the queue
-    pub async fn peek(&self) -> Option<u128> {
+    pub async fn peek(&self) -> Option<Uuid> {
         let queue = self.queue.read().await;
         queue.front().copied()
     }
@@ -121,7 +123,7 @@ pub struct RequestContext {
     /// Number of tries for the request
     tries: usize,
     /// Unique ID for the request
-    request_id: u128,
+    request_id: Uuid,
     /// Worker that will process the request
     worker: Option<Backend>,
 }
@@ -131,7 +133,7 @@ impl RequestContext {
     fn new() -> Self {
         Self {
             tries: 0,
-            request_id: rand::random::<u128>(),
+            request_id: Uuid::new_v4(),
             worker: None,
         }
     }
@@ -232,7 +234,7 @@ impl ProxyHttp for LoadBalancer {
                 break;
             }
             info!("All workers are busy");
-            tokio::time::sleep(WORKER_CHECK_INTERVAL_MILLIS).await;
+            tokio::time::sleep(self.available_workers_polling_time).await;
         }
 
         // Remove the request from the queue

@@ -30,6 +30,8 @@ pub struct ProxyConfig {
     pub max_retries_per_request: usize,
     /// Maximum number of requests per second per IP address.
     pub max_req_per_sec: isize,
+    /// Time in milliseconds to poll available workers.
+    pub available_workers_polling_time_ms: u64,
 }
 
 impl Default for ProxyConfig {
@@ -43,6 +45,7 @@ impl Default for ProxyConfig {
             max_queue_items: 10,
             max_retries_per_request: 1,
             max_req_per_sec: 5,
+            available_workers_polling_time_ms: 20,
         }
     }
 }
