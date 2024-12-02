@@ -285,6 +285,10 @@ pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     #[error("account seed must not be provided for existing accounts")]
     AccountSeedProvidedForExistingAccount,
+    #[error(
+        "epoch block header for epoch {0} must be provided in the chain mmr for the new account"
+    )]
+    EpochBlockHeaderNotProvidedForNewAccount(u16),
     #[error("transaction input note with nullifier {0} is a duplicate")]
     DuplicateInputNote(Nullifier),
     #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]

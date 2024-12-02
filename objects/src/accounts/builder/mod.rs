@@ -124,10 +124,7 @@ impl AccountBuilder {
     }
 
     /// Builds the common parts of testing and non-testing code.
-    fn build_inner(
-        &self,
-    ) -> Result<([u8; 32], u16, AssetVault, AccountCode, AccountStorage, Digest), AccountError>
-    {
+    fn build_inner(&self) -> Result<AccountParts, AccountError> {
         let init_seed = self.init_seed.ok_or(AccountError::BuildError(
             "init_seed must be set on the account builder".into(),
             None,
@@ -165,7 +162,14 @@ impl AccountBuilder {
                 },
             )?;
 
-        Ok((init_seed, block_epoch, vault, code, storage, self.block_hash))
+        Ok(AccountParts {
+            init_seed,
+            block_epoch,
+            vault,
+            code,
+            storage,
+            block_hash: self.block_hash,
+        })
     }
 
     /// Grinds a new [`AccountId`] using the `init_seed` as a starting point.
@@ -209,7 +213,14 @@ impl AccountBuilder {
     /// - If duplicate assets were added to the builder (only under the `testing` feature).
     /// - If the vault is not empty on new accounts (only under the `testing` feature).
     pub fn build(self) -> Result<(Account, Word), AccountError> {
-        let (init_seed, block_epoch, vault, code, storage, block_hash) = self.build_inner()?;
+        let AccountParts {
+            init_seed,
+            block_epoch,
+            vault,
+            code,
+            storage,
+            block_hash,
+        } = self.build_inner()?;
 
         #[cfg(any(feature = "testing", test))]
         if !vault.is_empty() {
@@ -257,7 +268,7 @@ impl AccountBuilder {
     ///
     /// For possible errors, see the documentation of [`Self::build`].
     pub fn build_existing(self) -> Result<Account, AccountError> {
-        let (init_seed, _block_epoch, vault, code, storage, _block_hash) = self.build_inner()?;
+        let AccountParts { init_seed, vault, code, storage, .. } = self.build_inner()?;
 
         let account_id = {
             let bytes = <[u8; 15]>::try_from(&init_seed[0..15])
@@ -273,6 +284,19 @@ impl Default for AccountBuilder {
     fn default() -> Self {
         Self::new()
     }
+}
+
+// HELPERS
+// ================================================================================================
+
+/// Helper struct which defines the parts of a partially built account.
+struct AccountParts {
+    init_seed: [u8; 32],
+    block_epoch: u16,
+    vault: AssetVault,
+    code: AccountCode,
+    storage: AccountStorage,
+    block_hash: Digest,
 }
 
 // TESTS
