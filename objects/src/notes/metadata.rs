@@ -153,14 +153,18 @@ impl Deserializable for NoteMetadata {
 /// The layout is as follows:
 ///
 /// ```text
-/// [account_id_second_felt (56 bits) | note_type (3 bits) | note_execution_hint_tag (5 bits)]
+/// [account_id_second_felt (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
 /// ```
+///
+/// One of the upper 16 bits is guaranteed to be zero due to the guarantees of the epoch in the
+/// account id.
 fn merge_id_type_and_hint_tag(
     sender_id_second_felt: Felt,
     note_type: NoteType,
     note_execution_hint: NoteExecutionHint,
 ) -> Felt {
-    let mut merged = sender_id_second_felt.as_int().to_be_bytes();
+    let mut merged = sender_id_second_felt.as_int();
+
     let type_bits = note_type as u8;
     let (tag_bits, _) = note_execution_hint.into_parts();
 
@@ -170,29 +174,31 @@ fn merge_id_type_and_hint_tag(
         "note execution hint tag must not contain values >= 64"
     );
 
-    // Note: The 8th byte of the second AccountId felt is zero by construction.
-    merged[7] |= type_bits << 6;
-    merged[7] |= tag_bits;
+    // Note: The least significant byte of the second AccountId felt is zero by construction so we
+    // can overwrite it.
+    merged |= (type_bits << 6) as u64;
+    merged |= tag_bits as u64;
 
     // SAFETY: One of the top 16 bits of the second felt is zero by construction so the bytes will
     // be a valid felt.
-    Felt::try_from(merged.as_slice()).expect("encoded value should be a valid felt")
+    Felt::try_from(merged).expect("encoded value should be a valid felt")
 }
 
 fn unmerge_id_type_and_hint_tag(element: Felt) -> Result<(Felt, NoteType, u8), NoteError> {
     let element = element.as_int();
 
-    let sender_id_second_felt = element & 0xffff_ffff_ffff_ff00;
-    let least_significant_byte = (element & 0xff) as u8;
-    let note_type_bits = least_significant_byte & 0b1100_0000;
+    let least_significant_byte = (element & 0x0000_0000_0000_00ff) as u8;
+    let note_type_bits = (least_significant_byte & 0b1100_0000) >> 6;
     let tag_bits = least_significant_byte & 0b0011_1111;
 
     let note_type = NoteType::try_from(note_type_bits)?;
 
-    // SAFETY: The input element was valid and and we cleared additional bits and did not set any
+    // Set least significant byte to zero.
+    let element = element & 0xffff_ffff_ffff_ff00;
+
+    // SAFETY: The input was a valid felt and and we cleared additional bits and did not set any
     // bits, so it must still be a valid felt.
-    let sender_id_second_felt =
-        Felt::try_from(sender_id_second_felt).expect("element should still be valid");
+    let sender_id_second_felt = Felt::try_from(element).expect("element should still be valid");
 
     Ok((sender_id_second_felt, note_type, tag_bits))
 }
@@ -204,6 +210,8 @@ fn unmerge_id_type_and_hint_tag(element: Felt) -> Result<(Felt, NoteType, u8), N
 /// ```text
 /// [note_execution_hint_payload (32 bits) | note_tag (32 bits)]
 /// ```
+///
+/// One of the upper 32 bits is guaranteed to be zero.
 fn merge_note_tag_and_hint_payload(
     note_execution_hint: NoteExecutionHint,
     note_tag: NoteTag,
@@ -211,11 +219,17 @@ fn merge_note_tag_and_hint_payload(
     let (_, payload) = note_execution_hint.into_parts();
     let note_tag: u32 = note_tag.into();
 
-    let felt_bytes = ((payload as u64) << 32) | (note_tag as u64);
+    debug_assert_ne!(
+        payload,
+        u32::MAX,
+        "payload should never be u32::MAX as it would produce an invalid felt"
+    );
+
+    let felt_int = ((payload as u64) << 32) | (note_tag as u64);
 
     // SAFETY: The payload is guaranteed to never be u32::MAX so at least one of the upper 32 bits
-    // is zero, hence the felt is valid even if note_tag u32::MAX.
-    Felt::try_from(felt_bytes).expect("bytes should be a valid felt")
+    // is zero, hence the felt is valid even if note_tag is u32::MAX.
+    Felt::try_from(felt_int).expect("bytes should be a valid felt")
 }
 
 fn unmerge_note_tag_and_hint_payload(
@@ -239,42 +253,79 @@ fn unmerge_note_tag_and_hint_payload(
 #[cfg(test)]
 mod tests {
 
-    // use super::*;
+    use anyhow::Context;
 
-    // TODO: Refactor once decided whether we go with full or prefix account ID.
-    // #[test]
-    // fn test_merge_and_unmerge() {
-    //     let note_type = NoteType::Public;
-    //     let note_execution_hint = NoteExecutionHint::OnBlockSlot {
-    //         epoch_len: 10,
-    //         slot_len: 11,
-    //         slot_offset: 12,
-    //     };
+    use super::*;
+    use crate::{accounts::testing::ACCOUNT_ID_MAX_ONES, notes::NoteExecutionMode};
 
-    //     let merged_value = merge_type_and_hint(note_type, note_execution_hint);
-    //     let (extracted_note_type, extracted_note_execution_hint) =
-    //         unmerge_type_and_hint(merged_value).unwrap();
+    #[test]
+    fn note_metadata_serde() -> anyhow::Result<()> {
+        // Use the Account ID with the maximum one bits to test if the merge function always
+        // produces valid felts.
+        let sender = AccountId::try_from(ACCOUNT_ID_MAX_ONES).unwrap();
+        let note_type = NoteType::Public;
+        let tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local).unwrap();
+        let aux = Felt::try_from(0xffff_ffff_0000_0000u64).unwrap();
 
-    //     assert_eq!(note_type, extracted_note_type);
-    //     assert_eq!(note_execution_hint, extracted_note_execution_hint);
+        for execution_hint in [
+            NoteExecutionHint::always(),
+            NoteExecutionHint::none(),
+            NoteExecutionHint::on_block_slot(10, 11, 12),
+            NoteExecutionHint::after_block(u32::MAX - 1).unwrap(),
+        ] {
+            let metadata = NoteMetadata::new(sender, note_type, tag, execution_hint, aux).unwrap();
+            NoteMetadata::read_from_bytes(&metadata.to_bytes())
+                .context(format!("failed for execution hint {execution_hint:?}"))?;
+        }
 
-    //     let note_type = NoteType::Private;
-    //     let note_execution_hint = NoteExecutionHint::Always;
+        Ok(())
+    }
 
-    //     let merged_value = merge_type_and_hint(note_type, note_execution_hint);
-    //     let (extracted_note_type, extracted_note_execution_hint) =
-    //         unmerge_type_and_hint(merged_value).unwrap();
+    #[test]
+    fn merge_and_unmerge_id_type_and_hint() {
+        // Use the Account ID with the maximum one bits to test if the merge function always
+        // produces valid felts.
+        let sender = AccountId::try_from(ACCOUNT_ID_MAX_ONES).unwrap();
+        let sender_second_felt = sender.second_felt();
 
-    //     assert_eq!(note_type, extracted_note_type);
-    //     assert_eq!(note_execution_hint, extracted_note_execution_hint);
+        let note_type = NoteType::Public;
+        let note_execution_hint = NoteExecutionHint::OnBlockSlot {
+            epoch_len: 10,
+            slot_len: 11,
+            slot_offset: 12,
+        };
 
-    //     let note_type = NoteType::Private;
-    //     let note_execution_hint = NoteExecutionHint::None;
+        let merged_value =
+            merge_id_type_and_hint_tag(sender_second_felt, note_type, note_execution_hint);
+        let (extracted_second_felt, extracted_note_type, extracted_note_execution_hint_tag) =
+            unmerge_id_type_and_hint_tag(merged_value).unwrap();
 
-    //     let merged_value = merge_type_and_hint(note_type, note_execution_hint);
-    //     let (extracted_note_type, extracted_note_execution_hint) =
-    //         unmerge_type_and_hint(merged_value).unwrap();
-    //     assert_eq!(note_type, extracted_note_type);
-    //     assert_eq!(note_execution_hint, extracted_note_execution_hint);
-    // }
+        assert_eq!(note_type, extracted_note_type);
+        assert_eq!(note_execution_hint.into_parts().0, extracted_note_execution_hint_tag);
+        assert_eq!(sender_second_felt, extracted_second_felt);
+
+        let note_type = NoteType::Private;
+        let note_execution_hint = NoteExecutionHint::Always;
+
+        let merged_value =
+            merge_id_type_and_hint_tag(sender_second_felt, note_type, note_execution_hint);
+        let (extracted_second_felt, extracted_note_type, extracted_note_execution_hint_tag) =
+            unmerge_id_type_and_hint_tag(merged_value).unwrap();
+
+        assert_eq!(note_type, extracted_note_type);
+        assert_eq!(note_execution_hint.into_parts().0, extracted_note_execution_hint_tag);
+        assert_eq!(sender_second_felt, extracted_second_felt);
+
+        let note_type = NoteType::Private;
+        let note_execution_hint = NoteExecutionHint::None;
+
+        let merged_value =
+            merge_id_type_and_hint_tag(sender_second_felt, note_type, note_execution_hint);
+        let (extracted_second_felt, extracted_note_type, extracted_note_execution_hint_tag) =
+            unmerge_id_type_and_hint_tag(merged_value).unwrap();
+
+        assert_eq!(note_type, extracted_note_type);
+        assert_eq!(note_execution_hint.into_parts().0, extracted_note_execution_hint_tag);
+        assert_eq!(sender_second_felt, extracted_second_felt);
+    }
 }

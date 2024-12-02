@@ -685,12 +685,21 @@ pub mod testing {
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdd_eeff);
 
+    // TEST ACCOUNT IDs WITH CERTAIN PROPERTIES
+    /// The Account Id with the maximum possible one bits.
+    pub const ACCOUNT_ID_MAX_ONES: u128 =
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0)
+            | 0x7fff_ffff_ffff_ff00_7fff_ffff_ffff_ff00;
+    /// The Account Id with the maximum possible zeroe bits.
+    pub const ACCOUNT_ID_MAX_ZEROES: u128 =
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0x001f_0000);
+
     // UTILITIES
     // --------------------------------------------------------------------------------------------
 
     /// Produces a valid account ID with the given account type and storage mode.
     ///
-    /// - Version ist set to 0.
+    /// - Version is set to 0.
     /// - Epoch is set to 0.
     /// - The 2nd most significant bit is set to 1, so it is easier to test the note_tag, for
     ///   example.

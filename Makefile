@@ -10,6 +10,8 @@ WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
 BUILD_KERNEL_ERRORS=BUILD_KERNEL_ERRORS=1
+# Enable backtraces for tests where we return an anyhow::Result which contains a `Backtrace`.
+BACKTRACE=RUST_BACKTRACE=1
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -56,12 +58,12 @@ test-build: ## Build the test binary
 
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
-	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
+	$(DEBUG_ASSERTIONS),$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
 
 
 .PHONY: test-prove
 test-prove: ## Run `prove` tests (tests which use the Miden prover)
-	$(DEBUG_ASSERTIONS) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
+	$(DEBUG_ASSERTIONS),$(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
 
 
 .PHONY: test
