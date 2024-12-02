@@ -145,7 +145,7 @@ pub enum AssetError {
         other_issuer: AccountId,
     },
     #[error("faucet account id in asset is invalid")]
-    InvalidFaucetAccountId(#[source] Box<dyn Error + Send>),
+    InvalidFaucetAccountId(#[source] Box<dyn Error + Send + Sync>),
     #[error(
       "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for fungible assets",
       id_type = .0.account_type(),
