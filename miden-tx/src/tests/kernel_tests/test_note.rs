@@ -7,7 +7,7 @@ use miden_lib::{
 use miden_objects::{
     notes::Note, testing::prepare_word, transaction::TransactionArgs, Hasher, WORD_SIZE,
 };
-use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
+use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 
 use super::{Felt, Process, ZERO};
 use crate::{
@@ -540,6 +540,6 @@ fn test_get_current_script_hash() {
 
     let process = tx_context.execute_code(code).unwrap();
 
-    let script_hash: Word = tx_context.input_notes().get_note(0).note().script().hash().into();
-    assert_eq!(process.stack.get_word(0), script_hash);
+    let script_hash = tx_context.input_notes().get_note(0).note().script().hash();
+    assert_eq!(process.stack.get_word(0), script_hash.as_elements());
 }
