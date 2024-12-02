@@ -9,7 +9,7 @@ use init::Init;
 use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
-use update_workers::UpdateWorkers;
+use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
 
 pub mod init;
@@ -74,6 +74,10 @@ impl ProxyConfig {
             .map_err(|err| format!("Failed to load {} config file: {err}", config_path.display()))
     }
 
+    /// Saves the configuration to the config file
+    ///
+    /// This method will serialize the configuration to a TOML string and write it to the file with
+    /// the name defined at the [PROVER_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
     pub(crate) fn save_to_config_file(&self) -> Result<(), String> {
         let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
         current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
@@ -137,11 +141,16 @@ pub enum Command {
     StartWorker(StartWorker),
     /// Starts the proxy defined in the config file.
     StartProxy(StartProxy),
-    /// Updates the workers defined in the config file.
+    /// Adds workers to the proxy.
     ///
-    /// This method will make a request to the proxy defined in the config file to update the
-    /// workers. It will update the configuration file with the new list of workers.
-    UpdateWorkers(UpdateWorkers),
+    /// This method will make a request to the proxy defined in the config file to add workers. It
+    /// will update the configuration file with the new list of workers.
+    AddWorkers(AddWorkers),
+    /// Removes workers from the proxy.
+    ///
+    /// This method will make a request to the proxy defined in the config file to remove workers.
+    /// It will update the configuration file with the new list of workers.
+    RemoveWorkers(RemoveWorkers),
 }
 
 /// CLI entry point
@@ -159,7 +168,14 @@ impl Cli {
                 // Init does not require async, so run directly
                 init.execute()
             },
-            Command::UpdateWorkers(update_workers) => update_workers.execute(),
+            Command::AddWorkers(update_workers) => {
+                let update_workers: UpdateWorkers = update_workers.clone().into();
+                update_workers.execute()
+            },
+            Command::RemoveWorkers(update_workers) => {
+                let update_workers: UpdateWorkers = update_workers.clone().into();
+                update_workers.execute()
+            },
         }
     }
 }

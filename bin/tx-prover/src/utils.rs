@@ -47,17 +47,23 @@ pub async fn create_too_many_requests_response(
     Ok(true)
 }
 
+/// Create a 200 response for updated workers
+///
+/// It will set the X-Worker-Count header to the number of workers.
 pub async fn create_workers_updated_response(
     session: &mut Session,
     workers: usize,
 ) -> pingora_core::Result<bool> {
     let mut header = ResponseHeader::build(200, None)?;
-    header.insert_header("X-Workers-Amount", workers.to_string())?;
+    header.insert_header("X-Worker-Count", workers.to_string())?;
     session.set_keepalive(None);
     session.write_response_header(Box::new(header), true).await?;
     Ok(true)
 }
 
+/// Create a 400 response with an error message
+///
+/// It will set the X-Error-Message header to the error message.
 pub async fn create_response_with_error_message(
     session: &mut Session,
     error_msg: String,

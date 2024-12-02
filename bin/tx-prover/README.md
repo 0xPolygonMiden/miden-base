@@ -83,19 +83,19 @@ At the moment, when a worker added to the proxy stops working and can not connec
 
 ## Updating workers on a running proxy
 
-To update the workers on a running proxy, you can use the `update-workers` command. This command will update the workers on the proxy and will not require a restart. To use this command, you will need to run:
+To update the workers on a running proxy, two commands are provided: `add-worker` and `remove-worker`. These commands will update the workers on the proxy and will not require a restart. To use these commands, you will need to run:
 
 ```bash
-miden-tx-prover update-workers [add|remove] [worker1] [worker2] ... [workerN]
+miden-tx-prover add-worker [worker1] [worker2] ... [workerN]
+miden-tx-prover remove-worker [worker1] [worker2] ... [workerN]
 ```
-
 For example:
 
 ```bash
 # To add 0.0.0.0:8085 and 200.58.70.4:50051 to the workers list:
-miden-tx-prover update-workers add 0.0.0.0:8085 200.58.70.4:50051
+miden-tx-prover add-workers 0.0.0.0:8085 200.58.70.4:50051
 # To remove 158.12.12.3:8080 and 122.122.6.6:50051 from the workers list:
-miden-tx-prover update-workers remove 158.12.12.3:8080 122.122.6.6:50051
+miden-tx-prover remove-workers 158.12.12.3:8080 122.122.6.6:50051
 ```
 
 This changes will be persisted to the configuration file.

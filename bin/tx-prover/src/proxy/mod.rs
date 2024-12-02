@@ -25,13 +25,41 @@ use crate::{
     },
 };
 
+/// Localhost address
+const LOCALHOST_ADDR: &str = "127.0.0.1";
+
+// WORKER
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Worker {
+    worker: Backend,
+    is_available: bool,
+}
+
+impl Worker {
+    pub fn new(worker: Backend) -> Self {
+        Self { worker, is_available: true }
+    }
+}
+
+impl TryInto<WorkerConfig> for &Worker {
+    type Error = String;
+
+    fn try_into(self) -> std::result::Result<WorkerConfig, String> {
+        self.worker
+            .as_inet()
+            .ok_or_else(|| "Failed to get worker address".to_string())
+            .map(|worker_addr| WorkerConfig::new(&worker_addr.ip().to_string(), worker_addr.port()))
+    }
+}
+
 // LOAD BALANCER
 // ================================================================================================
 
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
-    available_workers: Arc<RwLock<Vec<Backend>>>,
-    current_workers: Arc<RwLock<Vec<Backend>>>,
+    workers: Arc<RwLock<Vec<Worker>>>,
     timeout_secs: Duration,
     connection_timeout_secs: Duration,
     max_queue_items: usize,
@@ -43,9 +71,10 @@ pub struct LoadBalancer {
 impl LoadBalancer {
     /// Create a new load balancer
     pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
+        let workers: Vec<Worker> = workers.into_iter().map(Worker::new).collect();
+
         Self {
-            available_workers: Arc::new(RwLock::new(workers.clone())),
-            current_workers: Arc::new(RwLock::new(workers)),
+            workers: Arc::new(RwLock::new(workers.clone())),
             timeout_secs: Duration::from_secs(config.timeout_secs),
             connection_timeout_secs: Duration::from_secs(config.connection_timeout_secs),
             max_queue_items: config.max_queue_items,
@@ -57,22 +86,24 @@ impl LoadBalancer {
         }
     }
 
-    /// Gets an available worker and removes it from the list of available workers.
+    /// Gets an available worker and marks it as unavailable.
     ///
     /// If no worker is available, it will return None.
-    pub async fn pop_available_worker(&self) -> Option<Backend> {
-        self.available_workers.write().await.pop()
+    pub async fn pop_available_worker(&self) -> Option<Worker> {
+        let mut available_workers = self.workers.write().await;
+        available_workers.iter_mut().find(|w| w.is_available).map(|w| {
+            w.is_available = false;
+            w.clone()
+        })
     }
 
-    /// Adds a worker to the list of available workers.
+    /// Marks the given worker as available.
     ///
-    /// If the worker is already in the list of available workers, it won't be added.
-    /// If the worker is not in the list of current workers, it won't be added.
+    /// If the worker is not in the list, it won't be added.
     pub async fn add_available_worker(&self, worker: Backend) {
-        let mut available_workers = self.available_workers.write().await;
-        let current_workers = self.current_workers.read().await;
-        if !available_workers.contains(&worker) && current_workers.contains(&worker) {
-            available_workers.push(worker);
+        let mut available_workers = self.workers.write().await;
+        if let Some(w) = available_workers.iter_mut().find(|w| w.worker == worker) {
+            w.is_available = true;
         }
     }
 
@@ -82,52 +113,47 @@ impl LoadBalancer {
     ///
     /// ## Add Action
     /// - If the worker exists in the current workers list, do nothing.
-    /// - If the worker does not exist in the current workers list, add it to both the current and
-    ///   available workers lists.
+    /// - Otherwise, add it and mark it as available.
     ///
     /// ## Remove Action
-    /// - If the worker exists in the available workers list, remove it.
     /// - If the worker exists in the current workers list, remove it.
     /// - Otherwise, do nothing.
     ///
     /// Finally, updates the configuration file with the new list of workers.
     ///
     /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The worker address cannot be cast into [Backend].
-    /// - The configuration file cannot be loaded or saved.
-    /// - A worker address cannot be retrieved.
+    /// - If the worker cannot be created.
+    /// - If the configuration cannot be loaded.
+    /// - If the configuration cannot be saved.
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
     ) -> std::result::Result<(), String> {
-        let mut available_workers = self.available_workers.write().await;
-        let mut current_workers = self.current_workers.write().await;
+        let mut workers = self.workers.write().await;
 
-        info!("Current workers: {:?}", available_workers);
+        info!("Current workers: {:?}", workers);
 
-        let workers: Vec<_> = update_workers
+        let workers_to_update: Vec<Worker> = update_workers
             .workers
             .iter()
             .map(|worker| Backend::new(worker))
-            .collect::<Result<_, _>>()
-            .map_err(|err| format!("Failed to create backend: {}", err))?;
+            .collect::<Result<Vec<Backend>, _>>()
+            .map_err(|err| format!("Failed to create backend: {}", err))?
+            .into_iter()
+            .map(Worker::new)
+            .collect();
 
         match update_workers.action {
             Action::Add => {
-                for worker in workers {
-                    if current_workers.contains(&worker) {
-                        continue;
+                for worker in workers_to_update {
+                    if !workers.iter().any(|w| w.worker == worker.worker) {
+                        workers.push(worker);
                     }
-                    current_workers.push(worker.clone());
-                    available_workers.push(worker);
                 }
             },
             Action::Remove => {
-                for worker in workers {
-                    available_workers.retain(|w| w != &worker);
-                    current_workers.retain(|w| w != &worker);
+                for worker in workers_to_update {
+                    workers.retain(|w| w.worker != worker.worker);
                 }
             },
         }
@@ -135,16 +161,8 @@ impl LoadBalancer {
         let mut configuration = ProxyConfig::load_config_from_file()
             .map_err(|err| format!("Failed to load configuration: {}", err))?;
 
-        let new_list_of_workers = current_workers
-            .iter()
-            .map(|worker| {
-                worker.as_inet().ok_or_else(|| "Failed to get worker address".to_string()).map(
-                    |worker_addr| {
-                        WorkerConfig::new(&worker_addr.ip().to_string(), worker_addr.port())
-                    },
-                )
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let new_list_of_workers =
+            workers.iter().map(|worker| worker.try_into()).collect::<Result<Vec<_>, _>>()?;
 
         configuration.workers = new_list_of_workers;
 
@@ -152,14 +170,14 @@ impl LoadBalancer {
             .save_to_config_file()
             .map_err(|err| format!("Failed to save configuration: {}", err))?;
 
-        info!("Workers updated: {:?}", available_workers);
+        info!("Workers updated: {:?}", workers);
 
         Ok(())
     }
 
     /// Get the total number of current workers.
-    pub async fn current_workers_count(&self) -> usize {
-        self.current_workers.read().await.len()
+    pub async fn num_workers(&self) -> usize {
+        self.workers.read().await.len()
     }
 
     /// Handles the update workers request.
@@ -218,8 +236,8 @@ impl LoadBalancer {
 
         // Successfully updated workers
         info!("Workers updated successfully");
-        let available_workers_count = self.current_workers_count().await;
-        Some(create_workers_updated_response(session, available_workers_count).await)
+        let workers_count = self.num_workers().await;
+        Some(create_workers_updated_response(session, workers_count).await)
     }
 }
 
@@ -350,7 +368,7 @@ impl ProxyHttp for LoadBalancer {
         info!("Client address: {:?}", client_addr);
 
         // Special handling for localhost
-        if client_addr.contains("127.0.0.1") {
+        if client_addr.contains(LOCALHOST_ADDR) {
             if let Some(response) = self.handle_update_workers_request(session).await {
                 return response;
             }
@@ -406,8 +424,11 @@ impl ProxyHttp for LoadBalancer {
 
             // Check if there is an available worker
             if let Some(worker) = self.pop_available_worker().await {
-                info!("Worker {} picked up the request with ID: {}", worker.addr, request_id);
-                ctx.set_worker(worker);
+                info!(
+                    "Worker {} picked up the request with ID: {}",
+                    worker.worker.addr, request_id
+                );
+                ctx.set_worker(worker.worker);
                 break;
             }
             info!("All workers are busy");
