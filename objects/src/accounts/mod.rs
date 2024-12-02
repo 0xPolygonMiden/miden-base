@@ -242,6 +242,11 @@ impl Account {
         self.nonce == ZERO
     }
 
+    /// Decomposes the account into the underlying account components.
+    pub fn into_parts(self) -> (AccountId, AssetVault, AccountStorage, AccountCode, Felt) {
+        (self.id, self.vault, self.storage, self.code, self.nonce)
+    }
+
     // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
 

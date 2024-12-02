@@ -9,9 +9,8 @@ use super::{
 };
 use crate::{
     accounts::{AccountId, AccountType},
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
 };
-
 // ACCOUNT VAULT DELTA
 // ================================================================================================
 
@@ -148,6 +147,35 @@ impl AccountVaultDelta {
     }
 }
 
+impl From<&AssetVault> for AccountVaultDelta {
+    fn from(vault: &AssetVault) -> Self {
+        let mut fungible = BTreeMap::new();
+        let mut non_fungible = BTreeMap::new();
+
+        for asset in vault.assets() {
+            match asset {
+                Asset::Fungible(asset) => {
+                    fungible.insert(
+                        asset.faucet_id(),
+                        asset
+                            .amount()
+                            .try_into()
+                            .expect("asset amount should be at most i64::MAX by construction"),
+                    );
+                },
+                Asset::NonFungible(asset) => {
+                    non_fungible.insert(asset, NonFungibleDeltaAction::Add);
+                },
+            }
+        }
+
+        Self {
+            fungible: FungibleAssetDelta(fungible),
+            non_fungible: NonFungibleAssetDelta::new(non_fungible),
+        }
+    }
+}
+
 impl Serializable for AccountVaultDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(&self.fungible);
@@ -203,6 +231,11 @@ impl FungibleAssetDelta {
     pub fn remove(&mut self, asset: FungibleAsset) -> Result<(), AccountDeltaError> {
         let amount: i64 = asset.amount().try_into().expect("Amount it too high");
         self.add_delta(asset.faucet_id(), -amount)
+    }
+
+    /// Returns the number of fungible assets affected in the delta.
+    pub fn num_assets(&self) -> usize {
+        self.0.len()
     }
 
     /// Returns true if this vault delta contains no updates.
@@ -340,6 +373,11 @@ impl NonFungibleAssetDelta {
     /// Returns an error if the delta already contains the asset removal.
     pub fn remove(&mut self, asset: NonFungibleAsset) -> Result<(), AccountDeltaError> {
         self.apply_action(asset, NonFungibleDeltaAction::Remove)
+    }
+
+    /// Returns the number of non-fungible assets affected in the delta.
+    pub fn num_assets(&self) -> usize {
+        self.0.len()
     }
 
     /// Returns true if this vault delta contains no updates.
