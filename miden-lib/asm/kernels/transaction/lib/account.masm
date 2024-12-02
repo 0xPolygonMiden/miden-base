@@ -81,13 +81,6 @@ const.REGULAR_ACCOUNT_IMMUTABLE_CODE=0 # 0b00000000_00000000_00000000_00000000
 # Bit pattern for an account w/ updatable code, after the account type mask has been applied.
 const.REGULAR_ACCOUNT_UPDATABLE_CODE=268435456 # 0b00010000_00000000_00000000_00000000
 
-# Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
-const.FUNGIBLE_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
-
-# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been 
-# applied.
-const.NON_FUNGIBLE_FAUCET_ACCOUNT=805306368 # 0b00110000_00000000_00000000_00000000
-
 # Bit pattern for a faucet account, after the account type mask has been applied.
 const.FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 
@@ -250,32 +243,6 @@ export.memory::get_acct_nonce->get_nonce
 #! Where:
 #! - INIT_HASH is the initial account hash.
 export.memory::get_init_acct_hash->get_initial_hash
-
-#! Returns a boolean indicating whether the account is a fungible faucet.
-#!
-#! Inputs:  [acct_id]
-#! Outputs: [is_fungible_faucet]
-#!
-#! Where:
-#! - acct_id is the account id.
-#! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
-export.is_fungible_faucet
-    exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_fungible_faucet]
-end
-
-#! Returns a boolean indicating whether the account is a non-fungible faucet.
-#!
-#! Inputs:  [acct_id]
-#! Outputs: [is_non_fungible_faucet]
-#!
-#! Where:
-#! - acct_id is the account id.
-#! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
-export.is_non_fungible_faucet
-    exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_non_fungible_faucet]
-end
 
 #! Returns a boolean indicating whether the account is a faucet.
 #!

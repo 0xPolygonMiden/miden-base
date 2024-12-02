@@ -1,3 +1,6 @@
+use.utils::account->account_utils
+use.utils::asset->asset_utils
+
 use.miden::account
 
 # ERRORS
@@ -37,11 +40,11 @@ const.FUNGIBLE_BITMASK_U32=0x20000000
 #! Annotation hint: is not used anywhere except this file
 export.build_fungible_asset
     # assert the faucet is a fungible faucet
-    dup exec.account::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID
+    dup exec.account_utils::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID
     # => [faucet_id, amount]
 
     # assert the amount is valid
-    dup.1 exec.get_fungible_asset_max_amount lte 
+    dup.1 exec.asset_utils::get_fungible_asset_max_amount lte 
     assert.err=ERR_FUNGIBLE_ASSET_AMOUNT_EXCEEDS_MAX_ALLOWED_AMOUNT
     # => [faucet_id, amount]
 
@@ -83,7 +86,7 @@ end
 #! Annotation hint: is not used anywhere except this file
 export.build_non_fungible_asset
     # assert the faucet is a non-fungible faucet
-    dup exec.account::is_non_fungible_faucet 
+    dup exec.account_utils::is_non_fungible_faucet 
     assert.err=ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID
     # => [faucet_id, DATA_HASH]
 
@@ -114,20 +117,4 @@ export.create_non_fungible_asset
     # build the non-fungible asset
     exec.build_non_fungible_asset
     # => [ASSET]
-end
-
-# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
-# =================================================================================================
-
-const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
-
-#! Returns the maximum amount of a fungible asset.
-#!
-#! Stack: []
-#! Outputs: [fungible_asset_max_amount]
-#!
-#! fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.get_fungible_asset_max_amount
-    push.FUNGIBLE_ASSET_MAX_AMOUNT
-    # => [fungible_asset_max_amount]
 end
