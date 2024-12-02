@@ -1,5 +1,8 @@
 use.std::collections::smt
 
+use.utils::asset->asset_utils
+use.utils::account->account_utils
+
 use.kernel::account
 use.kernel::asset
 use.kernel::memory
@@ -48,7 +51,7 @@ const.ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND=0x0002001F
 #! - the asset is not a fungible asset.
 export.get_balance
     # assert that the faucet id is a fungible faucet
-    dup exec.account::is_fungible_faucet 
+    dup exec.account_utils::is_fungible_faucet 
     assert.err=ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [faucet_id, vault_root_ptr]
 
@@ -137,7 +140,7 @@ export.add_fungible_asset
     # => [amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # compute max_amount - cur_amount
-    exec.asset::get_fungible_asset_max_amount dup.3 sub
+    exec.asset_utils::get_fungible_asset_max_amount dup.3 sub
     # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, 
     #     CUR_VAULT_VALUE, vault_root_ptr]
 

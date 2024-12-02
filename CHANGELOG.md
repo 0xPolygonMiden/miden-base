@@ -15,6 +15,7 @@
 - Added Format Guidebook to the `miden-lib` crate (#987).
 - Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
 - [BREAKING] Added `miden::note::get_script_hash` procedure (#995).
+- [BREAKING] Moved the duplicate `masm` procedures to the `utils` library (#1002).
 
 ## 0.6.2 (2024-11-20)
 
