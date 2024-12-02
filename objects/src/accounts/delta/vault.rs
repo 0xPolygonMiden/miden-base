@@ -233,6 +233,11 @@ impl FungibleAssetDelta {
         self.add_delta(asset.faucet_id(), -amount)
     }
 
+    /// Returns the number of fungible assets affected in the delta.
+    pub fn num_assets(&self) -> usize {
+        self.0.len()
+    }
+
     /// Returns true if this vault delta contains no updates.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -368,6 +373,11 @@ impl NonFungibleAssetDelta {
     /// Returns an error if the delta already contains the asset removal.
     pub fn remove(&mut self, asset: NonFungibleAsset) -> Result<(), AccountDeltaError> {
         self.apply_action(asset, NonFungibleDeltaAction::Remove)
+    }
+
+    /// Returns the number of non-fungible assets affected in the delta.
+    pub fn num_assets(&self) -> usize {
+        self.0.len()
     }
 
     /// Returns true if this vault delta contains no updates.
