@@ -188,7 +188,7 @@ However, new accounts can be created locally by users using the Miden client. Th
 
 A user can create an account in one of the following manners:
 
-1. Use the [Miden client](https://docs.polygon.technology/miden/miden-client/) as a wallet.
+1. Use the [Miden client](https://0xpolygonmiden.github.io/miden-docs/miden-client/index.html) as a wallet.
 2. Use the Miden base built-in functions for wallet creation: [basic wallet](https://github.com/0xPolygonMiden/miden-base/blob/4e6909bbaf65e77d7fa0333e4664be81a2f65eda/miden-lib/src/accounts/wallets/mod.rs#L15), [fungible faucet](https://github.com/0xPolygonMiden/miden-base/blob/4e6909bbaf65e77d7fa0333e4664be81a2f65eda/miden-lib/src/accounts/faucets/mod.rs#L11)
 
 ## Account types
