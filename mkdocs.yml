@@ -22,12 +22,7 @@ theme:
 
 nav:
   - Welcome: index.md
-  - Get started: 
-      - Prerequisite steps: introduction/get-started/prerequisites.md
-      - Create account and use the faucet: introduction/get-started/create-account-use-faucet.md
-      - Private peer-to-peer off-chain txs: introduction/get-started/p2p-private.md
-      - Public peer-to-peer note transactions: introduction/get-started/p2p-public.md
-  - Roadmap: introduction/roadmap.md
+  - Roadmap: roadmap.md
   - Miden architecture:
       - Overview: architecture/overview.md
       - Accounts: architecture/accounts.md
