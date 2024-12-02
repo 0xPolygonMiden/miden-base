@@ -9,9 +9,8 @@ use super::{
 };
 use crate::{
     accounts::{AccountId, AccountType},
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
 };
-
 // ACCOUNT VAULT DELTA
 // ================================================================================================
 
@@ -145,6 +144,35 @@ impl AccountVaultDelta {
             .chain(self.non_fungible.filter_by_action(NonFungibleDeltaAction::Remove).map(|key| {
                 Asset::NonFungible(unsafe { NonFungibleAsset::new_unchecked(key.into()) })
             }))
+    }
+}
+
+impl From<&AssetVault> for AccountVaultDelta {
+    fn from(vault: &AssetVault) -> Self {
+        let mut fungible = BTreeMap::new();
+        let mut non_fungible = BTreeMap::new();
+
+        for asset in vault.assets() {
+            match asset {
+                Asset::Fungible(asset) => {
+                    fungible.insert(
+                        asset.faucet_id(),
+                        asset
+                            .amount()
+                            .try_into()
+                            .expect("asset amount should be at most i64::MAX by construction"),
+                    );
+                },
+                Asset::NonFungible(asset) => {
+                    non_fungible.insert(asset, NonFungibleDeltaAction::Add);
+                },
+            }
+        }
+
+        Self {
+            fungible: FungibleAssetDelta(fungible),
+            non_fungible: NonFungibleAssetDelta::new(non_fungible),
+        }
     }
 }
 

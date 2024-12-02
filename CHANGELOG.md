@@ -11,6 +11,7 @@
 - [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
 - Implemented new `digest_from_hex!` macro (#984).
 - Added Format Guidebook to the `miden-lib` crate (#987).
+- Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
 
 ## 0.6.2 (2024-11-20)
 
