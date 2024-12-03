@@ -2,7 +2,7 @@ use clap::Parser;
 use pingora::{apps::HttpServerOptions, lb::Backend, prelude::Opt, server::Server};
 use pingora_proxy::http_proxy_service;
 
-use crate::{proxy::LoadBalancer, utils::load_config_from_file};
+use crate::proxy::LoadBalancer;
 
 /// Starts the proxy defined in the config file.
 #[derive(Debug, Parser)]
@@ -17,7 +17,7 @@ impl StartProxy {
         let mut server = Server::new(Some(Opt::default())).expect("Failed to create server");
         server.bootstrap();
 
-        let proxy_config = load_config_from_file()?;
+        let proxy_config = super::ProxyConfig::load_config_from_file()?;
 
         let workers = proxy_config
             .workers

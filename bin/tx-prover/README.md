@@ -81,6 +81,29 @@ This command will start the proxy using the workers defined in the configuration
 
 At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fashion. The amount of retries is configurable changing the `max_retries_per_request` value in the configuration file.
 
+## Updating workers on a running proxy
+
+To update the workers on a running proxy, two commands are provided: `add-worker` and `remove-worker`. These commands will update the workers on the proxy and will not require a restart. To use these commands, you will need to run:
+
+```bash
+miden-tx-prover add-worker [worker1] [worker2] ... [workerN]
+miden-tx-prover remove-worker [worker1] [worker2] ... [workerN]
+```
+For example:
+
+```bash
+# To add 0.0.0.0:8085 and 200.58.70.4:50051 to the workers list:
+miden-tx-prover add-workers 0.0.0.0:8085 200.58.70.4:50051
+# To remove 158.12.12.3:8080 and 122.122.6.6:50051 from the workers list:
+miden-tx-prover remove-workers 158.12.12.3:8080 122.122.6.6:50051
+```
+
+This changes will be persisted to the configuration file.
+
+Note that, in order to update the workers, the proxy must be running in the same computer as the command is being executed because it will check if the client address is localhost to avoid any security issues.
+
+## Logging
+
 Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
 
 ## Features

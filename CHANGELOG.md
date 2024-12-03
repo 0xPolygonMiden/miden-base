@@ -6,6 +6,7 @@
 
 - Implemented serialization for `AccountHeader` (#996).
 - Updated Pingora crates to 0.4 and added polling time to the configuration file (#997).
+- Added support for `miden-tx-prover` proxy to update workers on a running proxy (#989).
 - Refactored `miden-tx-prover` proxy load balancing strategy (#976).
 - [BREAKING] Better error display when queues are full in the prover service (#967).
 - [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
