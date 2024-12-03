@@ -8,7 +8,7 @@ use crate::{
         Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
         AccountType, AccountVersion,
     },
-    assets::{Asset, AssetVault},
+    assets::AssetVault,
     AccountError, BlockHeader, Felt, Word,
 };
 
@@ -37,7 +37,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
     #[cfg(any(feature = "testing", test))]
-    assets: Vec<Asset>,
+    assets: Vec<crate::assets::Asset>,
     components: Vec<AccountComponent>,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
@@ -257,7 +257,7 @@ impl AccountBuilder {
     ///
     /// Must only be used when using [`Self::build_existing`] instead of [`Self::build`] since new
     /// accounts must have an empty vault.
-    pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
+    pub fn with_assets<I: IntoIterator<Item = crate::assets::Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
     }

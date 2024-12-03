@@ -170,7 +170,7 @@ impl TryFrom<Word> for FungibleAsset {
             return Err(AssetError::FungibleAssetExpectedZero(value));
         }
         let faucet_id = AccountId::try_from([value[2], value[3]])
-            .map_err(|err| AssetError::InvalidFaucetId(Box::new(err)))?;
+            .map_err(|err| AssetError::InvalidFaucetAccountId(Box::new(err)))?;
         let amount = value[0].as_int();
         Self::new(faucet_id, amount)
     }
