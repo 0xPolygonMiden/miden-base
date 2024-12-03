@@ -92,7 +92,7 @@ impl AccountHeader {
     /// This is done by first converting the account header data into an array of Words as follows:
     /// ```text
     /// [
-    ///     [account_id, 0, 0, account_nonce]
+    ///     [account_id_lo, account_id_hi, 0, account_nonce]
     ///     [VAULT_COMMITMENT]
     ///     [STORAGE_COMMITMENT]
     ///     [CODE_COMMITMENT]
@@ -101,7 +101,7 @@ impl AccountHeader {
     /// And then concatenating the resulting elements into a single vector.
     pub fn as_elements(&self) -> Vec<Felt> {
         [
-            &[self.id.into(), ZERO, ZERO, self.nonce],
+            &[self.id.second_felt(), self.id.first_felt(), ZERO, self.nonce],
             self.vault_root.as_elements(),
             self.storage_commitment.as_elements(),
             self.code_commitment.as_elements(),

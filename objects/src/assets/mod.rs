@@ -1,5 +1,5 @@
 use super::{
-    accounts::{AccountId, AccountType},
+    accounts::AccountType,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AssetError, Felt, Hasher, Word, ZERO,
 };

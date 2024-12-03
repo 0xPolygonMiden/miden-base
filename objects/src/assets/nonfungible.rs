@@ -131,7 +131,7 @@ impl NonFungibleAsset {
     /// - The most significant bit of the asset is not ZERO.
     fn validate(&self) -> Result<(), AssetError> {
         let faucet_id = AccountIdPrefix::try_from(self.0[FAUCET_ID_POS])
-            .map_err(|err| AssetError::InvalidFaucetId(Box::new(err)))?;
+            .map_err(|err| AssetError::InvalidFaucetAccountId(Box::new(err)))?;
 
         let account_type = faucet_id.account_type();
         if !matches!(account_type, AccountType::NonFungibleFaucet) {
