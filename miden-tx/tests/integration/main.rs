@@ -25,7 +25,7 @@ use vm_processor::utils::Deserializable;
 macro_rules! assert_transaction_executor_error {
     ($execution_result:expr, $expected_err_code:expr) => {
         match $execution_result {
-            Err(miden_tx::TransactionExecutorError::ExecuteTransactionProgramFailed(
+            Err(miden_tx::TransactionExecutorError::TransactionProgramExecutionFailed(
                 miden_prover::ExecutionError::FailedAssertion { clk: _, err_code, err_msg: _ }
             )) => {
                 assert!(

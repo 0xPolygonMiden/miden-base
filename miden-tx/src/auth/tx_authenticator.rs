@@ -96,8 +96,8 @@ impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
                     get_falcon_signature(falcon_key, message, &mut *rng)
                 },
             },
-            None => Err(AuthenticationError::UnknownKey(format!(
-                "Public key {} is not contained in the authenticator's keys",
+            None => Err(AuthenticationError::UnknownPublicKey(format!(
+                "public key {} is not contained in the authenticator's keys",
                 Digest::from(pub_key)
             ))),
         }
@@ -115,7 +115,7 @@ impl TransactionAuthenticator for () {
         _account_delta: &AccountDelta,
     ) -> Result<Vec<Felt>, AuthenticationError> {
         Err(AuthenticationError::RejectedSignature(
-            "Default authenticator cannot provide signatures".to_string(),
+            "default authenticator cannot provide signatures".to_string(),
         ))
     }
 }
