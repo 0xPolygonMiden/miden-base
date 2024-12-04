@@ -41,6 +41,8 @@ pub struct ProxyConfig {
     pub max_req_per_sec: isize,
     /// Time in milliseconds to poll available workers.
     pub available_workers_polling_time_ms: u64,
+    /// Health check interval in seconds.
+    pub health_check_interval_secs: u64,
 }
 
 impl Default for ProxyConfig {
@@ -55,6 +57,7 @@ impl Default for ProxyConfig {
             max_retries_per_request: 1,
             max_req_per_sec: 5,
             available_workers_polling_time_ms: 20,
+            health_check_interval_secs: 1,
         }
     }
 }
@@ -100,6 +103,17 @@ impl ProxyConfig {
 
         Ok(())
     }
+
+    /// Updates the workers in the configuration
+    ///
+    /// This method will persist the new workers list to the configuration file.
+    pub(crate) fn update_workers(workers: Vec<WorkerConfig>) -> Result<(), String> {
+        let mut proxy_config = Self::load_config_from_file().unwrap();
+
+        proxy_config.workers = workers;
+
+        proxy_config.save_to_config_file()
+    }
 }
 
 /// Configuration for a worker
@@ -137,7 +151,7 @@ pub enum Command {
     /// values. The file will be named as defined in the
     /// [miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME] constant.
     Init(Init),
-    /// Starts the workers defined in the config file.
+    /// Starts the workers with the configuration defined in the command.
     StartWorker(StartWorker),
     /// Starts the proxy defined in the config file.
     StartProxy(StartProxy),
