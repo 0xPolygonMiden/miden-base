@@ -146,7 +146,7 @@ impl TryFrom<u32> for TransactionTrace {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value >> 16 != EVENT_ID_PREFIX {
-            return Err(TransactionTraceParsingError::NotTransactionTrace(value));
+            return Err(TransactionTraceParsingError::UnknownTransactionTrace(value));
         }
 
         match value {
@@ -160,7 +160,7 @@ impl TryFrom<u32> for TransactionTrace {
             0x2_0007 => Ok(TransactionTrace::TxScriptProcessingEnd),
             0x2_0008 => Ok(TransactionTrace::EpilogueStart),
             0x2_0009 => Ok(TransactionTrace::EpilogueEnd),
-            _ => Err(TransactionTraceParsingError::InvalidTransactionTrace(value)),
+            _ => Err(TransactionTraceParsingError::UnknownTransactionTrace(value)),
         }
     }
 }

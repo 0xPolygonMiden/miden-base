@@ -128,7 +128,7 @@ impl TransactionProver for LocalTransactionProver {
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs =
             TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
-                .map_err(TransactionProverError::InvalidTransactionOutput)?;
+                .map_err(TransactionProverError::TransactionOutputConstructionFailed)?;
 
         // erase private note information (convert private full notes to just headers)
         let output_notes: Vec<_> = tx_outputs.output_notes.iter().map(OutputNote::shrink).collect();
@@ -150,7 +150,7 @@ impl TransactionProver for LocalTransactionProver {
                     let mut account = account.clone();
                     account
                         .apply_delta(&account_delta)
-                        .map_err(TransactionProverError::InvalidAccountDelta)?;
+                        .map_err(TransactionProverError::AccountDeltaApplyFailed)?;
 
                     AccountUpdateDetails::New(account)
                 } else {
@@ -162,6 +162,6 @@ impl TransactionProver for LocalTransactionProver {
             false => builder,
         };
 
-        builder.build().map_err(TransactionProverError::ProvenTransactionError)
+        builder.build().map_err(TransactionProverError::ProvenTransactionBuildFailed)
     }
 }

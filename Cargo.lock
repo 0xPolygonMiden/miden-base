@@ -1856,6 +1856,7 @@ dependencies = [
  "miden-processor",
  "miden-stdlib",
  "regex",
+ "thiserror 2.0.3",
  "walkdir",
 ]
 
@@ -1991,6 +1992,7 @@ dependencies = [
  "miden-verifier",
  "rand",
  "rand_chacha",
+ "thiserror 2.0.3",
  "winter-maybe-async",
 ]
 

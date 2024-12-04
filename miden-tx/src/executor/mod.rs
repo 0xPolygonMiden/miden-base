@@ -166,7 +166,7 @@ impl TransactionExecutor {
             &mut host,
             self.exec_options,
         )
-        .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
+        .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
         // Attempt to retrieve used account codes based on the advice map
         let account_codes = self
@@ -208,7 +208,7 @@ fn build_executed_transaction(
 
     let tx_outputs =
         TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
-            .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
+            .map_err(TransactionExecutorError::TransactionOutputConstructionFailed)?;
 
     let final_account = &tx_outputs.account;
 

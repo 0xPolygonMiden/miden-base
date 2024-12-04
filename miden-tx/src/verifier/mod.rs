@@ -55,10 +55,10 @@ impl TransactionVerifier {
 
         // check security level
         if proof_security_level < self.proof_security_level {
-            return Err(TransactionVerifierError::InsufficientProofSecurityLevel(
-                proof_security_level,
-                self.proof_security_level,
-            ));
+            return Err(TransactionVerifierError::InsufficientProofSecurityLevel {
+                actual: proof_security_level,
+                expected_minimum: self.proof_security_level,
+            });
         }
 
         Ok(())
