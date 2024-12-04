@@ -51,6 +51,33 @@ pub enum TransactionProverError {
     TransactionProgramExecutionFailed(ExecutionError),
     #[error("failed to create transaction host")]
     TransactionHostCreationFailed(#[source] TransactionHostError),
+    /// Custom error variant for errors not covered by the other variants.
+    #[error("{error_msg}")]
+    Custom {
+        error_msg: Box<str>,
+        // thiserror will return this when calling Error::source on DataStoreError.
+        source: Option<Box<dyn Error + Send + Sync + 'static>>,
+    },
+}
+
+impl TransactionProverError {
+    /// Creates a custom error from an error message.
+    pub fn custom(message: impl Into<String>) -> Self {
+        let message: String = message.into();
+        Self::Custom { error_msg: message.into(), source: None }
+    }
+
+    /// Creates a custom error from an error message and a source error.
+    pub fn custom_with_source(
+        message: impl Into<String>,
+        source: impl Error + Send + Sync + 'static,
+    ) -> Self {
+        let message: String = message.into();
+        Self::Custom {
+            error_msg: message.into(),
+            source: Some(Box::new(source)),
+        }
+    }
 }
 
 // TRANSACTION VERIFIER ERROR
@@ -105,12 +132,17 @@ pub enum DataStoreError {
 
 impl DataStoreError {
     /// Creates a custom error from an error message.
-    pub fn custom(message: String) -> Self {
+    pub fn custom(message: impl Into<String>) -> Self {
+        let message: String = message.into();
         Self::Custom { error_msg: message.into(), source: None }
     }
 
     /// Creates a custom error from an error message and a source error.
-    pub fn custom_with_source(message: String, source: impl Error + Send + Sync + 'static) -> Self {
+    pub fn custom_with_source(
+        message: impl Into<String>,
+        source: impl Error + Send + Sync + 'static,
+    ) -> Self {
+        let message: String = message.into();
         Self::Custom {
             error_msg: message.into(),
             source: Some(Box::new(source)),
@@ -139,12 +171,17 @@ pub enum AuthenticationError {
 
 impl AuthenticationError {
     /// Creates a custom error from an error message.
-    pub fn custom(message: String) -> Self {
+    pub fn custom(message: impl Into<String>) -> Self {
+        let message: String = message.into();
         Self::Custom { error_msg: message.into(), source: None }
     }
 
     /// Creates a custom error from an error message and a source error.
-    pub fn custom_with_source(message: String, source: impl Error + Send + Sync + 'static) -> Self {
+    pub fn custom_with_source(
+        message: impl Into<String>,
+        source: impl Error + Send + Sync + 'static,
+    ) -> Self {
+        let message: String = message.into();
         Self::Custom {
             error_msg: message.into(),
             source: Some(Box::new(source)),
