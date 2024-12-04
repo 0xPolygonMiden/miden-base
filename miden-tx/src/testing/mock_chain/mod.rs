@@ -11,7 +11,10 @@ use miden_objects::{
         AccountId, AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
-    block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
+    block::{
+        block_num_from_epoch, compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex,
+        BlockNoteTree, NoteBatch,
+    },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
         merkle::{Mmr, MmrError, PartialMmr, Smt},
@@ -507,6 +510,9 @@ impl MockChain {
         };
 
         let (account, seed) = if let AccountState::New = account_state {
+            let last_block = self.blocks.last().expect("one block should always exist");
+            account_builder = account_builder.with_reference_block(&last_block.header());
+
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {
             account_builder.build_existing().map(|account| (account, None)).unwrap()
@@ -590,6 +596,18 @@ impl MockChain {
                 );
             }
             input_notes.push(input_note);
+        }
+
+        // If the account is new, add the epoch block's header from which the account ID is derived
+        // to the MMR.
+        if account.is_new() {
+            let epoch_block_num = block_num_from_epoch(account.id().block_epoch());
+            if epoch_block_num != block.header().block_num() {
+                block_headers_map.insert(
+                    epoch_block_num,
+                    self.blocks.get(epoch_block_num as usize).unwrap().header(),
+                );
+            }
         }
 
         for note in unauthenticated_notes {

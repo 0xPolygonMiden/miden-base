@@ -6,7 +6,7 @@ use.miden::contracts::wallets::basic->wallet
 # ERRORS
 # =================================================================================================
 
-# P2IDR scripts expect exactly 2 note inputs
+# P2IDR scripts expect exactly 3 note inputs
 const.ERR_P2IDR_WRONG_NUMBER_OF_INPUTS=0x00020052
 
 # P2IDR's reclaimer is not the original sender
@@ -95,32 +95,33 @@ begin
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
 
-    # make sure the number of inputs is 2
-    eq.2 assert.err=ERR_P2IDR_WRONG_NUMBER_OF_INPUTS
+    # make sure the number of inputs is 3
+    eq.3 assert.err=ERR_P2IDR_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
     # read the reclaim block height and target account id from the note inputs
-    padw movup.4 mem_loadw drop drop
-    # => [reclaim_block_height, target_account_id]
+    padw movup.4 mem_loadw drop
+    # => [0, reclaim_block_height, target_account_id_hi, target_account_id_lo]
 
-    exec.account::get_id dup
-    # => [account_id, account_id, reclaim_block_height, target_account_id]
+    exec.account::get_id dup.2 dup
+    # => [account_id_hi, account_id_lo, account_id_hi, account_id_lo, reclaim_block_height, target_account_id_hi, target_account_id_lo, ...]
 
     # determine if the current account is the target account
-    movup.3 eq
-    # => [is_target, account_id, reclaim_block_height]
+    movup.6 movup.6 exec.account::is_id_eq
+    # => [is_target, account_id_hi, account_id_lo, reclaim_block_height]
 
     if.true
         # if current account is the target, we don't need to check anything else
         # and so we just clear the stack
-        drop drop
+        drop drop drop
 
     else
         # if current account is not the target, we need to ensure it is the sender
         exec.note::get_sender
-        # => [sender_account_id, account_id, reclaim_block_height]
+        # => [sender_account_id_hi, sender_account_id_lo, account_id_hi, account_id_lo, reclaim_block_height]
 
-        assert_eq.err=ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
+        # ensure current account id = sender account id
+        exec.account::is_id_eq assert.err=ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
         # => [reclaim_block_height]
 
         # now check that sender is allowed to reclaim, current block >= reclaim block height

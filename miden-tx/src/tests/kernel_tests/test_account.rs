@@ -143,7 +143,7 @@ pub fn test_account_type() {
             );
 
             let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-                .stack_inputs(StackInputs::new(vec![account_id.into()]).unwrap())
+                .stack_inputs(StackInputs::new(vec![account_id.first_felt()]).unwrap())
                 .run(&code)
                 .unwrap();
 
@@ -168,12 +168,16 @@ pub fn test_account_type() {
 
 #[test]
 fn test_validate_id_fails_on_insufficient_ones() {
+    // Split account ID into u64 limbs manually since we can't use AccountId constructors.
+    let second_felt = ACCOUNT_ID_INSUFFICIENT_ONES % (1u128 << 64);
+    let first_felt = ACCOUNT_ID_INSUFFICIENT_ONES / (1u128 << 64);
+
     let code = format!(
         "
         use.kernel::account
 
         begin
-            push.{ACCOUNT_ID_INSUFFICIENT_ONES}
+            push.{second_felt}.{first_felt}
             exec.account::validate_id
         end
         "
@@ -201,14 +205,15 @@ fn test_is_faucet_procedure() {
             use.kernel::account
 
             begin
-                push.{account_id}
+                push.{first_felt}
                 exec.account::is_faucet
+                # => [is_faucet, account_id_hi]
 
                 # truncate the stack
                 swap drop
             end
             ",
-            account_id = account_id,
+            first_felt = account_id.first_felt(),
         );
 
         let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
@@ -471,7 +476,7 @@ fn test_set_map_item() {
 #[test]
 fn test_account_component_storage_offset() {
     // setup assembler
-    let assembler = TransactionKernel::testing_assembler();
+    let assembler = TransactionKernel::testing_assembler().with_debug_mode(true);
 
     // The following code will execute the following logic that will be asserted during the test:
     //

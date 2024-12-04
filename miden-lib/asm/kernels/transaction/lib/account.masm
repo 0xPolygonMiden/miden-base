@@ -71,25 +71,25 @@ const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020017
 # CONSTANTS
 # =================================================================================================
 
-# Given the most significant half of an account id, this mask defines the bits used to determine the
-# account type.
-const.ACCOUNT_TYPE_U32MASK=805306368 # 0b00110000_00000000_00000000_00000000
+# Given the least significant half of an account id's first felt, this mask defines the bits used
+# to determine the account type.
+const.ACCOUNT_TYPE_U32MASK=3 # 0b11
 
 # Bit pattern for an account w/ immutable code, after the account type mask has been applied.
-const.REGULAR_ACCOUNT_IMMUTABLE_CODE=0 # 0b00000000_00000000_00000000_00000000
+const.REGULAR_ACCOUNT_IMMUTABLE_CODE=0 # 0b00
 
 # Bit pattern for an account w/ updatable code, after the account type mask has been applied.
-const.REGULAR_ACCOUNT_UPDATABLE_CODE=268435456 # 0b00010000_00000000_00000000_00000000
+const.REGULAR_ACCOUNT_UPDATABLE_CODE=1 # 0b01
 
 # Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
-const.FUNGIBLE_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
+const.FUNGIBLE_FAUCET_ACCOUNT=2 # 0b10
 
 # Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been 
 # applied.
-const.NON_FUNGIBLE_FAUCET_ACCOUNT=805306368 # 0b00110000_00000000_00000000_00000000
+const.NON_FUNGIBLE_FAUCET_ACCOUNT=3 # 0b11
 
 # Bit pattern for a faucet account, after the account type mask has been applied.
-const.FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
+const.FAUCET_ACCOUNT=2 # 0b10
 
 # Specifies a minimum number of ones for a valid account ID.
 const.MIN_ACCOUNT_ONES=5
@@ -253,11 +253,11 @@ export.memory::get_init_acct_hash->get_initial_hash
 
 #! Returns a boolean indicating whether the account is a fungible faucet.
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi]
 #! Outputs: [is_fungible_faucet]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_hi is the first felt of the account id.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
 export.is_fungible_faucet
     exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
@@ -266,11 +266,11 @@ end
 
 #! Returns a boolean indicating whether the account is a non-fungible faucet.
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi]
 #! Outputs: [is_non_fungible_faucet]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_hi is the first felt of the account id.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
 export.is_non_fungible_faucet
     exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
@@ -279,24 +279,24 @@ end
 
 #! Returns a boolean indicating whether the account is a faucet.
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi]
 #! Outputs: [is_faucet]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_hi is the first felt of the account id.
 #! - is_faucet is a boolean indicating whether the account is a faucet.
 export.is_faucet
-    u32split swap drop push.FAUCET_ACCOUNT u32and eq.0 not
+    u32split drop push.FAUCET_ACCOUNT u32and eq.0 not
     # => [is_faucet]
 end
 
 #! Returns a boolean indicating whether the account is a regular updatable account.
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi]
 #! Outputs: [is_updatable_account]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_hi is the first felt of the account id.
 #! - is_updatable_account is a boolean indicating whether the account is a regular updatable
 #!   account.
 export.is_updatable_account
@@ -306,11 +306,11 @@ end
 
 #! Returns a boolean indicating whether the account is a regular immutable account.
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi]
 #! Outputs: [is_immutable_account]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_hi is the first felt of the account id.
 #! - is_immutable_account is a boolean indicating whether the account is a regular immutable
 #!   account.
 export.is_immutable_account
@@ -318,27 +318,50 @@ export.is_immutable_account
     # => [is_immutable_account]
 end
 
+#! Returns a boolean indicating whether the given account_ids are equal.
+#!
+#! Inputs:  [acct_id_hi, acct_id_lo, other_acct_id_hi, other_acct_id_lo]
+#! Outputs: [is_id_equal]
+#!
+#! Where:
+#! - acct_id is an account id.
+#! - other_acct_id is the other account id to compare against.
+#! - is_id_equal is a boolean indicating whether the account ids are equal.
+export.is_id_eq
+    movup.2 eq
+    # => [is_hi_equal, acct_id_lo, other_acct_id_lo]
+    swap movup.2 eq
+    # => [is_lo_equal, is_hi_equal]
+    and
+    # => [is_id_equal]
+end
+
 #! Validates an account id.
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi, acct_id_lo]
 #! Outputs: []
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_lo is the second felt of the account id.
 #!
 #! Panics if:
-#! - the account id is invalid: account id must have at least `MIN_ACCOUNT_ONES` ones.
+#! - account_id_hi does not have at least MIN_ACCOUNT_ONES ones.
 export.validate_id
     # split felt into 32 bit limbs
     u32split
-    # => [l_1, l_0]
+    # => [l_1, l_0, acct_id_lo]
 
     # count the number of 1 bits
     u32popcnt swap u32popcnt add
-    # => [ones]
+    # => [ones, acct_id_lo]
 
     # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
     push.MIN_ACCOUNT_ONES u32gte assert.err=ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES
+    # => [acct_id_lo]
+
+    drop
+    # => []
 end
 
 #! Sets the code of the account the transaction is being executed against.
@@ -353,8 +376,8 @@ end
 #! - this procedure is executed on an account whose type differs from `regular mutable`.
 export.set_code
     # get the account id
-    exec.memory::get_account_id
-    # => [acct_id, CODE_COMMITMENT]
+    exec.memory::get_account_id swap drop
+    # => [acct_id_hi, CODE_COMMITMENT]
 
     # assert the account is an updatable regular account
     exec.is_updatable_account assert.err=ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE
@@ -904,19 +927,19 @@ end
 #! Returns the most significant half with the account type bits masked out.
 #!
 #! The account type can be defined by comparing this value with the following constants:
-#! - REGULAR_ACCOUNT_UPDATABLE_CODE # 0b00010000_00000000_00000000_00000000
-#! - REGULAR_ACCOUNT_IMMUTABLE_CODE # 0b00000000_00000000_00000000_00000000
-#! - FUNGIBLE_FAUCET_ACCOUNT        # 0b00100000_00000000_00000000_00000000
-#! - NON_FUNGIBLE_FAUCET_ACCOUNT    # 0b00110000_00000000_00000000_00000000
+#! - REGULAR_ACCOUNT_UPDATABLE_CODE
+#! - REGULAR_ACCOUNT_IMMUTABLE_CODE
+#! - FUNGIBLE_FAUCET_ACCOUNT
+#! - NON_FUNGIBLE_FAUCET_ACCOUNT
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi]
 #! Outputs: [acct_type]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_hi is the first felt of the account id.
 #! - acct_type is the account type.
 proc.type
-    u32split swap drop push.ACCOUNT_TYPE_U32MASK u32and
+    u32split drop push.ACCOUNT_TYPE_U32MASK u32and
     # => [acct_type]
 end
 
@@ -1056,6 +1079,7 @@ export.validate_current_foreign_account
     exec.memory::get_acct_db_root
     # => [ACCOUNT_DB_ROOT]
 
+    # TODO: Update when account tree was updated.
     # get the current account ID
     exec.memory::get_account_id
     # => [account_id, ACCOUNT_DB_ROOT]

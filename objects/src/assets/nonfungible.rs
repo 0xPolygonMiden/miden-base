@@ -93,8 +93,10 @@ impl NonFungibleAsset {
         // merging of fungible faucets. At the same time, it spreads the non-fungible assets evenly
         // across the vault, because in this case the element is the result of a cryptographic hash
         // function.
-        let d3 = data_hash[3].as_int();
-        data_hash[3] = Felt::new((d3 & ACCOUNT_ISFAUCET_MASK) ^ d3);
+
+        // TODO: Update explanation above.
+        let d3 = data_hash[2].as_int();
+        data_hash[2] = Felt::new((d3 & ACCOUNT_ISFAUCET_MASK) ^ d3);
 
         let asset = Self(data_hash);
 

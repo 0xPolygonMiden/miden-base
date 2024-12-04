@@ -446,8 +446,7 @@ fn test_send_note_proc() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode(true);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -591,8 +590,7 @@ fn executed_transaction_output_notes() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode(true);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets

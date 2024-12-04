@@ -63,12 +63,12 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x00020041
 
 #! Saves global inputs to memory.
 #!
-#! Inputs:  [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Inputs:  [BLOCK_HASH, account_id_hi, account_id_lo, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
 #! Outputs: []
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - acct_id is the account id of the account that the transaction is being executed against.
+#! - account_id is the account id of the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT is the see `transaction::api::get_input_notes_commitment`.
@@ -317,7 +317,7 @@ proc.validate_new_account
     # => []
 
     # Assert the account nonce is 0
-    exec.memory::get_acct_nonce eq.0 assert
+    exec.memory::get_acct_nonce eq.0 assert.err=0x0101
     # => []
 
     # Assert the initial vault is empty
@@ -425,9 +425,9 @@ end
 #! Inputs:
 #!   Operand stack: []
 #!   Advice stack: [
-#!     account_id, 0, 0, account_nonce, 
-#!     ACCOUNT_VAULT_ROOT, 
-#!     ACCOUNT_STORAGE_COMMITMENT, 
+#!     account_id_lo, account_id_hi, 0, account_nonce,
+#!     ACCOUNT_VAULT_ROOT,
+#!     ACCOUNT_STORAGE_COMMITMENT,
 #!     ACCOUNT_CODE_COMMITMENT
 #!   ]
 #! Outputs:
@@ -435,7 +435,7 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - account_id is the account that the transaction is being executed against.
+#! - account_id is the ID of the account that the transaction is being executed against.
 #! - account_nonce is the account's nonce.
 #! - ACCOUNT_VAULT_ROOT is the account's vault root.
 #! - ACCOUNT_STORAGE_COMMITMENT is the account's storage commitment.
@@ -464,7 +464,7 @@ proc.process_account_data
     # assert the account id matches the account id in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
-    assert_eq.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
+    exec.account::is_id_eq assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
     # => [ACCT_HASH]
 
     # store a copy of the initial nonce in global inputs
@@ -666,7 +666,7 @@ proc.process_note_args_and_metadata
     # => [NOTE_METADATA]
 end
 
-#! Copies the note's assets the advice stack to memory and verifies the commitment.
+#! Copies the note's assets from the advice stack to memory and verifies the commitment.
 #!
 #! Inputs:
 #!   Operand stack: [note_ptr]

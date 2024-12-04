@@ -75,15 +75,8 @@ impl TransactionExecutor {
     /// When transaction executor is in debug mode, all transaction-related code (note scripts,
     /// account code) will be compiled and executed in debug mode. This will ensure that all debug
     /// instructions present in the original source code are executed.
-    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
-        self.exec_options = ExecutionOptions::new(
-            Some(self.exec_options.max_cycles()),
-            self.exec_options.expected_cycles(),
-            self.exec_options.enable_tracing(),
-            in_debug_mode,
-        )
-        .expect("failed to clone execution options");
-
+    pub fn with_debug_mode(mut self) -> Self {
+        self.exec_options = self.exec_options.with_debugging();
         self
     }
 

@@ -6,6 +6,7 @@ use.kernel::account
 # Malformed fungible asset: ASSET[1] must be 0
 const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO=0x00020020
 
+# TODO: Remove
 # Malformed fungible asset: ASSET[2] must be 0
 const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO=0x00020021
 
@@ -34,7 +35,7 @@ const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 
 # This mask defines the  bit in the most significant half of the element which
 # is used to identify the asset type
-const.FUNGIBLE_BITMASK_U32=0x20000000
+const.FUNGIBLE_BITMASK_U32=2
 
 #! Returns the maximum amount of a fungible asset.
 #!
@@ -63,19 +64,16 @@ end
 #! - the asset is not well formed.
 export.validate_fungible_asset
     # assert that ASSET[1] == ZERO
-    dup.1 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO
+    dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO
     # => [ASSET]
 
-    # assert that ASSET[2] == ZERO
-    dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO
+    # assert that the tuple (ASSET[2], ASSET[3]) forms a valid account id
+    dup dup.2 exec.account::validate_id
     # => [ASSET]
 
-    # assert that ASSET[3] is a valid account id
-    dup exec.account::validate_id
-    # => [ASSET]
-
-    # assert that ASSET[3] is a fungible faucet
-    dup exec.account::is_fungible_faucet 
+    # assert that the first felt (ASSET[2]) of the account id is a fungible faucet
+    dup.1 exec.account::is_fungible_faucet
+    # TODO: Rename error.
     assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
@@ -112,18 +110,20 @@ end
 #! Panics if:
 #! - the asset is not well formed.
 export.validate_non_fungible_asset
+    # TODO: Add validation for account id prefix.
     # assert that ASSET[1] is a valid account id
-    dup.2 exec.account::validate_id
+    # dup.2 exec.account::validate_id
     # => [ASSET]
 
-    # assert that ASSET[1] is a fungible faucet
-    dup.2 exec.account::is_non_fungible_faucet 
+    # assert that ASSET[1] is a non fungible faucet
+    dup.2 exec.account::is_non_fungible_faucet
     assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
+    # TODO: Reenable check.
     # assert the fungible bit is set to 0
-    dup u32split push.FUNGIBLE_BITMASK_U32 u32and 
-    assertz.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO drop
+    # dup u32split push.FUNGIBLE_BITMASK_U32 u32and 
+    # assertz.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO drop
     # => [ASSET]
 end
 
@@ -170,7 +170,7 @@ end
 
 #! Validates that a fungible asset is associated with the provided faucet_id.
 #!
-#! Inputs:  [faucet_id, ASSET]
+#! Inputs:  [faucet_id_hi, faucet_id_lo, ASSET]
 #! Outputs: [ASSET]
 #!
 #! Where:
@@ -178,7 +178,12 @@ end
 #! - ASSET is the asset to validate.
 export.validate_fungible_asset_origin
     # assert the origin of the asset is the faucet_id provided via the stack
-    dup.1 assert_eq.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
+    # => [ASSET]
+
+    dup.2 dup.4
+    # => [asset_id_hi, asset_id_lo, faucet_id_hi, faucet_id_lo, ASSET]
+
+    exec.account::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the fungible asset is valid
@@ -188,14 +193,14 @@ end
 
 #! Validates that a non-fungible asset is associated with the provided faucet_id.
 #!
-#! Inputs:  [faucet_id, ASSET]
+#! Inputs:  [faucet_id_hi, ASSET]
 #! Outputs: [ASSET]
 #!
 #! Where:
 #! - faucet_id is the account id of the faucet.
 #! - ASSET is the asset to validate.
 export.validate_non_fungible_asset_origin
-    # assert the origin of the asset is the faucet_id provided via the stack
+    # assert the origin of the asset is the faucet_id prefix provided via the stack
     dup.3 assert_eq.err=ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 

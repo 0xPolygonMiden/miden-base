@@ -62,14 +62,15 @@ fn test_get_sender() {
             exec.note::get_sender
 
             # truncate the stack
-            swap drop
+            swapw dropw
         end
         ";
 
     let process = tx_context.execute_code(code).unwrap();
 
-    let sender = tx_context.input_notes().get_note(0).note().metadata().sender().into();
-    assert_eq!(process.stack.get(0), sender);
+    let sender = tx_context.input_notes().get_note(0).note().metadata().sender();
+    assert_eq!(process.stack.get(0), sender.first_felt());
+    assert_eq!(process.stack.get(1), sender.second_felt());
 }
 
 #[test]
