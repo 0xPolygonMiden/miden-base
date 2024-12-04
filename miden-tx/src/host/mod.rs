@@ -188,13 +188,17 @@ impl<A: AdviceProvider> TransactionHost<A> {
         assert!(note_idx < self.output_notes.len() as u64);
         let node_idx = note_idx as usize;
 
-        let asset = Asset::try_from(process.get_stack_word(0))
-            .map_err(TransactionKernelError::MalformedAsset)?;
+        let asset = Asset::try_from(process.get_stack_word(0)).map_err(|source| {
+            TransactionKernelError::MalformedAssetInEventHandler {
+                handler: "on_note_before_add_asset",
+                source,
+            }
+        })?;
 
         let note_builder = self
             .output_notes
             .get_mut(&node_idx)
-            .ok_or_else(|| TransactionKernelError::MissingNote(format!("{:?}", &note_idx)))?;
+            .ok_or_else(|| TransactionKernelError::MissingNote(note_idx))?;
 
         note_builder.add_asset(asset)?;
 
@@ -334,15 +338,17 @@ impl<A: AdviceProvider> TransactionHost<A> {
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        let asset: Asset = process
-            .get_stack_word(0)
-            .try_into()
-            .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
+        let asset: Asset = process.get_stack_word(0).try_into().map_err(|source| {
+            TransactionKernelError::MalformedAssetInEventHandler {
+                handler: "on_account_vault_after_add_asset",
+                source,
+            }
+        })?;
 
         self.account_delta
             .vault_delta()
             .add_asset(asset)
-            .map_err(TransactionKernelError::AccountDeltaError)?;
+            .map_err(TransactionKernelError::AccountDeltaAddAssetFailed)?;
         Ok(())
     }
 
@@ -354,15 +360,17 @@ impl<A: AdviceProvider> TransactionHost<A> {
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        let asset: Asset = process
-            .get_stack_word(0)
-            .try_into()
-            .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
+        let asset: Asset = process.get_stack_word(0).try_into().map_err(|source| {
+            TransactionKernelError::MalformedAssetInEventHandler {
+                handler: "on_account_vault_after_remove_asset",
+                source,
+            }
+        })?;
 
         self.account_delta
             .vault_delta()
             .remove_asset(asset)
-            .map_err(TransactionKernelError::AccountDeltaError)?;
+            .map_err(TransactionKernelError::AccountDeltaRemoveAssetFailed)?;
         Ok(())
     }
 
@@ -450,7 +458,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     fn get_num_storage_slots<S: ProcessState>(process: &S) -> Result<u64, TransactionKernelError> {
         let num_storage_slots_word = process
             .get_mem_value(process.ctx(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR)
-            .ok_or(TransactionKernelError::MissingMemoryValue(NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR))?;
+            .ok_or(TransactionKernelError::AccountStorageSlotsNumMissing(
+                NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR,
+            ))?;
 
         Ok(num_storage_slots_word[0].as_int())
     }

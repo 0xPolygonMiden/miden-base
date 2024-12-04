@@ -25,6 +25,7 @@ with-debug-info = ["miden-stdlib/with-debug-info"]
 [dependencies]
 miden-objects = { workspace = true }
 miden-stdlib = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { workspace = true, features = ["testing"] }

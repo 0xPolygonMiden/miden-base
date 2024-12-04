@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use miden_objects::{
     assets::Asset,
@@ -78,7 +78,10 @@ impl OutputNoteBuilder {
                     // will be discarded below, and later their contents will be validated by
                     // computing the commitment and checking against the expected value.
                     if num_inputs > (inputs.len() - 1) {
-                        return Err(TransactionKernelError::TooFewElementsForNoteInputs);
+                        return Err(TransactionKernelError::TooFewElementsForNoteInputs {
+                            specified: num_inputs as u64,
+                            actual: (inputs.len() - 1) as u64,
+                        });
                     }
 
                     NoteInputs::new(inputs[1..=num_inputs].to_vec())
@@ -89,13 +92,16 @@ impl OutputNoteBuilder {
             if inputs.commitment() != inputs_hash {
                 return Err(TransactionKernelError::InvalidNoteInputs {
                     expected: inputs_hash,
-                    got: inputs.commitment(),
-                    data: inputs_data.map(|v| v.to_vec()),
+                    actual: inputs.commitment(),
                 });
             }
 
-            let script = NoteScript::try_from(script_data)
-                .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;
+            let script = NoteScript::try_from(script_data).map_err(|source| {
+                TransactionKernelError::MalformedNoteScript {
+                    data: script_data.to_vec(),
+                    source: Box::new(source),
+                }
+            })?;
             let recipient = NoteRecipient::new(serial_num, script, inputs);
 
             Some(recipient)
@@ -103,7 +109,10 @@ impl OutputNoteBuilder {
             None
         } else {
             // if there are no recipient details and the note is not private, return an error
-            return Err(TransactionKernelError::MissingNoteDetails(metadata, recipient_digest));
+            return Err(TransactionKernelError::PublicNoteMissingDetails(
+                metadata,
+                recipient_digest,
+            ));
         };
         Ok(Self {
             metadata,
