@@ -59,6 +59,8 @@ max_queue_items = 10
 max_retries_per_request = 1
 # Maximum amount of requests that a given IP address can make per second
 max_req_per_sec = 5
+# Interval to check the health of the workers
+health_check_interval_secs = 1
 
 [[workers]]
 host = "0.0.0.0"
@@ -101,6 +103,12 @@ miden-tx-prover remove-workers 158.12.12.3:8080 122.122.6.6:50051
 This changes will be persisted to the configuration file.
 
 Note that, in order to update the workers, the proxy must be running in the same computer as the command is being executed because it will check if the client address is localhost to avoid any security issues.
+
+### Health check
+
+The worker service implements the [gRPC Health Check](https://grpc.io/docs/guides/health-checking/) standard, and includes the methods described in this [official proto file](https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto).
+
+The proxy service uses this health check to determine if a worker is available to receive requests. If a worker is not available, it will be removed from the set of workers that the proxy can use to send requests, and will persist this change in the configuration file.
 
 ## Logging
 
