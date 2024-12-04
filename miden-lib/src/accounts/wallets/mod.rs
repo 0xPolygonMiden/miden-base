@@ -2,7 +2,7 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType},
-    AccountError, Word,
+    AccountError, Digest, Word,
 };
 
 use super::AuthScheme;
@@ -46,6 +46,7 @@ impl From<BasicWallet> for AccountComponent {
 /// authentication scheme.
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
+    block_epoch_hash: (u16, Digest),
     auth_scheme: AuthScheme,
     account_type: AccountType,
     account_storage_mode: AccountStorageMode,
@@ -62,6 +63,8 @@ pub fn create_basic_wallet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
+        .block_epoch(block_epoch_hash.0)
+        .block_hash(block_epoch_hash.1)
         .account_type(account_type)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
@@ -77,7 +80,7 @@ pub fn create_basic_wallet(
 #[cfg(test)]
 mod tests {
 
-    use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
+    use miden_objects::{crypto::dsa::rpo_falcon512, digest, ONE};
     use vm_processor::utils::{Deserializable, Serializable};
 
     use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
@@ -87,6 +90,7 @@ mod tests {
         let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
         let wallet = create_basic_wallet(
             [1; 32],
+            (10, digest!("0xaabbccdd")),
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
             AccountStorageMode::Public,
@@ -102,6 +106,7 @@ mod tests {
         let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
         let wallet = create_basic_wallet(
             [1; 32],
+            (15, digest!("0xffdd")),
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
             AccountStorageMode::Public,

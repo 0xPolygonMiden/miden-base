@@ -672,7 +672,7 @@ pub mod testing {
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdd_eeff);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_ccdd);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
 
     // NON-FUNGIBLE TOKENS - OFF-CHAIN
     pub const ACCOUNT_ID_INSUFFICIENT_ONES: u128 =

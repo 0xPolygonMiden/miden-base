@@ -74,7 +74,7 @@ end
 #! Returns the account id.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [acct_id, pad(15)]
+#! Outputs: [acct_id_hi, acct_id_lo, pad(14)]
 #!
 #! Where:
 #! - acct_id is the account id.
@@ -83,11 +83,11 @@ end
 export.get_account_id
     # get the account id
     exec.account::get_id
-    # => [acct_id, pad(16)]
+    # => [acct_id_hi, acct_id_lo, pad(16)]
 
     # truncate the stack
-    swap drop
-    # => [acct_id, pad(15)]
+    swapw dropw
+    # => [acct_id_hi, acct_id_lo, pad(14)]
 end
 
 #! Returns the account nonce.
@@ -371,7 +371,7 @@ end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Inputs:  [faucet_id, pad(15)]
+#! Inputs:  [faucet_id_hi, faucet_id_lo, pad(14)]
 #! Outputs: [balance, pad(15)]
 #!
 #! Where:
@@ -384,8 +384,8 @@ end
 #! Invocation: dynexec
 export.account_vault_get_balance
     # get the vault root
-    exec.memory::get_acct_vault_root_ptr swap
-    # => [faucet_id, acct_vault_root_ptr, pad(15)]
+    exec.memory::get_acct_vault_root_ptr movdn.2
+    # => [faucet_id_hi, faucet_id_lo, acct_vault_root_ptr, pad(13)]
 
     # get the asset balance
     exec.asset_vault::get_balance
@@ -554,22 +554,22 @@ end
 #! Returns the sender of the note currently being processed.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [sender, pad(15)]
+#! Outputs: [sender_hi, sender_lo, pad(14)]
 #!
 #! Where:
-#! - sender is the sender of the note currently being processed.
+#! - sender is the sender account id of the note currently being processed.
 #!
 #! Panics if:
 #! - a note is not being processed.
 #!
 #! Invocation: dynexec
 export.get_note_sender
-    exec.note::get_sender 
-    # => [sender, pad(16)]
+    exec.note::get_sender
+    # => [sender_hi, sender_lo, pad(16)]
     
     # truncate the stack
-    swap drop
-    # => [sender, pad(15)]
+    swapw dropw
+    # => [sender_hi, sender_lo, pad(14)]
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.
@@ -818,7 +818,7 @@ end
 #! Invocation: dynexec
 export.get_fungible_faucet_total_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
-    exec.account::get_id exec.account::is_fungible_faucet 
+    exec.account::get_id swap drop exec.account::is_fungible_faucet 
     assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [pad(16)]
 

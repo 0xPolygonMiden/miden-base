@@ -31,7 +31,7 @@ const.OUTPUT_NOTE_HASHING_MEM_DIFF=510
 #! Returns the sender of the note currently being processed.
 #!
 #! Inputs:  []
-#! Outputs: [sender]
+#! Outputs: [sender_hi, sender_lo]
 #!
 #! Where:
 #! - sender is the sender of the note currently being processed.
@@ -50,7 +50,7 @@ export.get_sender
 
     # get the sender from the note pointer
     exec.memory::get_input_note_sender
-    # => [sender]
+    # => [sender_hi, sender_lo]
 end
 
 #! Returns the number of assets and the assets hash of the note currently being processed. 

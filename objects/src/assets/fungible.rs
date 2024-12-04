@@ -46,7 +46,7 @@ impl FungibleAsset {
     /// Creates a new [FungibleAsset] without checking its validity.
     pub(crate) fn new_unchecked(value: Word) -> FungibleAsset {
         FungibleAsset {
-            faucet_id: AccountId::new_unchecked([value[3], value[2]]),
+            faucet_id: AccountId::new_unchecked([value[2], value[3]]),
             amount: value[0].as_int(),
         }
     }
@@ -71,11 +71,7 @@ impl FungibleAsset {
 
     /// Returns the key which is used to store this asset in the account vault.
     pub fn vault_key(&self) -> Word {
-        let mut key = Word::default();
-        let elements: [Felt; 2] = self.faucet_id.into();
-        key[2] = elements[1];
-        key[3] = elements[0];
-        key
+        Self::vault_key_from_faucet(self.faucet_id)
     }
 
     // OPERATIONS
@@ -142,15 +138,22 @@ impl FungibleAsset {
 
         Ok(self)
     }
+
+    /// Returns the key which is used to store this asset in the account vault.
+    pub(super) fn vault_key_from_faucet(faucet_id: AccountId) -> Word {
+        let mut key = Word::default();
+        key[2] = faucet_id.first_felt();
+        key[3] = faucet_id.second_felt();
+        key
+    }
 }
 
 impl From<FungibleAsset> for Word {
     fn from(asset: FungibleAsset) -> Self {
         let mut result = Word::default();
-        let id_elements: [Felt; 2] = asset.faucet_id.into();
         result[0] = Felt::new(asset.amount);
-        result[2] = id_elements[1];
-        result[3] = id_elements[0];
+        result[2] = asset.faucet_id.first_felt();
+        result[3] = asset.faucet_id.second_felt();
         debug_assert!(is_not_a_non_fungible_asset(result));
         result
     }

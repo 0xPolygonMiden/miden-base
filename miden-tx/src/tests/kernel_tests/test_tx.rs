@@ -22,14 +22,14 @@ use miden_objects::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         },
-        Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
+        Account, AccountBuilder, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
         StorageSlot,
     },
     assets::NonFungibleAsset,
     crypto::merkle::{LeafIndex, MerklePath},
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
-        NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteTag, NoteType,
     },
     testing::{
         account_component::AccountMockComponent, constants::NON_FUNGIBLE_ASSET_DATA_2,
@@ -57,7 +57,7 @@ fn test_create_note() {
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
-    let tag = Felt::new(4);
+    let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local).unwrap();
 
     let code = format!(
         "
@@ -82,7 +82,7 @@ fn test_create_note() {
         ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
-        note_execution_hint = Felt::from(NoteExecutionHint::after_block(23)),
+        note_execution_hint = Felt::from(NoteExecutionHint::after_block(23).unwrap()),
         tag = tag,
     );
 
@@ -103,8 +103,8 @@ fn test_create_note() {
     let expected_note_metadata: Word = NoteMetadata::new(
         account_id,
         NoteType::Public,
-        tag.try_into().unwrap(),
-        NoteExecutionHint::after_block(23),
+        tag,
+        NoteExecutionHint::after_block(23).unwrap(),
         Felt::new(27),
     )
     .unwrap()
@@ -242,7 +242,7 @@ fn test_get_output_notes_commitment() {
         tx_context.tx_inputs().account().id(),
         NoteType::Public,
         output_tag_2,
-        NoteExecutionHint::after_block(123),
+        NoteExecutionHint::after_block(123).unwrap(),
         ZERO,
     )
     .unwrap();
@@ -364,10 +364,11 @@ fn test_get_output_notes_commitment() {
 fn test_create_note_and_add_asset() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
     let tag = Felt::new(4);
-    let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
+    let asset = [Felt::new(10), ZERO, faucet_id.first_felt(), faucet_id.second_felt()];
 
     let code = format!(
         "
@@ -425,14 +426,18 @@ fn test_create_note_and_add_asset() {
 fn test_create_note_and_add_multiple_assets() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
+    let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
     let tag = Felt::new(4);
-    let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
-    let asset_2 = [Felt::new(20), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
-    let asset_3 = [Felt::new(30), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
-    let asset_2_and_3 =
-        [Felt::new(50), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
+
+    let asset = [Felt::new(10), ZERO, faucet.first_felt(), faucet.second_felt()];
+    let asset_2 = [Felt::new(20), ZERO, faucet_2.first_felt(), faucet_2.second_felt()];
+    let asset_3 = [Felt::new(30), ZERO, faucet_2.first_felt(), faucet_2.second_felt()];
+    let asset_2_and_3 = [Felt::new(50), ZERO, faucet_2.first_felt(), faucet_2.second_felt()];
+
     let non_fungible_asset = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA_2);
     let non_fungible_asset_encoded = Word::from(non_fungible_asset);
 
@@ -626,7 +631,7 @@ fn test_build_recipient_hash() {
         output_serial_no = prepare_word(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
-        execution_hint = Felt::from(NoteExecutionHint::after_block(2)),
+        execution_hint = Felt::from(NoteExecutionHint::after_block(2).unwrap()),
         aux = aux,
     );
 
@@ -1062,7 +1067,8 @@ fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) ->
         &MerklePath::new(
             mock_chain
                 .accounts()
-                .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().into()).unwrap())
+                  // TODO: Update.
+                .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().first_felt().as_int()).unwrap())
                 .path
                 .into(),
         ),
@@ -1088,7 +1094,12 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
 
     assert_eq!(
         read_root_mem_value(process, foreign_account_data_ptr + ACCT_ID_AND_NONCE_OFFSET),
-        [foreign_account.id().into(), ZERO, ZERO, foreign_account.nonce()],
+        [
+            foreign_account.id().second_felt(),
+            foreign_account.id().first_felt(),
+            ZERO,
+            foreign_account.nonce()
+        ],
     );
 
     assert_eq!(

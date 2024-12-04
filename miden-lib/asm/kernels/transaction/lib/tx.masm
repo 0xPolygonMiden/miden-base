@@ -357,6 +357,7 @@ end
 #!
 #! Inputs:  [tag, aux, note_type, execution_hint]
 #! Outputs: [NOTE_METADATA]
+#! Outputs: [aux, note_tag_hint_payload, sender_lo_type_and_hint_tag, sender_hi]
 #!
 #! Where:
 #! - tag is the note tag which can be used by the recipient(s) to identify notes intended for them.
@@ -383,16 +384,69 @@ proc.build_note_metadata
     assert_eq.err=ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX
     # => [tag, aux, note_type, execution_hint]
 
-    # encode note_type and execution_hint into a single element
-    movup.3 movup.3 push.TWO_POW_38 mul add movup.2
-    # => [aux, encoded_type_and_ex_hint, tag]
+    # split execution hint into its tag and payload parts as they are encoded in separate elements
+    # of the metadata
+    # --------------------------------------------------------------------------------------------
 
-    # add sender account ID to metadata
+    movup.3
+    # => [execution_hint, tag, aux, note_type]
+    dup u32split drop
+    # => [execution_hint_lo, execution_hint, tag, aux, note_type]
+
+    # mask out the lower 6 execution hint tag bits.
+    push.0x3f u32and
+    # => [execution_hint_tag, execution_hint, tag, aux, note_type]
+
+    # compute the payload by subtracting the tag value so the lower 6 bits are zero
+    swap
+    # => [execution_hint, execution_hint_tag, tag, aux, note_type]
+    dup.1
+    # => [execution_hint_tag, execution_hint, execution_hint_tag, tag, aux, note_type]
+    sub
+    # => [execution_hint_payload, execution_hint_tag, tag, aux, note_type]
+
+    # merge execution hint payload and note tag
+    # --------------------------------------------------------------------------------------------
+
+    # multiply by 2^26 to shift the payload left by 26 bits
+    # this results in the lower 32 bits being zero which is where the note tag will be placed
+    push.0x04000000 mul
+    # => [execution_hint_payload, execution_hint_tag, tag, aux, note_type]
+
+    # add the tag to the payload to produce the merged value
+    movup.2 add
+    # => [note_tag_hint_payload, execution_hint_tag, aux, note_type]
+
+    # merge sender_lo, note_type and execution_hint_tag
+    # --------------------------------------------------------------------------------------------
+
     exec.account::get_id
-    # => [sender_acct_id, aux, encoded_type_and_ex_hint, tag]
+    # => [sender_hi, sender_lo, note_tag_hint_payload, execution_hint_tag, aux, note_type]
 
-    movdn.2
-    # => [NOTE_METADATA]
+    movup.5
+    # => [note_type, sender_hi, sender_lo, note_tag_hint_payload, execution_hint_tag, aux]
+    # multiply by 2^6 to shift the two note_type bits left by 6 bits.
+    push.0x40 mul
+    # => [shifted_note_type, sender_hi, sender_lo, note_tag_hint_payload, execution_hint_tag, aux]
+
+    # merge execution_hint_tag into the note_type
+    # this produces an 8-bit value with the layout: [note_type (2 bits) | execution_hint_tag (6 bits)]
+    movup.4 add
+    # => [merged_note_type_execution_hint_tag, sender_hi, sender_lo, note_tag_hint_payload, aux]
+
+    # merge sender_lo into this value
+    movup.2 add
+    # => [sender_lo_type_and_hint_tag, sender_hi, note_tag_hint_payload, aux]
+
+    # rearrange elements to produce the final metadata layout
+    # --------------------------------------------------------------------------------------------
+
+    swap movdn.3
+    # => [sender_lo_type_and_hint_tag, note_tag_hint_payload, aux, sender_hi]
+    swap
+    # => [note_tag_hint_payload, sender_lo_type_and_hint_tag, aux, sender_hi]
+    movup.2
+    # => [NOTE_METADATA = [aux, note_tag_hint_payload, sender_lo_type_and_hint_tag, sender_hi]]
 end
 
 #! Creates a new note and returns the index of the note.

@@ -26,7 +26,7 @@ const.FUNGIBLE_BITMASK_U32=0x20000000
 
 #! Builds a fungible asset for the specified fungible faucet and amount.
 #!
-#! Inputs:  [faucet_id, amount]
+#! Inputs:  [faucet_id_hi, faucet_id_lo, amount]
 #! Outputs: [ASSET]
 #!
 #! Where:
@@ -38,15 +38,15 @@ const.FUNGIBLE_BITMASK_U32=0x20000000
 export.build_fungible_asset
     # assert the faucet is a fungible faucet
     dup exec.account::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID
-    # => [faucet_id, amount]
+    # => [faucet_id_hi, faucet_id_lo, amount]
 
     # assert the amount is valid
-    dup.1 exec.get_fungible_asset_max_amount lte 
+    dup.2 exec.get_fungible_asset_max_amount lte 
     assert.err=ERR_FUNGIBLE_ASSET_AMOUNT_EXCEEDS_MAX_ALLOWED_AMOUNT
-    # => [faucet_id, amount]
+    # => [faucet_id_hi, faucet_id_lo, amount]
 
     # create the asset
-    push.0.0 movup.2
+    swap push.0 movdn.2
     # => [ASSET]
 end
 
@@ -63,7 +63,7 @@ end
 export.create_fungible_asset
     # fetch the id of the faucet the transaction is being executed against.
     exec.account::get_id
-    # => [id, amount]
+    # => [id_hi, id_lo, amount]
 
     # build the fungible asset
     exec.build_fungible_asset
@@ -72,7 +72,7 @@ end
 
 #! Builds a non fungible asset for the specified non-fungible faucet and amount.
 #!
-#! Inputs:  [faucet_id, DATA_HASH]
+#! Inputs:  [faucet_id_hi, DATA_HASH]
 #! Outputs: [ASSET]
 #!
 #! Where:
@@ -85,11 +85,11 @@ export.build_non_fungible_asset
     # assert the faucet is a non-fungible faucet
     dup exec.account::is_non_fungible_faucet 
     assert.err=ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID
-    # => [faucet_id, DATA_HASH]
+    # => [faucet_id_hi, DATA_HASH]
 
     # build the asset
     movup.3 drop movdn.2
-    # => [hash_0, hash_1, faucet_id, hash_3]
+    # => [hash_0, hash_1, faucet_id_hi, hash_3]
 
     # Force the non-fungible bit to 0
     u32split dup push.FUNGIBLE_BITMASK_U32 u32and u32xor push.TWO_POW_32 mul add
@@ -108,8 +108,8 @@ end
 #! Invocation: exec
 export.create_non_fungible_asset
     # get the id of the faucet the transaction is being executed against
-    exec.account::get_id
-    # => [id, DATA_HASH]
+    exec.account::get_id swap drop
+    # => [faucet_id_hi, DATA_HASH]
 
     # build the non-fungible asset
     exec.build_non_fungible_asset

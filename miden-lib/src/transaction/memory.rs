@@ -185,7 +185,8 @@ pub const NATIVE_ACCT_ID_AND_NONCE_PTR: MemoryAddress =
     NATIVE_ACCOUNT_DATA_PTR + ACCT_ID_AND_NONCE_OFFSET;
 
 /// The index of the account id within the account id and nonce data.
-pub const ACCT_ID_IDX: DataIndex = 0;
+pub const ACCT_ID_HI_IDX: DataIndex = 0;
+pub const ACCT_ID_LO_IDX: DataIndex = 1;
 
 /// The index of the account nonce within the account id and nonce data.
 pub const ACCT_NONCE_IDX: DataIndex = 3;

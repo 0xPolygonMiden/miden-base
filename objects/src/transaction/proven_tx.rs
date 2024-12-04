@@ -533,7 +533,7 @@ mod tests {
         },
         transaction::TxAccountUpdate,
         utils::Serializable,
-        Digest, Felt, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
+        Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
     };
 
     fn check_if_sync<T: Sync>() {}

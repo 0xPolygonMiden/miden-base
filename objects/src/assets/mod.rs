@@ -100,6 +100,11 @@ impl Asset {
         matches!(self, Self::Fungible(_))
     }
 
+    /// Returns true if this asset is a non fungible asset.
+    pub const fn is_non_fungible(&self) -> bool {
+        matches!(self, Self::NonFungible(_))
+    }
+
     // TODO: We can only return the prefix here. Should we remove th method instead and force
     // callers to handle each case individually?
     /// Returns ID of the faucet which issued this asset.
@@ -221,9 +226,10 @@ impl Deserializable for Asset {
 /// Note: this does not mean that the word is a fungible asset as the word may contain an value
 /// which is not a valid asset.
 fn is_not_a_non_fungible_asset(asset: Word) -> bool {
+    // TODO: Update explanation.
     // For fungible assets, the position `3` contains the faucet's account id, in which case the
     // bit is set. For non-fungible assets have the bit always set to `0`.
-    (asset[3].as_int() & ACCOUNT_ISFAUCET_MASK) == ACCOUNT_ISFAUCET_MASK
+    (asset[2].as_int() & ACCOUNT_ISFAUCET_MASK) == ACCOUNT_ISFAUCET_MASK
 }
 
 // TESTS

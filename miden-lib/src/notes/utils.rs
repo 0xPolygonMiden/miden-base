@@ -1,11 +1,11 @@
 use miden_objects::{
     accounts::AccountId,
     assets::Asset,
-    notes::{NoteExecutionMode, NoteInputs, NoteRecipient, NoteScript, NoteTag, NoteType},
-    utils::Deserializable,
-    vm::Program,
+    notes::{NoteExecutionMode, NoteInputs, NoteRecipient, NoteTag, NoteType},
     NoteError, Word,
 };
+
+use crate::notes::scripts;
 
 /// Creates a [NoteRecipient] for the P2ID note.
 ///
@@ -15,11 +15,8 @@ pub fn build_p2id_recipient(
     target: AccountId,
     serial_num: Word,
 ) -> Result<NoteRecipient, NoteError> {
-    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
-    let program =
-        Program::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)?;
-    let note_script = NoteScript::new(program);
-    let note_inputs = NoteInputs::new(vec![target.into()])?;
+    let note_script = scripts::p2id();
+    let note_inputs = NoteInputs::new(vec![target.second_felt(), target.first_felt()])?;
 
     Ok(NoteRecipient::new(serial_num, note_script, note_inputs))
 }

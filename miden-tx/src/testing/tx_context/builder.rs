@@ -87,7 +87,8 @@ pub struct TransactionContextBuilder {
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
         Self {
-            assembler: TransactionKernel::testing_assembler_with_mock_account(),
+            assembler: TransactionKernel::testing_assembler_with_mock_account()
+                .with_debug_mode(true),
             account,
             account_seed: None,
             input_notes: Vec::new(),
@@ -130,7 +131,7 @@ impl TransactionContextBuilder {
     }
 
     /// Initializes a [TransactionContextBuilder] with a mocked fungible faucet.
-    pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
+    pub fn with_fungible_faucet(acct_id: u128, nonce: Felt, initial_balance: Felt) -> Self {
         let account = Account::mock_fungible_faucet(
             acct_id,
             nonce,
@@ -142,7 +143,7 @@ impl TransactionContextBuilder {
     }
 
     /// Initializes a [TransactionContextBuilder] with a mocked non-fungible faucet.
-    pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
+    pub fn with_non_fungible_faucet(acct_id: u128, nonce: Felt, empty_reserved_slot: bool) -> Self {
         let account = Account::mock_non_fungible_faucet(
             acct_id,
             nonce,

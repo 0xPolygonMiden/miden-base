@@ -367,9 +367,8 @@ pub fn hash_account(
     code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
-    let account_id_felts: [Felt; 2] = id.into();
-    elements[0] = account_id_felts[0];
-    elements[1] = account_id_felts[1];
+    elements[0] = id.second_felt();
+    elements[1] = id.first_felt();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_commitment);

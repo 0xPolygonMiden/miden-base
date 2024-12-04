@@ -114,8 +114,13 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Transact
 
     assert_eq!(
         read_root_mem_value(process, ACCT_ID_PTR)[0],
-        inputs.account().id().into(),
-        "The account ID should be stored at the ACCT_ID_PTR"
+        inputs.account().id().second_felt(),
+        "The account ID first felt should be stored at the ACCT_ID_PTR[0]"
+    );
+    assert_eq!(
+        read_root_mem_value(process, ACCT_ID_PTR)[1],
+        inputs.account().id().first_felt(),
+        "The account ID second felt should be stored at the ACCT_ID_PTR[1]"
     );
 
     assert_eq!(
@@ -240,7 +245,12 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Transa
 fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, NATIVE_ACCT_ID_AND_NONCE_PTR),
-        [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()],
+        [
+            inputs.account().id().second_felt(),
+            inputs.account().id().first_felt(),
+            ZERO,
+            inputs.account().nonce()
+        ],
         "The account id should be stored at NATIVE_ACCT_ID_AND_NONCE_PTR[0]"
     );
 
@@ -548,7 +558,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     ";
 
     // override the seed with an invalid seed to ensure the kernel fails
-    let account_seed_key = [acct.id().into(), ZERO, ZERO, ZERO];
+    let account_seed_key = [acct.id().first_felt(), acct.id().second_felt(), ZERO, ZERO];
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
