@@ -79,8 +79,8 @@ impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
     /// - RpoFalcon512
     ///
     /// # Errors
-    /// If the public key is not contained in the `keys` map, [AuthenticationError::UnknownKey] is
-    /// returned.
+    /// If the public key is not contained in the `keys` map,
+    /// [`AuthenticationError::UnknownPublicKey`] is returned.
     fn get_signature(
         &self,
         pub_key: Word,
