@@ -1,8 +1,13 @@
 use clap::Parser;
-use pingora::{apps::HttpServerOptions, lb::Backend, prelude::Opt, server::Server};
+use pingora::{
+    apps::HttpServerOptions,
+    lb::Backend,
+    prelude::{background_service, Opt},
+    server::Server,
+};
 use pingora_proxy::http_proxy_service;
 
-use crate::proxy::LoadBalancer;
+use crate::proxy::{LoadBalancer, LoadBalancerWrapper};
 
 /// Starts the proxy defined in the config file.
 #[derive(Debug, Parser)]
@@ -28,8 +33,11 @@ impl StartProxy {
 
         let worker_lb = LoadBalancer::new(workers, &proxy_config);
 
+        let health_check_service = background_service("health_check", worker_lb);
+        let worker_lb = health_check_service.task();
+
         // Set up the load balancer
-        let mut lb = http_proxy_service(&server.configuration, worker_lb);
+        let mut lb = http_proxy_service(&server.configuration, LoadBalancerWrapper(worker_lb));
 
         let proxy_host = proxy_config.host;
         let proxy_port = proxy_config.port.to_string();
@@ -41,6 +49,7 @@ impl StartProxy {
         http_server_options.h2c = true;
         logic.server_options = Some(http_server_options);
 
+        server.add_service(health_check_service);
         server.add_service(lb);
         server.run_forever();
     }
