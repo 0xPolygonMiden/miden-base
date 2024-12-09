@@ -104,11 +104,9 @@ impl ProxyConfig {
         Ok(())
     }
 
-    /// Updates the workers in the configuration
-    ///
-    /// This method will persist the new workers list to the configuration file.
-    pub(crate) fn update_workers(workers: Vec<WorkerConfig>) -> Result<(), String> {
-        let mut proxy_config = Self::load_config_from_file().unwrap();
+    /// Updates the workers in the configuration with the new list.
+    pub(crate) fn set_workers(workers: Vec<WorkerConfig>) -> Result<(), String> {
+        let mut proxy_config = Self::load_config_from_file()?;
 
         proxy_config.workers = workers;
 
