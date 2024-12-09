@@ -17,7 +17,7 @@ use tonic::transport::Channel;
 use tonic_health::pb::{
     health_check_response::ServingStatus, health_client::HealthClient, HealthCheckRequest,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::{
@@ -40,15 +40,31 @@ const LOCALHOST_ADDR: &str = "127.0.0.1";
 /// Worker
 ///
 /// A worker is a backend server that processes requests. It is represented by its address.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Worker {
     worker: Backend,
+    health_check_client: HealthClient<Channel>,
     is_available: bool,
 }
 
 impl Worker {
-    pub fn new(worker: Backend) -> Self {
-        Self { worker, is_available: true }
+    pub async fn new(
+        worker: Backend,
+        connection_timeout: Duration,
+        total_timeout: Duration,
+    ) -> Self {
+        let health_check_client = Self::create_health_check_client(
+            worker.addr.to_string(),
+            connection_timeout,
+            total_timeout,
+        )
+        .await
+        .expect("Could not create health check client");
+        Self {
+            worker,
+            is_available: true,
+            health_check_client,
+        }
     }
 
     /// Update the worker configuration in the configuration file.
@@ -59,7 +75,48 @@ impl Worker {
         let worker_configs =
             workers.iter().map(|worker| worker.try_into()).collect::<Result<Vec<_>, _>>()?;
 
-        ProxyConfig::update_workers(worker_configs)
+        ProxyConfig::set_workers(worker_configs)
+    }
+
+    /// Create a gRPC [HealthClient] for the given worker address.
+    ///
+    /// It will panic if the worker URI is invalid.
+    async fn create_health_check_client(
+        address: String,
+        connection_timeout: Duration,
+        total_timeout: Duration,
+    ) -> Result<HealthClient<Channel>, tonic::transport::Error> {
+        Channel::from_shared(format!("http://{}", address))
+            .expect("Invalid worker URI")
+            .connect_timeout(connection_timeout)
+            .timeout(total_timeout)
+            .connect()
+            .await
+            .map(HealthClient::new)
+    }
+
+    pub fn address(&self) -> String {
+        self.worker.addr.to_string()
+    }
+
+    async fn is_healthy(&mut self) -> bool {
+        match self
+            .health_check_client
+            .check(HealthCheckRequest { service: "".to_string() })
+            .await
+        {
+            Ok(response) => response.into_inner().status() == ServingStatus::Serving,
+            Err(err) => {
+                error!("Failed to check worker health ({}): {}", self.address(), err);
+                false
+            },
+        }
+    }
+}
+
+impl PartialEq for Worker {
+    fn eq(&self, other: &Self) -> bool {
+        self.worker == other.worker
     }
 }
 
@@ -91,13 +148,24 @@ pub struct LoadBalancer {
 
 impl LoadBalancer {
     /// Create a new load balancer
-    pub fn new(workers: Vec<Backend>, config: &ProxyConfig) -> Self {
-        let workers: Vec<Worker> = workers.into_iter().map(Worker::new).collect();
+    pub fn new(initial_workers: Vec<Backend>, config: &ProxyConfig) -> Self {
+        let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
+
+        let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
+        let total_timeout = Duration::from_secs(config.timeout_secs);
+
+        for worker in initial_workers {
+            workers.push(pollster::block_on(Worker::new(
+                worker,
+                connection_timeout,
+                total_timeout,
+            )));
+        }
 
         Self {
-            workers: Arc::new(RwLock::new(workers.clone())),
-            timeout_secs: Duration::from_secs(config.timeout_secs),
-            connection_timeout_secs: Duration::from_secs(config.connection_timeout_secs),
+            workers: Arc::new(RwLock::new(workers)),
+            timeout_secs: total_timeout,
+            connection_timeout_secs: connection_timeout,
             max_queue_items: config.max_queue_items,
             max_retries_per_request: config.max_retries_per_request,
             max_req_per_sec: config.max_req_per_sec,
@@ -152,29 +220,32 @@ impl LoadBalancer {
         update_workers: UpdateWorkers,
     ) -> std::result::Result<(), String> {
         let mut workers = self.workers.write().await;
-
         info!("Current workers: {:?}", workers);
 
-        let workers_to_update: Vec<Worker> = update_workers
+        let workers_to_update: Vec<Backend> = update_workers
             .workers
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<Vec<Backend>, _>>()
-            .map_err(|err| format!("Failed to create backend: {}", err))?
-            .into_iter()
-            .map(Worker::new)
-            .collect();
+            .map_err(|err| format!("Failed to create backend: {}", err))?;
+
+        let mut native_workers = Vec::new();
+
+        for worker in workers_to_update {
+            native_workers
+                .push(Worker::new(worker, self.connection_timeout_secs, self.timeout_secs).await);
+        }
 
         match update_workers.action {
             Action::Add => {
-                for worker in workers_to_update {
-                    if !workers.iter().any(|w| w.worker == worker.worker) {
+                for worker in native_workers {
+                    if !workers.iter().any(|w| w == &worker) {
                         workers.push(worker);
                     }
                 }
             },
             Action::Remove => {
-                for worker in workers_to_update {
+                for worker in native_workers {
                     workers.retain(|w| w.worker != worker.worker);
                 }
             },
@@ -183,7 +254,7 @@ impl LoadBalancer {
         let new_list_of_workers =
             workers.iter().map(|worker| worker.try_into()).collect::<Result<Vec<_>, _>>()?;
 
-        ProxyConfig::update_workers(new_list_of_workers)?;
+        ProxyConfig::set_workers(new_list_of_workers)?;
 
         info!("Workers updated: {:?}", workers);
 
@@ -255,22 +326,6 @@ impl LoadBalancer {
         Some(create_workers_updated_response(session, workers_count).await)
     }
 
-    /// Create a gRPC client for the given worker address.
-    ///
-    /// It will panic if the worker URI is invalid.
-    async fn create_grpc_client(
-        &self,
-        worker_addr: &str,
-    ) -> Result<HealthClient<Channel>, tonic::transport::Error> {
-        Channel::from_shared(format!("http://{}", worker_addr))
-            .expect("Invalid worker URI")
-            .connect_timeout(self.connection_timeout_secs)
-            .timeout(self.timeout_secs)
-            .connect()
-            .await
-            .map(HealthClient::new)
-    }
-
     /// Check the health of the workers and returns a list of healthy workers.
     ///
     /// Performs a health check on each worker using the gRPC health check protocol. If a worker
@@ -282,26 +337,10 @@ impl LoadBalancer {
         let mut healthy_workers = Vec::new();
 
         for worker in workers {
-            let worker_addr = worker.worker.addr.clone();
-            match self.create_grpc_client(&worker_addr.to_string()).await {
-                Ok(mut client) => {
-                    match client.check(HealthCheckRequest { service: "".to_string() }).await {
-                        Ok(response) => {
-                            if response.into_inner().status() == ServingStatus::Serving {
-                                debug!("Worker {} is healthy", worker_addr);
-                                healthy_workers.push(worker.clone());
-                            } else {
-                                warn!("Worker {} is not healthy", worker_addr);
-                            }
-                        },
-                        Err(err) => {
-                            error!("Failed to check worker health ({}): {}", worker_addr, err);
-                        },
-                    }
-                },
-                Err(err) => {
-                    error!("Failed to connect to worker {}: {}", worker_addr, err);
-                },
+            if worker.is_healthy().await {
+                healthy_workers.push(worker.clone());
+            } else {
+                warn!("Worker {} is not healthy", worker.address());
             }
         }
 
@@ -502,10 +541,7 @@ impl ProxyHttp for LoadBalancerWrapper {
 
             // Check if there is an available worker
             if let Some(worker) = self.0.pop_available_worker().await {
-                info!(
-                    "Worker {} picked up the request with ID: {}",
-                    worker.worker.addr, request_id
-                );
+                info!("Worker {} picked up the request with ID: {}", worker.address(), request_id);
                 ctx.set_worker(worker.worker);
                 break;
             }
