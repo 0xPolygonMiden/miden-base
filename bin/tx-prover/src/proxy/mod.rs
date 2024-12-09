@@ -37,9 +37,10 @@ const LOCALHOST_ADDR: &str = "127.0.0.1";
 // WORKER
 // ================================================================================================
 
-/// Worker
+/// A worker used for processing of requests.
 ///
-/// A worker is a backend server that processes requests. It is represented by its address.
+/// A worker consists of a backend service (defined by worker address), a flag indicating wheter
+/// the worker is currently available to process new requests, and a gRPC health check client.
 #[derive(Debug, Clone)]
 pub struct Worker {
     worker: Backend,
