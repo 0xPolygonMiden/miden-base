@@ -5,7 +5,8 @@ mod utils;
 use commands::Cli;
 use utils::setup_tracing;
 
-fn main() -> Result<(), String> {
+#[tokio::main]
+async fn main() -> Result<(), String> {
     use clap::Parser;
 
     setup_tracing();
@@ -14,7 +15,7 @@ fn main() -> Result<(), String> {
     let cli = Cli::parse();
 
     // execute cli action
-    cli.execute()
+    cli.execute().await
 }
 
 // TESTS
