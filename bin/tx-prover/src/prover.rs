@@ -74,10 +74,7 @@ impl TransactionProver for RemoteTransactionProver {
     ) -> Result<ProvenTransaction, TransactionProverError> {
         use miden_objects::utils::Serializable;
         self.connect().await.map_err(|err| {
-            TransactionProverError::custom_with_source(
-                "failed to connect to the remote prover",
-                err,
-            )
+            TransactionProverError::other_with_source("failed to connect to the remote prover", err)
         })?;
 
         let mut client = self.client.write();
@@ -92,13 +89,13 @@ impl TransactionProver for RemoteTransactionProver {
             .prove_transaction(request)
             .await
             .map_err(|err| {
-                TransactionProverError::custom_with_source("failed to prove transaction", err)
+                TransactionProverError::other_with_source("failed to prove transaction", err)
             })?;
 
         // Deserialize the response bytes back into a ProvenTransaction.
         let proven_transaction =
             ProvenTransaction::try_from(response.into_inner()).map_err(|_| {
-                TransactionProverError::custom(
+                TransactionProverError::other(
                     "failed to deserialize received response from remote transaction prover",
                 )
             })?;

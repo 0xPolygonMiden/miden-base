@@ -53,7 +53,7 @@ pub enum TransactionProverError {
     TransactionHostCreationFailed(#[source] TransactionHostError),
     /// Custom error variant for errors not covered by the other variants.
     #[error("{error_msg}")]
-    Custom {
+    Other {
         error_msg: Box<str>,
         // thiserror will return this when calling Error::source on DataStoreError.
         source: Option<Box<dyn Error + Send + Sync + 'static>>,
@@ -61,19 +61,21 @@ pub enum TransactionProverError {
 }
 
 impl TransactionProverError {
-    /// Creates a custom error from an error message.
-    pub fn custom(message: impl Into<String>) -> Self {
+    /// Creates a custom error using the [`TransactionProverError::Other`] variant from an error
+    /// message.
+    pub fn other(message: impl Into<String>) -> Self {
         let message: String = message.into();
-        Self::Custom { error_msg: message.into(), source: None }
+        Self::Other { error_msg: message.into(), source: None }
     }
 
-    /// Creates a custom error from an error message and a source error.
-    pub fn custom_with_source(
+    /// Creates a custom error using the [`TransactionProverError::Other`] variant from an error
+    /// message and a source error.
+    pub fn other_with_source(
         message: impl Into<String>,
         source: impl Error + Send + Sync + 'static,
     ) -> Self {
         let message: String = message.into();
-        Self::Custom {
+        Self::Other {
             error_msg: message.into(),
             source: Some(Box::new(source)),
         }
@@ -123,7 +125,7 @@ pub enum DataStoreError {
     /// Custom error variant for implementors of the [`DataStore`](crate::executor::DataStore)
     /// trait.
     #[error("{error_msg}")]
-    Custom {
+    Other {
         error_msg: Box<str>,
         // thiserror will return this when calling Error::source on DataStoreError.
         source: Option<Box<dyn Error + Send + Sync + 'static>>,
@@ -131,19 +133,20 @@ pub enum DataStoreError {
 }
 
 impl DataStoreError {
-    /// Creates a custom error from an error message.
-    pub fn custom(message: impl Into<String>) -> Self {
+    /// Creates a custom error using the [`DataStoreError::Other`] variant from an error message.
+    pub fn other(message: impl Into<String>) -> Self {
         let message: String = message.into();
-        Self::Custom { error_msg: message.into(), source: None }
+        Self::Other { error_msg: message.into(), source: None }
     }
 
-    /// Creates a custom error from an error message and a source error.
-    pub fn custom_with_source(
+    /// Creates a custom error using the [`DataStoreError::Other`] variant from an error message and
+    /// a source error.
+    pub fn other_with_source(
         message: impl Into<String>,
         source: impl Error + Send + Sync + 'static,
     ) -> Self {
         let message: String = message.into();
-        Self::Custom {
+        Self::Other {
             error_msg: message.into(),
             source: Some(Box::new(source)),
         }
@@ -162,7 +165,7 @@ pub enum AuthenticationError {
     /// Custom error variant for implementors of the
     /// [`TransactionAuthenticatior`](crate::auth::TransactionAuthenticator) trait.
     #[error("{error_msg}")]
-    Custom {
+    Other {
         error_msg: Box<str>,
         // thiserror will return this when calling Error::source on DataStoreError.
         source: Option<Box<dyn Error + Send + Sync + 'static>>,
@@ -170,19 +173,21 @@ pub enum AuthenticationError {
 }
 
 impl AuthenticationError {
-    /// Creates a custom error from an error message.
-    pub fn custom(message: impl Into<String>) -> Self {
+    /// Creates a custom error using the [`AuthenticationError::Other`] variant from an error
+    /// message.
+    pub fn other(message: impl Into<String>) -> Self {
         let message: String = message.into();
-        Self::Custom { error_msg: message.into(), source: None }
+        Self::Other { error_msg: message.into(), source: None }
     }
 
-    /// Creates a custom error from an error message and a source error.
-    pub fn custom_with_source(
+    /// Creates a custom error using the [`AuthenticationError::Other`] variant from an error
+    /// message and a source error.
+    pub fn other_with_source(
         message: impl Into<String>,
         source: impl Error + Send + Sync + 'static,
     ) -> Self {
         let message: String = message.into();
-        Self::Custom {
+        Self::Other {
             error_msg: message.into(),
             source: Some(Box::new(source)),
         }
