@@ -78,7 +78,7 @@ fn build_account_procedure_map(
     // get the account procedures from the advice_map
     let proc_data = adv_provider.get_mapped_values(&code_commitment).ok_or_else(|| {
         TransactionHostError::AccountProcedureIndexMapError(
-            "Failed to read account procedure data from the advice provider".to_string(),
+            "failed to read account procedure data from the advice provider".to_string(),
         )
     })?;
 
@@ -89,14 +89,14 @@ fn build_account_procedure_map(
     // check that there are procedures in the account code
     if proc_data.is_empty() {
         return Err(TransactionHostError::AccountProcedureIndexMapError(
-            "The account code does not contain any procedures.".to_string(),
+            "account code does not contain any procedures.".to_string(),
         ));
     }
 
     // check that procedure data have a correct length
     if proc_data.len() % AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != 0 {
         return Err(TransactionHostError::AccountProcedureIndexMapError(
-            "The account procedure data has invalid length.".to_string(),
+            "account procedure data has invalid length.".to_string(),
         ));
     }
 
@@ -106,7 +106,7 @@ fn build_account_procedure_map(
     // check that the account code does not contain too many procedures
     if num_procs > AccountCode::MAX_NUM_PROCEDURES {
         return Err(TransactionHostError::AccountProcedureIndexMapError(
-            "The account code contains too many procedures.".to_string(),
+            "account code contains too many procedures.".to_string(),
         ));
     }
 
@@ -116,12 +116,8 @@ fn build_account_procedure_map(
         let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
             proc_info.try_into().expect("Failed conversion into procedure info array.");
 
-        let procedure = AccountProcedureInfo::try_from(proc_info_array).map_err(|e| {
-            TransactionHostError::AccountProcedureIndexMapError(format!(
-                "Failed to create AccountProcedureInfo: {:?}",
-                e
-            ))
-        })?;
+        let procedure = AccountProcedureInfo::try_from(proc_info_array)
+            .map_err(TransactionHostError::AccountProcedureInfoCreationFailed)?;
 
         let proc_idx = u8::try_from(proc_idx).expect("Invalid procedure index.");
 
