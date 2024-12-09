@@ -47,7 +47,6 @@ impl StartWorker {
         tonic::transport::Server::builder()
             .accept_http1(true)
             .add_service(tonic_web::enable(rpc.api_service))
-            // Add the health service to the server
             .add_service(health_service)
             .serve_with_incoming(TcpListenerStream::new(rpc.listener))
             .await
