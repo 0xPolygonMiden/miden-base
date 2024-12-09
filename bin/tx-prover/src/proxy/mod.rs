@@ -68,17 +68,6 @@ impl Worker {
         }
     }
 
-    /// Update the worker configuration in the configuration file.
-    ///
-    /// # Errors
-    /// - If the worker address cannot be converted to [WorkerConfig].
-    fn update_worker_config(workers: &[Worker]) -> Result<(), String> {
-        let worker_configs =
-            workers.iter().map(|worker| worker.try_into()).collect::<Result<Vec<_>, _>>()?;
-
-        ProxyConfig::set_workers(worker_configs)
-    }
-
     /// Create a gRPC [HealthClient] for the given worker address.
     ///
     /// It will panic if the worker URI is invalid.
@@ -673,7 +662,13 @@ impl BackgroundService for LoadBalancer {
                 *workers = healthy_workers;
 
                 // Persist the updated worker list to the configuration file
-                if let Err(err) = Worker::update_worker_config(&workers) {
+                let worker_configs = workers
+                    .iter()
+                    .map(|worker| worker.try_into())
+                    .collect::<Result<Vec<_>, _>>()
+                    .expect("Failed to convert workers to worker configs");
+
+                if let Err(err) = ProxyConfig::set_workers(worker_configs) {
                     error!("Failed to update workers in the configuration file: {}", err);
                 }
 
