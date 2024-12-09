@@ -336,14 +336,14 @@ proc.validate_new_account
     # Assert faucet reserved slot is correctly initialized
     # ---------------------------------------------------------------------------------------------
     # check if the account is a faucet
-    exec.account::get_id dup exec.account::is_faucet
-    # => [is_faucet, acct_id]
+    exec.account::get_id swap drop dup exec.account::is_faucet
+    # => [is_faucet, acct_id_hi]
 
     # process conditional logic depending on whether the account is a faucet
     if.true
         # get the faucet reserved slot
         exec.account::get_faucet_storage_data_slot exec.account::get_item
-        # => [FAUCET_RESERVED_SLOT, acct_id]
+        # => [FAUCET_RESERVED_SLOT, acct_id_hi]
 
         # check if the account is a fungible faucet
         movup.4 exec.account::is_fungible_faucet
@@ -382,7 +382,7 @@ proc.validate_new_account
             # => []
         end
     else
-        # drop the account id
+        # drop the hi part of the ID
         drop
         # => []
     end

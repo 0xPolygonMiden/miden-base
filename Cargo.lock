@@ -1985,6 +1985,7 @@ dependencies = [
 name = "miden-tx"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "assert_matches",
  "async-trait",
  "miden-assembly",

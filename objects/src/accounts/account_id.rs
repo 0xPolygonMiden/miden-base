@@ -478,9 +478,9 @@ pub(super) fn validate_first_felt(
 
     // Validate high bit of first felt is zero.
     if first_felt >> 63 != 0 {
-        return Err(AccountError::AssumptionViolated(
-            "TODO: Make proper error: first felt high bit must be zero".into(),
-        ));
+        return Err(AccountError::AssumptionViolated(format!(
+            "TODO: Make proper error: first felt {first_felt:016x} high bit must be zero",
+        )));
     }
 
     // Validate storage bits.
@@ -545,23 +545,22 @@ fn extract_block_epoch(second_felt: u64) -> u16 {
     ((second_felt & ACCOUNT_BLOCK_EPOCH_MASK) >> ACCOUNT_BLOCK_EPOCH_MASK_SHIFT) as u16
 }
 
-// Shapes the second felt so it meets the requirements of the [`AccountId2`].
+/// Shapes the second felt so it meets the requirements of the account ID, by overwriting the
+/// upper 16 bits with the epoch and setting the lower 8 bits to zero.
 fn shape_second_felt(second_felt: Felt, block_epoch: u16) -> Felt {
     if block_epoch == u16::MAX {
         unimplemented!("TODO: Return error");
     }
 
-    // Set epoch.
+    // Set epoch and set lower 8 bits to zero.
     let mut second_felt = second_felt.as_int();
-    let block_epoch = (block_epoch as u64) << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
-    second_felt &= block_epoch;
-    second_felt |= block_epoch;
+    let block_epoch_u64 = (block_epoch as u64) << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
+    let block_epoch_mask = 0x0000_ffff_ffff_ff00 | block_epoch_u64;
 
-    // Set lower 8 bits to zero.
-    second_felt &= 0xffff_ffff_ffff_ff00;
+    second_felt &= block_epoch_mask;
 
-    // We disallow u16::MAX which is all ones, so at least one of the most significant bits will
-    // always be zero.
+    // SAFETY: We disallow u16::MAX which would be all 1 bits, so at least one of the most
+    // significant bits will always be zero.
     Felt::try_from(second_felt).expect("epoch is never all ones so felt should be valid")
 }
 

@@ -1,5 +1,6 @@
-use alloc::collections::BTreeMap;
+use alloc::{collections::BTreeMap, vec::Vec};
 
+use anyhow::Context;
 use miden_lib::{
     accounts::wallets::BasicWallet,
     errors::tx_kernel_errors::{
@@ -27,27 +28,24 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::{
-        AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage, AccountType,
-        StorageSlot,
-    },
+    accounts::{Account, AccountBuilder, AccountProcedureInfo, AccountType, StorageSlot},
     testing::{
-        account_component::BASIC_WALLET_CODE,
-        constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
+        account_component::AccountMockComponent,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
-    Digest, FieldElement,
+    GENESIS_BLOCK,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, ONE};
+use vm_processor::{AdviceInputs, Digest, ExecutionError, ONE};
 
 use super::{Felt, Process, Word, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
-        utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+        utils::input_note_data_ptr, MockChain, MockHost, TransactionContext,
+        TransactionContextBuilder,
     },
     tests::kernel_tests::read_root_mem_value,
 };
@@ -402,173 +400,167 @@ fn input_notes_memory_assertions(
     }
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+// ACCOUNT CREATION TESTS
+// ================================================================================================
+
+/// Test helper which executes the prologue to check if the creation of the given `account` with its
+/// `seed` is valid in the context of the given `mock_chain`.
+pub fn create_account(
+    mock_chain: &MockChain,
+    account: Account,
+    seed: Word,
+) -> Result<(), ExecutionError> {
+    let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
+
+    let tx_context = TransactionContextBuilder::new(account)
+        .account_seed(Some(seed))
+        .tx_inputs(tx_inputs)
+        .build();
+
+    let code = "
+  use.kernel::prologue
+
+  begin
+      exec.prologue::prepare_transaction
+  end
+  ";
+
+    tx_context.execute_code(code)?;
+
+    Ok(())
+}
+
+/// Tests that a valid account of each type can be created successfully.
 #[test]
-pub fn test_prologue_create_account() {
-    let (account, seed) = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
-        .with_component(
-            AccountComponent::compile(
-                BASIC_WALLET_CODE,
-                TransactionKernel::testing_assembler(),
-                AccountStorage::mock_storage_slots(),
+pub fn create_accounts_with_genesis_block() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(None);
+
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+
+    let mut accounts = Vec::new();
+
+    for account_type in [
+        AccountType::RegularAccountImmutableCode,
+        AccountType::RegularAccountUpdatableCode,
+        AccountType::FungibleFaucet,
+        AccountType::NonFungibleFaucet,
+    ] {
+        let (account, seed) = AccountBuilder::new()
+            .account_type(account_type)
+            .init_seed(ChaCha20Rng::from_entropy().gen())
+            .with_reference_block(&genesis_block_header)
+            .with_component(
+                AccountMockComponent::new_with_slots(
+                    TransactionKernel::testing_assembler(),
+                    vec![StorageSlot::Value([Felt::new(255); 4])],
+                )
+                .unwrap(),
             )
-            .unwrap()
-            .with_supported_type(AccountType::RegularAccountUpdatableCode),
-        )
-        .build()
-        .unwrap();
+            .build()
+            .context("account build failed")?;
 
-    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
+        accounts.push((account, seed));
+    }
 
-    let code = "
-    use.kernel::prologue
+    for (account, seed) in accounts {
+        let account_type = account.account_type();
+        create_account(&mock_chain, account, seed)
+            .context(format!("create_account test failed for account type {:?}", account_type))?;
+    }
 
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    tx_context.execute_code(code).unwrap();
+    Ok(())
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+/// Tests that creating a fungible faucet account with a non-empty initial balance in its reserved
+/// slot fails.
 #[test]
-pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::FungibleFaucetValidInitialBalance,
-        TransactionKernel::assembler().with_debug_mode(true),
-    );
+pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(None);
 
-    let tx_context =
-        TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, ZERO)
-            .account_seed(Some(account_seed))
-            .build();
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
 
-    let code = "
-    use.kernel::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    tx_context.execute_code(code).unwrap();
-}
-
-#[cfg_attr(not(feature = "testing"), ignore)]
-#[test]
-pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
+    let (account, _, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        TransactionKernel::assembler(),
-    );
-
-    let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        acct_id.into(),
-        Felt::ZERO,
-        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
-    )
-    .account_seed(Some(account_seed))
-    .build();
-
-    let code = "
-    use.kernel::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    let process = tx_context.execute_code(code);
-    assert_execution_error!(process, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY);
-}
-
-#[cfg_attr(not(feature = "testing"), ignore)]
-#[test]
-pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::NonFungibleFaucetValidReservedSlot,
+        &genesis_block_header,
         TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context =
-        TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, true)
-            .account_seed(Some(account_seed))
-            .build();
+    let result = create_account(&mock_chain, account, account_seed);
 
-    let code = "
-    use.kernel::prologue
+    assert_execution_error!(result, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY);
 
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    let process = tx_context.execute_code(code);
-
-    assert!(process.is_ok())
+    Ok(())
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+/// Tests that creating a non fungible faucet account with a non-empty SMT in its reserved slot
+/// fails.
 #[test]
-pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
+pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(None);
+
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+
+    let (account, _, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
+        &genesis_block_header,
         TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context =
-        TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, false)
-            .account_seed(Some(account_seed))
-            .build();
-
-    let code = "
-    use.kernel::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    let process = tx_context.execute_code(code);
+    let result = create_account(&mock_chain, account, account_seed);
 
     assert_execution_error!(
-        process,
+        result,
         ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT
     );
+
+    Ok(())
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+/// Tests that supplying an invalid seed causes account creation to fail.
+///
+/// TODO: Add variant of this test with incorrect block hash.
 #[test]
-pub fn test_prologue_create_account_invalid_seed() {
-    let (acct, account_seed) = AccountBuilder::new()
+pub fn create_account_invalid_seed() {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(None);
+
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+
+    let (account, seed) = AccountBuilder::new()
+        .with_reference_block(&genesis_block_header)
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
         .build()
         .unwrap();
 
-    let code = "
-    use.kernel::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
+    let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
 
     // override the seed with an invalid seed to ensure the kernel fails
-    let account_seed_key = [acct.id().first_felt(), acct.id().second_felt(), ZERO, ZERO];
+    let account_seed_key = [account.id().second_felt(), account.id().first_felt(), ZERO, ZERO];
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(Some(account_seed))
+    let tx_context = TransactionContextBuilder::new(account)
+        .account_seed(Some(seed))
+        .tx_inputs(tx_inputs)
         .advice_inputs(adv_inputs)
         .build();
-    let process = tx_context.execute_code(code);
 
-    assert_execution_error!(process, ERR_ACCOUNT_SEED_DIGEST_MISMATCH)
+    let code = "
+      use.kernel::prologue
+
+      begin
+          exec.prologue::prepare_transaction
+      end
+      ";
+
+    let result = tx_context.execute_code(code);
+
+    assert_execution_error!(result, ERR_ACCOUNT_SEED_DIGEST_MISMATCH)
 }
 
 #[test]

@@ -40,7 +40,7 @@ impl TransactionInputs {
         input_notes: InputNotes<InputNote>,
     ) -> Result<Self, TransactionInputError> {
         // validate the seed
-        validate_account_seed(&account, &block_chain, account_seed)?;
+        validate_account_seed(&account, &block_header, &block_chain, account_seed)?;
 
         // check the block_chain and block_header are consistent
         let block_num = block_header.block_num();
@@ -471,19 +471,25 @@ impl Deserializable for InputNote {
 /// Validates that the provided seed is valid for this account.
 pub fn validate_account_seed(
     account: &Account,
+    block_header: &BlockHeader,
     block_chain: &ChainMmr,
     account_seed: Option<Word>,
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
-            let epoch_block_header = block_chain
-                .get_block(block_num_from_epoch(account.id().block_epoch()))
-                .ok_or_else(|| {
-                    TransactionInputError::EpochBlockHeaderNotProvidedForNewAccount(
-                        account.id().block_epoch(),
-                    )
-                })?;
-            let epoch_block_hash = epoch_block_header.hash();
+            let epoch_block_number = block_num_from_epoch(account.id().block_epoch());
+
+            let epoch_block_hash = if block_header.block_num() == epoch_block_number {
+                block_header.hash()
+            } else {
+                let epoch_block_header =
+                    block_chain.get_block(epoch_block_number).ok_or_else(|| {
+                        TransactionInputError::EpochBlockHeaderNotProvidedForNewAccount(
+                            account.id().block_epoch(),
+                        )
+                    })?;
+                epoch_block_header.hash()
+            };
 
             let account_id = AccountId::new(
                 seed,

@@ -1,3 +1,4 @@
+use.std::collections::mmr
 use.std::collections::smt
 use.std::crypto::hashes::rpo
 use.std::mem
@@ -429,7 +430,7 @@ export.validate_procedure_metadata
     # => [start_loop, index, num_storage_slots, num_account_procedures]
 
     # check if the account is a faucet
-    exec.get_id exec.is_faucet
+    exec.get_id swap drop exec.is_faucet
     # => [is_faucet, start_loop, index, num_storage_slots, num_account_procedures]
 
     # we do not check if num_account_procedures == 0 here because a valid
@@ -718,7 +719,7 @@ end
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, 0, 0, 0, 0).
+#! 1. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, EPOCH_BLOCK_HASH).
 #! 2. Assert the least significant element of the digest is equal to the account id of the account
 #!    the transaction is being executed against.
 #! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the 
@@ -727,57 +728,150 @@ end
 #! Inputs:  []
 #! Outputs: []
 export.validate_seed
-    # pad capacity elements of hasher and populate first four elements of the rate with the account 
-    # id seed
-    padw exec.memory::get_account_id push.0.0.0
+    # Load the block hash of the epoch block from the chain mmr.
+    # This is the block hash which was used in the derivation of the account ID.
+    # ---------------------------------------------------------------------------------------------
+
+    # prepare the advice map key for the seed for later
+    exec.memory::get_account_id push.0.0
+    # => [0, 0, account_id_hi, account_id_lo]
+
+    # get the epoch's block number
+    dup.3 exec.id_epoch_block_num
+    # => [epoch_block_num, 0, 0, account_id_hi, account_id_lo]
+
+    exec.memory::get_chain_mmr_ptr swap
+    # => [epoch_block_num, chain_mmr_ptr, 0, 0, account_id_hi, account_id_lo]
+
+    exec.mmr::get
+    # => [EPOCH_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+
+    # assert that the epoch block hash is not the empty word
+    # TODO: Proper error.
+    push.0.0.0.0 eqw not assert.err=1122334455 dropw
+    # => [EPOCH_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+
+    # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, EPOCH_BLOCK_HASH).
+    # ---------------------------------------------------------------------------------------------
+
+    # prepare advice push_mapval
+    swapw
+    # => [0, 0, account_id_hi, account_id_lo, EPOCH_BLOCK_HASH]
+
+    # populate first four elements of the rate with the account id seed
     adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
     adv_loadw
-    # => [SEED, 0, 0, 0, 0]
+    # => [SEED, EPOCH_BLOCK_HASH]
+
+    # pad capacity element of hasher
+    padw swapw
+    # => [SEED, 0, 0, 0, 0, EPOCH_BLOCK_HASH]
 
     # populate last four elements of the hasher rate with the code commitment
     exec.memory::get_acct_code_commitment
-    # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0]
+    # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0, EPOCH_BLOCK_HASH]
 
     # perform first permutation of seed and code_commitment (from advice stack) 
     # perm(seed, code_commitment)
     hperm
-    # => [RATE, RATE, PERM]
+    # => [RATE, RATE, PERM, EPOCH_BLOCK_HASH]
 
     # clear rate elements
     dropw dropw
-    # => [PERM]
+    # => [PERM, EPOCH_BLOCK_HASH]
 
     # perform second permutation perm(storage_commitment, 0, 0, 0, 0)
-    exec.memory::get_acct_storage_commitment padw hperm
+    swapw exec.memory::get_acct_storage_commitment swapw
+    # => [EPOCH_BLOCK_HASH, STORAGE_COMMITMENT, PERM]
+
+    hperm
     # => [RATE, RATE, CAP]
 
     # extract digest
     exec.rpo::squeeze_digest
-    # => [DIG]
+    # => [DIGEST]
 
-    # assert the account id matches the account id of the new account and extract pow
-    # element
-    movdn.3 drop drop exec.memory::get_account_id eq assert.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
-    # => [pow]
+    # Shape second felt to add the epoch and compare computed and provided ID.
+    # ---------------------------------------------------------------------------------------------
 
-    # get acct and faucet modulus to check the min number of trailing zeros required in the pow
-    exec.constants::get_regular_account_seed_digest_modulus 
-    exec.constants::get_faucet_seed_digest_modulus
-    # => [faucet_modulus, acct_modulus, pow]
+    # extract account id from digest
+    drop drop swap
+    # => [hashed_account_id_hi, hashed_account_id_lo]
 
-    exec.memory::get_account_id
-    # => [acct_id, faucet_modulus, acct_modulus, pow]
+    exec.memory::get_account_id movdn.3
+    # => [account_id_lo, hashed_account_id_hi, hashed_account_id_lo, account_id_hi]
 
-    exec.is_faucet
-    # => [is_faucet, faucet_modulus, acct_modulus, pow]
+    # extract epoch from ID of the new account
+    dup movdn.4 exec.id_epoch
+    # => [epoch, hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
 
-    # select the appropriate modulus based on the account type
-    cdrop swap
-    # => [pow, modulus]
+    # shape second felt of hashed id, adding the epoch and setting the lower 8 bits to zero
+    movup.2 exec.shape_second_felt swap
+    # => [hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
 
-    # assert that the pow is valid
-    u32split drop swap u32divmod assertz.err=ERR_ACCOUNT_POW_IS_INSUFFICIENT drop
+    # assert the account id matches the account id of the new account
+    exec.is_id_eq assert.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
     # => []
+end
+
+#! Shapes the second felt so it meets the requirements of the account ID, by overwriting the
+#! upper 16 bits with the epoch and setting the lower 8 bits to zero.
+#!
+#! Inputs:  [seed_digest_lo, epoch]
+#! Outputs: [account_id_lo]
+proc.shape_second_felt
+  u32split movup.2
+  # => [epoch, seed_digest_lo_hi, seed_digest_lo_lo]
+
+  # TODO: Should we assert that epoch is < u16::MAX?
+
+  u32shl.16
+  # => [epoch_shifted, seed_digest_lo_hi, seed_digest_lo_lo]
+
+  # set epoch on the hi part of the second felt
+  u32or.0x0000ffff
+  # => [epoch_bitmask, seed_digest_lo_hi, seed_digest_lo_lo]
+
+  u32and swap
+  # => [seed_digest_lo_lo, account_id_lo_hi]
+
+  # set lower 8 bits of the lo part to zero
+  u32and.0xffffff00 swap
+  # => [account_id_lo_hi, account_id_lo_lo]
+
+  # reassemble the second felt by multiplying the high part with 2^32 and adding the lo part
+  mul.0x0100000000 add
+  # => [account_id_lo]
+end
+
+#! Extracts the epoch block number from the second felt of an account ID.
+#!
+#! Inputs:  [account_id_lo]
+#! Outputs: [epoch_block_num]
+proc.id_epoch_block_num
+  # extract the upper 32 bits
+  u32split swap drop
+  # => [account_id_lo_hi]
+
+  # to get the epoch's block number we would have to multiply the epoch in the account id by 2^16
+  # since the epoch is already in the upper 16 bits of the u32, we can simply zero out the
+  # lower 16 bits to achieve the same result.
+  u32and.0xffff0000
+  # => [epoch_block_num]
+end
+
+#! Extracts the epoch from the second felt of an account ID.
+#!
+#! Inputs:  [account_id_lo]
+#! Outputs: [epoch]
+proc.id_epoch
+  # extract the upper 32 bits
+  u32split swap drop
+  # => [account_id_lo_hi]
+
+  # shift the upper 16 bits to the right to produce the epoch
+  u32shr.16
+  # => [epoch]
 end
 
 # DATA LOADERS
