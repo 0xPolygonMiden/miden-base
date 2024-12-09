@@ -61,6 +61,7 @@ impl Worker {
         )
         .await
         .expect("Could not create health check client");
+
         Self {
             worker,
             is_available: true,
@@ -138,18 +139,14 @@ pub struct LoadBalancer {
 
 impl LoadBalancer {
     /// Create a new load balancer
-    pub fn new(initial_workers: Vec<Backend>, config: &ProxyConfig) -> Self {
+    pub async fn new(initial_workers: Vec<Backend>, config: &ProxyConfig) -> Self {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
 
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
         let total_timeout = Duration::from_secs(config.timeout_secs);
 
         for worker in initial_workers {
-            workers.push(pollster::block_on(Worker::new(
-                worker,
-                connection_timeout,
-                total_timeout,
-            )));
+            workers.push(Worker::new(worker, connection_timeout, total_timeout).await);
         }
 
         Self {
