@@ -177,10 +177,10 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
 
     (ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, "P2IDR's reclaimer is not the original sender"),
     (ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED, "P2IDR can not be reclaimed as the transaction's reference block is lower than the reclaim height"),
-    (ERR_P2IDR_WRONG_NUMBER_OF_INPUTS, "P2IDR scripts expect exactly 2 note inputs"),
+    (ERR_P2IDR_WRONG_NUMBER_OF_INPUTS, "P2IDR scripts expect exactly 3 note inputs"),
 
     (ERR_P2ID_TARGET_ACCT_MISMATCH, "P2ID's target account address and transaction address do not match"),
-    (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID script expects exactly 1 note input"),
+    (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID script expects exactly 2 note inputs"),
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
     (ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT, "The provided global inputs do not match the block hash commitment"),

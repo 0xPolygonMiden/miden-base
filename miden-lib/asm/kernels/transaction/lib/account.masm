@@ -549,7 +549,7 @@ export.set_item
     # => [storage_slot_type, index, V']
 
     # check if type == slot
-    exec.constants::get_storage_slot_type_value eq 
+    exec.constants::get_storage_slot_type_value eq
     assert.err=ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT
     # => [index, V']
 

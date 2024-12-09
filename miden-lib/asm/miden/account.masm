@@ -191,7 +191,7 @@ export.set_item
     # pad the stack
     push.0.0 movdn.7 movdn.7 padw padw swapdw 
     # => [offset, index, V', pad(10)]
-    
+
     syscall.exec_kernel_proc
     # => [R', V, pad(8)]
 

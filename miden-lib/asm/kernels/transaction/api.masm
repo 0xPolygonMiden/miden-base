@@ -229,7 +229,7 @@ export.set_account_item
     # if the transaction is being executed against a faucet account then assert
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
     dup exec.account::get_faucet_storage_data_slot eq
-    exec.account::get_id exec.account::is_faucet
+    exec.account::get_id swap drop exec.account::is_faucet
     and assertz.err=ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED
     # => [index, V', pad(11)]
 
