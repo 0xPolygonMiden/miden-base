@@ -94,8 +94,8 @@ impl NonFungibleAsset {
         // function.
 
         // TODO: Update explanation above.
-        let elem2 = data_hash[2].as_int();
-        data_hash[2] = Felt::new((elem2 & AccountId::IS_FAUCET_MASK) ^ elem2);
+        let element3 = data_hash[3].as_int();
+        data_hash[3] = Felt::new((element3 & AccountId::IS_FAUCET_MASK) ^ element3);
 
         let asset = Self(data_hash);
 

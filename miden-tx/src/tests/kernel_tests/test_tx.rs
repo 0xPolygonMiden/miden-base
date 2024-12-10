@@ -368,7 +368,7 @@ fn test_create_note_and_add_asset() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
     let tag = Felt::new(4);
-    let asset = [Felt::new(10), ZERO, faucet_id.first_felt(), faucet_id.second_felt()];
+    let asset = [Felt::new(10), ZERO, faucet_id.second_felt(), faucet_id.first_felt()];
 
     let code = format!(
         "
@@ -433,10 +433,10 @@ fn test_create_note_and_add_multiple_assets() {
     let aux = Felt::new(27);
     let tag = Felt::new(4);
 
-    let asset = [Felt::new(10), ZERO, faucet.first_felt(), faucet.second_felt()];
-    let asset_2 = [Felt::new(20), ZERO, faucet_2.first_felt(), faucet_2.second_felt()];
-    let asset_3 = [Felt::new(30), ZERO, faucet_2.first_felt(), faucet_2.second_felt()];
-    let asset_2_and_3 = [Felt::new(50), ZERO, faucet_2.first_felt(), faucet_2.second_felt()];
+    let asset = [Felt::new(10), ZERO, faucet.second_felt(), faucet.first_felt()];
+    let asset_2 = [Felt::new(20), ZERO, faucet_2.second_felt(), faucet_2.first_felt()];
+    let asset_3 = [Felt::new(30), ZERO, faucet_2.second_felt(), faucet_2.first_felt()];
+    let asset_2_and_3 = [Felt::new(50), ZERO, faucet_2.second_felt(), faucet_2.first_felt()];
 
     let non_fungible_asset = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA_2);
     let non_fungible_asset_encoded = Word::from(non_fungible_asset);

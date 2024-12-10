@@ -229,7 +229,7 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
     // TODO: Update explanation.
     // For fungible assets, the position `3` contains the faucet's account id, in which case the
     // bit is set. For non-fungible assets have the bit always set to `0`.
-    (asset[2].as_int() & AccountId::IS_FAUCET_MASK) == AccountId::IS_FAUCET_MASK
+    (asset[3].as_int() & AccountId::IS_FAUCET_MASK) == AccountId::IS_FAUCET_MASK
 }
 
 // TESTS

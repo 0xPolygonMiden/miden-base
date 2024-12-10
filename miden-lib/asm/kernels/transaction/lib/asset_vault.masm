@@ -57,8 +57,8 @@ export.get_balance
     # => [ASSET_VAULT_ROOT, faucet_id_hi, faucet_id_lo]
 
     # prepare the key for fungible asset lookup (pad least significant elements with zeros)
-    push.0 push.0 movup.6 movup.7
-    # => [faucet_id_lo, faucet_id_hi, 0, 0, 0, ASSET_VAULT_ROOT]
+    push.0.0 movup.7 movup.7
+    # => [faucet_id_hi, faucet_id_lo, 0, 0, ASSET_VAULT_ROOT]
 
     # lookup asset
     exec.smt::get swapw dropw
@@ -121,74 +121,66 @@ end
 #! Panics if:
 #! - the total value of assets is greater than or equal to 2^63.
 export.add_fungible_asset
-    # => [faucet_id_lo, faucet_id_hi, 0, amount]
-    push.0
-    # => [0, faucet_id_lo, faucet_id_hi, 0, amount]
-    movdn.3
-    # => [faucet_id_lo, faucet_id_hi, 0, 0, amount]
-    dup
-    # => [faucet_id_lo, faucet_id_lo, faucet_id_hi, 0, 0, amount]
-    movdn.4
-    # => [faucet_id_lo, faucet_id_hi, 0, 0, faucet_id_lo, amount]
-    dup.1
-    # => [faucet_id_hi, faucet_id_lo, faucet_id_hi, 0, 0, faucet_id_lo, amount]
-    movdn.5
-    # => [ASSET_KEY = [faucet_id_lo, faucet_id_hi, 0, 0], faucet_id_lo, faucet_id_hi, amount]
+    # create the asset key from the asset
+    # => [faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
+    dupw
+    # => [faucet_id_hi, faucet_id_lo, 0, amount, faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
+    push.0 swap.4 drop
+    # => [[faucet_id_hi, faucet_id_lo, 0, 0], faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
+    movup.6 drop
+    # => [[faucet_id_hi, faucet_id_lo, 0, 0], faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
     padw dup.11
-    # => [vault_root_ptr, pad(4), ASSET_KEY, faucet_id_lo, faucet_id_hi, amount, vault_root_ptr]
+    # => [vault_root_ptr, pad(4), ASSET_KEY, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
 
-    # get the asset vault root and read the vault asset value using the `push_smtpeek` decorator.
-    # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
-    # significant element with the faucet_id to construct the CUR_ASSET.
+    # get the asset vault root and read the current asset using the `push_smtpeek` decorator
+    # the current asset may be the empty word if it does not exist and so its faucet id would be zeroes
+    # we therefore overwrite the faucet id with the faucet id from ASSET to account for this edge case
     mem_loadw swapw
-    # => [ASSET_KEY, VAULT_ROOT, faucet_id_lo, faucet_id_hi, amount, vault_root_ptr]
-
+    # => [ASSET_KEY, VAULT_ROOT, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
     adv.push_smtpeek push.15329 drop            # TODO: remove line, see miden-vm/#1122
-
     adv_loadw
-    # => [CUR_VAULT_VALUE, VAULT_ROOT, faucet_id_lo, faucet_id_hi, amount, vault_root_ptr]
+    # => [CUR_VAULT_VALUE, VAULT_ROOT, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
     swapw
-    # => [VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_lo, faucet_id_hi, amount, vault_root_ptr]
+    # => [VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
     dupw.1
-    # => [CUR_VAULT_VALUE, VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_lo, faucet_id_hi, amount, vault_root_ptr]
+    # => [CUR_VAULT_VALUE, VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
     drop drop
-    # => [[0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_lo, faucet_id_hi, amount, vault_root_ptr]
+    # => [[0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
     movup.11 movup.11
-    # => [[faucet_id_lo, faucet_id_hi, 0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
+    # => [[faucet_id_hi, faucet_id_lo, 0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
 
-    # swapw dupw.1 drop movup.11
-    # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
-
-    # arrange elements
+    # arrange amounts
     movup.3 movup.12 dup
-    # => [amount, amount, cur_amount, faucet_id_lo, faucet_id_hi, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
+    # => [amount, amount, cur_amount, faucet_id_hi, faucet_id_lo, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # compute max_amount - cur_amount
     exec.asset::get_fungible_asset_max_amount dup.3 sub
-    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id_lo, faucet_id_hi, 0, VAULT_ROOT, 
+    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id_hi, faucet_id_lo, 0, VAULT_ROOT,
     #     CUR_VAULT_VALUE, vault_root_ptr]
 
     # assert amount + cur_amount < max_amount
     lte assert.err=ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED
-    # => [amount, cur_amount, faucet_id_lo, faucet_id_hi, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
+    # => [amount, cur_amount, faucet_id_hi, faucet_id_lo, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # add asset amounts
     add movdn.3
     # => [ASSET', VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
-    # prepare the stack to insert the asset into the vault
+    # create the asset key to prepare insertion of the asset into the vault
     dupw movdnw.3
     # => [ASSET', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
     dupw
     # => [ASSET', ASSET', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
-    movup.3 drop
-    # => [[faucet_id_lo, faucet_id_hi, 0], ASSET', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
-    push.0 movdn.3 swapw
-    # => [ASSET', ASSET_KEY' = [faucet_id_lo, faucet_id_hi, 0, 0], VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
+    push.0 swap.4 drop
+    # => [[faucet_id_hi, faucet_id_lo, 0, 0], ASSET', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
+    swapw
+    # => [ASSET', ASSET_KEY', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
 
     # update asset in vault and assert the old value is equivalent to the value provided via the
     # decorator
-    exec.smt::set movupw.2 assert_eqw.err=ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID
+    exec.smt::set
+    # => [PREV_ASSET, VAULT_ROOT', CUR_VAULT_VALUE, ASSET', vault_root_ptr]
+    movupw.2 assert_eqw.err=ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID
     # => [VAULT_ROOT', ASSET', vault_root_ptr]
 
     # update the vault root

@@ -57,11 +57,11 @@ fn test_mint_fungible_asset_succeeds() {
         begin
             # mint asset
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::mint
 
             # assert the correct asset is returned
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             assert_eqw
 
             # assert the input vault has been updated
@@ -101,7 +101,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::mint
         end
         ",
@@ -126,7 +126,7 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::mint
         end
         ",
@@ -156,7 +156,7 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{saturating_amount}.0.{first_felt}.{second_felt}
+            push.{saturating_amount}.0.{second_felt}.{first_felt}
             call.account::mint
         end
         ",
@@ -332,10 +332,10 @@ fn test_burn_fungible_asset_succeeds() {
         begin
             # mint asset
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::burn
             # assert the correct asset is returned
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             assert_eqw
 
             # assert the input vault has been updated
@@ -378,7 +378,7 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::burn
         end
         ",
@@ -409,7 +409,7 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.{first_felt}.{second_felt}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::burn
         end
         ",
@@ -440,7 +440,7 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{saturating_amount}.0.{first_felt}.{second_felt}
+            push.{saturating_amount}.0.{second_felt}.{first_felt}
             call.account::burn
         end
         ",

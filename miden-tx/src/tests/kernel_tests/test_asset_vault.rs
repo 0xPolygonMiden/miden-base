@@ -125,7 +125,7 @@ fn test_add_fungible_asset_success() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT;
     let add_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.first_felt(), faucet_id.second_felt()])
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
             .unwrap();
 
     let code = format!(
@@ -166,7 +166,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT + 1;
     let add_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.first_felt(), faucet_id.second_felt()])
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
             .unwrap();
 
     let code = format!(
@@ -270,7 +270,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT;
     let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.first_felt(), faucet_id.second_felt()])
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
             .unwrap();
 
     let code = format!(
@@ -309,7 +309,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT + 1;
     let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.first_felt(), faucet_id.second_felt()])
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
             .unwrap();
 
     let code = format!(
@@ -339,7 +339,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT - 1;
     let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.first_felt(), faucet_id.second_felt()])
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
             .unwrap();
 
     let code = format!(

@@ -46,7 +46,7 @@ impl FungibleAsset {
     /// Creates a new [FungibleAsset] without checking its validity.
     pub(crate) fn new_unchecked(value: Word) -> FungibleAsset {
         FungibleAsset {
-            faucet_id: AccountId::new_unchecked([value[2], value[3]]),
+            faucet_id: AccountId::new_unchecked([value[3], value[2]]),
             amount: value[0].as_int(),
         }
     }
@@ -142,8 +142,8 @@ impl FungibleAsset {
     /// Returns the key which is used to store this asset in the account vault.
     pub(super) fn vault_key_from_faucet(faucet_id: AccountId) -> Word {
         let mut key = Word::default();
-        key[2] = faucet_id.first_felt();
-        key[3] = faucet_id.second_felt();
+        key[2] = faucet_id.second_felt();
+        key[3] = faucet_id.first_felt();
         key
     }
 }
@@ -152,8 +152,8 @@ impl From<FungibleAsset> for Word {
     fn from(asset: FungibleAsset) -> Self {
         let mut result = Word::default();
         result[0] = Felt::new(asset.amount);
-        result[2] = asset.faucet_id.first_felt();
-        result[3] = asset.faucet_id.second_felt();
+        result[2] = asset.faucet_id.second_felt();
+        result[3] = asset.faucet_id.first_felt();
         debug_assert!(is_not_a_non_fungible_asset(result));
         result
     }
@@ -172,7 +172,7 @@ impl TryFrom<Word> for FungibleAsset {
         if value[1] != ZERO {
             return Err(AssetError::FungibleAssetExpectedZero(value));
         }
-        let faucet_id = AccountId::try_from([value[2], value[3]])
+        let faucet_id = AccountId::try_from([value[3], value[2]])
             .map_err(|err| AssetError::InvalidFaucetAccountId(Box::new(err)))?;
         let amount = value[0].as_int();
         Self::new(faucet_id, amount)

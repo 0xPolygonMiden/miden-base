@@ -15,6 +15,7 @@ const.ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID=0x0002004D
 # CONSTANTS
 # =================================================================================================
 
+# TODO: Inline constant.
 # Two raised to the power of 32 (2^32)
 const.TWO_POW_32=4294967296
 
@@ -46,7 +47,7 @@ export.build_fungible_asset
     # => [faucet_id_hi, faucet_id_lo, amount]
 
     # create the asset
-    swap push.0 movdn.2
+    push.0 movdn.2
     # => [ASSET]
 end
 
@@ -92,7 +93,8 @@ export.build_non_fungible_asset
     # => [hash_0, hash_1, faucet_id_hi, hash_3]
 
     # Force the non-fungible bit to 0
-    swap u32split swap dup push.FUNGIBLE_BITMASK_U32 u32and u32xor swap push.TWO_POW_32 mul add swap
+    # TODO: Decompose into multiple lines.
+    u32split swap dup push.FUNGIBLE_BITMASK_U32 u32and u32xor swap push.TWO_POW_32 mul add
     # => [ASSET]
 end
 

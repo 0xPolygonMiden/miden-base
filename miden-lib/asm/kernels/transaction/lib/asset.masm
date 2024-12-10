@@ -10,7 +10,8 @@ const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO=0x00020020
 # Malformed fungible asset: ASSET[2] must be 0
 const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO=0x00020021
 
-# Malformed fungible asset: ASSET[3] must be a valide fungible faucet id
+# TODO: Rename
+# Malformed fungible asset: ASSET[3] must be a valid fungible faucet id
 const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020022
 
 # Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount
@@ -67,12 +68,12 @@ export.validate_fungible_asset
     dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO
     # => [ASSET]
 
-    # assert that the tuple (ASSET[2], ASSET[3]) forms a valid account id
-    dup dup.2 exec.account::validate_id
+    # assert that the tuple (ASSET[3], ASSET[2]) forms a valid account id
+    dup.1 dup.1 exec.account::validate_id
     # => [ASSET]
 
-    # assert that the first felt (ASSET[2]) of the account id is a fungible faucet
-    dup.1 exec.account::is_fungible_faucet
+    # assert that the first felt (ASSET[3]) of the account id is of type fungible faucet
+    dup exec.account::is_fungible_faucet
     # TODO: Rename error.
     assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
@@ -180,7 +181,7 @@ export.validate_fungible_asset_origin
     # assert the origin of the asset is the faucet_id provided via the stack
     # => [ASSET]
 
-    dup.2 dup.4
+    dup.3 dup.3
     # => [asset_id_hi, asset_id_lo, faucet_id_hi, faucet_id_lo, ASSET]
 
     exec.account::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
