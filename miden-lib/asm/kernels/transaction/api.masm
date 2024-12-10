@@ -879,10 +879,10 @@ end
 #! Moves the account pointer to the currently accessing foreign account.
 #!
 #! Inputs:
-#!   Operand stack: [foreign_account_id, pad(15)]
+#!   Operand stack: [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
 #!   Advice map: {
-#!     FOREIGN_ACCOUNT_ID: [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, 
-#!                          CODE_ROOT],
+#!     FOREIGN_ACCOUNT_ID: [[foreign_account_lo, foreign_account_id_hi, 0, 0, account_nonce],
+#!                          VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
 #!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
 #!     CODE_ROOT: [num_procs, [ACCOUNT_PROCEDURE_DATA]]
 #!   }
@@ -909,29 +909,30 @@ end
 export.start_foreign_context
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-    # OS => [foreign_account_id, pad(15)]
+    # OS => [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
 
     # get the memory address and a flag whether this account was already loaded.
     exec.account::get_foreign_account_ptr
-    # OS => [was_loaded, ptr, foreign_account_id, pad(15)]
+    # OS => [was_loaded, ptr, foreign_account_id_hi, foreign_account_id_lo, pad(14)]
 
     if.true
-        exec.memory::set_current_account_data_ptr drop
+        exec.memory::set_current_account_data_ptr drop drop
         # OS => [pad(16)]
     else
         exec.memory::set_current_account_data_ptr
-        # OS => [foreign_account_id, pad(15)]
+        # OS => [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
 
         # construct the word with account ID to load the core account data from the advice map
-        push.0.0.0
-        # OS => [0, 0, 0, foreign_account_id, pad(15)]
+        swap push.0.0
+        # OS => [0, 0, foreign_account_id_lo, foreign_account_id_hi, pad(14)]
 
         # move the core account data to the advice stack
         adv.push_mapval
-        # OS => [0, 0, 0, foreign_account_id, pad(15)]
+        # OS => [0, 0, foreign_account_id_lo, foreign_account_id_hi, pad(14)]
         # AS => [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the id and nonce of the foreign account to the memory
+        # TODO: dropw can be optimized away?
         dropw adv_loadw
         exec.memory::set_acct_id_and_nonce dropw
         # OS => [pad(16)]

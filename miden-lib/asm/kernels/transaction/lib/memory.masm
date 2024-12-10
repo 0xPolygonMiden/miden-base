@@ -758,13 +758,15 @@ end
 #! Returns the id of the native account.
 #!
 #! Inputs:  []
-#! Outputs: [native_acct_id]
+#! Outputs: [native_acct_id_hi, native_acct_id_lo]
 #!
 #! Where:
 #! - native_acct_id is the id of the native account.
 export.get_native_account_id
-    push.NATIVE_ACCOUNT_DATA_PTR push.ACCT_ID_AND_NONCE_OFFSET add
-    mem_load
+    padw push.NATIVE_ACCOUNT_DATA_PTR push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
+    # => [nonce, 0, native_acct_id_hi, native_acct_id_lo]
+    drop drop
+    # => [native_acct_id_hi, native_acct_id_lo]
 end
 
 #! Returns the account nonce.

@@ -707,7 +707,6 @@ fn test_fpi_memory() {
         .build_existing()
         .unwrap();
 
-    let foreign_account_id = foreign_account.id();
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
     mock_chain.seal_block(None);
@@ -745,8 +744,8 @@ fn test_fpi_memory() {
             push.{get_item_foreign_hash}
 
             # push the foreign account id
-            push.{foreign_account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
+            push.{foreign_second_felt}.{foreign_first_felt}
+            # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
@@ -755,6 +754,8 @@ fn test_fpi_memory() {
             exec.sys::truncate_stack
             end
             ",
+        foreign_first_felt = foreign_account.id().first_felt(),
+        foreign_second_felt = foreign_account.id().second_felt(),
         get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
     );
 
@@ -796,8 +797,8 @@ fn test_fpi_memory() {
             push.{get_map_item_foreign_hash}
 
             # push the foreign account id
-            push.{foreign_account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
+            push.{foreign_second_felt}.{foreign_first_felt}
+            # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
             exec.tx::execute_foreign_procedure
             # => [MAP_VALUE]
@@ -806,6 +807,8 @@ fn test_fpi_memory() {
             exec.sys::truncate_stack
         end
         ",
+        foreign_first_felt = foreign_account.id().first_felt(),
+        foreign_second_felt = foreign_account.id().second_felt(),
         map_key = STORAGE_LEAVES_2[0].0,
         get_map_item_foreign_hash = foreign_account.code().procedures()[1].mast_root(),
     );
@@ -848,8 +851,8 @@ fn test_fpi_memory() {
             push.{get_item_foreign_hash}
 
             # push the foreign account id
-            push.{foreign_account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+            push.{foreign_second_felt}.{foreign_first_felt}
+            # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure dropw
             # => []
@@ -866,8 +869,8 @@ fn test_fpi_memory() {
             push.{get_item_foreign_hash}
 
             # push the foreign account id
-            push.{foreign_account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+            push.{foreign_second_felt}.{foreign_first_felt}
+            # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
 
@@ -875,6 +878,8 @@ fn test_fpi_memory() {
             exec.sys::truncate_stack
         end
         ",
+        foreign_first_felt = foreign_account.id().first_felt(),
+        foreign_second_felt = foreign_account.id().second_felt(),
         get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
     );
 
@@ -971,8 +976,8 @@ fn test_fpi_execute_foreign_procedure() {
             push.{get_item_foreign_hash}
 
             # push the foreign account id
-            push.{foreign_account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+            push.{foreign_second_felt}.{foreign_first_felt}
+            # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE]
@@ -996,8 +1001,8 @@ fn test_fpi_execute_foreign_procedure() {
             push.{get_map_item_foreign_hash}
 
             # push the foreign account id
-            push.{foreign_account_id}
-            # => [foreign_account_id, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
+            push.{foreign_second_felt}.{foreign_first_felt}
+            # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
             exec.tx::execute_foreign_procedure
             # => [MAP_VALUE]
@@ -1010,7 +1015,8 @@ fn test_fpi_execute_foreign_procedure() {
             exec.sys::truncate_stack
         end
         ",
-        foreign_account_id = foreign_account.id(),
+        foreign_first_felt = foreign_account.id().first_felt(),
+        foreign_second_felt = foreign_account.id().second_felt(),
         get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
         get_map_item_foreign_hash = foreign_account.code().procedures()[1].mast_root(),
         map_key = STORAGE_LEAVES_2[0].0,

@@ -626,23 +626,23 @@ pub mod testing {
     pub const ACCOUNT_ID_SENDER: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Private,
-        0xaabb_ccdd,
+        0xfabb_ccde,
     );
     pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Private,
-        0xbbcc_ddee,
+        0xbfcc_dcee,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Private,
-        0xccdd_eeff,
+        0xacdd_eefc,
     );
     // REGULAR ACCOUNTS - ON-CHAIN
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Public,
-        0xaabb_ccdd,
+        0xfabb_cddd,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
@@ -660,16 +660,21 @@ pub mod testing {
         0xeeff_ccdd,
     );
 
+    // These faucet IDs all have a unique first and second felt. This is to ensure that when they
+    // are used to issue an asset they don't cause us to run into the "multiple leaf" case when
+    // calling std::collections::smt::{set,get} which doesn't support the "multiple leaf" case at
+    // this time.
+
     // FUNGIBLE TOKENS - OFF-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0xaabb_ccdd);
     // FUNGIBLE TOKENS - ON-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabb_ccdd);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabc_bcde);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xbbcc_ddee);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xbaca_ddef);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdd_eeff);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdb_eefa);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
 
@@ -677,19 +682,19 @@ pub mod testing {
     pub const ACCOUNT_ID_INSUFFICIENT_ONES: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0000_0000); // invalid
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0xaabb_ccdd);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0xaabc_ccde);
     // NON-FUNGIBLE TOKENS - ON-CHAIN
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbbcc_ddee);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbbca_ddef);
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdd_eeff);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdf_eefa);
 
     // TEST ACCOUNT IDs WITH CERTAIN PROPERTIES
     /// The Account Id with the maximum possible one bits.
     pub const ACCOUNT_ID_MAX_ONES: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0)
             | 0x7fff_ffff_ffff_ff00_7fff_ffff_ffff_ff00;
-    /// The Account Id with the maximum possible zeroe bits.
+    /// The Account Id with the maximum possible zero bits.
     pub const ACCOUNT_ID_MAX_ZEROES: u128 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0x001f_0000);
 
