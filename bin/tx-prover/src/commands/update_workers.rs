@@ -57,10 +57,8 @@ impl UpdateWorkers {
     /// - If the request fails.
     /// - If the status code is not successful.
     /// - If the X-Worker-Count header is missing.
-    pub fn execute(&self) -> Result<(), String> {
+    pub async fn execute(&self) -> Result<(), String> {
         // Define a runtime
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| format!("Failed to create runtime: {:?}", e))?;
 
         let query_params = serde_qs::to_string(&self).map_err(|err| err.to_string())?;
 
@@ -79,7 +77,7 @@ impl UpdateWorkers {
             .map_err(|err| err.to_string())?;
 
         // Make the request
-        let response = rt.block_on(client.get(url).send()).map_err(|err| err.to_string())?;
+        let response = client.get(url).send().await.map_err(|err| err.to_string())?;
 
         // Check status code
         if !response.status().is_success() {
