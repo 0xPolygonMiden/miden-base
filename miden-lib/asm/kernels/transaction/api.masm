@@ -632,7 +632,7 @@ end
 #! Outputs: [note_idx, ASSET, pad(11)]
 #!
 #! Where:
-#! - note_idx is the index of the the note to which the asset is added.
+#! - note_idx is the index of the note to which the asset is added.
 #! - ASSET can be a fungible or non-fungible asset.
 #!
 #! Panics if:
