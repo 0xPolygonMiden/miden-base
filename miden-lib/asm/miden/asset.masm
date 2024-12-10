@@ -18,8 +18,8 @@ const.ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID=0x0002004D
 # Two raised to the power of 32 (2^32)
 const.TWO_POW_32=4294967296
 
-# The bit 29 of the most significant half of the element is used to identify the asset type
-const.FUNGIBLE_BITMASK_U32=0x20000000
+# The 6th bit of the least significant half of the element is used to identify the asset type
+const.FUNGIBLE_BITMASK_U32=0x20
 
 # PROCEDURES
 # =================================================================================================
@@ -92,7 +92,7 @@ export.build_non_fungible_asset
     # => [hash_0, hash_1, faucet_id_hi, hash_3]
 
     # Force the non-fungible bit to 0
-    u32split dup push.FUNGIBLE_BITMASK_U32 u32and u32xor push.TWO_POW_32 mul add
+    swap u32split swap dup push.FUNGIBLE_BITMASK_U32 u32and u32xor swap push.TWO_POW_32 mul add swap
     # => [ASSET]
 end
 

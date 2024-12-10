@@ -441,16 +441,16 @@ end
 # PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
 # =================================================================================================
 
-# Given the least significant half of an account id's first felt, this mask defines the bits used
+# Given the least significant 32 bits of an account id's first felt, this mask defines the bits used
 # to determine the account type.
-const.ACCOUNT_TYPE_U32MASK=3 # 0b11
+const.ACCOUNT_ID_TYPE_MASK_U32=0x30 # 0b11_0000
 
 # Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
-const.FUNGIBLE_FAUCET_ACCOUNT=2
+const.FUNGIBLE_FAUCET_ACCOUNT=0x20 # 0b10_0000
 
 # Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been
 # applied.
-const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
+const.NON_FUNGIBLE_FAUCET_ACCOUNT=0x30 # 0b11_0000
 
 #! Returns the most significant half with the account type bits masked out.
 #!
@@ -467,7 +467,7 @@ const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
 #! - acct_id_hi is the first felt of the account id.
 #! - acct_type is the account type.
 proc.type
-    u32split drop push.ACCOUNT_TYPE_U32MASK u32and
+    u32split drop push.ACCOUNT_ID_TYPE_MASK_U32 u32and
     # => [acct_type]
 end
 
