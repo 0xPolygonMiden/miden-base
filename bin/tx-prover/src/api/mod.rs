@@ -28,11 +28,6 @@ pub struct ProverRpcApi {
     local_prover: Mutex<LocalTransactionProver>,
 }
 
-// We need to implement Send and Sync for the generated code to be able to use the prover in the
-// shared context.
-unsafe impl Send for ProverRpcApi {}
-unsafe impl Sync for ProverRpcApi {}
-
 #[async_trait::async_trait]
 impl ProverApi for ProverRpcApi {
     async fn prove_transaction(

@@ -1,4 +1,4 @@
-use alloc::{sync::Arc, vec::Vec};
+use alloc::vec::Vec;
 use std::string::{String, ToString};
 
 use miden_lib::{
@@ -1029,7 +1029,7 @@ fn test_fpi_execute_foreign_procedure() {
         .collect::<Vec<_>>();
 
     let mut executor: TransactionExecutor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
+        TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
 
     // load the mast forest of the foreign account's code to be able to create an account procedure
     // index map and execute the specified foreign procedure
