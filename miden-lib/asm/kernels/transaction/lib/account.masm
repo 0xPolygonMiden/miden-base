@@ -69,8 +69,21 @@ const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020016
 # State of the current foreign account is invalid.
 const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020017
 
+# Unknown version in account id.
+const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020057
+
+# Epoch must be less than u16::MAX (0xffff).
+const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020058
+
+# Least significant byte of second felt of the account id must be zero.
+const.ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO=0x00020059
+
 # CONSTANTS
 # =================================================================================================
+
+# Given the least significant 32 bits of an account id's first felt, this mask defines the bits used
+# to determine the account version.
+const.ACCOUNT_VERSION_MASK_U32=0x0f # 0b1111
 
 # Given the least significant 32 bits of an account id's first felt, this mask defines the bits used
 # to determine the account type.
@@ -339,29 +352,53 @@ end
 
 #! Validates an account id.
 #!
-#! Inputs:  [acct_id_hi, acct_id_lo]
+#! Inputs:  [account_id_hi, account_id_lo]
 #! Outputs: []
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account id.
-#! - acct_id_lo is the second felt of the account id.
+#! - account_id_hi is the first felt of the account id.
+#! - account_id_lo is the second felt of the account id.
 #!
 #! Panics if:
 #! - account_id_hi does not have at least MIN_ACCOUNT_ONES ones.
 export.validate_id
+    # Validate version in first felt. For now only version 0 is supported.
+    # ---------------------------------------------------------------------------------------------
+
+    dup exec.id_version
+    # => [version, account_id_hi, account_id_lo]
+    eq.0 assert.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
+    # => [account_id_hi, account_id_lo]
+
+    # Validate epoch is less than u16::MAX (0xffff) in second felt.
+    # ---------------------------------------------------------------------------------------------
+
+    dup.1 exec.id_epoch
+    # => [epoch, account_id_hi, account_id_lo]
+    lt.0xffff assert.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
+    # => [account_id_hi, account_id_lo]
+
+    # Validate lower 8 bits of second felt are zero.
+    # ---------------------------------------------------------------------------------------------
+
+    swap u32split drop u32and.0xff eq.0
+    # => [is_least_significant_byte_zero, account_id_hi]
+    assert.err=ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO
+    # => [account_id_hi]
+
+    # Validate minimum number of ones in first felt.
+    # ---------------------------------------------------------------------------------------------
+
     # split felt into 32 bit limbs
     u32split
-    # => [l_1, l_0, acct_id_lo]
+    # => [l_1, l_0]
 
     # count the number of 1 bits
     u32popcnt swap u32popcnt add
-    # => [ones, acct_id_lo]
+    # => [ones]
 
     # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
     push.MIN_ACCOUNT_ONES u32gte assert.err=ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES
-    # => [acct_id_lo]
-
-    drop
     # => []
 end
 
@@ -872,6 +909,20 @@ proc.id_epoch
   # shift the upper 16 bits to the right to produce the epoch
   u32shr.16
   # => [epoch]
+end
+
+#! Extracts the version from the first felt of an account ID.
+#!
+#! Inputs:  [account_id_hi]
+#! Outputs: [version]
+proc.id_version
+  # extract the lower 32 bits
+  u32split drop
+  # => [account_id_lo_lo]
+
+  # mask out the version
+  u32and.ACCOUNT_VERSION_MASK_U32
+  # => [version]
 end
 
 # DATA LOADERS
