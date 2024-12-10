@@ -8,9 +8,9 @@ use miden_objects::{digest, Digest};
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // account_vault_add_asset
-    digest!("0x3ff4104227cd4a1d75c1d01377c71054a402983eaed6fd2f205595043770fb8a"),
+    digest!("0x559fc7f8f95f157751b0b51caa527c2685f63767b2806e9f1108e444ec8decf0"),
     // account_vault_get_balance
-    digest!("0xd9102f4744bf8d58c4e92d2dfe455279a5b3db594800d9e6103fda18e1ee5503"),
+    digest!("0xf85bd42fa89946b9b1670da99b0069dde6348063d07ec0999d930013660dbbfc"),
     // account_vault_has_non_fungible_asset
     digest!("0x7144f9ac1df4c4c90b770891e1665d25a819ea026227a7d143ab89b89991bc14"),
     // account_vault_remove_asset
@@ -32,19 +32,19 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // incr_account_nonce
     digest!("0xfc2da7d93bd401f08dfa9dd24523db712ea17d528db992e29fd3a6504f5aafe5"),
     // set_account_code
-    digest!("0x8e6e915545630972171fe8731b5a68ad123ab10e5853daaeed89c72f171c8cd6"),
+    digest!("0x9e2110e69e5373b0dfa6ef13a35d7ecbb82f89493a79012fcc8e83c74c715b8f"),
     // set_account_item
-    digest!("0xb7d3bb8072974cf008b1a744f478310861c68846f0cbfb26ee6ed082a08fea3e"),
+    digest!("0x4d2ef9eac1e0560f763cc09c1d669f6f47cf4d0c3deea54e4cb77bfcda9a3602"),
     // set_account_map_item
     digest!("0x02befd8e777bacc5f4c3b14267b7e5558c9557d82970e74612c5aa6d7febf9c2"),
     // burn_asset
-    digest!("0x697c27ed3553af18f1898e788f9eb2cdb932316cd2e397230b48ebd0e13c50a9"),
+    digest!("0x5cd85cd7acfdd28cd71d4fa453cc9a37e9f59d3a68a19bc77cb628471b30356e"),
     // get_fungible_faucet_total_issuance
-    digest!("0xab033909d5adf49ca3262104f3f7dcfb987a5d1d73e579d4ec69a3d082355b4e"),
+    digest!("0xe56c3538757d5e2cee385028a5ba4e78eca3982698a4e6a3d5ddb17ea59fc13a"),
     // mint_asset
-    digest!("0x99164259ed4d639825a54aaf56e8151991ca8cc717298abc9766eac70098f51c"),
+    digest!("0xbcb57d15ce3916f3dbe94bcbe2e363d8853dc41ac7b7954dd2c868e58e3d2e98"),
     // add_asset_to_note
-    digest!("0xf3be7dcfb778c9ae93b725e09baf01aa47cc463c3f0ac4d56625993c9cb59909"),
+    digest!("0x0f9cb33a2d416a5778adee6b8fa3885f8f39889bf64b9c84597475ee62d0b9f2"),
     // create_note
     digest!("0x1f4f867434fc2704a16a15edd783f3825b1b5d932e04412b46eee3c85adcf1d2"),
     // get_input_notes_commitment

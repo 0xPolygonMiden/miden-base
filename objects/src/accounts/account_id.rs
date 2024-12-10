@@ -14,23 +14,6 @@ use vm_processor::{DeserializationError, Digest};
 use super::Hasher;
 use crate::{accounts::AccountIdPrefix, AccountError, ACCOUNT_TREE_DEPTH};
 
-// CONSTANTS
-// ================================================================================================
-
-const ACCOUNT_VERSION_MASK_SHIFT: u64 = 4;
-const ACCOUNT_VERSION_MASK: u64 = 0b1111 << ACCOUNT_VERSION_MASK_SHIFT;
-
-const ACCOUNT_BLOCK_EPOCH_MASK_SHIFT: u64 = 48;
-const ACCOUNT_BLOCK_EPOCH_MASK: u64 = 0xffff << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
-
-// The higher two bits of the least significant nibble determines the account storage mode
-const ACCOUNT_STORAGE_MASK_SHIFT: u64 = 2;
-const ACCOUNT_STORAGE_MASK: u64 = 0b11 << ACCOUNT_STORAGE_MASK_SHIFT;
-
-// The lower two bits of the least significant nibble determine the account type.
-pub(super) const ACCOUNT_TYPE_MASK: u64 = 0b11;
-pub const ACCOUNT_ISFAUCET_MASK: u64 = 0b10;
-
 // ACCOUNT TYPE
 // ================================================================================================
 
@@ -69,11 +52,11 @@ impl AccountType {
 /// This function does not validate the u64, it is assumed the value is valid [Felt].
 pub const fn account_type_from_u64(value: u64) -> AccountType {
     debug_assert!(
-        ACCOUNT_TYPE_MASK.count_ones() == 2,
+        AccountId::TYPE_MASK.count_ones() == 2,
         "This method assumes there are only 2bits in the mask"
     );
 
-    let bits = value & ACCOUNT_TYPE_MASK;
+    let bits = (value & AccountId::TYPE_MASK) >> AccountId::TYPE_SHIFT;
     match bits {
         REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
         REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
@@ -151,7 +134,7 @@ impl FromStr for AccountStorageMode {
 
 /// # Layout
 /// ```text
-/// 1st felt: [zero bit | random (55 bits) | version (4 bits) | storage mode (2 bits) | type (2 bits)]
+/// 1st felt: [zero bit | random (55 bits) | storage mode (2 bits) | type (2 bits) | version (4 bits)]
 /// 2nd felt: [block_epoch (16 bits) | random (40 bits) | 8 zero bits]
 /// ```
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -161,11 +144,34 @@ pub struct AccountId {
 }
 
 impl AccountId {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
     /// Specifies a minimum number of ones for a valid account ID.
     pub const MIN_ACCOUNT_ONES: u32 = 5;
 
     /// The serialized size of an [`AccountId`] in bytes.
     pub const SERIALIZED_SIZE: usize = 15;
+
+    /// The lower two bits of the second least significant nibble determine the account type.
+    pub(super) const TYPE_SHIFT: u64 = 4;
+    pub(super) const TYPE_MASK: u64 = 0b11 << Self::TYPE_SHIFT;
+
+    /// The least significant nibble determines the account version.
+    const VERSION_MASK: u64 = 0b1111;
+
+    const BLOCK_EPOCH_SHIFT: u64 = 48;
+    const BLOCK_EPOCH_MASK: u64 = 0xffff << Self::BLOCK_EPOCH_SHIFT;
+
+    /// The higher two bits of the second least significant nibble determine the account storage
+    /// mode.
+    const STORAGE_MODE_SHIFT: u64 = 6;
+    const STORAGE_MODE_MASK: u64 = 0b11 << Self::STORAGE_MODE_SHIFT;
+
+    pub const IS_FAUCET_MASK: u64 = 0b10 << Self::TYPE_SHIFT;
+
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
 
     pub fn new(
         seed: Word,
@@ -192,6 +198,8 @@ impl AccountId {
         }
     }
 
+    // TODO: Document.
+    // TODO: Rename to new_dummy.
     #[cfg(any(feature = "testing", test))]
     pub fn new_with_type_and_mode(
         mut bytes: [u8; 15],
@@ -199,9 +207,9 @@ impl AccountId {
         storage_mode: AccountStorageMode,
     ) -> AccountId {
         let version = AccountVersion::VERSION_0_NUMBER;
-        let low_nibble = (version << ACCOUNT_VERSION_MASK_SHIFT)
-            | (storage_mode as u8) << ACCOUNT_STORAGE_MASK_SHIFT
-            | (account_type as u8);
+        let low_nibble = (storage_mode as u8) << Self::STORAGE_MODE_SHIFT
+            | (account_type as u8) << Self::TYPE_SHIFT
+            | version;
 
         // Set least significant byte.
         bytes[7] = low_nibble;
@@ -508,7 +516,7 @@ fn validate_second_felt(second_felt: Felt) -> Result<(), AccountError> {
 }
 
 pub(super) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode, AccountError> {
-    let bits = (first_felt & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
+    let bits = (first_felt & AccountId::STORAGE_MODE_MASK) >> AccountId::STORAGE_MODE_SHIFT;
     match bits {
         PUBLIC => Ok(AccountStorageMode::Public),
         PRIVATE => Ok(AccountStorageMode::Private),
@@ -517,7 +525,7 @@ pub(super) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode
 }
 
 pub(super) fn extract_version(first_felt: u64) -> Result<AccountVersion, AccountError> {
-    let bits = (first_felt & ACCOUNT_VERSION_MASK) >> ACCOUNT_VERSION_MASK_SHIFT;
+    let bits = first_felt & AccountId::VERSION_MASK;
     let version = bits.try_into().expect("TODO");
     match version {
         AccountVersion::VERSION_0_NUMBER => Ok(AccountVersion::VERSION_0),
@@ -528,7 +536,7 @@ pub(super) fn extract_version(first_felt: u64) -> Result<AccountVersion, Account
 }
 
 pub(crate) const fn extract_type(first_felt: u64) -> AccountType {
-    let bits = first_felt & ACCOUNT_TYPE_MASK;
+    let bits = (first_felt & AccountId::TYPE_MASK) >> AccountId::TYPE_SHIFT;
     match bits {
         REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
         REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
@@ -542,7 +550,7 @@ pub(crate) const fn extract_type(first_felt: u64) -> AccountType {
 }
 
 fn extract_block_epoch(second_felt: u64) -> u16 {
-    ((second_felt & ACCOUNT_BLOCK_EPOCH_MASK) >> ACCOUNT_BLOCK_EPOCH_MASK_SHIFT) as u16
+    ((second_felt & AccountId::BLOCK_EPOCH_MASK) >> AccountId::BLOCK_EPOCH_SHIFT) as u16
 }
 
 /// Shapes the second felt so it meets the requirements of the account ID, by overwriting the
@@ -558,7 +566,7 @@ fn shape_second_felt(second_felt: Felt, block_epoch: u16) -> Felt {
     second_felt &= 0x0000_ffff_ffff_ff00;
 
     // Set the upper 16 block epoch bits.
-    second_felt |= (block_epoch as u64) << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
+    second_felt |= (block_epoch as u64) << AccountId::BLOCK_EPOCH_SHIFT;
 
     // SAFETY: We disallow u16::MAX which would be all 1 bits, so at least one of the most
     // significant bits will always be zero.
@@ -618,7 +626,8 @@ pub(super) fn compute_digest(
 
 #[cfg(any(feature = "testing", test))]
 pub mod testing {
-    use super::{AccountStorageMode, AccountType, ACCOUNT_STORAGE_MASK_SHIFT};
+    use super::{AccountStorageMode, AccountType};
+    use crate::accounts::AccountId;
 
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
@@ -724,8 +733,8 @@ pub mod testing {
     ) -> u128 {
         let mut first_felt: u64 = 0;
 
-        first_felt |= account_type as u64;
-        first_felt |= (storage_mode as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
+        first_felt |= (account_type as u64) << AccountId::TYPE_SHIFT;
+        first_felt |= (storage_mode as u64) << AccountId::STORAGE_MODE_SHIFT;
 
         // Produce more realistic IDs by distributing the random value.
         let random_1st_felt_upper = random & 0xff00_0000;

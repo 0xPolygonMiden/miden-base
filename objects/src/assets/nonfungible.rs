@@ -3,10 +3,9 @@ use core::fmt;
 
 use vm_core::{FieldElement, WORD_SIZE};
 
-use super::{
-    AccountIdPrefix, AccountType, Asset, AssetError, Felt, Hasher, Word, ACCOUNT_ISFAUCET_MASK,
-};
+use super::{AccountIdPrefix, AccountType, Asset, AssetError, Felt, Hasher, Word};
 use crate::{
+    accounts::AccountId,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
 };
@@ -22,7 +21,7 @@ const FAUCET_ID_POS: usize = 1;
 ///
 /// - Hash the asset data producing `[d0, d1, d2, d3]`.
 /// - Replace the value of `d1` with the faucet id producing `[d0, faucet_id, d2, d3]`.
-/// - Force the bit position [ACCOUNT_ISFAUCET_MASK] of `d3` to be `0`.
+/// - Force the bit position [`AccountId::IS_FAUCET_MASK`] of `d3` to be `0`.
 ///
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
 /// [NonFungibleAssetDetails] struct.
@@ -76,7 +75,7 @@ impl NonFungibleAsset {
         }
         data_hash[FAUCET_ID_POS] = faucet_id.into();
 
-        // Forces the bit at position `ACCOUNT_ISFAUCET_MASK` to `0`.
+        // Forces the bit at position `AccountId::IS_FAUCET_MASK` to `0`.
         //
         // Explanation of the bit flip:
         //
@@ -96,7 +95,7 @@ impl NonFungibleAsset {
 
         // TODO: Update explanation above.
         let d3 = data_hash[2].as_int();
-        data_hash[2] = Felt::new((d3 & ACCOUNT_ISFAUCET_MASK) ^ d3);
+        data_hash[2] = Felt::new((d3 & AccountId::IS_FAUCET_MASK) ^ d3);
 
         let asset = Self(data_hash);
 
