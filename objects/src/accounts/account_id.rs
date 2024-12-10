@@ -552,12 +552,13 @@ fn shape_second_felt(second_felt: Felt, block_epoch: u16) -> Felt {
         unimplemented!("TODO: Return error");
     }
 
-    // Set epoch and set lower 8 bits to zero.
     let mut second_felt = second_felt.as_int();
-    let block_epoch_u64 = (block_epoch as u64) << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
-    let block_epoch_mask = 0x0000_ffff_ffff_ff00 | block_epoch_u64;
 
-    second_felt &= block_epoch_mask;
+    // Clear upper 16 epoch bits and the lower 8 bits.
+    second_felt &= 0x0000_ffff_ffff_ff00;
+
+    // Set the upper 16 block epoch bits.
+    second_felt |= (block_epoch as u64) << ACCOUNT_BLOCK_EPOCH_MASK_SHIFT;
 
     // SAFETY: We disallow u16::MAX which would be all 1 bits, so at least one of the most
     // significant bits will always be zero.
@@ -636,13 +637,13 @@ pub mod testing {
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Private,
-        0xacdd_eefc,
+        0xccdd_eeff,
     );
     // REGULAR ACCOUNTS - ON-CHAIN
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
         AccountStorageMode::Public,
-        0xfabb_cddd,
+        0xaabb_ccdd,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u128 = account_id(
         AccountType::RegularAccountImmutableCode,
@@ -652,7 +653,7 @@ pub mod testing {
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
         AccountStorageMode::Public,
-        0xccdd_eeff,
+        0xacdd_eefc,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id(
         AccountType::RegularAccountUpdatableCode,
@@ -667,7 +668,7 @@ pub mod testing {
 
     // FUNGIBLE TOKENS - OFF-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
-        account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0xaabb_ccdd);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0xfabb_cddd);
     // FUNGIBLE TOKENS - ON-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
         account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabc_bcde);
@@ -787,7 +788,7 @@ mod tests {
             let id =
                 AccountId::new(seed, block_epoch, code_commitment, storage_commitment, block_hash)
                     .unwrap();
-            assert_eq!(id.block_epoch(), block_epoch);
+            assert_eq!(id.block_epoch(), block_epoch, "failed for account id: {id}");
         }
     }
 
