@@ -3,7 +3,7 @@ use miden_objects::{
         Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType, StorageSlot,
     },
     assets::TokenSymbol,
-    AccountError, Felt, FieldElement, Word,
+    AccountError, Digest, Felt, FieldElement, Word,
 };
 
 use super::AuthScheme;
@@ -90,6 +90,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
 /// - Slot 2: Token metadata of the faucet.
 pub fn create_basic_fungible_faucet(
     init_seed: [u8; 32],
+    block_epoch_hash: (u16, Digest),
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
@@ -104,6 +105,8 @@ pub fn create_basic_fungible_faucet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
+        .block_epoch(block_epoch_hash.0)
+        .block_hash(block_epoch_hash.1)
         .account_type(AccountType::FungibleFaucet)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
@@ -118,7 +121,7 @@ pub fn create_basic_fungible_faucet(
 
 #[cfg(test)]
 mod tests {
-    use miden_objects::{crypto::dsa::rpo_falcon512, FieldElement, ONE};
+    use miden_objects::{crypto::dsa::rpo_falcon512, digest, FieldElement, ONE};
     use vm_processor::Word;
 
     use super::{create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol};
@@ -142,6 +145,7 @@ mod tests {
 
         let (faucet_account, _) = create_basic_fungible_faucet(
             init_seed,
+            (10, digest!("0xaabbccdd")),
             token_symbol,
             decimals,
             max_supply,

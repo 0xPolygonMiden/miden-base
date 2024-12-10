@@ -18,6 +18,14 @@ pub enum NoteExecutionHint {
     /// The note's script can be executed at any time.
     Always,
     /// The note's script can be executed after the specified block height.
+    /// TODO: Users should not be allowed to construct this variant, as they could use u32::MAX
+    /// which is disallowed now.
+    /// Option 1: Make NoteExecutionHint a struct with a private field and use the
+    /// current enum as its internal representation. This means users can no longer match on this
+    /// enum, unless we still expose it, but not for construction. This option seems to have
+    /// annoying UX.
+    /// Option 2: Introduce a `pub struct BlockNumber(u32)` which ensures u32::MAX
+    /// is not allowed and use it here instead of a bare u32.
     AfterBlock { block_num: u32 },
     /// The note's script can be executed in the specified slot within the specified epoch.
     ///
@@ -62,8 +70,15 @@ impl NoteExecutionHint {
     }
 
     /// Creates a [NoteExecutionHint::AfterBlock] variant based on the given `block_num`
-    pub fn after_block(block_num: u32) -> Self {
-        NoteExecutionHint::AfterBlock { block_num }
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `block_num` is equal to [`u32::MAX`].
+    pub fn after_block(block_num: u32) -> Result<Self, NoteError> {
+        if block_num == u32::MAX {
+            return Err(NoteError::NoteExecutionHintAfterBlockCannotBeU32Max);
+        }
+        Ok(NoteExecutionHint::AfterBlock { block_num })
     }
 
     /// Creates a [NoteExecutionHint::OnBlockSlot] for the given parameters
@@ -85,7 +100,12 @@ impl NoteExecutionHint {
                 }
                 Ok(NoteExecutionHint::Always)
             },
-            Self::AFTER_BLOCK_TAG => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
+            Self::AFTER_BLOCK_TAG => {
+                if payload == u32::MAX {
+                    return Err(NoteError::NoteExecutionHintAfterBlockCannotBeU32Max);
+                }
+                Ok(NoteExecutionHint::AfterBlock { block_num: payload })
+            },
             Self::ON_BLOCK_SLOT_TAG => {
                 let remainder = (payload >> 24 & 0xff) as u8;
                 if remainder != 0 {
@@ -235,7 +255,7 @@ mod tests {
         let always = NoteExecutionHint::always();
         assert!(always.can_be_consumed(100).unwrap());
 
-        let after_block = NoteExecutionHint::after_block(12345);
+        let after_block = NoteExecutionHint::after_block(12345).unwrap();
         assert!(!after_block.can_be_consumed(12344).unwrap());
         assert!(after_block.can_be_consumed(12345).unwrap());
 

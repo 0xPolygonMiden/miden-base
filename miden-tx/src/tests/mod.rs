@@ -446,8 +446,7 @@ fn test_send_note_proc() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode(true);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -591,8 +590,7 @@ fn executed_transaction_output_notes() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode(true);
+    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -982,14 +980,14 @@ fn transaction_executor_account_code_using_custom_library() {
             .unwrap()
             .with_supports_all_types();
 
-    let (native_account, seed) = AccountBuilder::new()
+    // Build an existing account with nonce 1.
+    let native_account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(account_component)
-        .build()
+        .build_existing()
         .unwrap();
 
-    let tx_context =
-        TransactionContextBuilder::new(native_account).account_seed(Some(seed)).build();
+    let tx_context = TransactionContextBuilder::new(native_account).build();
 
     let tx_script = TransactionScript::compile(
         tx_script_src,
@@ -1016,6 +1014,6 @@ fn transaction_executor_account_code_using_custom_library() {
 
     let executed_tx = executor.execute_transaction(account_id, block_ref, &[], tx_args).unwrap();
 
-    // Account nonce should have been incremented by 4.
-    assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(4));
+    // Account's initial nonce of 1 should have been incremented by 4.
+    assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(5));
 }

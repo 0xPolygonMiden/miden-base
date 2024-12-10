@@ -5,10 +5,12 @@ use crate::{
 };
 
 pub mod account_id;
-pub use account_id::{
-    AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
-    ACCOUNT_TYPE_MASK_SHIFT,
-};
+#[cfg(any(feature = "testing", test))]
+pub use account_id::testing;
+pub use account_id::{AccountId, AccountStorageMode, AccountType, AccountVersion};
+
+mod account_id_prefix;
+pub use account_id_prefix::AccountIdPrefix;
 
 pub mod auth;
 
@@ -30,7 +32,7 @@ pub use delta::{
 };
 
 mod seed;
-pub use seed::{get_account_seed, get_account_seed_single};
+pub use seed::get_account_seed;
 
 mod storage;
 pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
@@ -81,10 +83,12 @@ impl Account {
     /// Returns an error if deriving account ID from the specified seed fails.
     pub fn new(
         seed: Word,
+        epoch: u16,
         code: AccountCode,
         storage: AccountStorage,
+        block_hash: Digest,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
+        let id = AccountId::new(seed, epoch, code.commitment(), storage.commitment(), block_hash)?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -363,7 +367,8 @@ pub fn hash_account(
     code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
-    elements[0] = id.into();
+    elements[0] = id.second_felt();
+    elements[1] = id.first_felt();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_commitment);

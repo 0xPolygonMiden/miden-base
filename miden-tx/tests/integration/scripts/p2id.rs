@@ -191,14 +191,10 @@ fn test_create_consume_multiple_notes() {
     let mut account =
         mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
 
-    let input_note_faucet_id = ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN;
-    let input_note_asset_1: Asset =
-        FungibleAsset::new(input_note_faucet_id.try_into().unwrap(), 11).unwrap().into();
+    let input_note_faucet_id = ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN.try_into().unwrap();
+    let input_note_asset_1: Asset = FungibleAsset::new(input_note_faucet_id, 11).unwrap().into();
 
-    let input_note_asset_2: Asset =
-        FungibleAsset::new(input_note_faucet_id.try_into().unwrap(), 100)
-            .unwrap()
-            .into();
+    let input_note_asset_2: Asset = FungibleAsset::new(input_note_faucet_id, 100).unwrap().into();
 
     let input_note_1 = mock_chain
         .add_p2id_note(
@@ -297,9 +293,11 @@ fn test_create_consume_multiple_notes() {
 
     account.apply_delta(executed_transaction.account_delta()).unwrap();
     for asset in account.vault().assets() {
-        if u64::from(asset.faucet_id()) == input_note_faucet_id {
+        // TODO: Fungible asset should return full id.
+        if u64::from(asset.faucet_id()) == input_note_faucet_id.prefix().into() {
             assert!(asset.unwrap_fungible().amount() == 111);
-        } else if asset.faucet_id() == FungibleAsset::mock_issuer() {
+        // TODO: Fungible asset should return full id.
+        } else if asset.faucet_id() == FungibleAsset::mock_issuer().prefix() {
             assert!(asset.unwrap_fungible().amount() == 5);
         }
     }

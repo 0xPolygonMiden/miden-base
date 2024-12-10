@@ -12,6 +12,9 @@
 
 pub const ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH: u32 = 0x0002000F;
 pub const ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE: u32 = 0x00020006;
+pub const ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX: u32 = 0x00020058;
+pub const ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO: u32 = 0x00020059;
+pub const ERR_ACCOUNT_ID_UNKNOWN_VERSION: u32 = 0x00020057;
 pub const ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES: u32 = 0x00020005;
 pub const ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x00020013;
 pub const ERR_ACCOUNT_IS_NOT_NATIVE: u32 = 0x00020030;
@@ -112,9 +115,12 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002001C;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x0002001F;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x0002001E;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
+    (ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX, "Epoch must be less than u16::MAX (0xffff)."),
+    (ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, "Least significant byte of second felt of the account id must be zero."),
+    (ERR_ACCOUNT_ID_UNKNOWN_VERSION, "Unknown version in account id."),
     (ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES, "Account ID must contain at least MIN_ACCOUNT_ONES number of ones"),
     (ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage offset is invalid for 0 storage size (should be 0)"),
     (ERR_ACCOUNT_IS_NOT_NATIVE, "The current account is not native"),
@@ -151,7 +157,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
     (ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED, "Distribute would cause the maximum supply to be exceeded"),
     (ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN, "The origin of the fungible asset is not this faucet"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO, "Malformed fungible asset: ASSET[1] must be 0"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset: ASSET[3] must be a valide fungible faucet id"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset: ASSET[3] must be a valid fungible faucet id"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO, "Malformed fungible asset: ASSET[2] must be 0"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS, "Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount"),
     (ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "Failed to build the fungible asset because the provided faucet id is not from a fungible faucet"),
@@ -177,10 +183,10 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
 
     (ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, "P2IDR's reclaimer is not the original sender"),
     (ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED, "P2IDR can not be reclaimed as the transaction's reference block is lower than the reclaim height"),
-    (ERR_P2IDR_WRONG_NUMBER_OF_INPUTS, "P2IDR scripts expect exactly 2 note inputs"),
+    (ERR_P2IDR_WRONG_NUMBER_OF_INPUTS, "P2IDR scripts expect exactly 3 note inputs"),
 
     (ERR_P2ID_TARGET_ACCT_MISMATCH, "P2ID's target account address and transaction address do not match"),
-    (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID script expects exactly 1 note input"),
+    (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID script expects exactly 2 note inputs"),
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
     (ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT, "The provided global inputs do not match the block hash commitment"),

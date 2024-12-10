@@ -13,11 +13,11 @@ use crate::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        get_account_seed_single, Account, AccountId, AccountStorage, AccountStorageDelta,
-        AccountStorageMode, AccountType, StorageMap, StorageMapDelta, StorageSlot,
+        Account, AccountId, AccountStorage, AccountStorageDelta, AccountStorageMode, AccountType,
+        AccountVersion, StorageMap, StorageMapDelta, StorageSlot,
     },
     notes::NoteAssets,
-    AccountDeltaError,
+    AccountDeltaError, BlockHeader,
 };
 
 // ACCOUNT STORAGE DELTA BUILDER
@@ -140,8 +140,9 @@ pub enum AccountSeedType {
 /// Returns the account id and seed for the specified account type.
 pub fn generate_account_seed(
     account_seed_type: AccountSeedType,
+    epoch_block_header: &BlockHeader,
     assembler: Assembler,
-) -> (AccountId, Word) {
+) -> (Account, AccountId, Word) {
     let init_seed: [u8; 32] = Default::default();
 
     let (account, account_type) = match account_seed_type {
@@ -199,19 +200,31 @@ pub fn generate_account_seed(
         ),
     };
 
-    let seed = get_account_seed_single(
+    let seed = AccountId::get_account_seed(
         init_seed,
         account_type,
         AccountStorageMode::Public,
+        AccountVersion::VERSION_0,
         account.code().commitment(),
         account.storage().commitment(),
+        epoch_block_header.hash(),
     )
     .unwrap();
 
-    let account_id =
-        AccountId::new(seed, account.code().commitment(), account.storage().commitment()).unwrap();
+    let account_id = AccountId::new(
+        seed,
+        epoch_block_header.block_epoch(),
+        account.code().commitment(),
+        account.storage().commitment(),
+        epoch_block_header.hash(),
+    )
+    .unwrap();
 
-    (account_id, seed)
+    // Overwrite old ID with generated ID.
+    let (_, vault, storage, code, nonce) = account.into_parts();
+    let account = Account::from_parts(account_id, vault, storage, code, nonce);
+
+    (account, account_id, seed)
 }
 
 // UTILITIES
