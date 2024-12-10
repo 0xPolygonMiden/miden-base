@@ -43,9 +43,9 @@ impl AccountType {
     }
 }
 
-/// Extracts the [AccountType2] encoded in an u64.
+/// Extracts the [`AccountType`] encoded in an u64.
 ///
-/// The account id is encoded in the bits `[62,60]` of the u64, see [ACCOUNT_TYPE_MASK].
+/// The account id is encoded in the bits `[62,60]` of the u64.
 ///
 /// # Note
 ///
@@ -71,7 +71,7 @@ pub const fn account_type_from_u64(value: u64) -> AccountType {
 
 // TODO: Reconsider whether we need this and if yes, whether it needs to be publicly exposed
 // functionality.
-/// Returns the [AccountType2] given an integer representation of `account_id`.
+/// Returns the [`AccountType`] given an integer representation of `account_id`.
 impl From<u128> for AccountType {
     fn from(value: u128) -> Self {
         let val = (value >> 64) as u64;
@@ -446,7 +446,7 @@ impl TryFrom<[Felt; 2]> for AccountId {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - If there are fewer than [AccountId2::MIN_ACCOUNT_ONES] in the provided value.
+    /// - If there are fewer than [`AccountId::MIN_ACCOUNT_ONES`] in the provided value.
     /// - If the provided value contains invalid account ID metadata (i.e., the first 4 bits).
     fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
         account_id_from_felts(elements)

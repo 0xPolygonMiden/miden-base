@@ -125,7 +125,7 @@ impl Account {
     ///   slot 2 stores the map.
     ///
     /// The resulting commitments from code and storage can then be used to construct an
-    /// [`AccountId2`]. Finally, a new account can then be instantiated from those parts using
+    /// [`AccountId`]. Finally, a new account can then be instantiated from those parts using
     /// [`Account::new`].
     ///
     /// If the account type is faucet the reserved slot (slot 0) will be initialized.
