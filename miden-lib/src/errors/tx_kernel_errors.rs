@@ -151,7 +151,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 87] = [
     (ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED, "Distribute would cause the maximum supply to be exceeded"),
     (ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN, "The origin of the fungible asset is not this faucet"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO, "Malformed fungible asset: ASSET[1] must be 0"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset: ASSET[3] must be a valide fungible faucet id"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset: ASSET[3] must be a valid fungible faucet id"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO, "Malformed fungible asset: ASSET[2] must be 0"),
     (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS, "Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount"),
     (ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "Failed to build the fungible asset because the provided faucet id is not from a fungible faucet"),

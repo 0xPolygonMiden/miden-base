@@ -1,7 +1,6 @@
 use miden_lib::transaction::TransactionKernel;
 use vm_processor::{
-    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, ProcessState,
-    Program, StackInputs,
+    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, Program, StackInputs,
 };
 
 // MOCK CODE EXECUTOR
@@ -51,7 +50,10 @@ impl<H: Host> CodeExecutor<H> {
 
         #[cfg(feature = "std")]
         if execution_result.is_err() {
-            std::println!("execute program failed at clock cycle {}", process.clk());
+            std::println!(
+                "execute program failed at clock cycle {}",
+                vm_processor::ProcessState::clk(&process)
+            );
         }
 
         execution_result.map(|_| process)
