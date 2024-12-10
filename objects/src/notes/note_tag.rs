@@ -100,7 +100,7 @@ impl NoteTag {
             NoteExecutionMode::Local => {
                 let first_felt_id: u64 = account_id.first_felt().into();
                 // Consider the most significant bits to start at the 63rd bit, since the top bit is
-                // always zero and doesn't add any value.
+                // always zero and doesn't add any value when matching account IDs.
                 let mut high_bits = first_felt_id << 1;
                 // Shift the high bits such that the most significant bits are in the range 0..30.
                 // The two most significant bits are then zero.
