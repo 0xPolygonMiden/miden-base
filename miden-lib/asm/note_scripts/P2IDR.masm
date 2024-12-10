@@ -101,9 +101,9 @@ begin
 
     # read the reclaim block height and target account id from the note inputs
     padw movup.4 mem_loadw drop
-    # => [0, reclaim_block_height, target_account_id_hi, target_account_id_lo]
+    # => [reclaim_block_height, target_account_id_hi, target_account_id_lo]
 
-    exec.account::get_id dup.2 dup
+    exec.account::get_id dup.1 dup.1
     # => [account_id_hi, account_id_lo, account_id_hi, account_id_lo, reclaim_block_height, target_account_id_hi, target_account_id_lo, ...]
 
     # determine if the current account is the target account

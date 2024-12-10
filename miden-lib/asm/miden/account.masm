@@ -6,7 +6,7 @@ use.miden::kernel_proc_offsets
 #! Returns the account id.
 #!
 #! Inputs:  []
-#! Outputs: [acct_id]
+#! Outputs: [acct_id_hi, acct_id_lo]
 #!
 #! Where:
 #! - acct_id is the account id.
@@ -24,11 +24,11 @@ export.get_id
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [acct_id_hi, acct_id_low, pad(14)]
+    # => [acct_id_hi, acct_id_lo, pad(14)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 movdn.3 drop drop
-    # => [acct_id_hi, acct_id_low]
+    # => [acct_id_hi, acct_id_lo]
 end
 
 #! Returns the account nonce.
