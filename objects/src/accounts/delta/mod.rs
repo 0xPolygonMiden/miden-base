@@ -283,11 +283,11 @@ mod tests {
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
         accounts::{
-            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             delta::AccountUpdateDetails, Account, AccountCode, AccountId, AccountStorage,
             AccountStorageMode, AccountType, StorageMapDelta,
         },
         assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE, ZERO,
     };
 
@@ -334,7 +334,7 @@ mod tests {
 
         let non_fungible: Asset = NonFungibleAsset::new(
             &NonFungibleAssetDetails::new(
-                AccountId::new_with_type_and_mode(
+                AccountId::new_dummy(
                     [10; 15],
                     AccountType::NonFungibleFaucet,
                     AccountStorageMode::Public,
@@ -347,11 +347,7 @@ mod tests {
         .unwrap()
         .into();
         let fungible_2: Asset = FungibleAsset::new(
-            AccountId::new_with_type_and_mode(
-                [10; 15],
-                AccountType::FungibleFaucet,
-                AccountStorageMode::Public,
-            ),
+            AccountId::new_dummy([10; 15], AccountType::FungibleFaucet, AccountStorageMode::Public),
             10,
         )
         .unwrap()

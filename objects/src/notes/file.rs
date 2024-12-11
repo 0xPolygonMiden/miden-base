@@ -106,17 +106,15 @@ mod tests {
     };
 
     use crate::{
-        accounts::{
-            account_id::testing::{
-                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            },
-            AccountId,
-        },
+        accounts::AccountId,
         assets::{Asset, FungibleAsset},
         notes::{
             Note, NoteAssets, NoteFile, NoteInclusionProof, NoteInputs, NoteMetadata,
             NoteRecipient, NoteScript, NoteTag, NoteType,
+        },
+        testing::account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
     };
 

@@ -10,15 +10,13 @@ use miden_lib::{
     transaction::memory,
 };
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
+    accounts::AccountId,
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    testing::{
+        account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
         },
-        AccountId,
-    },
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    testing::{
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         prepare_word,
     },

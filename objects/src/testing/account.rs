@@ -3,15 +3,16 @@ use vm_core::FieldElement;
 
 use super::constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA};
 use crate::{
-    accounts::{
-        account_id::testing::{
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    testing::{
+        account_component::AccountMockComponent,
+        account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         },
-        Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot,
+        storage::FAUCET_STORAGE_DATA_SLOT,
     },
-    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
-    testing::{account_component::AccountMockComponent, storage::FAUCET_STORAGE_DATA_SLOT},
     Felt, Word, ZERO,
 };
 

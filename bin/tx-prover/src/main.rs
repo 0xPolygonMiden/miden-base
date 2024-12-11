@@ -26,10 +26,12 @@ mod test {
 
     use miden_lib::transaction::TransactionKernel;
     use miden_objects::{
-        accounts::account_id::testing::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
         assets::{Asset, FungibleAsset},
         notes::NoteType,
-        testing::account_code::DEFAULT_AUTH_SCRIPT,
+        testing::{
+            account_code::DEFAULT_AUTH_SCRIPT,
+            account_id::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
+        },
         transaction::{ProvenTransaction, TransactionScript, TransactionWitness},
     };
     use miden_tx::{

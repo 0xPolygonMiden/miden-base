@@ -1,13 +1,11 @@
 use rand::{distributions::Standard, Rng};
 
 use crate::{
-    accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        },
-        AccountId, AccountIdPrefix, AccountType,
-    },
+    accounts::{AccountId, AccountIdPrefix, AccountType},
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    testing::account_id::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+    },
     AssetError,
 };
 

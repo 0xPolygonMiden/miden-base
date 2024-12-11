@@ -8,15 +8,15 @@ use vm_processor::Digest;
 use super::{constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word};
 use crate::{
     accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        },
         Account, AccountId, AccountStorage, AccountStorageDelta, AccountStorageMode, AccountType,
         AccountVersion, StorageMap, StorageMapDelta, StorageSlot,
     },
     notes::NoteAssets,
+    testing::account_id::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    },
     AccountDeltaError, BlockHeader,
 };
 

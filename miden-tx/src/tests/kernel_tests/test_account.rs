@@ -7,17 +7,21 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        account_id::testing::{
+        AccountBuilder, AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
+        StorageSlot,
+    },
+    assembly::Library,
+    testing::{
+        account_component::AccountMockComponent,
+        account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountBuilder, AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
-        StorageSlot,
+        prepare_word,
+        storage::STORAGE_LEAVES_2,
     },
-    assembly::Library,
-    testing::{account_component::AccountMockComponent, prepare_word, storage::STORAGE_LEAVES_2},
     transaction::TransactionScript,
 };
 use rand::{Rng, SeedableRng};

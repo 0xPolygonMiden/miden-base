@@ -221,8 +221,9 @@ impl Deserializable for NoteAssets {
 mod tests {
     use super::{compute_asset_commitment, NoteAssets};
     use crate::{
-        accounts::account_id::{testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, AccountId},
+        accounts::AccountId,
         assets::{Asset, FungibleAsset},
+        testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
         Digest,
     };
 

@@ -217,13 +217,13 @@ impl Deserializable for FungibleAsset {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::accounts::{
-        account_id::testing::{
+    use crate::{
+        accounts::AccountId,
+        testing::account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
         },
-        AccountId,
     };
 
     #[test]

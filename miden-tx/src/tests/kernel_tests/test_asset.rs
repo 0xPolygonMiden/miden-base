@@ -1,7 +1,8 @@
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, AccountId},
+    accounts::AccountId,
     assets::NonFungibleAsset,
     testing::{
+        account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         constants::{
             FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
         },

@@ -19,9 +19,6 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        },
         Account, AccountBuilder, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
         StorageSlot,
     },
@@ -32,8 +29,11 @@ use miden_objects::{
         NoteRecipient, NoteTag, NoteType,
     },
     testing::{
-        account_component::AccountMockComponent, constants::NON_FUNGIBLE_ASSET_DATA_2,
-        prepare_word, storage::STORAGE_LEAVES_2,
+        account_component::AccountMockComponent,
+        account_id::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2},
+        constants::NON_FUNGIBLE_ASSET_DATA_2,
+        prepare_word,
+        storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes, TransactionScript},
     FieldElement, ACCOUNT_TREE_DEPTH,

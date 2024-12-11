@@ -277,7 +277,7 @@ impl AccountBuilder {
         let account_id = {
             let bytes = <[u8; 15]>::try_from(&init_seed[0..15])
                 .expect("we should have sliced exactly 15 bytes off");
-            AccountId::new_with_type_and_mode(bytes, self.account_type, self.storage_mode)
+            AccountId::new_dummy(bytes, self.account_type, self.storage_mode)
         };
 
         Ok(Account::from_parts(account_id, vault, storage, code, Felt::ONE))

@@ -504,13 +504,11 @@ pub enum NonFungibleDeltaAction {
 mod tests {
     use super::{AccountVaultDelta, Deserializable, Serializable};
     use crate::{
-        accounts::{
-            account_id::testing::{
-                ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            },
-            AccountId, AccountIdPrefix,
-        },
+        accounts::{AccountId, AccountIdPrefix},
         assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        testing::account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
     };
 
     #[test]

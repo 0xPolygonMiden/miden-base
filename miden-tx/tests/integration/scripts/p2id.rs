@@ -3,18 +3,18 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
+    accounts::Account,
+    assets::{Asset, AssetVault, FungibleAsset},
+    crypto::rand::RpoRandomCoin,
+    notes::NoteType,
+    testing::{
+        account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        Account,
+        prepare_word,
     },
-    assets::{Asset, AssetVault, FungibleAsset},
-    crypto::rand::RpoRandomCoin,
-    notes::NoteType,
-    testing::prepare_word,
     transaction::{OutputNote, TransactionScript},
     Felt,
 };

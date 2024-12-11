@@ -5,8 +5,6 @@ use crate::{
 };
 
 pub mod account_id;
-#[cfg(any(feature = "testing", test))]
-pub use account_id::testing;
 pub use account_id::{AccountId, AccountStorageMode, AccountType, AccountVersion};
 
 mod account_id_prefix;
@@ -408,15 +406,18 @@ mod tests {
     use vm_processor::Digest;
 
     use super::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, AccountCode,
-        AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountVaultDelta,
+        AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
+        AccountVaultDelta,
     };
     use crate::{
         accounts::{
             Account, AccountComponent, AccountType, StorageMap, StorageMapDelta, StorageSlot,
         },
         assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
-        testing::storage::AccountStorageDeltaBuilder,
+        testing::{
+            account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            storage::AccountStorageDeltaBuilder,
+        },
         AccountError,
     };
 

@@ -256,7 +256,7 @@ mod tests {
     use anyhow::Context;
 
     use super::*;
-    use crate::{accounts::testing::ACCOUNT_ID_MAX_ONES, notes::NoteExecutionMode};
+    use crate::{notes::NoteExecutionMode, testing::account_id::ACCOUNT_ID_MAX_ONES};
 
     #[test]
     fn note_metadata_serde() -> anyhow::Result<()> {

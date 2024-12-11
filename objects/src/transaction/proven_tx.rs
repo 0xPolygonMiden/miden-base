@@ -527,10 +527,10 @@ mod tests {
     use super::ProvenTransaction;
     use crate::{
         accounts::{
-            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             delta::AccountUpdateDetails, AccountDelta, AccountId, AccountStorageDelta,
             AccountVaultDelta, StorageMapDelta,
         },
+        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         transaction::TxAccountUpdate,
         utils::Serializable,
         Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
