@@ -334,7 +334,7 @@ end
 #! Outputs: []
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account id.
 export.set_global_acct_id
     push.0.0
     # => [0, 0, acct_id_hi, acct_id_lo]
@@ -349,7 +349,7 @@ end
 #! Outputs: [acct_id_hi, acct_id_lo]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account id.
 export.get_global_acct_id
     padw mem_loadw.ACCT_ID_PTR
     # => [0, 0, acct_id_hi, acct_id_lo]
@@ -734,7 +734,8 @@ end
 #! Outputs: [curr_acct_id_hi, curr_acct_id_lo]
 #!
 #! Where:
-#! - curr_acct_id is the account id of the currently accessing account.
+#! - curr_acct_id_{hi,lo} are the first and second felt of the account id of the currently
+#!   accessing account.
 export.get_account_id
     padw exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
     # => [nonce, 0, curr_acct_id_hi, curr_acct_id_lo]
@@ -748,7 +749,7 @@ end
 #! Outputs: [account_nonce, 0, account_id_hi, account_id_lo]
 #!
 #! Where:
-#! - account_id is the id of the currently accessing account.
+#! - account_id_{hi,lo} are the first and second felt of the id of the currently accessing account.
 #! - account_nonce is the nonce of the currently accessing account.
 export.set_acct_id_and_nonce
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
@@ -761,7 +762,7 @@ end
 #! Outputs: [native_acct_id_hi, native_acct_id_lo]
 #!
 #! Where:
-#! - native_acct_id is the id of the native account.
+#! - native_acct_id_{hi,lo} are the first and second felt of the id of the native account.
 export.get_native_account_id
     padw push.NATIVE_ACCOUNT_DATA_PTR push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
     # => [nonce, 0, native_acct_id_hi, native_acct_id_lo]
@@ -1278,13 +1279,12 @@ export.get_input_note_sender
     u32split swap
     # => [merged_lo, merged_hi, sender_hi]
 
-    # TODO: Can we do this more efficiently with a division by 255?
     # clear least significant byte
-    push.0xffffff00 u32and swap
+    u32and.0xffffff00 swap
     # => [sender_lo_hi, sender_lo_lo, sender_hi]
 
     # reassemble the second felt by multiplying the high part with 2^32 and adding the lo part
-    push.0x0100000000 mul add swap
+    mul.0x0100000000 add swap
     # => [sender_hi, sender_lo]
 
 end

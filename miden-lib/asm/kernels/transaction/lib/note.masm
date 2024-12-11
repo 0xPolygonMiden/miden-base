@@ -34,7 +34,7 @@ const.OUTPUT_NOTE_HASHING_MEM_DIFF=510
 #! Outputs: [sender_hi, sender_lo]
 #!
 #! Where:
-#! - sender is the sender of the note currently being processed.
+#! - sender_{hi,lo} are the first and second felt of the sender of the note currently being processed.
 #!
 #! Panics if:
 #! - the note is not being processed.

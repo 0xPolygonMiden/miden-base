@@ -27,7 +27,7 @@ const.FUNGIBLE_BITMASK_U32=0x20 # 0b10_0000
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id is the faucet to create the asset for.
+#! - faucet_id_{hi,lo} are the first and second felt of the faucet to create the asset for.
 #! - amount is the amount of the asset to create.
 #! - ASSET is the built fungible asset.
 #!
@@ -73,7 +73,7 @@ end
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id is the faucet to create the asset for.
+#! - faucet_id_{hi,lo} are the first and second felt of the faucet to create the asset for.
 #! - DATA_HASH is the data hash of the non-fungible asset to build.
 #! - ASSET is the built non-fungible asset.
 #!

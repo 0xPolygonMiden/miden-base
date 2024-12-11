@@ -41,7 +41,7 @@ const.ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND=0x0002001F
 #!
 #! Where:
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
-#! - faucet_id is the faucet id of the fungible asset of interest.
+#! - faucet_id_hi is the first felt of the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
 #!
 #! Panics if:
@@ -121,7 +121,9 @@ end
 #! Panics if:
 #! - the total value of assets is greater than or equal to 2^63.
 export.add_fungible_asset
-    # create the asset key from the asset
+    # Create the asset key from the asset.
+    # ---------------------------------------------------------------------------------------------
+
     # => [faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
     dupw
     # => [faucet_id_hi, faucet_id_lo, 0, amount, faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
@@ -132,7 +134,9 @@ export.add_fungible_asset
     padw dup.11
     # => [vault_root_ptr, pad(4), ASSET_KEY, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
 
-    # get the asset vault root and read the current asset using the `push_smtpeek` decorator
+    # Get the asset vault root and read the current asset using the `push_smtpeek` decorator.
+    # ---------------------------------------------------------------------------------------------
+
     # the current asset may be the empty word if it does not exist and so its faucet id would be zeroes
     # we therefore overwrite the faucet id with the faucet id from ASSET to account for this edge case
     mem_loadw swapw
@@ -148,6 +152,10 @@ export.add_fungible_asset
     # => [[0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
     movup.11 movup.11
     # => [[faucet_id_hi, faucet_id_lo, 0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
+
+    # Check the new amount does not exceed the maximum allowed amount and add the two
+    # fungible assets together.
+    # ---------------------------------------------------------------------------------------------
 
     # arrange amounts
     movup.3 movup.12 dup
@@ -165,6 +173,9 @@ export.add_fungible_asset
     # add asset amounts
     add movdn.3
     # => [ASSET', VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
+
+    # Create the asset key and insert the updated asset.
+    # ---------------------------------------------------------------------------------------------
 
     # create the asset key to prepare insertion of the asset into the vault
     dupw movdnw.3

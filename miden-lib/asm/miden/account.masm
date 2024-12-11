@@ -9,7 +9,7 @@ use.miden::kernel_proc_offsets
 #! Outputs: [acct_id_hi, acct_id_lo]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account id.
 #!
 #! Invocation: exec
 export.get_id
@@ -298,7 +298,8 @@ end
 #! Outputs: [balance]
 #!
 #! Where:
-#! - faucet_id is the faucet id of the fungible asset of interest.
+#! - faucet_id_{hi,lo} are the first and second felt of the faucet id of the fungible asset
+#!   of interest.
 #! - balance is the vault balance of the fungible asset.
 #! 
 #! Panics if:
@@ -495,7 +496,7 @@ export.is_non_fungible_faucet
     # => [is_non_fungible_faucet]
 end
 
-#! COPY; MOVE TO UTILS.
+#! TODO: This is a copy; move to utils.
 #!
 #! Returns a boolean indicating whether the given account_ids are equal.
 #!
@@ -503,8 +504,8 @@ end
 #! Outputs: [is_id_equal]
 #!
 #! Where:
-#! - acct_id is an account id.
-#! - other_acct_id is the other account id to compare against.
+#! - acct_id_{hi,lo} are the first and second felt of an account id.
+#! - other_acct_id_{hi,lo} are the first and second felt of the other account id to compare against.
 #! - is_id_equal is a boolean indicating whether the account ids are equal.
 export.is_id_eq
     movup.2 eq

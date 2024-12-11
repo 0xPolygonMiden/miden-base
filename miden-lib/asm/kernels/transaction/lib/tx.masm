@@ -357,7 +357,6 @@ end
 #!
 #! Inputs:  [tag, aux, note_type, execution_hint]
 #! Outputs: [NOTE_METADATA]
-#! Outputs: [aux, note_tag_hint_payload, sender_lo_type_and_hint_tag, sender_hi]
 #!
 #! Where:
 #! - tag is the note tag which can be used by the recipient(s) to identify notes intended for them.
@@ -367,7 +366,9 @@ end
 #! - execution_hint is the hint which specifies when a note is ready to be consumed.
 #! - NOTE_METADATA is the metadata associated with a note.
 proc.build_note_metadata
-    # validate the note type
+    # Validate the note type.
+    # --------------------------------------------------------------------------------------------
+
     # NOTE: encrypted notes are currently unsupported
     dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_NOTE_INVALID_TYPE
     # => [tag, aux, note_type, execution_hint]
@@ -384,8 +385,8 @@ proc.build_note_metadata
     assert_eq.err=ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX
     # => [tag, aux, note_type, execution_hint]
 
-    # split execution hint into its tag and payload parts as they are encoded in separate elements
-    # of the metadata
+    # Split execution hint into its tag and payload parts as they are encoded in separate elements
+    # of the metadata.
     # --------------------------------------------------------------------------------------------
 
     movup.3
@@ -405,7 +406,7 @@ proc.build_note_metadata
     sub
     # => [execution_hint_payload, execution_hint_tag, tag, aux, note_type]
 
-    # merge execution hint payload and note tag
+    # Merge execution hint payload and note tag.
     # --------------------------------------------------------------------------------------------
 
     # multiply by 2^26 to shift the payload left by 26 bits
@@ -417,7 +418,7 @@ proc.build_note_metadata
     movup.2 add
     # => [note_tag_hint_payload, execution_hint_tag, aux, note_type]
 
-    # merge sender_lo, note_type and execution_hint_tag
+    # Merge sender_lo, note_type and execution_hint_tag.
     # --------------------------------------------------------------------------------------------
 
     exec.account::get_id
@@ -438,7 +439,7 @@ proc.build_note_metadata
     movup.2 add
     # => [sender_lo_type_and_hint_tag, sender_hi, note_tag_hint_payload, aux]
 
-    # rearrange elements to produce the final metadata layout
+    # Rearrange elements to produce the final note metadata layout.
     # --------------------------------------------------------------------------------------------
 
     swap movdn.3
