@@ -375,7 +375,8 @@ end
 #! Outputs: [balance, pad(15)]
 #!
 #! Where:
-#! - faucet_id is the faucet id of the fungible asset of interest.
+#! - faucet_id_{hi,lo} are the first and second felt of the faucet id of the fungible asset
+#!   of interest.
 #! - balance is the vault balance of the fungible asset.
 #!
 #! Panics if:
@@ -557,7 +558,8 @@ end
 #! Outputs: [sender_hi, sender_lo, pad(14)]
 #!
 #! Where:
-#! - sender is the sender account id of the note currently being processed.
+#! - sender_{hi,lo} are the first and second felt of the sender account id of the note currently
+#!   being processed.
 #!
 #! Panics if:
 #! - a note is not being processed.
@@ -881,7 +883,7 @@ end
 #! Inputs:
 #!   Operand stack: [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
 #!   Advice map: {
-#!     FOREIGN_ACCOUNT_ID: [[foreign_account_lo, foreign_account_id_hi, 0, 0, account_nonce],
+#!     FOREIGN_ACCOUNT_ID: [[foreign_account_lo, foreign_account_id_hi, 0, account_nonce],
 #!                          VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
 #!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
 #!     CODE_ROOT: [num_procs, [ACCOUNT_PROCEDURE_DATA]]
@@ -890,9 +892,10 @@ end
 #!   Operand stack: [pad(16)]
 #!
 #! Where:
-#! - foreign_account_id is the ID of the foreign account whose procedure is going to be executed.
+#! - foreign_account_id_{hi,lo} are the first and second felt of the ID of the foreign account
+#!   whose procedure is going to be executed.
 #! - FOREIGN_ACCOUNT_ID is the word constructed from the foreign_account_id as follows:
-#!   [foreign_account_id, 0, 0, 0].
+#!   [foreign_account_id_hi, foreign_account_lo, 0, 0].
 #! - account_nonce is the nonce of the foreign account.
 #! - VAULT_ROOT is the commitment of the foreign account's vault.
 #! - STORAGE_ROOT is the commitment of the foreign account's storage.
@@ -929,10 +932,9 @@ export.start_foreign_context
         # move the core account data to the advice stack
         adv.push_mapval
         # OS => [0, 0, foreign_account_id_lo, foreign_account_id_hi, pad(14)]
-        # AS => [[foreign_account_id, 0, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+        # AS => [[foreign_account_id_hi, foreign_account_lo, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the id and nonce of the foreign account to the memory
-        # TODO: dropw can be optimized away?
         dropw adv_loadw
         exec.memory::set_acct_id_and_nonce dropw
         # OS => [pad(16)]

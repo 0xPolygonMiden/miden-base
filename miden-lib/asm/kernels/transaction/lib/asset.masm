@@ -6,13 +6,8 @@ use.kernel::account
 # Malformed fungible asset: ASSET[1] must be 0
 const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO=0x00020020
 
-# TODO: Remove
-# Malformed fungible asset: ASSET[2] must be 0
-const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_MUST_BE_ZERO=0x00020021
-
-# TODO: Rename
-# Malformed fungible asset: ASSET[3] must be a valid fungible faucet id
-const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020022
+# Malformed fungible asset: ASSET[2] and ASSET[3] must be a valid fungible faucet id
+const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020022
 
 # Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount
 const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS=0x00020023
@@ -73,8 +68,7 @@ export.validate_fungible_asset
 
     # assert that the first felt (ASSET[3]) of the account id is of type fungible faucet
     dup exec.account::is_fungible_faucet
-    # TODO: Rename error.
-    assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
+    assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
     # assert that the max amount (ASSET[0]) of a fungible asset is not exceeded
@@ -173,12 +167,10 @@ end
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id is the account id of the faucet.
+#! - faucet_id_hi is the first felt of the faucet's account id.
 #! - ASSET is the asset to validate.
 export.validate_fungible_asset_origin
     # assert the origin of the asset is the faucet_id provided via the stack
-    # => [ASSET]
-
     dup.3 dup.3
     # => [asset_id_hi, asset_id_lo, faucet_id_hi, faucet_id_lo, ASSET]
 
@@ -196,7 +188,7 @@ end
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id is the account id of the faucet.
+#! - faucet_id_hi is the first felt of the faucet's account id.
 #! - ASSET is the asset to validate.
 export.validate_non_fungible_asset_origin
     # assert the origin of the asset is the faucet_id prefix provided via the stack

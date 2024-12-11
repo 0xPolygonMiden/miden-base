@@ -18,11 +18,11 @@ const.ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES=0x00020005
 # Account code must be updatable for it to be possible to set new code
 const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020006
 
-# ID of the new account does not match the ID computed from the seed
-const.ERR_ACCOUNT_SEED_DIGEST_MISMATCH=0x00020007
+# Anchor block hash must not be empty
+const.ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY=0x00020007
 
-# Account proof of work is insufficient
-const.ERR_ACCOUNT_POW_IS_INSUFFICIENT=0x00020008
+# ID of the new account does not match the ID computed from the seed and anchor block hash
+const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH=0x00020008
 
 # Failed to write an account value item to a non-value storage slot
 const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020009
@@ -77,6 +77,9 @@ const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020058
 
 # Least significant byte of second felt of the account id must be zero.
 const.ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO=0x00020059
+
+# Most significant bit of first felt of the account id must be zero.
+const.ERR_ACCOUNT_ID_HIGH_BIT_MUST_BE_ZERO=0x0002005A
 
 # CONSTANTS
 # =================================================================================================
@@ -338,8 +341,8 @@ end
 #! Outputs: [is_id_equal]
 #!
 #! Where:
-#! - acct_id is an account id.
-#! - other_acct_id is the other account id to compare against.
+#! - acct_id_{hi,lo} are the first and second felt of an account id.
+#! - other_acct_id_{hi,lo} are the first and second felt of the other account id to compare against.
 #! - is_id_equal is a boolean indicating whether the account ids are equal.
 export.is_id_eq
     movup.2 eq
@@ -356,11 +359,14 @@ end
 #! Outputs: []
 #!
 #! Where:
-#! - account_id_hi is the first felt of the account id.
-#! - account_id_lo is the second felt of the account id.
+#! - account_id_{hi,lo} are the first and second felt of the account id.
 #!
 #! Panics if:
 #! - account_id_hi does not have at least MIN_ACCOUNT_ONES ones.
+#! - account_id_hi does not have most significant bit set to zero.
+#! - account_id_hi does not contain version zero.
+#! - account_id_lo contains an anchor epoch that is greater or equal to 2^16.
+#! - account_id_lo does not have its lower 8 bits set to zero.
 export.validate_id
     # Validate version in first felt. For now only version 0 is supported.
     # ---------------------------------------------------------------------------------------------
@@ -368,6 +374,13 @@ export.validate_id
     dup exec.id_version
     # => [version, account_id_hi, account_id_lo]
     assertz.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
+    # => [account_id_hi, account_id_lo]
+
+    # Validate the most significant bit in the first felt is zero.
+    # ---------------------------------------------------------------------------------------------
+
+    dup u32split u32and.0x80000000 assertz.err=ERR_ACCOUNT_ID_HIGH_BIT_MUST_BE_ZERO
+    drop
     # => [account_id_hi, account_id_lo]
 
     # Validate anchor epoch is less than u16::MAX (0xffff) in second felt.
@@ -766,7 +779,7 @@ end
 #! Outputs: []
 export.validate_seed
     # Load the block hash of the anchor block from the chain mmr.
-    # This is the block hash to which the account ID is anchored.
+    # This is the block hash to which the account ID is anchored and is derived from.
     # ---------------------------------------------------------------------------------------------
 
     # prepare the advice map key for the seed for later
@@ -784,8 +797,7 @@ export.validate_seed
     # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
 
     # assert that the anchor block hash is not the empty word
-    # TODO: Proper error.
-    padw eqw not assert.err=1122334455 dropw
+    padw eqw not assert.err=ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY dropw
     # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
 
     # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
@@ -847,7 +859,7 @@ export.validate_seed
     # => [hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
 
     # assert the account id matches the account id of the new account
-    exec.is_id_eq assert.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
+    exec.is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
     # => []
 end
 
@@ -856,6 +868,12 @@ end
 #!
 #! Inputs:  [seed_digest_lo, anchor_epoch]
 #! Outputs: [account_id_lo]
+#!
+#! Where:
+#! - seed_digest_lo is the second felt of the digest that should be shaped into the second felt
+#!   of an account ID.
+#! - account_id_lo is the second felt of an account ID.
+#! - anchor_epoch is the epoch number to which this account ID is anchored.
 proc.shape_second_felt
   u32split
   # => [seed_digest_lo_hi, seed_digest_lo_lo, anchor_epoch]
@@ -868,7 +886,10 @@ proc.shape_second_felt
   u32and.0xffffff00 swap.2
   # => [anchor_epoch, seed_digest_lo_hi', seed_digest_lo_lo']
 
-  # TODO: Should we assert that epoch is < u16::MAX?
+  # assert epoch is not 2^16
+  # this is technically optional as we will compare this id with the provided one for which
+  # this property was already checked, but since this check is cheap we include it anyway
+  dup eq.0xffff assertz.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
 
   # shift epoch left by 16 bits and set epoch bits on hi part
   u32shl.16 u32or
@@ -883,6 +904,10 @@ end
 #!
 #! Inputs:  [account_id_lo]
 #! Outputs: [anchor_block_num]
+#!
+#! Where:
+#! - account_id_lo is the second felt of an account ID.
+#! - anchor_block_num is the number of the block to which this account ID is anchored.
 proc.id_anchor_block_num
   # extract the upper 32 bits
   u32split swap drop
@@ -899,6 +924,10 @@ end
 #!
 #! Inputs:  [account_id_lo]
 #! Outputs: [anchor_epoch]
+#!
+#! Where:
+#! - account_id_lo is the second felt of an account ID.
+#! - anchor_epoch is the epoch number to which this account ID is anchored.
 proc.id_anchor_epoch
   # extract the upper 32 bits
   u32split swap drop
@@ -913,6 +942,10 @@ end
 #!
 #! Inputs:  [account_id_hi]
 #! Outputs: [version]
+#!
+#! Where:
+#! - account_id_hi is the first felt of an account ID.
+#! - version is the version number of the ID.
 proc.id_version
   # extract the lower 32 bits
   u32split drop
@@ -1145,14 +1178,15 @@ end
 #! Outputs: [was_loaded, ptr, foreign_account_id_hi, foreign_account_id_lo]
 #!
 #! Where: 
-#! - foreign_account_id is the ID of the foreign account whose procedure is going to be executed.
-#! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the 
+#! - foreign_account_id_{hi,lo} are the first and second felt of the ID of the foreign account
+#!   whose procedure is going to be executed.
+#! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the
 #!   memory.
-#! - ptr is the memory pointer to the next empty memory slot or the memory pointer to the account 
+#! - ptr is the memory pointer to the next empty memory slot or the memory pointer to the account
 #!   data, depending on the value of the was_loaded flag.
 #!
 #! Panics if:
-#! - the ID of the provided foreign account equals zero.
+#! - the first or second felt of the provided foreign account ID equal zero.
 #! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
 export.get_foreign_account_ptr
     # check that foreign account id is not equal zero

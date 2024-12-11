@@ -4,7 +4,7 @@ use anyhow::Context;
 use miden_lib::{
     accounts::wallets::BasicWallet,
     errors::tx_kernel_errors::{
-        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
+        ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH,
         ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
         ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
     },
@@ -600,7 +600,7 @@ pub fn create_account_invalid_seed() {
 
     let result = tx_context.execute_code(code);
 
-    assert_execution_error!(result, ERR_ACCOUNT_SEED_DIGEST_MISMATCH)
+    assert_execution_error!(result, ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH)
 }
 
 #[test]

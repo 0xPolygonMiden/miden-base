@@ -1068,7 +1068,7 @@ fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) ->
         foreign_account.code(),
         &foreign_account.storage().get_header(),
         // Provide the merkle path of the foreign account to be able to verify that the account
-        // database has the hash of the this foreign account. Verification is done during the
+        // database has the hash of this foreign account. Verification is done during the
         // execution of the `kernel::account::validate_current_foreign_account` procedure.
         &MerklePath::new(
             mock_chain

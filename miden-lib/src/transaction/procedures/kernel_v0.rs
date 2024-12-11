@@ -8,7 +8,7 @@ use miden_objects::{digest, Digest};
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // account_vault_add_asset
-    digest!("0x3c5012630df2c98fa7d16b4daf02d041d87ad7b6140deb32b8509ca18153ff70"),
+    digest!("0xa7619fbe46fa142012c5263e1fca7efbfab36b4e6d5efd9362bb124d6960e952"),
     // account_vault_get_balance
     digest!("0xbe5819bf5aabf1a7c9d8ebfc330a7869f610ca4f86e3708265d8d361b5b82f14"),
     // account_vault_has_non_fungible_asset
@@ -38,13 +38,13 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // set_account_map_item
     digest!("0x02befd8e777bacc5f4c3b14267b7e5558c9557d82970e74612c5aa6d7febf9c2"),
     // burn_asset
-    digest!("0x1c05513dd228061a30e3c8a6a461abafa4aa8de006a601c6b2cea9e6a087d727"),
+    digest!("0x209f03fe56676260c52dd8962009464e550859e608872ed953c8a22a304bdc31"),
     // get_fungible_faucet_total_issuance
     digest!("0xe56c3538757d5e2cee385028a5ba4e78eca3982698a4e6a3d5ddb17ea59fc13a"),
     // mint_asset
-    digest!("0x1ef7c96dc79108cd4bd8a32a81fa745e9a0c4db58cba15d303956ddd6dbbf136"),
+    digest!("0x2f98c9c871e06b0d7c26877ad9c3dbdf71a904d70e7433537e056e00e0eca5ba"),
     // add_asset_to_note
-    digest!("0x3195ee14e60a8d3891a909d4e514ff896ebb3b50a349e05327032c57e7847c7b"),
+    digest!("0xc94c36aa3a1c98e100956e63c235856ab227283fe26a93ec788c1dfb6ca1476d"),
     // create_note
     digest!("0x1f4f867434fc2704a16a15edd783f3825b1b5d932e04412b46eee3c85adcf1d2"),
     // get_input_notes_commitment

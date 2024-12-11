@@ -21,7 +21,7 @@ use super::{read_to_string, write, Benchmark, Path};
 // CONSTANTS
 // ================================================================================================
 
-// Copied from miden_objects::accounts::account_id::testing.
+// Copied from miden_objects::testing::account_id.
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 = 0xaa00000000bb020000cc000000dd00;
 pub const ACCOUNT_ID_SENDER: u128 = 0xaa00000000bb080000cc000000dd00;
 
