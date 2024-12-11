@@ -842,7 +842,7 @@ mod tests {
     }
 
     #[test]
-    fn test_account_id() {
+    fn account_id_from_felts_with_high_pop_count() {
         let valid_second_felt = Felt::try_from(0xfffe_ffff_ffff_ff00u64).unwrap();
         let valid_first_felt = Felt::try_from(0x7fff_ffff_ffff_ff00u64).unwrap();
 

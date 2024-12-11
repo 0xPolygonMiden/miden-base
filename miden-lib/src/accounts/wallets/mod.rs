@@ -46,7 +46,7 @@ impl From<BasicWallet> for AccountComponent {
 /// authentication scheme.
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
-    block_epoch_hash: (u16, Digest),
+    anchor_block_epoch_and_hash: (u16, Digest),
     auth_scheme: AuthScheme,
     account_type: AccountType,
     account_storage_mode: AccountStorageMode,
@@ -63,8 +63,8 @@ pub fn create_basic_wallet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
-        .anchor_epoch(block_epoch_hash.0)
-        .anchor_block_hash(block_epoch_hash.1)
+        .anchor_epoch(anchor_block_epoch_and_hash.0)
+        .anchor_block_hash(anchor_block_epoch_and_hash.1)
         .account_type(account_type)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)

@@ -292,13 +292,15 @@ fn test_create_consume_multiple_notes() {
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
 
     account.apply_delta(executed_transaction.account_delta()).unwrap();
+
     for asset in account.vault().assets() {
-        // TODO: Fungible asset should return full id.
-        if u64::from(asset.faucet_id()) == input_note_faucet_id.prefix().into() {
-            assert!(asset.unwrap_fungible().amount() == 111);
-        // TODO: Fungible asset should return full id.
-        } else if asset.faucet_id() == FungibleAsset::mock_issuer().prefix() {
-            assert!(asset.unwrap_fungible().amount() == 5);
+        // Avoid using Asset::faucet_id since it only returns the prefix.
+        if let Asset::Fungible(fungible) = asset {
+            if fungible.faucet_id() == input_note_faucet_id {
+                assert!(asset.unwrap_fungible().amount() == 111);
+            } else if fungible.faucet_id() == FungibleAsset::mock_issuer() {
+                assert!(asset.unwrap_fungible().amount() == 5);
+            }
         }
     }
 }

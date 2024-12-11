@@ -194,7 +194,7 @@ impl TransactionKernel {
 
         // Extend the advice inputs with Merkle store data
         advice_inputs.extend_merkle_store(
-            // TODO: Double check whether we need to use the first felt here or something else.
+            // The first felt is the index in the account tree.
             merkle_path.inner_nodes(account_id.first_felt().as_int(), account_header.hash())?,
         );
 

@@ -23,7 +23,7 @@ const FAUCET_ID_POS: usize = 1;
 /// - Hash the asset data producing `[hash0, hash1, hash2, hash3]`.
 /// - Replace the value of `hash1` with the first felt of the faucet id (`faucet_id_hi`) producing
 ///   `[hash0, faucet_id_hi, hash2, hash3]`.
-/// - Set the bit position [`AccountId::IS_FAUCET_MASK`] of `hash3` to be `0`. This is done to make
+/// - Set the bit position of the faucet account type of `hash3` to be `0`. This is done to make
 ///   assets distinguishable from their word layout. Fungible assets will have this bit set to `1`
 ///   while non-fungible assets will have it set to `0`.
 ///

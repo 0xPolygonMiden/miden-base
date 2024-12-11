@@ -87,6 +87,7 @@ pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT
 pub const ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH: u32 = 0x00020041;
 pub const ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER: u32 = 0x0002003C;
 pub const ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR: u32 = 0x0002003D;
+pub const ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO: u32 = 0x0002005B;
 pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x00020035;
 pub const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE: u32 = 0x00020037;
 pub const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY: u32 = 0x00020036;
@@ -115,7 +116,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002001C;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x0002001F;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x0002001E;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
     (ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY, "Anchor block hash must not be empty"),
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
@@ -193,6 +194,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH, "Note commitment computed from the input note data does not match given note commitment"),
     (ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER, "Account IDs provided via global inputs and advice provider do not match"),
     (ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR, "Reference block MMR and note's authentication MMR must match"),
+    (ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO, "New account must have a zero nonce"),
     (ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY, "New account must have an empty vault"),
     (ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE, "Reserved slot for new fungible faucet has an invalid type"),
     (ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY, "Reserved slot for new fungible faucet is not empty"),

@@ -26,7 +26,7 @@ pub fn get_account_seed(
     version: AccountVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
-    block_hash: Digest,
+    anchor_block_hash: Digest,
 ) -> Result<Word, AccountError> {
     let thread_count = thread::available_parallelism().map_or(1, |v| v.get());
 
@@ -48,7 +48,7 @@ pub fn get_account_seed(
                 version,
                 code_commitment,
                 storage_commitment,
-                block_hash,
+                anchor_block_hash,
             )
         });
     }
@@ -71,7 +71,7 @@ pub fn get_account_seed(
 
 #[cfg(feature = "concurrent")]
 #[allow(clippy::too_many_arguments)]
-pub fn get_account_seed_inner(
+fn get_account_seed_inner(
     send: Sender<(Digest, Word)>,
     stop: Arc<RwLock<bool>>,
     init_seed: [u8; 32],
@@ -80,7 +80,7 @@ pub fn get_account_seed_inner(
     version: AccountVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
-    block_hash: Digest,
+    anchor_block_hash: Digest,
 ) {
     let init_seed: Vec<[u8; 8]> =
         init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
@@ -91,7 +91,7 @@ pub fn get_account_seed_inner(
         Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
     let mut current_digest =
-        compute_digest(current_seed, code_commitment, storage_commitment, block_hash);
+        compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
 
     #[cfg(feature = "log")]
     let mut log = log::Log::start(current_digest, current_seed, account_type, storage_mode);
@@ -126,7 +126,7 @@ pub fn get_account_seed_inner(
 
         current_seed = current_digest.into();
         current_digest =
-            compute_digest(current_seed, code_commitment, storage_commitment, block_hash);
+            compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
     }
 }
 
@@ -138,7 +138,7 @@ pub fn get_account_seed(
     version: AccountVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
-    block_hash: Digest,
+    anchor_block_hash: Digest,
 ) -> Result<Word, AccountError> {
     get_account_seed_single(
         init_seed,
@@ -147,7 +147,7 @@ pub fn get_account_seed(
         version,
         code_commitment,
         storage_commitment,
-        block_hash,
+        anchor_block_hash,
     )
 }
 
@@ -161,7 +161,7 @@ pub fn get_account_seed_single(
     version: AccountVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
-    block_hash: Digest,
+    anchor_block_hash: Digest,
 ) -> Result<Word, AccountError> {
     let init_seed: Vec<[u8; 8]> =
         init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
@@ -172,7 +172,7 @@ pub fn get_account_seed_single(
         Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
     let mut current_digest =
-        compute_digest(current_seed, code_commitment, storage_commitment, block_hash);
+        compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
 
     #[cfg(feature = "log")]
     let mut log = log::Log::start(current_digest, current_seed, account_type, storage_mode);
@@ -200,7 +200,7 @@ pub fn get_account_seed_single(
 
         current_seed = current_digest.into();
         current_digest =
-            compute_digest(current_seed, code_commitment, storage_commitment, block_hash);
+            compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
     }
 }
 

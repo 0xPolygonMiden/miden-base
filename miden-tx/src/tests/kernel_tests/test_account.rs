@@ -480,7 +480,7 @@ fn test_set_map_item() {
 #[test]
 fn test_account_component_storage_offset() {
     // setup assembler
-    let assembler = TransactionKernel::testing_assembler().with_debug_mode(true);
+    let assembler = TransactionKernel::testing_assembler();
 
     // The following code will execute the following logic that will be asserted during the test:
     //

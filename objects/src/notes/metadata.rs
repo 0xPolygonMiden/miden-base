@@ -179,8 +179,8 @@ fn merge_id_type_and_hint_tag(
     merged |= (type_bits << 6) as u64;
     merged |= tag_bits as u64;
 
-    // SAFETY: One of the top 16 bits of the second felt is zero by construction so the bytes will
-    // be a valid felt.
+    // SAFETY: One of the top 16 bits of the second felt (the anchor epoch) is zero by construction
+    // so the bytes will be a valid felt.
     Felt::try_from(merged).expect("encoded value should be a valid felt")
 }
 

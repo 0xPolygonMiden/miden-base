@@ -46,17 +46,9 @@ impl<H: Host> CodeExecutor<H> {
             self.stack_inputs.unwrap_or_default(),
             self.host,
         );
-        let execution_result = process.execute(&program);
+        process.execute(&program)?;
 
-        #[cfg(feature = "std")]
-        if execution_result.is_err() {
-            std::println!(
-                "execute program failed at clock cycle {}",
-                vm_processor::ProcessState::clk(&process)
-            );
-        }
-
-        execution_result.map(|_| process)
+        Ok(process)
     }
 }
 

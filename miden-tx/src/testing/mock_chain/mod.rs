@@ -598,7 +598,7 @@ impl MockChain {
             input_notes.push(input_note);
         }
 
-        // If the account is new, add the epoch block's header from which the account ID is derived
+        // If the account is new, add the anchor block's header from which the account ID is derived
         // to the MMR.
         if account.is_new() {
             let epoch_block_num = block_num_from_epoch(account.id().anchor_epoch());
