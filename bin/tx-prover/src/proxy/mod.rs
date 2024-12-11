@@ -12,7 +12,7 @@ use pingora_core::{upstreams::peer::HttpPeer, Result};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
-use tracing::error;
+use tracing::{error, info};
 
 use crate::commands::ProxyConfig;
 
@@ -130,12 +130,13 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
+        info!("HttpProxy::request_filter");
         let client_addr = session.client_addr();
         let user_id = client_addr.map(|addr| addr.to_string());
 
         // Request ID is a random number
         let request_id = rand::random::<u64>().to_string();
-        session.req_header_mut().insert_header("X-Request-ID", request_id)?;
+        session.req_header_mut().insert_header("X-Request-ID", request_id.clone())?;
 
         // Retrieve the current window requests
         let curr_window_requests = RATE_LIMITER.observe(&user_id, 1);
@@ -143,6 +144,7 @@ impl ProxyHttp for LoadBalancer {
         if curr_window_requests > self.max_req_per_sec {
             return Self::create_too_many_requests_response(session, self.max_req_per_sec).await;
         };
+        info!("Request ID: {}", request_id);
         Ok(false)
     }
 
@@ -159,6 +161,7 @@ impl ProxyHttp for LoadBalancer {
         session: &mut Session,
         ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
+        info!("HttpProxy::upstream_peer");
         if ctx.tries > 0 {
             Self::remove_request_from_queue(Self::get_request_id(session)?).await;
         }
@@ -215,6 +218,8 @@ impl ProxyHttp for LoadBalancer {
         peer_opts.alpn = ALPN::H2;
 
         let peer = Box::new(http_peer);
+
+        info!("Upstream peer: {:?}", peer);
         Ok(peer)
     }
 
@@ -233,6 +238,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
+        info!("HttpProxy::upstream_request_filter");
         // Check if it's a gRPC request
         if let Some(content_type) = upstream_request.headers.get("content-type") {
             if content_type == "application/grpc" {
@@ -241,6 +247,7 @@ impl ProxyHttp for LoadBalancer {
             }
         }
 
+        info!("Request headers: {:?}", upstream_request);
         Ok(())
     }
 
@@ -252,6 +259,7 @@ impl ProxyHttp for LoadBalancer {
         ctx: &mut Self::CTX,
         mut e: Box<Error>,
     ) -> Box<Error> {
+        info!("HttpProxy::fail_to_connect");
         if ctx.tries > self.max_retries_per_request {
             return e;
         }
@@ -269,6 +277,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
+        info!("HttpProxy::logging");
         if let Some(e) = e {
             error!("Error: {:?}", e);
         }
@@ -280,5 +289,7 @@ impl ProxyHttp for LoadBalancer {
         // Maybe we can replace this with a read lock and using write only in the moment of the
         // deletion.
         Self::remove_request_from_queue(request_id).await;
+
+        info!("Request {} processed", request_id);
     }
 }
