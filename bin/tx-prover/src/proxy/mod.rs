@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::{Duration, Instant}};
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
@@ -14,7 +14,7 @@ use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::{error, info};
 
-use crate::commands::ProxyConfig;
+use crate::commands::{init, ProxyConfig};
 
 /// Load balancer that uses a round robin strategy
 pub struct LoadBalancer {
@@ -93,6 +93,10 @@ static QUEUES: Lazy<RwLock<HashMap<Backend, Vec<String>>>> =
 /// We use this context to keep track of the number of tries for a request.
 pub struct TriesCounter {
     tries: usize,
+    // Initial time of the request, it will be used to calculated the total time that it took.
+    initial_time: Instant,
+    // random number representing id
+    request_id: u64,
 }
 
 /// Implements load-balancing of incoming requests across a pool of workers.
@@ -117,7 +121,7 @@ pub struct TriesCounter {
 impl ProxyHttp for LoadBalancer {
     type CTX = TriesCounter;
     fn new_ctx(&self) -> Self::CTX {
-        TriesCounter { tries: 0 }
+        TriesCounter { tries: 0, initial_time: Instant::now(), request_id: rand::random::<u64>() }
     }
 
     /// Decide whether to filter the request or not.
@@ -130,6 +134,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
+        let initial_time = Instant::now();
         info!("HttpProxy::request_filter");
         let client_addr = session.client_addr();
         let user_id = client_addr.map(|addr| addr.to_string());
@@ -145,6 +150,9 @@ impl ProxyHttp for LoadBalancer {
             return Self::create_too_many_requests_response(session, self.max_req_per_sec).await;
         };
         info!("Request ID: {}", request_id);
+
+        // log time from start till request_filter end
+        info!("Request filter took {:?}", initial_time.elapsed());
         Ok(false)
     }
 
@@ -162,6 +170,7 @@ impl ProxyHttp for LoadBalancer {
         ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
         info!("HttpProxy::upstream_peer");
+        let initial_time = Instant::now();
         if ctx.tries > 0 {
             Self::remove_request_from_queue(Self::get_request_id(session)?).await;
         }
@@ -220,6 +229,7 @@ impl ProxyHttp for LoadBalancer {
         let peer = Box::new(http_peer);
 
         info!("Upstream peer: {:?}", peer);
+        info!("Upstream peer took {:?}", initial_time.elapsed());
         Ok(peer)
     }
 
@@ -239,6 +249,7 @@ impl ProxyHttp for LoadBalancer {
         Self::CTX: Send + Sync,
     {
         info!("HttpProxy::upstream_request_filter");
+        let initial_time = Instant::now();
         // Check if it's a gRPC request
         if let Some(content_type) = upstream_request.headers.get("content-type") {
             if content_type == "application/grpc" {
@@ -247,6 +258,7 @@ impl ProxyHttp for LoadBalancer {
             }
         }
 
+        info!("Upstream request filter took {:?}", initial_time.elapsed());
         info!("Request headers: {:?}", upstream_request);
         Ok(())
     }
@@ -273,10 +285,11 @@ impl ProxyHttp for LoadBalancer {
     ///
     /// This method is the last one in the request lifecycle, no matter if the request was
     /// processed or not.
-    async fn logging(&self, session: &mut Session, e: Option<&Error>, _ctx: &mut Self::CTX)
+    async fn logging(&self, session: &mut Session, e: Option<&Error>, ctx: &mut Self::CTX)
     where
         Self::CTX: Send + Sync,
     {
+        let initial_time = Instant::now();
         info!("HttpProxy::logging");
         if let Some(e) = e {
             error!("Error: {:?}", e);
@@ -291,5 +304,12 @@ impl ProxyHttp for LoadBalancer {
         Self::remove_request_from_queue(request_id).await;
 
         info!("Request {} processed", request_id);
+
+        info!("Logging took {:?}", initial_time.elapsed());
+
+        // Log the request total time using the context time.
+        let total_time = ctx.initial_time.elapsed();
+        info!("Request {} took {:?}", request_id, total_time);
+
     }
 }
