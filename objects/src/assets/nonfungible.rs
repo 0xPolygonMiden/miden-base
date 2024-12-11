@@ -10,21 +10,25 @@ use crate::{
     Digest,
 };
 
-/// Position of the faucet_id inside the [NonFungibleAsset] word.
+/// Position of the faucet_id inside the [`NonFungibleAsset`] word.
 const FAUCET_ID_POS: usize = 1;
 
 // NON-FUNGIBLE ASSET
 // ================================================================================================
+
 /// A commitment to a non-fungible asset.
 ///
 /// The commitment is constructed as follows:
 ///
-/// - Hash the asset data producing `[d0, d1, d2, d3]`.
-/// - Replace the value of `d1` with the faucet id producing `[d0, faucet_id, d2, d3]`.
-/// - Force the bit position [`AccountId::IS_FAUCET_MASK`] of `d3` to be `0`.
+/// - Hash the asset data producing `[hash0, hash1, hash2, hash3]`.
+/// - Replace the value of `hash1` with the first felt of the faucet id (`faucet_id_hi`) producing
+///   `[hash0, faucet_id_hi, hash2, hash3]`.
+/// - Set the bit position [`AccountId::IS_FAUCET_MASK`] of `hash3` to be `0`. This is done to make
+///   assets distinguishable from their word layout. Fungible assets will have this bit set to `1`
+///   while non-fungible assets will have it set to `0`.
 ///
-/// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
-/// [NonFungibleAssetDetails] struct.
+/// [`NonFungibleAsset`] itself does not contain the actual asset data. The container for this data
+/// is [`NonFungibleAssetDetails`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct NonFungibleAsset(Word);
 
@@ -79,21 +83,24 @@ impl NonFungibleAsset {
         //
         // Explanation of the bit flip:
         //
-        // - assets require a faucet account, the id of such accounts always has the bit at the mask
-        //   position.
-        // - fungible assets have the account id at position `3`, meaning the 3rd bit is always of
-        //   the element at the 3rd position is always 1.
-        // - non-fungible assets, have the account id at position `FAUCET_ID_POS`, so the bit at
-        //   position `3` can be used to identify fungible vs. non-fungible assets
+        // - We need to be able to determine the type of an asset by looking at some part of the
+        //   word layout.
+        // - Fungible assets have the first felt of an account id at word index 3. This means the
+        //   bit at the mask position of fungible_asset_word[3] is always 1.
+        // - Non-fungible assets have a data hash at word index 3 and we can set the bit at the mask
+        //   position to 0 explicitly.
+        // - This is necessary because non-fungible assets have the account id prefix at another
+        //   index.
+        // - This means that when looking at the bit at the mask position of an asset, fungible
+        //   assets will have a 1 bit and non-fungible assets will have a 0 bit.
         //
-        // This is done as an optimization, since the field element at position `3` is used as index
-        // when storing the assets into the asset vault. This strategy forces fungible assets to be
-        // assigned to the same slot because it uses the faucet's account id, and allows for easy
-        // merging of fungible faucets. At the same time, it spreads the non-fungible assets evenly
-        // across the vault, because in this case the element is the result of a cryptographic hash
-        // function.
+        // This is done as an optimization, since the field element at position `3` is used as the
+        // index when storing the assets into the asset vault. This strategy forces fungible
+        // assets to be assigned to the same slot because it uses the faucet's account id,
+        // and allows for easy merging of fungible assets. At the same time, it spreads the
+        // non-fungible assets evenly across the vault, because in this case the element is
+        // the result of a cryptographic hash function.
 
-        // TODO: Update explanation above.
         let element3 = data_hash[3].as_int();
         data_hash[3] = Felt::new((element3 & AccountId::IS_FAUCET_MASK) ^ element3);
 

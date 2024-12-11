@@ -19,8 +19,8 @@ const.ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID=0x0002004D
 # Two raised to the power of 32 (2^32)
 const.TWO_POW_32=4294967296
 
-# The 6th bit of the least significant half of the element is used to identify the asset type
-const.FUNGIBLE_BITMASK_U32=0x20
+# The asset type can be determined from the 6th bit of the most significant element of an asset.
+const.FUNGIBLE_BITMASK_U32=0x20 # 0b10_0000
 
 # PROCEDURES
 # =================================================================================================

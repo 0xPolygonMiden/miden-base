@@ -367,7 +367,7 @@ export.validate_id
 
     dup exec.id_version
     # => [version, account_id_hi, account_id_lo]
-    eq.0 assert.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
+    assertz.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
     # => [account_id_hi, account_id_lo]
 
     # Validate epoch is less than u16::MAX (0xffff) in second felt.
