@@ -602,12 +602,14 @@ impl MockChain {
         // to the MMR.
         if account.is_new() {
             let epoch_block_num = block_num_from_epoch(account.id().block_epoch());
-            // TODO: Do we need this here?
-            // if epoch_block_num != block.header().block_num() {
-            block_headers_map.insert(
-                epoch_block_num,
-                self.blocks.get(epoch_block_num as usize).unwrap().header(),
-            );
+            // The reference block of the transaction is added to the MMR in
+            // prologue::process_chain_data so we can skip adding it to the block headers here.
+            if epoch_block_num != block.header().block_num() {
+                block_headers_map.insert(
+                    epoch_block_num,
+                    self.blocks.get(epoch_block_num as usize).unwrap().header(),
+                );
+            }
         }
 
         for note in unauthenticated_notes {

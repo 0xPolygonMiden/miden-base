@@ -28,13 +28,15 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::{Account, AccountBuilder, AccountProcedureInfo, AccountType, StorageSlot},
+    accounts::{
+        Account, AccountBuilder, AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
+    },
     testing::{
         account_component::AccountMockComponent,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
-    GENESIS_BLOCK,
+    BlockHeader, GENESIS_BLOCK,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -405,7 +407,7 @@ fn input_notes_memory_assertions(
 
 /// Test helper which executes the prologue to check if the creation of the given `account` with its
 /// `seed` is valid in the context of the given `mock_chain`.
-pub fn create_account(
+pub fn create_account_test(
     mock_chain: &MockChain,
     account: Account,
     seed: Word,
@@ -430,14 +432,11 @@ pub fn create_account(
     Ok(())
 }
 
-/// Tests that a valid account of each type can be created successfully.
-#[test]
-pub fn create_accounts_with_genesis_block() -> anyhow::Result<()> {
-    let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(None);
-
-    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
-
+pub fn create_multiple_accounts_test(
+    mock_chain: &MockChain,
+    anchor_block_header: &BlockHeader,
+    storage_mode: AccountStorageMode,
+) -> anyhow::Result<()> {
     let mut accounts = Vec::new();
 
     for account_type in [
@@ -448,8 +447,9 @@ pub fn create_accounts_with_genesis_block() -> anyhow::Result<()> {
     ] {
         let (account, seed) = AccountBuilder::new()
             .account_type(account_type)
+            .storage_mode(storage_mode)
             .init_seed(ChaCha20Rng::from_entropy().gen())
-            .with_reference_block(&genesis_block_header)
+            .with_reference_block(anchor_block_header)
             .with_component(
                 AccountMockComponent::new_with_slots(
                     TransactionKernel::testing_assembler(),
@@ -465,11 +465,51 @@ pub fn create_accounts_with_genesis_block() -> anyhow::Result<()> {
 
     for (account, seed) in accounts {
         let account_type = account.account_type();
-        create_account(&mock_chain, account, seed)
-            .context(format!("create_account test failed for account type {:?}", account_type))?;
+        create_account_test(&mock_chain, account, seed).context(format!(
+            "create_multiple_accounts_test test failed for account type {:?}",
+            account_type
+        ))?;
     }
 
     Ok(())
+}
+
+/// Tests that a valid account of each type can be created successfully with the genesis block used
+/// as the anchor block for the account IDs.
+#[test]
+pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    // Choose epoch block 0 as the anchor block.
+    // Here the transaction reference block is also the anchor block.
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Private)?;
+
+    // Seal one more block to test the case where the transaction reference block is not the anchor
+    // block.
+    mock_chain.seal_block(None);
+
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
+}
+
+/// Tests that a valid account of each type can be created successfully with an epoch block whose
+/// number is non-zero used as the anchor block for the account IDs.
+#[test]
+pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(Some(1 << 16));
+
+    // Choose epoch block 1 whose block number is 2^16 as the anchor block.
+    // Here the transaction reference block is also the anchor block.
+    let epoch1_block_header = mock_chain.block_header(1 << 16 as usize);
+
+    create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Private)?;
+
+    // Seal one more block to test the case where the transaction reference block is not the anchor
+    // block.
+    mock_chain.seal_block(None);
+
+    create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Public)
 }
 
 /// Tests that creating a fungible faucet account with a non-empty initial balance in its reserved
@@ -487,7 +527,7 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
         TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let result = create_account(&mock_chain, account, account_seed);
+    let result = create_account_test(&mock_chain, account, account_seed);
 
     assert_execution_error!(result, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY);
 
@@ -509,7 +549,7 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
         TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let result = create_account(&mock_chain, account, account_seed);
+    let result = create_account_test(&mock_chain, account, account_seed);
 
     assert_execution_error!(
         result,

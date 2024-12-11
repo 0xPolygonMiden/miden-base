@@ -857,26 +857,24 @@ end
 #! Inputs:  [seed_digest_lo, epoch]
 #! Outputs: [account_id_lo]
 proc.shape_second_felt
-  u32split movup.2
-  # => [epoch, seed_digest_lo_hi, seed_digest_lo_lo]
+  u32split
+  # => [seed_digest_lo_hi, seed_digest_lo_lo, epoch]
+
+  # clear epoch bits in hi part so we can set them later
+  u32and.0x0000ffff swap
+  # => [seed_digest_lo_lo, seed_digest_lo_hi', epoch]
+
+  # clear lower 8 bits of the lo part
+  u32and.0xffffff00 swap.2
+  # => [epoch, seed_digest_lo_hi', seed_digest_lo_lo']
 
   # TODO: Should we assert that epoch is < u16::MAX?
 
-  u32shl.16
-  # => [epoch_shifted, seed_digest_lo_hi, seed_digest_lo_lo]
+  # shift epoch left by 16 bits and set epoch bits on hi part
+  u32shl.16 u32or
+  # => [epoch_shifted, seed_digest_lo_hi', seed_digest_lo_lo']
 
-  # set epoch on the hi part of the second felt
-  u32or.0x0000ffff
-  # => [epoch_bitmask, seed_digest_lo_hi, seed_digest_lo_lo]
-
-  u32and swap
-  # => [seed_digest_lo_lo, account_id_lo_hi]
-
-  # set lower 8 bits of the lo part to zero
-  u32and.0xffffff00 swap
-  # => [account_id_lo_hi, account_id_lo_lo]
-
-  # reassemble the second felt by multiplying the high part with 2^32 and adding the lo part
+  # reassemble the second felt by multiplying the hi part with 2^32 and adding the lo part
   mul.0x0100000000 add
   # => [account_id_lo]
 end
