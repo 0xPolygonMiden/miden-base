@@ -1,6 +1,11 @@
-use std::{collections::HashMap, sync::Arc, time::{Duration, Instant}};
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
@@ -95,8 +100,8 @@ pub struct TriesCounter {
     tries: usize,
     // Initial time of the request, it will be used to calculated the total time that it took.
     initial_time: Instant,
-    // random number representing id
-    request_id: u64,
+    // Time when the requests reaches request_body_filter.
+    request_body_filter_time: Instant,
 }
 
 /// Implements load-balancing of incoming requests across a pool of workers.
@@ -121,7 +126,11 @@ pub struct TriesCounter {
 impl ProxyHttp for LoadBalancer {
     type CTX = TriesCounter;
     fn new_ctx(&self) -> Self::CTX {
-        TriesCounter { tries: 0, initial_time: Instant::now(), request_id: rand::random::<u64>() }
+        TriesCounter {
+            tries: 0,
+            initial_time: Instant::now(),
+            request_body_filter_time: Instant::now(),
+        }
     }
 
     /// Decide whether to filter the request or not.
@@ -310,6 +319,34 @@ impl ProxyHttp for LoadBalancer {
         // Log the request total time using the context time.
         let total_time = ctx.initial_time.elapsed();
         info!("Request {} took {:?}", request_id, total_time);
+    }
 
+    async fn request_body_filter(
+        &self,
+        _session: &mut Session,
+        _body: &mut Option<Bytes>,
+        _end_of_stream: bool,
+        ctx: &mut Self::CTX,
+    ) -> Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        ctx.request_body_filter_time = Instant::now();
+        Ok(())
+    }
+
+    fn upstream_response_filter(
+        &self,
+        _session: &mut Session,
+        _upstream_response: &mut ResponseHeader,
+        ctx: &mut Self::CTX,
+    ) {
+        let total_time = ctx.initial_time.elapsed();
+        let request_body_filter_time = ctx.request_body_filter_time.elapsed();
+        info!("Total time at upstream_response filter: {:?}", total_time);
+        info!(
+            "Time between request_body_filter and upstream_response_filter: {:?}",
+            request_body_filter_time
+        );
     }
 }
