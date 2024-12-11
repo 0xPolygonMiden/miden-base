@@ -10,7 +10,9 @@ use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
     lb::Backend,
+    modules::http::{compression::ResponseCompressionBuilder, HttpModules},
     prelude::{LoadBalancer as PingoraLoadBalancer, *},
+    protocols::Digest,
     upstreams::peer::{Peer, ALPN},
 };
 use pingora_core::{upstreams::peer::HttpPeer, Result};
@@ -162,6 +164,7 @@ impl ProxyHttp for LoadBalancer {
 
         // log time from start till request_filter end
         info!("Request filter took {:?}", initial_time.elapsed());
+        info!("Request filter took since request began: {:?}", _ctx.initial_time.elapsed());
         Ok(false)
     }
 
@@ -237,8 +240,8 @@ impl ProxyHttp for LoadBalancer {
 
         let peer = Box::new(http_peer);
 
-        info!("Upstream peer: {:?}", peer);
         info!("Upstream peer took {:?}", initial_time.elapsed());
+        info!("Upstream peer took since request began: {:?}", ctx.initial_time.elapsed());
         Ok(peer)
     }
 
@@ -268,6 +271,10 @@ impl ProxyHttp for LoadBalancer {
         }
 
         info!("Upstream request filter took {:?}", initial_time.elapsed());
+        info!(
+            "Upstream request filter took since request began: {:?}",
+            _ctx.initial_time.elapsed()
+        );
         info!("Request headers: {:?}", upstream_request);
         Ok(())
     }
@@ -281,11 +288,14 @@ impl ProxyHttp for LoadBalancer {
         mut e: Box<Error>,
     ) -> Box<Error> {
         info!("HttpProxy::fail_to_connect");
+        let initial_time = Instant::now();
         if ctx.tries > self.max_retries_per_request {
             return e;
         }
         ctx.tries += 1;
         e.set_retry(true);
+        info!("Fail to connect took {:?}", initial_time.elapsed());
+        info!("Fail to connect took since request began: {:?}", ctx.initial_time.elapsed());
         e
     }
 
@@ -319,6 +329,11 @@ impl ProxyHttp for LoadBalancer {
         // Log the request total time using the context time.
         let total_time = ctx.initial_time.elapsed();
         info!("Request {} took {:?}", request_id, total_time);
+        info!(
+            "Request {} took since request began: {:?}",
+            request_id,
+            ctx.initial_time.elapsed()
+        );
     }
 
     async fn request_body_filter(
@@ -348,5 +363,164 @@ impl ProxyHttp for LoadBalancer {
             "Time between request_body_filter and upstream_response_filter: {:?}",
             request_body_filter_time
         );
+        info!(
+            "upstream response filter end since request began: {:?}",
+            ctx.initial_time.elapsed()
+        );
+    }
+
+    fn init_downstream_modules(&self, modules: &mut HttpModules) {
+        let initial_time = Instant::now();
+        // Add disabled downstream compression module by default
+        modules.add_module(ResponseCompressionBuilder::enable(0));
+        info!("Init downstream modules took {:?}", initial_time.elapsed());
+        info!(
+            "Init downstream modules took since request began: {:?}",
+            self.new_ctx().initial_time.elapsed()
+        );
+    }
+
+    async fn early_request_filter(&self, _session: &mut Session, _ctx: &mut Self::CTX) -> Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        let initial_time = Instant::now();
+        info!("early_request_filter took {:?}", initial_time.elapsed());
+        info!(
+            "early_request_filter took since request began: {:?}",
+            _ctx.initial_time.elapsed()
+        );
+        Ok(())
+    }
+
+    fn request_cache_filter(&self, _session: &mut Session, _ctx: &mut Self::CTX) -> Result<()> {
+        let initial_time = Instant::now();
+        info!("request_cache_filter took {:?}", initial_time.elapsed());
+        info!(
+            "request_cache_filter took since request began: {:?}",
+            _ctx.initial_time.elapsed()
+        );
+        Ok(())
+    }
+
+    async fn connected_to_upstream(
+        &self,
+        _session: &mut Session,
+        _reused: bool,
+        _peer: &HttpPeer,
+        _fd: std::os::unix::io::RawFd,
+        _digest: Option<&Digest>,
+        _ctx: &mut Self::CTX,
+    ) -> Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        let initial_time = Instant::now();
+        info!("connected_to_upstream took {:?}", initial_time.elapsed());
+        info!(
+            "connected_to_upstream took since request began: {:?}",
+            _ctx.initial_time.elapsed()
+        );
+        Ok(())
+    }
+
+    async fn response_filter(
+        &self,
+        _session: &mut Session,
+        _upstream_response: &mut ResponseHeader,
+        _ctx: &mut Self::CTX,
+    ) -> Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        let initial_time = Instant::now();
+        info!("response_filter took {:?}", initial_time.elapsed());
+        info!("response_filter took since request began: {:?}", _ctx.initial_time.elapsed());
+        Ok(())
+    }
+
+    fn upstream_response_body_filter(
+        &self,
+        _session: &mut Session,
+        _body: &mut Option<Bytes>,
+        _end_of_stream: bool,
+        _ctx: &mut Self::CTX,
+    ) {
+        let initial_time = Instant::now();
+        info!("upstream_response_body_filter took {:?}", initial_time.elapsed());
+        info!(
+            "upstream_response_body_filter took since request began: {:?}",
+            _ctx.initial_time.elapsed()
+        );
+    }
+
+    fn response_body_filter(
+        &self,
+        _session: &mut Session,
+        _body: &mut Option<Bytes>,
+        _end_of_stream: bool,
+        _ctx: &mut Self::CTX,
+    ) -> Result<Option<Duration>>
+    where
+        Self::CTX: Send + Sync,
+    {
+        let initial_time = Instant::now();
+        info!("response_body_filter took {:?}", initial_time.elapsed());
+        info!(
+            "response_body_filter took since request began: {:?}",
+            _ctx.initial_time.elapsed()
+        );
+        Ok(None)
+    }
+
+    async fn fail_to_proxy(&self, session: &mut Session, e: &Error, _ctx: &mut Self::CTX) -> u16
+    where
+        Self::CTX: Send + Sync,
+    {
+        let initial_time = Instant::now();
+        let server_session = session.as_mut();
+        let code = match e.etype() {
+            HTTPStatus(code) => *code,
+            _ => {
+                match e.esource() {
+                    ErrorSource::Upstream => 502,
+                    ErrorSource::Downstream => {
+                        match e.etype() {
+                            WriteError | ReadError | ConnectionClosed => {
+                                /* conn already dead */
+                                0
+                            },
+                            _ => 400,
+                        }
+                    },
+                    ErrorSource::Internal | ErrorSource::Unset => 500,
+                }
+            },
+        };
+        if code > 0 {
+            server_session.respond_error(code).await
+        }
+        info!("fail_to_proxy took {:?}", initial_time.elapsed());
+        info!("fail_to_proxy took since request began: {:?}", _ctx.initial_time.elapsed());
+        code
+    }
+
+    fn error_while_proxy(
+        &self,
+        peer: &HttpPeer,
+        session: &mut Session,
+        e: Box<Error>,
+        _ctx: &mut Self::CTX,
+        client_reused: bool,
+    ) -> Box<Error> {
+        let initial_time = Instant::now();
+        let mut e = e.more_context(format!("Peer: {}", peer));
+        // only reused client connections where retry buffer is not truncated
+        e.retry
+            .decide_reuse(client_reused && !session.as_ref().retry_buffer_truncated());
+
+        info!("error_while_proxy took {:?}", initial_time.elapsed());
+        info!("error_while_proxy took since request began: {:?}", _ctx.initial_time.elapsed());
+        e
     }
 }
