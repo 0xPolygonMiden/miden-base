@@ -1,29 +1,27 @@
-Accounts are basic building blocks representing a user or an autonomous smart contract.
+# Accounts
 
-For smart contracts, the go-to solution is account-based state. Miden supports expressive smart contracts via a Turing-complete language and the use of accounts.
+In Miden, every account is a smart contract.
 
-In Miden, an account is an entity that holds assets and defines rules about how to transfer these assets.
-
-## Account design
-
-In Miden, every account is a smart contract. The diagram below illustrates the basic components of an account.
+The diagram below illustrates the basic components of an account:
 
 <p style="text-align: center;">
     <img src="../img/architecture/account/account-definition.png" style="width:30%;" alt="Account diagram"/>
 </p>
 
-> **Tip: Key to diagram**
-> - **Account ID**: A unique identifier for an account. This does not change throughout its lifetime.
-> - **Storage**: User-defined data which can be stored in an account.
-> - **Nonce**: A counter which increments whenever the account state changes.
-> - **Vault**: A collection of assets stored in an account.
-> - **Code**: A collection of functions which define the external interface for an account.
+> **Info:**
+> - **ID**: Immutable unique identifier for an account.
+> - **Storage**: User-defined data stored in an account.
+> - **Nonce**: Counter incrementing on each state change.
+> - **Vault**: Collection of assets stored in the account.
+> - **Code**: Collection of functions defining the account interface.
 
 ### Account ID
 
-A `~63` bits long identifier for the account ID (one field element `felt`). 
+A `~63` bits long identifier (one field element `felt`). 
 
-The four most significant bits specify the [account type](#account-types) - regular or faucet - and the account-storage-modes - public or private.
+The four most significant bits specify both:
+* [account type](#account-types): regular or faucet
+* [account-storage-mode](#account-storage-mode): public or private
 
 ### Account storage
 
@@ -38,13 +36,13 @@ As described below, accounts can be stored off-chain (private) and on-chain (pub
 
 ### Nonce
 
-A counter which increments whenever the account state changes.
+A Counter incrementing on each state change.
 
 Nonce values must be strictly monotonically increasing and increment by any value smaller than `2^32` for every account update.
 
 ### Vault
 
-An asset container for an account.
+A collection of [assets](assets.md) stored in the account.
 
 An account vault can contain an unlimited number of [assets](assets.md). The assets are stored in a sparse Merkle tree as follows:
 
@@ -55,11 +53,13 @@ An account vault can be reduced to a single hash which is the root of the sparse
 
 ### Code
 
-The interface for accounts. In Miden, every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](notes.md#the-note-script) and transaction scripts. Users cannot call those functions directly.
+A collection of functions defining the account interface.
+
+In Miden, every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](notes.md#the-note-script) and transaction scripts.
 
 Functions exposed by the account have the following properties:
 
-* Functions are actually roots of [Miden program MASTs](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) (i.e., a `32`-byte hash). Thus, the function identifier is a commitment to the code which is executed when a function is invoked.
+* Functions are roots of [Miden program MASTs](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) (i.e., a `32`-byte hash). Thus, the function identifier is a commitment to the code which is executed when a function is invoked.
 * Only account functions have [mutable access](transactions/contexts.md) to an account's storage and vault. Therefore, the only way to modify an account's internal state is through one of the account's functions.
 * Account functions can take parameters and can create new notes.
 
@@ -203,7 +203,7 @@ Type and mutability are encoded in the most significant bits of the account's ID
 | **Code updatability**  | Yes           | No              | No              | No                  |
 | **Most significant bits** | `00`        | `01`            | `10`            | `11`                |
 
-## Public and private accounts
+## Account storage mode
 
 Users can decide whether to keep their accounts private or public at account creation. The account ID encodes this preference in the third and fourth most significant bits.
 

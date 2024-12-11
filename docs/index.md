@@ -8,7 +8,7 @@ If you want to join the technical discussion, please check out the following:
 
 * [Discord](https://discord.gg/0xpolygonRnD)
 * [Miden repo](https://github.com/0xPolygonMiden)
-* [Roadmap](introduction/roadmap.md)
+* [Roadmap](roadmap.md)
 
 > **Info**
 > - These docs are still work-in-progress. 
