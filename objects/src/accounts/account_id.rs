@@ -197,19 +197,20 @@ impl AccountVersion {
 /// - The lower 8 bits of the second felt may be overwritten when the ID is encoded in other layouts
 ///   such as the [`NoteMetadata`](crate::notes::NoteMetadata). In such cases, it can happen that
 ///   all bits of the encoded second felt would be one, so having the epoch constraint is important.
-/// - The dependence of an ID on an epoch block's hash makes it practically impossible for an
+/// - The dependence of an ID on an anchor block's hash makes it practically impossible for an
 ///   attacker to construct a rainbow table of account IDs for all IDs whose epoch is X, if the
-///   epoch block X has not been constructed yet. Therefore, picking a recent epoch block when
-///   generating a new ID makes it extremely unlikely that an attacker can highjack this ID.
-///     - An epoch block is a block whose number is a multiple of
+///   anchor block for epoch X has not been constructed yet. Therefore, picking a recent anchor
+///   block when generating a new ID makes it extremely unlikely that an attacker can highjack this
+///   ID.
+///     - An anchor block is an epoch block which in turn is a block whose number is a multiple of
 ///       2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`][epoch_len_exp].
 ///     - An ID highjack refers to the attack where a user generates an ID and lets someone else
 ///       send assets to it. At this point the user has not registered the ID on-chain yet, likely
-///       because the need the funds in the asset to pay for their first transaction. Until the ID
-///       is registered on chain, an attacker with a rainbow table who happens to have a seed, code
-///       and storage commitment combination that hashes to the user's ID can claim the assets sent
-///       to the user's ID. Adding the epoch block hash to this process makes this attack
-///       practically impossible.
+///       because they need the funds in the asset to pay for their first transaction where the
+///       account is registered. Until the ID is registered on chain, an attacker with a rainbow
+///       table who happens to have a seed, code and storage commitment combination that hashes to
+///       the user's ID can claim the assets sent to the user's ID. Adding the epoch block hash to
+///       this process makes this attack practically impossible.
 ///
 /// [epoch_len_exp]: crate::block::BlockHeader::EPOCH_LENGTH_EXPONENT
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
