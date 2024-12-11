@@ -511,7 +511,7 @@ impl MockChain {
 
         let (account, seed) = if let AccountState::New = account_state {
             let last_block = self.blocks.last().expect("one block should always exist");
-            account_builder = account_builder.with_reference_block(&last_block.header());
+            account_builder = account_builder.anchor_block_header(&last_block.header());
 
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {
@@ -601,7 +601,7 @@ impl MockChain {
         // If the account is new, add the epoch block's header from which the account ID is derived
         // to the MMR.
         if account.is_new() {
-            let epoch_block_num = block_num_from_epoch(account.id().block_epoch());
+            let epoch_block_num = block_num_from_epoch(account.id().anchor_epoch());
             // The reference block of the transaction is added to the MMR in
             // prologue::process_chain_data so we can skip adding it to the block headers here.
             if epoch_block_num != block.header().block_num() {

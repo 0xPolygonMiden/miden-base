@@ -105,8 +105,8 @@ pub fn create_basic_fungible_faucet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
-        .block_epoch(block_epoch_hash.0)
-        .block_hash(block_epoch_hash.1)
+        .anchor_epoch(block_epoch_hash.0)
+        .anchor_block_hash(block_epoch_hash.1)
         .account_type(AccountType::FungibleFaucet)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)

@@ -477,7 +477,7 @@ pub fn validate_account_seed(
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
-            let epoch_block_number = block_num_from_epoch(account.id().block_epoch());
+            let epoch_block_number = block_num_from_epoch(account.id().anchor_epoch());
 
             let epoch_block_hash = if block_header.block_num() == epoch_block_number {
                 block_header.hash()
@@ -485,7 +485,7 @@ pub fn validate_account_seed(
                 let epoch_block_header =
                     block_chain.get_block(epoch_block_number).ok_or_else(|| {
                         TransactionInputError::EpochBlockHeaderNotProvidedForNewAccount(
-                            account.id().block_epoch(),
+                            account.id().anchor_epoch(),
                         )
                     })?;
                 epoch_block_header.hash()
@@ -493,7 +493,7 @@ pub fn validate_account_seed(
 
             let account_id = AccountId::new(
                 seed,
-                account.id().block_epoch(),
+                account.id().anchor_epoch(),
                 account.code().commitment(),
                 account.storage().commitment(),
                 epoch_block_hash,

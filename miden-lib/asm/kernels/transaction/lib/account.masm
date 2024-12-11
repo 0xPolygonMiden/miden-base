@@ -370,11 +370,11 @@ export.validate_id
     assertz.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
     # => [account_id_hi, account_id_lo]
 
-    # Validate epoch is less than u16::MAX (0xffff) in second felt.
+    # Validate anchor epoch is less than u16::MAX (0xffff) in second felt.
     # ---------------------------------------------------------------------------------------------
 
-    dup.1 exec.id_epoch
-    # => [epoch, account_id_hi, account_id_lo]
+    dup.1 exec.id_anchor_epoch
+    # => [anchor_epoch, account_id_hi, account_id_lo]
     lt.0xffff assert.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
     # => [account_id_hi, account_id_lo]
 
@@ -756,7 +756,7 @@ end
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, EPOCH_BLOCK_HASH).
+#! 1. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
 #! 2. Assert the least significant element of the digest is equal to the account id of the account
 #!    the transaction is being executed against.
 #! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the 
@@ -765,61 +765,61 @@ end
 #! Inputs:  []
 #! Outputs: []
 export.validate_seed
-    # Load the block hash of the epoch block from the chain mmr.
-    # This is the block hash which was used in the derivation of the account ID.
+    # Load the block hash of the anchor block from the chain mmr.
+    # This is the block hash to which the account ID is anchored.
     # ---------------------------------------------------------------------------------------------
 
     # prepare the advice map key for the seed for later
     exec.memory::get_account_id push.0.0
     # => [0, 0, account_id_hi, account_id_lo]
 
-    # get the epoch's block number
-    dup.3 exec.id_epoch_block_num
-    # => [epoch_block_num, 0, 0, account_id_hi, account_id_lo]
+    # get the anchor block's number
+    dup.3 exec.id_anchor_block_num
+    # => [anchor_block_num, 0, 0, account_id_hi, account_id_lo]
 
     exec.memory::get_chain_mmr_ptr swap
-    # => [epoch_block_num, chain_mmr_ptr, 0, 0, account_id_hi, account_id_lo]
+    # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_hi, account_id_lo]
 
     exec.mmr::get
-    # => [EPOCH_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
 
-    # assert that the epoch block hash is not the empty word
+    # assert that the anchor block hash is not the empty word
     # TODO: Proper error.
-    push.0.0.0.0 eqw not assert.err=1122334455 dropw
-    # => [EPOCH_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+    padw eqw not assert.err=1122334455 dropw
+    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
 
-    # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, EPOCH_BLOCK_HASH).
+    # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
     # ---------------------------------------------------------------------------------------------
 
     # prepare advice push_mapval
     swapw
-    # => [0, 0, account_id_hi, account_id_lo, EPOCH_BLOCK_HASH]
+    # => [0, 0, account_id_hi, account_id_lo, ANCHOR_BLOCK_HASH]
 
     # populate first four elements of the rate with the account id seed
     adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
     adv_loadw
-    # => [SEED, EPOCH_BLOCK_HASH]
+    # => [SEED, ANCHOR_BLOCK_HASH]
 
     # pad capacity element of hasher
     padw swapw
-    # => [SEED, 0, 0, 0, 0, EPOCH_BLOCK_HASH]
+    # => [SEED, 0, 0, 0, 0, ANCHOR_BLOCK_HASH]
 
     # populate last four elements of the hasher rate with the code commitment
     exec.memory::get_acct_code_commitment
-    # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0, EPOCH_BLOCK_HASH]
+    # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0, ANCHOR_BLOCK_HASH]
 
     # perform first permutation of seed and code_commitment (from advice stack) 
     # perm(seed, code_commitment)
     hperm
-    # => [RATE, RATE, PERM, EPOCH_BLOCK_HASH]
+    # => [RATE, RATE, PERM, ANCHOR_BLOCK_HASH]
 
     # clear rate elements
     dropw dropw
-    # => [PERM, EPOCH_BLOCK_HASH]
+    # => [PERM, ANCHOR_BLOCK_HASH]
 
     # perform second permutation perm(storage_commitment, 0, 0, 0, 0)
     swapw exec.memory::get_acct_storage_commitment swapw
-    # => [EPOCH_BLOCK_HASH, STORAGE_COMMITMENT, PERM]
+    # => [ANCHOR_BLOCK_HASH, STORAGE_COMMITMENT, PERM]
 
     hperm
     # => [RATE, RATE, CAP]
@@ -828,7 +828,7 @@ export.validate_seed
     exec.rpo::squeeze_digest
     # => [DIGEST]
 
-    # Shape second felt to add the epoch and compare computed and provided ID.
+    # Shape second felt to add the anchor epoch and compare computed and provided ID.
     # ---------------------------------------------------------------------------------------------
 
     # extract account id from digest
@@ -838,11 +838,11 @@ export.validate_seed
     exec.memory::get_account_id movdn.3
     # => [account_id_lo, hashed_account_id_hi, hashed_account_id_lo, account_id_hi]
 
-    # extract epoch from ID of the new account
-    dup movdn.4 exec.id_epoch
-    # => [epoch, hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
+    # extract anchor epoch from ID of the new account
+    dup movdn.4 exec.id_anchor_epoch
+    # => [anchor_epoch, hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
 
-    # shape second felt of hashed id, adding the epoch and setting the lower 8 bits to zero
+    # shape second felt of hashed id, adding the anchor epoch and setting the lower 8 bits to zero
     movup.2 exec.shape_second_felt swap
     # => [hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
 
@@ -852,38 +852,38 @@ export.validate_seed
 end
 
 #! Shapes the second felt so it meets the requirements of the account ID, by overwriting the
-#! upper 16 bits with the epoch and setting the lower 8 bits to zero.
+#! upper 16 bits with the anchor epoch and setting the lower 8 bits to zero.
 #!
-#! Inputs:  [seed_digest_lo, epoch]
+#! Inputs:  [seed_digest_lo, anchor_epoch]
 #! Outputs: [account_id_lo]
 proc.shape_second_felt
   u32split
-  # => [seed_digest_lo_hi, seed_digest_lo_lo, epoch]
+  # => [seed_digest_lo_hi, seed_digest_lo_lo, anchor_epoch]
 
   # clear epoch bits in hi part so we can set them later
   u32and.0x0000ffff swap
-  # => [seed_digest_lo_lo, seed_digest_lo_hi', epoch]
+  # => [seed_digest_lo_lo, seed_digest_lo_hi', anchor_epoch]
 
   # clear lower 8 bits of the lo part
   u32and.0xffffff00 swap.2
-  # => [epoch, seed_digest_lo_hi', seed_digest_lo_lo']
+  # => [anchor_epoch, seed_digest_lo_hi', seed_digest_lo_lo']
 
   # TODO: Should we assert that epoch is < u16::MAX?
 
   # shift epoch left by 16 bits and set epoch bits on hi part
   u32shl.16 u32or
-  # => [epoch_shifted, seed_digest_lo_hi', seed_digest_lo_lo']
+  # => [anchor_epoch_shifted, seed_digest_lo_hi', seed_digest_lo_lo']
 
   # reassemble the second felt by multiplying the hi part with 2^32 and adding the lo part
   mul.0x0100000000 add
   # => [account_id_lo]
 end
 
-#! Extracts the epoch block number from the second felt of an account ID.
+#! Extracts the block number of the anchor block from the second felt of an account ID.
 #!
 #! Inputs:  [account_id_lo]
-#! Outputs: [epoch_block_num]
-proc.id_epoch_block_num
+#! Outputs: [anchor_block_num]
+proc.id_anchor_block_num
   # extract the upper 32 bits
   u32split swap drop
   # => [account_id_lo_hi]
@@ -892,21 +892,21 @@ proc.id_epoch_block_num
   # since the epoch is already in the upper 16 bits of the u32, we can simply zero out the
   # lower 16 bits to achieve the same result.
   u32and.0xffff0000
-  # => [epoch_block_num]
+  # => [anchor_block_num]
 end
 
 #! Extracts the epoch from the second felt of an account ID.
 #!
 #! Inputs:  [account_id_lo]
-#! Outputs: [epoch]
-proc.id_epoch
+#! Outputs: [anchor_epoch]
+proc.id_anchor_epoch
   # extract the upper 32 bits
   u32split swap drop
   # => [account_id_lo_hi]
 
   # shift the upper 16 bits to the right to produce the epoch
   u32shr.16
-  # => [epoch]
+  # => [anchor_epoch]
 end
 
 #! Extracts the version from the first felt of an account ID.

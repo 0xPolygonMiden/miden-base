@@ -449,7 +449,7 @@ pub fn create_multiple_accounts_test(
             .account_type(account_type)
             .storage_mode(storage_mode)
             .init_seed(ChaCha20Rng::from_entropy().gen())
-            .with_reference_block(anchor_block_header)
+            .anchor_block_header(anchor_block_header)
             .with_component(
                 AccountMockComponent::new_with_slots(
                     TransactionKernel::testing_assembler(),
@@ -465,7 +465,7 @@ pub fn create_multiple_accounts_test(
 
     for (account, seed) in accounts {
         let account_type = account.account_type();
-        create_account_test(&mock_chain, account, seed).context(format!(
+        create_account_test(mock_chain, account, seed).context(format!(
             "create_multiple_accounts_test test failed for account type {:?}",
             account_type
         ))?;
@@ -501,7 +501,7 @@ pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
 
     // Choose epoch block 1 whose block number is 2^16 as the anchor block.
     // Here the transaction reference block is also the anchor block.
-    let epoch1_block_header = mock_chain.block_header(1 << 16 as usize);
+    let epoch1_block_header = mock_chain.block_header(1 << 16);
 
     create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Private)?;
 
@@ -570,7 +570,7 @@ pub fn create_account_invalid_seed() {
     let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
 
     let (account, seed) = AccountBuilder::new()
-        .with_reference_block(&genesis_block_header)
+        .anchor_block_header(&genesis_block_header)
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
