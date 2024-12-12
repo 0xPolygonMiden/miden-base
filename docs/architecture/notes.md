@@ -34,7 +34,7 @@ A note can contain up to `256` different assets. These assets represent fungible
 
 Each note has an associated script that defines the conditions under which it can be consumed. Because the script is executed in the context of a specific account, it may invoke that account’s functions, enabling complex operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making note scripts highly versatile.
 
-Every note script is represented as a commitment to underlying code—via a unique hash or a Miden program MAST root. This ensures that any changes to the script are detectable, preserving trust. Scripts are accompanied by inputs defined at note creation. Additionally, executors can provide optional “note args” before execution, granting flexibility in how the script is run.
+The code in note scripts, more specifically each procedure, can be expressed as a unique MAST root. Like account code functions. This ensures that any changes to the script are detectable, preserving trust.
 
 ### Inputs
 
