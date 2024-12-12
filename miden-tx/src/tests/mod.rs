@@ -59,7 +59,7 @@ fn transaction_executor_witness() {
         .with_mock_notes_preserved()
         .build();
 
-    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
 
     let account_id = tx_context.account().id();
 
@@ -386,7 +386,7 @@ fn executed_transaction_account_delta_new() {
 fn test_empty_delta_nonce_update() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
     let account_id = tx_context.tx_inputs().account().id();
 
     let tx_script_src = "
@@ -446,7 +446,7 @@ fn test_send_note_proc() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode();
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -590,7 +590,7 @@ fn executed_transaction_output_notes() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_debug_mode();
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -841,7 +841,7 @@ fn prove_witness_and_verify() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .unwrap();
@@ -867,7 +867,7 @@ fn test_tx_script() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
-    let executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
 
     let account_id = tx_context.tx_inputs().account().id();
 
@@ -1004,7 +1004,7 @@ fn transaction_executor_account_code_using_custom_library() {
         tx_context.tx_args().advice_inputs().clone().map,
     );
 
-    let mut executor = TransactionExecutor::new(Arc::new(tx_context.clone()), None);
+    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None);
     // Load the external library into the executor to make it available during transaction
     // execution.
     executor.load_library(&external_library);

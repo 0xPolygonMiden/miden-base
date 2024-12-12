@@ -3,7 +3,6 @@ use std::{
     fs::{read_to_string, write, File},
     io::Write,
     path::Path,
-    sync::Arc,
 };
 
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
@@ -76,7 +75,7 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
         .collect::<Vec<_>>();
 
     let executor: TransactionExecutor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
+        TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .map_err(|e| e.to_string())?;
@@ -118,9 +117,8 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
         .input_notes(vec![note.clone()])
         .build();
 
-    let executor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth.clone()))
-            .with_tracing();
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), Some(falcon_auth.clone()))
+        .with_tracing();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context

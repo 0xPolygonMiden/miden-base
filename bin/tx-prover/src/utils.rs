@@ -1,5 +1,9 @@
+use std::time::Duration;
+
 use pingora::{http::ResponseHeader, Error, ErrorType};
 use pingora_proxy::Session;
+use tonic::transport::Channel;
+use tonic_health::pb::health_client::HealthClient;
 
 const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 
@@ -73,4 +77,22 @@ pub async fn create_response_with_error_message(
     session.set_keepalive(None);
     session.write_response_header(Box::new(header), true).await?;
     Ok(true)
+}
+
+/// Create a gRPC [HealthClient] for the given worker address.
+///
+/// It will panic if the worker URI is invalid.
+pub async fn create_health_check_client(
+    address: String,
+    connection_timeout: Duration,
+    total_timeout: Duration,
+) -> Result<HealthClient<Channel>, String> {
+    Channel::from_shared(format!("http://{}", address))
+        .map_err(|err| err.to_string())?
+        .connect_timeout(connection_timeout)
+        .timeout(total_timeout)
+        .connect()
+        .await
+        .map(HealthClient::new)
+        .map_err(|err| err.to_string())
 }

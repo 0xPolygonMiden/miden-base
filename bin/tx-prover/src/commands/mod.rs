@@ -9,6 +9,7 @@ use init::Init;
 use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
 
@@ -41,6 +42,8 @@ pub struct ProxyConfig {
     pub max_req_per_sec: isize,
     /// Time in milliseconds to poll available workers.
     pub available_workers_polling_time_ms: u64,
+    /// Health check interval in seconds.
+    pub health_check_interval_secs: u64,
 }
 
 impl Default for ProxyConfig {
@@ -55,6 +58,7 @@ impl Default for ProxyConfig {
             max_retries_per_request: 1,
             max_req_per_sec: 5,
             available_workers_polling_time_ms: 20,
+            health_check_interval_secs: 1,
         }
     }
 }
@@ -96,9 +100,18 @@ impl ProxyConfig {
             .write(config_as_toml_string.as_bytes())
             .map_err(|err| format!("error writing to file: {err}"))?;
 
-        println!("Config updated successfully");
+        debug!("Config updated successfully");
 
         Ok(())
+    }
+
+    /// Updates the workers in the configuration with the new list.
+    pub(crate) fn set_workers(workers: Vec<WorkerConfig>) -> Result<(), String> {
+        let mut proxy_config = Self::load_config_from_file()?;
+
+        proxy_config.workers = workers;
+
+        proxy_config.save_to_config_file()
     }
 }
 
@@ -137,7 +150,7 @@ pub enum Command {
     /// values. The file will be named as defined in the
     /// [miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME] constant.
     Init(Init),
-    /// Starts the workers defined in the config file.
+    /// Starts the workers with the configuration defined in the command.
     StartWorker(StartWorker),
     /// Starts the proxy defined in the config file.
     StartProxy(StartProxy),
@@ -155,26 +168,22 @@ pub enum Command {
 
 /// CLI entry point
 impl Cli {
-    pub fn execute(&self) -> Result<(), String> {
+    pub async fn execute(&self) -> Result<(), String> {
         match &self.action {
             // For the `StartWorker` command, we need to create a new runtime and run the worker
-            Command::StartWorker(worker_init) => {
-                let rt = tokio::runtime::Runtime::new()
-                    .map_err(|e| format!("Failed to create runtime: {:?}", e))?;
-                rt.block_on(worker_init.execute())
-            },
-            Command::StartProxy(proxy_init) => proxy_init.execute(),
+            Command::StartWorker(worker_init) => worker_init.execute().await,
+            Command::StartProxy(proxy_init) => proxy_init.execute().await,
             Command::Init(init) => {
                 // Init does not require async, so run directly
                 init.execute()
             },
             Command::AddWorkers(update_workers) => {
                 let update_workers: UpdateWorkers = update_workers.clone().into();
-                update_workers.execute()
+                update_workers.execute().await
             },
             Command::RemoveWorkers(update_workers) => {
                 let update_workers: UpdateWorkers = update_workers.clone().into();
-                update_workers.execute()
+                update_workers.execute().await
             },
         }
     }

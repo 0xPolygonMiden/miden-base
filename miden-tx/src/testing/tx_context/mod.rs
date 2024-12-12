@@ -86,22 +86,22 @@ impl TransactionContext {
     /// Executes the transaction through a [TransactionExecutor]
     #[maybe_async]
     pub fn execute(self) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let mock_data_store = self.clone();
-
         let account_id = self.account().id();
-        let block_num = mock_data_store.tx_inputs.block_header().block_num();
+        let block_num = self.tx_inputs().block_header().block_num();
+        let notes: Vec<NoteId> =
+            self.tx_inputs().input_notes().into_iter().map(|n| n.id()).collect();
+
         let authenticator = self
             .authenticator
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
-        let mut tx_executor = TransactionExecutor::new(Arc::new(mock_data_store), authenticator)
+
+        let mut tx_executor = TransactionExecutor::new(Arc::new(self.tx_inputs), authenticator)
             .with_debug_mode()
             .with_tracing();
 
         for code in self.foreign_codes {
             tx_executor.load_account_code(&code);
         }
-
-        let notes: Vec<NoteId> = self.tx_inputs.input_notes().into_iter().map(|n| n.id()).collect();
 
         maybe_await!(tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args))
     }
@@ -129,13 +129,14 @@ impl TransactionContext {
     pub fn tx_inputs(&self) -> &TransactionInputs {
         &self.tx_inputs
     }
+
+    pub fn get_data_store(&self) -> Arc<dyn DataStore> {
+        Arc::new(self.tx_inputs().clone())
+    }
 }
 
-unsafe impl Send for TransactionContext {}
-unsafe impl Sync for TransactionContext {}
-
 #[maybe_async_trait]
-impl DataStore for TransactionContext {
+impl DataStore for TransactionInputs {
     #[maybe_async]
     fn get_transaction_inputs(
         &self,
@@ -143,10 +144,10 @@ impl DataStore for TransactionContext {
         block_num: u32,
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError> {
-        assert_eq!(account_id, self.tx_inputs.account().id());
-        assert_eq!(block_num, self.tx_inputs.block_header().block_num());
-        assert_eq!(notes.len(), self.tx_inputs.input_notes().num_notes());
+        assert_eq!(account_id, self.account().id());
+        assert_eq!(block_num, self.block_header().block_num());
+        assert_eq!(notes.len(), self.input_notes().num_notes());
 
-        Ok(self.tx_inputs.clone())
+        Ok(self.clone())
     }
 }
