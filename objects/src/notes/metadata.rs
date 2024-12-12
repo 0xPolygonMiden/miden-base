@@ -27,7 +27,7 @@ use super::{
 /// 4th felt: [aux (64 bits)]
 /// ```
 ///
-/// Regarding felt validity of the above layout:
+/// The rationale for the above layout is to ensure the validity of each felt:
 /// - 1st felt: Is equivalent to the first felt of the account ID so it inherits its validity.
 /// - 2nd felt: The second felt of the account ID is designed such that its lower 8 bits can all be
 ///   set to `1` and still retain its validity due to the anchor epoch in the upper 16 bits always
@@ -219,7 +219,8 @@ fn merge_id_type_and_hint_tag(
 fn unmerge_id_type_and_hint_tag(element: Felt) -> Result<(Felt, NoteType, u8), NoteError> {
     let element = element.as_int();
 
-    let least_significant_byte = (element & 0x0000_0000_0000_00ff) as u8;
+    // Cut off the least significant byte.
+    let least_significant_byte = element as u8;
     let note_type_bits = (least_significant_byte & 0b1100_0000) >> 6;
     let tag_bits = least_significant_byte & 0b0011_1111;
 

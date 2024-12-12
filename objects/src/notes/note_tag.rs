@@ -54,9 +54,9 @@ pub enum NoteExecutionMode {
 ///   should be consumed by the network. These notes will be further validated and if possible
 ///   consumed by it.
 /// - Target describes how to further interpret the bits in the tag. For tags with a specific
-///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning
-///   of the rest of the tag is not specified by the protocol and can be used by applications built
-///   on top of the rollup.
+///   target, the rest of the tag is interpreted as a partial [`AccountId`]. For use case values,
+///   the meaning of the rest of the tag is not specified by the protocol and can be used by
+///   applications built on top of the rollup.
 ///
 /// The note type is the only value enforced by the protocol. The rationale is that any note
 /// intended to be consumed by the network must be public to have all the details available. The
@@ -81,12 +81,14 @@ impl NoteTag {
     /// The tag is constructed as follows:
     ///
     /// - For local execution, the two most significant bits are set to `0b11`, which allows for any
-    ///   note type to be used, the following 14 bits are set to the 14 most significant bits of the
-    ///   account ID, and the remaining 16 bits are set to 0.
+    ///   note type to be used. The following 14 bits are set to the most significant bits of the
+    ///   account ID in the range 1..15, and the remaining 16 bits are set to 0. The reason for
+    ///   skipping the most significant bit is that it is always zero and therefore does not add any
+    ///   value for matching IDs.
     /// - For network execution, the most significant bit is set to `0b0` and the remaining bits are
     ///   set to the 31 most significant bits of the account ID. Note that this results in the two
-    ///   most significant bits of the tag being set to `0b00`, because the network execution
-    ///   requires a public account which always have the high bit set to 0.
+    ///   most significant bits of the tag being set to `0b00`, because the most significant bit of
+    ///   an account ID is always `0`.
     ///
     /// # Errors
     ///
@@ -99,15 +101,21 @@ impl NoteTag {
         match execution {
             NoteExecutionMode::Local => {
                 let first_felt_id: u64 = account_id.first_felt().into();
-                // Consider the most significant bits to start at the 63rd bit, since the top bit is
-                // always zero and doesn't add any value when matching account IDs.
-                let mut high_bits = first_felt_id << 1;
-                // Shift the high bits such that the most significant bits are in the range 0..30.
-                // The two most significant bits are then zero.
-                high_bits >>= 34;
-                // Select the upper half of the u32 which contains the 14 most significant bits of
-                // the account ID (without the top bit). The remaining bits will be zero.
-                let high_bits = (high_bits as u32) & 0xffff0000;
+
+                // Shift the high bits of the account ID such that they are layed out as:
+                // [33 zero bits | high bits (31 bits)].
+                let high_bits = first_felt_id >> 33;
+
+                // Because the most significant bit of an account ID is always zero, this is
+                // equivalent to the following layout, interpreted as a u32:
+                // [2 zero bits | remaining high bits (30 bits)].
+                let high_bits = high_bits as u32;
+
+                // Select the upper half of the u32 which then contains the 14 most significant bits
+                // of the account ID (with the high bit skipped), i.e.:
+                // [2 zero bits | remaining high bits (14 bits) | 16 zero bits].
+                let high_bits = high_bits & 0xffff0000;
+
                 // Set the local execution tag.
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
@@ -116,15 +124,15 @@ impl NoteTag {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
                     let first_felt_id: u64 = account_id.first_felt().into();
-                    // Select the 31 most significant bits of the account ID and shift them right by
-                    // 1 bit.
-                    // Note that we do not remove the top zero bit of the account ID since we can
-                    // use it as part of the tag.
-                    let high_bits = (first_felt_id >> 33) as u32;
-                    // The tag will have the form [zero bit | 31 high bits of account ID]. Note that
-                    // the second bit of the tag is guaranteed to be 0 because account IDs always
-                    // start with 0.
-                    Ok(Self(high_bits))
+
+                    // Shift the high bits of the account ID such that they are layed out as:
+                    // [33 zero bits | high bits (31 bits)].
+                    let high_bits = first_felt_id >> 33;
+
+                    // Because the most significant bit of an account ID is always zero, this is
+                    // equivalent to the following layout, interpreted as a u32:
+                    // [2 zero bits | remaining high bits (30 bits)].
+                    Ok(Self(high_bits as u32))
                 }
             },
         }
