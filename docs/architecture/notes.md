@@ -30,7 +30,7 @@ A note can contain up to `256` different assets. These assets represent fungible
 
 ### Script
 
-> The code executed during the [transaction](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html) in which the note is consumed.
+> The code executed when the note is consumed.
 
 Each note has an associated script that defines the conditions under which it can be consumed. Because the script is executed in the context of a specific account, it may invoke that account’s functions, enabling complex operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making note scripts highly versatile.
 
