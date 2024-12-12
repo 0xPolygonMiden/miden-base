@@ -693,7 +693,7 @@ fn validate_second_felt(second_felt: Felt) -> Result<(), AccountError> {
     Ok(())
 }
 
-pub(super) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode, AccountError> {
+pub(crate) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode, AccountError> {
     let bits = (first_felt & AccountId::STORAGE_MODE_MASK) >> AccountId::STORAGE_MODE_SHIFT;
     match bits {
         PUBLIC => Ok(AccountStorageMode::Public),
@@ -702,7 +702,7 @@ pub(super) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode
     }
 }
 
-pub(super) fn extract_version(first_felt: u64) -> Result<AccountVersion, AccountError> {
+pub(crate) fn extract_version(first_felt: u64) -> Result<AccountVersion, AccountError> {
     let bits = first_felt & AccountId::VERSION_MASK;
     let version = bits.try_into().expect("TODO");
     match version {
@@ -868,6 +868,7 @@ mod tests {
                     let id = AccountId::new_dummy(input, account_type, storage_mode);
                     assert_eq!(id.account_type(), account_type);
                     assert_eq!(id.storage_mode(), storage_mode);
+                    assert_eq!(id.version(), AccountVersion::VERSION_0);
                     assert_eq!(id.anchor_epoch(), 0);
 
                     // Do a serialization roundtrip to ensure validity.

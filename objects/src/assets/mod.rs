@@ -244,7 +244,7 @@ mod tests {
 
     use super::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
     use crate::{
-        accounts::AccountId,
+        accounts::{account_id, AccountId},
         testing::account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
@@ -308,6 +308,29 @@ mod tests {
         }
     }
 
-    // TODO: Assertion test that account ID's metadata is serialized in the first byte since asset
-    // serialization relies on that fact.
+    /// This test asserts that account ID's metadata is serialized in the first byte of assets.
+    /// Asset deserialization relies on that fact and if this changes the serialization must
+    /// be updated.
+    #[test]
+    fn test_account_id_metadata_is_in_first_serialized_byte() {
+        for asset in [FungibleAsset::mock(300), NonFungibleAsset::mock(&[0xaa, 0xbb])] {
+            let serialized_asset = asset.to_bytes();
+            // Get the first byte and interpret it as a u64 because the extract functions require
+            // it.
+            let first_byte = serialized_asset[0] as u64;
+
+            assert_eq!(
+                account_id::extract_type(first_byte),
+                asset.faucet_id_prefix().account_type()
+            );
+            assert_eq!(
+                account_id::extract_storage_mode(first_byte).unwrap(),
+                asset.faucet_id_prefix().storage_mode()
+            );
+            assert_eq!(
+                account_id::extract_version(first_byte).unwrap(),
+                asset.faucet_id_prefix().version()
+            );
+        }
+    }
 }

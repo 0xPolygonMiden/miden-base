@@ -81,12 +81,18 @@ impl Account {
     /// Returns an error if deriving account ID from the specified seed fails.
     pub fn new(
         seed: Word,
-        epoch: u16,
+        anchor_epoch: u16,
         code: AccountCode,
         storage: AccountStorage,
         block_hash: Digest,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, epoch, code.commitment(), storage.commitment(), block_hash)?;
+        let id = AccountId::new(
+            seed,
+            anchor_epoch,
+            code.commitment(),
+            storage.commitment(),
+            block_hash,
+        )?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })

@@ -212,3 +212,38 @@ impl Deserializable for AccountIdPrefix {
             .map_err(|err: AccountError| DeserializationError::InvalidValue(err.to_string()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::accounts::AccountId;
+
+    #[test]
+    fn account_id_prefix_construction() {
+        // Use the highest possible input to check if the constructed id is a valid Felt in that
+        // scenario.
+        // Use the lowest possible input to check whether the constructor satisfies
+        // MIN_ACCOUNT_ONES.
+        for input in [[0xff; 15], [0; 15]] {
+            for account_type in [
+                AccountType::FungibleFaucet,
+                AccountType::NonFungibleFaucet,
+                AccountType::RegularAccountImmutableCode,
+                AccountType::RegularAccountUpdatableCode,
+            ] {
+                for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
+                    let id = AccountId::new_dummy(input, account_type, storage_mode);
+                    let prefix = id.prefix();
+                    assert_eq!(prefix.account_type(), account_type);
+                    assert_eq!(prefix.storage_mode(), storage_mode);
+                    assert_eq!(prefix.version(), AccountVersion::VERSION_0);
+
+                    // Do a serialization roundtrip to ensure validity.
+                    let serialized_prefix = prefix.to_bytes();
+                    AccountIdPrefix::read_from_bytes(&serialized_prefix).unwrap();
+                    assert_eq!(serialized_prefix.len(), AccountIdPrefix::SERIALIZED_SIZE);
+                }
+            }
+        }
+    }
+}
