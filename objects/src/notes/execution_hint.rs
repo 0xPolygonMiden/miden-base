@@ -29,8 +29,9 @@ pub enum NoteExecutionHint {
     Always,
     /// The note's script can be executed after the specified block number.
     ///
-    /// The block number cannot be [`u32::MAX`] which is enforced through the [`BlockNumber`] type.
-    AfterBlock { block_num: BlockNumber },
+    /// The block number cannot be [`u32::MAX`] which is enforced through the [`AfterBlockNumber`]
+    /// type.
+    AfterBlock { block_num: AfterBlockNumber },
     /// The note's script can be executed in the specified slot within the specified epoch.
     ///
     /// The slot is defined as follows:
@@ -79,7 +80,7 @@ impl NoteExecutionHint {
     ///
     /// Returns an error if `block_num` is equal to [`u32::MAX`].
     pub fn after_block(block_num: u32) -> Result<Self, NoteError> {
-        BlockNumber::new(block_num)
+        AfterBlockNumber::new(block_num)
             .map(|block_number| NoteExecutionHint::AfterBlock { block_num: block_number })
     }
 
@@ -211,10 +212,10 @@ impl From<NoteExecutionHint> for u64 {
 ///
 /// Used for the [`NoteExecutionHint::AfterBlock`] variant where this constraint is needed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BlockNumber(u32);
+pub struct AfterBlockNumber(u32);
 
-impl BlockNumber {
-    /// Creates a new [`BlockNumber`] from the given `block_number`.
+impl AfterBlockNumber {
+    /// Creates a new [`AfterBlockNumber`] from the given `block_number`.
     ///
     /// # Errors
     ///
@@ -234,13 +235,13 @@ impl BlockNumber {
     }
 }
 
-impl From<BlockNumber> for u32 {
-    fn from(block_number: BlockNumber) -> Self {
+impl From<AfterBlockNumber> for u32 {
+    fn from(block_number: AfterBlockNumber) -> Self {
         block_number.0
     }
 }
 
-impl TryFrom<u32> for BlockNumber {
+impl TryFrom<u32> for AfterBlockNumber {
     type Error = NoteError;
 
     fn try_from(block_number: u32) -> Result<Self, Self::Error> {
