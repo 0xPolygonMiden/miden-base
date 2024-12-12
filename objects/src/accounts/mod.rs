@@ -59,6 +59,9 @@ pub use data::AccountData;
 /// Out of the above components account ID is always immutable (once defined it can never be
 /// changed). Other components may be mutated throughout the lifetime of the account. However,
 /// account state can be changed only by invoking one of account interface methods.
+///
+/// The recommended way to build an account is through an [`AccountBuilder`], which can be
+/// instantiated through [`Account::builder`]. See the type's documentation for details.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
     id: AccountId,
@@ -71,32 +74,6 @@ pub struct Account {
 impl Account {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-
-    /// Creates and returns a new [Account] instantiated with the specified code, storage, and
-    /// account seed.
-    ///
-    /// The returned account has an empty asset vault and the nonce which is initialized to ZERO.
-    ///
-    /// # Errors
-    /// Returns an error if deriving account ID from the specified seed fails.
-    pub fn new(
-        seed: Word,
-        anchor_epoch: u16,
-        code: AccountCode,
-        storage: AccountStorage,
-        block_hash: Digest,
-    ) -> Result<Self, AccountError> {
-        let id = AccountId::new(
-            seed,
-            anchor_epoch,
-            code.commitment(),
-            storage.commitment(),
-            block_hash,
-        )?;
-        let vault = AssetVault::default();
-        let nonce = ZERO;
-        Ok(Self { id, vault, storage, code, nonce })
-    }
 
     /// Returns an [Account] instantiated with the provided components.
     pub fn from_parts(
