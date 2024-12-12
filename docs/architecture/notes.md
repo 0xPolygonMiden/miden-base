@@ -62,7 +62,7 @@ The note lifecycle proceeds through four primary phases: **creation**, **validat
 
 ### Note Creation
 
-One or more notes can be generated as `OutputNotes` when Miden transactions complete successfully. These transactions may be initiated by:
+Accounts can create notes in a transaction. The note exists if it is included in the global Notes DB.
 
 - **Users:** Executing local or network transactions.
 - **Miden operators:** Facilitating on-chain actions, e.g. such as executing user notes against a DEX or other contracts.
