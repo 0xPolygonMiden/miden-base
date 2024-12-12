@@ -40,7 +40,7 @@ The code in note scripts, more specifically each procedure, can be expressed as 
 
 > Arguments passed to the note script during execution.
 
-A note can have up to `128` input values, each stored as a single field element. These inputs can be accessed by the note script via [transaction kernel procedures](./transactions/kernel.md). With the ability to carry up to ~1 KB of data, these inputs can convey arbitrary parameters for note consumption.
+A note can have up to `128` input values, which adds up to a maximum of 1 KB of data. The note script can access these inputs. They can convey arbitrary parameters for note consumption. 
 
 ### Serial number
 
