@@ -27,16 +27,10 @@ pub enum NoteExecutionHint {
     None,
     /// The note's script can be executed at any time.
     Always,
-    /// The note's script can be executed after the specified block height.
-    /// TODO: Users should not be allowed to construct this variant, as they could use u32::MAX
-    /// which is disallowed now.
-    /// Option 1: Make NoteExecutionHint a struct with a private field and use the
-    /// current enum as its internal representation. This means users can no longer match on this
-    /// enum, unless we still expose it, but not for construction. This option seems to have
-    /// annoying UX.
-    /// Option 2: Introduce a `pub struct BlockNumber(u32)` which ensures u32::MAX
-    /// is not allowed and use it here instead of a bare u32.
-    AfterBlock { block_num: u32 },
+    /// The note's script can be executed after the specified block number.
+    ///
+    /// The block number cannot be [`u32::MAX`] which is enforced through the [`BlockNumber`] type.
+    AfterBlock { block_num: BlockNumber },
     /// The note's script can be executed in the specified slot within the specified epoch.
     ///
     /// The slot is defined as follows:
@@ -85,10 +79,8 @@ impl NoteExecutionHint {
     ///
     /// Returns an error if `block_num` is equal to [`u32::MAX`].
     pub fn after_block(block_num: u32) -> Result<Self, NoteError> {
-        if block_num == u32::MAX {
-            return Err(NoteError::NoteExecutionHintAfterBlockCannotBeU32Max);
-        }
-        Ok(NoteExecutionHint::AfterBlock { block_num })
+        BlockNumber::new(block_num)
+            .map(|block_number| NoteExecutionHint::AfterBlock { block_num: block_number })
     }
 
     /// Creates a [NoteExecutionHint::OnBlockSlot] for the given parameters
@@ -110,12 +102,7 @@ impl NoteExecutionHint {
                 }
                 Ok(NoteExecutionHint::Always)
             },
-            Self::AFTER_BLOCK_TAG => {
-                if payload == u32::MAX {
-                    return Err(NoteError::NoteExecutionHintAfterBlockCannotBeU32Max);
-                }
-                Ok(NoteExecutionHint::AfterBlock { block_num: payload })
-            },
+            Self::AFTER_BLOCK_TAG => NoteExecutionHint::after_block(payload),
             Self::ON_BLOCK_SLOT_TAG => {
                 let remainder = (payload >> 24 & 0xff) as u8;
                 if remainder != 0 {
@@ -144,7 +131,7 @@ impl NoteExecutionHint {
             NoteExecutionHint::None => None,
             NoteExecutionHint::Always => Some(true),
             NoteExecutionHint::AfterBlock { block_num: hint_block_num } => {
-                Some(block_num >= *hint_block_num)
+                Some(block_num >= hint_block_num.as_u32())
             },
             NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset } => {
                 let epoch_len_blocks: u32 = 1 << epoch_len;
@@ -175,7 +162,9 @@ impl NoteExecutionHint {
         match self {
             NoteExecutionHint::None => (Self::NONE_TAG, 0),
             NoteExecutionHint::Always => (Self::ALWAYS_TAG, 0),
-            NoteExecutionHint::AfterBlock { block_num } => (Self::AFTER_BLOCK_TAG, *block_num),
+            NoteExecutionHint::AfterBlock { block_num } => {
+                (Self::AFTER_BLOCK_TAG, block_num.as_u32())
+            },
             NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset } => {
                 let payload: u32 =
                     ((*epoch_len as u32) << 16) | ((*slot_len as u32) << 8) | (*slot_offset as u32);
@@ -215,11 +204,57 @@ impl From<NoteExecutionHint> for u64 {
     }
 }
 
+// BLOCK NUMBER
+// ================================================================================================
+
+/// A wrapper around a block number which enforces that it is not `u32::MAX`.
+///
+/// Used for the [`NoteExecutionHint::AfterBlock`] variant where this constraint is needed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BlockNumber(u32);
+
+impl BlockNumber {
+    /// Creates a new [`BlockNumber`] from the given `block_number`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - `block_number` is equal to `u32::MAX`.
+    pub fn new(block_number: u32) -> Result<Self, NoteError> {
+        if block_number == u32::MAX {
+            Err(NoteError::NoteExecutionHintAfterBlockCannotBeU32Max)
+        } else {
+            Ok(Self(block_number))
+        }
+    }
+
+    /// Returns the block number as a `u32`.
+    pub fn as_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+impl From<BlockNumber> for u32 {
+    fn from(block_number: BlockNumber) -> Self {
+        block_number.0
+    }
+}
+
+impl TryFrom<u32> for BlockNumber {
+    type Error = NoteError;
+
+    fn try_from(block_number: u32) -> Result<Self, Self::Error> {
+        Self::new(block_number)
+    }
+}
+
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+
     use super::*;
 
     fn assert_hint_serde(note_execution_hint: NoteExecutionHint) {
@@ -232,7 +267,7 @@ mod tests {
     fn test_serialization_round_trip() {
         assert_hint_serde(NoteExecutionHint::None);
         assert_hint_serde(NoteExecutionHint::Always);
-        assert_hint_serde(NoteExecutionHint::AfterBlock { block_num: 15 });
+        assert_hint_serde(NoteExecutionHint::after_block(15).unwrap());
         assert_hint_serde(NoteExecutionHint::OnBlockSlot {
             epoch_len: 9,
             slot_len: 12,
@@ -242,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_encode_round_trip() {
-        let hint = NoteExecutionHint::AfterBlock { block_num: 15 };
+        let hint = NoteExecutionHint::after_block(15).unwrap();
         let hint_int: u64 = hint.into();
         let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
         assert_eq!(hint, decoded_hint);
@@ -293,5 +328,13 @@ mod tests {
         NoteExecutionHint::from_parts(NoteExecutionHint::ON_BLOCK_SLOT_TAG, 0).unwrap();
 
         NoteExecutionHint::from_parts(10, 1).unwrap_err();
+    }
+
+    #[test]
+    fn test_after_block_fails_on_u32_max() {
+        assert_matches!(
+            NoteExecutionHint::after_block(u32::MAX).unwrap_err(),
+            NoteError::NoteExecutionHintAfterBlockCannotBeU32Max
+        );
     }
 }
