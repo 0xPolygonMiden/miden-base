@@ -26,7 +26,7 @@ These components are:
 
 > An [asset](assets.md) container for a note.
 
-A note can contain up to `256` assets arranged in an array, which can be cryptographically reduced to a single hash. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
+A note can contain up to `256` different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
 
 ### Script
 
