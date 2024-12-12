@@ -120,6 +120,26 @@ Then access the Jaeger UI at `http://localhost:16686/`.
 
 If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
 
+## Metrics
+
+The proxy includes a service that provides metrics for [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the configuration file. The metrics are available at the `/metrics` endpoint.
+
+To consume and display the metrics, you can use Prometheus and Grafana. The simplest way to install Prometheus and Grafana is by using Docker containers. To do so, run:
+
+```bash
+docker run \
+    -d \
+    -p 9090:9090 \
+    -v /path/to/prometheus.yml:/etc/prometheus/prometheus.yml \
+    prom/prometheus
+
+docker run -d -p 3000:3000 --name grafana grafana/grafana-enterprise:latest
+```
+
+A prometheus configuration file is provided in this repository, you will need to modify the `scrape_configs` section to include the host and port of the proxy service.
+
+Then, to add the new Prometheus collector as a datasource for Grafana, you can [follow this tutorial](https://grafana.com/docs/grafana-cloud/connect-externally-hosted/existing-datasource/). A Grafana dashboard under the name `proxy_grafana_dashboard.json` is provided, see this [link](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) to import it.
+
 ## Features
 
 Description of this crate's feature:

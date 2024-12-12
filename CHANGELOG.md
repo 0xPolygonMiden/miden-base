@@ -4,7 +4,6 @@
 
 ### Changes
 
-- Added tracing to the `miden-tx-prover` CLI (#1014).
 - Added health check endpoints to the prover service (#1006).
 - Implemented serialization for `AccountHeader` (#996).
 - Updated Pingora crates to 0.4 and added polling time to the configuration file (#997).
@@ -19,6 +18,8 @@
 - [BREAKING] Added `miden::note::get_script_hash` procedure (#995).
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005).
 - Removed workers list from the proxy configuration file (#1018).
+- Added tracing to the `miden-tx-prover` CLI (#1014).
+- Added metrics to the `miden-tx-prover` proxy (#1017).
 
 ## 0.6.2 (2024-11-20)
 

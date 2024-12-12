@@ -1,7 +1,18 @@
-use std::{collections::VecDeque, future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    collections::VecDeque,
+    future::Future,
+    pin::Pin,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use metrics::{
+    QUEUE_DROP_COUNT, QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS,
+    REQUEST_COUNT, REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_COUNT,
+    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY, WORKER_UTILIZATION,
+};
 use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
@@ -31,6 +42,7 @@ use crate::{
     },
 };
 
+mod metrics;
 mod worker;
 
 /// Localhost address
@@ -87,8 +99,10 @@ impl LoadBalancerState {
     /// If no worker is available, it will return None.
     pub async fn pop_available_worker(&self) -> Option<Worker> {
         let mut available_workers = self.workers.write().await;
+        WORKER_COUNT.set(available_workers.len() as i64);
         available_workers.iter_mut().find(|w| w.is_available()).map(|w| {
             w.set_availability(false);
+            WORKER_UTILIZATION.inc();
             w.clone()
         })
     }
@@ -100,7 +114,9 @@ impl LoadBalancerState {
         let mut available_workers = self.workers.write().await;
         if let Some(w) = available_workers.iter_mut().find(|w| *w == &worker) {
             w.set_availability(true);
+            WORKER_UTILIZATION.dec();
         }
+        WORKER_COUNT.set(available_workers.len() as i64);
     }
 
     /// Updates the list of available workers based on the given action ("add" or "remove").
@@ -154,6 +170,7 @@ impl LoadBalancerState {
         }
 
         info!("Workers updated: {:?}", workers);
+        WORKER_COUNT.set(workers.len() as i64);
 
         Ok(())
     }
@@ -237,6 +254,7 @@ impl LoadBalancerState {
             if worker.is_healthy().await {
                 healthy_workers.push(worker.clone());
             } else {
+                WORKER_UNHEALTHY.inc();
                 warn!("Worker {} is not healthy", worker.address());
             }
         }
@@ -254,12 +272,13 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 /// Request queue holds the list of requests that are waiting to be processed by the workers.
 /// It is used to keep track of the order of the requests to then assign them to the workers.
 pub struct RequestQueue {
-    queue: RwLock<VecDeque<Uuid>>,
+    queue: RwLock<VecDeque<(Uuid, Instant)>>,
 }
 
 impl RequestQueue {
     /// Create a new empty request queue
     pub fn new() -> Self {
+        QUEUE_SIZE.set(0);
         Self { queue: RwLock::new(VecDeque::new()) }
     }
 
@@ -270,20 +289,28 @@ impl RequestQueue {
 
     /// Enqueue a request
     pub async fn enqueue(&self, request_id: Uuid) {
+        QUEUE_SIZE.inc();
         let mut queue = self.queue.write().await;
-        queue.push_back(request_id);
+        queue.push_back((request_id, Instant::now()));
     }
 
     /// Dequeue a request
     pub async fn dequeue(&self) -> Option<Uuid> {
         let mut queue = self.queue.write().await;
-        queue.pop_front()
+        // If the queue was empty, the queue size does not change
+        if let Some((request_id, queued_time)) = queue.pop_front() {
+            QUEUE_SIZE.dec();
+            QUEUE_LATENCY.observe(queued_time.elapsed().as_secs_f64());
+            Some(request_id)
+        } else {
+            None
+        }
     }
 
     /// Peek at the first request in the queue
     pub async fn peek(&self) -> Option<Uuid> {
         let queue = self.queue.read().await;
-        queue.front().copied()
+        queue.front().copied().map(|(request_id, _)| request_id)
     }
 }
 
@@ -306,6 +333,8 @@ pub struct RequestContext {
     worker: Option<Worker>,
     /// Parent span for the request
     parent_span: Span,
+    /// Time when the request was created
+    created_at: Instant,
 }
 
 impl RequestContext {
@@ -317,11 +346,13 @@ impl RequestContext {
             request_id,
             worker: None,
             parent_span: info_span!(target: MIDEN_TX_PROVER, "proxy:new_request", request_id = request_id.to_string()),
+            created_at: Instant::now(),
         }
     }
 
     /// Set the worker that will process the request
     fn set_worker(&mut self, worker: Worker) {
+        WORKER_REQUEST_COUNT.with_label_values(&[&worker.address()]).inc();
         self.worker = Some(worker);
     }
 }
@@ -374,6 +405,9 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
+        // Increment the request count
+        REQUEST_COUNT.inc();
+
         // Extract the client address early
         let client_addr = match session.client_addr() {
             Some(addr) => addr.to_string(),
@@ -402,6 +436,13 @@ impl ProxyHttp for LoadBalancer {
 
         // Rate limit the request
         if curr_window_requests > self.0.max_req_per_sec {
+            RATE_LIMITED_REQUESTS.inc();
+
+            // Only count a violation the first time in a given window
+            if curr_window_requests == self.0.max_req_per_sec + 1 {
+                RATE_LIMIT_VIOLATIONS.inc();
+            }
+
             return create_too_many_requests_response(session, self.0.max_req_per_sec).await;
         };
 
@@ -412,6 +453,7 @@ impl ProxyHttp for LoadBalancer {
 
         // Check if the queue is full
         if queue_len >= self.0.max_queue_items {
+            QUEUE_DROP_COUNT.inc();
             return create_queue_full_response(session).await;
         }
 
@@ -519,6 +561,7 @@ impl ProxyHttp for LoadBalancer {
         if ctx.tries > self.0.max_retries_per_request {
             return e;
         }
+        REQUEST_RETRIES.inc();
         ctx.tries += 1;
         e.set_retry(true);
         e
@@ -534,6 +577,7 @@ impl ProxyHttp for LoadBalancer {
         Self::CTX: Send + Sync,
     {
         if let Some(e) = e {
+            REQUEST_FAILURE_COUNT.inc();
             error!("Error: {:?}", e);
         }
 
@@ -541,6 +585,8 @@ impl ProxyHttp for LoadBalancer {
         if let Some(worker) = ctx.worker.take() {
             self.0.add_available_worker(worker).await;
         }
+
+        REQUEST_LATENCY.observe(ctx.created_at.elapsed().as_secs_f64());
     }
 
     // The following methods are a copy of the default implementation defined in the trait, but
@@ -724,6 +770,9 @@ impl BackgroundService for LoadBalancerState {
 
                 // Update the worker list with healthy workers
                 *workers = healthy_workers;
+
+                // Update the worker count metric
+                WORKER_COUNT.set(workers.len() as i64);
 
                 // Sleep for the defined interval before the next health check
                 sleep(self.health_check_frequency).await;
