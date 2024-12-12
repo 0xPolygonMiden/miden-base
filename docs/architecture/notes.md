@@ -4,7 +4,7 @@
 
 ## What is a Note?
 
-A note in Miden is an object containing both assets and the logic that governs how these assets can be consumed. By blending concepts from both UTXO and account-based models, notes allow for asynchronous and privacy-preserving asset transfers between accounts. This approach enables parallel transaction execution and strong privacy guarantees.
+A note in Miden holds assets and defines how these assets can be consumed. The note model in Miden enables parallel transaction execution and privacy. 
 
 ## The Notes Core Components
 
