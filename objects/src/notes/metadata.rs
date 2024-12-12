@@ -15,6 +15,27 @@ use super::{
 /// - For off-chain notes, the most significant bit of the tag must be 0.
 /// - For public notes, the second most significant bit of the tag must be 0.
 /// - For encrypted notes, two most significant bits of the tag must be 00.
+///
+/// # Word layout & validity
+///
+/// [`NoteMetadata`] can be encoded into a [`Word`] with the following layout:
+///
+/// ```text
+/// 1st felt: [sender_id_hi (64 bits)]
+/// 2nd felt: [sender_id_lo (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
+/// 3rd felt: [note_execution_hint_payload (32 bits) | note_tag (32 bits)]
+/// 4th felt: [aux (64 bits)]
+/// ```
+///
+/// Regarding felt validity of the above layout:
+/// - 1st felt: Is equivalent to the first felt of the account ID so it inherits its validity.
+/// - 2nd felt: The second felt of the account ID is designed such that its lower 8 bits can all be
+///   set to `1` and still retain its validity due to the anchor epoch in the upper 16 bits always
+///   containing at least one `0` bit.
+/// - 3rd felt: The note execution hint payload must contain at least one `0` bit in its encoding,
+///   so the upper 32 bits of the felt will contain at least one `0` bit making the entire felt
+///   valid.
+/// - 4th felt: The `aux` value must be a felt itself.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NoteMetadata {
     /// The ID of the account which created the note.
@@ -87,12 +108,18 @@ impl NoteMetadata {
 }
 
 impl From<NoteMetadata> for Word {
+    /// Convert a [`NoteMetadata`] into a [`Word`].
+    ///
+    /// The produced layout of the word is documented on the [`NoteMetadata`] type.
     fn from(metadata: NoteMetadata) -> Self {
         (&metadata).into()
     }
 }
 
 impl From<&NoteMetadata> for Word {
+    /// Convert a [`NoteMetadata`] into a [`Word`].
+    ///
+    /// The produced layout of the word is documented on the [`NoteMetadata`] type.
     fn from(metadata: &NoteMetadata) -> Self {
         let mut elements = Word::default();
         elements[0] = metadata.sender.first_felt();
@@ -110,6 +137,9 @@ impl From<&NoteMetadata> for Word {
 impl TryFrom<Word> for NoteMetadata {
     type Error = NoteError;
 
+    /// Tries to decode a [`Word`] into a [`NoteMetadata`].
+    ///
+    /// The expected layout of the word is documented on the [`NoteMetadata`] type.
     fn try_from(elements: Word) -> Result<Self, Self::Error> {
         let sender_id_first_felt: Felt = elements[0];
 
@@ -184,6 +214,8 @@ fn merge_id_type_and_hint_tag(
     Felt::try_from(merged).expect("encoded value should be a valid felt")
 }
 
+/// Unmerges the given felt into the second felt of an [`AccountId`], a [`NoteType`] and the tag of
+/// a [`NoteExecutionHint`].
 fn unmerge_id_type_and_hint_tag(element: Felt) -> Result<(Felt, NoteType, u8), NoteError> {
     let element = element.as_int();
 
@@ -232,6 +264,8 @@ fn merge_note_tag_and_hint_payload(
     Felt::try_from(felt_int).expect("bytes should be a valid felt")
 }
 
+/// Unmerges the given felt into a [`NoteExecutionHint`] payload and a [`NoteTag`] and constructs a
+/// [`NoteExecutionHint`] from the unmerged payload and the given `note_execution_hint_tag`.
 fn unmerge_note_tag_and_hint_payload(
     element: Felt,
     note_execution_hint_tag: u8,

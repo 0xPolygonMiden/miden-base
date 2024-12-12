@@ -152,6 +152,15 @@ impl NoteExecutionHint {
         }
     }
 
+    /// Encodes the [`NoteExecutionHint`] into a 6-bit tag and a 32-bit payload.
+    ///
+    /// # Guarantees
+    ///
+    /// Since the tag has at most 6 bits, the returned byte is guaranteed to have its two most
+    /// significant bits set to `0`.
+    ///
+    /// The payload is guaranteed to contain at least one `0` bit to make encoding it into
+    /// [`NoteMetadata`](crate::notes::NoteMetadata) safely possible.
     pub fn into_parts(&self) -> (u8, u32) {
         match self {
             NoteExecutionHint::None => (Self::NONE_TAG, 0),
