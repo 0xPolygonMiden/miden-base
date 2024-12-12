@@ -137,7 +137,7 @@ impl BlockHeader {
     ///
     /// This is the block number shifted right by [`Self::EPOCH_LENGTH_EXPONENT`].
     pub fn block_epoch(&self) -> u16 {
-        (self.block_num >> Self::EPOCH_LENGTH_EXPONENT) as u16
+        block_epoch_from_number(self.block_num)
     }
 
     /// Returns the chain root.
@@ -221,6 +221,9 @@ impl BlockHeader {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
 impl Serializable for BlockHeader {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.version.write_into(target);
@@ -267,9 +270,17 @@ impl Deserializable for BlockHeader {
     }
 }
 
+// UTILITIES
+// ================================================================================================
+
 /// Returns the block number of the epoch block for the given `epoch`.
 pub const fn block_num_from_epoch(epoch: u16) -> u32 {
     (epoch as u32) << BlockHeader::EPOCH_LENGTH_EXPONENT
+}
+
+/// Returns the epoch of the given block number.
+pub const fn block_epoch_from_number(block_number: u32) -> u16 {
+    (block_number >> BlockHeader::EPOCH_LENGTH_EXPONENT) as u16
 }
 
 #[cfg(test)]

@@ -9,6 +9,7 @@ use crate::{
         AccountType, AccountVersion,
     },
     assets::AssetVault,
+    block::block_epoch_from_number,
     AccountError, BlockHeader, Felt, Word,
 };
 
@@ -50,7 +51,7 @@ pub struct AccountBuilder {
     anchor_block_hash: Digest,
     init_seed: Option<[u8; 32]>,
     version: AccountVersion,
-    anchor_epoch: Option<u16>,
+    anchor_block_number: Option<u32>,
 }
 
 impl AccountBuilder {
@@ -65,7 +66,7 @@ impl AccountBuilder {
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
             version: AccountVersion::VERSION_0,
-            anchor_epoch: None,
+            anchor_block_number: None,
         }
     }
 
@@ -80,13 +81,16 @@ impl AccountBuilder {
 
     /// Sets `anchor_block_hash` and `anchor_epoch` from the given `anchor_block`.
     ///
+    /// The block header must be for an epoch block, i.e. its block number must be a multiple of
+    /// 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`]. If this is not the case, the build will fail.
+    ///
     /// Hash and epoch must match to create a valid [`AccountId`], so this method is preferred over
     /// setting the values individually.
     pub fn anchor_block_header(mut self, anchor_block: &BlockHeader) -> Self {
         let anchor_block_hash = anchor_block.hash();
-        let anchor_epoch = anchor_block.block_epoch();
+        let anchor_block_number = anchor_block.block_num();
         self.anchor_block_hash = anchor_block_hash;
-        self.anchor_epoch = Some(anchor_epoch);
+        self.anchor_block_number = Some(anchor_block_number);
         self
     }
 
@@ -105,13 +109,13 @@ impl AccountBuilder {
         self
     }
 
-    /// Sets the `anchor_epoch` of the account. Must be less than [`u16::MAX`] otherwise building
-    /// will fail.
+    /// Sets the `anchor_block_number` of the account. Must be the block number of an epoch block,
+    /// i.e. a multiple of 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`].
     ///
     /// Note that whenever possible, using [`AccountBuilder::anchor_block_header`] is preferred over
     /// this method.
-    pub fn anchor_epoch(mut self, anchor_epoch: u16) -> Self {
-        self.anchor_epoch = Some(anchor_epoch);
+    pub fn anchor_block_number(mut self, anchor_block_number: u32) -> Self {
+        self.anchor_block_number = Some(anchor_block_number);
         self
     }
 
@@ -217,11 +221,23 @@ impl AccountBuilder {
             ));
         }
 
-        let anchor_epoch = match self.anchor_epoch {
-            Some(anchor_epoch) => anchor_epoch,
+        let anchor_epoch = match self.anchor_block_number {
+            Some(anchor_block_number) => {
+                if anchor_block_number & 0x0000_ffff != 0 {
+                    return Err(AccountError::BuildError(
+                        format!(
+                            "anchor block must be an epoch block, i.e. its block number must be a multiple of 2^{}",
+                            BlockHeader::EPOCH_LENGTH_EXPONENT
+                        ),
+                        None,
+                    ));
+                }
+
+                block_epoch_from_number(anchor_block_number)
+            },
             None => {
                 return Err(AccountError::BuildError(
-                    "anchor block epoch must be set".into(),
+                    "anchor block number must be set".into(),
                     None,
                 ));
             },
@@ -372,13 +388,13 @@ mod tests {
         let storage_slot1 = 12;
         let storage_slot2 = 42;
 
-        let block_hash = Digest::new([Felt::new(42); 4]);
-        let block_epoch = 50_000;
+        let anchor_block_hash = Digest::new([Felt::new(42); 4]);
+        let anchor_block_number = 1 << 16;
 
         let (account, seed) = Account::builder()
             .init_seed([5; 32])
-            .anchor_block_hash(block_hash)
-            .anchor_epoch(block_epoch)
+            .anchor_block_hash(anchor_block_hash)
+            .anchor_block_number(anchor_block_number)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_component(CustomComponent2 {
                 slot0: storage_slot1,
@@ -392,10 +408,10 @@ mod tests {
 
         let computed_id = AccountId::new(
             seed,
-            block_epoch,
+            block_epoch_from_number(anchor_block_number),
             account.code.commitment(),
             account.storage.commitment(),
-            block_hash,
+            anchor_block_hash,
         )
         .unwrap();
         assert_eq!(account.id(), computed_id);
@@ -449,7 +465,7 @@ mod tests {
         let build_error = Account::builder()
             .init_seed([0xff; 32])
             .anchor_block_hash([10; 32].try_into().unwrap())
-            .anchor_epoch(0)
+            .anchor_block_number(0)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_assets(AssetVault::mock().assets())
             .build()
@@ -457,4 +473,6 @@ mod tests {
 
         assert_matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
     }
+
+    // TODO: Test that a BlockHeader with a number which is not a multiple of 2^16 returns an error.
 }
