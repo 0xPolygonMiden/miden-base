@@ -17,6 +17,7 @@ use super::{
 };
 use crate::{
     accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType},
+    block::block_num_from_epoch,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -286,7 +287,8 @@ pub enum TransactionInputError {
     #[error("account seed must not be provided for existing accounts")]
     AccountSeedProvidedForExistingAccount,
     #[error(
-        "anchor block header for epoch {0} must be provided in the chain mmr for the new account"
+      "anchor block header for epoch {0} (block number = {block_number}) must be provided in the chain mmr for the new account",
+      block_number = block_num_from_epoch(*.0),
     )]
     AnchorBlockHeaderNotProvidedForNewAccount(u16),
     #[error("transaction input note with nullifier {0} is a duplicate")]

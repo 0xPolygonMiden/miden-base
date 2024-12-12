@@ -105,11 +105,10 @@ impl Asset {
         matches!(self, Self::NonFungible(_))
     }
 
-    // TODO: We can only return the prefix here because non fungible assets don't contain the second
-    // felt. Should we remove the method instead and force callers to handle each case
-    // individually?
-    /// Returns ID of the faucet which issued this asset.
-    pub fn faucet_id(&self) -> AccountIdPrefix {
+    /// Returns the prefix of the faucet ID which issued this asset.
+    ///
+    /// To get the full [`AccountId`] of a fungible asset the asset must be matched on.
+    pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         match self {
             Self::Fungible(asset) => asset.faucet_id().prefix(),
             Self::NonFungible(asset) => asset.faucet_id(),

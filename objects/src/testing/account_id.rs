@@ -66,7 +66,7 @@ pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0xaabc_ccde);
 // NON-FUNGIBLE TOKENS - ON-CHAIN
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbbca_ddef);
+    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbcca_ddef);
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdf_eefa);
 
