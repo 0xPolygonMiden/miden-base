@@ -12,7 +12,6 @@ use crate::{
     AccountError, BlockHeader, Felt, Word,
 };
 
-// TODO: Update documentation for newly added fields.
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
 /// combining multiple [`AccountComponent`]s.
 ///
@@ -25,15 +24,22 @@ use crate::{
 /// By default, the builder is initialized with:
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
+/// - The `version` set to [`AccountVersion::VERSION_0`].
 ///
 /// The methods that are required to be called are:
 ///
 /// - [`AccountBuilder::init_seed`],
 /// - [`AccountBuilder::with_component`], which must be called at least once.
+/// - [`AccountBuilder::anchor_block_hash`] and [`AccountBuilder::anchor_epoch`] or
+///   [`AccountBuilder::anchor_block_header`].
+///
+/// The latter methods set the anchor block hash and epoch which will be used for the generation of
+/// the account's ID. See [`AccountId`] for details on its generation and anchor blocks.
 ///
 /// Under the `testing` feature, it is possible to:
 /// - Change the `nonce` to build an existing account.
-/// - Set assets which will be placed in the account's vault.
+/// - Add assets to the account's vault, however this will only succeed when using
+///   [`AccountBuilder::build_existing`].
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
     #[cfg(any(feature = "testing", test))]
@@ -206,13 +212,13 @@ impl AccountBuilder {
         // Anchor block hash and anchor epoch must only be set when building a new account.
         if self.anchor_block_hash == Digest::default() {
             return Err(AccountError::BuildError(
-                "block hash must be set to a `Digest` different from the empty value".into(),
+                "anchor block hash must be set to a `Digest` different from the empty value".into(),
                 None,
             ));
         }
 
-        let block_epoch = match self.anchor_epoch {
-            Some(block_epoch) => block_epoch,
+        let anchor_epoch = match self.anchor_epoch {
+            Some(anchor_epoch) => anchor_epoch,
             None => {
                 return Err(AccountError::BuildError(
                     "anchor block epoch must be set".into(),
@@ -239,7 +245,7 @@ impl AccountBuilder {
 
         let account_id = AccountId::new(
             seed,
-            block_epoch,
+            anchor_epoch,
             code.commitment(),
             storage.commitment(),
             self.anchor_block_hash,
