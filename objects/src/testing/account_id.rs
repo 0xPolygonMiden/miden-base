@@ -4,38 +4,38 @@ use crate::accounts::{AccountId, AccountStorageMode, AccountType};
 // --------------------------------------------------------------------------------------------
 
 // REGULAR ACCOUNTS - OFF-CHAIN
-pub const ACCOUNT_ID_SENDER: u128 = account_id(
+pub const ACCOUNT_ID_SENDER: u128 = account_id::<true>(
     AccountType::RegularAccountImmutableCode,
     AccountStorageMode::Private,
     0xfabb_ccde,
 );
-pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u128 = account_id(
+pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u128 = account_id::<true>(
     AccountType::RegularAccountImmutableCode,
     AccountStorageMode::Private,
     0xbfcc_dcee,
 );
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u128 = account_id::<true>(
     AccountType::RegularAccountUpdatableCode,
     AccountStorageMode::Private,
     0xccdd_eeff,
 );
 // REGULAR ACCOUNTS - ON-CHAIN
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u128 = account_id::<true>(
     AccountType::RegularAccountImmutableCode,
     AccountStorageMode::Public,
     0xaabb_ccdd,
 );
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u128 = account_id::<true>(
     AccountType::RegularAccountImmutableCode,
     AccountStorageMode::Public,
     0xbbcc_ddee,
 );
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u128 = account_id::<true>(
     AccountType::RegularAccountUpdatableCode,
     AccountStorageMode::Public,
     0xacdd_eefc,
 );
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id::<true>(
     AccountType::RegularAccountUpdatableCode,
     AccountStorageMode::Public,
     0xeeff_ccdd,
@@ -48,36 +48,36 @@ pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_i
 
 // FUNGIBLE TOKENS - OFF-CHAIN
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
-    account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0xfabb_cddd);
+    account_id::<true>(AccountType::FungibleFaucet, AccountStorageMode::Private, 0xfabb_cddd);
 // FUNGIBLE TOKENS - ON-CHAIN
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
-    account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabc_bcde);
+    account_id::<true>(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabc_bcde);
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
-    account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xbaca_ddef);
+    account_id::<true>(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xbaca_ddef);
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u128 =
-    account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdb_eefa);
+    account_id::<true>(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdb_eefa);
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u128 =
-    account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
+    account_id::<true>(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
 
 // NON-FUNGIBLE TOKENS - OFF-CHAIN
 pub const ACCOUNT_ID_INSUFFICIENT_ONES: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0000_0000); // invalid
+    account_id::<false>(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0000_0000); // invalid
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0xaabc_ccde);
+    account_id::<true>(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0xaabc_ccde);
 // NON-FUNGIBLE TOKENS - ON-CHAIN
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbcca_ddef);
+    account_id::<true>(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbcca_ddef);
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdf_eefa);
+    account_id::<true>(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdf_eefa);
 
 // TEST ACCOUNT IDs WITH CERTAIN PROPERTIES
 /// The Account Id with the maximum possible one bits.
 pub const ACCOUNT_ID_MAX_ONES: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0)
+    account_id::<false>(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0)
         | 0x7fff_ffff_ffff_ff00_7fff_ffff_ffff_ff00;
 /// The Account Id with the maximum possible zero bits.
 pub const ACCOUNT_ID_MAX_ZEROES: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0x001f_0000);
+    account_id::<true>(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0x001f_0000);
 
 // UTILITIES
 // --------------------------------------------------------------------------------------------
@@ -86,17 +86,18 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 ///
 /// - Version is set to 0.
 /// - Anchor epoch is set to 0.
-/// - The 2nd most significant bit is set to 1, so it is easier to test the note_tag, for example.
+/// - If `CHECK_MIN_ONES` is `true` the function checks if the resulting value satisfies
+///   [`AccountId::MIN_ACCOUNT_ONES`].
 ///
 /// Finally, distributes the given `random` value over the ID to produce non-trivial values for
 /// testing. This is easiest explained with an example. Suppose `random` is `0xaabb_ccdd`,
 /// then the layout of the generated ID will be:
 ///
 /// ```text
-/// 1st felt: [0b0100_0000 | 0xaa | 4 zero bytes | 0xbb | metadata byte]
+/// 1st felt: [zero byte | 0xaa | 4 zero bytes | 0xbb | metadata byte]
 /// 2nd felt: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
 /// ```
-pub const fn account_id(
+pub const fn account_id<const CHECK_MIN_ONES: bool>(
     account_type: AccountType,
     storage_mode: AccountStorageMode,
     random: u32,
@@ -120,6 +121,13 @@ pub const fn account_id(
 
     id |= (random_2nd_felt_upper as u128) << 32;
     id |= (random_2nd_felt_lower as u128) << 8;
+
+    if CHECK_MIN_ONES {
+        debug_assert!(
+            random_1st_felt_upper.count_ones() + random_1st_felt_lower.count_ones()
+                >= AccountId::MIN_ACCOUNT_ONES
+        );
+    }
 
     id
 }
