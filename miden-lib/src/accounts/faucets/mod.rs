@@ -3,7 +3,7 @@ use miden_objects::{
         Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType, StorageSlot,
     },
     assets::TokenSymbol,
-    AccountError, Digest, Felt, FieldElement, Word,
+    AccountError, BlockHeader, Felt, FieldElement, Word,
 };
 
 use super::AuthScheme;
@@ -90,7 +90,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
 /// - Slot 2: Token metadata of the faucet.
 pub fn create_basic_fungible_faucet(
     init_seed: [u8; 32],
-    anchor_block_epoch_and_hash: (u16, Digest),
+    anchor_block_header: &BlockHeader,
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
@@ -105,8 +105,7 @@ pub fn create_basic_fungible_faucet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
-        .anchor_epoch(anchor_block_epoch_and_hash.0)
-        .anchor_block_hash(anchor_block_epoch_and_hash.1)
+        .anchor_block_header(anchor_block_header)
         .account_type(AccountType::FungibleFaucet)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
@@ -121,7 +120,7 @@ pub fn create_basic_fungible_faucet(
 
 #[cfg(test)]
 mod tests {
-    use miden_objects::{crypto::dsa::rpo_falcon512, digest, FieldElement, ONE};
+    use miden_objects::{crypto::dsa::rpo_falcon512, digest, BlockHeader, FieldElement, ONE};
     use vm_processor::Word;
 
     use super::{create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol};
@@ -143,9 +142,17 @@ mod tests {
         let decimals = 2u8;
         let storage_mode = AccountStorageMode::Private;
 
+        let anchor_block_header_mock = BlockHeader::mock(
+            0,
+            Some(digest!("0xaa")),
+            Some(digest!("0xbb")),
+            &[],
+            digest!("0xcc"),
+        );
+
         let (faucet_account, _) = create_basic_fungible_faucet(
             init_seed,
-            (10, digest!("0xaabbccdd")),
+            &anchor_block_header_mock,
             token_symbol,
             decimals,
             max_supply,

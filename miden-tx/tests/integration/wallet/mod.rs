@@ -8,7 +8,7 @@ fn wallet_creation() {
     use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
     use miden_objects::{
         accounts::{AccountCode, AccountStorageMode, AccountType},
-        digest,
+        digest, BlockHeader,
     };
 
     // we need a Falcon Public Key to create the wallet account
@@ -28,9 +28,12 @@ fn wallet_creation() {
     let account_type = AccountType::RegularAccountImmutableCode;
     let storage_mode = AccountStorageMode::Private;
 
+    let anchor_block_header_mock =
+        BlockHeader::mock(0, Some(digest!("0xaa")), Some(digest!("0xbb")), &[], digest!("0xcc"));
+
     let (wallet, _) = create_basic_wallet(
         init_seed,
-        (0, digest!("0xff")),
+        &anchor_block_header_mock,
         auth_scheme,
         account_type,
         storage_mode,

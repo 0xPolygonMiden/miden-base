@@ -2,7 +2,7 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType},
-    AccountError, Digest, Word,
+    AccountError, BlockHeader, Word,
 };
 
 use super::AuthScheme;
@@ -46,7 +46,7 @@ impl From<BasicWallet> for AccountComponent {
 /// authentication scheme.
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
-    anchor_block_epoch_and_hash: (u16, Digest),
+    anchor_block_header: &BlockHeader,
     auth_scheme: AuthScheme,
     account_type: AccountType,
     account_storage_mode: AccountStorageMode,
@@ -63,8 +63,7 @@ pub fn create_basic_wallet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
-        .anchor_epoch(anchor_block_epoch_and_hash.0)
-        .anchor_block_hash(anchor_block_epoch_and_hash.1)
+        .anchor_block_header(anchor_block_header)
         .account_type(account_type)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
@@ -80,17 +79,25 @@ pub fn create_basic_wallet(
 #[cfg(test)]
 mod tests {
 
-    use miden_objects::{crypto::dsa::rpo_falcon512, digest, ONE};
+    use miden_objects::{crypto::dsa::rpo_falcon512, digest, BlockHeader, ONE};
     use vm_processor::utils::{Deserializable, Serializable};
 
     use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
 
     #[test]
     fn test_create_basic_wallet() {
+        let anchor_block_header_mock = BlockHeader::mock(
+            0,
+            Some(digest!("0xaa")),
+            Some(digest!("0xbb")),
+            &[],
+            digest!("0xcc"),
+        );
+
         let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
         let wallet = create_basic_wallet(
             [1; 32],
-            (10, digest!("0xaabbccdd")),
+            &anchor_block_header_mock,
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
             AccountStorageMode::Public,
@@ -103,10 +110,18 @@ mod tests {
 
     #[test]
     fn test_serialize_basic_wallet() {
+        let anchor_block_header_mock = BlockHeader::mock(
+            0,
+            Some(digest!("0xaa")),
+            Some(digest!("0xbb")),
+            &[],
+            digest!("0xcc"),
+        );
+
         let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
         let wallet = create_basic_wallet(
             [1; 32],
-            (15, digest!("0xffdd")),
+            &anchor_block_header_mock,
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
             AccountStorageMode::Public,

@@ -133,7 +133,7 @@ impl BlockHeader {
         self.block_num
     }
 
-    /// Returns the block epoch.
+    /// Returns the epoch to which this block belongs.
     ///
     /// This is the block number shifted right by [`Self::EPOCH_LENGTH_EXPONENT`].
     pub fn block_epoch(&self) -> u16 {
