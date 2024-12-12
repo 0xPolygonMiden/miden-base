@@ -10,7 +10,8 @@ WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
 BUILD_KERNEL_ERRORS=BUILD_KERNEL_ERRORS=1
-# Enable backtraces for tests where we return an anyhow::Result which contains a `Backtrace`.
+# Enable backtraces for tests where we return an anyhow::Result. If enabled, anyhow::Error will
+# then contain a `Backtrace` and print it when a test returns an error.
 BACKTRACE=RUST_BACKTRACE=1
 
 # -- linting --------------------------------------------------------------------------------------
