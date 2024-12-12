@@ -10,6 +10,16 @@ use crate::NoteError;
 ///
 /// This struct can be represented as the combination of a tag, and a payload.
 /// The tag specifies the variant of the hint, and the payload encodes the hint data.
+///
+/// # Felt layout
+///
+/// [`NoteExecutionHint`] can be encoded into a [`Felt`] with the following layout:
+///
+/// ```text
+/// [26 zero bits | payload (32 bits) | tag (6 bits)]
+/// ```
+///
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NoteExecutionHint {
     /// Unspecified note execution hint. Implies it is not known under which conditions the note
@@ -175,12 +185,7 @@ impl NoteExecutionHint {
     }
 }
 
-/// As a Felt, the ExecutionHint is encoded as:
-///
-/// - 6 least significant bits: Hint identifier (tag).
-/// - Bits 6 to 38: Hint payload.
-///
-/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
+/// Converts a [`NoteExecutionHint`] into a [`Felt`] with the layout documented on the type.
 impl From<NoteExecutionHint> for Felt {
     fn from(value: NoteExecutionHint) -> Self {
         let int_representation: u64 = value.into();
@@ -188,12 +193,10 @@ impl From<NoteExecutionHint> for Felt {
     }
 }
 
-/// As a u64, the ExecutionHint is encoded as:
+/// Tries to convert a `u64` into a [`NoteExecutionHint`] with the expected layout documented on the
+/// type.
 ///
-/// - 6 least significant bits: Hint identifier (tag).
-/// - Bits 6 to 38: Hint payload.
-///
-/// This way, hints such as [NoteExecutionHint::Always], are represented by `1u64`
+/// Note: The upper 26 bits are not enforced to be zero.
 impl TryFrom<u64> for NoteExecutionHint {
     type Error = NoteError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
@@ -204,6 +207,7 @@ impl TryFrom<u64> for NoteExecutionHint {
     }
 }
 
+/// Converts a [`NoteExecutionHint`] into a `u64` with the layout documented on the type.
 impl From<NoteExecutionHint> for u64 {
     fn from(value: NoteExecutionHint) -> Self {
         let (tag, payload) = value.into_parts();

@@ -389,6 +389,7 @@ proc.build_note_metadata
     # of the metadata.
     # --------------------------------------------------------------------------------------------
 
+    # the execution_hint is layed out like this: [26 zero bits | payload (32 bits) | tag (6 bits)]
     movup.3
     # => [execution_hint, tag, aux, note_type]
     dup u32split drop
@@ -399,6 +400,7 @@ proc.build_note_metadata
     # => [execution_hint_tag, execution_hint, tag, aux, note_type]
 
     # compute the payload by subtracting the tag value so the lower 6 bits are zero
+    # note that this results in the following layout: [26 zero bits | payload (32 bits) | 6 zero bits]
     swap
     # => [execution_hint, execution_hint_tag, tag, aux, note_type]
     dup.1
@@ -409,8 +411,10 @@ proc.build_note_metadata
     # Merge execution hint payload and note tag.
     # --------------------------------------------------------------------------------------------
 
-    # multiply by 2^26 to shift the payload left by 26 bits
-    # this results in the lower 32 bits being zero which is where the note tag will be placed
+    # we need to move the payload to the upper 32 bits of the felt
+    # we only need to shift by 26 bits because the payload is already shifted left by 6 bits
+    # we shift the payload by multiplying with 2^26
+    # this results in the lower 32 bits being zero which is where the note tag will be added
     push.0x04000000 mul
     # => [execution_hint_payload, execution_hint_tag, tag, aux, note_type]
 
