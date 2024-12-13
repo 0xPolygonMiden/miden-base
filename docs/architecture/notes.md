@@ -6,7 +6,7 @@
 
 A note in Miden holds assets and defines how these assets can be consumed. The note model in Miden enables parallel transaction execution and privacy. 
 
-## The Notes Core Components
+## Note Core Components
 
 A `Note` is composed of several core components, illustrated below:
 
