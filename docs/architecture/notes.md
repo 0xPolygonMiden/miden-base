@@ -32,9 +32,7 @@ A note can contain up to `256` different assets. These assets represent fungible
 
 > The code executed when the note is consumed.
 
-Each note has an associated script that defines the conditions under which it can be consumed. Because the script is executed in the context of a specific account, it may invoke that account’s functions, enabling complex operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making note scripts highly versatile.
-
-The code in note scripts, more specifically each procedure, can be expressed as a unique MAST root. Like account code functions. This ensures that any changes to the script are detectable, preserving trust.
+Each note has a script that defines the conditions under which it can be consumed. When accounts consume notes in transactions, note scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making note scripts highly versatile.
 
 ### Inputs
 
@@ -46,7 +44,7 @@ A note can have up to `128` input values, which adds up to a maximum of 1 KB of 
 
 > A unique and immutable identifier for the note.
 
-The serial number helps prevent linkability between the note’s hash and its nullifier. It should be a random `word` chosen by the user. If leaked, the note’s nullifier can be easily computed, potentially compromising privacy.
+The serial number helps prevent linkability between the note’s hash and its nullifier. It should be a random `Word` chosen by the user. If leaked, the note’s nullifier can be easily computed, potentially compromising privacy.
 
 ### Metadata
 
@@ -72,13 +70,35 @@ Accounts can create notes in a transaction. The note exists if it is included in
 As with [accounts](accounts.md), notes can be stored either publicly or privately:
 
 - **Public mode:** The note data is stored in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database), making it fully visible on-chain.
-- **Private mode:** Only the note’s hash (a cryptographic commitment) is stored. The note’s actual data remains off-chain, enhancing privacy.
+- **Private mode:** Only the note’s hash is stored. The note’s actual data remains off-chain, enhancing privacy.
 
-The note’s hash can be computed as:
+#### Ephemeral notes
 
-```arduino
-hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash)
-```
+These use-case specific notes can be consumed even if not yet validated by being chained together into one final proof. This can allow for example sub second communication below blocktimes by adding additional trust assumptions.
+
+### Note Validation
+
+Once created, a note must be validated by a Miden operator. Validation involves checking the transaction proof that produced the note to ensure it meets all protocol requirements.
+
+- **Private Notes:** Only the note’s hash is recorded on-chain, keeping the data confidential.
+- **Public Notes:** The full note data is stored, providing transparency for applications requiring public state visibility.
+
+After validation, notes become “live” and eligible for discovery and eventual consumption.
+
+### Note Discovery
+
+Clients often need to find specific notes of interest. Miden allows clients to query the note database using note tags. These lightweight, 32-bit tags serve as best-effort filters, enabling quick lookups for notes related to particular use cases, scripts, or account prefixes.
+
+Using note tags strikes a balance between privacy and efficiency. Without tags, querying a specific note ID reveals a user’s interest to the operator. Conversely, downloading and filtering all registered notes locally is highly inefficient. Tags allow users to adjust their level of privacy by choosing how broadly or narrowly they define their search criteria, letting them find the right balance between revealing too much information and incurring excessive computational overhead.
+
+### Note Consumption
+
+To consume a note, the consumer must know its data, including the inputs needed to compute the nullifier. Consumption occurs as part of a transaction. Upon successful consumption a nullifier is generated for the consumed notes.
+
+Upon successful verification of the transaction:
+
+1. The Miden operator records the note’s nullifier as “consumed” in the nullifier database.
+2. The note’s one-time claim is thus extinguished, preventing reuse.
 
 #### Note Recipient - Restricting Consumption
 
@@ -111,53 +131,6 @@ This achieves the following properties:
 That means if a note is private and the operator stores only the note's hash, only those with the note details know if this note has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
 
 ![Architecture core concepts](../img/architecture/note/nullifier.png)
-
-### Note Validation
-
-Once created, a note must be validated by a Miden operator. Validation involves checking the transaction proof that produced the note to ensure it meets all protocol requirements.
-
-- **Private Notes:** Only the note’s hash is recorded on-chain, keeping the data confidential.
-- **Public Notes:** The full note data is stored, providing transparency for applications requiring public state visibility.
-
-After validation, notes become “live” and eligible for discovery and eventual consumption.
-
-### Note Discovery
-
-Clients often need to find specific notes of interest. Miden allows clients to query the note database using note tags. These lightweight, 32-bit tags serve as best-effort filters, enabling quick lookups for notes related to particular use cases, scripts, or account prefixes.
-
-The two most significant bits of the note tag guide its interpretation:
-
-| Prefix | Execution hint | Target   | Allowed note type |
-| ------ | :------------: | :------: | :----------------:|
-| `0b00` | Network        | Specific | NoteType::Public  |
-| `0b01` | Network        | Use case | NoteType::Public  |
-| `0b10` | Local          | Any      | NoteType::Public  |
-| `0b11` | Local          | Any      | Any               |
-
-- **Execution hint:** Indicates whether the note is meant for network or local transactions.
-- **Target:** Describes how to interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an account_id. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
-- **Allowed note type:** Specifies the note's storage mode, either `public` or `private`
-
-> Example:
->
-> The following 30 bits can represent anything. In the above example note tag, it represents an account Id of a public account. As designed the first bit of a public account is always `0` which overlaps with the second most significant bit of the note tag.
->
->```
->0b00000100_11111010_01010160_11100020
->```
->
->This example note tag indicates that the network operator (Miden node) executes the note against a specific account - `0x09f4adc47857e2f6`. Only the 30 most significant bits of the account id are represented in the note tag, since account Ids are 64-bit values but note tags only have 32-bits. Knowing a 30-bit prefix already narrows the set of potential target accounts down enough.
-
-Using note tags strikes a balance between privacy and efficiency. Without tags, querying a specific note ID reveals a user’s interest to the operator. Conversely, downloading and filtering all registered notes locally is highly inefficient. Tags allow users to adjust their level of privacy by choosing how broadly or narrowly they define their search criteria, letting them find the right balance between revealing too much information and incurring excessive computational overhead.
-
-### Note Consumption
-
-To consume a note, the consumer must know its data, including the inputs needed to compute the nullifier. Consumption occurs as part of a transaction. Upon successful consumption a nullifier is generated for the consumed notes.
-
-Upon successful verification of the transaction:
-
-1. The Miden operator records the note’s nullifier as “consumed” in the nullifier database.
-2. The note’s one-time claim is thus extinguished, preventing reuse.
 
 ## Conclusion
 
