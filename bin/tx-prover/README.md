@@ -114,6 +114,16 @@ The proxy service uses this health check to determine if a worker is available t
 
 Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
 
+## Traces
+
+The service uses the `tracing` crate for structured logging and tracing. Traces are enabled by default, and uses opentelemetry to export traces to a Jaeger instance. The traces can be visualized using the Jaeger UI, which can be used by running:
+
+```bash
+docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
+```
+
+Then, you can access the Jaeger UI by opening `http://localhost:16686/` in your browser.
+
 ## Features
 
 Description of this crate's feature:
