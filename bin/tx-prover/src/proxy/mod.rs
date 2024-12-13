@@ -1,10 +1,13 @@
 use std::{collections::VecDeque, future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use once_cell::sync::Lazy;
 use pingora::{
+    http::ResponseHeader,
     lb::Backend,
     prelude::*,
+    protocols::Digest,
     server::ShutdownWatch,
     services::background::BackgroundService,
     upstreams::peer::{Peer, ALPN},
@@ -13,7 +16,7 @@ use pingora_core::{upstreams::peer::HttpPeer, Result};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::{sync::RwLock, time::sleep};
-use tracing::{error, info, warn};
+use tracing::{debug_span, error, info, info_span, warn, Span};
 use uuid::Uuid;
 use worker::Worker;
 
@@ -24,7 +27,7 @@ use crate::{
     },
     utils::{
         create_queue_full_response, create_response_with_error_message,
-        create_too_many_requests_response, create_workers_updated_response,
+        create_too_many_requests_response, create_workers_updated_response, MIDEN_TX_PROVER,
     },
 };
 
@@ -37,6 +40,7 @@ const LOCALHOST_ADDR: &str = "127.0.0.1";
 // ================================================================================================
 
 /// Load balancer that uses a round robin strategy
+#[derive(Debug)]
 pub struct LoadBalancerState {
     workers: Arc<RwLock<Vec<Worker>>>,
     timeout_secs: Duration,
@@ -50,6 +54,7 @@ pub struct LoadBalancerState {
 
 impl LoadBalancerState {
     /// Create a new load balancer
+    #[tracing::instrument(name = "proxy:new_load_balancer", skip(initial_workers))]
     pub async fn new(
         initial_workers: Vec<Backend>,
         config: &ProxyConfig,
@@ -291,6 +296,7 @@ static QUEUE: Lazy<RequestQueue> = Lazy::new(RequestQueue::new);
 /// Custom context for the request/response lifecycle
 /// We use this context to keep track of the number of tries for a request, the unique ID for the
 /// request, and the worker that will process the request.
+#[derive(Debug)]
 pub struct RequestContext {
     /// Number of tries for the request
     tries: usize,
@@ -298,15 +304,19 @@ pub struct RequestContext {
     request_id: Uuid,
     /// Worker that will process the request
     worker: Option<Worker>,
+    /// Parent span for the request
+    parent_span: Span,
 }
 
 impl RequestContext {
     /// Create a new request context
     fn new() -> Self {
+        let request_id = Uuid::new_v4();
         Self {
             tries: 0,
-            request_id: Uuid::new_v4(),
+            request_id,
             worker: None,
+            parent_span: info_span!(target: MIDEN_TX_PROVER, "proxy:new_request", request_id = request_id.to_string()),
         }
     }
 
@@ -324,6 +334,7 @@ impl RequestContext {
 /// This wrapper is used to implement the ProxyHttp trait for Arc<LoadBalancer>.
 /// This is necessary because we want to share the load balancer between the proxy server and the
 /// health check background service.
+#[derive(Debug)]
 pub struct LoadBalancer(pub Arc<LoadBalancerState>);
 
 /// Implements load-balancing of incoming requests across a pool of workers.
@@ -358,6 +369,7 @@ impl ProxyHttp for LoadBalancer {
     /// Here we apply IP-based rate-limiting to the request. We also check if the queue is full.
     ///
     /// If the request is rate-limited, we return a 429 response. Otherwise, we return false.
+    #[tracing::instrument(name = "proxy:request_filter", parent = &ctx.parent_span, skip(session))]
     async fn request_filter(&self, session: &mut Session, ctx: &mut Self::CTX) -> Result<bool>
     where
         Self::CTX: Send + Sync,
@@ -414,6 +426,7 @@ impl ProxyHttp for LoadBalancer {
     ///
     /// Note that the request will be assigned a worker here, and the worker will be removed from
     /// the list of available workers once it reaches the [Self::logging] method.
+    #[tracing::instrument(name = "proxy:upstream_peer", parent = &ctx.parent_span, skip(_session))]
     async fn upstream_peer(
         &self,
         _session: &mut Session,
@@ -473,6 +486,7 @@ impl ProxyHttp for LoadBalancer {
     ///
     /// This method is called right after [Self::upstream_peer()] returns a [HttpPeer] and a
     /// connection is established with the worker.
+    #[tracing::instrument(name = "proxy:upstream_request_filter", parent = &_ctx.parent_span, skip(_session))]
     async fn upstream_request_filter(
         &self,
         _session: &mut Session,
@@ -494,6 +508,7 @@ impl ProxyHttp for LoadBalancer {
     }
 
     /// Retry the request if the connection fails.
+    #[tracing::instrument(name = "proxy:fail_to_connect", parent = &ctx.parent_span, skip(_session))]
     fn fail_to_connect(
         &self,
         _session: &mut Session,
@@ -513,6 +528,7 @@ impl ProxyHttp for LoadBalancer {
     ///
     /// This method is the last one in the request lifecycle, no matter if the request was
     /// processed or not.
+    #[tracing::instrument(name = "proxy:logging", parent = &ctx.parent_span, skip(_session))]
     async fn logging(&self, _session: &mut Session, e: Option<&Error>, ctx: &mut Self::CTX)
     where
         Self::CTX: Send + Sync,
@@ -525,6 +541,146 @@ impl ProxyHttp for LoadBalancer {
         if let Some(worker) = ctx.worker.take() {
             self.0.add_available_worker(worker).await;
         }
+    }
+
+    // The following methods are a copy of the default implementation defined in the trait, but
+    // with tracing instrumentation.
+    // Pingora calls these methods to handle the request/response lifecycle internally and since
+    // the trait is defined in a different crate, we cannot add the tracing instrumentation there.
+    // We use the default implementation by implementing the method for our specific type, adding
+    // the tracing instrumentation and internally calling `ProxyHttp` methods.
+    // ============================================================================================
+    #[tracing::instrument(name = "proxy:early_request_filter", parent = &ctx.parent_span, skip(_session))]
+    async fn early_request_filter(
+        &self,
+        _session: &mut Session,
+        ctx: &mut Self::CTX,
+    ) -> Result<()> {
+        ProxyHttpDefaultImpl.early_request_filter(_session, &mut ()).await
+    }
+
+    #[tracing::instrument(name = "proxy:connected_to_upstream", parent = &ctx.parent_span, skip(_session, _sock, _reused, _peer, _fd, _digest))]
+    async fn connected_to_upstream(
+        &self,
+        _session: &mut Session,
+        _reused: bool,
+        _peer: &HttpPeer,
+        #[cfg(unix)] _fd: std::os::unix::io::RawFd,
+        #[cfg(windows)] _sock: std::os::windows::io::RawSocket,
+        _digest: Option<&Digest>,
+        ctx: &mut Self::CTX,
+    ) -> Result<()> {
+        ProxyHttpDefaultImpl
+            .connected_to_upstream(_session, _reused, _peer, _fd, _digest, &mut ())
+            .await
+    }
+
+    #[tracing::instrument(name = "proxy:request_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
+    async fn request_body_filter(
+        &self,
+        _session: &mut Session,
+        _body: &mut Option<Bytes>,
+        _end_of_stream: bool,
+        ctx: &mut Self::CTX,
+    ) -> Result<()> {
+        ProxyHttpDefaultImpl
+            .request_body_filter(_session, _body, _end_of_stream, &mut ())
+            .await
+    }
+
+    #[tracing::instrument(name = "proxy:upstream_response_filter", parent = &ctx.parent_span, skip(_session, _upstream_response))]
+    fn upstream_response_filter(
+        &self,
+        _session: &mut Session,
+        _upstream_response: &mut ResponseHeader,
+        ctx: &mut Self::CTX,
+    ) {
+        ProxyHttpDefaultImpl.upstream_response_filter(_session, _upstream_response, &mut ())
+    }
+
+    #[tracing::instrument(name = "proxy:response_filter", parent = &ctx.parent_span, skip(_session, _upstream_response))]
+    async fn response_filter(
+        &self,
+        _session: &mut Session,
+        _upstream_response: &mut ResponseHeader,
+        ctx: &mut Self::CTX,
+    ) -> Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        ProxyHttpDefaultImpl
+            .response_filter(_session, _upstream_response, &mut ())
+            .await
+    }
+
+    #[tracing::instrument(name = "proxy:upstream_response_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
+    fn upstream_response_body_filter(
+        &self,
+        _session: &mut Session,
+        _body: &mut Option<Bytes>,
+        _end_of_stream: bool,
+        ctx: &mut Self::CTX,
+    ) {
+        ProxyHttpDefaultImpl.upstream_response_body_filter(_session, _body, _end_of_stream, &mut ())
+    }
+
+    #[tracing::instrument(name = "proxy:response_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
+    fn response_body_filter(
+        &self,
+        _session: &mut Session,
+        _body: &mut Option<Bytes>,
+        _end_of_stream: bool,
+        ctx: &mut Self::CTX,
+    ) -> Result<Option<Duration>>
+    where
+        Self::CTX: Send + Sync,
+    {
+        ProxyHttpDefaultImpl.response_body_filter(_session, _body, _end_of_stream, &mut ())
+    }
+
+    #[tracing::instrument(name = "proxy:fail_to_proxy", parent = &ctx.parent_span, skip(session))]
+    async fn fail_to_proxy(&self, session: &mut Session, e: &Error, ctx: &mut Self::CTX) -> u16
+    where
+        Self::CTX: Send + Sync,
+    {
+        ProxyHttpDefaultImpl.fail_to_proxy(session, e, &mut ()).await
+    }
+
+    #[tracing::instrument(name = "proxy:error_while_proxy", parent = &ctx.parent_span, skip(session))]
+    fn error_while_proxy(
+        &self,
+        peer: &HttpPeer,
+        session: &mut Session,
+        e: Box<Error>,
+        ctx: &mut Self::CTX,
+        client_reused: bool,
+    ) -> Box<Error> {
+        ProxyHttpDefaultImpl.error_while_proxy(peer, session, e, &mut (), client_reused)
+    }
+}
+
+// PROXY HTTP DEFAULT IMPLEMENTATION
+// ================================================================================================
+
+/// Default implementation of the [ProxyHttp] trait.
+///
+/// It is used to provide the default methods of the trait in order for the [LoadBalancer] to
+/// implement the trait adding tracing instrumentation but without having to copy all default
+/// implementations.
+struct ProxyHttpDefaultImpl;
+
+#[async_trait]
+impl ProxyHttp for ProxyHttpDefaultImpl {
+    type CTX = ();
+    fn new_ctx(&self) {}
+
+    /// This method is the only one that does not have a default implementation in the trait.
+    async fn upstream_peer(
+        &self,
+        _session: &mut Session,
+        _ctx: &mut Self::CTX,
+    ) -> Result<Box<HttpPeer>> {
+        unimplemented!("This is a dummy implementation, should not be called")
     }
 }
 
@@ -557,6 +713,10 @@ impl BackgroundService for LoadBalancerState {
     {
         Box::pin(async move {
             loop {
+                // Create a new spawn to perform the health check
+                let span = debug_span!("proxy:health_check");
+                let _guard = span.enter();
+
                 let mut workers = self.workers.write().await;
 
                 // Perform health checks on workers and retain healthy ones
