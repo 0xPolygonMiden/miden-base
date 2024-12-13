@@ -31,7 +31,7 @@ use crate::{
 ///
 /// - [`AccountBuilder::init_seed`],
 /// - [`AccountBuilder::with_component`], which must be called at least once.
-/// - [`AccountBuilder::anchor_block_hash`] and [`AccountBuilder::anchor_epoch`] or
+/// - [`AccountBuilder::anchor_block_hash`] and [`AccountBuilder::anchor_block_number`] or
 ///   [`AccountBuilder::anchor_block_header`].
 ///
 /// The latter methods set the anchor block hash and epoch which will be used for the generation of
@@ -51,6 +51,8 @@ pub struct AccountBuilder {
     anchor_block_hash: Digest,
     init_seed: Option<[u8; 32]>,
     version: AccountVersion,
+    // The builder takes the block number instead of the epoch so we can validate that a user did
+    // pass an epoch block instead of just any block.
     anchor_block_number: Option<u32>,
 }
 
@@ -79,7 +81,7 @@ impl AccountBuilder {
         self
     }
 
-    /// Sets `anchor_block_hash` and `anchor_epoch` from the given `anchor_block`.
+    /// Sets `anchor_block_hash` and `anchor_block_number` from the given `anchor_block`.
     ///
     /// The block header must be for an epoch block, i.e. its block number must be a multiple of
     /// 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`]. If this is not the case, the build will fail.
