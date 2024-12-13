@@ -2,11 +2,11 @@
 
 > The medium through which [Accounts](accounts.md) communicate in the Miden protocol
 
-## What is a Note?
+## What is a note?
 
 A note in Miden holds assets and defines how these assets can be consumed. The note model in Miden enables parallel transaction execution and privacy. 
 
-## Note Core Components
+## Note core components
 
 A `Note` is composed of several core components, illustrated below:
 
@@ -58,25 +58,25 @@ Notes include metadata such as the sender’s account ID and a [tag](#note-disco
 
 The note lifecycle proceeds through four primary phases: **creation**, **validation**, **discovery**, and **consumption**. Throughout this process, notes function as secure, privacy-preserving vehicles for asset transfers and logic execution.
 
-### Note Creation
+### Note creation
 
 Accounts can create notes in a transaction. The note exists if it is included in the global Notes DB.
 
 - **Users:** Executing local or network transactions.
 - **Miden operators:** Facilitating on-chain actions, e.g. such as executing user notes against a DEX or other contracts.
 
-#### Note Storage Mode
+#### Note storage mode
 
 As with [accounts](accounts.md), notes can be stored either publicly or privately:
 
 - **Public mode:** The note data is stored in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database), making it fully visible on-chain.
 - **Private mode:** Only the note’s hash is stored. The note’s actual data remains off-chain, enhancing privacy.
 
-#### Ephemeral notes
+#### Ephemeral note
 
 These use-case specific notes can be consumed even if not yet validated by being chained together into one final proof. This can allow for example sub second communication below blocktimes by adding additional trust assumptions.
 
-### Note Validation
+### Note validation
 
 Once created, a note must be validated by a Miden operator. Validation involves checking the transaction proof that produced the note to ensure it meets all protocol requirements.
 
@@ -85,13 +85,13 @@ Once created, a note must be validated by a Miden operator. Validation involves 
 
 After validation, notes become “live” and eligible for discovery and eventual consumption.
 
-### Note Discovery
+### Note discovery
 
 Clients often need to find specific notes of interest. Miden allows clients to query the note database using note tags. These lightweight, 32-bit tags serve as best-effort filters, enabling quick lookups for notes related to particular use cases, scripts, or account prefixes.
 
 Using note tags strikes a balance between privacy and efficiency. Without tags, querying a specific note ID reveals a user’s interest to the operator. Conversely, downloading and filtering all registered notes locally is highly inefficient. Tags allow users to adjust their level of privacy by choosing how broadly or narrowly they define their search criteria, letting them find the right balance between revealing too much information and incurring excessive computational overhead.
 
-### Note Consumption
+### Note consumption
 
 To consume a note, the consumer must know its data, including the inputs needed to compute the nullifier. Consumption occurs as part of a transaction. Upon successful consumption a nullifier is generated for the consumed notes.
 
@@ -100,7 +100,7 @@ Upon successful verification of the transaction:
 1. The Miden operator records the note’s nullifier as “consumed” in the nullifier database.
 2. The note’s one-time claim is thus extinguished, preventing reuse.
 
-#### Note Recipient - Restricting Consumption
+#### Note recipient - restricting consumption
 
 Consumption of a note can be restricted to certain accounts or entities. For instance, the P2ID and P2IDR note scripts target a specific account ID. Alternatively, Miden defines a `RECIPIENT` (represented as a `Word`) computed as:
 
@@ -114,7 +114,7 @@ The [transaction prologue](transactions/kernel.md) requires all necessary data t
 
 For a practical example, refer to the [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm), where the `RECIPIENT` ensures that only a defined target can consume the swapped asset.
 
-#### Note Nullifier - Ensuring Private Consumption
+#### Note nullifier - ensuring private consumption
 
 The note nullifier, computed as:
 
