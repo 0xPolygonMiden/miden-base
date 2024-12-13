@@ -6,7 +6,7 @@
 
 In Miden, an `Account` represents an entity capable of holding assets, storing data, and executing custom code. Each `Account` is essentially a specialized smart contract providing a programmable interface for interacting with its state and managed assets.
 
-### The Accounts Type
+### Account Type
 
 There are two main categories of accounts in Miden: **basic accounts** and **faucets**.
 
@@ -28,7 +28,7 @@ Type and mutability are encoded in the two most significant bits of the account'
 | **Code updatability**  | Yes           | No              | No              | No                  |
 | **Most significant bits** | `00`        | `01`            | `10`            | `11`                |
 
-### The Accounts Storage Mode
+### Account Storage Mode
 
 Users can choose whether their accounts are stored publicly or privately. The third and fourth most significant bits of the [ID](#id) encode this preference:
 
@@ -38,7 +38,7 @@ Users can choose whether their accounts are stored publicly or privately. The th
 - **Private Accounts:**  
   Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy and off-chain data management. To interact with a private account, a user must have knowledge of its interface.
 
-## The Accounts Core Components
+## Account Core Components
 
 An `Account` is composed of several core components, illustrated below:
 
@@ -100,7 +100,7 @@ Every Miden account is essentially a smart contract. The `Code` component define
 - **Mutable access:** Only the account’s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.  
 - **Note creation:** Account functions can generate new notes.
 
-## The Accounts Lifecycle
+## Account Lifecycle
 
 Throughout its lifetime, an `Account` progresses through various phases:
 
