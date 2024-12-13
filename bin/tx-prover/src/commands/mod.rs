@@ -9,9 +9,11 @@ use init::Init;
 use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use tracing::{debug, instrument};
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
+
+use crate::utils::TRACING_TARGET_NAME;
 
 pub mod init;
 pub mod proxy;
@@ -22,7 +24,7 @@ pub mod worker;
 ///
 /// It is stored in a TOML file, which will be created by the `init` command.
 /// It allows manual modification of the configuration file.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProxyConfig {
     /// List of workers used by the proxy.
     pub workers: Vec<WorkerConfig>,
@@ -116,7 +118,7 @@ impl ProxyConfig {
 }
 
 /// Configuration for a worker
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WorkerConfig {
     pub host: String,
     pub port: u16,
@@ -168,6 +170,7 @@ pub enum Command {
 
 /// CLI entry point
 impl Cli {
+    #[instrument(target = TRACING_TARGET_NAME, name = "cli:execute", skip_all, ret(level = "info"), err)]
     pub async fn execute(&self) -> Result<(), String> {
         match &self.action {
             // For the `StartWorker` command, we need to create a new runtime and run the worker

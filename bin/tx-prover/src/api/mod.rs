@@ -9,7 +9,9 @@ use miden_tx_prover::generated::{
 };
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
-use tracing::info;
+use tracing::{debug, info, instrument};
+
+use crate::utils::TRACING_TARGET_NAME;
 
 pub struct RpcListener {
     pub api_service: ApiServer<ProverRpcApi>,
@@ -30,10 +32,18 @@ pub struct ProverRpcApi {
 
 #[async_trait::async_trait]
 impl ProverApi for ProverRpcApi {
+    #[instrument(
+        target = TRACING_TARGET_NAME,
+        name = "prover:prove_transaction",
+        skip_all,
+        ret(level = "info"),
+        err
+    )]
     async fn prove_transaction(
         &self,
         request: Request<ProveTransactionRequest>,
     ) -> Result<Response<ProveTransactionResponse>, tonic::Status> {
+        debug!(request = ?request, "Processing reply");
         info!("Received request to prove transaction");
 
         // Try to acquire a permit without waiting
