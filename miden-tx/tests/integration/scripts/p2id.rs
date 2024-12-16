@@ -293,14 +293,6 @@ fn test_create_consume_multiple_notes() {
 
     account.apply_delta(executed_transaction.account_delta()).unwrap();
 
-    for asset in account.vault().assets() {
-        // Avoid using Asset::faucet_id since it only returns the prefix.
-        if let Asset::Fungible(fungible) = asset {
-            if fungible.faucet_id() == input_note_faucet_id {
-                assert!(asset.unwrap_fungible().amount() == 111);
-            } else if fungible.faucet_id() == FungibleAsset::mock_issuer() {
-                assert!(asset.unwrap_fungible().amount() == 5);
-            }
-        }
-    }
+    assert_eq!(account.vault().get_balance(input_note_faucet_id).unwrap(), 111);
+    assert_eq!(account.vault().get_balance(FungibleAsset::mock_issuer()).unwrap(), 5);
 }
