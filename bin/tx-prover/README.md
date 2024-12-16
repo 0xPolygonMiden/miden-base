@@ -110,19 +110,39 @@ The worker service implements the [gRPC Health Check](https://grpc.io/docs/guide
 
 The proxy service uses this health check to determine if a worker is available to receive requests. If a worker is not available, it will be removed from the set of workers that the proxy can use to send requests, and will persist this change in the configuration file.
 
-## Logging
+## Logging and Tracing
 
-Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
+The service uses the [`tracing`](https://docs.rs/tracing/latest/tracing/) crate for both logging and distributed tracing, providing structured, high-performance logs and trace data. By default, logs are written to `stdout`, and traces are exported to a Jaeger instance via OpenTelemetry.
 
-## Traces
+### Configuring Logging
 
-The service uses the `tracing` crate for structured logging and tracing. Traces are enabled by default, and uses opentelemetry to export traces to a Jaeger instance. The traces can be visualized using the Jaeger UI, which can be used by running:
+- **Default Log Level**: Both the worker and proxy use the `info` log level by default.
+- **Custom Log Levels**: You can configure log levels by setting the `RUST_LOG` environment variable. For example:
+    ```
+    export RUST_LOG=debug
+    ```
+- **Log Destination**: Logs are output to `stdout` by default.
+
+### Configuring Tracing
+
+- **Trace Exporter**: Traces are exported to a Jaeger instance using the OpenTelemetry protocol. The Jaeger instance can be run locally using Docker (see below).
+- **Trace Visualization**: Once traces are exported, they can be visualized in the Jaeger UI. You can access the Jaeger UI at `http://localhost:16686/` if running locally.
+
+### Running Jaeger with Docker
+
+To enable tracing and visualize traces, ensure you have [Docker](https://www.docker.com/) installed on your machine. Then, start a Jaeger instance using the following command:
 
 ```bash
 docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
 ```
 
-Then, you can access the Jaeger UI by opening `http://localhost:16686/` in your browser.
+- **Alternative Methods**: If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
+
+### How Tracing and Logging Work Together
+
+The service uses a single tracing subscriber configured in the `setup_tracing` function:
+- **Logging**: Logs are emitted to `stdout` in a human-readable format using the `tracing_subscriber::fmt` layer.
+- **Tracing**: Spans are exported to Jaeger for distributed tracing. The spans provide detailed information about operations across services and threads.
 
 ## Features
 
