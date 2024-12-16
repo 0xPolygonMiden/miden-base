@@ -9,7 +9,7 @@ use miden_tx_prover::generated::{
 };
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
-use tracing::{debug, info, instrument};
+use tracing::{info, instrument};
 
 use crate::utils::MIDEN_TX_PROVER;
 
