@@ -247,8 +247,8 @@ impl AccountId {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints are not met. See the type documentation for
-    /// details.
+    /// Returns an error if any of the ID constraints are not met. See the [type
+    /// documentation](AccountId) for details.
     pub fn new(
         seed: Word,
         anchor_epoch: u16,
@@ -278,8 +278,8 @@ impl AccountId {
     ///
     /// # Panics
     ///
-    /// If debug_assertions are enabled (e.g. in debug mode), this function panics if the given
-    /// felts are invalid according to the constraints in the [`AccountId`] documentation.
+    /// If debug_assertions are enabled (e.g. in debug mode), this function panics if any of the ID
+    /// constraints are not met. See the [type documentation](AccountId) for details.
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
         let first_felt = elements[0];
         let second_felt = elements[1];
@@ -512,8 +512,8 @@ impl TryFrom<[Felt; 2]> for AccountId {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints are not met. See the type documentation for
-    /// details.
+    /// Returns an error if any of the ID constraints are not met. See the [type
+    /// documentation](AccountId) for details.
     fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
         account_id_from_felts(elements)
     }
@@ -526,8 +526,8 @@ impl TryFrom<[u8; 15]> for AccountId {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints are not met. See the type documentation for
-    /// details.
+    /// Returns an error if any of the ID constraints are not met. See the [type
+    /// documentation](AccountId) for details.
     fn try_from(bytes: [u8; 15]) -> Result<Self, Self::Error> {
         // This slice has 8 bytes.
         let first_felt_slice = &bytes[..8];
@@ -555,8 +555,8 @@ impl TryFrom<u128> for AccountId {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints are not met. See the type documentation for
-    /// details.
+    /// Returns an error if any of the ID constraints are not met. See the [type
+    /// documentation](AccountId) for details.
     fn try_from(int: u128) -> Result<Self, Self::Error> {
         let little_endian_bytes = int.to_le_bytes();
         let mut bytes: [u8; 15] = [0; 15];
@@ -601,8 +601,8 @@ impl Deserializable for AccountId {
 ///
 /// # Errors
 ///
-/// Returns an error if any of the ID constraints are not met. See the type documentation for
-/// details.
+/// Returns an error if any of the ID constraints are not met. See the See the [type
+/// documentation](AccountId) for details.
 fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountError> {
     validate_first_felt(elements[0])?;
     validate_second_felt(elements[1])?;
