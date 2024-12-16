@@ -326,7 +326,11 @@ impl AccountId {
     ///   part to be used for the first and second felt, respectively.
     /// - The least significant byte of the first felt is set to the version 0, and the given type
     ///   and storage mode.
-    /// - The most significant bit in the first felt is cleared to ensure it is a valid felt.
+    /// - The 32nd most significant bit in the first felt is cleared to ensure it is a valid felt.
+    ///   The 32nd is chosen as it is the lowest bit that we can clear and still ensure felt
+    ///   validity. This leaves the upper 31 bits to be set by the input `bytes` which makes it
+    ///   simpler to create test values which more often need specific values for the most
+    ///   significant end of the ID.
     /// - In the second felt the anchor epoch is set to 0 and the lower 8 bits are cleared.
     #[cfg(any(feature = "testing", test))]
     pub fn new_dummy(
@@ -342,8 +346,8 @@ impl AccountId {
         // Set least significant byte.
         bytes[7] = low_nibble;
 
-        // Clear most significant bit.
-        bytes[0] &= 0b0111_1111;
+        // Clear the 32nd most significant bit.
+        bytes[3] &= 0b1111_1110;
 
         let first_felt_bytes =
             bytes[0..8].try_into().expect("we should have sliced off exactly 8 bytes");

@@ -36,15 +36,12 @@ pub fn build_swap_tag(
 ) -> Result<NoteTag, NoteError> {
     const SWAP_USE_CASE_ID: u16 = 0;
 
-    // Get bits 1..9 from the faucet IDs of both assets which will form the tag payload.
-    // The reason we skip the most significant bit is that it is always zero for all account IDs and
-    // thus doesn't add any value for matching faucet IDs.
-
+    // Get bits 0..8 from the faucet IDs of both assets which will form the tag payload.
     let offered_asset_id: u64 = offered_asset.faucet_id_prefix().into();
-    let offered_asset_tag = (offered_asset_id >> 55) as u8;
+    let offered_asset_tag = (offered_asset_id >> 56) as u8;
 
     let requested_asset_id: u64 = requested_asset.faucet_id_prefix().into();
-    let requested_asset_tag = (requested_asset_id >> 55) as u8;
+    let requested_asset_tag = (requested_asset_id >> 56) as u8;
 
     let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
 
@@ -67,16 +64,14 @@ mod tests {
 
     #[test]
     fn swap_tag() {
-        // Manually constructs an ID that starts with 0x7cb1.
-        // Note that this relies on the implementation details of AccountID::new_dummy.
+        // Construct an ID that starts with 0xcdb1.
         let mut fungible_faucet_id_bytes = [0; 15];
-        fungible_faucet_id_bytes[0] = 0x7c;
+        fungible_faucet_id_bytes[0] = 0xcd;
         fungible_faucet_id_bytes[1] = 0xb1;
 
-        // Manually constructs an ID that starts with 0x7dec.
-        // Note that this relies on the implementation details of AccountID::new_dummy.
+        // Construct an ID that starts with 0xabec.
         let mut non_fungible_faucet_id_bytes = [0; 15];
-        non_fungible_faucet_id_bytes[0] = 0x7d;
+        non_fungible_faucet_id_bytes[0] = 0xab;
         non_fungible_faucet_id_bytes[1] = 0xec;
 
         let offered_asset = Asset::Fungible(
@@ -107,12 +102,10 @@ mod tests {
             .unwrap(),
         );
 
-        // The fungible ID starts with 0x7cb1 = 0b01111100_10110001.
-        // The bits used for the tag are:          ^^^^^^^^^.
-        // The non fungible ID starts with 0x7dec = 0b01111101_11101100.
-        // The bits used for the tag are:              ^^^^^^^^^.
-        // The expected tag payload is thus 0xf9fb = 0b11111001_11111011.
-        let expected_tag_payload = 0xf9fb;
+        // The fungible ID starts with 0xcdb1.
+        // The non fungible ID starts with 0xabec.
+        // The expected tag payload is thus 0xcdab.
+        let expected_tag_payload = 0xcdab;
 
         let actual_tag =
             build_swap_tag(NoteType::Public, &offered_asset, &requested_asset).unwrap();
