@@ -44,11 +44,11 @@ An `Account` is composed of several core components, illustrated below:
 
 These components are:
 
-1. [ID](#id)  
-2. [Storage](#storage)  
-3. [Nonce](#nonce)  
-4. [Vault](#vault)  
-5. [Code](#code)
+1. [ID](#id)
+2. [Code](#code)
+3. [Storage](#storage)
+4. [Vault](#vault)
+5. [Nonce](#nonce)  
 
 ### ID
 
@@ -60,6 +60,16 @@ A 63-bit long number represents the account ID. It's four most significant bits 
 
 This encoding allows the ID to convey both the account’s unique identity and its operational settings.
 
+### Code
+
+> A collection of functions defining the `Account`’s programmable interface.
+
+Every Miden account is essentially a smart contract. The `Code` component defines the account’s functions, which can be invoked through both [Note scripts](notes.md#the-note-script) and transaction scripts. Key characteristics include:
+
+- **Mutable access:** Only the account’s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.  
+- **Function commitment:** Each function can be called by its [MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte hash. This ensures integrity, i.e., the caller calls what he expects.
+- **Note creation:** Account functions can generate new notes.
+
 ### Storage
 
 > A flexible, arbitrary data store within the `Account`.
@@ -69,27 +79,17 @@ The [storage](../../objects/src/accounts/storage/mod.rs) is divided into a maxim
 - **`StorageSlot::Value`:** Contains 32 bytes of arbitrary data.  
 - **`StorageSlot::Map`:** Contains a [StorageMap](../../objects/src/accounts/storage/map.rs), a key-value store where both keys and values are `Word`s. The slot's value is a commitment (hash) to the entire map.
 
-### Nonce
-
-> A counter incremented with each state update to the `Account`.
-
-The `nonce` enforces ordering and prevents replay attacks. It must strictly increase with every account state update. The increment must be less than `2^32` but always greater than the previous nonce, ensuring a well-defined sequence of state changes.
-
 ### Vault
 
 > A collection of [assets](assets.md) stored by the `Account`.
 
 Large amounts of fungible and non-fungible assets can be stored in the accounts vault.
 
-### Code
+### Nonce
 
-> A collection of functions defining the `Account`’s programmable interface.
+> A counter incremented with each state update to the `Account`.
 
-Every Miden account is essentially a smart contract. The `Code` component defines the account’s functions, which can be invoked through both [Note scripts](notes.md#the-note-script) and transaction scripts. Key characteristics include:
-
-- **Mutable access:** Only the account’s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.  
- - **Function commitment:** Each function can be called by its [MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte hash. This ensures integrity, i.e., the caller calls what he expects.
-- **Note creation:** Account functions can generate new notes.
+The `nonce` enforces ordering and prevents replay attacks. It must strictly increase with every account state update. The increment must be less than `2^32` but always greater than the previous nonce, ensuring a well-defined sequence of state changes.
 
 ## Account lifecycle
 
