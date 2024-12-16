@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_objects::{
-    accounts::{AccountId, AccountStorageMode, AccountType, AccountVersion},
+    accounts::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
     Digest,
 };
 
@@ -16,7 +16,7 @@ fn grind_account_seed(c: &mut Criterion) {
                 init_seed,
                 AccountType::RegularAccountImmutableCode,
                 AccountStorageMode::Public,
-                AccountVersion::VERSION_0,
+                AccountIdVersion::VERSION_0,
                 Digest::default(),
                 Digest::default(),
                 Digest::default(),
@@ -30,7 +30,7 @@ fn grind_account_seed(c: &mut Criterion) {
                 init_seed,
                 AccountType::FungibleFaucet,
                 AccountStorageMode::Public,
-                AccountVersion::VERSION_0,
+                AccountIdVersion::VERSION_0,
                 Digest::default(),
                 Digest::default(),
                 Digest::default(),

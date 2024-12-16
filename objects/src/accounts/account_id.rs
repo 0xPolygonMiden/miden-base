@@ -98,17 +98,17 @@ impl FromStr for AccountStorageMode {
 
 /// The version of an [`AccountId`].
 ///
-/// Each version has a public associated constant, e.g. [`AccountVersion::VERSION_0`].
+/// Each version has a public associated constant, e.g. [`AccountIdVersion::VERSION_0`].
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct AccountVersion(u8);
+pub struct AccountIdVersion(u8);
 
-impl AccountVersion {
+impl AccountIdVersion {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
 
     const VERSION_0_NUMBER: u8 = 0;
     /// Version 0 of the [`AccountId`].
-    pub const VERSION_0: AccountVersion = AccountVersion(Self::VERSION_0_NUMBER);
+    pub const VERSION_0: AccountIdVersion = AccountIdVersion(Self::VERSION_0_NUMBER);
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
@@ -315,7 +315,7 @@ impl AccountId {
         account_type: AccountType,
         storage_mode: AccountStorageMode,
     ) -> AccountId {
-        let version = AccountVersion::VERSION_0_NUMBER;
+        let version = AccountIdVersion::VERSION_0_NUMBER;
         let low_nibble = (storage_mode as u8) << Self::STORAGE_MODE_SHIFT
             | (account_type as u8) << Self::TYPE_SHIFT
             | version;
@@ -359,7 +359,7 @@ impl AccountId {
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
-        version: AccountVersion,
+        version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
         anchor_block_hash: Digest,
@@ -405,7 +405,7 @@ impl AccountId {
     }
 
     /// Returns the version of this account ID.
-    pub fn version(&self) -> AccountVersion {
+    pub fn version(&self) -> AccountIdVersion {
         extract_version(self.first_felt().as_int())
             .expect("account id should have been constructed with a valid version")
     }
@@ -617,7 +617,7 @@ fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountError>
 /// - has known values for metadata (storage mode, type and version).
 pub(super) fn validate_first_felt(
     first_felt: Felt,
-) -> Result<(AccountType, AccountStorageMode, AccountVersion), AccountError> {
+) -> Result<(AccountType, AccountStorageMode, AccountIdVersion), AccountError> {
     let first_felt = first_felt.as_int();
 
     // Validate storage bits.
@@ -662,11 +662,11 @@ pub(crate) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode
     }
 }
 
-pub(crate) fn extract_version(first_felt: u64) -> Result<AccountVersion, AccountError> {
+pub(crate) fn extract_version(first_felt: u64) -> Result<AccountIdVersion, AccountError> {
     let bits = first_felt & AccountId::VERSION_MASK;
     let version = bits.try_into().expect("TODO");
     match version {
-        AccountVersion::VERSION_0_NUMBER => Ok(AccountVersion::VERSION_0),
+        AccountIdVersion::VERSION_0_NUMBER => Ok(AccountIdVersion::VERSION_0),
         other => Err(AccountError::AssumptionViolated(format!(
             "TODO: Error. Unexpected version {other}"
         ))),
@@ -771,7 +771,7 @@ mod tests {
             [10; 32],
             AccountType::FungibleFaucet,
             AccountStorageMode::Public,
-            AccountVersion::VERSION_0,
+            AccountIdVersion::VERSION_0,
             code_commitment,
             storage_commitment,
             anchor_block_hash,
@@ -799,7 +799,7 @@ mod tests {
         let id1 = AccountId::new_unchecked([valid_first_felt, valid_second_felt]);
         assert_eq!(id1.account_type(), AccountType::RegularAccountImmutableCode);
         assert_eq!(id1.storage_mode(), AccountStorageMode::Public);
-        assert_eq!(id1.version(), AccountVersion::VERSION_0);
+        assert_eq!(id1.version(), AccountIdVersion::VERSION_0);
         assert_eq!(id1.anchor_epoch(), u16::MAX - 1);
     }
 
@@ -820,7 +820,7 @@ mod tests {
                     let id = AccountId::new_dummy(input, account_type, storage_mode);
                     assert_eq!(id.account_type(), account_type);
                     assert_eq!(id.storage_mode(), storage_mode);
-                    assert_eq!(id.version(), AccountVersion::VERSION_0);
+                    assert_eq!(id.version(), AccountIdVersion::VERSION_0);
                     assert_eq!(id.anchor_epoch(), 0);
 
                     // Do a serialization roundtrip to ensure validity.

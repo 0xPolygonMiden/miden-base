@@ -5,8 +5,8 @@ use vm_processor::Digest;
 
 use crate::{
     accounts::{
-        Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
-        AccountType, AccountVersion,
+        Account, AccountCode, AccountComponent, AccountId, AccountIdVersion, AccountStorage,
+        AccountStorageMode, AccountType,
     },
     assets::AssetVault,
     block::block_epoch_from_number,
@@ -25,7 +25,7 @@ use crate::{
 /// By default, the builder is initialized with:
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
-/// - The `version` set to [`AccountVersion::VERSION_0`].
+/// - The `version` set to [`AccountIdVersion::VERSION_0`].
 ///
 /// The methods that are required to be called are:
 ///
@@ -50,7 +50,7 @@ pub struct AccountBuilder {
     storage_mode: AccountStorageMode,
     anchor_block_hash: Digest,
     init_seed: Option<[u8; 32]>,
-    version: AccountVersion,
+    id_version: AccountIdVersion,
     // The builder takes the block number instead of the epoch so we can validate that a user did
     // pass an epoch block instead of just any block.
     anchor_block_number: Option<u32>,
@@ -67,7 +67,7 @@ impl AccountBuilder {
             anchor_block_hash: Digest::default(),
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
-            version: AccountVersion::VERSION_0,
+            id_version: AccountIdVersion::VERSION_0,
             anchor_block_number: None,
         }
     }
@@ -105,9 +105,9 @@ impl AccountBuilder {
         self
     }
 
-    /// Sets the [`AccountVersion`] of the account.
-    pub fn version(mut self, version: AccountVersion) -> Self {
-        self.version = version;
+    /// Sets the [`AccountIdVersion`] of the account ID.
+    pub fn version(mut self, version: AccountIdVersion) -> Self {
+        self.id_version = version;
         self
     }
 
@@ -176,7 +176,7 @@ impl AccountBuilder {
     fn grind_account_id(
         &self,
         init_seed: [u8; 32],
-        version: AccountVersion,
+        version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
         block_hash: Digest,
@@ -255,7 +255,7 @@ impl AccountBuilder {
 
         let seed = self.grind_account_id(
             init_seed,
-            self.version,
+            self.id_version,
             code.commitment(),
             storage.commitment(),
             self.anchor_block_hash,

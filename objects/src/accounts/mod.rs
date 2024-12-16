@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub mod account_id;
-pub use account_id::{AccountId, AccountStorageMode, AccountType, AccountVersion};
+pub use account_id::{AccountId, AccountIdVersion, AccountStorageMode, AccountType};
 
 mod account_id_prefix;
 pub use account_id_prefix::AccountIdPrefix;

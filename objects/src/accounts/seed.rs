@@ -11,7 +11,7 @@ use std::{
 use super::{
     account_id::compute_digest, AccountError, AccountStorageMode, AccountType, Digest, Felt, Word,
 };
-use crate::accounts::account_id::{validate_first_felt, AccountVersion};
+use crate::accounts::account_id::{validate_first_felt, AccountIdVersion};
 
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ pub fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    version: AccountVersion,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
     anchor_block_hash: Digest,
@@ -77,7 +77,7 @@ fn compute_account_seed_inner(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    version: AccountVersion,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
     anchor_block_hash: Digest,
@@ -135,7 +135,7 @@ pub fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    version: AccountVersion,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
     anchor_block_hash: Digest,
@@ -158,7 +158,7 @@ pub fn compute_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    version: AccountVersion,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
     anchor_block_hash: Digest,

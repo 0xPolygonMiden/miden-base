@@ -10,7 +10,9 @@ use vm_processor::DeserializationError;
 
 use super::account_id;
 use crate::{
-    accounts::{account_id::validate_first_felt, AccountStorageMode, AccountType, AccountVersion},
+    accounts::{
+        account_id::validate_first_felt, AccountIdVersion, AccountStorageMode, AccountType,
+    },
     AccountError,
 };
 
@@ -92,7 +94,7 @@ impl AccountIdPrefix {
     }
 
     /// Returns the version of this account ID.
-    pub fn version(&self) -> AccountVersion {
+    pub fn version(&self) -> AccountIdVersion {
         account_id::extract_version(self.first_felt.as_int())
             .expect("account id prefix should have been constructed with a valid version")
     }
@@ -236,7 +238,7 @@ mod tests {
                     let prefix = id.prefix();
                     assert_eq!(prefix.account_type(), account_type);
                     assert_eq!(prefix.storage_mode(), storage_mode);
-                    assert_eq!(prefix.version(), AccountVersion::VERSION_0);
+                    assert_eq!(prefix.version(), AccountIdVersion::VERSION_0);
 
                     // Do a serialization roundtrip to ensure validity.
                     let serialized_prefix = prefix.to_bytes();

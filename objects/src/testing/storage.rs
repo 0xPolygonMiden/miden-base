@@ -8,8 +8,8 @@ use vm_processor::Digest;
 use super::{constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word};
 use crate::{
     accounts::{
-        Account, AccountId, AccountStorage, AccountStorageDelta, AccountStorageMode, AccountType,
-        AccountVersion, StorageMap, StorageMapDelta, StorageSlot,
+        Account, AccountId, AccountIdVersion, AccountStorage, AccountStorageDelta,
+        AccountStorageMode, AccountType, StorageMap, StorageMapDelta, StorageSlot,
     },
     notes::NoteAssets,
     testing::account_id::{
@@ -206,7 +206,7 @@ pub fn generate_account_seed(
         init_seed,
         account_type,
         AccountStorageMode::Public,
-        AccountVersion::VERSION_0,
+        AccountIdVersion::VERSION_0,
         account.code().commitment(),
         account.storage().commitment(),
         anchor_block_header.hash(),

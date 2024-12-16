@@ -361,7 +361,7 @@ export.validate_id
     # ---------------------------------------------------------------------------------------------
 
     exec.id_version
-    # => [version, account_id_lo]
+    # => [id_version, account_id_lo]
     assertz.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
     # => [account_id_lo]
 
@@ -905,14 +905,14 @@ proc.id_anchor_epoch
   # => [anchor_epoch]
 end
 
-#! Extracts the version from the first felt of an account ID.
+#! Extracts the account ID version from the first felt of an account ID.
 #!
 #! Inputs:  [account_id_hi]
-#! Outputs: [version]
+#! Outputs: [id_version]
 #!
 #! Where:
 #! - account_id_hi is the first felt of an account ID.
-#! - version is the version number of the ID.
+#! - id_version is the version number of the ID.
 proc.id_version
   # extract the lower 32 bits
   u32split drop
@@ -920,7 +920,7 @@ proc.id_version
 
   # mask out the version
   u32and.ACCOUNT_VERSION_MASK_U32
-  # => [version]
+  # => [id_version]
 end
 
 # DATA LOADERS
