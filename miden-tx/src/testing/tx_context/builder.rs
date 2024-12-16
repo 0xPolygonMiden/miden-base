@@ -85,8 +85,7 @@ pub struct TransactionContextBuilder {
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
         Self {
-            assembler: TransactionKernel::testing_assembler_with_mock_account()
-                .with_debug_mode(true),
+            assembler: TransactionKernel::testing_assembler_with_mock_account(),
             account,
             account_seed: None,
             input_notes: Vec::new(),
