@@ -2,9 +2,13 @@
 
 > The medium through which [Accounts](accounts.md) communicate in the Miden protocol
 
+## What is the purpose of a note?
+
+In Miden's hybrid UTXO and account-based model notes represent UTXO's which enable parallel transaction execution and privacy through asynchronous local note production and consumption. 
+
 ## What is a note?
 
-A note in Miden holds assets and defines how these assets can be consumed. The note model in Miden enables parallel transaction execution and privacy. 
+A note in Miden holds assets and defines how these assets can be consumed.
 
 ## Note core components
 
