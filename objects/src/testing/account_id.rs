@@ -90,7 +90,7 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 /// then the layout of the generated ID will be:
 ///
 /// ```text
-/// 1st felt: [zero byte | 0xaa | 4 zero bytes | 0xbb | metadata byte]
+/// 1st felt: [0xaa | 5 zero bytes | 0xbb | metadata byte]
 /// 2nd felt: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
 /// ```
 pub const fn account_id<const CHECK_MIN_ONES: bool>(
@@ -110,7 +110,7 @@ pub const fn account_id<const CHECK_MIN_ONES: bool>(
     let random_2nd_felt_lower = random & 0x0000_00ff;
 
     // Shift the random part of the ID to start at the most significant end.
-    first_felt |= (random_1st_felt_upper as u64) << 24;
+    first_felt |= (random_1st_felt_upper as u64) << 32;
     first_felt |= (random_1st_felt_lower as u64) >> 8;
 
     let mut id = (first_felt as u128) << 64;
