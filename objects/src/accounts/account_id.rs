@@ -43,6 +43,18 @@ impl AccountType {
     }
 }
 
+impl From<AccountId> for AccountType {
+    fn from(id: AccountId) -> Self {
+        id.account_type()
+    }
+}
+
+impl From<AccountIdPrefix> for AccountType {
+    fn from(id_prefix: AccountIdPrefix) -> Self {
+        id_prefix.account_type()
+    }
+}
+
 // ACCOUNT STORAGE MODE
 // ================================================================================================
 
@@ -93,13 +105,25 @@ impl FromStr for AccountStorageMode {
     }
 }
 
-// ACCOUNT VERSION
+impl From<AccountId> for AccountStorageMode {
+    fn from(id: AccountId) -> Self {
+        id.storage_mode()
+    }
+}
+
+impl From<AccountIdPrefix> for AccountStorageMode {
+    fn from(id_prefix: AccountIdPrefix) -> Self {
+        id_prefix.storage_mode()
+    }
+}
+
+// ACCOUNT ID VERSION
 // ================================================================================================
 
 /// The version of an [`AccountId`].
 ///
 /// Each version has a public associated constant, e.g. [`AccountIdVersion::VERSION_0`].
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AccountIdVersion(u8);
 
 impl AccountIdVersion {
@@ -114,8 +138,26 @@ impl AccountIdVersion {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the version number.
-    pub const fn version_num(&self) -> u8 {
+    pub const fn as_u8(&self) -> u8 {
         self.0
+    }
+}
+
+impl From<AccountIdVersion> for u8 {
+    fn from(value: AccountIdVersion) -> Self {
+        value.as_u8()
+    }
+}
+
+impl From<AccountId> for AccountIdVersion {
+    fn from(id: AccountId) -> Self {
+        id.version()
+    }
+}
+
+impl From<AccountIdPrefix> for AccountIdVersion {
+    fn from(id_prefix: AccountIdPrefix) -> Self {
+        id_prefix.version()
     }
 }
 

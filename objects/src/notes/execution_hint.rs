@@ -205,7 +205,7 @@ impl From<NoteExecutionHint> for u64 {
     }
 }
 
-// BLOCK NUMBER
+// AFTER BLOCK NUMBER
 // ================================================================================================
 
 /// A wrapper around a block number which enforces that it is not `u32::MAX`.
