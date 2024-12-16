@@ -14,7 +14,6 @@ use pingora::{http::ResponseHeader, Error, ErrorType};
 use pingora_proxy::Session;
 use tonic::transport::Channel;
 use tonic_health::pb::health_client::HealthClient;
-use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
 
 pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
@@ -60,7 +59,7 @@ pub(crate) fn setup_tracing(provider: TracerProvider) -> Result<(), String> {
 
     let subscriber = Registry::default()
         .with(telemetry)
-        .with(tracing_subscriber::filter::LevelFilter::from_level(Level::INFO))
+        .with(tracing_subscriber::filter::EnvFilter::from_default_env())
         .with(tracing_subscriber::fmt::layer());
 
     tracing::subscriber::set_global_default(subscriber)
