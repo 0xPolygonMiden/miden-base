@@ -48,7 +48,19 @@ impl AccountIdPrefix {
     /// # Warning
     ///
     /// Validity of the ID prefix must be ensured by the caller. An invalid ID may lead to panics.
+    ///
+    /// # Panics
+    ///
+    /// If debug_assertions are enabled (e.g. in debug mode), this function panics if the given
+    /// felt is invalid according to the constraints in the
+    /// [`AccountId`](crate::accounts::AccountId) documentation.
     pub fn new_unchecked(first_felt: Felt) -> Self {
+        // Panic on invalid felts in debug mode.
+        if cfg!(debug_assertions) {
+            validate_first_felt(first_felt)
+                .expect("AccountIdPrefix::new_unchecked called with invalid first felt");
+        }
+
         AccountIdPrefix { first_felt }
     }
 

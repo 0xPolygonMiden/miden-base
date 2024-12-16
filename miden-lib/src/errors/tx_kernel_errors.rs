@@ -58,7 +58,7 @@ pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 0x00020003;
 
 pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x00020047;
 pub const ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN: u32 = 0x00020027;
-pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x00020024;
+pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x00020024;
 pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO: u32 = 0x00020025;
 pub const ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x0002004D;
 
@@ -163,7 +163,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 89] = [
 
     (ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, "Non-fungible asset that already exists in the note cannot be added again"),
     (ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN, "The origin of the non-fungible asset is not this faucet"),
-    (ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed non-fungible asset: ASSET[1] is not a valid non-fungible faucet id"),
+    (ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed non-fungible asset: ASSET[3] is not a valid non-fungible faucet id"),
     (ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO, "Malformed non-fungible asset: the most significant bit must be 0"),
     (ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "Failed to build the non-fungible asset because the provided faucet id is not from a non-fungible faucet"),
 

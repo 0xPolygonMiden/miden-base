@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Position of the faucet_id inside the [`NonFungibleAsset`] word.
-const FAUCET_ID_POS: usize = 1;
+const FAUCET_ID_POS: usize = 3;
 
 // NON-FUNGIBLE ASSET
 // ================================================================================================
@@ -21,11 +21,10 @@ const FAUCET_ID_POS: usize = 1;
 /// The commitment is constructed as follows:
 ///
 /// - Hash the asset data producing `[hash0, hash1, hash2, hash3]`.
-/// - Replace the value of `hash1` with the first felt of the faucet id (`faucet_id_hi`) producing
-///   `[hash0, faucet_id_hi, hash2, hash3]`.
-/// - Set the bit position of the faucet account type of `hash3` to be `0`. This is done to make
-///   assets distinguishable from their word layout. Fungible assets will have this bit set to `1`
-///   while non-fungible assets will have it set to `0`.
+/// - Replace the value of `hash3` with the first felt of the faucet id (`faucet_id_hi`) producing
+///   `[hash0, hash1, hash2, faucet_id_hi]`.
+/// - This layout ensures that fungible and non-fungible assets are distinguishable by interpreting
+///   the 3rd element of an asset as an [`AccountIdPrefix`] and checking its type.
 ///
 /// [`NonFungibleAsset`] itself does not contain the actual asset data. The container for this data
 /// is [`NonFungibleAssetDetails`].
@@ -77,36 +76,10 @@ impl NonFungibleAsset {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
             return Err(AssetError::NonFungibleFaucetIdTypeMismatch(faucet_id));
         }
-        data_hash[FAUCET_ID_POS] = faucet_id.into();
 
-        // Forces the bit at position `AccountId::IS_FAUCET_MASK` to `0`.
-        //
-        // Explanation of the bit flip:
-        //
-        // - We need to be able to determine the type of an asset by looking at some part of the
-        //   word layout.
-        // - Fungible assets have the first felt of an account id at word index 3. This means the
-        //   bit at the mask position of fungible_asset_word[3] is always 1.
-        // - Non-fungible assets have a data hash at word index 3 and we can set the bit at the mask
-        //   position to 0 explicitly.
-        // - This is necessary because non-fungible assets have the account id prefix at another
-        //   index.
-        // - This means that when looking at the bit at the mask position of an asset, fungible
-        //   assets will have a 1 bit and non-fungible assets will have a 0 bit.
-        //
-        // This is done as an optimization, since the field element at position `3` is used as the
-        // index when storing the assets into the asset vault. This strategy forces fungible
-        // assets to be assigned to the same slot because it uses the faucet's account id,
-        // and allows for easy merging of fungible assets. At the same time, it spreads the
-        // non-fungible assets evenly across the vault, because in this case the element is
-        // the result of a cryptographic hash function.
+        data_hash[FAUCET_ID_POS] = Felt::from(faucet_id);
 
-        let element3 = data_hash[3].as_int();
-        data_hash[3] = Felt::new((element3 & AccountId::IS_FAUCET_MASK) ^ element3);
-
-        let asset = Self(data_hash);
-
-        Ok(asset)
+        Ok(Self(data_hash))
     }
 
     /// Creates a new [NonFungibleAsset] without checking its validity.
@@ -120,8 +93,35 @@ impl NonFungibleAsset {
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the vault key of the [`NonFungibleAsset`].
+    ///
+    /// This is the same as the asset with the following modifications, in this order:
+    /// - Swaps the faucet ID at index 0 and `hash0` at index 3.
+    /// - Sets the fungible bit for `hash0` to `0`.
+    ///
+    /// # Rationale
+    ///
+    /// This means `hash0` will be used as the leaf index in the asset SMT which ensures that a
+    /// non-fungible faucet's assets generally end up in different leaves as the key is not based on
+    /// the faucet ID.
+    ///
+    /// It also ensures that there is never any collision in the leaf index between a non-fungible
+    /// asset and a fungible asset, as the former's vault key always has the fungible bit set to `0`
+    /// and the latter's vault key always has the bit set to `1`.
     pub fn vault_key(&self) -> Word {
-        self.0
+        let mut vault_key = self.0;
+
+        // Swap first felt of faucet ID with hash0.
+        vault_key.swap(0, 3);
+
+        // Set the fungible bit to zero by taking the bitwise `and` of the felt with the inverted
+        // is_faucet mask.
+        let clear_fungible_bit_mask = !AccountId::IS_FAUCET_MASK;
+        vault_key[3] = Felt::try_from(vault_key[3].as_int() & clear_fungible_bit_mask)
+            .expect("felt should still be valid as we cleared a bit and did not set any");
+
+        vault_key
     }
 
     /// Return ID of the faucet which issued this asset.
@@ -186,9 +186,9 @@ impl Serializable for NonFungibleAsset {
         // All assets should serialize their faucet ID at the first position to allow them to be
         // easily distinguishable during deserialization.
         target.write(self.0[FAUCET_ID_POS]);
-        target.write(self.0[0]);
         target.write(self.0[2]);
-        target.write(self.0[3]);
+        target.write(self.0[1]);
+        target.write(self.0[0]);
     }
 
     fn get_size_hint(&self) -> usize {
@@ -200,13 +200,13 @@ impl Deserializable for NonFungibleAsset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let faucet_id_prefix: AccountIdPrefix = source.read()?;
 
-        let hash_0: Felt = source.read()?;
         let hash_2: Felt = source.read()?;
-        let hash_3: Felt = source.read()?;
+        let hash_1: Felt = source.read()?;
+        let hash_0: Felt = source.read()?;
 
         // The second felt in the data_hash will be replaced by the faucet id, so we can set it to
         // zero here.
-        NonFungibleAsset::from_parts(faucet_id_prefix, [hash_0, Felt::ZERO, hash_2, hash_3])
+        NonFungibleAsset::from_parts(faucet_id_prefix, [hash_0, hash_1, hash_2, Felt::ZERO])
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }

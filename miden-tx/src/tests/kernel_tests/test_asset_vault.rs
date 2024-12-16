@@ -108,7 +108,7 @@ fn test_has_non_fungible_asset() {
             swap drop
         end
         ",
-        non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
+        non_fungible_asset_key = prepare_word(&non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code).unwrap();

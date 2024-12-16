@@ -31,6 +31,12 @@ const.ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID=0x0002001E
 # Failed to remove non-existent non-fungible asset from the vault
 const.ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND=0x0002001F
 
+# CONSTANTS
+# =================================================================================================
+
+# The bitmask that when applied will set the fungible bit to zero.
+const.INVERSE_FUNGIBLE_BITMASK_U32=0xffffffdf # last byte: 0b1101_1111
+
 # ACCESSORS
 # =================================================================================================
 
@@ -87,15 +93,19 @@ export.has_non_fungible_asset
     assert.err=ERR_VAULT_HAS_NON_FUNGIBLE_ASSET_PROC_CAN_BE_CALLED_ONLY_WITH_NON_FUNGIBLE_ASSET
     # => [ASSET, vault_root_ptr]
 
+    # build the asset key from the non-fungible asset
+    exec.build_non_fungible_asset_vault_key
+    # => [ASSET_KEY, vault_root_ptr]
+
     # prepare the stack to read non-fungible asset from vault
     padw movup.8 mem_loadw swapw
-    # => [ASSET, ACCT_VAULT_ROOT]
+    # => [ASSET_KEY, ACCT_VAULT_ROOT]
 
     # lookup asset
     exec.smt::get swapw dropw
     # => [ASSET]
 
-    # compare with EMPTY_WORD to asses if the asset exists in the vault
+    # compare with EMPTY_WORD to assess if the asset exists in the vault
     padw eqw not
     # => [has_asset, PAD, ASSET]
 
@@ -211,15 +221,27 @@ end
 #! Panics if:
 #! - the vault already contains the same non-fungible asset.
 export.add_non_fungible_asset
-    # prepare the stack to insert the asset into the vault
-    dup.4 movdn.5 dupw padw movup.12 mem_loadw swapw dupw
-    # => [ASSET, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]
+    # Build the asset key from the non-fungible asset.
+    # ---------------------------------------------------------------------------------------------
+
+    dupw exec.build_non_fungible_asset_vault_key
+    # => [ASSET_KEY, ASSET, vault_root_ptr]
+
+    # Load VAULT_ROOT and insert asset.
+    # ---------------------------------------------------------------------------------------------
+
+    padw dup.12
+    # => [vault_root_ptr, pad(4), ASSET_KEY, ASSET, vault_root_ptr]
+    mem_loadw swapw
+    # => [ASSET_KEY, VAULT_ROOT, ASSET, vault_root_ptr]
+    dupw.2
+    # => [ASSET, ASSET_KEY, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # insert asset into vault
     exec.smt::set
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
-    # Assert old value was empty
+    # assert old value was empty
     padw assert_eqw.err=ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
@@ -344,17 +366,24 @@ end
 #! Panics if:
 #! - the non-fungible asset is not found in the vault.
 export.remove_non_fungible_asset
-    # prepare the stack to insert an EMPTY_WORD into the vault at key associated with the
-    # non-fungible asset
-    dup.4 movdn.5 dupw padw movup.12 mem_loadw swapw padw
-    # => [EMPTY_WORD, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]
+    # build non-fungible asset key
+    dupw exec.build_non_fungible_asset_vault_key padw
+    # => [pad(4), ASSET_KEY, ASSET, vault_root_ptr]
+
+    # load vault root
+    dup.12 mem_loadw
+    # => [VAULT_ROOT, ASSET_KEY, ASSET, vault_root_ptr]
+
+    # prepare insertion of an EMPTY_WORD into the vault at the asset key to remove the asset
+    swapw padw
+    # => [EMPTY_WORD, ASSET_KEY, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # update asset in vault
     exec.smt::set
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
-    # Assert old value was not empty (we only need to check ASSET[1] which is the faucet id)
-    drop drop eq.0 assertz.err=ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND drop
+    # assert old value was not empty (we only need to check ASSET[3] which is the faucet id)
+    eq.0 assertz.err=ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND drop drop drop
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
@@ -388,4 +417,38 @@ export.remove_asset
         exec.remove_non_fungible_asset
         # => [ASSET]
     end
+end
+
+# HELPER PROCEDURES
+# =================================================================================================
+
+#! Builds the vault key of a non fungible asset. The asset is NOT validated and therefore must
+#! be a valid non-fungible asset.
+#!
+#! Inputs:  [ASSET]
+#! Outputs: [ASSET_KEY]
+#!
+#! Where:
+#! - ASSET is the non-fungible asset for which the vault key is built.
+#! - ASSET_KEY is the vault key of the non-fungible asset.
+proc.build_non_fungible_asset_vault_key
+    # Create the asset key from the non-fungible asset.
+    # ---------------------------------------------------------------------------------------------
+
+    # swap hash0 with faucet id
+    # => [faucet_id_hi, hash2, hash1, hash0]
+    swap.3
+    # => [hash0, hash2, hash1 faucet_id_hi]
+
+    # disassemble hash0 into u32 limbs
+    u32split swap
+    # => [hash0_lo, hash0_hi, hash2, hash1 faucet_id_hi]
+
+    # set the fungible bit to 0
+    u32and.INVERSE_FUNGIBLE_BITMASK_U32
+    # => [hash0_lo', hash0_hi, hash2, hash1 faucet_id_hi]
+
+    # reassemble hash0 felt by multiplying the high part with 2^32 and adding the lo part
+    swap push.0x0100000000 mul add
+    # => [ASSET_KEY]
 end

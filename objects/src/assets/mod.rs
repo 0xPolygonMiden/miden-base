@@ -5,7 +5,7 @@ use super::{
 };
 use crate::accounts::{
     account_id::{self},
-    AccountId, AccountIdPrefix,
+    AccountIdPrefix,
 };
 
 mod fungible;
@@ -107,7 +107,8 @@ impl Asset {
 
     /// Returns the prefix of the faucet ID which issued this asset.
     ///
-    /// To get the full [`AccountId`] of a fungible asset the asset must be matched on.
+    /// To get the full [`AccountId`](crate::accounts::AccountId  ) of a fungible asset the asset must
+    /// be matched on.
     pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         match self {
             Self::Fungible(asset) => asset.faucet_id().prefix(),
@@ -226,9 +227,17 @@ impl Deserializable for Asset {
 /// Note: this does not mean that the word is a fungible asset as the word may contain a value
 /// which is not a valid asset.
 fn is_not_a_non_fungible_asset(asset: Word) -> bool {
-    // For fungible assets, the position `3` contains the faucet's account id, in which case the
-    // bit is set. Non-fungible assets by construction have the bit set to `0`.
-    (asset[3].as_int() & AccountId::IS_FAUCET_MASK) == AccountId::IS_FAUCET_MASK
+    match AccountIdPrefix::try_from(asset[3]) {
+        Ok(prefix) => {
+            matches!(prefix.account_type(), AccountType::FungibleFaucet)
+        },
+        Err(err) => {
+            #[cfg(debug_assertions)]
+            panic!("invalid account id prefix passed to is_not_a_non_fungible_asset: {err}");
+            #[cfg(not(debug_assertions))]
+            false
+        },
+    }
 }
 
 // TESTS

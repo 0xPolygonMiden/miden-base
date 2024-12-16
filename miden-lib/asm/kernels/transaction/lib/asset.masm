@@ -12,8 +12,8 @@ const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
 # Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount
 const.ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS=0x00020023
 
-# Malformed non-fungible asset: ASSET[1] is not a valid non-fungible faucet id
-const.ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020024
+# Malformed non-fungible asset: ASSET[3] is not a valid non-fungible faucet id
+const.ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID=0x00020024
 
 # Malformed non-fungible asset: the most significant bit must be 0
 const.ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO=0x00020025
@@ -28,9 +28,6 @@ const.ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020027
 # =================================================================================================
 
 const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
-
-# The asset type can be determined from the 6th bit of the most significant element of an asset.
-const.FUNGIBLE_BITMASK_U32=0x20 # 0b10_0000
 
 #! Returns the maximum amount of a fungible asset.
 #!
@@ -104,19 +101,14 @@ end
 #! Panics if:
 #! - the asset is not well formed.
 export.validate_non_fungible_asset
-    # assert that ASSET[1] is a valid account id prefix
+    # assert that ASSET[3] is a valid account id prefix
     # hack: because we only have the first felt we add a 0 as the second felt which is always valid
-    push.0 dup.3 exec.account::validate_id
+    push.0 dup.1 exec.account::validate_id
     # => [ASSET]
 
-    # assert that ASSET[1] is a non fungible faucet
-    dup.2 exec.account::is_non_fungible_faucet
-    assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_FUNGIBLE_FAUCET_ID
-    # => [ASSET]
-
-    # assert the fungible bit is set to 0
-    dup u32split drop u32and.FUNGIBLE_BITMASK_U32
-    assertz.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO
+    # assert that the account ID prefix ASSET[3] is of type non fungible faucet
+    dup exec.account::is_non_fungible_faucet
+    assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 end
 
@@ -192,7 +184,7 @@ end
 #! - ASSET is the asset to validate.
 export.validate_non_fungible_asset_origin
     # assert the origin of the asset is the faucet_id prefix provided via the stack
-    dup.3 assert_eq.err=ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
+    dup.1 assert_eq.err=ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the non-fungible asset is valid

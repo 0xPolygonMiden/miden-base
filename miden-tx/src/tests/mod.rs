@@ -478,7 +478,7 @@ fn test_send_note_proc() {
         vec![removed_asset_1, removed_asset_2, removed_asset_3],
     ];
 
-    for removed_assets in assets_matrix {
+    for (idx, removed_assets) in assets_matrix.into_iter().enumerate() {
         // Prepare the string containing the procedures required for adding assets to the note.
         // Depending on the number of the assets to remove, the resulting string will be extended
         // with the corresponding number of procedure "blocks"
@@ -562,8 +562,9 @@ fn test_send_note_proc() {
         // expected delta
         // --------------------------------------------------------------------------------------------
         // execute the transaction and get the witness
-        let executed_transaction =
-            executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+        let executed_transaction = executor
+            .execute_transaction(account_id, block_ref, &note_ids, tx_args)
+            .unwrap_or_else(|_| panic!("test failed in iteration {idx}"));
 
         // nonce delta
         // --------------------------------------------------------------------------------------------

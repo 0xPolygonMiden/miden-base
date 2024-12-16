@@ -8,13 +8,13 @@ use miden_objects::{digest, Digest};
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // account_vault_add_asset
-    digest!("0x243ac74e272651cc285b4728d43f4aef680729c8f307af46a87e4dabf53dffa2"),
+    digest!("0x88b15f96c05351ecd320b136fb9f082535e1d493b9d6ddbf1851d49ee02db677"),
     // account_vault_get_balance
     digest!("0xbe5819bf5aabf1a7c9d8ebfc330a7869f610ca4f86e3708265d8d361b5b82f14"),
     // account_vault_has_non_fungible_asset
-    digest!("0x7144f9ac1df4c4c90b770891e1665d25a819ea026227a7d143ab89b89991bc14"),
+    digest!("0xce07ab13a9320a39642412ee6673eeee228a0173e00047c8b05bc259343b209a"),
     // account_vault_remove_asset
-    digest!("0xba1814cd33cbd3504803d8d11c075775f0cb4a2fb959bf15214ad9ce708db3e5"),
+    digest!("0x80c0cdf81ff7f845ee45a6473627611e1b251b3c8368c3764cdc8d48f2e7b806"),
     // get_account_id
     digest!("0x3bf92554d4eb6cd8def4ab6ee00deb94840bc68bd1ea5c270dd240a3e0a9de3b"),
     // get_account_item
@@ -38,13 +38,13 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // set_account_map_item
     digest!("0x02befd8e777bacc5f4c3b14267b7e5558c9557d82970e74612c5aa6d7febf9c2"),
     // burn_asset
-    digest!("0x520411087402a2887a768777e274988a9468f8846808404502588739b2e18512"),
+    digest!("0x9df67ac813e88de3458a656e30198fa31b1e5988355da9f4531af93621cc7242"),
     // get_fungible_faucet_total_issuance
     digest!("0xe56c3538757d5e2cee385028a5ba4e78eca3982698a4e6a3d5ddb17ea59fc13a"),
     // mint_asset
-    digest!("0x963561b4fbb6588063782ba91f49d30d581efcd49f2f604a8d978c98f364b878"),
+    digest!("0x17963d842f2b9749af27d68d6962ca60344cde443930ba790d561c56546a334c"),
     // add_asset_to_note
-    digest!("0x7e7f835a2e74e4f4f48a6e9a22edd7cd47c784565765d748ff528755b371effa"),
+    digest!("0xf72141eb3e07bc175312b1db97b488d3d73820f36fd2fef67157b6193a21d873"),
     // create_note
     digest!("0x1f4f867434fc2704a16a15edd783f3825b1b5d932e04412b46eee3c85adcf1d2"),
     // get_input_notes_commitment
