@@ -202,7 +202,7 @@ pub fn generate_account_seed(
         ),
     };
 
-    let seed = AccountId::get_account_seed(
+    let seed = AccountId::compute_account_seed(
         init_seed,
         account_type,
         AccountStorageMode::Public,

@@ -391,7 +391,7 @@ impl AccountId {
     ///
     /// The grinding process is started from the given `init_seed` which should be a random seed
     /// generated from a cryptographically secure source.
-    pub fn get_account_seed(
+    pub fn compute_account_seed(
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
@@ -400,7 +400,7 @@ impl AccountId {
         storage_commitment: Digest,
         anchor_block_hash: Digest,
     ) -> Result<Word, AccountError> {
-        crate::accounts::seed::get_account_seed(
+        crate::accounts::seed::compute_account_seed(
             init_seed,
             account_type,
             storage_mode,
@@ -803,7 +803,7 @@ mod tests {
         let storage_commitment: Digest = Digest::default();
         let anchor_block_hash: Digest = Digest::default();
 
-        let seed = AccountId::get_account_seed(
+        let seed = AccountId::compute_account_seed(
             [10; 32],
             AccountType::FungibleFaucet,
             AccountStorageMode::Public,

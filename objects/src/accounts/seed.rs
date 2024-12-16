@@ -19,7 +19,7 @@ use crate::accounts::account_id::{validate_first_felt, AccountVersion};
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
 /// using the provided initial seed as a starting point. Using multi-threading.
 #[cfg(feature = "concurrent")]
-pub fn get_account_seed(
+pub fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
@@ -39,7 +39,7 @@ pub fn get_account_seed(
         let mut init_seed = init_seed;
         init_seed[0] = init_seed[0].wrapping_add(count as u8);
         spawn(move || {
-            get_account_seed_inner(
+            compute_account_seed_inner(
                 send,
                 stop,
                 init_seed,
@@ -71,7 +71,7 @@ pub fn get_account_seed(
 
 #[cfg(feature = "concurrent")]
 #[allow(clippy::too_many_arguments)]
-fn get_account_seed_inner(
+fn compute_account_seed_inner(
     send: Sender<(Digest, Word)>,
     stop: Arc<RwLock<bool>>,
     init_seed: [u8; 32],
@@ -131,7 +131,7 @@ fn get_account_seed_inner(
 }
 
 #[cfg(not(feature = "concurrent"))]
-pub fn get_account_seed(
+pub fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
@@ -140,7 +140,7 @@ pub fn get_account_seed(
     storage_commitment: Digest,
     anchor_block_hash: Digest,
 ) -> Result<Word, AccountError> {
-    get_account_seed_single(
+    compute_account_seed_single(
         init_seed,
         account_type,
         storage_mode,
@@ -154,7 +154,7 @@ pub fn get_account_seed(
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
 /// using the provided initial seed as a starting point. Using a single thread.
 #[cfg(not(feature = "concurrent"))]
-pub fn get_account_seed_single(
+pub fn compute_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,

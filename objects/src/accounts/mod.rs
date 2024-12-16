@@ -30,7 +30,7 @@ pub use delta::{
 };
 
 mod seed;
-pub use seed::get_account_seed;
+pub use seed::compute_account_seed;
 
 mod storage;
 pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};

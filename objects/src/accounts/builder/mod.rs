@@ -181,7 +181,7 @@ impl AccountBuilder {
         storage_commitment: Digest,
         block_hash: Digest,
     ) -> Result<Word, AccountError> {
-        let seed = AccountId::get_account_seed(
+        let seed = AccountId::compute_account_seed(
             init_seed,
             self.account_type,
             self.storage_mode,

@@ -12,7 +12,7 @@ fn grind_account_seed(c: &mut Criterion) {
 
     c.bench_function("Grind regular on-chain account seed", |bench| {
         bench.iter(|| {
-            AccountId::get_account_seed(
+            AccountId::compute_account_seed(
                 init_seed,
                 AccountType::RegularAccountImmutableCode,
                 AccountStorageMode::Public,
@@ -26,7 +26,7 @@ fn grind_account_seed(c: &mut Criterion) {
 
     c.bench_function("Grind fungible faucet on-chain account seed", |bench| {
         bench.iter(|| {
-            AccountId::get_account_seed(
+            AccountId::compute_account_seed(
                 init_seed,
                 AccountType::FungibleFaucet,
                 AccountStorageMode::Public,
