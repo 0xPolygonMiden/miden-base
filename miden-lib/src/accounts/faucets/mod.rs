@@ -17,7 +17,7 @@ use crate::accounts::{auth::RpoFalcon512, components::basic_fungible_faucet_libr
 /// An [`AccountComponent`] implementing a basic fungible faucet.
 ///
 /// Its exported procedures are:
-/// - `distribute`, which mints an assets and create a note for the provided recipient.
+/// - `distribute`, which mints assets and creates a note for the provided recipient.
 /// - `burn`, which burns the provided asset.
 ///
 /// `distribute` requires authentication while `burn` does not require authentication and can be
@@ -69,11 +69,11 @@ const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
 const MAX_DECIMALS: u8 = 12;
 
 /// Creates a new faucet account with basic fungible faucet interface,
-/// account storage type, specified authentication scheme, and provided meta data (token symbol,
+/// account storage type, specified authentication scheme, and provided metadata (token symbol,
 /// decimals, max supply).
 ///
 /// The basic faucet interface exposes two procedures:
-/// - `distribute`, which mints an assets and create a note for the provided recipient.
+/// - `distribute`, which mints assets and creates a note for the provided recipient.
 /// - `burn`, which burns the provided asset.
 ///
 /// `distribute` requires authentication. The authentication procedure is defined by the specified
@@ -91,7 +91,7 @@ pub fn create_basic_fungible_faucet(
     account_storage_mode: AccountStorageMode,
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
-    // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
+    // Atm we only have RpoFalcon512 as the authentication scheme and this is also the default in the
     // faucet contract.
     let auth_component: RpoFalcon512 = match auth_scheme {
         AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key),
@@ -148,7 +148,7 @@ mod tests {
         // The reserved faucet slot should be initialized to an empty word.
         assert_eq!(faucet_account.storage().get_item(0).unwrap(), Word::default().into());
 
-        // The falcon auth component is added first so its assigned storage slot for the public key
+        // The falcon auth component is added first so it assigned a storage slot for the public key
         // will be 1.
         assert_eq!(faucet_account.storage().get_item(1).unwrap(), Word::from(pub_key).into());
 
