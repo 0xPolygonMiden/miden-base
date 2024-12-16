@@ -28,13 +28,18 @@ pub use vault::AssetVault;
 /// All assets are encoded using a single word (4 elements) such that it is easy to determine the
 /// type of an asset both inside and outside Miden VM. Specifically:
 ///
-/// Element 1 will be:
+/// Element 1 of the asset will be:
 /// - ZERO for a fungible asset.
 /// - non-ZERO for a non-fungible asset.
 ///
-/// The 3rd most significant bit will be:
-/// - 1 for a fungible asset.
-/// - 0 for a non-fungible asset.
+/// Element 3 of both asset types is an [`AccountIdPrefix`] or equivalently, the first felt of an
+/// [`AccountId`](crate::accounts::AccountId), which can be used to distinguish assets
+/// based on [`AccountIdPrefix::account_type`].
+///
+/// For element 3 of the vault keys of assets, the 6th least significant bit (referred to as the
+/// "fungible bit" will be):
+/// - `1` for a fungible asset.
+/// - `0` for a non-fungible asset.
 ///
 /// The above properties guarantee that there can never be a collision between a fungible and a
 /// non-fungible asset.
@@ -42,8 +47,13 @@ pub use vault::AssetVault;
 /// The methodology for constructing fungible and non-fungible assets is described below.
 ///
 /// # Fungible assets
-/// The most significant element of a fungible asset is set to the ID of the faucet which issued
-/// the asset. This guarantees the properties described above (the 3rd most significant bit is ONE).
+///
+/// - A fungible asset's data layout is: `[amount, 0, faucet_id_lo, faucet_id_hi]`.
+/// - A fungible asset's vault key layout is: `[0, 0, faucet_id_lo, faucet_id_hi]`.
+///
+/// The most significant elements of a fungible asset are set to the first (`faucet_id_hi`) and
+/// second felt (`faucet_id_lo`) of the ID of the faucet which issues the asset. This guarantees the
+/// properties described above (the fungible bit is `1`).
 ///
 /// The least significant element is set to the amount of the asset. This amount cannot be greater
 /// than 2^63 - 1 and thus requires 63-bits to store.
@@ -55,11 +65,17 @@ pub use vault::AssetVault;
 /// for each faucet as per the faucet creation logic.
 ///
 /// # Non-fungible assets
+///
+/// - A non-fungible asset's data layout is: `[hash0, hash1, hash2, faucet_id_hi]`.
+/// - A non-fungible asset's vault key layout is: `[faucet_id_hi, hash1, hash2, hash0']`, where
+/// `hash0'` is equivalent to `hash0` with the fungible bit set to `0`. See
+/// [`NonFungibleAsset::vault_key`] for more details.
+///
 /// The 4 elements of non-fungible assets are computed as follows:
 /// - First the asset data is hashed. This compresses an asset of an arbitrary length to 4 field
-///   elements: [d0, d1, d2, d3].
-/// - d1 is then replaced with the faucet_id which issues the asset: [d0, faucet_id, d2, d3].
-/// - Lastly, the 3rd most significant bit of d3 is set to ZERO.
+///   elements: `[hash0, hash1, hash2, hash3]`.
+/// - `hash3` is then replaced with the first felt of the faucet ID (`faucet_id_hi`) which issues
+///   the asset: `[hash0, hash1, hash2, faucet_id_hi]`.
 ///
 /// It is impossible to find a collision between two non-fungible assets issued by different faucets
 /// as the faucet_id is included in the description of the non-fungible asset and this is guaranteed
@@ -107,8 +123,8 @@ impl Asset {
 
     /// Returns the prefix of the faucet ID which issued this asset.
     ///
-    /// To get the full [`AccountId`](crate::accounts::AccountId  ) of a fungible asset the asset must
-    /// be matched on.
+    /// To get the full [`AccountId`](crate::accounts::AccountId  ) of a fungible asset the asset
+    /// must be matched on.
     pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         match self {
             Self::Fungible(asset) => asset.faucet_id().prefix(),
