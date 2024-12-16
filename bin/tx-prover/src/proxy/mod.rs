@@ -103,9 +103,9 @@ pub struct TriesCounter {
 /// - Next, the [Self::upstream_peer()] method is called. We use it to figure out which worker will
 ///   process the request. Inside `upstream_peer()`, we pick a worker in a round-robin fashion and
 ///   add the request to the queue of requests for that worker. Once the request gets to the front
-///   of the queue, we forward it to the worker. This step is also in charge of assinging the
+///   of the queue, we forward it to the worker. This step is also in charge of assigning the
 ///   timeouts and enabling HTTP/2. Finally, we establish a connection with the worker.
-/// - Before sending the request to the upstream server and if the connection succeed, the
+/// - Before sending the request to the upstream server and if the connection succeeds, the
 ///   [Self::upstream_request_filter()] method is called. In this method, we ensure that the correct
 ///   headers are forwarded for gRPC requests.
 /// - If the connection fails, the [Self::fail_to_connect()] method is called. In this method, we

@@ -34,7 +34,7 @@ pub fn get_falcon_signature<R: Rng>(
     let nonce = sig.nonce();
     // We convert the signature to a polynomial
     let s2 = sig.sig_poly();
-    // We also need in the VM the expanded key corresponding to the public key the was provided
+    // We also need in the VM the expanded key corresponding to the public key that was provided
     // via the operand stack
     let h = key.compute_pub_key_poly().0;
     // Lastly, for the probabilistic product routine that is part of the verification procedure,
