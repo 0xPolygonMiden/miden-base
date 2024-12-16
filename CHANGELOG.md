@@ -4,6 +4,7 @@
 
 ### Changes
 
+- Removed workers list from the proxy configuration file (#1018).
 - Added health check endpoints to the prover service (#1006).
 - Implemented serialization for `AccountHeader` (#996).
 - Updated Pingora crates to 0.4 and added polling time to the configuration file (#997).
