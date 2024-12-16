@@ -1,9 +1,6 @@
-use miden_lib::{
-    errors::tx_kernel_errors::ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES,
-    transaction::{
-        memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
-        TransactionKernel,
-    },
+use miden_lib::transaction::{
+    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
+    TransactionKernel,
 };
 use miden_objects::{
     accounts::{
@@ -14,8 +11,7 @@ use miden_objects::{
     testing::{
         account_component::AccountMockComponent,
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
@@ -30,7 +26,6 @@ use vm_processor::{Digest, MemAdviceProvider, ProcessState};
 
 use super::{Felt, StackInputs, Word, ONE, ZERO};
 use crate::{
-    assert_execution_error,
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
 };
@@ -168,28 +163,6 @@ pub fn test_account_type() {
 
         assert!(has_type, "missing test for type {:?}", expected_type);
     }
-}
-
-#[test]
-fn test_validate_id_fails_on_insufficient_ones() {
-    // Split account ID into u64 limbs manually since we can't use AccountId constructors.
-    let second_felt = ACCOUNT_ID_INSUFFICIENT_ONES % (1u128 << 64);
-    let first_felt = ACCOUNT_ID_INSUFFICIENT_ONES / (1u128 << 64);
-
-    let code = format!(
-        "
-        use.kernel::account
-
-        begin
-            push.{second_felt}.{first_felt}
-            exec.account::validate_id
-        end
-        "
-    );
-
-    let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
-
-    assert_execution_error!(result, ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES);
 }
 
 #[test]

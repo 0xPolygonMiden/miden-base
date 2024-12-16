@@ -494,6 +494,8 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 
 /// Tests that a valid account of each type can be created successfully with an epoch block whose
 /// number is non-zero used as the anchor block for the account IDs.
+///
+/// Note that this test is very slow in debug mode.
 #[test]
 pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();

@@ -60,8 +60,6 @@ pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u128 =
     account_id::<true>(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
 
 // NON-FUNGIBLE TOKENS - OFF-CHAIN
-pub const ACCOUNT_ID_INSUFFICIENT_ONES: u128 =
-    account_id::<false>(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0000_0000); // invalid
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u128 =
     account_id::<true>(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0xaabc_ccde);
 // NON-FUNGIBLE TOKENS - ON-CHAIN
@@ -86,8 +84,6 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 ///
 /// - Version is set to 0.
 /// - Anchor epoch is set to 0.
-/// - If `CHECK_MIN_ONES` is `true` the function checks if the resulting value satisfies
-///   [`AccountId::MIN_ACCOUNT_ONES`].
 ///
 /// Finally, distributes the given `random` value over the ID to produce non-trivial values for
 /// testing. This is easiest explained with an example. Suppose `random` is `0xaabb_ccdd`,
@@ -121,13 +117,6 @@ pub const fn account_id<const CHECK_MIN_ONES: bool>(
 
     id |= (random_2nd_felt_upper as u128) << 32;
     id |= (random_2nd_felt_lower as u128) << 8;
-
-    if CHECK_MIN_ONES {
-        debug_assert!(
-            random_1st_felt_upper.count_ones() + random_1st_felt_lower.count_ones()
-                >= AccountId::MIN_ACCOUNT_ONES
-        );
-    }
 
     id
 }

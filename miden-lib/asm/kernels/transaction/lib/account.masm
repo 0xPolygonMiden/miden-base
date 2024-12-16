@@ -12,8 +12,8 @@ use.kernel::memory
 # Account nonce cannot be increased by a greater than u32 value
 const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x00020004
 
-# Account ID must contain at least MIN_ACCOUNT_ONES number of ones
-const.ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES=0x00020005
+# Least significant byte of second felt of the account id must be zero.
+const.ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO=0x00020005
 
 # Account code must be updatable for it to be possible to set new code
 const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020006
@@ -75,12 +75,6 @@ const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020057
 # Epoch must be less than u16::MAX (0xffff).
 const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020058
 
-# Least significant byte of second felt of the account id must be zero.
-const.ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO=0x00020059
-
-# Most significant bit of first felt of the account id must be zero.
-const.ERR_ACCOUNT_ID_HIGH_BIT_MUST_BE_ZERO=0x0002005A
-
 # CONSTANTS
 # =================================================================================================
 
@@ -107,9 +101,6 @@ const.NON_FUNGIBLE_FAUCET_ACCOUNT=0x30 # 0b11_0000
 
 # Bit pattern for a faucet account, after the account type mask has been applied.
 const.FAUCET_ACCOUNT=0x20 # 0b10_0000
-
-# Specifies a minimum number of ones for a valid account ID.
-const.MIN_ACCOUNT_ONES=5
 
 # The maximum number of account interface procedures.
 const.MAX_NUM_PROCEDURES=256
@@ -362,8 +353,6 @@ end
 #! - account_id_{hi,lo} are the first and second felt of the account id.
 #!
 #! Panics if:
-#! - account_id_hi does not have at least MIN_ACCOUNT_ONES ones.
-#! - account_id_hi does not have most significant bit set to zero.
 #! - account_id_hi does not contain version zero.
 #! - account_id_lo contains an anchor epoch that is greater or equal to 2^16.
 #! - account_id_lo does not have its lower 8 bits set to zero.
@@ -371,47 +360,25 @@ export.validate_id
     # Validate version in first felt. For now only version 0 is supported.
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.id_version
-    # => [version, account_id_hi, account_id_lo]
+    exec.id_version
+    # => [version, account_id_lo]
     assertz.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
-    # => [account_id_hi, account_id_lo]
-
-    # Validate the most significant bit in the first felt is zero.
-    # ---------------------------------------------------------------------------------------------
-
-    dup u32split u32and.0x80000000 assertz.err=ERR_ACCOUNT_ID_HIGH_BIT_MUST_BE_ZERO
-    drop
-    # => [account_id_hi, account_id_lo]
+    # => [account_id_lo]
 
     # Validate anchor epoch is less than u16::MAX (0xffff) in second felt.
     # ---------------------------------------------------------------------------------------------
 
-    dup.1 exec.id_anchor_epoch
-    # => [anchor_epoch, account_id_hi, account_id_lo]
+    dup exec.id_anchor_epoch
+    # => [anchor_epoch, account_id_lo]
     lt.0xffff assert.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
-    # => [account_id_hi, account_id_lo]
+    # => [account_id_lo]
 
     # Validate lower 8 bits of second felt are zero.
     # ---------------------------------------------------------------------------------------------
 
-    swap u32split drop u32and.0xff eq.0
-    # => [is_least_significant_byte_zero, account_id_hi]
+    u32split drop u32and.0xff eq.0
+    # => [is_least_significant_byte_zero]
     assert.err=ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO
-    # => [account_id_hi]
-
-    # Validate minimum number of ones in first felt.
-    # ---------------------------------------------------------------------------------------------
-
-    # split felt into 32 bit limbs
-    u32split
-    # => [l_1, l_0]
-
-    # count the number of 1 bits
-    u32popcnt swap u32popcnt add
-    # => [ones]
-
-    # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
-    push.MIN_ACCOUNT_ONES u32gte assert.err=ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES
     # => []
 end
 

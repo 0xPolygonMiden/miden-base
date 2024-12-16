@@ -165,7 +165,7 @@ impl AccountVersion {
 /// An `AccountId` consists of two field elements and is layed out as follows:
 ///
 /// ```text
-/// 1st felt: [zero bit | random (55 bits) | storage mode (2 bits) | type (2 bits) | version (4 bits)]
+/// 1st felt: [random (56 bits) | storage mode (2 bits) | type (2 bits) | version (4 bits)]
 /// 2nd felt: [anchor_epoch (16 bits) | random (40 bits) | 8 zero bits]
 /// ```
 ///
@@ -189,23 +189,24 @@ impl AccountVersion {
 ///
 /// Constructors will return an error if:
 ///
-/// - There are fewer than [`AccountId::MIN_ACCOUNT_ONES`] in the first felt.
-/// - The first felt's most significant bit is not zero.
 /// - The first felt contains account ID metadata (storage mode, type or version) that does not
 ///   match any of the known values.
 /// - The anchor epoch in the second felt is equal to [`u16::MAX`].
-/// - The lower 8 bits of the second felt are not zero.
+/// - The lower 8 bits of the second felt are not zero, although [`AccountId::new`] ensures this is
+///   the case rather than return an error.
 ///
 /// # Design Rationale
 ///
 /// The rationale behind the above layout is as follows.
 ///
-/// - The high zero bit ensures that even if all other bits of the first felt are 1, the entire
-///   value is still a valid felt.
+/// - The first felt is the output of a hash function so it will be a valid field element without
+///   requiring additional constraints.
 /// - The version is placed at a static offset such that future ID versions which may change the
 ///   number of type or storage mode bits will not cause the version to be at a different offset.
 ///   This is important so that a parser can always reliably read the version and then parse the
-///   remainder of the ID depending on the version.
+///   remainder of the ID depending on the version. Having only 4 bits for the version is a trade
+///   off between future proofing to be able to introduce more versions and the version requiring
+///   Proof of Work as part of the ID generation.
 /// - The version, type and storage mode are part of the first felt which is included in the
 ///   representation of a non-fungible asset. The first felt alone is enough to determine all of
 ///   these properties about the ID.
@@ -246,9 +247,6 @@ pub struct AccountId {
 impl AccountId {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
-
-    /// Specifies a minimum number of ones for a valid account ID.
-    pub const MIN_ACCOUNT_ONES: u32 = 5;
 
     /// The serialized size of an [`AccountId`] in bytes.
     pub const SERIALIZED_SIZE: usize = 15;
@@ -328,9 +326,7 @@ impl AccountId {
     ///   part to be used for the first and second felt, respectively.
     /// - The least significant byte of the first felt is set to the version 0, and the given type
     ///   and storage mode.
-    /// - The most significant bit in the first felt is cleared.
-    /// - Five bits of the most significant byte of the first felt are set to satisfy
-    ///   [`Self::MIN_ACCOUNT_ONES`].
+    /// - The most significant bit in the first felt is cleared to ensure it is a valid felt.
     /// - In the second felt the anchor epoch is set to 0 and the lower 8 bits are cleared.
     #[cfg(any(feature = "testing", test))]
     pub fn new_dummy(
@@ -348,8 +344,6 @@ impl AccountId {
 
         // Clear most significant bit.
         bytes[0] &= 0b0111_1111;
-        // Set five one bits to satisfy MIN_ACCOUNT_ONES.
-        bytes[0] |= 0b0111_1100;
 
         let first_felt_bytes =
             bytes[0..8].try_into().expect("we should have sliced off exactly 8 bytes");
@@ -639,26 +633,11 @@ fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountError>
 }
 
 /// Checks that the first felt:
-/// - has at least [`AccountId::MIN_ACCOUNT_ONES`].
-/// - has its most significant bit set to zero.
 /// - has known values for metadata (storage mode, type and version).
 pub(super) fn validate_first_felt(
     first_felt: Felt,
 ) -> Result<(AccountType, AccountStorageMode, AccountVersion), AccountError> {
     let first_felt = first_felt.as_int();
-
-    // Validate min account ones.
-    let ones_count = first_felt.count_ones();
-    if ones_count < AccountId::MIN_ACCOUNT_ONES {
-        return Err(AccountError::AccountIdTooFewOnes(ones_count));
-    }
-
-    // Validate high bit of first felt is zero.
-    if first_felt >> 63 != 0 {
-        return Err(AccountError::AssumptionViolated(format!(
-            "TODO: Make proper error: first felt {first_felt:016x} high bit must be zero",
-        )));
-    }
 
     // Validate storage bits.
     let storage_mode = extract_storage_mode(first_felt)?;
@@ -794,20 +773,12 @@ pub(super) fn compute_digest(
 #[cfg(test)]
 mod tests {
 
-    use vm_core::StarkField;
-
     use super::*;
     use crate::testing::account_id::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
         ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     };
-
-    #[test]
-    fn test_account_id_validation() {
-        let felt_max: Felt = Felt::new(Felt::MODULUS);
-        AccountId::try_from([felt_max, felt_max]).unwrap_err();
-    }
 
     #[test]
     fn test_account_id_from_seed_with_epoch() {
@@ -855,8 +826,8 @@ mod tests {
     fn account_id_construction() {
         // Use the highest possible input to check if the constructed id is a valid Felt in that
         // scenario.
-        // Use the lowest possible input to check whether the constructor satisfies
-        // MIN_ACCOUNT_ONES.
+        // Use the lowest possible input to check whether the constructor produces valid IDs with
+        // all-zeroes input.
         for input in [[0xff; 15], [0; 15]] {
             for account_type in [
                 AccountType::FungibleFaucet,

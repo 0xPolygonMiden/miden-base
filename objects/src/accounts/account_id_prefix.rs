@@ -222,8 +222,8 @@ mod tests {
     fn account_id_prefix_construction() {
         // Use the highest possible input to check if the constructed id is a valid Felt in that
         // scenario.
-        // Use the lowest possible input to check whether the constructor satisfies
-        // MIN_ACCOUNT_ONES.
+        // Use the lowest possible input to check whether the constructor produces valid IDs with
+        // all-zeroes input.
         for input in [[0xff; 15], [0; 15]] {
             for account_type in [
                 AccountType::FungibleFaucet,

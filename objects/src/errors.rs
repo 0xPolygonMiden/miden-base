@@ -46,8 +46,6 @@ pub enum AccountError {
     AccountCodeProcedureInvalidPadding(Digest),
     #[error("failed to convert bytes into account id field element")]
     AccountIdInvalidFieldElement(#[source] DeserializationError),
-    #[error("account id contains {0} 1s but must contain at least {min} 1s", min = AccountId::MIN_ACCOUNT_ONES)]
-    AccountIdTooFewOnes(u32),
     #[error("failed to update asset vault")]
     AssetVaultUpdateError(#[source] AssetVaultError),
     #[error("account build error: {0}")]
