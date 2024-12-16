@@ -6,6 +6,7 @@ use pingora::{
     server::Server,
 };
 use pingora_proxy::http_proxy_service;
+use tracing::warn;
 
 use crate::proxy::{LoadBalancer, LoadBalancerState};
 
@@ -37,6 +38,10 @@ impl StartProxy {
             .iter()
             .map(|worker| Backend::new(worker).map_err(|err| err.to_string()))
             .collect::<Result<Vec<Backend>, String>>()?;
+
+        if workers.is_empty() {
+            warn!("Starting the proxy without any workers");
+        }
 
         let worker_lb = LoadBalancerState::new(workers, &proxy_config).await?;
 
