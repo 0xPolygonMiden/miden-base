@@ -3,14 +3,13 @@ pub mod commands;
 mod proxy;
 mod utils;
 use commands::Cli;
-use utils::{init_tracer_provider, setup_tracing};
+use utils::setup_tracing;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
     use clap::Parser;
-    let provider = init_tracer_provider();
 
-    setup_tracing(provider)?;
+    setup_tracing()?;
 
     // read command-line args
     let cli = Cli::parse();
