@@ -561,7 +561,7 @@ impl ProxyHttp for LoadBalancer {
         _session: &mut Session,
         ctx: &mut Self::CTX,
     ) -> Result<()> {
-        Ok(())
+        ProxyHttp::early_request_filter(self, _session, ctx).await
     }
 
     #[tracing::instrument(name = "proxy:connected_to_upstream", parent = &ctx.parent_span, skip(_session, _sock, _fd))]
@@ -575,7 +575,7 @@ impl ProxyHttp for LoadBalancer {
         _digest: Option<&Digest>,
         ctx: &mut Self::CTX,
     ) -> Result<()> {
-        Ok(())
+        ProxyHttp::connected_to_upstream(self, _session, _reused, _peer, _fd, _digest, ctx).await
     }
 
     #[tracing::instrument(name = "proxy:request_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
@@ -586,7 +586,7 @@ impl ProxyHttp for LoadBalancer {
         _end_of_stream: bool,
         ctx: &mut Self::CTX,
     ) -> Result<()> {
-        Ok(())
+        ProxyHttp::request_body_filter(self, _session, _body, _end_of_stream, ctx).await
     }
 
     #[tracing::instrument(name = "proxy:upstream_response_filter", parent = &ctx.parent_span, skip(_session, _upstream_response))]
@@ -596,6 +596,7 @@ impl ProxyHttp for LoadBalancer {
         _upstream_response: &mut ResponseHeader,
         ctx: &mut Self::CTX,
     ) {
+        ProxyHttp::upstream_response_filter(self, _session, _upstream_response, ctx)
     }
 
     #[tracing::instrument(name = "proxy:response_filter", parent = &ctx.parent_span, skip(_session, _upstream_response))]
@@ -608,7 +609,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        Ok(())
+        ProxyHttp::response_filter(self, _session, _upstream_response, ctx).await
     }
 
     #[tracing::instrument(name = "proxy:upstream_response_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
@@ -619,6 +620,7 @@ impl ProxyHttp for LoadBalancer {
         _end_of_stream: bool,
         ctx: &mut Self::CTX,
     ) {
+        ProxyHttp::upstream_response_body_filter(self, _session, _body, _end_of_stream, ctx)
     }
 
     #[tracing::instrument(name = "proxy:response_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
@@ -632,7 +634,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        Ok(None)
+        ProxyHttp::response_body_filter(self, _session, _body, _end_of_stream, ctx)
     }
 
     #[tracing::instrument(name = "proxy:fail_to_proxy", parent = &ctx.parent_span, skip(session))]
@@ -640,29 +642,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        let server_session = session.as_mut();
-        let code = match e.etype() {
-            HTTPStatus(code) => *code,
-            _ => {
-                match e.esource() {
-                    ErrorSource::Upstream => 502,
-                    ErrorSource::Downstream => {
-                        match e.etype() {
-                            WriteError | ReadError | ConnectionClosed => {
-                                /* conn already dead */
-                                0
-                            },
-                            _ => 400,
-                        }
-                    },
-                    ErrorSource::Internal | ErrorSource::Unset => 500,
-                }
-            },
-        };
-        if code > 0 {
-            server_session.respond_error(code).await
-        }
-        code
+        ProxyHttp::fail_to_proxy(self, session, e, ctx).await
     }
 
     #[tracing::instrument(name = "proxy:error_while_proxy", parent = &ctx.parent_span, skip(session))]
@@ -674,11 +654,7 @@ impl ProxyHttp for LoadBalancer {
         ctx: &mut Self::CTX,
         client_reused: bool,
     ) -> Box<Error> {
-        let mut e = e.more_context(format!("Peer: {}", peer));
-        // only reused client connections where retry buffer is not truncated
-        e.retry
-            .decide_reuse(client_reused && !session.as_ref().retry_buffer_truncated());
-        e
+        ProxyHttp::error_while_proxy(self, peer, session, e, ctx, client_reused)
     }
 }
 
