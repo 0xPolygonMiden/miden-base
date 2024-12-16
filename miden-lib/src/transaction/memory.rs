@@ -55,7 +55,7 @@ pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 0;
 /// The memory address at which the transaction vault root is stored.
 pub const TX_VAULT_ROOT_PTR: MemoryAddress = 0;
 
-/// The memory address at which a pointer to the input note being executed is stored.
+/// The memory address at which a pointer to the input note is being executed is stored.
 pub const CURRENT_INPUT_NOTE_PTR: MemoryAddress = 1;
 
 /// The memory address at which the number of output notes is stored.
@@ -235,7 +235,7 @@ pub const NATIVE_ACCT_PROCEDURES_SECTION_PTR: MemoryAddress =
 /// relative to the start of the account data segment.
 pub const NUM_ACCT_STORAGE_SLOTS_OFFSET: MemoryAddress = 521;
 
-/// The memory address at which number of storage slots contained in the account storage is stored
+/// The memory address at which the number of storage slots contained in the account storage is stored
 /// in the native account.
 pub const NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR: MemoryAddress =
     NATIVE_ACCOUNT_DATA_PTR + NUM_ACCT_STORAGE_SLOTS_OFFSET;
@@ -311,7 +311,7 @@ pub const INPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 // 4_194_304      +512          +1024           +512n
 //
 // The total number of output notes for a transaction is stored in the bookkeeping section of the
-// memory. Data section of each note is laid out like so:
+// memory. The data section of each note is laid out like so:
 //
 // ┌─────────┬──────────┬───────────┬─────────────┬────────────┬─────────┬─────┬─────────┬─────────┐
 // │ NOTE ID │ METADATA │ RECIPIENT │ ASSETS HASH │ NUM ASSETS │ ASSET 0 │ ... │ ASSET n │ PADDING │
@@ -327,7 +327,7 @@ pub const OUTPUT_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
 /// The size of the core output note data segment.
 pub const OUTPUT_NOTE_CORE_DATA_SIZE: MemSize = 4;
 
-/// The offsets at which data of a output note is stored relative to the start of its data segment.
+/// The offsets at which data of an output note is stored relative to the start of its data segment.
 pub const OUTPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const OUTPUT_NOTE_METADATA_OFFSET: MemoryOffset = 1;
 pub const OUTPUT_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
