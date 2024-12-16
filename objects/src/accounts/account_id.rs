@@ -178,12 +178,12 @@ impl AccountVersion {
 /// CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH) is computed. If the hash's first element
 /// has the desired storage mode, account type, version and the high bit set to zero, the
 /// computation part of the ID generation is done. If not, another random seed is picked and the
-/// process is repeated.
+/// process is repeated. The first felt of the ID is then the first element of the hash.
 ///
-/// The second felt of the ID is the second element of the hash function. Its upper 16 bits are
-/// overwritten with the epoch in which the ID is anchored and the lower 8 bits are zeroed. Thus,
-/// the first felt of the ID must derive exactly from the hash, while only part of the second felt
-/// is derived from the hash.
+/// The second felt of the ID is the second element of the hash. Its upper 16 bits are overwritten
+/// with the epoch in which the ID is anchored and the lower 8 bits are zeroed. Thus, the first felt
+/// of the ID must derive exactly from the hash, while only part of the second felt is derived from
+/// the hash.
 ///
 /// # Constraints
 ///
@@ -311,11 +311,24 @@ impl AccountId {
     /// # Warning
     ///
     /// Validity of the ID must be ensured by the caller. An invalid ID may lead to panics.
+    ///
+    /// # Panics
+    ///
+    /// If debug_assertions are enabled (e.g. in debug mode), this function panics if the given
+    /// felts are invalid according to the constraints in the [`AccountId`] documentation.
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
-        Self {
-            first_felt: elements[0],
-            second_felt: elements[1],
+        let first_felt = elements[0];
+        let second_felt = elements[1];
+
+        // Panic on invalid felts in debug mode.
+        if cfg!(debug_assertions) {
+            validate_first_felt(first_felt)
+                .expect("AccountId::new_unchecked called with invalid first felt");
+            validate_second_felt(second_felt)
+                .expect("AccountId::new_unchecked called with invalid first felt");
         }
+
+        Self { first_felt, second_felt }
     }
 
     /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
