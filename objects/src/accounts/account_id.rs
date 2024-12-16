@@ -281,14 +281,14 @@ impl AccountId {
     // --------------------------------------------------------------------------------------------
 
     /// Creates an [`AccountId`] by hashing the given `seed`, `code_commitment`,
-    /// `storage_commitment` and `anchor_block_hash` and using the resulting first and second
-    /// element of the hash as the first and second felt of the ID. The given `anchor_epoch`
-    /// overwrites part of the second felt.
+    /// `storage_commitment` and [`AccountIdAnchor::block_hash`] from the `anchor` and using the
+    /// resulting first and second element of the hash as the first and second felt of the ID.
+    /// The [`AccountIdAnchor::epoch`] from the `anchor` overwrites part of the second felt.
     ///
-    /// Note that the `anchor_epoch` and `anchor_block_hash` must correspond to a valid block in the
-    /// chain for the ID to be deemed valid during creation.
+    /// Note that the `anchor` must correspond to a valid block in the chain for the ID to be deemed
+    /// valid during creation.
     ///
-    /// See the documentation of the type for more details on the creation.
+    /// See the documentation of the [`AccountId`] for more details on the generation.
     ///
     /// # Errors
     ///
