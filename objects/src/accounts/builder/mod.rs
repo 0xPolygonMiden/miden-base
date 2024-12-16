@@ -105,12 +105,6 @@ impl AccountBuilder {
         self
     }
 
-    /// Sets the [`AccountIdVersion`] of the account ID.
-    pub fn version(mut self, version: AccountIdVersion) -> Self {
-        self.id_version = version;
-        self
-    }
-
     /// Sets the `anchor_block_number` of the account. Must be the block number of an epoch block,
     /// i.e. a multiple of 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`].
     ///
@@ -118,6 +112,12 @@ impl AccountBuilder {
     /// this method.
     pub fn anchor_block_number(mut self, anchor_block_number: u32) -> Self {
         self.anchor_block_number = Some(anchor_block_number);
+        self
+    }
+
+    /// Sets the [`AccountIdVersion`] of the account ID.
+    pub fn version(mut self, version: AccountIdVersion) -> Self {
+        self.id_version = version;
         self
     }
 
