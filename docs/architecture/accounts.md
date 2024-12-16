@@ -6,34 +6,6 @@
 
 In Miden, an `Account` represents an entity capable of holding assets, storing data, and executing custom code. Each `Account` is a specialized smart contract providing a programmable interface for interacting with its state and managed assets.
 
-### Account type
-
-There are two main categories of accounts in Miden: **basic accounts** and **faucets**.
-
-- **Basic Accounts:**  
-  Basic accounts may be either mutable or immutable:
-  - *Mutable:* Code can be changed after deployment.
-  - *Immutable:* Code cannot be changed once deployed.
-
-- **Faucets:**  
-  Faucets are always immutable and can be specialized by the type of assets they issue:
-  - *Fungible Faucet:* Can issue fungible [assets](assets.md).
-  - *Non-fungible Faucet:* Can issue non-fungible [assets](assets.md).
-
-Type and mutability are encoded in the two most significant bits of the account's [ID](#id).
-
-### Account storage mode
-
-Users can choose whether their accounts are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the accounts [ID](#id):
-
-- **Public Accounts:**  
-  The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be public.
-
-- **Private Accounts:**  
-  Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their account. To interact with a private account, a user must have knowledge of its interface.
-
-The storage mode is chosen during account creation, it cannot be changed later.
-
 ## Account core components
 
 An `Account` is composed of several core components, illustrated below:
@@ -111,6 +83,36 @@ However, a user can locally create a new account ID before it’s recognized net
 4. Bob executes a transaction, creating a note containing assets for Alice.  
 5. Alice consumes Bob’s note in her own transaction to claim the asset.  
 6. Depending on the account’s storage mode and transaction type, the operator receives the new account ID and, if all conditions are met, includes it in the account database.
+
+## Additional information
+
+### Account type
+
+There are two main categories of accounts in Miden: **basic accounts** and **faucets**.
+
+- **Basic Accounts:**  
+  Basic accounts may be either mutable or immutable:
+  - *Mutable:* Code can be changed after deployment.
+  - *Immutable:* Code cannot be changed once deployed.
+
+- **Faucets:**  
+  Faucets are always immutable and can be specialized by the type of assets they issue:
+  - *Fungible Faucet:* Can issue fungible [assets](assets.md).
+  - *Non-fungible Faucet:* Can issue non-fungible [assets](assets.md).
+
+Type and mutability are encoded in the two most significant bits of the account's [ID](#id).
+
+### Account storage mode
+
+Users can choose whether their accounts are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the accounts [ID](#id):
+
+- **Public Accounts:**  
+  The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be public.
+
+- **Private Accounts:**  
+  Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their account. To interact with a private account, a user must have knowledge of its interface.
+
+The storage mode is chosen during account creation, it cannot be changed later.
 
 ## Conclusion
 
