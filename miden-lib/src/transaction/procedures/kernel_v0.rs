@@ -16,7 +16,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // account_vault_remove_asset
     digest!("0x80c0cdf81ff7f845ee45a6473627611e1b251b3c8368c3764cdc8d48f2e7b806"),
     // get_account_id
-    digest!("0x3bf92554d4eb6cd8def4ab6ee00deb94840bc68bd1ea5c270dd240a3e0a9de3b"),
+    digest!("0x48964aab4326214daa06292e147f7f1107666c3f833d8f06ae9003cc50a32dd7"),
     // get_account_item
     digest!("0x1a73504fc477eb17c9c9fcedd97ba4f397c9827c562aff1822a2fd08f8e9da18"),
     // get_account_map_item

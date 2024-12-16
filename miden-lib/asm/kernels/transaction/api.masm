@@ -86,7 +86,7 @@ export.get_account_id
     # => [acct_id_hi, acct_id_lo, pad(16)]
 
     # truncate the stack
-    swapw dropw
+    movup.2 drop movup.2 drop
     # => [acct_id_hi, acct_id_lo, pad(14)]
 end
 
