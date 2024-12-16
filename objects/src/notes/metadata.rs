@@ -183,11 +183,13 @@ impl Deserializable for NoteMetadata {
 /// The layout is as follows:
 ///
 /// ```text
-/// [account_id_second_felt (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
+/// [sender_id_lo (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
 /// ```
 ///
 /// One of the upper 16 bits is guaranteed to be zero due to the guarantees of the epoch in the
 /// account id.
+///
+/// Note that `sender_id_lo` is the second felt of the sender's account ID.
 fn merge_id_type_and_hint_tag(
     sender_id_second_felt: Felt,
     note_type: NoteType,

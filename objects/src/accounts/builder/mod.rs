@@ -89,10 +89,8 @@ impl AccountBuilder {
     /// Hash and epoch must match to create a valid [`AccountId`], so this method is preferred over
     /// setting the values individually.
     pub fn anchor_block_header(mut self, anchor_block: &BlockHeader) -> Self {
-        let anchor_block_hash = anchor_block.hash();
-        let anchor_block_number = anchor_block.block_num();
-        self.anchor_block_hash = anchor_block_hash;
-        self.anchor_block_number = Some(anchor_block_number);
+        self.anchor_block_hash = anchor_block.hash();
+        self.anchor_block_number = Some(anchor_block.block_num());
         self
     }
 
