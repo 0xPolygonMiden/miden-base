@@ -9,7 +9,7 @@ use pingora_proxy::http_proxy_service;
 
 use crate::{
     proxy::{LoadBalancer, LoadBalancerState},
-    utils::TRACING_TARGET_NAME,
+    utils::MIDEN_TX_PROVER,
 };
 
 /// Starts the proxy defined in the config file.
@@ -21,7 +21,7 @@ impl StartProxy {
     ///
     /// This method will first read the config file to get the list of workers to start. It will
     /// then start a proxy with each worker as a backend.
-    #[tracing::instrument(target = TRACING_TARGET_NAME, name = "proxy:execute")]
+    #[tracing::instrument(target = MIDEN_TX_PROVER, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
         server.bootstrap();

@@ -27,7 +27,7 @@ use crate::{
     },
     utils::{
         create_queue_full_response, create_response_with_error_message,
-        create_too_many_requests_response, create_workers_updated_response,
+        create_too_many_requests_response, create_workers_updated_response, MIDEN_TX_PROVER,
     },
 };
 
@@ -325,7 +325,7 @@ impl RequestContext {
             tries: 0,
             request_id,
             worker: None,
-            parent_span: info_span!("proxy:new_request", request_id = request_id.to_string()),
+            parent_span: info_span!(target: MIDEN_TX_PROVER, "proxy:new_request", request_id = request_id.to_string()),
         }
     }
 

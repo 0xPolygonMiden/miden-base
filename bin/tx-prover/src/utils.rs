@@ -17,7 +17,7 @@ use tonic_health::pb::health_client::HealthClient;
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
 
-pub const TRACING_TARGET_NAME: &str = "miden-tx-prover";
+pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
 
 const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 
@@ -54,7 +54,7 @@ fn create_resource() -> Resource {
 
 // Setup tracing subscriber
 pub(crate) fn setup_tracing(provider: TracerProvider) -> Result<(), String> {
-    let tracer = provider.tracer(TRACING_TARGET_NAME);
+    let tracer = provider.tracer(MIDEN_TX_PROVER);
 
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 

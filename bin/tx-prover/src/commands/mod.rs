@@ -13,7 +13,7 @@ use tracing::{debug, instrument};
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
 
-use crate::utils::TRACING_TARGET_NAME;
+use crate::utils::MIDEN_TX_PROVER;
 
 pub mod init;
 pub mod proxy;
@@ -170,7 +170,7 @@ pub enum Command {
 
 /// CLI entry point
 impl Cli {
-    #[instrument(target = TRACING_TARGET_NAME, name = "cli:execute", skip_all, ret(level = "info"), err)]
+    #[instrument(target = MIDEN_TX_PROVER, name = "cli:execute", skip_all, ret(level = "info"), err)]
     pub async fn execute(&self) -> Result<(), String> {
         match &self.action {
             // For the `StartWorker` command, we need to create a new runtime and run the worker
