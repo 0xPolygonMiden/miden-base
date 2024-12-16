@@ -43,7 +43,6 @@ impl ProverApi for ProverRpcApi {
         &self,
         request: Request<ProveTransactionRequest>,
     ) -> Result<Response<ProveTransactionResponse>, tonic::Status> {
-        debug!(request = ?request, "Processing reply");
         info!("Received request to prove transaction");
 
         // Try to acquire a permit without waiting
