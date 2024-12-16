@@ -2,6 +2,10 @@
 
 > The primary entities of the Miden protocol
 
+## What is the purpose of an account?
+
+In Miden's hybrid UTXO and account-based model accounts enable the creation of expressive smart contracts via a Turing-complete language.
+
 ## What is an account?
 
 In Miden, an `Account` represents an entity capable of holding assets, storing data, and executing custom code. Each `Account` is a specialized smart contract providing a programmable interface for interacting with its state and managed assets.
