@@ -29,7 +29,8 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        Account, AccountBuilder, AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
+        Account, AccountBuilder, AccountIdAnchor, AccountProcedureInfo, AccountStorageMode,
+        AccountType, StorageSlot,
     },
     testing::{
         account_component::AccountMockComponent,
@@ -449,7 +450,10 @@ pub fn create_multiple_accounts_test(
             .account_type(account_type)
             .storage_mode(storage_mode)
             .init_seed(ChaCha20Rng::from_entropy().gen())
-            .anchor_block_header(anchor_block_header)
+            .anchor(
+                AccountIdAnchor::try_from(anchor_block_header)
+                    .context("block header to anchor conversion failed")?,
+            )
             .with_component(
                 AccountMockComponent::new_with_slots(
                     TransactionKernel::testing_assembler(),
@@ -572,7 +576,7 @@ pub fn create_account_invalid_seed() {
     let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
 
     let (account, seed) = AccountBuilder::new()
-        .anchor_block_header(&genesis_block_header)
+        .anchor(AccountIdAnchor::try_from(&genesis_block_header).unwrap())
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)

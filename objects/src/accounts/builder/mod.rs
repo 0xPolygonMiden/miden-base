@@ -5,12 +5,11 @@ use vm_processor::Digest;
 
 use crate::{
     accounts::{
-        Account, AccountCode, AccountComponent, AccountId, AccountIdVersion, AccountStorage,
-        AccountStorageMode, AccountType,
+        Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdVersion,
+        AccountStorage, AccountStorageMode, AccountType,
     },
     assets::AssetVault,
-    block::block_epoch_from_number,
-    AccountError, BlockHeader, Felt, Word,
+    AccountError, Felt, Word,
 };
 
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
@@ -31,8 +30,7 @@ use crate::{
 ///
 /// - [`AccountBuilder::init_seed`],
 /// - [`AccountBuilder::with_component`], which must be called at least once.
-/// - [`AccountBuilder::anchor_block_hash`] and [`AccountBuilder::anchor_block_number`] or
-///   [`AccountBuilder::anchor_block_header`].
+/// - [`AccountBuilder::anchor`].
 ///
 /// The latter methods set the anchor block hash and epoch which will be used for the generation of
 /// the account's ID. See [`AccountId`] for details on its generation and anchor blocks.
@@ -48,12 +46,9 @@ pub struct AccountBuilder {
     components: Vec<AccountComponent>,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    anchor_block_hash: Digest,
+    id_anchor: Option<AccountIdAnchor>,
     init_seed: Option<[u8; 32]>,
     id_version: AccountIdVersion,
-    // The builder takes the block number instead of the epoch so we can validate that a user did
-    // pass an epoch block instead of just any block.
-    anchor_block_number: Option<u32>,
 }
 
 impl AccountBuilder {
@@ -64,11 +59,10 @@ impl AccountBuilder {
             assets: vec![],
             components: vec![],
             init_seed: None,
-            anchor_block_hash: Digest::default(),
+            id_anchor: None,
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
             id_version: AccountIdVersion::VERSION_0,
-            anchor_block_number: None,
         }
     }
 
@@ -81,35 +75,9 @@ impl AccountBuilder {
         self
     }
 
-    /// Sets `anchor_block_hash` and `anchor_block_number` from the given `anchor_block`.
-    ///
-    /// The block header must be for an epoch block, i.e. its block number must be a multiple of
-    /// 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`]. If this is not the case, the build will fail.
-    ///
-    /// Hash and epoch must match to create a valid [`AccountId`], so this method is preferred over
-    /// setting the values individually.
-    pub fn anchor_block_header(mut self, anchor_block: &BlockHeader) -> Self {
-        self.anchor_block_hash = anchor_block.hash();
-        self.anchor_block_number = Some(anchor_block.block_num());
-        self
-    }
-
-    /// Sets the `block_hash` which is an input to the [`AccountId`] derivation process.
-    ///
-    /// Note that whenever possible, using [`AccountBuilder::anchor_block_header`] is preferred over
-    /// this method.
-    pub fn anchor_block_hash(mut self, anchor_block_hash: Digest) -> Self {
-        self.anchor_block_hash = anchor_block_hash;
-        self
-    }
-
-    /// Sets the `anchor_block_number` of the account. Must be the block number of an epoch block,
-    /// i.e. a multiple of 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`].
-    ///
-    /// Note that whenever possible, using [`AccountBuilder::anchor_block_header`] is preferred over
-    /// this method.
-    pub fn anchor_block_number(mut self, anchor_block_number: u32) -> Self {
-        self.anchor_block_number = Some(anchor_block_number);
+    /// Sets the [`AccountIdAnchor`] used for the generation of the account ID.
+    pub fn anchor(mut self, anchor: AccountIdAnchor) -> Self {
+        self.id_anchor = Some(anchor);
         self
     }
 
@@ -213,35 +181,9 @@ impl AccountBuilder {
     pub fn build(self) -> Result<(Account, Word), AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
-        // Anchor block hash and anchor epoch must only be set when building a new account.
-        if self.anchor_block_hash == Digest::default() {
-            return Err(AccountError::BuildError(
-                "anchor block hash must be set to a `Digest` different from the empty value".into(),
-                None,
-            ));
-        }
-
-        let anchor_epoch = match self.anchor_block_number {
-            Some(anchor_block_number) => {
-                if anchor_block_number & 0x0000_ffff != 0 {
-                    return Err(AccountError::BuildError(
-                        format!(
-                            "anchor block must be an epoch block, i.e. its block number must be a multiple of 2^{}",
-                            BlockHeader::EPOCH_LENGTH_EXPONENT
-                        ),
-                        None,
-                    ));
-                }
-
-                block_epoch_from_number(anchor_block_number)
-            },
-            None => {
-                return Err(AccountError::BuildError(
-                    "anchor block number must be set".into(),
-                    None,
-                ));
-            },
-        };
+        let id_anchor = self
+            .id_anchor
+            .ok_or_else(|| AccountError::BuildError("anchor must be set".into(), None))?;
 
         #[cfg(any(feature = "testing", test))]
         if !vault.is_empty() {
@@ -256,17 +198,11 @@ impl AccountBuilder {
             self.id_version,
             code.commitment(),
             storage.commitment(),
-            self.anchor_block_hash,
+            id_anchor.block_hash(),
         )?;
 
-        let account_id = AccountId::new(
-            seed,
-            anchor_epoch,
-            code.commitment(),
-            storage.commitment(),
-            self.anchor_block_hash,
-        )
-        .expect("get_account_seed should provide a suitable seed");
+        let account_id = AccountId::new(seed, id_anchor, code.commitment(), storage.commitment())
+            .expect("get_account_seed should provide a suitable seed");
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
@@ -390,11 +326,11 @@ mod tests {
 
         let anchor_block_hash = Digest::new([Felt::new(42); 4]);
         let anchor_block_number = 1 << 16;
+        let id_anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash).unwrap();
 
         let (account, seed) = Account::builder()
             .init_seed([5; 32])
-            .anchor_block_hash(anchor_block_hash)
-            .anchor_block_number(anchor_block_number)
+            .anchor(id_anchor)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_component(CustomComponent2 {
                 slot0: storage_slot1,
@@ -408,10 +344,9 @@ mod tests {
 
         let computed_id = AccountId::new(
             seed,
-            block_epoch_from_number(anchor_block_number),
+            id_anchor,
             account.code.commitment(),
             account.storage.commitment(),
-            anchor_block_hash,
         )
         .unwrap();
         assert_eq!(account.id(), computed_id);
@@ -462,10 +397,10 @@ mod tests {
     fn account_builder_non_empty_vault_on_new_account() {
         let storage_slot0 = 25;
 
+        let anchor = AccountIdAnchor::new_unchecked(5, Digest::default());
         let build_error = Account::builder()
             .init_seed([0xff; 32])
-            .anchor_block_hash([10; 32].try_into().unwrap())
-            .anchor_block_number(0)
+            .anchor(anchor)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_assets(AssetVault::mock().assets())
             .build()

@@ -8,7 +8,7 @@ use vm_processor::Digest;
 use super::{constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word};
 use crate::{
     accounts::{
-        Account, AccountId, AccountIdVersion, AccountStorage, AccountStorageDelta,
+        Account, AccountId, AccountIdAnchor, AccountIdVersion, AccountStorage, AccountStorageDelta,
         AccountStorageMode, AccountType, StorageMap, StorageMapDelta, StorageSlot,
     },
     notes::NoteAssets,
@@ -213,14 +213,10 @@ pub fn generate_account_seed(
     )
     .unwrap();
 
-    let account_id = AccountId::new(
-        seed,
-        anchor_block_header.block_epoch(),
-        account.code().commitment(),
-        account.storage().commitment(),
-        anchor_block_header.hash(),
-    )
-    .unwrap();
+    let anchor = AccountIdAnchor::try_from(anchor_block_header).unwrap();
+    let account_id =
+        AccountId::new(seed, anchor, account.code().commitment(), account.storage().commitment())
+            .unwrap();
 
     // Overwrite old ID with generated ID.
     let (_, vault, storage, code, nonce) = account.into_parts();

@@ -33,7 +33,7 @@ fn wallet_creation() {
 
     let (wallet, _) = create_basic_wallet(
         init_seed,
-        &anchor_block_header_mock,
+        (&anchor_block_header_mock).try_into().unwrap(),
         auth_scheme,
         account_type,
         storage_mode,

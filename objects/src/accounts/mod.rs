@@ -7,6 +7,9 @@ use crate::{
 pub mod account_id;
 pub use account_id::{AccountId, AccountIdVersion, AccountStorageMode, AccountType};
 
+mod account_id_anchor;
+pub use account_id_anchor::AccountIdAnchor;
+
 mod account_id_prefix;
 pub use account_id_prefix::AccountIdPrefix;
 

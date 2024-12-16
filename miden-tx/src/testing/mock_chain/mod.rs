@@ -8,7 +8,7 @@ use miden_lib::{
 use miden_objects::{
     accounts::{
         delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
-        AccountId, AccountType, AuthSecretKey,
+        AccountId, AccountIdAnchor, AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{
@@ -511,7 +511,8 @@ impl MockChain {
 
         let (account, seed) = if let AccountState::New = account_state {
             let last_block = self.blocks.last().expect("one block should always exist");
-            account_builder = account_builder.anchor_block_header(&last_block.header());
+            account_builder =
+                account_builder.anchor(AccountIdAnchor::try_from(&last_block.header()).unwrap());
 
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {

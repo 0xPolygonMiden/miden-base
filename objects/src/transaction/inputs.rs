@@ -3,7 +3,7 @@ use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
-    accounts::{Account, AccountId},
+    accounts::{Account, AccountId, AccountIdAnchor},
     block::block_num_from_epoch,
     notes::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -491,12 +491,14 @@ pub fn validate_account_seed(
                 anchor_block_header.hash()
             };
 
+            let anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash)
+                .map_err(TransactionInputError::InvalidAccountIdSeed)?;
+
             let account_id = AccountId::new(
                 seed,
-                account.id().anchor_epoch(),
+                anchor,
                 account.code().commitment(),
                 account.storage().commitment(),
-                anchor_block_hash,
             )
             .map_err(TransactionInputError::InvalidAccountIdSeed)?;
 

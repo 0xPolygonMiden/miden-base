@@ -1,8 +1,10 @@
 use alloc::string::ToString;
 
 use miden_objects::{
-    accounts::{Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType},
-    AccountError, BlockHeader, Word,
+    accounts::{
+        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode, AccountType,
+    },
+    AccountError, Word,
 };
 
 use super::AuthScheme;
@@ -46,7 +48,7 @@ impl From<BasicWallet> for AccountComponent {
 /// authentication scheme.
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
-    anchor_block_header: &BlockHeader,
+    id_anchor: AccountIdAnchor,
     auth_scheme: AuthScheme,
     account_type: AccountType,
     account_storage_mode: AccountStorageMode,
@@ -63,7 +65,7 @@ pub fn create_basic_wallet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
-        .anchor_block_header(anchor_block_header)
+        .anchor(id_anchor)
         .account_type(account_type)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
@@ -97,7 +99,7 @@ mod tests {
         let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
         let wallet = create_basic_wallet(
             [1; 32],
-            &anchor_block_header_mock,
+            (&anchor_block_header_mock).try_into().unwrap(),
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
             AccountStorageMode::Public,
@@ -121,7 +123,7 @@ mod tests {
         let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
         let wallet = create_basic_wallet(
             [1; 32],
-            &anchor_block_header_mock,
+            (&anchor_block_header_mock).try_into().unwrap(),
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
             AccountStorageMode::Public,

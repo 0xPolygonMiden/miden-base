@@ -12,7 +12,10 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use super::Hasher;
-use crate::{accounts::AccountIdPrefix, AccountError, ACCOUNT_TREE_DEPTH};
+use crate::{
+    accounts::{AccountIdAnchor, AccountIdPrefix},
+    AccountError, ACCOUNT_TREE_DEPTH,
+};
 
 // ACCOUNT TYPE
 // ================================================================================================
@@ -293,19 +296,18 @@ impl AccountId {
     /// documentation](AccountId) for details.
     pub fn new(
         seed: Word,
-        anchor_epoch: u16,
+        anchor: AccountIdAnchor,
         code_commitment: Digest,
         storage_commitment: Digest,
-        anchor_block_hash: Digest,
     ) -> Result<Self, AccountError> {
         let seed_digest =
-            compute_digest(seed, code_commitment, storage_commitment, anchor_block_hash);
+            compute_digest(seed, code_commitment, storage_commitment, anchor.block_hash());
 
         let mut felts: [Felt; 2] = seed_digest.as_elements()[0..2]
             .try_into()
             .expect("we should have sliced off 2 elements");
 
-        felts[1] = shape_second_felt(felts[1], anchor_epoch);
+        felts[1] = shape_second_felt(felts[1], anchor.epoch());
 
         // This will validate that the anchor_epoch we have just written is not u16::MAX.
         account_id_from_felts(felts)
@@ -821,14 +823,8 @@ mod tests {
         .unwrap();
 
         for anchor_epoch in [0, u16::MAX - 1, 5000] {
-            let id = AccountId::new(
-                seed,
-                anchor_epoch,
-                code_commitment,
-                storage_commitment,
-                anchor_block_hash,
-            )
-            .unwrap();
+            let anchor = AccountIdAnchor::new_unchecked(anchor_epoch, anchor_block_hash);
+            let id = AccountId::new(seed, anchor, code_commitment, storage_commitment).unwrap();
             assert_eq!(id.anchor_epoch(), anchor_epoch, "failed for account id: {id}");
         }
     }

@@ -1,9 +1,10 @@
 use miden_objects::{
     accounts::{
-        Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType, StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode,
+        AccountType, StorageSlot,
     },
     assets::TokenSymbol,
-    AccountError, BlockHeader, Felt, FieldElement, Word,
+    AccountError, Felt, FieldElement, Word,
 };
 
 use super::AuthScheme;
@@ -90,7 +91,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
 /// - Slot 2: Token metadata of the faucet.
 pub fn create_basic_fungible_faucet(
     init_seed: [u8; 32],
-    anchor_block_header: &BlockHeader,
+    id_anchor: AccountIdAnchor,
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
@@ -105,7 +106,7 @@ pub fn create_basic_fungible_faucet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
-        .anchor_block_header(anchor_block_header)
+        .anchor(id_anchor)
         .account_type(AccountType::FungibleFaucet)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
@@ -152,7 +153,7 @@ mod tests {
 
         let (faucet_account, _) = create_basic_fungible_faucet(
             init_seed,
-            &anchor_block_header_mock,
+            (&anchor_block_header_mock).try_into().unwrap(),
             token_symbol,
             decimals,
             max_supply,
