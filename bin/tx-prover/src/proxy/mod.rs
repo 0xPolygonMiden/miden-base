@@ -554,6 +554,10 @@ impl ProxyHttp for LoadBalancer {
 
     // The following methods are a copy of the default implementation defined in the trait, but
     // with tracing instrumentation.
+    // Pingora calls these methods to handle the request/response lifecycle internally and since
+    // the trait is defined in a different crate, we cannot add the tracing instrumentation there.
+    // We use the default implementation by implementing the method for our specific type, adding
+    // the tracing instrumentation and internally calling `ProxyHttp` methods.
     // ============================================================================================
     #[tracing::instrument(name = "proxy:early_request_filter", parent = &ctx.parent_span, skip(_session))]
     async fn early_request_filter(
