@@ -69,7 +69,7 @@ Then, to start the proxy service, you will need to run:
 miden-tx-prover start-proxy [worker1] [worker2] ... [workerN]
 ```
 
-This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests.
+This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-tx-prover add-worker` command.
 
 At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `max_retries_per_request` value in the configuration file.
 
