@@ -17,10 +17,10 @@ use crate::{accounts::AccountIdPrefix, AccountError, ACCOUNT_TREE_DEPTH};
 // ACCOUNT TYPE
 // ================================================================================================
 
-pub const FUNGIBLE_FAUCET: u64 = 0b10;
-pub const NON_FUNGIBLE_FAUCET: u64 = 0b11;
-pub const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
-pub const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
+const FUNGIBLE_FAUCET: u64 = 0b10;
+const NON_FUNGIBLE_FAUCET: u64 = 0b11;
+const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
+const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u64)]
@@ -43,47 +43,11 @@ impl AccountType {
     }
 }
 
-/// Extracts the [`AccountType`] encoded in an u64.
-///
-/// The account id is encoded in the bits `[62,60]` of the u64.
-///
-/// # Note
-///
-/// This function does not validate the u64, it is assumed the value is valid [Felt].
-pub const fn account_type_from_u64(value: u64) -> AccountType {
-    debug_assert!(
-        AccountId::TYPE_MASK.count_ones() == 2,
-        "This method assumes there are only 2bits in the mask"
-    );
-
-    let bits = (value & AccountId::TYPE_MASK) >> AccountId::TYPE_SHIFT;
-    match bits {
-        REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
-        REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
-        FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
-        NON_FUNGIBLE_FAUCET => AccountType::NonFungibleFaucet,
-        _ => {
-            // account_type mask contains 2 bits and we exhaustively match all 4 possible options
-            unreachable!()
-        },
-    }
-}
-
-// TODO: Reconsider whether we need this and if yes, whether it needs to be publicly exposed
-// functionality.
-/// Returns the [`AccountType`] given an integer representation of `account_id`.
-impl From<u128> for AccountType {
-    fn from(value: u128) -> Self {
-        let val = (value >> 64) as u64;
-        account_type_from_u64(val)
-    }
-}
-
 // ACCOUNT STORAGE MODE
 // ================================================================================================
 
-pub const PUBLIC: u64 = 0b00;
-pub const PRIVATE: u64 = 0b10;
+const PUBLIC: u64 = 0b00;
+const PRIVATE: u64 = 0b10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u64)]
@@ -901,30 +865,6 @@ mod tests {
             assert_eq!(id, AccountId::try_from(u128::from(id)).unwrap(), "failed in {idx}");
             assert_eq!(account_id, u128::from(id), "failed in {idx}");
         }
-    }
-
-    #[test]
-    fn test_account_id_account_type() {
-        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
-            .expect("valid account ID");
-
-        let account_type: AccountType = ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.into();
-        assert_eq!(account_type, account_id.account_type());
-
-        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
-            .expect("valid account ID");
-        let account_type: AccountType = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN.into();
-        assert_eq!(account_type, account_id.account_type());
-
-        let account_id =
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("valid account ID");
-        let account_type: AccountType = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.into();
-        assert_eq!(account_type, account_id.account_type());
-
-        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
-            .expect("valid account ID");
-        let account_type: AccountType = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN.into();
-        assert_eq!(account_type, account_id.account_type());
     }
 
     #[test]
