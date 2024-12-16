@@ -68,8 +68,8 @@ pub use vault::AssetVault;
 ///
 /// - A non-fungible asset's data layout is: `[hash0, hash1, hash2, faucet_id_hi]`.
 /// - A non-fungible asset's vault key layout is: `[faucet_id_hi, hash1, hash2, hash0']`, where
-/// `hash0'` is equivalent to `hash0` with the fungible bit set to `0`. See
-/// [`NonFungibleAsset::vault_key`] for more details.
+///   `hash0'` is equivalent to `hash0` with the fungible bit set to `0`. See
+///   [`NonFungibleAsset::vault_key`] for more details.
 ///
 /// The 4 elements of non-fungible assets are computed as follows:
 /// - First the asset data is hashed. This compresses an asset of an arbitrary length to 4 field

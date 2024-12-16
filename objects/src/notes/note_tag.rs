@@ -201,7 +201,7 @@ impl NoteTag {
     ///
     /// If the most significant bit of the tag is 0 the note is intended for local execution;
     /// otherwise, the note is intended for network execution.
-    pub fn execution_hint(&self) -> NoteExecutionMode {
+    pub fn execution_mode(&self) -> NoteExecutionMode {
         let first_bit = self.0 >> 31;
 
         if first_bit == (LOCAL_EXECUTION as u32) {
@@ -222,7 +222,7 @@ impl NoteTag {
     /// Returns an error if this tag is not consistent with the specified note type, and self
     /// otherwise.
     pub fn validate(&self, note_type: NoteType) -> Result<Self, NoteError> {
-        if self.execution_hint() == NoteExecutionMode::Network && note_type != NoteType::Public {
+        if self.execution_mode() == NoteExecutionMode::Network && note_type != NoteType::Public {
             return Err(NoteError::NetworkExecutionRequiresPublicNote(note_type));
         }
 
@@ -362,7 +362,7 @@ mod tests {
             let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Network)
                 .expect("tag generation must work with network execution and on-chain account id");
             assert!(tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionMode::Network);
+            assert_eq!(tag.execution_mode(), NoteExecutionMode::Network);
 
             tag.validate(NoteType::Public)
                 .expect("network execution should require notes to be public");
@@ -380,7 +380,7 @@ mod tests {
             let tag = NoteTag::from_account_id(off_chain, NoteExecutionMode::Local)
                 .expect("tag generation must work with local execution and off-chain account id");
             assert!(!tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionMode::Local);
+            assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
                 .expect("local execution should support public notes");
@@ -394,7 +394,7 @@ mod tests {
             let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Local)
                 .expect("Tag generation must work with local execution and on-chain account id");
             assert!(!tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionMode::Local);
+            assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
                 .expect("local execution should support public notes");
