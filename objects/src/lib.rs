@@ -44,13 +44,70 @@ pub mod crypto {
 }
 
 pub mod utils {
+    use alloc::string::{String, ToString};
+
     pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
     pub use vm_core::utils::*;
+    use vm_core::{Felt, StarkField};
 
     pub mod serde {
         pub use miden_crypto::utils::{
             ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         };
+    }
+
+    pub const fn parse_hex_string_as_word(hex: &str) -> Result<[Felt; 4], &'static str> {
+        const fn parse_hex_digit(digit: u8) -> Result<u8, &'static str> {
+            match digit {
+                b'0'..=b'9' => Ok(digit - b'0'),
+                b'A'..=b'F' => Ok(digit - b'A' + 0x0a),
+                b'a'..=b'f' => Ok(digit - b'a' + 0x0a),
+                _ => Err("Invalid hex character"),
+            }
+        }
+        // Enforce and skip the '0x' prefix.
+        let hex_bytes = match hex.as_bytes() {
+            [b'0', b'x', rest @ ..] => rest,
+            _ => return Err("Hex string must have a \"0x\" prefix"),
+        };
+
+        if hex_bytes.len() > 64 {
+            return Err("Hex string has more than 64 characters");
+        }
+
+        let mut felts = [0u64; 4];
+        let mut i = 0;
+        while i < hex_bytes.len() {
+            let hex_digit = match parse_hex_digit(hex_bytes[i]) {
+                Ok(v) => v as u64,
+                Err(e) => return Err(e),
+            };
+
+            // This digit's nibble offset within the felt. We need to invert the nibbles per
+            // byte for endianess reasons i.e. ABCD -> BADC.
+            let inibble = if i % 2 == 0 { (i + 1) % 16 } else { (i - 1) % 16 };
+            let value = hex_digit << (inibble * 4);
+            felts[i / 2 / 8] += value;
+
+            i += 1;
+        }
+
+        // Ensure each felt is within bounds as `Felt::new` silently wraps around.
+        // This matches the behaviour of `Digest::try_from(String)`.
+        let mut idx = 0;
+        while idx < felts.len() {
+            if felts[idx] > Felt::MODULUS {
+                return Err("Felt overflow");
+            }
+            idx += 1;
+        }
+
+        Ok([
+            Felt::new(felts[0]),
+            Felt::new(felts[1]),
+            Felt::new(felts[2]),
+            Felt::new(felts[3]),
+        ])
     }
 
     /// Construct a new `Digest` from a hex value.
@@ -59,62 +116,20 @@ pub mod utils {
     #[macro_export]
     macro_rules! digest {
         ($hex:expr) => {{
-            const fn parse_hex_digit(digit: u8) -> u8 {
-                match digit {
-                    b'0'..=b'9' => digit - b'0',
-                    b'A'..=b'F' => digit - b'A' + 0x0a,
-                    b'a'..=b'f' => digit - b'a' + 0x0a,
-                    _ => panic!("Invalid hex character"),
-                }
-            }
-
-            // Enforce and skip the '0x' prefix.
-            let hex_bytes = match $hex.as_bytes() {
-                [b'0', b'x', rest @ ..] => rest,
-                _ => panic!(r#"Hex string must have a "0x" prefix"#),
+            let felts: [$crate::Felt; 4] = match $crate::utils::parse_hex_string_as_word($hex) {
+                Ok(v) => v,
+                Err(e) => panic!("{}", e),
             };
 
-            if hex_bytes.len() > 64 {
-                panic!("Hex string has more than 64 characters");
-            }
-
-            // Aggregate each byte into the appropriate felt value. Doing it this way also allows
-            // for variable string lengths.
-            let mut felts = [0u64; 4];
-            let mut i = 0;
-            // We are forced to use a while loop because the others aren't supported in const
-            // context.
-            while i < hex_bytes.len() {
-                // This digit's nibble offset within the felt. We need to invert the nibbles per
-                // byte for endianess reasons i.e. ABCD -> BADC.
-                let inibble = if i % 2 == 0 { (i + 1) % 16 } else { (i - 1) % 16 };
-
-                // SAFETY: u8 cast to u64 is safe. We cannot use u64::from in const context so we
-                // are forced to cast.
-                let value = (parse_hex_digit(hex_bytes[i]) as u64) << (inibble * 4);
-                felts[i / 2 / 8] += value;
-
-                i += 1;
-            }
-
-            // Ensure each felt is within bounds as `Felt::new` silently wraps around.
-            // This matches the behaviour of `Digest::try_from(String)`.
-            let mut i = 0;
-            while i < felts.len() {
-                use $crate::StarkField;
-                if felts[i] > $crate::Felt::MODULUS {
-                    panic!("Felt overflow");
-                }
-                i += 1;
-            }
-
-            $crate::Digest::new([
-                $crate::Felt::new(felts[0]),
-                $crate::Felt::new(felts[1]),
-                $crate::Felt::new(felts[2]),
-                $crate::Felt::new(felts[3]),
-            ])
+            $crate::Digest::new(felts)
         }};
+    }
+
+    pub fn parse_hex_to_felts(hex: &str) -> Result<[Felt; 4], String> {
+        match parse_hex_string_as_word(hex) {
+            Ok(felts) => Ok(felts),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
     #[cfg(test)]

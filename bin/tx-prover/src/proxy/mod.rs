@@ -110,12 +110,8 @@ impl LoadBalancerState {
     /// - If the worker exists in the current workers list, remove it.
     /// - Otherwise, do nothing.
     ///
-    /// Finally, updates the configuration file with the new list of workers.
-    ///
     /// # Errors
     /// - If the worker cannot be created.
-    /// - If the configuration cannot be loaded.
-    /// - If the configuration cannot be saved.
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
@@ -151,11 +147,6 @@ impl LoadBalancerState {
                 }
             },
         }
-
-        let new_list_of_workers =
-            workers.iter().map(|worker| worker.try_into()).collect::<Result<Vec<_>, _>>()?;
-
-        ProxyConfig::set_workers(new_list_of_workers)?;
 
         info!("Workers updated: {:?}", workers);
 
@@ -556,7 +547,6 @@ impl BackgroundService for LoadBalancerState {
     ///
     /// # Errors
     /// - If the worker has an invalid URI.
-    /// - If a [WorkerConfig] cannot be created from a given [Worker].
     fn start<'life0, 'async_trait>(
         &'life0 self,
         _shutdown: ShutdownWatch,
@@ -574,17 +564,6 @@ impl BackgroundService for LoadBalancerState {
 
                 // Update the worker list with healthy workers
                 *workers = healthy_workers;
-
-                // Persist the updated worker list to the configuration file
-                let worker_configs = workers
-                    .iter()
-                    .map(|worker| worker.try_into())
-                    .collect::<Result<Vec<_>, _>>()
-                    .expect("Failed to convert workers to worker configs");
-
-                if let Err(err) = ProxyConfig::set_workers(worker_configs) {
-                    error!("Failed to update workers in the configuration file: {}", err);
-                }
 
                 // Sleep for the defined interval before the next health check
                 sleep(self.health_check_frequency).await;

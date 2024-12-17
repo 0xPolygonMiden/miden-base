@@ -7,7 +7,7 @@ use tonic_health::pb::{
 };
 use tracing::error;
 
-use crate::{commands::WorkerConfig, utils::create_health_check_client};
+use crate::utils::create_health_check_client;
 
 // WORKER
 // ================================================================================================
@@ -70,16 +70,5 @@ impl Worker {
 impl PartialEq for Worker {
     fn eq(&self, other: &Self) -> bool {
         self.backend == other.backend
-    }
-}
-
-impl TryInto<WorkerConfig> for &Worker {
-    type Error = String;
-
-    fn try_into(self) -> std::result::Result<WorkerConfig, String> {
-        self.backend
-            .as_inet()
-            .ok_or_else(|| "Failed to get worker address".to_string())
-            .map(|worker_addr| WorkerConfig::new(&worker_addr.ip().to_string(), worker_addr.port()))
     }
 }

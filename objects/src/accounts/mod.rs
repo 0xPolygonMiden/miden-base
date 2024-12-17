@@ -29,6 +29,10 @@ pub use delta::{
     NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
 
+// TODO: Restrict visibility to just necessary structs
+#[cfg(feature = "std")]
+pub mod package;
+
 mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
