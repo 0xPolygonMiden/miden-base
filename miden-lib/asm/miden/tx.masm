@@ -186,8 +186,8 @@ end
 
 #! Executes the provided procedure against the foreign account.
 #!
-#! WARNING: the procedure to be invoked can not have more than 14 inputs and it can not return more
-#! than 14 elements back. Otherwise exceeding elements will not be provided to the procedure and
+#! WARNING: the procedure to be invoked can not have more than 15 inputs and it can not return more
+#! than 15 elements back. Otherwise exceeding elements will not be provided to the procedure and
 #! will not be returned from it.
 #!
 #! Inputs:  [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
