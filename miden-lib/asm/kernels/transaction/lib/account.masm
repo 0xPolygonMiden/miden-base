@@ -338,7 +338,7 @@ end
 export.is_id_eq
     movup.2 eq
     # => [is_hi_equal, acct_id_lo, other_acct_id_lo]
-    swap movup.2 eq
+    movdn.2 eq
     # => [is_lo_equal, is_hi_equal]
     and
     # => [is_id_equal]
@@ -857,10 +857,11 @@ proc.shape_second_felt
   # this is technically optional as we will compare this id with the provided one for which
   # this property was already checked, but since this check is cheap we include it anyway
   dup eq.0xffff assertz.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
+  # => [anchor_epoch, seed_digest_lo_hi', seed_digest_lo_lo']
 
   # shift epoch left by 16 bits and set epoch bits on hi part
   u32shl.16 u32or
-  # => [anchor_epoch_shifted, seed_digest_lo_hi', seed_digest_lo_lo']
+  # => [seed_digest_lo_hi'', seed_digest_lo_lo']
 
   # reassemble the second felt by multiplying the hi part with 2^32 and adding the lo part
   mul.0x0100000000 add
@@ -916,7 +917,7 @@ end
 proc.id_version
   # extract the lower 32 bits
   u32split drop
-  # => [account_id_lo_lo]
+  # => [account_id_hi_lo]
 
   # mask out the version
   u32and.ACCOUNT_VERSION_MASK_U32
@@ -1157,7 +1158,7 @@ end
 #! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
 export.get_foreign_account_ptr
     # check that foreign account id is not equal zero
-    dup.1 dup.1 push.0.0 exec.is_id_eq not assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
+    dup.1 eq.0 dup.1 eq.0 and not assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
     # => [foreign_account_id_hi, foreign_account_id_lo]
 
     # check that foreign account id is not equal to the native account id
@@ -1185,8 +1186,8 @@ export.get_foreign_account_ptr
         padw dup.4 mem_loadw
         # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
 
-        # check whether the last value in the word equals zero. If so, it will mean that this memory
-        # block was not initialized.
+        # check whether the last value in the word equals zero
+        # if so it means this memory block was not yet initialized
         drop drop dup.1 eq.0
         # => [is_empty_block, maybe_account_id_hi, maybe_account_id_lo, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
 
