@@ -12,10 +12,10 @@ use super::{
 const NETWORK_EXECUTION: u8 = 0;
 const LOCAL_EXECUTION: u8 = 1;
 
-// The 2 most significant bits are set to `0b11`
-const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xc0000000;
-// The 2 most significant bits are set to `0b10`
-const PUBLIC_USECASE: u32 = 0x80000000;
+// The 2 most significant bits are set to `0b11`.
+const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xc000_0000;
+// The 2 most significant bits are set to `0b10`.
+const PUBLIC_USECASE: u32 = 0x8000_0000;
 
 /// [super::Note]'s execution mode hints.
 ///
@@ -38,7 +38,7 @@ pub enum NoteExecutionMode {
 
 /// [NoteTag]`s are best effort filters for notes registered with the network.
 ///
-/// Tags are light-weight values used to speed up queries. The 2 most signification bits of the tags
+/// Tags are light-weight values used to speed up queries. The 2 most significant bits of the tags
 /// have the following interpretation:
 ///
 /// | Prefix | Execution hint | Target   | Allowed [NoteType] |
@@ -50,12 +50,13 @@ pub enum NoteExecutionMode {
 ///
 /// Where:
 ///
-/// - [NoteExecutionMode] is set to [NoteExecutionMode::Network] to hint a [super::Note] should be
-///   consumed by the network. These notes will be further validated and if possible consumed by it.
+/// - [`NoteExecutionMode`] is set to [`NoteExecutionMode::Network`] to hint a [`Note`](super::Note)
+///   should be consumed by the network. These notes will be further validated and if possible
+///   consumed by it.
 /// - Target describes how to further interpret the bits in the tag. For tags with a specific
-///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning
-///   of the rest of the tag is not specified by the protocol and can be used by applications built
-///   on top of the rollup.
+///   target, the rest of the tag is interpreted as a partial [`AccountId`]. For use case values,
+///   the meaning of the rest of the tag is not specified by the protocol and can be used by
+///   applications built on top of the rollup.
 ///
 /// The note type is the only value enforced by the protocol. The rationale is that any note
 /// intended to be consumed by the network must be public to have all the details available. The
@@ -80,12 +81,10 @@ impl NoteTag {
     /// The tag is constructed as follows:
     ///
     /// - For local execution, the two most significant bits are set to `0b11`, which allows for any
-    ///   note type to be used, the following 14 bits are set to the 14 most significant bits of the
+    ///   note type to be used. The following 14 bits are set to the most significant bits of the
     ///   account ID, and the remaining 16 bits are set to 0.
-    /// - For network execution, the most significant bit is set to `0b0` and the remaining bits are
-    ///   set to the 31 most significant bits of the account ID. Note that this results in the two
-    ///   most significant bits of the tag being set to `0b00`, because the network execution
-    ///   requires a public account which always have the high bit set to 0.
+    /// - For network execution, the most significant bits are set to `0b00` and the remaining bits
+    ///   are set to the 30 most significant bits of the account ID.
     ///
     /// # Errors
     ///
@@ -97,22 +96,39 @@ impl NoteTag {
     ) -> Result<Self, NoteError> {
         match execution {
             NoteExecutionMode::Local => {
-                let id: u64 = account_id.into();
-                // select 14 most significant bits of the account ID and shift them right by 2 bits
-                let high_bits = (id >> 34) as u32 & 0xffff0000;
+                let first_felt_id: u64 = account_id.first_felt().into();
+
+                // Shift the high bits of the account ID such that they are layed out as:
+                // [34 zero bits | remaining high bits (30 bits)].
+                let high_bits = first_felt_id >> 34;
+
+                // This is equivalent to the following layout, interpreted as a u32:
+                // [2 zero bits | remaining high bits (30 bits)].
+                let high_bits = high_bits as u32;
+
+                // Select the upper half of the u32 which then contains the 14 most significant bits
+                // of the account ID, i.e.:
+                // [2 zero bits | remaining high bits (14 bits) | 16 zero bits].
+                let high_bits = high_bits & 0xffff0000;
+
+                // Set the local execution tag in the two most significant bits.
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
                 if !account_id.is_public() {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
-                    let id: u64 = account_id.into();
-                    // select 31 most significant bits of account ID and shift them right by 1 bit
-                    let high_bits = (id >> 33) as u32;
-                    // the tag will have the form 0 + 31 high bits of account ID; note that the
-                    // second bit of the tag is guaranteed to be 0 because public account IDs start
-                    // with 0
-                    Ok(Self(high_bits))
+                    let first_felt_id: u64 = account_id.first_felt().into();
+
+                    // Shift the high bits of the account ID such that they are layed out as:
+                    // [34 zero bits | remaining high bits (30 bits)].
+                    let high_bits = first_felt_id >> 34;
+
+                    // This is equivalent to the following layout, interpreted as a u32:
+                    // [2 zero bits | remaining high bits (30 bits)].
+                    // The two most significant zero bits match the tag we need for network
+                    // execution.
+                    Ok(Self(high_bits as u32))
                 }
             },
         }
@@ -183,10 +199,9 @@ impl NoteTag {
 
     /// Returns note execution mode defined by this tag.
     ///
-    /// If the most significant bit of the tag is 0 or the 3 most significant bits are equal to
-    /// 0b101, the note is intended for local execution; otherwise, the note is intended for
-    /// network execution.
-    pub fn execution_hint(&self) -> NoteExecutionMode {
+    /// If the most significant bit of the tag is 0 the note is intended for local execution;
+    /// otherwise, the note is intended for network execution.
+    pub fn execution_mode(&self) -> NoteExecutionMode {
         let first_bit = self.0 >> 31;
 
         if first_bit == (LOCAL_EXECUTION as u32) {
@@ -207,7 +222,7 @@ impl NoteTag {
     /// Returns an error if this tag is not consistent with the specified note type, and self
     /// otherwise.
     pub fn validate(&self, note_type: NoteType) -> Result<Self, NoteError> {
-        if self.execution_hint() == NoteExecutionMode::Network && note_type != NoteType::Public {
+        if self.execution_mode() == NoteExecutionMode::Network && note_type != NoteType::Public {
             return Err(NoteError::NetworkExecutionRequiresPublicNote(note_type));
         }
 
@@ -297,21 +312,19 @@ mod tests {
 
     use super::{NoteExecutionMode, NoteTag};
     use crate::{
-        accounts::{
-            account_id::testing::{
-                ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
-                ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-                ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2,
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
-            },
-            AccountId,
-        },
+        accounts::AccountId,
         notes::NoteType,
+        testing::account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+            ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+        },
         NoteError,
     };
 
@@ -349,7 +362,7 @@ mod tests {
             let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Network)
                 .expect("tag generation must work with network execution and on-chain account id");
             assert!(tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionMode::Network);
+            assert_eq!(tag.execution_mode(), NoteExecutionMode::Network);
 
             tag.validate(NoteType::Public)
                 .expect("network execution should require notes to be public");
@@ -367,7 +380,7 @@ mod tests {
             let tag = NoteTag::from_account_id(off_chain, NoteExecutionMode::Local)
                 .expect("tag generation must work with local execution and off-chain account id");
             assert!(!tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionMode::Local);
+            assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
                 .expect("local execution should support public notes");
@@ -381,7 +394,7 @@ mod tests {
             let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Local)
                 .expect("Tag generation must work with local execution and on-chain account id");
             assert!(!tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionMode::Local);
+            assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
                 .expect("local execution should support public notes");
@@ -394,14 +407,33 @@ mod tests {
 
     #[test]
     fn test_from_account_id_values() {
-        let off_chain =
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-        let on_chain =
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        // Off-Chain Account ID with the following bit pattern in the first and second byte:
+        // 0b11001100_01010101
+        //   ^^^^^^^^ ^^^^^^  <- these are the 14 bits used in the tag.
+        const OFF_CHAIN_INT: u128 = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN
+            | 0x0055_0000_0000_0000_0000_0000_0000_0000;
+        let off_chain = AccountId::try_from(OFF_CHAIN_INT).unwrap();
+
+        // Expected off-chain tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
+        let expected_off_chain_local_tag = NoteTag(0b11110011_00010101_00000000_00000000);
+
+        // On-Chain Account ID with the following bit pattern in the first and second byte:
+        // 0b10101010_01010101_11001100_01110111
+        //   ^^^^^^^^ ^^^^^^^^ ^^^^^^^^ ^^^^^^  <- 30 bits of the network tag.
+        //   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
+        let on_chain_int = ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN
+            | 0x0055_cc77_0000_0000_0000_0000_0000_0000;
+        let on_chain = AccountId::try_from(on_chain_int).unwrap();
+
+        // Expected on-chain tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
+        let expected_on_chain_local_tag = NoteTag(0b11101010_10010101_00000000_00000000);
+
+        // Expected on-chain tag with leading 00 tag bits for network execution.
+        let expected_on_chain_network_tag = NoteTag(0b00101010_10010101_01110011_00011101);
 
         assert_eq!(
             NoteTag::from_account_id(on_chain, NoteExecutionMode::Network).unwrap(),
-            NoteTag(0b00000000_00000000_00000000_00000000)
+            expected_on_chain_network_tag,
         );
         assert_matches!(
             NoteTag::from_account_id(off_chain, NoteExecutionMode::Network),
@@ -410,11 +442,13 @@ mod tests {
 
         assert_eq!(
             NoteTag::from_account_id(off_chain, NoteExecutionMode::Local).unwrap(),
-            NoteTag(0b11100100_00000000_00000000_00000000)
+            expected_off_chain_local_tag,
         );
+
+        // We expect the 16th most significant bit to be cut off.
         assert_eq!(
             NoteTag::from_account_id(on_chain, NoteExecutionMode::Local).unwrap(),
-            NoteTag(0b11000000_00000000_00000000_00000000)
+            expected_on_chain_local_tag,
         );
     }
 
@@ -508,45 +542,5 @@ mod tests {
           NoteTag::for_local_use_case(1 << 14, 0b0).unwrap_err(),
           NoteError::NoteTagUseCaseTooLarge(use_case) if use_case == 1 << 14
         );
-    }
-
-    /// Test for assumption built in the [NoteTag] encoding that only on-chain accounts have the
-    /// highbit set to 0. If the account id encoding ever changes, the note tag needs to be
-    /// adjusted.
-    #[test]
-    fn test_only_onchain_account_have_the_highbit_set_to_zero() {
-        // Create a list of valid account ids with every combination of account types
-        let accounts = [
-            // ON-CHAIN
-            // ---------------------------------------------------------------------------
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap(),
-            // OFF-CHAIN
-            // --------------------------------------------------------------------------
-            AccountId::try_from(ACCOUNT_ID_SENDER).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap(),
-        ];
-
-        for acct in accounts {
-            let highbit = u64::from(acct) >> 63;
-            let onchain = highbit == 0;
-
-            assert_eq!(
-                acct.is_public(),
-                onchain,
-                "the account_id encoding changed, this breaks the assumptions built in the NoteTag"
-            );
-        }
     }
 }

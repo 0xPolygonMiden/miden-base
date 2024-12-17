@@ -5,10 +5,11 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_SENDER, AccountId},
+    accounts::AccountId,
     assets::FungibleAsset,
     crypto::utils::Serializable,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
+    testing::account_id::ACCOUNT_ID_SENDER,
     transaction::{ExecutedTransaction, ProvenTransaction},
     Felt, Word, ZERO,
 };

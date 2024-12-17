@@ -36,7 +36,7 @@ macro_rules! assert_execution_error {
                 );
             },
             Ok(_) => panic!("Execution was unexpectedly successful"),
-            Err(_) => panic!("Execution error was not as expected"),
+            Err(err) => panic!("Execution error was not as expected: {err}"),
         }
     };
 }

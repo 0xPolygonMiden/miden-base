@@ -10,12 +10,13 @@ use miden_lib::{
     transaction::memory::NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
 };
 use miden_objects::{
-    accounts::account_id::testing::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
-    },
+    accounts::AccountId,
     assets::{FungibleAsset, NonFungibleAsset},
     testing::{
+        account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        },
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
             NON_FUNGIBLE_ASSET_DATA, NON_FUNGIBLE_ASSET_DATA_2,
@@ -42,6 +43,8 @@ fn test_mint_fungible_asset_succeeds() {
     )
     .build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+
     let code = format!(
         "
         use.test::account
@@ -52,20 +55,22 @@ fn test_mint_fungible_asset_succeeds() {
         begin
             # mint asset
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::mint
 
             # assert the correct asset is returned
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             assert_eqw
 
             # assert the input vault has been updated
             exec.memory::get_input_vault_root_ptr
-            push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
+            push.{second_felt}.{first_felt}
             exec.asset_vault::get_balance
             push.{FUNGIBLE_ASSET_AMOUNT} assert_eq
         end
-        "
+        ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -85,6 +90,8 @@ fn test_mint_fungible_asset_succeeds() {
 fn test_mint_fungible_asset_fails_not_faucet_account() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+
     let code = format!(
         "
         use.kernel::prologue
@@ -92,10 +99,12 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::mint
         end
-        "
+        ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
     );
 
     let process = tx_context.execute_code(&code);
@@ -107,6 +116,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 fn test_mint_fungible_asset_inconsistent_faucet_id() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
     let code = format!(
         "
         use.kernel::prologue
@@ -114,10 +124,12 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::mint
         end
         ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
     );
 
     let process = tx_context.execute_code(&code);
@@ -134,6 +146,7 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
     )
     .build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let code = format!(
         "
         use.kernel::prologue
@@ -141,10 +154,12 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{saturating_amount}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
+            push.{saturating_amount}.0.{second_felt}.{first_felt}
             call.account::mint
         end
         ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
         saturating_amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_FAUCET_INITIAL_BALANCE + 1
     );
 
@@ -303,6 +318,8 @@ fn test_burn_fungible_asset_succeeds() {
     .with_mock_notes_preserved()
     .build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+
     let code = format!(
         "
         use.test::account
@@ -313,21 +330,23 @@ fn test_burn_fungible_asset_succeeds() {
         begin
             # mint asset
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::burn
             # assert the correct asset is returned
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             assert_eqw
 
             # assert the input vault has been updated
             exec.memory::get_input_vault_root_ptr
 
-            push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
+            push.{second_felt}.{first_felt}
             exec.asset_vault::get_balance
             
             push.{final_input_vault_asset_amount} assert_eq
         end
         ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
         final_input_vault_asset_amount = CONSUMED_ASSET_1_AMOUNT - FUNGIBLE_ASSET_AMOUNT,
     );
 
@@ -348,6 +367,8 @@ fn test_burn_fungible_asset_succeeds() {
 fn test_burn_fungible_asset_fails_not_faucet_account() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+
     let code = format!(
         "
         use.kernel::prologue
@@ -355,10 +376,12 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::burn
         end
-        "
+        ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
     );
 
     let process = tx_context.execute_code(&code);
@@ -375,6 +398,8 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
     )
     .build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+
     let code = format!(
         "
         use.kernel::prologue
@@ -382,10 +407,12 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
+            push.{FUNGIBLE_ASSET_AMOUNT}.0.{second_felt}.{first_felt}
             call.account::burn
         end
         ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
     );
 
     let process = tx_context.execute_code(&code);
@@ -402,6 +429,8 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
     )
     .build();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+
     let code = format!(
         "
         use.kernel::prologue
@@ -409,10 +438,12 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{saturating_amount}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
+            push.{saturating_amount}.0.{second_felt}.{first_felt}
             call.account::burn
         end
         ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
         saturating_amount = CONSUMED_ASSET_1_AMOUNT + 1
     );
 

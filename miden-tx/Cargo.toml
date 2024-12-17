@@ -36,6 +36,7 @@ vm-processor = { workspace = true }
 winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]
+anyhow = { version = "1.0.93", default-features = false, features = ["std", "backtrace"]}
 assembly = { workspace = true }
 assert_matches = { workspace = true }
 miden-tx = { path = ".", features = ["testing"] }

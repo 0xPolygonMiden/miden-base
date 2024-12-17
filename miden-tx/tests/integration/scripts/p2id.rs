@@ -3,18 +3,18 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
+    accounts::Account,
+    assets::{Asset, AssetVault, FungibleAsset},
+    crypto::rand::RpoRandomCoin,
+    notes::NoteType,
+    testing::{
+        account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        Account,
+        prepare_word,
     },
-    assets::{Asset, AssetVault, FungibleAsset},
-    crypto::rand::RpoRandomCoin,
-    notes::NoteType,
-    testing::prepare_word,
     transaction::{OutputNote, TransactionScript},
     Felt,
 };
@@ -191,14 +191,10 @@ fn test_create_consume_multiple_notes() {
     let mut account =
         mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
 
-    let input_note_faucet_id = ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN;
-    let input_note_asset_1: Asset =
-        FungibleAsset::new(input_note_faucet_id.try_into().unwrap(), 11).unwrap().into();
+    let input_note_faucet_id = ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN.try_into().unwrap();
+    let input_note_asset_1: Asset = FungibleAsset::new(input_note_faucet_id, 11).unwrap().into();
 
-    let input_note_asset_2: Asset =
-        FungibleAsset::new(input_note_faucet_id.try_into().unwrap(), 100)
-            .unwrap()
-            .into();
+    let input_note_asset_2: Asset = FungibleAsset::new(input_note_faucet_id, 100).unwrap().into();
 
     let input_note_1 = mock_chain
         .add_p2id_note(
@@ -296,11 +292,7 @@ fn test_create_consume_multiple_notes() {
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
 
     account.apply_delta(executed_transaction.account_delta()).unwrap();
-    for asset in account.vault().assets() {
-        if u64::from(asset.faucet_id()) == input_note_faucet_id {
-            assert!(asset.unwrap_fungible().amount() == 111);
-        } else if asset.faucet_id() == FungibleAsset::mock_issuer() {
-            assert!(asset.unwrap_fungible().amount() == 5);
-        }
-    }
+
+    assert_eq!(account.vault().get_balance(input_note_faucet_id).unwrap(), 111);
+    assert_eq!(account.vault().get_balance(FungibleAsset::mock_issuer()).unwrap(), 5);
 }

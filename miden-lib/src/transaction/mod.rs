@@ -144,16 +144,17 @@ impl TransactionKernel {
     /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
     pub fn build_input_stack(
-        acct_id: AccountId,
+        account_id: AccountId,
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
-        let mut inputs: Vec<Felt> = Vec::with_capacity(13);
+        let mut inputs: Vec<Felt> = Vec::with_capacity(14);
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
-        inputs.push(acct_id.into());
+        inputs.push(account_id.second_felt());
+        inputs.push(account_id.first_felt());
         inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())
@@ -178,7 +179,8 @@ impl TransactionKernel {
         let account_id = account_header.id();
         let storage_root = account_header.storage_commitment();
         let code_root = account_header.code_commitment();
-        let account_key = Digest::from([account_id.into(), ZERO, ZERO, ZERO]);
+        let account_key =
+            Digest::from([account_id.first_felt(), account_id.second_felt(), ZERO, ZERO]);
 
         // Extend the advice inputs with the new data
         advice_inputs.extend_map([
@@ -192,7 +194,8 @@ impl TransactionKernel {
 
         // Extend the advice inputs with Merkle store data
         advice_inputs.extend_merkle_store(
-            merkle_path.inner_nodes(account_id.into(), account_header.hash())?,
+            // The first felt is the index in the account tree.
+            merkle_path.inner_nodes(account_id.first_felt().as_int(), account_header.hash())?,
         );
 
         Ok(())

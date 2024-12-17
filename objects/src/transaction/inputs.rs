@@ -3,7 +3,8 @@ use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
-    accounts::{Account, AccountId},
+    accounts::{Account, AccountId, AccountIdAnchor},
+    block::block_num_from_epoch,
     notes::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     TransactionInputError, MAX_INPUT_NOTES_PER_TX,
@@ -39,7 +40,7 @@ impl TransactionInputs {
         input_notes: InputNotes<InputNote>,
     ) -> Result<Self, TransactionInputError> {
         // validate the seed
-        validate_account_seed(&account, account_seed)?;
+        validate_account_seed(&account, &block_header, &block_chain, account_seed)?;
 
         // check the block_chain and block_header are consistent
         let block_num = block_header.block_num();
@@ -464,16 +465,43 @@ impl Deserializable for InputNote {
     }
 }
 
+// INPUT NOTE
+// ================================================================================================
+
 /// Validates that the provided seed is valid for this account.
 pub fn validate_account_seed(
     account: &Account,
+    block_header: &BlockHeader,
+    block_chain: &ChainMmr,
     account_seed: Option<Word>,
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
-            let account_id =
-                AccountId::new(seed, account.code().commitment(), account.storage().commitment())
-                    .map_err(TransactionInputError::InvalidAccountIdSeed)?;
+            let anchor_block_number = block_num_from_epoch(account.id().anchor_epoch());
+
+            let anchor_block_hash = if block_header.block_num() == anchor_block_number {
+                block_header.hash()
+            } else {
+                let anchor_block_header =
+                    block_chain.get_block(anchor_block_number).ok_or_else(|| {
+                        TransactionInputError::AnchorBlockHeaderNotProvidedForNewAccount(
+                            account.id().anchor_epoch(),
+                        )
+                    })?;
+                anchor_block_header.hash()
+            };
+
+            let anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash)
+                .map_err(TransactionInputError::InvalidAccountIdSeed)?;
+
+            let account_id = AccountId::new(
+                seed,
+                anchor,
+                account.code().commitment(),
+                account.storage().commitment(),
+            )
+            .map_err(TransactionInputError::InvalidAccountIdSeed)?;
+
             if account_id != account.id() {
                 return Err(TransactionInputError::InconsistentAccountSeed {
                     expected: account.id(),

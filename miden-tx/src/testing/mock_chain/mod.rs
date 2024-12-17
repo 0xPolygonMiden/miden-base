@@ -8,10 +8,13 @@ use miden_lib::{
 use miden_objects::{
     accounts::{
         delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
-        AccountId, AccountType, AuthSecretKey,
+        AccountId, AccountIdAnchor, AccountType, AuthSecretKey,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
-    block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
+    block::{
+        block_num_from_epoch, compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex,
+        BlockNoteTree, NoteBatch,
+    },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
         merkle::{Mmr, MmrError, PartialMmr, Smt},
@@ -507,6 +510,10 @@ impl MockChain {
         };
 
         let (account, seed) = if let AccountState::New = account_state {
+            let last_block = self.blocks.last().expect("one block should always exist");
+            account_builder =
+                account_builder.anchor(AccountIdAnchor::try_from(&last_block.header()).unwrap());
+
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {
             account_builder.build_existing().map(|account| (account, None)).unwrap()
@@ -570,7 +577,7 @@ impl MockChain {
 
     /// Returns a valid [TransactionInputs] for the specified entities.
     pub fn get_transaction_inputs(
-        &mut self,
+        &self,
         account: Account,
         account_seed: Option<Word>,
         notes: &[NoteId],
@@ -590,6 +597,20 @@ impl MockChain {
                 );
             }
             input_notes.push(input_note);
+        }
+
+        // If the account is new, add the anchor block's header from which the account ID is derived
+        // to the MMR.
+        if account.is_new() {
+            let epoch_block_num = block_num_from_epoch(account.id().anchor_epoch());
+            // The reference block of the transaction is added to the MMR in
+            // prologue::process_chain_data so we can skip adding it to the block headers here.
+            if epoch_block_num != block.header().block_num() {
+                block_headers_map.insert(
+                    epoch_block_num,
+                    self.blocks.get(epoch_block_num as usize).unwrap().header(),
+                );
+            }
         }
 
         for note in unauthenticated_notes {

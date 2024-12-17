@@ -21,8 +21,9 @@ use super::{read_to_string, write, Benchmark, Path};
 // CONSTANTS
 // ================================================================================================
 
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0x200000000000001f; // 2305843009213693983
-pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001f; // 9223372036854775839
+// Copied from miden_objects::testing::account_id.
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 = 0x00aa00000000bc200000bc000000de00;
+pub const ACCOUNT_ID_SENDER: u128 = 0x00fa00000000bb800000cc000000de00;
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "
     begin

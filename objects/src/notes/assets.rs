@@ -221,14 +221,15 @@ impl Deserializable for NoteAssets {
 mod tests {
     use super::{compute_asset_commitment, NoteAssets};
     use crate::{
-        accounts::account_id::{testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, AccountId},
+        accounts::AccountId,
         assets::{Asset, FungibleAsset},
-        Digest, Felt,
+        testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
+        Digest,
     };
 
     #[test]
     fn add_asset() {
-        let faucet_id = AccountId::new_unchecked(Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN));
+        let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
 
         let asset1 = Asset::Fungible(FungibleAsset::new(faucet_id, 100).unwrap());
         let asset2 = Asset::Fungible(FungibleAsset::new(faucet_id, 50).unwrap());

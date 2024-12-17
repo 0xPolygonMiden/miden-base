@@ -24,7 +24,7 @@ mod metadata;
 pub use metadata::NoteMetadata;
 
 mod execution_hint;
-pub use execution_hint::NoteExecutionHint;
+pub use execution_hint::{AfterBlockNumber, NoteExecutionHint};
 
 mod note_id;
 pub use note_id::NoteId;

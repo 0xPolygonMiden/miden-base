@@ -64,7 +64,7 @@ impl TransactionContext {
         let test_lib = TransactionKernel::kernel_as_library();
         mast_store.insert(test_lib.mast_forest().clone());
 
-        let program = self.assembler.clone().assemble_program(code).unwrap();
+        let program = self.assembler.clone().with_debug_mode(true).assemble_program(code).unwrap();
         mast_store.insert(program.mast_forest().clone());
 
         for code in &self.foreign_codes {
@@ -94,6 +94,7 @@ impl TransactionContext {
         let authenticator = self
             .authenticator
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
+
         let mut tx_executor = TransactionExecutor::new(Arc::new(self.tx_inputs), authenticator);
 
         for code in self.foreign_codes {

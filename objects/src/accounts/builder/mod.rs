@@ -5,10 +5,10 @@ use vm_processor::Digest;
 
 use crate::{
     accounts::{
-        Account, AccountCode, AccountComponent, AccountId, AccountStorage, AccountStorageMode,
-        AccountType,
+        Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdVersion,
+        AccountStorage, AccountStorageMode, AccountType,
     },
-    assets::{Asset, AssetVault},
+    assets::AssetVault,
     AccountError, Felt, Word,
 };
 
@@ -24,23 +24,31 @@ use crate::{
 /// By default, the builder is initialized with:
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
+/// - The `version` set to [`AccountIdVersion::VERSION_0`].
 ///
 /// The methods that are required to be called are:
 ///
 /// - [`AccountBuilder::init_seed`],
 /// - [`AccountBuilder::with_component`], which must be called at least once.
+/// - [`AccountBuilder::anchor`].
+///
+/// The latter methods set the anchor block hash and epoch which will be used for the generation of
+/// the account's ID. See [`AccountId`] for details on its generation and anchor blocks.
 ///
 /// Under the `testing` feature, it is possible to:
 /// - Change the `nonce` to build an existing account.
-/// - Set assets which will be placed in the account's vault.
+/// - Add assets to the account's vault, however this will only succeed when using
+///   [`AccountBuilder::build_existing`].
 #[derive(Debug, Clone)]
 pub struct AccountBuilder {
     #[cfg(any(feature = "testing", test))]
-    assets: Vec<Asset>,
+    assets: Vec<crate::assets::Asset>,
     components: Vec<AccountComponent>,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
+    id_anchor: Option<AccountIdAnchor>,
     init_seed: Option<[u8; 32]>,
+    id_version: AccountIdVersion,
 }
 
 impl AccountBuilder {
@@ -51,8 +59,10 @@ impl AccountBuilder {
             assets: vec![],
             components: vec![],
             init_seed: None,
+            id_anchor: None,
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
+            id_version: AccountIdVersion::VERSION_0,
         }
     }
 
@@ -62,6 +72,18 @@ impl AccountBuilder {
     ///  This method **must** be called.
     pub fn init_seed(mut self, init_seed: [u8; 32]) -> Self {
         self.init_seed = Some(init_seed);
+        self
+    }
+
+    /// Sets the [`AccountIdAnchor`] used for the generation of the account ID.
+    pub fn anchor(mut self, anchor: AccountIdAnchor) -> Self {
+        self.id_anchor = Some(anchor);
+        self
+    }
+
+    /// Sets the [`AccountIdVersion`] of the account ID.
+    pub fn version(mut self, version: AccountIdVersion) -> Self {
+        self.id_version = version;
         self
     }
 
@@ -120,24 +142,25 @@ impl AccountBuilder {
     fn grind_account_id(
         &self,
         init_seed: [u8; 32],
+        version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
-    ) -> Result<(AccountId, Word), AccountError> {
-        let seed = AccountId::get_account_seed(
+        block_hash: Digest,
+    ) -> Result<Word, AccountError> {
+        let seed = AccountId::compute_account_seed(
             init_seed,
             self.account_type,
             self.storage_mode,
+            version,
             code_commitment,
             storage_commitment,
+            block_hash,
         )
         .map_err(|err| {
             AccountError::BuildError("account seed generation failed".into(), Some(Box::new(err)))
         })?;
 
-        let account_id = AccountId::new(seed, code_commitment, storage_commitment)
-            .expect("get_account_seed should provide a suitable seed");
-
-        Ok((account_id, seed))
+        Ok(seed)
     }
 
     /// Builds an [`Account`] out of the configured builder.
@@ -158,6 +181,10 @@ impl AccountBuilder {
     pub fn build(self) -> Result<(Account, Word), AccountError> {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
+        let id_anchor = self
+            .id_anchor
+            .ok_or_else(|| AccountError::BuildError("anchor must be set".into(), None))?;
+
         #[cfg(any(feature = "testing", test))]
         if !vault.is_empty() {
             return Err(AccountError::BuildError(
@@ -166,8 +193,16 @@ impl AccountBuilder {
             ));
         }
 
-        let (account_id, seed) =
-            self.grind_account_id(init_seed, code.commitment(), storage.commitment())?;
+        let seed = self.grind_account_id(
+            init_seed,
+            self.id_version,
+            code.commitment(),
+            storage.commitment(),
+            id_anchor.block_hash(),
+        )?;
+
+        let account_id = AccountId::new(seed, id_anchor, code.commitment(), storage.commitment())
+            .expect("get_account_seed should provide a suitable seed");
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
@@ -184,7 +219,7 @@ impl AccountBuilder {
     ///
     /// Must only be used when using [`Self::build_existing`] instead of [`Self::build`] since new
     /// accounts must have an empty vault.
-    pub fn with_assets<I: IntoIterator<Item = Asset>>(mut self, assets: I) -> Self {
+    pub fn with_assets<I: IntoIterator<Item = crate::assets::Asset>>(mut self, assets: I) -> Self {
         self.assets.extend(assets);
         self
     }
@@ -198,9 +233,9 @@ impl AccountBuilder {
         let (init_seed, vault, code, storage) = self.build_inner()?;
 
         let account_id = {
-            let bytes = <[u8; 8]>::try_from(&init_seed[0..8])
-                .expect("we should have sliced exactly 8 bytes off");
-            AccountId::new_with_type_and_mode(bytes, self.account_type, self.storage_mode)
+            let bytes = <[u8; 15]>::try_from(&init_seed[0..15])
+                .expect("we should have sliced exactly 15 bytes off");
+            AccountId::new_dummy(bytes, self.account_type, self.storage_mode)
         };
 
         Ok(Account::from_parts(account_id, vault, storage, code, Felt::ONE))
@@ -221,6 +256,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use assembly::{Assembler, Library};
+    use assert_matches::assert_matches;
     use vm_core::FieldElement;
 
     use super::*;
@@ -288,8 +324,13 @@ mod tests {
         let storage_slot1 = 12;
         let storage_slot2 = 42;
 
+        let anchor_block_hash = Digest::new([Felt::new(42); 4]);
+        let anchor_block_number = 1 << 16;
+        let id_anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash).unwrap();
+
         let (account, seed) = Account::builder()
             .init_seed([5; 32])
+            .anchor(id_anchor)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_component(CustomComponent2 {
                 slot0: storage_slot1,
@@ -301,8 +342,13 @@ mod tests {
         // Account should be new, i.e. nonce = zero.
         assert_eq!(account.nonce(), Felt::ZERO);
 
-        let computed_id =
-            AccountId::new(seed, account.code.commitment(), account.storage.commitment()).unwrap();
+        let computed_id = AccountId::new(
+            seed,
+            id_anchor,
+            account.code.commitment(),
+            account.storage.commitment(),
+        )
+        .unwrap();
         assert_eq!(account.id(), computed_id);
 
         // The merged code should have one procedure from each library.
@@ -351,15 +397,17 @@ mod tests {
     fn account_builder_non_empty_vault_on_new_account() {
         let storage_slot0 = 25;
 
+        let anchor = AccountIdAnchor::new_unchecked(5, Digest::default());
         let build_error = Account::builder()
             .init_seed([0xff; 32])
+            .anchor(anchor)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_assets(AssetVault::mock().assets())
             .build()
             .unwrap_err();
 
-        assert!(
-            matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
-        )
+        assert_matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
     }
+
+    // TODO: Test that a BlockHeader with a number which is not a multiple of 2^16 returns an error.
 }

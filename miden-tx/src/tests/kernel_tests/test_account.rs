@@ -1,23 +1,23 @@
-use miden_lib::{
-    errors::tx_kernel_errors::ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES,
-    transaction::{
-        memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
-        TransactionKernel,
-    },
+use miden_lib::transaction::{
+    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
+    TransactionKernel,
 };
 use miden_objects::{
     accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        },
         AccountBuilder, AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
         StorageSlot,
     },
     assembly::Library,
-    testing::{account_component::AccountMockComponent, prepare_word, storage::STORAGE_LEAVES_2},
+    testing::{
+        account_component::AccountMockComponent,
+        account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        },
+        prepare_word,
+        storage::STORAGE_LEAVES_2,
+    },
     transaction::TransactionScript,
 };
 use rand::{Rng, SeedableRng};
@@ -26,7 +26,6 @@ use vm_processor::{Digest, MemAdviceProvider, ProcessState};
 
 use super::{Felt, StackInputs, Word, ONE, ZERO};
 use crate::{
-    assert_execution_error,
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
 };
@@ -143,7 +142,7 @@ pub fn test_account_type() {
             );
 
             let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-                .stack_inputs(StackInputs::new(vec![account_id.into()]).unwrap())
+                .stack_inputs(StackInputs::new(vec![account_id.first_felt()]).unwrap())
                 .run(&code)
                 .unwrap();
 
@@ -167,24 +166,6 @@ pub fn test_account_type() {
 }
 
 #[test]
-fn test_validate_id_fails_on_insufficient_ones() {
-    let code = format!(
-        "
-        use.kernel::account
-
-        begin
-            push.{ACCOUNT_ID_INSUFFICIENT_ONES}
-            exec.account::validate_id
-        end
-        "
-    );
-
-    let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
-
-    assert_execution_error!(result, ERR_ACCOUNT_INSUFFICIENT_NUMBER_OF_ONES);
-}
-
-#[test]
 fn test_is_faucet_procedure() {
     let test_cases = [
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
@@ -201,14 +182,15 @@ fn test_is_faucet_procedure() {
             use.kernel::account
 
             begin
-                push.{account_id}
+                push.{first_felt}
                 exec.account::is_faucet
+                # => [is_faucet, account_id_hi]
 
                 # truncate the stack
                 swap drop
             end
             ",
-            account_id = account_id,
+            first_felt = account_id.first_felt(),
         );
 
         let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
