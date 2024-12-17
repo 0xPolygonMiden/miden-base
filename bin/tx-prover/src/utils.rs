@@ -20,78 +20,64 @@ pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
 
 const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 
-/// Configures and initializes an OpenTelemetry [TracerProvider] with an OTLP exporter.
+/// Initializes and configures the global tracing and telemetry system for the CLI, worker and
+/// proxy services.
 ///
-/// This function sets up a [TracerProvider] to collect, process, and export spans to an
-/// OTLP-compatible backend (e.g., OpenTelemetry Collector) using the following configuration:
+/// This function sets up a tracing pipeline that includes:
 ///
-/// ### Configuration Details
-/// - **OTLP Exporter**:
-///   - The [opentelemetry_otlp::SpanExporter] is configured with the gRPC-based OTLP protocol via
-///     the `tonic` library.
-///   - It ensures spans are exported to an OTLP endpoint.
-///   - Psanics if it fails to initialize.
-/// - **Sampler**:
-///   - A [Sampler::ParentBased] sampler is used, inheriting the parent's sampling decision for
-///     child spans.
-///   - The root spans use a [Sampler::TraceIdRatioBased] sampler with a 100% sampling rate (`1.0`).
-/// - **ID Generator**:
-///   - A `RandomIdGenerator` is used to generate unique trace and span IDs.
-/// - **Resource**:
-///   - A custom resource is created using the `create_resource` function, including attributes such
-///     as the service name, version and schema URL.
-/// - **Batch Exporter**:
-///   - The spans are exported in batches for improved performance, using the Tokio runtime.
+/// - An OpenTelemetry (OTLP) exporter, which sends span data to an OTLP endpoint using gRPC.
+/// - A [TracerProvider] configured with a [Sampler::ParentBased] sampler at a `1.0` sampling ratio,
+///   ensuring that all traces are recorded.
+/// - A resource containing the service name and version extracted from the crate's metadata.
+/// - A `tracing` subscriber that integrates the configured [TracerProvider] with the Rust `tracing`
+///   ecosystem, applying filters from the environment and enabling formatted console logs.
 ///
-/// ### Returns
-/// - `Ok(TracerProvider)`: If the tracer provider is successfully initialized.
-/// - `Err(String)`: If the OTLP exporter fails to initialize, an error message is returned.
-pub(crate) fn init_tracer_provider() -> Result<TracerProvider, String> {
+/// **Process:**
+/// 1. **OTLP Exporter**:   Creates an OTLP span exporter that sends trace data to a collector
+///    endpoint. If it fails to create the exporter, returns an error describing the failure.
+///
+/// 2. **Resource Setup**:   Creates a [Resource] containing service metadata (name and version),
+///    which is attached to all emitted telemetry data to identify the originating service.
+///
+/// 3. **TracerProvider and Sampler**:   Builds a [TracerProvider] using a [Sampler::ParentBased]
+///    sampler layered over a [Sampler::TraceIdRatioBased] sampler set to `1.0`, ensuring all traces
+///    are recorded. A random ID generator is used to produce trace and span IDs. The tracer is
+///    retrieved from this provider, which can then be used by the OpenTelemetry layer of `tracing`.
+///
+/// 4. **Telemetry Integration with tracing**:   Creates a telemetry layer from
+///    `tracing_opentelemetry` and combines it with a `Registry` subscriber and a formatting layer.
+///    This results in a subscriber stack that:
+///    - Sends telemetry to the OTLP exporter.
+///    - Filters logs/spans based on environment variables.
+///    - Pretty-prints formatted logs to stdout.
+///
+/// 5. **Global Subscriber**:   Finally, sets this composite subscriber as the global default. If
+///    this fails (e.g., if a global subscriber is already set), an error will be returned.
+///
+/// **Returns:**
+/// - `Ok(())` if the global subscriber is successfully set up.
+/// - `Err(String)` describing the failure if any step (creating the exporter or setting the
+///   subscriber) fails.
+pub(crate) fn setup_tracing() -> Result<(), String> {
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic()
         .build()
         .map_err(|e| format!("Failed to create OTLP exporter: {:?}", e))?;
 
-    Ok(TracerProvider::builder()
-        .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(1.0))))
-        .with_id_generator(RandomIdGenerator::default())
-        .with_resource(create_resource())
-        .with_batch_exporter(exporter, runtime::Tokio)
-        .build())
-}
-
-/// Create a Resource that captures information about the entity for which telemetry is recorded.
-fn create_resource() -> Resource {
-    Resource::from_schema_url(
+    let resource = Resource::from_schema_url(
         [
             KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
             KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
         ],
         SCHEMA_URL,
-    )
-}
+    );
 
-/// Sets up tracing for the CLI using OpenTelemetry and `tracing` subscribers.
-///
-/// This function integrates `tracing` and OpenTelemetry to provide end-to-end tracing
-/// capabilities which are used by the worker and proxy services.
-///
-/// It performs the following steps:
-/// 1. Initializes the OpenTelemetry [TracerProvider] using the [init_tracer_provider] function.
-/// 2. Configures a `tracing_opentelemetry::layer` to bridge OpenTelemetry tracing with the
-///    `tracing` ecosystem.
-/// 3. Sets up a `tracing` subscriber with multiple layers:
-///    - **OpenTelemetry Layer**: Exports spans to an OTLP backend.
-///    - **Environment Filter Layer**: Dynamically controls log levels using the `RUST_LOG`
-///      environment variable.
-///    - **Formatting Layer**: Outputs human-readable logs to standard output.
-/// 4. Registers the configured subscriber as the global default for the `tracing` library.
-///
-/// ### Returns
-/// - `Ok(())`: If the tracing setup is successful.
-/// - `Err(String)`: If an error occurs during the setup, an error message is returned.
-pub(crate) fn setup_tracing() -> Result<(), String> {
-    let provider = init_tracer_provider()?;
+    let provider = TracerProvider::builder()
+        .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(1.0))))
+        .with_id_generator(RandomIdGenerator::default())
+        .with_resource(resource)
+        .with_batch_exporter(exporter, runtime::Tokio)
+        .build();
 
     let tracer = provider.tracer(MIDEN_TX_PROVER);
 
