@@ -127,7 +127,11 @@ impl ComponentMetadata {
             storage.iter().flat_map(|entry| entry.slot_indices().iter().copied()).collect();
 
         all_slots.sort_unstable();
-
+        if let Some(v) = all_slots.get(0) {
+            if *v != 0 {
+                return Err(ComponentMetadataError::NonContiguousSlots);
+            }
+        }
         for slots in all_slots.windows(2) {
             if slots[1] != slots[0] + 1 {
                 return Err(ComponentMetadataError::NonContiguousSlots);
