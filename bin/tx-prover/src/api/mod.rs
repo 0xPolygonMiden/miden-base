@@ -37,6 +37,7 @@ impl ProverApi for ProverRpcApi {
         name = "prover:prove_transaction",
         skip_all,
         ret(level = "debug"),
+        fields(transaction_id = tracing::field::Empty),
         err
     )]
     async fn prove_transaction(
@@ -54,6 +55,10 @@ impl ProverApi for ProverRpcApi {
                 .map_err(invalid_argument)?;
 
         let proof = prover.prove(transaction_witness).map_err(internal_error)?;
+
+        // Record the transaction_id in the current tracing span
+        let transaction_id = proof.id();
+        tracing::Span::current().record("transaction_id", tracing::field::display(&transaction_id));
 
         Ok(Response::new(ProveTransactionResponse { proven_transaction: proof.to_bytes() }))
     }
