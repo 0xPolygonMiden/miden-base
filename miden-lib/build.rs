@@ -29,7 +29,7 @@ const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
-const ASM_UTILS_DIR: &str = "utils";
+const UTILS_DIR: &str = "utils";
 
 const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 
@@ -58,15 +58,9 @@ fn main() -> Result<()> {
     // set target directory to {OUT_DIR}/assets
     let target_dir = Path::new(&build_dir).join(ASSETS_DIR);
 
-    // compile utils dir
-    let utils_lib = compile_utils_lib(&source_dir, &target_dir)?;
-
     // compile transaction kernel
-    let mut assembler = compile_tx_kernel(
-        &source_dir.join(ASM_TX_KERNEL_DIR),
-        &target_dir.join("kernels"),
-        utils_lib,
-    )?;
+    let mut assembler =
+        compile_tx_kernel(&source_dir.join(ASM_TX_KERNEL_DIR), &target_dir.join("kernels"))?;
 
     // compile miden library
     let miden_lib = compile_miden_lib(&source_dir, &target_dir, assembler.clone())?;
@@ -111,12 +105,12 @@ fn main() -> Result<()> {
 ///
 /// When the `testing` feature is enabled, the POW requirements for account ID generation are
 /// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
-fn compile_tx_kernel(
-    source_dir: &Path,
-    target_dir: &Path,
-    utils_lib: Library,
-) -> Result<Assembler> {
-    let assembler = build_assembler(None, utils_lib.clone())?;
+fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
+    let utils_namespace = LibraryNamespace::new("utils").expect("invalid namespace");
+    let utils_path = Path::new(ASM_DIR).join(UTILS_DIR);
+
+    let mut assembler = build_assembler(None)?;
+    assembler.add_modules_from_dir(utils_namespace.clone(), &utils_path)?;
 
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
@@ -156,7 +150,8 @@ fn compile_tx_kernel(
     let output_file = target_dir.join("tx_kernel").with_extension(Library::LIBRARY_EXTENSION);
     kernel_lib.write_to_file(output_file).into_diagnostic()?;
 
-    let assembler = build_assembler(Some(kernel_lib), utils_lib)?;
+    let mut assembler = build_assembler(Some(kernel_lib))?;
+    assembler.add_modules_from_dir(utils_namespace, &utils_path)?;
 
     // assemble the kernel program and write it the "tx_kernel.masb" file
     let mut main_assembler = assembler.clone();
@@ -292,25 +287,6 @@ fn compile_miden_lib(
     Ok(miden_lib)
 }
 
-// COMPILE UTILS LIB
-// ================================================================================================
-
-/// Reads the MASM files from "{source_dir}/utils" directory, compiles them into a Miden assembly
-/// library, saves the library into "{target_dir}/utils.masl", and returns the complied library.
-fn compile_utils_lib(source_dir: &Path, target_dir: &Path) -> Result<Library> {
-    let assembler = Assembler::default();
-
-    let source_dir = source_dir.join(ASM_UTILS_DIR);
-
-    let namespace = "utils".parse::<LibraryNamespace>().expect("invalid base namespace");
-    let utils_lib = Library::from_dir(source_dir.clone(), namespace.clone(), assembler.clone())?;
-
-    let output_file = target_dir.join("utils").with_extension(Library::LIBRARY_EXTENSION);
-    utils_lib.write_to_file(output_file).into_diagnostic()?;
-
-    Ok(utils_lib)
-}
-
 // COMPILE EXECUTABLE MODULES
 // ================================================================================================
 
@@ -381,14 +357,12 @@ fn compile_account_components(target_dir: &Path, assembler: Assembler) -> Result
 /// Returns a new [Assembler] loaded with miden-stdlib and the specified kernel, if provided.
 ///
 /// The returned assembler will be in the `debug` mode if the `with-debug-info` feature is enabled.
-fn build_assembler(kernel: Option<KernelLibrary>, utils_lib: Library) -> Result<Assembler> {
+fn build_assembler(kernel: Option<KernelLibrary>) -> Result<Assembler> {
     kernel
         .map(|kernel| Assembler::with_kernel(Arc::new(DefaultSourceManager::default()), kernel))
         .unwrap_or_default()
         .with_debug_mode(cfg!(feature = "with-debug-info"))
         .with_library(miden_stdlib::StdLibrary::default())
-        .unwrap_or_default()
-        .with_library(utils_lib)
 }
 
 /// Recursively copies `src` into `dst`.

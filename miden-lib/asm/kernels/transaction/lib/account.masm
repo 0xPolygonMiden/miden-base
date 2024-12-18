@@ -244,6 +244,9 @@ export.memory::get_acct_nonce->get_nonce
 #! - INIT_HASH is the initial account hash.
 export.memory::get_init_acct_hash->get_initial_hash
 
+export.::utils::utils::is_fungible_faucet
+export.::utils::utils::is_non_fungible_faucet
+
 #! Returns a boolean indicating whether the account is a faucet.
 #!
 #! Inputs:  [acct_id]

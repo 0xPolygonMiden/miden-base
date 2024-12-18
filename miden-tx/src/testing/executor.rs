@@ -1,4 +1,4 @@
-use miden_lib::{transaction::TransactionKernel, UtilsLib};
+use miden_lib::transaction::TransactionKernel;
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, Program, StackInputs,
 };
@@ -61,7 +61,6 @@ where
 
         let test_lib = TransactionKernel::kernel_as_library();
         host.load_mast_forest(test_lib.mast_forest().clone());
-        host.load_mast_forest(UtilsLib::default().mast_forest().clone());
 
         CodeExecutor::new(host)
     }

@@ -2,8 +2,6 @@ use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::rpo
 
-use.utils::account->account_utils
-
 use.kernel::account
 use.kernel::asset_vault
 use.kernel::constants
@@ -348,7 +346,7 @@ proc.validate_new_account
         # => [FAUCET_RESERVED_SLOT, acct_id]
 
         # check if the account is a fungible faucet
-        movup.4 exec.account_utils::is_fungible_faucet
+        movup.4 exec.account::is_fungible_faucet
         # => [is_fungible_faucet, FAUCET_RESERVED_SLOT]
 
         if.true

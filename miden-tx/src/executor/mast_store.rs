@@ -1,8 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 
-use miden_lib::{
-    transaction::TransactionKernel, utils::sync::RwLock, MidenLib, StdLibrary, UtilsLib,
-};
+use miden_lib::{transaction::TransactionKernel, utils::sync::RwLock, MidenLib, StdLibrary};
 use miden_objects::{
     accounts::AccountCode,
     assembly::mast::MastForest,
@@ -48,10 +46,6 @@ impl TransactionMastStore {
         // load miden lib MAST forest
         let miden_lib_forest = MidenLib::default().mast_forest().clone();
         store.insert(miden_lib_forest);
-
-        // load utils lib MAST forest
-        let utils_lib_forest = UtilsLib::default().mast_forest().clone();
-        store.insert(utils_lib_forest);
 
         store
     }
