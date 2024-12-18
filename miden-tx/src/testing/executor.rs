@@ -35,18 +35,15 @@ impl<H: Host> CodeExecutor<H> {
     }
 
     /// Compiles and runs the desired code in the host and returns the [Process] state
-    pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
+    pub fn run(self, code: &str) -> Result<Process, ExecutionError> {
         let program = TransactionKernel::testing_assembler().assemble_program(code).unwrap();
         self.execute_program(program)
     }
 
-    pub fn execute_program(self, program: Program) -> Result<Process<H>, ExecutionError> {
-        let mut process = Process::new_debug(
-            program.kernel().clone(),
-            self.stack_inputs.unwrap_or_default(),
-            self.host,
-        );
-        process.execute(&program)?;
+    pub fn execute_program(mut self, program: Program) -> Result<Process, ExecutionError> {
+        let mut process =
+            Process::new_debug(program.kernel().clone(), self.stack_inputs.unwrap_or_default());
+        process.execute(&program, &mut self.host)?;
 
         Ok(process)
     }
@@ -60,7 +57,7 @@ where
         let mut host = DefaultHost::new(adv_provider);
 
         let test_lib = TransactionKernel::kernel_as_library();
-        host.load_mast_forest(test_lib.mast_forest().clone());
+        host.load_mast_forest(test_lib.mast_forest().clone()).unwrap();
 
         CodeExecutor::new(host)
     }

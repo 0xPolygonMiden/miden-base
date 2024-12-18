@@ -6,9 +6,9 @@ use miden_crypto::merkle::InnerNodeInfo;
 use vm_core::{
     mast::{MastForest, MastNodeId},
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    Program,
+    AdviceMap, Program,
 };
-use vm_processor::{AdviceInputs, AdviceMap, DeserializationError};
+use vm_processor::{AdviceInputs, DeserializationError};
 
 use super::{Digest, Felt, Word};
 use crate::{
@@ -273,8 +273,10 @@ impl Deserializable for TransactionScript {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::utils::{Deserializable, Serializable};
-    use vm_processor::AdviceMap;
+    use vm_core::{
+        utils::{Deserializable, Serializable},
+        AdviceMap,
+    };
 
     use crate::transaction::TransactionArgs;
 

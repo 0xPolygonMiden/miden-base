@@ -42,10 +42,7 @@ impl AccountProcedureIndexMap {
     /// # Errors
     /// Returns an error if the procedure at the top of the operand stack is not present in this
     /// map.
-    pub fn get_proc_index(
-        &self,
-        process: &impl ProcessState,
-    ) -> Result<u8, TransactionKernelError> {
+    pub fn get_proc_index(&self, process: &ProcessState) -> Result<u8, TransactionKernelError> {
         // get current account code commitment
         let code_commitment = {
             let curr_data_ptr = process

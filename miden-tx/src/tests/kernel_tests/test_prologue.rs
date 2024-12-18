@@ -46,9 +46,7 @@ use vm_processor::{AdviceInputs, ONE};
 use super::{Felt, Process, Word, ZERO};
 use crate::{
     assert_execution_error,
-    testing::{
-        utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
-    },
+    testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -105,7 +103,7 @@ fn test_transaction_prologue() {
     input_notes_memory_assertions(&process, &tx_context, &note_args);
 }
 
-fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
+fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, BLK_HASH_PTR),
         inputs.tx_inputs().block_header().hash().as_elements(),
@@ -143,7 +141,7 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Transact
     );
 }
 
-fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
+fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, BLK_HASH_PTR),
         inputs.tx_inputs().block_header().hash().as_elements(),
@@ -217,7 +215,7 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &Transactio
     );
 }
 
-fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &TransactionContext) {
+fn chain_mmr_memory_assertions(process: &Process, prepared_tx: &TransactionContext) {
     // update the chain MMR to point to the block against which this transaction is being executed
     let mut chain_mmr = prepared_tx.tx_inputs().block_chain().clone();
     chain_mmr.add_block(*prepared_tx.tx_inputs().block_header(), true);
@@ -237,7 +235,7 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Transa
     }
 }
 
-fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
+fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, NATIVE_ACCT_ID_AND_NONCE_PTR),
         [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()],
@@ -314,7 +312,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
 }
 
 fn input_notes_memory_assertions(
-    process: &Process<MockHost>,
+    process: &Process,
     inputs: &TransactionContext,
     note_args: &[[Felt; 4]],
 ) {
@@ -606,6 +604,6 @@ fn test_get_blk_timestamp() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn read_note_element(process: &Process<MockHost>, note_idx: u32, offset: MemoryOffset) -> Word {
+fn read_note_element(process: &Process, note_idx: u32, offset: MemoryOffset) -> Word {
     read_root_mem_value(process, input_note_data_ptr(note_idx) + offset)
 }
