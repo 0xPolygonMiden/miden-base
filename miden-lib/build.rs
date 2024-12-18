@@ -29,6 +29,7 @@ const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
+const UTILS_DIR: &str = "utils";
 
 const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 
@@ -56,6 +57,7 @@ fn main() -> Result<()> {
 
     // set target directory to {OUT_DIR}/assets
     let target_dir = Path::new(&build_dir).join(ASSETS_DIR);
+
     // compile transaction kernel
     let mut assembler =
         compile_tx_kernel(&source_dir.join(ASM_TX_KERNEL_DIR), &target_dir.join("kernels"))?;
@@ -104,7 +106,11 @@ fn main() -> Result<()> {
 /// When the `testing` feature is enabled, the POW requirements for account ID generation are
 /// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
 fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
-    let assembler = build_assembler(None)?;
+    let utils_namespace = LibraryNamespace::new("utils").expect("invalid namespace");
+    let utils_path = Path::new(ASM_DIR).join(UTILS_DIR);
+
+    let mut assembler = build_assembler(None)?;
+    assembler.add_modules_from_dir(utils_namespace.clone(), &utils_path)?;
 
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
@@ -144,7 +150,8 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     let output_file = target_dir.join("tx_kernel").with_extension(Library::LIBRARY_EXTENSION);
     kernel_lib.write_to_file(output_file).into_diagnostic()?;
 
-    let assembler = build_assembler(Some(kernel_lib))?;
+    let mut assembler = build_assembler(Some(kernel_lib))?;
+    assembler.add_modules_from_dir(utils_namespace, &utils_path)?;
 
     // assemble the kernel program and write it the "tx_kernel.masb" file
     let mut main_assembler = assembler.clone();

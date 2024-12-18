@@ -1,6 +1,7 @@
-use.miden::kernel_proc_offsets
 use.std::crypto::hashes::rpo
 use.std::mem
+
+use.miden::kernel_proc_offsets
 
 # ERRORS
 # =================================================================================================
@@ -10,6 +11,12 @@ const.ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT=0x0002004E
 
 # Number of note inputs exceeded the maximum limit of 128
 const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
+
+
+# PROCEDURES
+# =================================================================================================
+
+export.::utils::utils::get_max_inputs_per_note
 
 #! Writes the data currently on the advice stack into the memory at the specified location and
 #! verifies that the hash of the written data is equal to the provided hash.
@@ -251,20 +258,4 @@ export.get_script_hash
     # clean the stack
     swapdw dropw dropw swapw dropw
     # => [SCRIPT_HASH]
-end
-
-# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
-# =================================================================================================
-
-# The maximum number of input values associated with a single note.
-const.MAX_INPUTS_PER_NOTE=128
-
-#! Returns the max allowed number of input values per note.
-#!
-#! Stack: []
-#! Output: [max_inputs_per_note]
-#!
-#! - max_inputs_per_note is the max inputs per note.
-export.get_max_inputs_per_note
-    push.MAX_INPUTS_PER_NOTE
 end
