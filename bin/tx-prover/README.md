@@ -112,37 +112,28 @@ The proxy service uses this health check to determine if a worker is available t
 
 ## Logging and Tracing
 
-The service uses the [`tracing`](https://docs.rs/tracing/latest/tracing/) crate for both logging and distributed tracing, providing structured, high-performance logs and trace data. By default, logs are written to `stdout`, and traces are exported to a Jaeger instance via OpenTelemetry.
+The service uses the [`tracing`](https://docs.rs/tracing/latest/tracing/) crate for both logging and distributed tracing, providing structured, high-performance logs and trace data.
 
-### Configuring Logging
+By default, logs are written to `stdout` and the default logging level is `info`. This can be changed via the `RUST_LOG` environment variable. For example:
+```
+export RUST_LOG=debug
+```
 
-- **Default Log Level**: Both the worker and proxy use the `info` log level by default.
-- **Custom Log Levels**: You can configure log levels by setting the `RUST_LOG` environment variable. For example:
-    ```
-    export RUST_LOG=debug
-    ```
-- **Log Destination**: Logs are output to `stdout` by default.
-
-### Configuring Tracing
-
-- **Trace Exporter**: Traces are exported to a Jaeger instance using the OpenTelemetry protocol. The Jaeger instance can be run locally using Docker (see below).
-- **Trace Visualization**: Once traces are exported, they can be visualized in the Jaeger UI. You can access the Jaeger UI at `http://localhost:16686/` if running locally.
-
-### Running Jaeger with Docker
-
-To enable tracing and visualize traces, ensure you have [Docker](https://www.docker.com/) installed on your machine. Then, start a Jaeger instance using the following command:
+For tracing, we use OpenTelemetry protocol. By default, traces are exported to a Jaeger instance. To visualize them locally using [Docker](https://www.docker.com/), run:
 
 ```bash
 docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
 ```
 
-- **Alternative Methods**: If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
+Then access the Jaeger UI at `http://localhost:16686/`.
 
-### How Tracing and Logging Work Together
+If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
 
-The service uses a single tracing subscriber configured in the `setup_tracing` function:
-- **Logging**: Logs are emitted to `stdout` in a human-readable format using the `tracing_subscriber::fmt` layer.
-- **Tracing**: Spans are exported to Jaeger for distributed tracing. The spans provide detailed information about operations across services and threads.
+To change the exporter endpoint, set the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable. For example:
+
+```
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
 
 ## Features
 
