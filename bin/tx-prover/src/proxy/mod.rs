@@ -565,7 +565,7 @@ impl ProxyHttp for LoadBalancer {
         _session: &mut Session,
         ctx: &mut Self::CTX,
     ) -> Result<()> {
-        ProxyHttp::early_request_filter(self, _session, ctx).await
+        ProxyHttpDefaultImpl.early_request_filter(_session, &mut ()).await
     }
 
     #[tracing::instrument(name = "proxy:connected_to_upstream", parent = &ctx.parent_span, skip(_session, _sock, _fd))]
@@ -579,7 +579,9 @@ impl ProxyHttp for LoadBalancer {
         _digest: Option<&Digest>,
         ctx: &mut Self::CTX,
     ) -> Result<()> {
-        ProxyHttp::connected_to_upstream(self, _session, _reused, _peer, _fd, _digest, ctx).await
+        ProxyHttpDefaultImpl
+            .connected_to_upstream(_session, _reused, _peer, _fd, _digest, &mut ())
+            .await
     }
 
     #[tracing::instrument(name = "proxy:request_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
@@ -590,7 +592,9 @@ impl ProxyHttp for LoadBalancer {
         _end_of_stream: bool,
         ctx: &mut Self::CTX,
     ) -> Result<()> {
-        ProxyHttp::request_body_filter(self, _session, _body, _end_of_stream, ctx).await
+        ProxyHttpDefaultImpl
+            .request_body_filter(_session, _body, _end_of_stream, &mut ())
+            .await
     }
 
     #[tracing::instrument(name = "proxy:upstream_response_filter", parent = &ctx.parent_span, skip(_session, _upstream_response))]
@@ -600,7 +604,7 @@ impl ProxyHttp for LoadBalancer {
         _upstream_response: &mut ResponseHeader,
         ctx: &mut Self::CTX,
     ) {
-        ProxyHttp::upstream_response_filter(self, _session, _upstream_response, ctx)
+        ProxyHttpDefaultImpl.upstream_response_filter(_session, _upstream_response, &mut ())
     }
 
     #[tracing::instrument(name = "proxy:response_filter", parent = &ctx.parent_span, skip(_session, _upstream_response))]
@@ -613,7 +617,9 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        ProxyHttp::response_filter(self, _session, _upstream_response, ctx).await
+        ProxyHttpDefaultImpl
+            .response_filter(_session, _upstream_response, &mut ())
+            .await
     }
 
     #[tracing::instrument(name = "proxy:upstream_response_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
@@ -624,7 +630,7 @@ impl ProxyHttp for LoadBalancer {
         _end_of_stream: bool,
         ctx: &mut Self::CTX,
     ) {
-        ProxyHttp::upstream_response_body_filter(self, _session, _body, _end_of_stream, ctx)
+        ProxyHttpDefaultImpl.upstream_response_body_filter(_session, _body, _end_of_stream, &mut ())
     }
 
     #[tracing::instrument(name = "proxy:response_body_filter", parent = &ctx.parent_span, skip(_session, _body))]
@@ -638,7 +644,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        ProxyHttp::response_body_filter(self, _session, _body, _end_of_stream, ctx)
+        ProxyHttpDefaultImpl.response_body_filter(_session, _body, _end_of_stream, &mut ())
     }
 
     #[tracing::instrument(name = "proxy:fail_to_proxy", parent = &ctx.parent_span, skip(session))]
@@ -646,7 +652,7 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        ProxyHttp::fail_to_proxy(self, session, e, ctx).await
+        ProxyHttpDefaultImpl.fail_to_proxy(session, e, &mut ()).await
     }
 
     #[tracing::instrument(name = "proxy:error_while_proxy", parent = &ctx.parent_span, skip(session))]
@@ -658,7 +664,32 @@ impl ProxyHttp for LoadBalancer {
         ctx: &mut Self::CTX,
         client_reused: bool,
     ) -> Box<Error> {
-        ProxyHttp::error_while_proxy(self, peer, session, e, ctx, client_reused)
+        ProxyHttpDefaultImpl.error_while_proxy(peer, session, e, &mut (), client_reused)
+    }
+}
+
+// PROXY HTTP DEFAULT IMPLEMENTATION
+// ================================================================================================
+
+/// Default implementation of the [ProxyHttp] trait.
+///
+/// It is used to provide the default methods of the trait in order for the [LoadBalancer] to
+/// implement the trait adding tracing instrumentation but without having to copy all default
+/// implementations.
+struct ProxyHttpDefaultImpl;
+
+#[async_trait]
+impl ProxyHttp for ProxyHttpDefaultImpl {
+    type CTX = ();
+    fn new_ctx(&self) {}
+
+    /// This method is the only one that does not have a default implementation in the trait.
+    async fn upstream_peer(
+        &self,
+        _session: &mut Session,
+        _ctx: &mut Self::CTX,
+    ) -> Result<Box<HttpPeer>> {
+        unimplemented!("This is a dummy implementation, should not be called")
     }
 }
 
