@@ -1,8 +1,6 @@
 use.std::collections::smt
 use.std::sys
 
-use.utils::account->account_utils
-
 use.kernel::account
 use.kernel::asset_vault
 use.kernel::constants
@@ -820,7 +818,7 @@ end
 #! Invocation: dynexec
 export.get_fungible_faucet_total_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
-    exec.account::get_id exec.account_utils::is_fungible_faucet 
+    exec.account::get_id exec.account::is_fungible_faucet 
     assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [pad(16)]
 

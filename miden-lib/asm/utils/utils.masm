@@ -1,3 +1,5 @@
+### ACCOUNT #########################################################
+
 # Given the most significant half of an account id, this mask defines the bits used to determine the
 # account type.
 const.ACCOUNT_TYPE_U32MASK=805306368 # 0b00110000_00000000_00000000_00000000
@@ -50,4 +52,34 @@ end
 export.is_non_fungible_faucet
     exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
     # => [is_non_fungible_faucet]
+end
+
+### ASSET ###########################################################
+
+const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
+
+#! Returns the maximum amount of a fungible asset.
+#!
+#! Stack: []
+#! Outputs: [fungible_asset_max_amount]
+#!
+#! fungible_asset_max_amount is the maximum amount of a fungible asset.
+export.get_fungible_asset_max_amount
+    push.FUNGIBLE_ASSET_MAX_AMOUNT
+    # => [fungible_asset_max_amount]
+end
+
+### NOTE ############################################################
+
+# The maximum number of input values associated with a single note.
+const.MAX_INPUTS_PER_NOTE=128
+
+#! Returns the max allowed number of input values per note.
+#!
+#! Stack: []
+#! Output: [max_inputs_per_note]
+#!
+#! - max_inputs_per_note is the max inputs per note.
+export.get_max_inputs_per_note
+    push.MAX_INPUTS_PER_NOTE
 end

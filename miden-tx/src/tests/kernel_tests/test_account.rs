@@ -112,10 +112,10 @@ pub fn test_set_code_succeeds() {
 #[test]
 pub fn test_account_type() {
     let procedures = vec![
-        ("utils", "is_fungible_faucet", AccountType::FungibleFaucet),
-        ("utils", "is_non_fungible_faucet", AccountType::NonFungibleFaucet),
-        ("kernel", "is_updatable_account", AccountType::RegularAccountUpdatableCode),
-        ("kernel", "is_immutable_account", AccountType::RegularAccountImmutableCode),
+        ("is_fungible_faucet", AccountType::FungibleFaucet),
+        ("is_non_fungible_faucet", AccountType::NonFungibleFaucet),
+        ("is_updatable_account", AccountType::RegularAccountUpdatableCode),
+        ("is_immutable_account", AccountType::RegularAccountImmutableCode),
     ];
 
     let test_cases = [
@@ -125,7 +125,7 @@ pub fn test_account_type() {
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
     ];
 
-    for (lib, procedure, expected_type) in procedures {
+    for (procedure, expected_type) in procedures {
         let mut has_type = false;
 
         for account_id in test_cases.iter() {
@@ -133,13 +133,13 @@ pub fn test_account_type() {
 
             let code = format!(
                 "
-                use.{}::account
+                use.kernel::account
 
                 begin
                     exec.account::{}
                 end
                 ",
-                lib, procedure
+                procedure
             );
 
             let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())

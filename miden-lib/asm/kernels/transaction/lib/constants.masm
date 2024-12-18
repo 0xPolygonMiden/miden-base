@@ -49,6 +49,8 @@ export.get_word_size
     push.WORD_SIZE
 end
 
+export.::utils::utils::get_max_inputs_per_note
+
 #! Returns the max allowed number of assets per note.
 #!
 #! Inputs:  []
