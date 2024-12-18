@@ -1,5 +1,9 @@
-use alloc::{string::String, vec::Vec};
-use std::{collections::BTreeSet, string::ToString};
+use alloc::{
+    collections::BTreeSet,
+    string::{String, ToString},
+    vec::Vec,
+};
+use std::collections::BTreeMap;
 
 use assembly::Library;
 use semver::Version;
@@ -7,10 +11,12 @@ use serde::{
     de::{Error as DeError, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
 };
+use storage_entry::{TemplateKey, TemplateValue};
 use thiserror::Error;
 use vm_core::utils::{Deserializable, Serializable};
 
-use super::AccountType;
+use super::{AccountComponent, AccountType};
+use crate::AccountError;
 
 mod storage_entry;
 pub use storage_entry::StorageEntry;
@@ -38,10 +44,25 @@ impl ComponentPackage {
     pub fn new(
         metadata: ComponentMetadata,
         library: Library,
-    ) -> Result<Self, ComponentMetadataError> {
+    ) -> Result<Self, ComponentPackageError> {
         _ = toml::to_string(&metadata)
-            .map_err(|err| ComponentMetadataError::MetadataDeserializationError(err.to_string()));
+            .map_err(|err| ComponentPackageError::MetadataDeserializationError(err.to_string()));
         Ok(Self { metadata, library })
+    }
+
+    pub fn instantiate_component(
+        &self,
+        template_keys: &BTreeMap<String, TemplateValue>,
+    ) -> Result<AccountComponent, ComponentPackageError> {
+        let mut storage_slots = vec![];
+        for storage_entry in self.metadata().storage_entries() {
+            let entry_storage_slots =
+                storage_entry.clone().try_into_storage_slots(template_keys)?;
+            storage_slots.extend(entry_storage_slots);
+        }
+
+        AccountComponent::new(self.library.clone(), storage_slots)
+            .map_err(ComponentPackageError::AccountComponentError)
     }
 
     pub fn metadata(&self) -> &ComponentMetadata {
@@ -110,41 +131,92 @@ pub struct ComponentMetadata {
 }
 
 impl ComponentMetadata {
-    /// Create a new `ComponentMetadata`
+    /// Create a new `ComponentMetadata`.
     ///
     /// # Errors
     ///
-    /// - If the specified storage slots are not contiguous across all storage entries
+    /// - If the specified storage slots are not contiguous across all storage entries.
     pub fn new(
         name: String,
         description: String,
         version: Version,
         targets: BTreeSet<AccountType>,
         storage: Vec<StorageEntry>,
-    ) -> Result<Self, ComponentMetadataError> {
-        // Ensure no gaps in slots
-        let mut all_slots: Vec<u8> =
-            storage.iter().flat_map(|entry| entry.slot_indices().iter().copied()).collect();
-
-        all_slots.sort_unstable();
-        if let Some(v) = all_slots.get(0) {
-            if *v != 0 {
-                return Err(ComponentMetadataError::NonContiguousSlots);
-            }
-        }
-        for slots in all_slots.windows(2) {
-            if slots[1] != slots[0] + 1 {
-                return Err(ComponentMetadataError::NonContiguousSlots);
-            }
-        }
-
-        Ok(Self {
+    ) -> Result<Self, ComponentPackageError> {
+        let component = Self {
             name,
             description,
             version,
             targets,
             storage,
-        })
+        };
+        component.validate()?;
+        Ok(component)
+    }
+
+    /// Validate the `ComponentMetadata` object.
+    ///
+    /// # Errors
+    ///
+    /// - If the specified storage slots contain duplicates.
+    /// - If the first slot is not zero.
+    /// - If the slots are not contiguous.
+    pub fn validate(&self) -> Result<(), ComponentPackageError> {
+        let mut all_slots: Vec<u8> = self
+            .storage
+            .iter()
+            .flat_map(|entry| entry.slot_indices().iter().copied())
+            .collect();
+
+        // Check for duplicates
+        let mut seen = BTreeSet::new();
+        let duplicate =
+            all_slots
+                .iter()
+                .find_map(|&slot| if !seen.insert(slot) { Some(slot) } else { None });
+
+        if let Some(dup) = duplicate {
+            return Err(ComponentPackageError::DuplicateSlots(dup));
+        }
+
+        // Check that slots start at 0 and are contiguous
+        all_slots.sort_unstable();
+        if let Some(&first_slot) = all_slots.first() {
+            if first_slot != 0 {
+                return Err(ComponentPackageError::IncorrectStorageFirstSlot);
+            }
+        }
+        for slots in all_slots.windows(2) {
+            if slots[1] != slots[0] + 1 {
+                return Err(ComponentPackageError::NonContiguousSlots);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Deserializes `toml_string` and validates the resulting [ComponentMetadata]
+    ///
+    /// # Errors
+    ///
+    /// - If deserialization or validation fails
+    pub fn from_toml(toml_string: &str) -> Result<Self, ComponentPackageError> {
+        let component: ComponentMetadata =
+            toml::from_str(toml_string).map_err(ComponentPackageError::DeserializationError)?;
+        component.validate()?;
+        Ok(component)
+    }
+
+    /// Retrieves the set of keys (identified by a string) that require a value at the moment of
+    /// component instantiation.
+    fn get_template_keys(&self) -> BTreeSet<TemplateKey> {
+        let mut key_set = BTreeSet::new();
+        for storage_entry in &self.storage {
+            for key in storage_entry.template_keys() {
+                key_set.insert(key.clone());
+            }
+        }
+        key_set
     }
 
     pub fn name(&self) -> &str {
@@ -163,15 +235,29 @@ impl ComponentMetadata {
         &self.targets
     }
 
-    pub fn storage(&self) -> &Vec<StorageEntry> {
+    pub fn storage_entries(&self) -> &Vec<StorageEntry> {
         &self.storage
     }
 }
 
 #[derive(Debug, Error)]
-pub enum ComponentMetadataError {
+pub enum ComponentPackageError {
+    #[error("error creating AccountComponent: {0}")]
+    AccountComponentError(AccountError),
+    #[error("slot {0} is defined multiple times")]
+    DuplicateSlots(u8),
+    #[error("component storage slots have to start at 0")]
+    IncorrectStorageFirstSlot,
+    #[error("template value was not of the expected type {0}")]
+    IncorrectTemplateValue(String),
     #[error("component storage slots are not contiguous")]
     NonContiguousSlots,
+    #[error("error trying to deserialize from toml")]
+    DeserializationError(#[source] toml::de::Error),
+    #[error("template value ({0}) was not provided in the map")]
+    TemplateValueNotProvided(String),
+    #[error("error creating storage map: {0}")]
+    StorageMapError(AccountError),
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
 }
@@ -281,7 +367,7 @@ mod tests {
             BTreeSet::new(),
             storage,
         );
-        assert!(result.is_err());
+        assert!(matches!(result, Err(ComponentPackageError::NonContiguousSlots)));
     }
 
     #[test]
