@@ -40,12 +40,12 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::AdviceInputs;
+use vm_processor::{AdviceInputs, ProcessState};
 
-use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
+use super::{Felt, Process, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
-    testing::{MockChain, MockHost, TransactionContextBuilder},
+    testing::{MockChain, TransactionContextBuilder},
     tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
     TransactionExecutor,
 };
@@ -332,6 +332,7 @@ fn test_get_output_notes_commitment() {
     );
 
     let process = tx_context.execute_code(&code).unwrap();
+    let state = ProcessState::from(&process);
 
     assert_eq!(
         read_root_mem_value(&process, NUM_OUTPUT_NOTES_PTR),
@@ -357,7 +358,7 @@ fn test_get_output_notes_commitment() {
         "Validate the output note 1 metadata",
     );
 
-    assert_eq!(process.get_stack_word(0), *expected_output_notes_hash);
+    assert_eq!(state.get_stack_word(0), *expected_output_notes_hash);
 }
 
 #[test]
@@ -1083,7 +1084,7 @@ fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) ->
     advice_inputs
 }
 
-fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process<MockHost>) {
+fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process) {
     let foreign_account_data_ptr = NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32;
 
     assert_eq!(

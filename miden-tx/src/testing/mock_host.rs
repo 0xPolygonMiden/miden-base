@@ -1,4 +1,4 @@
-use alloc::{rc::Rc, string::ToString, sync::Arc, vec::Vec};
+use alloc::{rc::Rc, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionEvent;
 use miden_objects::{
@@ -6,9 +6,8 @@ use miden_objects::{
     Digest,
 };
 use vm_processor::{
-    AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Host, HostResponse, MastForest, MastForestStore, MemAdviceProvider,
-    ProcessState,
+    AdviceInputs, AdviceProvider, AdviceSource, ContextId, ExecutionError, Host, MastForest,
+    MastForestStore, MemAdviceProvider, ProcessState,
 };
 
 use crate::{host::AccountProcedureIndexMap, TransactionMastStore};
@@ -52,61 +51,51 @@ impl MockHost {
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
-    fn on_push_account_procedure_index<S: ProcessState>(
+    fn on_push_account_procedure_index(
         &mut self,
-        process: &S,
+        process: &ProcessState,
     ) -> Result<(), ExecutionError> {
         let proc_idx = self
             .acct_procedure_index_map
             .get_proc_index(process)
-            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+            .map_err(|err| ExecutionError::EventError(err.into()))?;
         self.adv_provider.push_stack(AdviceSource::Value(proc_idx.into()))?;
         Ok(())
     }
 }
 
 impl Host for MockHost {
-    fn get_advice<S: ProcessState>(
-        &mut self,
-        process: &S,
-        extractor: AdviceExtractor,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.get_advice(process, &extractor)
+    type AdviceProvider = MemAdviceProvider;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        &self.adv_provider
     }
 
-    fn set_advice<S: ProcessState>(
-        &mut self,
-        process: &S,
-        injector: AdviceInjector,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.set_advice(process, &injector)
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        &mut self.adv_provider
     }
 
     fn get_mast_forest(&self, node_digest: &Digest) -> Option<Arc<MastForest>> {
         self.mast_store.get(node_digest)
     }
 
-    fn on_event<S: ProcessState>(
-        &mut self,
-        process: &S,
-        event_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
         let event = TransactionEvent::try_from(event_id)
-            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+            .map_err(|err| ExecutionError::EventError(err.into()))?;
 
         if process.ctx() != ContextId::root() {
-            return Err(ExecutionError::EventError(format!(
-                "{event} event can only be emitted from the root context"
-            )));
+            return Err(ExecutionError::EventError(
+                format!("{event} event can only be emitted from the root context").into(),
+            ));
         }
 
         match event {
             TransactionEvent::AccountPushProcedureIndex => {
-                self.on_push_account_procedure_index(process)
+                self.on_push_account_procedure_index(&process)
             },
             _ => Ok(()),
         }?;
 
-        Ok(HostResponse::None)
+        Ok(())
     }
 }

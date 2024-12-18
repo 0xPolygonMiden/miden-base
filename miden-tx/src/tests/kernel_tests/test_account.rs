@@ -295,25 +295,26 @@ fn test_get_map_item() {
             map_key = prepare_word(&key),
         );
         let process = tx_context.execute_code(&code).unwrap();
+        let state = ProcessState::from(&process);
 
         assert_eq!(
             value,
-            process.get_stack_word(0),
+            state.get_stack_word(0),
             "get_map_item result doesn't match the expected value",
         );
         assert_eq!(
             Word::default(),
-            process.get_stack_word(1),
+            state.get_stack_word(1),
             "The rest of the stack must be cleared",
         );
         assert_eq!(
             Word::default(),
-            process.get_stack_word(2),
+            state.get_stack_word(2),
             "The rest of the stack must be cleared",
         );
         assert_eq!(
             Word::default(),
-            process.get_stack_word(3),
+            state.get_stack_word(3),
             "The rest of the stack must be cleared",
         );
     }
@@ -350,16 +351,17 @@ fn test_get_storage_slot_type() {
         );
 
         let process = tx_context.execute_code(&code).unwrap();
+        let state = ProcessState::from(&process);
 
         let storage_slot_type = storage_item.slot.slot_type();
 
-        assert_eq!(storage_slot_type, process.get_stack_item(0).try_into().unwrap());
-        assert_eq!(process.get_stack_item(1), ZERO, "the rest of the stack is empty");
-        assert_eq!(process.get_stack_item(2), ZERO, "the rest of the stack is empty");
-        assert_eq!(process.get_stack_item(3), ZERO, "the rest of the stack is empty");
-        assert_eq!(Word::default(), process.get_stack_word(1), "the rest of the stack is empty");
-        assert_eq!(Word::default(), process.get_stack_word(2), "the rest of the stack is empty");
-        assert_eq!(Word::default(), process.get_stack_word(3), "the rest of the stack is empty");
+        assert_eq!(storage_slot_type, state.get_stack_item(0).try_into().unwrap());
+        assert_eq!(state.get_stack_item(1), ZERO, "the rest of the stack is empty");
+        assert_eq!(state.get_stack_item(2), ZERO, "the rest of the stack is empty");
+        assert_eq!(state.get_stack_item(3), ZERO, "the rest of the stack is empty");
+        assert_eq!(Word::default(), state.get_stack_word(1), "the rest of the stack is empty");
+        assert_eq!(Word::default(), state.get_stack_word(2), "the rest of the stack is empty");
+        assert_eq!(Word::default(), state.get_stack_word(3), "the rest of the stack is empty");
     }
 }
 
@@ -452,18 +454,19 @@ fn test_set_map_item() {
     );
 
     let process = tx_context.execute_code(&code).unwrap();
+    let state = ProcessState::from(&process);
 
     let mut new_storage_map = AccountStorage::mock_map();
     new_storage_map.insert(new_key, new_value);
 
     assert_eq!(
         new_storage_map.root(),
-        Digest::from(process.get_stack_word(0)),
+        Digest::from(state.get_stack_word(0)),
         "get_item must return the new updated value",
     );
     assert_eq!(
         storage_item.slot.value(),
-        process.get_stack_word(1),
+        state.get_stack_word(1),
         "The original value stored in the map doesn't match the expected value",
     );
 }

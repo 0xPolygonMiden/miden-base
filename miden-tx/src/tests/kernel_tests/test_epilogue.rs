@@ -241,11 +241,12 @@ fn test_block_expiration_height_monotonically_decreases() {
             .replace("{min_value}", &v2.min(v1).to_string());
 
         let process = tx_context.execute_code(code).unwrap();
+        let state = ProcessState::from(&process);
 
         // Expiry block should be set to transaction's block + the stored expiration delta
         // (which can only decrease, not increase)
         let expected_expiry = v1.min(v2) + tx_context.tx_inputs().block_header().block_num() as u64;
-        assert_eq!(process.get_stack_item(8).as_int(), expected_expiry);
+        assert_eq!(state.get_stack_item(8).as_int(), expected_expiry);
     }
 }
 
@@ -292,8 +293,10 @@ fn test_no_expiration_delta_set() {
     end
     ";
     let process = tx_context.execute_code(code_template).unwrap();
+    let state = ProcessState::from(&process);
+
     // Default value should be equal to u32::max, set in the prologue
-    assert_eq!(process.get_stack_item(8).as_int() as u32, u32::MAX);
+    assert_eq!(state.get_stack_item(8).as_int() as u32, u32::MAX);
 }
 
 #[test]

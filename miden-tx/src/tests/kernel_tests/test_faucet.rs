@@ -69,14 +69,14 @@ fn test_mint_fungible_asset_succeeds() {
     );
 
     let process = tx_context.execute_code(&code).unwrap();
+    let state = ProcessState::from(&process);
 
     let expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE + FUNGIBLE_ASSET_AMOUNT;
     let faucet_reserved_slot_storage_location =
         FAUCET_STORAGE_DATA_SLOT as u32 + NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR;
 
-    let faucet_memory_value_word = process
-        .get_mem_value(process.ctx(), faucet_reserved_slot_storage_location)
-        .unwrap();
+    let faucet_memory_value_word =
+        state.get_mem_value(state.ctx(), faucet_reserved_slot_storage_location).unwrap();
 
     assert_eq!(faucet_memory_value_word[3].as_int(), expected_final_storage_amount);
 }
@@ -332,14 +332,14 @@ fn test_burn_fungible_asset_succeeds() {
     );
 
     let process = tx_context.execute_code(&code).unwrap();
+    let state = ProcessState::from(&process);
 
     let expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE - FUNGIBLE_ASSET_AMOUNT;
     let faucet_reserved_slot_storage_location =
         FAUCET_STORAGE_DATA_SLOT as u32 + NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR;
 
-    let faucet_memory_value_word = process
-        .get_mem_value(process.ctx(), faucet_reserved_slot_storage_location)
-        .unwrap();
+    let faucet_memory_value_word =
+        state.get_mem_value(state.ctx(), faucet_reserved_slot_storage_location).unwrap();
 
     assert_eq!(faucet_memory_value_word[3].as_int(), expected_final_storage_amount);
 }

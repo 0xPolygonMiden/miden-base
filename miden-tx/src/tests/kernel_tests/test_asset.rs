@@ -41,9 +41,10 @@ fn test_create_fungible_asset_succeeds() {
     );
 
     let process = tx_context.execute_code(&code).unwrap();
+    let state = ProcessState::from(&process);
 
     assert_eq!(
-        process.get_stack_word(0),
+        state.get_stack_word(0),
         Word::from([
             Felt::new(FUNGIBLE_ASSET_AMOUNT),
             Felt::new(0),
@@ -84,8 +85,9 @@ fn test_create_non_fungible_asset_succeeds() {
     );
 
     let process = tx_context.execute_code(&code).unwrap();
+    let state = ProcessState::from(&process);
 
-    assert_eq!(process.get_stack_word(0), Word::from(non_fungible_asset));
+    assert_eq!(state.get_stack_word(0), Word::from(non_fungible_asset));
 }
 
 #[test]
@@ -116,5 +118,6 @@ fn test_validate_non_fungible_asset() {
     );
 
     let process = tx_context.execute_code(&code).unwrap();
-    assert_eq!(process.get_stack_word(0), encoded);
+    let state = ProcessState::from(&process);
+    assert_eq!(state.get_stack_word(0), encoded);
 }
