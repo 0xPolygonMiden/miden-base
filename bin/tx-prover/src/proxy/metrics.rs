@@ -16,8 +16,8 @@ lazy_static! {
         register_int_counter!("queue_drop_count", "Number of requests dropped due to a full queue").unwrap();
 
     // Worker Metrics
-    pub static ref WORKER_AVAILABILITY: IntGauge =
-        register_int_gauge!("worker_availability", "Number of available workers").unwrap();
+    pub static ref WORKER_COUNT: IntGauge =
+        register_int_gauge!("worker_count", "Number of workers").unwrap();
     pub static ref WORKER_UNHEALTHY: IntCounter =
         register_int_counter!("worker_unhealthy", "Number of unhealthy workers").unwrap();
     pub static ref WORKER_UTILIZATION: IntGauge =
@@ -34,6 +34,12 @@ lazy_static! {
         register_int_counter!("request_failure_count", "Number of failed requests").unwrap();
     pub static ref REQUEST_RETRIES: IntCounter =
         register_int_counter!("request_retries", "Number of request retries").unwrap();
+    pub static ref REQUEST_COUNT: IntCounter =
+        register_int_counter!("request_count", "Number of requests processed").unwrap();
+    pub static ref REQUEST_LATENCY: Histogram =
+        register_histogram!("request_latency", "Time requests take to process", vec![
+            0.1, 0.5, 1.0, 2.0, 5.0, 10.0
+        ]).unwrap();
 
     // Rate Limiting Metrics
     pub static ref RATE_LIMITED_REQUESTS: IntCounter =

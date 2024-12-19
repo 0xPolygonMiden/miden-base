@@ -9,8 +9,8 @@ use std::{
 use async_trait::async_trait;
 use metrics::{
     QUEUE_DROP_COUNT, QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS,
-    REQUEST_FAILURE_COUNT, REQUEST_RETRIES, WORKER_AVAILABILITY, WORKER_REQUEST_COUNT,
-    WORKER_UNHEALTHY, WORKER_UTILIZATION,
+    REQUEST_COUNT, REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_COUNT,
+    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY, WORKER_UTILIZATION,
 };
 use once_cell::sync::Lazy;
 use pingora::{
@@ -94,7 +94,7 @@ impl LoadBalancerState {
     /// If no worker is available, it will return None.
     pub async fn pop_available_worker(&self) -> Option<Worker> {
         let mut available_workers = self.workers.write().await;
-        WORKER_AVAILABILITY.set(available_workers.len() as i64);
+        WORKER_COUNT.set(available_workers.len() as i64);
         available_workers.iter_mut().find(|w| w.is_available()).map(|w| {
             w.set_availability(false);
             WORKER_UTILIZATION.inc();
@@ -111,7 +111,7 @@ impl LoadBalancerState {
             w.set_availability(true);
             WORKER_UTILIZATION.dec();
         }
-        WORKER_AVAILABILITY.set(available_workers.len() as i64);
+        WORKER_COUNT.set(available_workers.len() as i64);
     }
 
     /// Updates the list of available workers based on the given action ("add" or "remove").
@@ -165,7 +165,7 @@ impl LoadBalancerState {
         }
 
         info!("Workers updated: {:?}", workers);
-        WORKER_AVAILABILITY.set(workers.len() as i64);
+        WORKER_COUNT.set(workers.len() as i64);
 
         Ok(())
     }
@@ -325,6 +325,8 @@ pub struct RequestContext {
     request_id: Uuid,
     /// Worker that will process the request
     worker: Option<Worker>,
+    /// Time when the request was created
+    created_at: Instant,
 }
 
 impl RequestContext {
@@ -334,6 +336,7 @@ impl RequestContext {
             tries: 0,
             request_id: Uuid::new_v4(),
             worker: None,
+            created_at: Instant::now(),
         }
     }
 
@@ -390,6 +393,9 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
+        // Increment the request count
+        REQUEST_COUNT.inc();
+
         // Extract the client address early
         let client_addr = match session.client_addr() {
             Some(addr) => addr.to_string(),
@@ -563,6 +569,8 @@ impl ProxyHttp for LoadBalancer {
         if let Some(worker) = ctx.worker.take() {
             self.0.add_available_worker(worker).await;
         }
+
+        REQUEST_LATENCY.observe(ctx.created_at.elapsed().as_secs_f64());
     }
 }
 
@@ -602,6 +610,9 @@ impl BackgroundService for LoadBalancerState {
 
                 // Update the worker list with healthy workers
                 *workers = healthy_workers;
+
+                // Update the worker count metric
+                WORKER_COUNT.set(workers.len() as i64);
 
                 // Sleep for the defined interval before the next health check
                 sleep(self.health_check_frequency).await;
