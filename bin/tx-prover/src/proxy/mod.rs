@@ -321,8 +321,10 @@ static QUEUE: Lazy<RequestQueue> = Lazy::new(RequestQueue::new);
 // ================================================================================================
 
 /// Custom context for the request/response lifecycle
+///
 /// We use this context to keep track of the number of tries for a request, the unique ID for the
-/// request, and the worker that will process the request.
+/// request, the worker that will process the request, a span that will be used for traces along
+/// the transaction execution, and a timer to track how long the request took.
 #[derive(Debug)]
 pub struct RequestContext {
     /// Number of tries for the request
