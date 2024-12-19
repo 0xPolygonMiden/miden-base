@@ -1,6 +1,6 @@
-# Accounts
+# Account
 
-> The primary entities of the Miden protocol
+> The primary entity of the Miden protocol
 
 ## What is the purpose of an account?
 
@@ -120,10 +120,4 @@ The storage mode is chosen during account creation, it cannot be changed later.
 
 ## Conclusion
 
-In this section, we covered:
-
-- [What is an `Account`](#what-is-an-account)  
-- [Its constituent components](#the-accounts-core-components)  
-- [Its lifecycle](#the-accounts-lifecycle)
-
-With this information, you are now better equipped to understand how Miden `Accounts` operate, how they manage data and assets, and how their programmable functions enable secure and flexible interactions within the Miden protocol.
+You are now better equipped to understand how a Miden `Account` operates, how it manages data and assets, and how its programmable interface enables secure and flexible interactions within the Miden protocol.
