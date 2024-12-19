@@ -4,7 +4,7 @@
 
 ### Changes
 
-- Introduced `ComponentPackage` and `ComponentConfig` with TOML serialization (#1015).
+- Introduced `ComponentPackage` and `ComponentMetadata` with TOML serialization and templating (#1015, #1027).
 - Removed workers list from the proxy configuration file (#1018).
 - Added health check endpoints to the prover service (#1006).
 - Implemented serialization for `AccountHeader` (#996).
