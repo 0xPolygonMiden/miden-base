@@ -119,7 +119,9 @@ By default, logs are written to `stdout` and the default logging level is `info`
 export RUST_LOG=debug
 ```
 
-For tracing, we use OpenTelemetry protocol. By default, traces are exported to a Jaeger instance. To visualize them locally using [Docker](https://www.docker.com/), run:
+For tracing, we use OpenTelemetry protocol. By default, traces are exported to the endpoint specified by `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable. To consume and visualize these traces we can use Jaeger or any other OpenTelemetry compatible consumer.
+
+The simplest way to install Jaeger is by using a [Docker](https://www.docker.com/) container. To do so, run:
 
 ```bash
 docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
@@ -128,12 +130,6 @@ docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
 Then access the Jaeger UI at `http://localhost:16686/`.
 
 If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
-
-To change the exporter endpoint, set the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable. For example:
-
-```
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-```
 
 ## Features
 
