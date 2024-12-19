@@ -474,10 +474,10 @@ mod tests {
             [[storage]]
             name = "map"
             description = "A storage map entry"
-            slot = 1
+            slot = 0
             values = [
                 { key = "0x1", value = "0x2" },
-                { key = "0x2", value = "0x3" },
+                { key = "{{key.test}}", value = "0x3" },
                 { key = "0x3", value = "0x4" }
             ]
         "#;
