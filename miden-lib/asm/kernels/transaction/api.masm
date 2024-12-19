@@ -245,7 +245,7 @@ end
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 export.get_account_map_item
-    # check if storage type is map
+    # check if the storage type is map
     dup exec.account::get_storage_slot_type
     # => [slot_type, index, KEY, ...]
 
@@ -399,7 +399,7 @@ end
 #!
 #! Where:
 #! - ASSET is the asset to add to the vault.
-#! - ASSET' final asset in the account vault defined as follows:
+#! - ASSET' final asset in the account vault is defined as follows:
 #!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
@@ -803,7 +803,7 @@ end
 #! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows:
 #!   [SLOT_VALUE, slot_type, 0, 0, 0]
 #! - CODE_ROOT is the commitment of the foreign account's code.
-#! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as
+#! - ACCOUNT_PROCEDURE_DATA is the information about the account procedure which is constructed as
 #!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
 #!
 #! Panics if:
@@ -922,19 +922,19 @@ end
 #! - procedure_offset is an offset of the kernel procedure, specified in the
 #!   `miden/kernel_proc_offsets.masm` file.
 #! - procedure_inputs are inputs of the procedure to be executed, which is specified by the
-#!   procedure_offset. Note that the length of this inputs cannot exceed 15 elements, since the
+#!   procedure_offset. Note that the length of these inputs cannot exceed 15 elements, since the
 #!   first element on the stack will be occupied by the memory pointer to the procedure hash.
 #! - procedure_outputs are the outputs of the procedure to be executed.
 #!
 #! Panics if:
 #! - the provided procedure offset exceeds the number of kernel procedures.
 export.exec_kernel_proc
-    # check that the provided procedure offset is within expected bounds
+    # check that the provided procedure offset is within the expected bounds
     dup exec.memory::get_num_kernel_procedures
     lt assert.err=ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS
     # => [procedure_offset, <procedure_inputs>, <pad>]
 
-    # compute the memory pointer at which desired procedure is stored
+    # compute the memory pointer at which the desired procedure is stored
     exec.memory::get_kernel_procedures_ptr add
     # => [procedure_pointer, <procedure_inputs>, <pad>]
 

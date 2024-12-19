@@ -17,7 +17,7 @@ use super::TransactionKernel;
 ///
 /// This includes the initial account, an optional account seed (required for new accounts), and
 /// the input note data, including core note data + authentication paths all the way to the root
-/// of one of chain MMR peaks.
+/// of one of the chain MMR peaks.
 pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
@@ -86,7 +86,7 @@ fn build_advice_stack(
     ]);
     inputs.extend_stack(header.note_root());
 
-    // push the version of the kernel which will be used for this transaction
+    // push the version of the kernel that will be used for this transaction
     // Note: keep in sync with the process_kernel_data kernel procedure
     inputs.extend_stack([Felt::from(kernel_version)]);
 
@@ -113,7 +113,7 @@ fn build_advice_stack(
 /// Inserts the following items into the Merkle store:
 /// - Inner nodes of all authentication paths contained in the chain MMR.
 ///
-/// Inserts the following data to the advice map:
+/// Inserts the following data into the advice map:
 ///
 /// > {MMR_ROOT: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]}
 ///
@@ -141,14 +141,14 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 ///
 /// Inserts the following items into the Merkle store:
 /// - The Merkle nodes associated with the account vault tree.
-/// - If present, the Merkle nodes associated with the account storage maps.
+/// - If present, the Merkle nodes are associated with the account storage maps.
 ///
 /// Inserts the following entries into the advice map:
 /// - The account storage commitment |-> storage slots and types vector.
 /// - The account code commitment |-> procedures vector.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
-/// - If present, the Merkle leaves associated with the account storage maps.
+/// - If present, the Merkle leaves are associated with the account storage maps.
 fn add_account_to_advice_inputs(
     account: &Account,
     account_seed: Option<Word>,
@@ -207,7 +207,7 @@ fn add_account_to_advice_inputs(
 ///     - The note's private arguments.
 ///     - The note's public metadata.
 ///     - The note's public inputs data. Prefixed by its length and padded to an even word length.
-///     - The note's asset padded. Prefixed by its length and padded to an even word length.
+///     - The note's asset is padded. Prefixed by its length and padded to an even word length.
 ///     - For authenticated notes (determined by the `is_authenticated` flag):
 ///         - The note's authentication path against its block's note tree.
 ///         - The block number, sub hash, note root.
