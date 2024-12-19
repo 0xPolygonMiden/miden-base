@@ -211,7 +211,7 @@ impl Deserializable for Asset {
 
 /// Returns `true` if asset in [Word] is not a non-fungible asset.
 ///
-/// Note: this does not mean that the word is a fungible asset as the word may contain an value
+/// Note: this does not mean that the word is a fungible asset as the word may contain a value
 /// which is not a valid asset.
 fn is_not_a_non_fungible_asset(asset: Word) -> bool {
     // For fungible assets, the position `3` contains the faucet's account id, in which case the

@@ -289,7 +289,7 @@ pub const INPUT_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 1_064_960;
 /// The memory address at which the number of input notes is stored.
 pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_OFFSET;
 
-/// The offsets at which data of a input note is stored relative to the start of its data segment.
+/// The offsets at which data of an input note is stored relative to the start of its data segment.
 pub const INPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const INPUT_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
 pub const INPUT_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
@@ -327,7 +327,7 @@ pub const OUTPUT_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
 /// The size of the core output note data segment.
 pub const OUTPUT_NOTE_CORE_DATA_SIZE: MemSize = 4;
 
-/// The offsets at which data of a output note is stored relative to the start of its data segment.
+/// The offsets at which data of an output note is stored relative to the start of its data segment.
 pub const OUTPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const OUTPUT_NOTE_METADATA_OFFSET: MemoryOffset = 1;
 pub const OUTPUT_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
