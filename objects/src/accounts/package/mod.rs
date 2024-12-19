@@ -127,7 +127,7 @@ impl ComponentMetadata {
             storage.iter().flat_map(|entry| entry.slot_indices().iter().copied()).collect();
 
         all_slots.sort_unstable();
-        if let Some(v) = all_slots.get(0) {
+        if let Some(v) = all_slots.first() {
             if *v != 0 {
                 return Err(ComponentMetadataError::NonContiguousSlots);
             }
