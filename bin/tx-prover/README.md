@@ -98,9 +98,27 @@ The worker service implements the [gRPC Health Check](https://grpc.io/docs/guide
 
 The proxy service uses this health check to determine if a worker is available to receive requests. If a worker is not available, it will be removed from the set of workers that the proxy can use to send requests.
 
-## Logging
+## Logging and Tracing
 
-Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
+The service uses the [`tracing`](https://docs.rs/tracing/latest/tracing/) crate for both logging and distributed tracing, providing structured, high-performance logs and trace data.
+
+By default, logs are written to `stdout` and the default logging level is `info`. This can be changed via the `RUST_LOG` environment variable. For example:
+
+```
+export RUST_LOG=debug
+```
+
+For tracing, we use OpenTelemetry protocol. By default, traces are exported to the endpoint specified by `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable. To consume and visualize these traces we can use Jaeger or any other OpenTelemetry compatible consumer.
+
+The simplest way to install Jaeger is by using a [Docker](https://www.docker.com/) container. To do so, run:
+
+```bash
+docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
+```
+
+Then access the Jaeger UI at `http://localhost:16686/`.
+
+If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
 
 ## Features
 

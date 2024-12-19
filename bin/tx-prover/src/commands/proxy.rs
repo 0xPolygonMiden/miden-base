@@ -8,7 +8,10 @@ use pingora::{
 use pingora_proxy::http_proxy_service;
 use tracing::warn;
 
-use crate::proxy::{LoadBalancer, LoadBalancerState};
+use crate::{
+    proxy::{LoadBalancer, LoadBalancerState},
+    utils::MIDEN_TX_PROVER,
+};
 
 /// Starts the proxy defined in the config file.
 ///
@@ -27,6 +30,7 @@ impl StartProxy {
     ///
     /// This method will first read the config file to get the parameters for the proxy. It will
     /// then start a proxy with each worker passed as command argument as a backend.
+    #[tracing::instrument(target = MIDEN_TX_PROVER, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
         server.bootstrap();
