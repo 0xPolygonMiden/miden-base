@@ -1,4 +1,4 @@
-# Notes
+# Note
 
 > The medium through which [Accounts](accounts.md) communicate in the Miden protocol
 
@@ -138,4 +138,4 @@ That means if a note is private and the operator stores only the note's hash, on
 
 ## Conclusion
 
-Miden’s notes introduce a powerful mechanism for secure, flexible, and private state management. By enabling asynchronous asset transfers, parallel execution, and privacy at scale, they transcend the limitations of strictly account-based models. As a result, developers and users alike enjoy enhanced scalability, confidentiality, and control. With these capabilities, Miden is paving the way for true **programmable money** where assets, logic, and trust converge seamlessly.
+Miden’s `note` introduce a powerful mechanism for secure, flexible, and private state management. By enabling asynchronous asset transfers, parallel execution, and privacy at scale, notes transcend the limitations of strictly account-based models. As a result, developers and users alike enjoy enhanced scalability, confidentiality, and control. With these capabilities, Miden is paving the way for true **programmable money** where assets, logic, and trust converge seamlessly.
