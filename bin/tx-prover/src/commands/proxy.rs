@@ -65,6 +65,14 @@ impl StartProxy {
         http_server_options.h2c = true;
         logic.server_options = Some(http_server_options);
 
+        // Enable Prometheus metrics
+        let mut prometheus_service_http =
+            pingora::services::listening::Service::prometheus_http_service();
+        prometheus_service_http.add_tcp(
+            format!("{}:{}", proxy_config.prometheus_host, proxy_config.prometheus_port).as_str(),
+        );
+
+        server.add_service(prometheus_service_http);
         server.add_service(health_check_service);
         server.add_service(lb);
         tokio::task::spawn_blocking(|| server.run_forever())
