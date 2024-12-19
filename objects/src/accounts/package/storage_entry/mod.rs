@@ -1,10 +1,9 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
-
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-
-mod word;
 use vm_core::Word;
 use vm_processor::Digest;
+
+mod word;
 pub use word::*;
 
 use super::ComponentPackageError;
@@ -458,8 +457,6 @@ mod tests {
 
         let toml = toml::to_string(&config).unwrap();
 
-        std::println!("{}", toml);
-
         let deserialized: ComponentMetadata =
             toml::from_str(&toml).expect("Deserialization failed");
         assert_eq!(deserialized, config);
@@ -476,9 +473,9 @@ mod tests {
             [[storage]]
             name = "map"
             description = "A storage map entry"
-            slot = 0
+            slot = 1
             values = [
-                { key = "{{test}}", value = "0x2" },
+                { key = "0x1", value = "0x2" },
                 { key = "0x2", value = "0x3" },
                 { key = "0x3", value = "0x4" }
             ]

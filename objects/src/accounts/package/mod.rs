@@ -1,9 +1,8 @@
 use alloc::{
-    collections::BTreeSet,
+    collections::{BTreeMap,BTreeSet},
     string::{String, ToString},
     vec::Vec,
 };
-use std::collections::BTreeMap;
 
 use assembly::Library;
 use semver::Version;
@@ -12,11 +11,11 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use storage_entry::{TemplateKey, TemplateValue};
-use thiserror::Error;
-use vm_core::utils::{Deserializable, Serializable};
 
 use super::{AccountComponent, AccountType};
 use crate::AccountError;
+use thiserror::Error;
+use vm_core::utils::{Deserializable, Serializable};
 
 mod storage_entry;
 pub use storage_entry::StorageEntry;
@@ -64,7 +63,6 @@ impl ComponentPackage {
         AccountComponent::new(self.library.clone(), storage_slots)
             .map_err(ComponentPackageError::AccountComponentError)
     }
-
     pub fn metadata(&self) -> &ComponentMetadata {
         &self.metadata
     }

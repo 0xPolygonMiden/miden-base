@@ -17,6 +17,7 @@ use vm_processor::Digest;
 use super::{TemplateKey, TemplateValue};
 use crate::{accounts::package::ComponentPackageError, utils::parse_hex_string_as_word};
 
+
 // WORDS
 // ================================================================================================
 
@@ -219,7 +220,6 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
         D: Deserializer<'de>,
     {
         let value = String::deserialize(deserializer)?;
-
         if let Some(hex_str) = value.strip_prefix("0x").or_else(|| value.strip_prefix("0X")) {
             let felt_value = u64::from_str_radix(hex_str, 16).map_err(serde::de::Error::custom)?;
             Ok(FeltRepresentation::SingleHex(Felt::new(felt_value)))
