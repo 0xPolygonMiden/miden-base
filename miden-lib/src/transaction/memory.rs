@@ -327,7 +327,7 @@ pub const OUTPUT_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
 /// The size of the core output note data segment.
 pub const OUTPUT_NOTE_CORE_DATA_SIZE: MemSize = 4;
 
-/// The offsets at which data of a output note is stored relative to the start of its data segment.
+/// The offsets at which data of an output note is stored relative to the start of its data segment.
 pub const OUTPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const OUTPUT_NOTE_METADATA_OFFSET: MemoryOffset = 1;
 pub const OUTPUT_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
