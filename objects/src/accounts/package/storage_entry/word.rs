@@ -17,7 +17,6 @@ use vm_processor::Digest;
 use super::{TemplateKey, TemplateValue};
 use crate::{accounts::package::ComponentPackageError, utils::parse_hex_string_as_word};
 
-
 // WORDS
 // ================================================================================================
 

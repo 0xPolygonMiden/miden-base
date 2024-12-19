@@ -1,4 +1,5 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
+
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use vm_core::Word;
 use vm_processor::Digest;

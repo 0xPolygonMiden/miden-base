@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{BTreeMap,BTreeSet},
+    collections::{BTreeMap, BTreeSet},
     string::{String, ToString},
     vec::Vec,
 };
@@ -11,11 +11,11 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use storage_entry::{TemplateKey, TemplateValue};
+use thiserror::Error;
+use vm_core::utils::{Deserializable, Serializable};
 
 use super::{AccountComponent, AccountType};
 use crate::AccountError;
-use thiserror::Error;
-use vm_core::utils::{Deserializable, Serializable};
 
 mod storage_entry;
 pub use storage_entry::StorageEntry;
@@ -207,7 +207,7 @@ impl ComponentMetadata {
 
     /// Retrieves the set of keys (identified by a string) that require a value at the moment of
     /// component instantiation.
-    fn get_template_keys(&self) -> BTreeSet<TemplateKey> {
+    fn _get_template_keys(&self) -> BTreeSet<TemplateKey> {
         let mut key_set = BTreeSet::new();
         for storage_entry in &self.storage {
             for key in storage_entry.template_keys() {
