@@ -9,7 +9,7 @@ In Miden, assets serve as the primary means of expressing and transferring value
 1. **Parallelizable exchange:**  
     By managing ownership and transfers directly at the account level instead of relying on global structures like ERC20 contracts, accounts can exchange assets simultaneously, boosting scalability and efficiency.
 
-2. **Self-Sovereign Ownership:**  
+2. **Self-sovereign ownership:**  
    Assets are stored in the accounts directly. This ensures that users retain complete control over their assets.
 
 3. **Censorship resistance:**  
