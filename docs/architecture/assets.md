@@ -12,7 +12,7 @@ In Miden, assets serve as the primary means of expressing and transferring value
 2. **Self-Sovereign Ownership:**  
    Assets are stored in the accounts directly. This ensures that users retain complete control over their assets.
 
-3. **Censorship Resistance:**  
+3. **Censorship resistance:**  
    With no single authoritative contract or entity controlling asset transfers, users can transact freely. This reduces the risk of transactions being blocked, resulting in a more open and resilient system.
 
 4. **Flexible Fee Payment:**  
