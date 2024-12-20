@@ -59,7 +59,7 @@ The `faucet_id` at position `1` distinguishes non-fungible from fungible assets.
 
 ### Storage
 
-[Accounts](accounts.md) and [notes](notes.md) have vaults used for asset storage.
+[Accounts](accounts.md) and [notes](notes.md) have vaults used to store assets.
 
 ![Architecture core concepts](../img/architecture/asset/asset-storage.png)
 
