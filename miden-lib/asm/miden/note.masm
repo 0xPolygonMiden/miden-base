@@ -12,11 +12,16 @@ const.ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT=0x0002004E
 # Number of note inputs exceeded the maximum limit of 128
 const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
 
-
 # PROCEDURES
 # =================================================================================================
 
-export.::utils::utils::get_max_inputs_per_note
+#! Returns the max allowed number of input values per note.
+#!
+#! Stack: []
+#! Output: [max_inputs_per_note]
+#!
+#! - max_inputs_per_note is the max inputs per note.
+export.::utils::get_max_inputs_per_note
 
 #! Writes the data currently on the advice stack into the memory at the specified location and
 #! verifies that the hash of the written data is equal to the provided hash.

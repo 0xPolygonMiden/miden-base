@@ -36,10 +36,16 @@ const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 # is used to identify the asset type
 const.FUNGIBLE_BITMASK_U32=0x20000000
 
-export.::utils::utils::get_fungible_asset_max_amount
-
 # PROCEDURES
 # =================================================================================================
+
+#! Returns the maximum amount of a fungible asset.
+#!
+#! Stack: []
+#! Outputs: [fungible_asset_max_amount]
+#!
+#! fungible_asset_max_amount is the maximum amount of a fungible asset.
+export.::utils::get_fungible_asset_max_amount
 
 #! Validates that a fungible asset is well formed.
 #!

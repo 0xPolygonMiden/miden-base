@@ -24,7 +24,13 @@ const.FUNGIBLE_BITMASK_U32=0x20000000
 # PROCEDURES
 # =================================================================================================
 
-export.::utils::utils::get_fungible_asset_max_amount
+#! Returns the maximum amount of a fungible asset.
+#!
+#! Stack: []
+#! Outputs: [fungible_asset_max_amount]
+#!
+#! fungible_asset_max_amount is the maximum amount of a fungible asset.
+export.::utils::get_fungible_asset_max_amount
 
 #! Builds a fungible asset for the specified fungible faucet and amount.
 #!

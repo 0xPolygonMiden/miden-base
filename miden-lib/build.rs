@@ -11,7 +11,8 @@ use std::{
 use assembly::{
     diagnostics::{IntoDiagnostic, Result},
     utils::Serializable,
-    Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, Report,
+    Assembler, CompileOptions, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace,
+    LibraryPath, Report,
 };
 use regex::Regex;
 use walkdir::WalkDir;
@@ -29,8 +30,6 @@ const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
-const UTILS_DIR: &str = "utils";
-
 const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 
 // PRE-PROCESSING
@@ -106,11 +105,16 @@ fn main() -> Result<()> {
 /// When the `testing` feature is enabled, the POW requirements for account ID generation are
 /// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
 fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
-    let utils_namespace = LibraryNamespace::new("utils").expect("invalid namespace");
-    let utils_path = Path::new(ASM_DIR).join(UTILS_DIR);
+    let utils_path = Path::new(ASM_DIR).join("utils.masm");
+    let utils_compile_options = CompileOptions {
+        path: Some(LibraryPath::new("utils").expect("library path for utils module is incorrect")),
+        ..CompileOptions::for_library()
+    };
 
-    let mut assembler = build_assembler(None)?;
-    assembler.add_modules_from_dir(utils_namespace.clone(), &utils_path)?;
+    // add the utils module to the kernel lib by providing it to the assembler
+    let assembler = build_assembler(None)?
+        .with_module_and_options(utils_path.clone(), utils_compile_options.clone())
+        .expect("provided utils module is not a library module");
 
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
@@ -150,8 +154,9 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     let output_file = target_dir.join("tx_kernel").with_extension(Library::LIBRARY_EXTENSION);
     kernel_lib.write_to_file(output_file).into_diagnostic()?;
 
-    let mut assembler = build_assembler(Some(kernel_lib))?;
-    assembler.add_modules_from_dir(utils_namespace, &utils_path)?;
+    let assembler = build_assembler(Some(kernel_lib))?
+        .with_module_and_options(utils_path, utils_compile_options)
+        .expect("provided utils module is not a library module");
 
     // assemble the kernel program and write it the "tx_kernel.masb" file
     let mut main_assembler = assembler.clone();
