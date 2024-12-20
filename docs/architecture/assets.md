@@ -13,7 +13,7 @@ In Miden, assets serve as the primary means of expressing and transferring value
    Assets are stored in the accounts directly. This ensures that users retain complete control over their assets.
 
 3. **Censorship resistance:**  
-   With no single authoritative contract or entity controlling asset transfers, users can transact freely. This reduces the risk of transactions being blocked, resulting in a more open and resilient system.
+   Users can transact freely and anonymously with no single contract or entity controlling asset transfers. This reduces the risk of censored transactions, resulting in a more open and resilient system.
 
 4. **Flexible fee payment:**  
    Unlike protocols that require a specific base asset for fees, Miden allows users to pay fees in any supported asset. This flexibility simplifies the user experience.
