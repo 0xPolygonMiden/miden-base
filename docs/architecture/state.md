@@ -91,7 +91,7 @@ In this diagram, multiple participants interact with a common, publicly accessib
    These transactions occur in parallel and do not rely on each other, allowing concurrent processing without contention.
 
 2. **Sequencing and Consuming Notes (tx3):**  
-   A Miden node executes `tx3` against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. This merges independent contributions into a unified state update.
+   The Miden node executes `tx3` against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. `tx3` is a network transaction and cannot be executed client-side. It merges independent contributions into a unified state update.
 
 3. **Further Independent Transactions (tx4 & tx5):**  
    After the shared state is updated:
