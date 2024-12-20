@@ -31,7 +31,7 @@ The Miden node maintains three databases to describe state:
 
 ![Architecture core concepts](../img/architecture/state/state.png)
 
-### Accounts database
+### Account database
 
 The accounts database stores the latest account states for public accounts or state commitments for private accounts.
 
@@ -49,7 +49,7 @@ The storage contribution of a public account depends on the amount of data it st
 > **Warning**
 > - In Miden, when the user is the custodian of their account state (in the case of a private account), losing this state amounts to losing their funds, similar to losing a private key.
 
-### Notes database
+### Note database
 
 As described in the [notes section](notes.md), there are two types of notes:
 
@@ -62,7 +62,7 @@ At high throughput (e.g., 1K TPS), the note database could grow by about 1TB/yea
 
 ![Architecture core concepts](../img/architecture/state/note-db.png)
 
-### Nullifiers database
+### Nullifier database
 
 Nullifiers map one-to-one to existing notes, tracking whether a note has been consumed.
 
