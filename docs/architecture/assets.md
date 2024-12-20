@@ -1,6 +1,6 @@
 # Asset
 
-> Fungible, Non-fungible, Native, and Non-native assets in the Miden protocol.
+> Fungible and Non-fungible assets in the Miden protocol.
 
 ## What is the purpose of an asset?
 
@@ -67,7 +67,7 @@ The `faucet_id` at position `1` distinguishes non-fungible from fungible assets.
 
 Assets in Miden can be burned through various methods, such as rendering them unspendable by storing them in an unconsumable note, or sending them back to their original faucet for burning using it's dedicated function.
 
-## Non-native asset
+## Alternative asset models
 
 > All data structures not following the Miden asset model that can be exchanged.
 
