@@ -7,7 +7,7 @@
 In Miden, assets serve as the primary means of expressing and transferring value between [accounts](accounts.md) through [notes](notes.md). They are designed with four key principles in mind:
 
 1. **Parallelizable Exchange:**  
-   By representing ownership and transfers at the account level rather than using centralized global structures, Miden enables multiple asset exchanges to occur simultaneously, improving network scalability and efficiency.
+    By managing ownership and transfers directly at the account level instead of relying on global structures like ERC20 contracts, accounts can exchange assets simultaneously, boosting scalability and efficiency.
 
 2. **Self-Sovereign Ownership:**  
    Users retain full control over their assets, as there is no reliance on third-party custodians or global registries. This ensures that users directly manage their own value.
