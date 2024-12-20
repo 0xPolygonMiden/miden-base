@@ -6,21 +6,24 @@
 
 In Miden, assets serve as the primary means of expressing and transferring value between [accounts](accounts.md) through [notes](notes.md). They are designed with four key principles in mind:
 
-1. **Parallelizable Exchange:**  
-   By representing ownership and transfers at the account level rather than using centralized global structures, Miden enables multiple asset exchanges to occur simultaneously, improving network scalability and efficiency.
+1. **Parallelizable exchange:**  
+    By managing ownership and transfers directly at the account level instead of relying on global structures like ERC20 contracts, accounts can exchange assets simultaneously, boosting scalability and efficiency.
 
-2. **Self-Sovereign Ownership:**  
-   Users retain full control over their assets, as there is no reliance on third-party custodians or global registries. This ensures that users directly manage their own value.
+2. **Self-sovereign ownership:**  
+   Assets are stored in the accounts directly. This ensures that users retain complete control over their assets.
 
-3. **Censorship Resistance:**  
-   With no single authoritative contract or entity controlling asset transfers, users can transact freely. This reduces the risk of transactions being blocked, resulting in a more open and resilient system.
+3. **Censorship resistance:**  
+   Users can transact freely and anonymously with no single contract or entity controlling asset transfers. This reduces the risk of censored transactions, resulting in a more open and resilient system.
 
-4. **Flexible Fee Payment:**  
+4. **Flexible fee payment:**  
    Unlike protocols that require a specific base asset for fees, Miden allows users to pay fees in any supported asset. This flexibility simplifies the user experience.
 
 ## What is an asset?
 
 An asset in Miden is a unit of value that can be transferred from one [account](accounts.md) to another using [notes](notes.md).
+
+Every asset is encoded using a single `Word` (4 field elements). This `Word` includes the [ID](accounts.md#id) of the issuing account and the asset details.
+
 
 ## Native asset
 
@@ -59,7 +62,7 @@ The `faucet_id` at position `1` distinguishes non-fungible from fungible assets.
 
 ### Storage
 
-[Accounts](accounts.md) and [notes](notes.md) have vaults used for asset storage.
+[Accounts](accounts.md) and [notes](notes.md) have vaults used to store assets.
 
 ![Architecture core concepts](../img/architecture/asset/asset-storage.png)
 
