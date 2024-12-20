@@ -12,7 +12,7 @@ Miden’s state model focuses on:
 - **Flexible data storage:**  
   Users can store data privately on their own devices or within the network. This approach reduces reliance on the network for data availability, helps maintain user sovereignty, and minimizes unnecessary on-chain storage.
 
-- **Parallelizable Execution:**  
+- **Concurrency:**  
   Multiple transactions can be processed concurrently by distinct actors which improves throughput and efficiency.
 
 Miden’s state model supports a private, secure, and high-throughput environment while also addressing the challenges of state bloat commonly associated with continuously growing blockchain states.
