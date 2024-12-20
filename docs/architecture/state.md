@@ -102,7 +102,7 @@ In this diagram, multiple participants interact with a common, publicly accessib
 
 ### State bloat minimization
 
-Operators do not need to know the entire state to verify or produce new blocks. Rather than storing the full state data with operators, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes state bloat and preserves privacy, since operators and other users only see hashes of user data.
+Miden nodes do not need to know the entire state to verify or produce new blocks. Rather than storing the full state data with the nodes, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes state bloat and preserves privacy, since nodes and other users only see hashes of user data.
 
 This ensures that the account and note databases remain manageable, even under sustained high usage.
 
