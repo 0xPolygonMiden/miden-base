@@ -77,7 +77,7 @@ To prove that a note has not been consumed, the operator must provide a Merkle p
 
 ### Public shared state
 
-Usually, smart contracts and most applications (e.g., AAVE, Uniswap) need public shared state. There is also public shared state on Miden. Let's look at the following example:
+In most blockchains, most smart contracts and decentralized applications (e.g., AAVE, Uniswap) need public shared state. Public shared state is also available on Miden and can be represented by the following example:
 
 ![Public shared state](../img/architecture/state/public-shared-state.png)
 
@@ -91,7 +91,7 @@ In this diagram, multiple participants interact with a common, publicly accessib
    These transactions occur in parallel and do not rely on each other, allowing concurrent processing without contention.
 
 2. **Sequencing and Consuming Notes (tx3):**  
-   The Miden node executes `tx3` against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. `tx3` is a network transaction and cannot be executed client-side. It merges independent contributions into a unified state update.
+   The Miden node executes `tx3` against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. `tx3` is a network transaction executed by the sequencer. It merges independent contributions into a unified state update.
 
 3. **Further Independent Transactions (tx4 & tx5):**  
    After the shared state is updated:
