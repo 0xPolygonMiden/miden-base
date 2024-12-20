@@ -10,7 +10,7 @@ In Miden, assets serve as the primary means of expressing and transferring value
     By managing ownership and transfers directly at the account level instead of relying on global structures like ERC20 contracts, accounts can exchange assets simultaneously, boosting scalability and efficiency.
 
 2. **Self-Sovereign Ownership:**  
-   Users retain full control over their assets, as there is no reliance on third-party custodians or global registries. This ensures that users directly manage their own value.
+   Assets are stored in the accounts directly. This ensures that users retain complete control over their assets.
 
 3. **Censorship Resistance:**  
    With no single authoritative contract or entity controlling asset transfers, users can transact freely. This reduces the risk of transactions being blocked, resulting in a more open and resilient system.
