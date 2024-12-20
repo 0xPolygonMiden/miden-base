@@ -22,6 +22,9 @@ In Miden, assets serve as the primary means of expressing and transferring value
 
 An asset in Miden is a unit of value that can be transferred from one [account](accounts.md) to another using [notes](notes.md).
 
+Every asset is encoded using a single `Word` (4 field elements). This `Word` includes the [ID](accounts.md#id) of the issuing account and the asset details.
+
+
 ## Native asset
 
 > All data structures following the Miden asset model that can be exchanged.
