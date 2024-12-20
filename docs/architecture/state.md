@@ -64,7 +64,7 @@ At high throughput (e.g., 1K TPS), the note database could grow by about 1TB/yea
 
 ### Nullifier database
 
-Nullifiers map one-to-one to existing notes, tracking whether a note has been consumed.
+Each [note](notes.md) has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.
 
 To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is `0`. Since nullifiers are $32$ bytes each, the Sparse Merkle Tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers.
 
