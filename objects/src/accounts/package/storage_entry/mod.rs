@@ -1,13 +1,17 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use vm_core::Word;
+use vm_processor::Digest;
 
 mod word;
 pub use word::*;
 
-use super::ComponentMetadataError;
-use crate::accounts::StorageMap;
+use super::ComponentPackageError;
+use crate::accounts::{StorageMap, StorageSlot};
+
+mod template;
+pub use template::{TemplateKey, TemplateValue};
 
 // STORAGE ENTRY
 // ================================================================================================
@@ -99,9 +103,9 @@ impl StorageEntry {
         description: Option<impl Into<String>>,
         slots: Vec<u8>,
         values: Vec<impl Into<WordRepresentation>>,
-    ) -> Result<Self, ComponentMetadataError> {
+    ) -> Result<Self, ComponentPackageError> {
         if slots.len() != values.len() {
-            return Err(ComponentMetadataError::InvalidMultiSlotEntry);
+            return Err(ComponentPackageError::InvalidMultiSlotEntry);
         }
 
         Ok(StorageEntry::MultiSlot {
@@ -158,6 +162,59 @@ impl StorageEntry {
             StorageEntry::Map { values, .. } => values.as_slice(),
             StorageEntry::Value { .. } => &[],
             StorageEntry::MultiSlot { .. } => &[],
+        }
+    }
+
+    /// Returns an iterator over all of the storage entries's template keys.
+    // TODO: Should template keys be typed?
+    pub fn template_keys(&self) -> Box<dyn Iterator<Item = &TemplateKey> + '_> {
+        match self {
+            StorageEntry::Value { value, .. } => value.template_keys(),
+            StorageEntry::Map { values, .. } => {
+                Box::new(values.iter().flat_map(|word| word.template_keys()))
+            },
+            StorageEntry::MultiSlot { values, .. } => {
+                Box::new(values.iter().flat_map(|word| word.template_keys()))
+            },
+        }
+    }
+
+    /// Atttempts to convert the storage entry into a list of [StorageSlot].
+    ///
+    /// - StorageEntry::Value would convert to a [StorageSlot::Value]
+    /// - StorageEntry::MultiSlot would convert to as many [StorageSlot::Value] as defined
+    /// - StorageEntry::Map would convert to a [StorageSlot::Map]
+    ///
+    /// Each of the entry's values could be dynamic. These values are replaced for values found
+    /// in `template_values`, identified by its key.
+    pub fn try_into_storage_slots(
+        self,
+        template_values: &BTreeMap<String, TemplateValue>,
+    ) -> Result<Vec<StorageSlot>, ComponentPackageError> {
+        match self {
+            StorageEntry::Value { value, .. } => {
+                let slot = value.try_into_word(template_values)?;
+                Ok(vec![StorageSlot::Value(slot)])
+            },
+            StorageEntry::Map { values, .. } => {
+                let entries = values
+                    .into_iter()
+                    .map(|map_entry| {
+                        let (key, value) = map_entry.into_parts();
+                        let key = key.try_into_word(template_values)?;
+                        let value = value.try_into_word(template_values)?;
+                        Ok((key.into(), value))
+                    })
+                    .collect::<Result<Vec<(Digest, Word)>, _>>()?; // Collect into a Vec and propagate errors
+
+                let storage_map = StorageMap::with_entries(entries)
+                    .map_err(ComponentPackageError::StorageMapError)?;
+                Ok(vec![StorageSlot::Map(storage_map)])
+            },
+            StorageEntry::MultiSlot { values, .. } => Ok(values
+                .into_iter()
+                .map(|word_repr| word_repr.try_into_word(template_values).map(StorageSlot::Value))
+                .collect::<Result<Vec<StorageSlot>, _>>()?),
         }
     }
 }
@@ -297,7 +354,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
                 let has_list_of_values = values.is_list_of_words();
                 if has_list_of_values {
                     let slots_count = slots.len();
-                    let values_count = values.len();
+                    let values_count = values.len().expect("checked that it's a list of values");
                     if slots_count != values_count {
                         return Err(D::Error::custom(format!(
                             "Number of slots ({}) does not match number of values ({}) for multi-slot storage entry.",
@@ -330,6 +387,8 @@ enum StorageValues {
     Words(Vec<WordRepresentation>),
     /// List of key-value entries (for map storage slots).
     MapEntries(Vec<MapEntry>),
+    /// A template written as "{{key}}".
+    Dynamic(TemplateKey),
 }
 
 impl StorageValues {
@@ -337,6 +396,7 @@ impl StorageValues {
         match self {
             StorageValues::Words(_) => true,
             StorageValues::MapEntries(_) => false,
+            StorageValues::Dynamic(_) => false,
         }
     }
 
@@ -344,6 +404,7 @@ impl StorageValues {
         match self {
             StorageValues::Words(vec) => Some(vec),
             StorageValues::MapEntries(_) => None,
+            StorageValues::Dynamic(_) => None,
         }
     }
 
@@ -351,13 +412,15 @@ impl StorageValues {
         match self {
             StorageValues::Words(_) => None,
             StorageValues::MapEntries(vec) => Some(vec),
+            StorageValues::Dynamic(_) => None,
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> Option<usize> {
         match self {
-            StorageValues::Words(vec) => vec.len(),
-            StorageValues::MapEntries(vec) => vec.len(),
+            StorageValues::Words(vec) => Some(vec.len()),
+            StorageValues::MapEntries(vec) => Some(vec.len()),
+            StorageValues::Dynamic(_) => None,
         }
     }
 }
@@ -376,29 +439,43 @@ impl MapEntry {
     pub fn new(key: impl Into<WordRepresentation>, value: impl Into<WordRepresentation>) -> Self {
         Self { key: key.into(), value: value.into() }
     }
+
+    pub fn template_keys(&self) -> impl Iterator<Item = &TemplateKey> {
+        self.key.template_keys().chain(self.value.template_keys())
+    }
+
+    pub fn into_parts(self) -> (WordRepresentation, WordRepresentation) {
+        let MapEntry { key, value } = self;
+        (key, value)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
+    use std::{collections::BTreeSet, string::ToString};
 
+    use assembly::{Assembler, Library};
     use semver::Version;
     use toml;
     use vm_core::Felt;
 
     use super::*;
     use crate::{
-        accounts::{package::ComponentMetadata, AccountType},
+        accounts::{
+            package::{ComponentMetadata, ComponentPackage},
+            AccountType,
+        },
         digest,
+        testing::account_code::CODE,
     };
 
     #[test]
     fn test_storage_entry_serialization() {
         let array = [
-            FeltRepresentation::SingleDecimal(Felt::new(91)),
+            FeltRepresentation::SingleDecimal(Felt::new(9)),
             FeltRepresentation::SingleDecimal(Felt::new(1218)),
             FeltRepresentation::SingleHex(Felt::new(0xdba3)),
-            FeltRepresentation::SingleHex(Felt::new(0xfffeeff)),
+            FeltRepresentation::Dynamic("test.array.dyn".into()),
         ];
         let storage = vec![
             StorageEntry::Value {
@@ -413,12 +490,12 @@ mod tests {
                 slot: 1,
                 values: vec![
                     MapEntry {
-                        key: WordRepresentation::SingleHex(digest!("0x1").into()),
+                        key: WordRepresentation::Dynamic("foo.bar".into()),
                         value: WordRepresentation::SingleHex(digest!("0x2").into()),
                     },
                     MapEntry {
                         key: WordRepresentation::SingleHex(digest!("0x2").into()),
-                        value: WordRepresentation::SingleHex(digest!("0x3").into()),
+                        value: WordRepresentation::Dynamic("bar.baz".into()),
                     },
                     MapEntry {
                         key: WordRepresentation::SingleHex(digest!("0x3").into()),
@@ -429,11 +506,18 @@ mod tests {
             StorageEntry::MultiSlot {
                 name: "multi".into(),
                 description: Some("Multi slot entry".into()),
-                slots: vec![2, 3],
+                slots: vec![2, 3, 4],
                 values: vec![
+                    WordRepresentation::Dynamic("test.dynamic".into()),
                     WordRepresentation::Array(array),
                     WordRepresentation::SingleHex(digest!("0xabcdef123abcdef123").into()),
                 ],
+            },
+            StorageEntry::Value {
+                name: "single-slot".into(),
+                description: Some("Slot with dynamic key".into()),
+                slot: 0,
+                value: WordRepresentation::Dynamic("single-slot-key".into()),
             },
         ];
 
@@ -463,15 +547,23 @@ mod tests {
             [[storage]]
             name = "map"
             description = "A storage map entry"
-            slot = 1
+            slot = 0
             values = [
                 { key = "0x1", value = "0x2" },
-                { key = "0x2", value = "0x3" },
+                { key = "{{key.test}}", value = "0x3" },
                 { key = "0x3", value = "0x4" }
             ]
         "#;
 
-        let component_metadata: ComponentMetadata = toml::from_str(toml_text).unwrap();
-        assert_eq!(component_metadata.storage().first().unwrap().map_entries().len(), 3)
+        let component_metadata = ComponentMetadata::from_toml(toml_text).unwrap();
+        let library = Assembler::default().assemble_library([CODE]).unwrap();
+
+        assert_eq!(component_metadata.storage_entries().first().unwrap().map_entries().len(), 3);
+
+        let package = ComponentPackage::new(component_metadata, library).unwrap();
+        let template_keys = [("key.test".to_string(), TemplateValue::Word(Default::default()))]
+            .into_iter()
+            .collect();
+        package.instantiate_component(&template_keys).unwrap();
     }
 }

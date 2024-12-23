@@ -1,4 +1,6 @@
 use alloc::{
+    boxed::Box,
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -9,10 +11,11 @@ use serde::{
     ser::SerializeSeq,
     Deserialize, Deserializer, Serialize, Serializer,
 };
-use vm_core::{Felt, Word};
+use vm_core::{Felt, FieldElement, Word};
 use vm_processor::Digest;
 
-use crate::utils::parse_hex_string_as_word;
+use super::{TemplateKey, TemplateValue};
+use crate::{accounts::package::ComponentPackageError, utils::parse_hex_string_as_word};
 
 // WORDS
 // ================================================================================================
@@ -20,10 +23,69 @@ use crate::utils::parse_hex_string_as_word;
 /// Supported word representations in TOML format. Represents slot values and keys.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WordRepresentation {
-    /// A word represented by a hexadecimal string
+    /// A word represented by a hexadecimal string.
     SingleHex([Felt; 4]),
-    /// A word represented by its four base elements
+    /// A word represented by its four base elements.
     Array([FeltRepresentation; 4]),
+    /// A template written as "{{key}}".
+    Dynamic(TemplateKey),
+}
+
+impl WordRepresentation {
+    /// Returns an iterator over all `TemplateKey` references within the `WordRepresentation`.
+    pub fn template_keys(&self) -> Box<dyn Iterator<Item = &TemplateKey> + '_> {
+        match self {
+            WordRepresentation::Array(array) => {
+                Box::new(array.iter().flat_map(|felt| felt.template_keys()))
+            },
+            WordRepresentation::Dynamic(template_key) => Box::new(std::iter::once(template_key)),
+            WordRepresentation::SingleHex(_) => Box::new(std::iter::empty()),
+        }
+    }
+
+    /// Attempts to convert the [WordRepresentation] into a [Word].
+    ///
+    /// If the representation is dynamic, the value is retrieved from `template_values`, identified
+    /// by its key. If any of the inner elements within the value are dynamic, they are retrieved
+    /// in the same way.
+    pub fn try_into_word(
+        self,
+        template_values: &BTreeMap<String, TemplateValue>,
+    ) -> Result<Word, ComponentPackageError> {
+        match self {
+            WordRepresentation::SingleHex(word) => Ok(word),
+            WordRepresentation::Array(array) => {
+                let mut result = [Felt::ZERO; 4];
+                for (index, felt_repr) in array.into_iter().enumerate() {
+                    let v = match felt_repr {
+                        FeltRepresentation::SingleHex(base_element) => base_element,
+                        FeltRepresentation::SingleDecimal(base_element) => base_element,
+                        FeltRepresentation::Dynamic(template_key) => *template_values
+                            .get(template_key.key())
+                            .ok_or_else(|| {
+                                ComponentPackageError::TemplateValueNotProvided(
+                                    template_key.key().to_string(),
+                                )
+                            })?
+                            .as_felt()?,
+                    };
+                    result[index] = v;
+                }
+                Ok(result)
+            },
+            WordRepresentation::Dynamic(template_key) => {
+                let user_value = template_values
+                    .get(template_key.key())
+                    .ok_or_else(|| {
+                        ComponentPackageError::TemplateValueNotProvided(
+                            template_key.key().to_string(),
+                        )
+                    })?
+                    .as_word()?;
+                Ok(*user_value)
+            },
+        }
+    }
 }
 
 impl From<Word> for WordRepresentation {
@@ -43,7 +105,6 @@ impl Serialize for WordRepresentation {
                 let word = Digest::from(word);
                 serializer.serialize_str(&word.to_string())
             },
-
             WordRepresentation::Array(words) => {
                 let mut seq = serializer.serialize_seq(Some(4))?;
                 for word in words {
@@ -51,6 +112,7 @@ impl Serialize for WordRepresentation {
                 }
                 seq.end()
             },
+            WordRepresentation::Dynamic(key) => key.serialize(serializer),
         }
     }
 }
@@ -73,9 +135,17 @@ impl<'de> Deserialize<'de> for WordRepresentation {
             where
                 E: DeError,
             {
-                // Attempt to convert the input string to a Digest
+                // Attempt to deserialize as TemplateKey first
+                if let Ok(tk) = TemplateKey::try_deserialize(value) {
+                    return Ok(WordRepresentation::Dynamic(tk));
+                }
+
+                // try hex parsing otherwise
                 let word = parse_hex_string_as_word(value).map_err(|_err| {
-                    E::invalid_value(Unexpected::Str(value), &"a valid hexadecimal string")
+                    E::invalid_value(
+                        Unexpected::Str(value),
+                        &"a valid hexadecimal string or {{dynamic}} format",
+                    )
                 })?;
 
                 Ok(WordRepresentation::SingleHex(word))
@@ -113,17 +183,31 @@ impl<'de> Deserialize<'de> for WordRepresentation {
 // ================================================================================================
 
 /// Supported element representations in TOML format. Represents slot values and keys.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FeltRepresentation {
+    /// Hexadecimal representation of a field element.
     SingleHex(Felt),
+    /// Single decimal representation of a field element.
     SingleDecimal(Felt),
+    /// A template key written as "{{key}}".
+    Dynamic(TemplateKey),
 }
 
-impl From<FeltRepresentation> for Felt {
-    fn from(val: FeltRepresentation) -> Self {
-        match val {
-            FeltRepresentation::SingleHex(base_element) => base_element,
-            FeltRepresentation::SingleDecimal(base_element) => base_element,
+impl FeltRepresentation {
+    pub fn template_keys(&self) -> impl Iterator<Item = &TemplateKey> {
+        let maybe_key = match self {
+            FeltRepresentation::Dynamic(template_key) => Some(template_key),
+            _ => None,
+        };
+
+        maybe_key.into_iter()
+    }
+
+    pub fn as_felt(&self) -> Option<Felt> {
+        match self {
+            FeltRepresentation::SingleHex(base_element) => Some(*base_element),
+            FeltRepresentation::SingleDecimal(base_element) => Some(*base_element),
+            FeltRepresentation::Dynamic(_) => None,
         }
     }
 }
@@ -151,6 +235,8 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
             Ok(FeltRepresentation::SingleHex(Felt::new(felt_value)))
         } else if let Ok(decimal_value) = value.parse::<u64>() {
             Ok(FeltRepresentation::SingleDecimal(Felt::new(decimal_value)))
+        } else if let Ok(key) = TemplateKey::try_deserialize(&value) {
+            Ok(FeltRepresentation::Dynamic(key))
         } else {
             Err(serde::de::Error::custom("Value is not a valid element"))
         }
@@ -171,6 +257,7 @@ impl Serialize for FeltRepresentation {
                 let output = felt.as_int().to_string();
                 serializer.serialize_str(&output)
             },
+            FeltRepresentation::Dynamic(key) => key.serialize(serializer),
         }
     }
 }
