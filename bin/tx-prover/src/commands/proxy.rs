@@ -68,9 +68,8 @@ impl StartProxy {
         // Enable Prometheus metrics
         let mut prometheus_service_http =
             pingora::services::listening::Service::prometheus_http_service();
-        prometheus_service_http.add_tcp(
-            format!("{}:{}", proxy_config.prometheus_host, proxy_config.prometheus_port).as_str(),
-        );
+        prometheus_service_http
+            .add_tcp(format!("{}:{}", "127.0.0.1", proxy_config.prometheus_port).as_str());
 
         server.add_service(prometheus_service_http);
         server.add_service(health_check_service);
