@@ -9,7 +9,7 @@ use serde::{
     ser::SerializeSeq,
     Deserialize, Deserializer, Serialize, Serializer,
 };
-use vm_core::Felt;
+use vm_core::{Felt, Word};
 use vm_processor::Digest;
 
 use crate::utils::parse_hex_string_as_word;
@@ -24,6 +24,12 @@ pub enum WordRepresentation {
     SingleHex([Felt; 4]),
     /// A word represented by its four base elements
     Array([FeltRepresentation; 4]),
+}
+
+impl From<Word> for WordRepresentation {
+    fn from(value: Word) -> Self {
+        WordRepresentation::SingleHex(value.into())
+    }
 }
 
 impl Serialize for WordRepresentation {

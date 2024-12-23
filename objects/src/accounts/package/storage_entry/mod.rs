@@ -1,9 +1,13 @@
 use alloc::{string::String, vec::Vec};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use vm_core::Word;
 
 mod word;
 pub use word::*;
+
+use super::ComponentMetadataError;
+use crate::accounts::StorageMap;
 
 // STORAGE ENTRY
 // ================================================================================================
@@ -54,6 +58,60 @@ pub enum StorageEntry {
 }
 
 impl StorageEntry {
+    /// Creates a new [`StorageEntry::Value`] variant.
+    pub fn new_value(
+        name: impl Into<String>,
+        description: Option<impl Into<String>>,
+        slot: u8,
+        value: impl Into<WordRepresentation>,
+    ) -> Self {
+        StorageEntry::Value {
+            name: name.into(),
+            description: description.map(Into::<String>::into),
+            slot,
+            value: value.into(),
+        }
+    }
+
+    /// Creates a new [`StorageEntry::Map`] variant.
+    pub fn new_map(
+        name: impl Into<String>,
+        description: Option<impl Into<String>>,
+        slot: u8,
+        storage_map: StorageMap,
+    ) -> Self {
+        let map_entries = storage_map
+            .entries()
+            .copied()
+            .map(|(k, v)| MapEntry::new(Into::<Word>::into(k), v))
+            .collect();
+        StorageEntry::Map {
+            name: name.into(),
+            description: description.map(Into::<String>::into),
+            slot,
+            values: map_entries,
+        }
+    }
+
+    /// Creates a new [`StorageEntry::MultiSlot`] variant.
+    pub fn new_multi_slot(
+        name: impl Into<String>,
+        description: Option<impl Into<String>>,
+        slots: Vec<u8>,
+        values: Vec<impl Into<WordRepresentation>>,
+    ) -> Result<Self, ComponentMetadataError> {
+        if slots.len() != values.len() {
+            return Err(ComponentMetadataError::InvalidMultiSlotEntry);
+        }
+
+        Ok(StorageEntry::MultiSlot {
+            name: name.into(),
+            description: description.map(Into::<String>::into),
+            slots,
+            values: values.into_iter().map(Into::into).collect(),
+        })
+    }
+
     /// Returns the slot indices that the storage entry covers.
     pub fn slot_indices(&self) -> &[u8] {
         match self {
@@ -312,6 +370,12 @@ impl StorageValues {
 pub struct MapEntry {
     key: WordRepresentation,
     value: WordRepresentation,
+}
+
+impl MapEntry {
+    pub fn new(key: impl Into<WordRepresentation>, value: impl Into<WordRepresentation>) -> Self {
+        Self { key: key.into(), value: value.into() }
+    }
 }
 
 #[cfg(test)]

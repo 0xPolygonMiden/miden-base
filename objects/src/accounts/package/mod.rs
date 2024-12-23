@@ -170,6 +170,8 @@ impl ComponentMetadata {
 
 #[derive(Debug, Error)]
 pub enum ComponentMetadataError {
+    #[error("multi slot storage entry should contain one value per slot")]
+    InvalidMultiSlotEntry,
     #[error("component storage slots are not contiguous")]
     NonContiguousSlots,
     #[error("error deserializing component metadata: {0}")]
