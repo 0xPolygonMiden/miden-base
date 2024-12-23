@@ -594,5 +594,8 @@ mod tests {
             },
             _ => panic!("should be value"),
         }
+
+        let failed_instantiation = package.instantiate_component(&BTreeMap::new());
+        assert_matches!(failed_instantiation, Err(ComponentPackageError::TemplateValueNotProvided(_)));
     }
 }
