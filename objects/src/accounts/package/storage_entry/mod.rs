@@ -454,10 +454,12 @@ impl MapEntry {
 mod tests {
     use std::{collections::BTreeSet, string::ToString};
 
-    use assembly::{Assembler, Library};
+    use assembly::Assembler;
+    use assert_matches::assert_matches;
     use semver::Version;
+    use serde::de::value;
     use toml;
-    use vm_core::Felt;
+    use vm_core::{Felt, FieldElement};
 
     use super::*;
     use crate::{
@@ -549,10 +551,16 @@ mod tests {
             description = "A storage map entry"
             slot = 0
             values = [
-                { key = "0x1", value = "0x2" },
+                { key = "0x1", value = ["{{value.test}}", "0x1", "0x2", "0x3"] },
                 { key = "{{key.test}}", value = "0x3" },
                 { key = "0x3", value = "0x4" }
             ]
+
+            [[storage]]
+            name = "test-word"
+            description = "word"
+            slot = 1
+            value = "{{word.test}}" 
         "#;
 
         let component_metadata = ComponentMetadata::from_toml(toml_text).unwrap();
@@ -561,9 +569,30 @@ mod tests {
         assert_eq!(component_metadata.storage_entries().first().unwrap().map_entries().len(), 3);
 
         let package = ComponentPackage::new(component_metadata, library).unwrap();
-        let template_keys = [("key.test".to_string(), TemplateValue::Word(Default::default()))]
-            .into_iter()
-            .collect();
-        package.instantiate_component(&template_keys).unwrap();
+        let template_keys = [
+            ("key.test".to_string(), TemplateValue::Word(Default::default())),
+            ("value.test".to_string(), TemplateValue::Felt(Felt::new(64))),
+            (
+                "word.test".to_string(),
+                TemplateValue::Word([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(128)]),
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        let component = package.instantiate_component(&template_keys).unwrap();
+        let storage_map = component.storage_slots.first().unwrap();
+        match storage_map {
+            StorageSlot::Map(storage_map) => assert_eq!(storage_map.entries().count(), 3),
+            _ => panic!("should be map"),
+        }
+
+        let value_entry = component.storage_slots().get(1).unwrap();
+        match value_entry {
+            StorageSlot::Value(v) => {
+                assert_eq!(v, &[Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(128)])
+            },
+            _ => panic!("should be value"),
+        }
     }
 }
