@@ -61,9 +61,9 @@ impl ComponentPackage {
     ///
     /// # Errors
     ///
-    /// - If any of the component's storage entries cannot be transformed into a valid storage
-    /// slot. This could be because the metadata is invalid, or template values were not provided
-    /// (or they are not of a valid type)
+    /// - If any of the component's storage entries cannot be transformed into a valid storage slot.
+    ///   This could be because the metadata is invalid, or template values were not provided (or
+    ///   they are not of a valid type)
     pub fn instantiate_component(
         &self,
         template_keys: &BTreeMap<String, TemplateValue>,

@@ -457,7 +457,6 @@ mod tests {
     use assembly::Assembler;
     use assert_matches::assert_matches;
     use semver::Version;
-    use serde::de::value;
     use toml;
     use vm_core::{Felt, FieldElement};
 
@@ -596,6 +595,9 @@ mod tests {
         }
 
         let failed_instantiation = package.instantiate_component(&BTreeMap::new());
-        assert_matches!(failed_instantiation, Err(ComponentPackageError::TemplateValueNotProvided(_)));
+        assert_matches!(
+            failed_instantiation,
+            Err(ComponentPackageError::TemplateValueNotProvided(_))
+        );
     }
 }

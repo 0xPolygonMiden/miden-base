@@ -90,7 +90,7 @@ impl WordRepresentation {
 
 impl From<Word> for WordRepresentation {
     fn from(value: Word) -> Self {
-        WordRepresentation::SingleHex(value.into())
+        WordRepresentation::SingleHex(value)
     }
 }
 
