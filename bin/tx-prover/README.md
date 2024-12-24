@@ -42,7 +42,7 @@ First, you need to create a configuration file for the proxy with:
 miden-tx-prover init
 ```
 
-This will create the `miden-tx-prover.toml` file in your current directory. This file will hold the configuration for the proxy. You can modify the configuration by changing the host and ports of the services, and add workers. An example of a valid configuration is:
+This will create the `miden-tx-prover.toml` file in your current directory. This file will hold the configuration for the proxy. You can modify the configuration by changing the host and ports of the services, the maximum size of the queue, among other options. An example configuration is:
 
 ```toml
 # Host of the proxy server
@@ -61,27 +61,17 @@ max_retries_per_request = 1
 max_req_per_sec = 5
 # Interval to check the health of the workers
 health_check_interval_secs = 1
-
-[[workers]]
-host = "0.0.0.0"
-port = 8083
-
-[[workers]]
-host = "0.0.0.0"
-port = 8084
 ```
-
-To add more workers, you will need to add more items with the `[[workers]]` tags.
 
 Then, to start the proxy service, you will need to run:
 
 ```bash
-miden-tx-prover start-proxy
+miden-tx-prover start-proxy [worker1] [worker2] ... [workerN]
 ```
 
-This command will start the proxy using the workers defined in the configuration file to send transaction witness to prove.
+This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-tx-prover add-worker` command.
 
-At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching the following worker in a round-robin fashion. The amount of retries is configurable changing the `max_retries_per_request` value in the configuration file.
+At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `max_retries_per_request` value in the configuration file.
 
 ## Updating workers on a running proxy
 
@@ -100,19 +90,35 @@ miden-tx-prover add-workers 0.0.0.0:8085 200.58.70.4:50051
 miden-tx-prover remove-workers 158.12.12.3:8080 122.122.6.6:50051
 ```
 
-This changes will be persisted to the configuration file.
-
 Note that, in order to update the workers, the proxy must be running in the same computer as the command is being executed because it will check if the client address is localhost to avoid any security issues.
 
 ### Health check
 
 The worker service implements the [gRPC Health Check](https://grpc.io/docs/guides/health-checking/) standard, and includes the methods described in this [official proto file](https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto).
 
-The proxy service uses this health check to determine if a worker is available to receive requests. If a worker is not available, it will be removed from the set of workers that the proxy can use to send requests, and will persist this change in the configuration file.
+The proxy service uses this health check to determine if a worker is available to receive requests. If a worker is not available, it will be removed from the set of workers that the proxy can use to send requests.
 
-## Logging
+## Logging and Tracing
 
-Both the worker and the proxy will use the `info` log level by default, but it can be changed by setting the `RUST_LOG` environment variable.
+The service uses the [`tracing`](https://docs.rs/tracing/latest/tracing/) crate for both logging and distributed tracing, providing structured, high-performance logs and trace data.
+
+By default, logs are written to `stdout` and the default logging level is `info`. This can be changed via the `RUST_LOG` environment variable. For example:
+
+```
+export RUST_LOG=debug
+```
+
+For tracing, we use OpenTelemetry protocol. By default, traces are exported to the endpoint specified by `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable. To consume and visualize these traces we can use Jaeger or any other OpenTelemetry compatible consumer.
+
+The simplest way to install Jaeger is by using a [Docker](https://www.docker.com/) container. To do so, run:
+
+```bash
+docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
+```
+
+Then access the Jaeger UI at `http://localhost:16686/`.
+
+If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
 
 ## Features
 

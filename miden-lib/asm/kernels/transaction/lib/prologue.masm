@@ -811,7 +811,7 @@ end
 #!
 #! Where:
 #! - note_ptr is the memory location for the input note.
-#! - NOTE_ID is the the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
+#! - NOTE_ID is the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
 proc.compute_input_note_id
     # compute SERIAL_HASH: hash(SERIAL_NUMBER || EMPTY_WORD)
     dup exec.memory::get_input_note_serial_num padw hmerge
@@ -874,8 +874,8 @@ end
 #! - is_authenticated is the boolean indicating if the note contains an authentication proof.
 #! - optional values, required if `is_authenticated` is true:
 #!   - block_num is the note's creation block number.
-#!   - BLOCK_SUB_HASH is the the block's sub_hash for which the note was created.
-#!   - NOTE_ROOT is the the merkle root of the note's tree.
+#!   - BLOCK_SUB_HASH is the block's sub_hash for which the note was created.
+#!   - NOTE_ROOT is the merkle root of the note's tree.
 proc.process_input_note
     # note details
     # ---------------------------------------------------------------------------------------------
@@ -1063,7 +1063,7 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - TX_SCRIPT_ROOT is the the transaction's script root.
+#! - TX_SCRIPT_ROOT is the transaction's script root.
 proc.process_tx_script_root
     # read the transaction script root from the advice stack
     adv_loadw

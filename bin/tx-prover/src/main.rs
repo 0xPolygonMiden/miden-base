@@ -9,7 +9,7 @@ use utils::setup_tracing;
 async fn main() -> Result<(), String> {
     use clap::Parser;
 
-    setup_tracing();
+    setup_tracing()?;
 
     // read command-line args
     let cli = Cli::parse();

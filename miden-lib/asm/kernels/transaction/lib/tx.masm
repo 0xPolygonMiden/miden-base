@@ -466,7 +466,7 @@ end
 #!   or off-chain).
 #! - execution_hint is the hint which specifies when a note is ready to be consumed.
 #! - RECIPIENT defines spend conditions for the note.
-#! - note_idx is the index of the crated note.
+#! - note_idx is the index of the created note.
 #!
 #! Panics if:
 #! - the note_type is not valid.
@@ -510,7 +510,7 @@ end
 #! Outputs: [note_idx]
 #!
 #! Where:
-#! - note_idx is the index of the the note to which the asset is added.
+#! - note_idx is the index of the note to which the asset is added.
 #! - ASSET can be a fungible or non-fungible asset.
 #!
 #! Panics if:

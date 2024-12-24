@@ -666,7 +666,7 @@ end
 #! - note_type is the note storage type.
 #! - execution_hint is the note execution hint tag and payload.
 #! - RECIPIENT is the recipient of the note.
-#! - note_idx is the index of the crated note.
+#! - note_idx is the index of the created note.
 #!
 #! Panics if:
 #! - the procedure is called from a non-account context.
@@ -692,7 +692,7 @@ end
 #! Outputs: [note_idx, ASSET, pad(11)]
 #!
 #! Where:
-#! - note_idx is the index of the the note to which the asset is added.
+#! - note_idx is the index of the note to which the asset is added.
 #! - ASSET can be a fungible or non-fungible asset.
 #!
 #! Panics if:

@@ -6,30 +6,46 @@ use pingora::{
     server::Server,
 };
 use pingora_proxy::http_proxy_service;
+use tracing::warn;
 
-use crate::proxy::{LoadBalancer, LoadBalancerState};
+use crate::{
+    proxy::{LoadBalancer, LoadBalancerState},
+    utils::MIDEN_TX_PROVER,
+};
 
 /// Starts the proxy defined in the config file.
+///
+/// Example: `miden-tx-prover start-proxy 0.0.0.0:8080 127.0.0.1:9090`
 #[derive(Debug, Parser)]
-pub struct StartProxy;
+pub struct StartProxy {
+    /// List of workers as host:port strings.
+    ///
+    /// Example: `127.0.0.1:8080 192.168.1.1:9090`
+    #[clap(value_name = "WORKERS")]
+    workers: Vec<String>,
+}
 
 impl StartProxy {
     /// Starts the proxy defined in the config file.
     ///
-    /// This method will first read the config file to get the list of workers to start. It will
-    /// then start a proxy with each worker as a backend.
+    /// This method will first read the config file to get the parameters for the proxy. It will
+    /// then start a proxy with each worker passed as command argument as a backend.
+    #[tracing::instrument(target = MIDEN_TX_PROVER, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
         server.bootstrap();
 
         let proxy_config = super::ProxyConfig::load_config_from_file()?;
 
-        let workers = proxy_config
+        let workers = self
             .workers
             .iter()
-            .map(|worker| format!("{}:{}", worker.host, worker.port))
-            .map(|worker| Backend::new(&worker).map_err(|err| err.to_string()))
+            .map(|worker| Backend::new(worker).map_err(|err| err.to_string()))
             .collect::<Result<Vec<Backend>, String>>()?;
+
+        if workers.is_empty() {
+            warn!("Starting the proxy without any workers");
+        }
 
         let worker_lb = LoadBalancerState::new(workers, &proxy_config).await?;
 

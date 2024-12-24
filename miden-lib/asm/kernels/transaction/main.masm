@@ -53,7 +53,7 @@ const.EPILOGUE_END=131081
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - account_id is the the account that the transaction is being executed against.
+#! - account_id is the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes created by the transaction.

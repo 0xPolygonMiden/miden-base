@@ -156,7 +156,7 @@ const.INPUT_NOTE_DATA_SECTION_OFFSET=1064960
 # The memory address at which the number of input notes is stored.
 const.NUM_INPUT_NOTES_PTR=1048576
 
-# The offsets at which data of a input note is stored relative to the start of its data segment
+# The offsets at which data of an input note is stored relative to the start of its data segment
 const.INPUT_NOTE_ID_OFFSET=0
 const.INPUT_NOTE_CORE_DATA_OFFSET=1
 const.INPUT_NOTE_SERIAL_NUM_OFFSET=1
@@ -174,7 +174,7 @@ const.INPUT_NOTE_ASSETS_OFFSET=8
 # The memory address at which the output notes section begins.
 const.OUTPUT_NOTE_SECTION_OFFSET=4194304
 
-# The offsets at which data of a output note is stored relative to the start of its data segment.
+# The offsets at which data of an output note is stored relative to the start of its data segment.
 const.OUTPUT_NOTE_ID_OFFSET=0
 const.OUTPUT_NOTE_METADATA_OFFSET=1
 const.OUTPUT_NOTE_RECIPIENT_OFFSET=2
@@ -1034,7 +1034,7 @@ export.set_num_input_notes
     push.NUM_INPUT_NOTES_PTR mem_store
 end
 
-#! Computes a pointer to the memory address at which the data associated with a input note with
+#! Computes a pointer to the memory address at which the data associated with an input note with
 #! index `idx` is stored.
 #!
 #! Inputs:  [idx]
@@ -1072,7 +1072,7 @@ export.get_input_note_nullifier_ptr
     push.INPUT_NOTE_SECTION_OFFSET.1 add add
 end
 
-#! Returns the nullifier of a input note with `idx`.
+#! Returns the nullifier of an input note with `idx`.
 #!
 #! Inputs:  [idx]
 #! Outputs: [nullifier]
@@ -1097,7 +1097,7 @@ export.get_input_note_core_ptr
     push.INPUT_NOTE_CORE_DATA_OFFSET add
 end
 
-#! Returns the script root of a input note located at the specified memory address.
+#! Returns the script root of an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
 #! Outputs: [SCRIPT_HASH]
@@ -1111,7 +1111,7 @@ export.get_input_note_script_root
     mem_loadw
 end
 
-#! Returns the memory address of the script root of a input note.
+#! Returns the memory address of the script root of an input note.
 #!
 #! Inputs:  [note_ptr]
 #! Outputs: [script_root_ptr]
@@ -1123,7 +1123,7 @@ export.get_input_note_script_root_ptr
     push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
 end
 
-#! Returns the inputs hash of a input note located at the specified memory address.
+#! Returns the inputs hash of an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
 #! Outputs: [INPUTS_HASH]
@@ -1137,7 +1137,7 @@ export.get_input_note_inputs_hash
     mem_loadw
 end
 
-#! Returns the metadata of a input note located at the specified memory address.
+#! Returns the metadata of an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
 #! Outputs: [METADATA]
@@ -1151,7 +1151,7 @@ export.get_input_note_metadata
     mem_loadw
 end
 
-#! Sets the metadata for a input note located at the specified memory address.
+#! Sets the metadata for an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr, NOTE_METADATA]
 #! Outputs: [NOTE_METADATA]
@@ -1178,7 +1178,7 @@ export.get_input_note_args
     mem_loadw
 end
 
-#! Sets the note args for a input note located at the specified memory address.
+#! Sets the note args for an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr, NOTE_ARGS]
 #! Outputs: [NOTE_ARGS]
@@ -1204,7 +1204,7 @@ export.get_input_note_num_assets
     mem_load
 end
 
-#! Sets the number of assets for a input note located at the specified memory address.
+#! Sets the number of assets for an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr, num_assets]
 #! Outputs: []
@@ -1237,7 +1237,7 @@ end
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - ASSET_HASH is the sequential hash of the padded assets of a input note.
+#! - ASSET_HASH is the sequential hash of the padded assets of an input note.
 export.get_input_note_assets_hash
     padw
     movup.4 push.INPUT_NOTE_ASSETS_HASH_OFFSET add
@@ -1303,7 +1303,7 @@ export.get_output_note_data_offset
     push.OUTPUT_NOTE_SECTION_OFFSET
 end
 
-#! Computes a pointer to the memory address at which the data associated with a output note with
+#! Computes a pointer to the memory address at which the data associated with an output note with
 #! index `i` is stored.
 #!
 #! Inputs:  [i]
@@ -1417,7 +1417,7 @@ end
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
 
-#! Sets the number of of the procedures of the selected kernel.
+#! Sets the number of the procedures of the selected kernel.
 #!
 #! Inputs:  [num_kernel_procedures]
 #! Outputs: []
