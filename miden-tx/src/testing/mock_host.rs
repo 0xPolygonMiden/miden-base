@@ -1,6 +1,6 @@
-use alloc::{rc::Rc, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
-use miden_lib::transaction::TransactionEvent;
+use miden_lib::{errors::tx_kernel_errors::TX_KERNEL_ERRORS, transaction::TransactionEvent};
 use miden_objects::{
     accounts::{AccountHeader, AccountVaultDelta},
     Digest,
@@ -24,6 +24,10 @@ pub struct MockHost {
     adv_provider: MemAdviceProvider,
     acct_procedure_index_map: AccountProcedureIndexMap,
     mast_store: Rc<TransactionMastStore>,
+    /// Contains mappings from error codes to the related error messages.
+    ///
+    /// This map is initialized at construction time from the [`TX_KERNEL_ERRORS`] array.
+    error_messages: BTreeMap<u32, &'static str>,
 }
 
 impl MockHost {
@@ -37,10 +41,14 @@ impl MockHost {
         foreign_code_commitments.push(account.code_commitment());
         let adv_provider: MemAdviceProvider = advice_inputs.into();
         let proc_index_map = AccountProcedureIndexMap::new(foreign_code_commitments, &adv_provider);
+
+        let kernel_assertion_errors = BTreeMap::from(TX_KERNEL_ERRORS);
+
         Self {
             adv_provider,
             acct_procedure_index_map: proc_index_map.unwrap(),
             mast_store,
+            error_messages: kernel_assertion_errors,
         }
     }
 
@@ -108,5 +116,19 @@ impl Host for MockHost {
         }?;
 
         Ok(HostResponse::None)
+    }
+
+    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+        let err_msg = self
+            .error_messages
+            .get(&err_code)
+            .map_or("Unknown error".to_string(), |msg| msg.to_string());
+        // Add hex representation to message so it can be easily found in MASM code.
+        let err_msg = format!("0x{:08X}: {}", err_code, err_msg);
+        ExecutionError::FailedAssertion {
+            clk: process.clk(),
+            err_code,
+            err_msg: Some(err_msg),
+        }
     }
 }

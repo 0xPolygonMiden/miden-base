@@ -1,9 +1,10 @@
-use alloc::collections::BTreeMap;
+use alloc::{collections::BTreeMap, vec::Vec};
 
+use anyhow::Context;
 use miden_lib::{
     accounts::wallets::BasicWallet,
     errors::tx_kernel_errors::{
-        ERR_ACCOUNT_SEED_DIGEST_MISMATCH,
+        ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH,
         ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
         ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
     },
@@ -28,26 +29,26 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage, AccountType,
-        StorageSlot,
+        Account, AccountBuilder, AccountIdAnchor, AccountProcedureInfo, AccountStorageMode,
+        AccountType, StorageSlot,
     },
     testing::{
-        account_component::BASIC_WALLET_CODE,
-        constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
+        account_component::AccountMockComponent,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
-    Digest, FieldElement,
+    BlockHeader, GENESIS_BLOCK,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, ONE};
+use vm_processor::{AdviceInputs, Digest, ExecutionError, ONE};
 
 use super::{Felt, Process, Word, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
-        utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+        utils::input_note_data_ptr, MockChain, MockHost, TransactionContext,
+        TransactionContextBuilder,
     },
     tests::kernel_tests::read_root_mem_value,
 };
@@ -114,8 +115,13 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Transact
 
     assert_eq!(
         read_root_mem_value(process, ACCT_ID_PTR)[0],
-        inputs.account().id().into(),
-        "The account ID should be stored at the ACCT_ID_PTR"
+        inputs.account().id().second_felt(),
+        "The account ID first felt should be stored at the ACCT_ID_PTR[0]"
+    );
+    assert_eq!(
+        read_root_mem_value(process, ACCT_ID_PTR)[1],
+        inputs.account().id().first_felt(),
+        "The account ID second felt should be stored at the ACCT_ID_PTR[1]"
     );
 
     assert_eq!(
@@ -240,7 +246,12 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Transa
 fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, NATIVE_ACCT_ID_AND_NONCE_PTR),
-        [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()],
+        [
+            inputs.account().id().second_felt(),
+            inputs.account().id().first_felt(),
+            ZERO,
+            inputs.account().nonce()
+        ],
         "The account id should be stored at NATIVE_ACCT_ID_AND_NONCE_PTR[0]"
     );
 
@@ -392,173 +403,210 @@ fn input_notes_memory_assertions(
     }
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
-#[test]
-pub fn test_prologue_create_account() {
-    let (account, seed) = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
-        .with_component(
-            AccountComponent::compile(
-                BASIC_WALLET_CODE,
-                TransactionKernel::testing_assembler(),
-                AccountStorage::mock_storage_slots(),
+// ACCOUNT CREATION TESTS
+// ================================================================================================
+
+/// Test helper which executes the prologue to check if the creation of the given `account` with its
+/// `seed` is valid in the context of the given `mock_chain`.
+pub fn create_account_test(
+    mock_chain: &MockChain,
+    account: Account,
+    seed: Word,
+) -> Result<(), ExecutionError> {
+    let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
+
+    let tx_context = TransactionContextBuilder::new(account)
+        .account_seed(Some(seed))
+        .tx_inputs(tx_inputs)
+        .build();
+
+    let code = "
+  use.kernel::prologue
+
+  begin
+      exec.prologue::prepare_transaction
+  end
+  ";
+
+    tx_context.execute_code(code)?;
+
+    Ok(())
+}
+
+pub fn create_multiple_accounts_test(
+    mock_chain: &MockChain,
+    anchor_block_header: &BlockHeader,
+    storage_mode: AccountStorageMode,
+) -> anyhow::Result<()> {
+    let mut accounts = Vec::new();
+
+    for account_type in [
+        AccountType::RegularAccountImmutableCode,
+        AccountType::RegularAccountUpdatableCode,
+        AccountType::FungibleFaucet,
+        AccountType::NonFungibleFaucet,
+    ] {
+        let (account, seed) = AccountBuilder::new()
+            .account_type(account_type)
+            .storage_mode(storage_mode)
+            .init_seed(ChaCha20Rng::from_entropy().gen())
+            .anchor(
+                AccountIdAnchor::try_from(anchor_block_header)
+                    .context("block header to anchor conversion failed")?,
             )
-            .unwrap()
-            .with_supported_type(AccountType::RegularAccountUpdatableCode),
-        )
-        .build()
-        .unwrap();
+            .with_component(
+                AccountMockComponent::new_with_slots(
+                    TransactionKernel::testing_assembler(),
+                    vec![StorageSlot::Value([Felt::new(255); 4])],
+                )
+                .unwrap(),
+            )
+            .build()
+            .context("account build failed")?;
 
-    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
+        accounts.push((account, seed));
+    }
 
-    let code = "
-    use.kernel::prologue
+    for (account, seed) in accounts {
+        let account_type = account.account_type();
+        create_account_test(mock_chain, account, seed).context(format!(
+            "create_multiple_accounts_test test failed for account type {:?}",
+            account_type
+        ))?;
+    }
 
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    tx_context.execute_code(code).unwrap();
+    Ok(())
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+/// Tests that a valid account of each type can be created successfully with the genesis block used
+/// as the anchor block for the account IDs.
 #[test]
-pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::FungibleFaucetValidInitialBalance,
-        TransactionKernel::assembler().with_debug_mode(true),
-    );
+pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    // Choose epoch block 0 as the anchor block.
+    // Here the transaction reference block is also the anchor block.
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
 
-    let tx_context =
-        TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, ZERO)
-            .account_seed(Some(account_seed))
-            .build();
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Private)?;
 
-    let code = "
-    use.kernel::prologue
+    // Seal one more block to test the case where the transaction reference block is not the anchor
+    // block.
+    mock_chain.seal_block(None);
 
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    tx_context.execute_code(code).unwrap();
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+/// Tests that a valid account of each type can be created successfully with an epoch block whose
+/// number is non-zero used as the anchor block for the account IDs.
+///
+/// Note that this test is very slow in debug mode.
 #[test]
-pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
+pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(Some(1 << 16));
+
+    // Choose epoch block 1 whose block number is 2^16 as the anchor block.
+    // Here the transaction reference block is also the anchor block.
+    let epoch1_block_header = mock_chain.block_header(1 << 16);
+
+    create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Private)?;
+
+    // Seal one more block to test the case where the transaction reference block is not the anchor
+    // block.
+    mock_chain.seal_block(None);
+
+    create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Public)
+}
+
+/// Tests that creating a fungible faucet account with a non-empty initial balance in its reserved
+/// slot fails.
+#[test]
+pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(None);
+
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+
+    let (account, _, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        TransactionKernel::assembler(),
-    );
-
-    let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        acct_id.into(),
-        Felt::ZERO,
-        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
-    )
-    .account_seed(Some(account_seed))
-    .build();
-
-    let code = "
-    use.kernel::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    let process = tx_context.execute_code(code);
-    assert_execution_error!(process, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY);
-}
-
-#[cfg_attr(not(feature = "testing"), ignore)]
-#[test]
-pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::NonFungibleFaucetValidReservedSlot,
+        &genesis_block_header,
         TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context =
-        TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, true)
-            .account_seed(Some(account_seed))
-            .build();
+    let result = create_account_test(&mock_chain, account, account_seed);
 
-    let code = "
-    use.kernel::prologue
+    assert_execution_error!(result, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY);
 
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    let process = tx_context.execute_code(code);
-
-    assert!(process.is_ok())
+    Ok(())
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+/// Tests that creating a non fungible faucet account with a non-empty SMT in its reserved slot
+/// fails.
 #[test]
-pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
-    let (acct_id, account_seed) = generate_account_seed(
+pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> anyhow::Result<()> {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(None);
+
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+
+    let (account, _, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
+        &genesis_block_header,
         TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context =
-        TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, false)
-            .account_seed(Some(account_seed))
-            .build();
-
-    let code = "
-    use.kernel::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
-
-    let process = tx_context.execute_code(code);
+    let result = create_account_test(&mock_chain, account, account_seed);
 
     assert_execution_error!(
-        process,
+        result,
         ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT
     );
+
+    Ok(())
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+/// Tests that supplying an invalid seed causes account creation to fail.
+///
+/// TODO: Add variant of this test with incorrect block hash.
 #[test]
-pub fn test_prologue_create_account_invalid_seed() {
-    let (acct, account_seed) = AccountBuilder::new()
+pub fn create_account_invalid_seed() {
+    let mut mock_chain = MockChain::new();
+    mock_chain.seal_block(None);
+
+    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+
+    let (account, seed) = AccountBuilder::new()
+        .anchor(AccountIdAnchor::try_from(&genesis_block_header).unwrap())
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
         .build()
         .unwrap();
 
-    let code = "
-    use.kernel::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-    end
-    ";
+    let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
 
     // override the seed with an invalid seed to ensure the kernel fails
-    let account_seed_key = [acct.id().into(), ZERO, ZERO, ZERO];
+    let account_seed_key = [account.id().second_felt(), account.id().first_felt(), ZERO, ZERO];
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(Some(account_seed))
+    let tx_context = TransactionContextBuilder::new(account)
+        .account_seed(Some(seed))
+        .tx_inputs(tx_inputs)
         .advice_inputs(adv_inputs)
         .build();
-    let process = tx_context.execute_code(code);
 
-    assert_execution_error!(process, ERR_ACCOUNT_SEED_DIGEST_MISMATCH)
+    let code = "
+      use.kernel::prologue
+
+      begin
+          exec.prologue::prepare_transaction
+      end
+      ";
+
+    let result = tx_context.execute_code(code);
+
+    assert_execution_error!(result, ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH)
 }
 
 #[test]

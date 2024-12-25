@@ -40,6 +40,7 @@ winter-rand-utils = { version = "0.10", optional = true }
 getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
+anyhow = { version = "1.0.93", default-features = false, features = ["std", "backtrace"]}
 assert_matches = { workspace = true }
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
 miden-objects = { path = ".", features = ["testing"] }

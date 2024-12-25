@@ -49,7 +49,7 @@ const.GLOBAL_INPUTS_SECTION_OFFSET=100
 # The memory address at which the latest known block hash is stored
 const.BLK_HASH_PTR=100
 
-# The memory address at which the account id is stored
+# The memory address at which the account id felts are stored.
 const.ACCT_ID_PTR=101
 
 # The memory address at which the initial account hash is stored
@@ -330,24 +330,30 @@ end
 
 #! Sets the account id.
 #!
-#! Inputs:  [acct_id]
+#! Inputs:  [acct_id_hi, acct_id_lo]
 #! Outputs: []
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account id.
 export.set_global_acct_id
-    push.ACCT_ID_PTR mem_store
+    push.0.0
+    # => [0, 0, acct_id_hi, acct_id_lo]
+    mem_storew.ACCT_ID_PTR
+    dropw
+    # => []
 end
 
 #! Returns the global account id.
 #!
 #! Inputs:  []
-#! Outputs: [acct_id]
+#! Outputs: [acct_id_hi, acct_id_lo]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account id.
 export.get_global_acct_id
-    push.ACCT_ID_PTR mem_load
+    padw mem_loadw.ACCT_ID_PTR
+    # => [0, 0, acct_id_hi, acct_id_lo]
+    drop drop
 end
 
 #! Sets the initial account hash.
@@ -725,22 +731,25 @@ end
 #! Returns the id of the current account.
 #!
 #! Inputs:  []
-#! Outputs: [curr_acct_id]
+#! Outputs: [curr_acct_id_hi, curr_acct_id_lo]
 #!
 #! Where:
-#! - curr_acct_id is the account id of the currently accessing account.
+#! - curr_acct_id_{hi,lo} are the first and second felt of the account id of the currently
+#!   accessing account.
 export.get_account_id
-    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
-    mem_load
+    padw exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
+    # => [nonce, 0, curr_acct_id_hi, curr_acct_id_lo]
+    drop drop
+    # => [curr_acct_id_hi, curr_acct_id_lo]
 end
 
 #! Sets the account id and nonce.
 #!
-#! Inputs:  [account_nonce, 0, 0, account_id]
-#! Outputs: [account_nonce, 0, 0, account_id]
+#! Inputs:  [account_nonce, 0, account_id_hi, account_id_lo]
+#! Outputs: [account_nonce, 0, account_id_hi, account_id_lo]
 #!
 #! Where:
-#! - account_id is the id of the currently accessing account.
+#! - account_id_{hi,lo} are the first and second felt of the id of the currently accessing account.
 #! - account_nonce is the nonce of the currently accessing account.
 export.set_acct_id_and_nonce
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
@@ -750,13 +759,15 @@ end
 #! Returns the id of the native account.
 #!
 #! Inputs:  []
-#! Outputs: [native_acct_id]
+#! Outputs: [native_acct_id_hi, native_acct_id_lo]
 #!
 #! Where:
-#! - native_acct_id is the id of the native account.
+#! - native_acct_id_{hi,lo} are the first and second felt of the id of the native account.
 export.get_native_account_id
-    push.NATIVE_ACCOUNT_DATA_PTR push.ACCT_ID_AND_NONCE_OFFSET add
-    mem_load
+    padw push.NATIVE_ACCOUNT_DATA_PTR push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
+    # => [nonce, 0, native_acct_id_hi, native_acct_id_lo]
+    drop drop
+    # => [native_acct_id_hi, native_acct_id_lo]
 end
 
 #! Returns the account nonce.
@@ -781,12 +792,12 @@ end
 #! Where:
 #! - acct_nonce is the account nonce.
 export.set_acct_nonce
-    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
-    padw dup.4
-    mem_loadw
-    # => [old_nonce, 0, 0, old_id, acct_id_and_nonce_ptr, new_nonce]
-
+    exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add padw
+    # => [0, 0, 0, 0, acct_id_and_nonce_ptr, new_nonce]
+    dup.4 mem_loadw
+    # => [old_nonce, 0, old_id_hi, old_id_lo, acct_id_and_nonce_ptr, new_nonce]
     drop movup.4 movup.4 mem_storew dropw
+    # => []
 end
 
 ### ACCOUNT VAULT #################################################
@@ -1250,7 +1261,7 @@ end
 #! Returns the sender for the input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
-#! Outputs: [sender]
+#! Outputs: [sender_hi, sender_lo]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
@@ -1259,10 +1270,23 @@ export.get_input_note_sender
     padw
     movup.4 push.INPUT_NOTE_METADATA_OFFSET add
     mem_loadw
-    # => [aux, encoded_type_and_ex_hint, sender, tag]
+    # => [aux, merged_tag_hint_payload, merged_sender_id_type_hint_tag, sender_hi]
 
-    drop drop swap drop
-    # => [sender]
+    drop drop
+    # => [merged_sender_id_type_hint_tag, sender_hi]
+
+    # extract second felt of sender from merged layout, which means clearing the least significant byte
+    u32split swap
+    # => [merged_lo, merged_hi, sender_hi]
+
+    # clear least significant byte
+    u32and.0xffffff00 swap
+    # => [sender_lo_hi, sender_lo_lo, sender_hi]
+
+    # reassemble the second felt by multiplying the high part with 2^32 and adding the lo part
+    mul.0x0100000000 add swap
+    # => [sender_hi, sender_lo]
+
 end
 
 # OUTPUT NOTES

@@ -6,7 +6,10 @@ use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 #[test]
 fn wallet_creation() {
     use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
-    use miden_objects::accounts::{AccountCode, AccountStorageMode, AccountType};
+    use miden_objects::{
+        accounts::{AccountCode, AccountStorageMode, AccountType},
+        digest, BlockHeader,
+    };
 
     // we need a Falcon Public Key to create the wallet account
     let seed = [0_u8; 32];
@@ -25,8 +28,17 @@ fn wallet_creation() {
     let account_type = AccountType::RegularAccountImmutableCode;
     let storage_mode = AccountStorageMode::Private;
 
-    let (wallet, _) =
-        create_basic_wallet(init_seed, auth_scheme, account_type, storage_mode).unwrap();
+    let anchor_block_header_mock =
+        BlockHeader::mock(0, Some(digest!("0xaa")), Some(digest!("0xbb")), &[], digest!("0xcc"));
+
+    let (wallet, _) = create_basic_wallet(
+        init_seed,
+        (&anchor_block_header_mock).try_into().unwrap(),
+        auth_scheme,
+        account_type,
+        storage_mode,
+    )
+    .unwrap();
 
     let expected_code = AccountCode::from_components(
         &[RpoFalcon512::new(pub_key).into(), BasicWallet.into()],

@@ -5,18 +5,16 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
-        },
-        Account, AccountCode, AccountId,
-    },
+    accounts::{Account, AccountCode, AccountId},
     assembly::Assembler,
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
+        account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
+        },
         constants::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
@@ -130,7 +128,7 @@ impl TransactionContextBuilder {
     }
 
     /// Initializes a [TransactionContextBuilder] with a mocked fungible faucet.
-    pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
+    pub fn with_fungible_faucet(acct_id: u128, nonce: Felt, initial_balance: Felt) -> Self {
         let account = Account::mock_fungible_faucet(
             acct_id,
             nonce,
@@ -142,7 +140,7 @@ impl TransactionContextBuilder {
     }
 
     /// Initializes a [TransactionContextBuilder] with a mocked non-fungible faucet.
-    pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
+    pub fn with_non_fungible_faucet(acct_id: u128, nonce: Felt, empty_reserved_slot: bool) -> Self {
         let account = Account::mock_non_fungible_faucet(
             acct_id,
             nonce,

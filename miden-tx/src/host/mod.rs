@@ -88,7 +88,7 @@ pub struct TransactionHost<A> {
 
     /// Contains mappings from error codes to the related error messages.
     ///
-    /// This map is initialized at construction time from the [KERNEL_ERRORS] array.
+    /// This map is initialized at construction time from the [`TX_KERNEL_ERRORS`] array.
     error_messages: BTreeMap<u32, &'static str>,
 }
 
