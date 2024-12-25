@@ -1,4 +1,4 @@
-use crate::{block::block_epoch_from_number, AccountError, BlockHeader, Digest};
+use crate::{block::block_epoch_from_number, AccountError, BlockHeader, Digest, EMPTY_WORD};
 
 // ACCOUNT ID ANCHOR
 // ================================================================================================
@@ -22,6 +22,16 @@ pub struct AccountIdAnchor {
 }
 
 impl AccountIdAnchor {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// A "pre-genesis" [`AccountIdAnchor`] which can be used to anchor accounts created in the
+    /// genesis block.
+    pub const PRE_GENESIS: Self = Self {
+        epoch: 0,
+        block_hash: Digest::new(EMPTY_WORD),
+    };
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
