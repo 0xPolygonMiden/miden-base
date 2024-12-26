@@ -120,6 +120,9 @@ name = "anyhow"
 version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
+dependencies = [
+ "backtrace",
+]
 
 [[package]]
 name = "arc-swap"
@@ -1918,6 +1921,7 @@ dependencies = [
 name = "miden-objects"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "assert_matches",
  "criterion",
  "getrandom",
@@ -1993,6 +1997,7 @@ dependencies = [
 name = "miden-tx"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "assert_matches",
  "async-trait",
  "miden-assembly",

@@ -29,7 +29,7 @@ impl BlockHeader {
                     if acct.is_new() {
                         None
                     } else {
-                        let felt_id: Felt = acct.id().into();
+                        let felt_id: Felt = acct.id().prefix().into();
                         Some((felt_id.as_int(), *acct.hash()))
                     }
                 })

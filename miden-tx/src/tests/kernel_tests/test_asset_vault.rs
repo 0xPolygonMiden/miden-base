@@ -10,15 +10,13 @@ use miden_lib::{
     transaction::memory,
 };
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
+    accounts::AccountId,
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    testing::{
+        account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
         },
-        AccountId,
-    },
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    testing::{
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         prepare_word,
     },
@@ -43,13 +41,15 @@ fn test_get_balance() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
+            push.{second_felt}.{first_felt}
             exec.account::get_balance
 
             # truncate the stack
             swap drop
         end
-        "
+        ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -63,6 +63,8 @@ fn test_get_balance() {
 #[test]
 fn test_get_balance_non_fungible_fails() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let code = format!(
         "
         use.kernel::prologue
@@ -70,10 +72,12 @@ fn test_get_balance_non_fungible_fails() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN}
+            push.{second_felt}.{first_felt}
             exec.account::get_balance
         end
-        "
+        ",
+        first_felt = faucet_id.first_felt(),
+        second_felt = faucet_id.second_felt(),
     );
 
     let process = tx_context.execute_code(&code);
@@ -87,7 +91,8 @@ fn test_get_balance_non_fungible_fails() {
 #[test]
 fn test_has_non_fungible_asset() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-    let non_fungible_asset = tx_context.account().vault().assets().next().unwrap();
+    let non_fungible_asset =
+        tx_context.account().vault().assets().find(Asset::is_non_fungible).unwrap();
 
     let code = format!(
         "
@@ -103,7 +108,7 @@ fn test_has_non_fungible_asset() {
             swap drop
         end
         ",
-        non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
+        non_fungible_asset_key = prepare_word(&non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -118,7 +123,8 @@ fn test_add_fungible_asset_success() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT;
     let add_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, ZERO, faucet_id.into()]).unwrap();
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
+            .unwrap();
 
     let code = format!(
         "
@@ -158,7 +164,8 @@ fn test_add_non_fungible_asset_fail_overflow() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT + 1;
     let add_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, ZERO, faucet_id.into()]).unwrap();
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
+            .unwrap();
 
     let code = format!(
         "
@@ -187,7 +194,8 @@ fn test_add_non_fungible_asset_success() {
     let mut account_vault = tx_context.account().vault().clone();
     let add_non_fungible_asset = Asset::NonFungible(
         NonFungibleAsset::new(
-            &NonFungibleAssetDetails::new(faucet_id, vec![1, 2, 3, 4, 5, 6, 7, 8]).unwrap(),
+            &NonFungibleAssetDetails::new(faucet_id.prefix(), vec![1, 2, 3, 4, 5, 6, 7, 8])
+                .unwrap(),
         )
         .unwrap(),
     );
@@ -228,7 +236,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = tx_context.account().vault().clone();
     let non_fungible_asset_details =
-        NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
+        NonFungibleAssetDetails::new(faucet_id.prefix(), NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
     let non_fungible_asset =
         Asset::NonFungible(NonFungibleAsset::new(&non_fungible_asset_details).unwrap());
 
@@ -260,7 +268,8 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT;
     let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, ZERO, faucet_id.into()]).unwrap();
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
+            .unwrap();
 
     let code = format!(
         "
@@ -298,7 +307,8 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT + 1;
     let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, ZERO, faucet_id.into()]).unwrap();
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
+            .unwrap();
 
     let code = format!(
         "
@@ -327,7 +337,8 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT - 1;
     let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, ZERO, faucet_id.into()]).unwrap();
+        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
+            .unwrap();
 
     let code = format!(
         "
@@ -366,7 +377,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
     let mut account_vault = tx_context.account().vault().clone();
 
     let non_fungible_asset_details =
-        NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
+        NonFungibleAssetDetails::new(faucet_id.prefix(), NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
     let nonfungible = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
     let non_existent_non_fungible_asset = Asset::NonFungible(nonfungible);
 
@@ -406,7 +417,7 @@ fn test_remove_non_fungible_asset_success() {
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = tx_context.account().vault().clone();
     let non_fungible_asset_details =
-        NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
+        NonFungibleAssetDetails::new(faucet_id.prefix(), NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
     let non_fungible_asset =
         Asset::NonFungible(NonFungibleAsset::new(&non_fungible_asset_details).unwrap());
 

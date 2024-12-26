@@ -114,7 +114,7 @@ end
 #! - note_type is the storage type of the note.
 #! - execution_hint is the note's execution hint.
 #! - RECIPIENT is the recipient of the note.
-#! - note_idx is the index of the crated note.
+#! - note_idx is the index of the created note.
 #!
 #! Invocation: exec
 export.create_note
@@ -190,20 +190,24 @@ end
 #! than 15 elements back. Otherwise exceeding elements will not be provided to the procedure and
 #! will not be returned from it.
 #!
-#! Inputs:  [foreign_account_id, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
+#! Inputs:  [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 #! Outputs: [<values returned from the foreign procedure>]
 #!
 #! Where:
+#! - foreign_account_id_{hi,lo} are the first and second felt of the account ID of the foreign
+#!   account to execute the procedure on.
 #! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the 
 #!   moment of the foreign procedure execution (n = 16 - mem_addr_size - foreign_inputs_len).
 #!
 #! Invocation: exec
 export.execute_foreign_procedure.1
+    # get the start_foreign_context procedure offset
+    push.0 movup.2 movup.2 exec.kernel_proc_offsets::start_foreign_context_offset
+    # => [offset, foreign_account_id_hi, foreign_account_id_lo, 0, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
+
     # pad the stack before the syscall
-    push.0.0 movup.2
-    exec.kernel_proc_offsets::start_foreign_context_offset
     padw swapw padw padw swapdw
-    # => [offset, foreign_account_id, pad(14), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
+    # => [offset, foreign_account_id_hi, foreign_account_id_lo, pad(13), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
     # load the foreign account to the memory
     syscall.exec_kernel_proc

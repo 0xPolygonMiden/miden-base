@@ -18,6 +18,7 @@
 - Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
 - [BREAKING] Added `miden::note::get_script_hash` procedure (#995).
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005).
+- [BREAKING] Extend `AccountId` to two `Felt`s and require block hash in derivation (#982).
 - Removed workers list from the proxy configuration file (#1018).
 - [BREAKING] Moved the duplicate `masm` procedures to the `utils` module (#1002).
 

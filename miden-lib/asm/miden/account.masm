@@ -21,13 +21,24 @@ export.::utils::is_fungible_faucet
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
 export.::utils::is_non_fungible_faucet
 
+#! Returns a boolean indicating whether the given account_ids are equal.
+#!
+#! Inputs:  [acct_id_hi, acct_id_lo, other_acct_id_hi, other_acct_id_lo]
+#! Outputs: [is_id_equal]
+#!
+#! Where:
+#! - acct_id_{hi,lo} are the first and second felt of an account id.
+#! - other_acct_id_{hi,lo} are the first and second felt of the other account id to compare against.
+#! - is_id_equal is a boolean indicating whether the account ids are equal.
+export.::utils::is_id_eq
+
 #! Returns the account id.
 #!
 #! Inputs:  []
-#! Outputs: [acct_id]
+#! Outputs: [acct_id_hi, acct_id_lo]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account id.
 #!
 #! Invocation: exec
 export.get_id
@@ -42,11 +53,11 @@ export.get_id
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [acct_id, pad(15)]
+    # => [acct_id_hi, acct_id_lo, pad(14)]
 
     # clean the stack
-    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
-    # => [acct_id]
+    swapdw dropw dropw swapw dropw movdn.3 movdn.3 drop drop
+    # => [acct_id_hi, acct_id_lo]
 end
 
 #! Returns the account nonce.
@@ -209,7 +220,7 @@ export.set_item
     # pad the stack
     push.0.0 movdn.7 movdn.7 padw padw swapdw 
     # => [offset, index, V', pad(10)]
-    
+
     syscall.exec_kernel_proc
     # => [R', V, pad(8)]
 
@@ -312,11 +323,12 @@ end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Inputs:  [faucet_id]
+#! Inputs:  [faucet_id_hi, faucet_id_lo]
 #! Outputs: [balance]
 #!
 #! Where:
-#! - faucet_id is the faucet id of the fungible asset of interest.
+#! - faucet_id_{hi,lo} are the first and second felt of the faucet id of the fungible asset
+#!   of interest.
 #! - balance is the vault balance of the fungible asset.
 #! 
 #! Panics if:
@@ -325,11 +337,11 @@ end
 #! Invocation: exec
 export.get_balance
     exec.kernel_proc_offsets::account_vault_get_balance_offset
-    # => [offset, faucet_id]
+    # => [offset, faucet_id_hi, faucet_id_lo]
 
     # pad the stack
-    push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
-    # => [offset, faucet_id, pad(14)]
+    push.0 movdn.3 padw swapw padw padw swapdw
+    # => [offset, faucet_id_hi, faucet_id_lo, pad(13)]
 
     syscall.exec_kernel_proc
     # => [balance, pad(15)]

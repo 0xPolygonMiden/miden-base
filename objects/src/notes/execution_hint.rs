@@ -10,6 +10,16 @@ use crate::NoteError;
 ///
 /// This struct can be represented as the combination of a tag, and a payload.
 /// The tag specifies the variant of the hint, and the payload encodes the hint data.
+///
+/// # Felt layout
+///
+/// [`NoteExecutionHint`] can be encoded into a [`Felt`] with the following layout:
+///
+/// ```text
+/// [26 zero bits | payload (32 bits) | tag (6 bits)]
+/// ```
+///
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NoteExecutionHint {
     /// Unspecified note execution hint. Implies it is not known under which conditions the note
@@ -17,8 +27,11 @@ pub enum NoteExecutionHint {
     None,
     /// The note's script can be executed at any time.
     Always,
-    /// The note's script can be executed after the specified block height.
-    AfterBlock { block_num: u32 },
+    /// The note's script can be executed after the specified block number.
+    ///
+    /// The block number cannot be [`u32::MAX`] which is enforced through the [`AfterBlockNumber`]
+    /// type.
+    AfterBlock { block_num: AfterBlockNumber },
     /// The note's script can be executed in the specified slot within the specified epoch.
     ///
     /// The slot is defined as follows:
@@ -62,8 +75,13 @@ impl NoteExecutionHint {
     }
 
     /// Creates a [NoteExecutionHint::AfterBlock] variant based on the given `block_num`
-    pub fn after_block(block_num: u32) -> Self {
-        NoteExecutionHint::AfterBlock { block_num }
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `block_num` is equal to [`u32::MAX`].
+    pub fn after_block(block_num: u32) -> Result<Self, NoteError> {
+        AfterBlockNumber::new(block_num)
+            .map(|block_number| NoteExecutionHint::AfterBlock { block_num: block_number })
     }
 
     /// Creates a [NoteExecutionHint::OnBlockSlot] for the given parameters
@@ -85,7 +103,7 @@ impl NoteExecutionHint {
                 }
                 Ok(NoteExecutionHint::Always)
             },
-            Self::AFTER_BLOCK_TAG => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
+            Self::AFTER_BLOCK_TAG => NoteExecutionHint::after_block(payload),
             Self::ON_BLOCK_SLOT_TAG => {
                 let remainder = (payload >> 24 & 0xff) as u8;
                 if remainder != 0 {
@@ -114,7 +132,7 @@ impl NoteExecutionHint {
             NoteExecutionHint::None => None,
             NoteExecutionHint::Always => Some(true),
             NoteExecutionHint::AfterBlock { block_num: hint_block_num } => {
-                Some(block_num >= *hint_block_num)
+                Some(block_num >= hint_block_num.as_u32())
             },
             NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset } => {
                 let epoch_len_blocks: u32 = 1 << epoch_len;
@@ -132,11 +150,22 @@ impl NoteExecutionHint {
         }
     }
 
+    /// Encodes the [`NoteExecutionHint`] into a 6-bit tag and a 32-bit payload.
+    ///
+    /// # Guarantees
+    ///
+    /// Since the tag has at most 6 bits, the returned byte is guaranteed to have its two most
+    /// significant bits set to `0`.
+    ///
+    /// The payload is guaranteed to contain at least one `0` bit to make encoding it into
+    /// [`NoteMetadata`](crate::notes::NoteMetadata) safely possible.
     pub fn into_parts(&self) -> (u8, u32) {
         match self {
             NoteExecutionHint::None => (Self::NONE_TAG, 0),
             NoteExecutionHint::Always => (Self::ALWAYS_TAG, 0),
-            NoteExecutionHint::AfterBlock { block_num } => (Self::AFTER_BLOCK_TAG, *block_num),
+            NoteExecutionHint::AfterBlock { block_num } => {
+                (Self::AFTER_BLOCK_TAG, block_num.as_u32())
+            },
             NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset } => {
                 let payload: u32 =
                     ((*epoch_len as u32) << 16) | ((*slot_len as u32) << 8) | (*slot_offset as u32);
@@ -146,12 +175,7 @@ impl NoteExecutionHint {
     }
 }
 
-/// As a Felt, the ExecutionHint is encoded as:
-///
-/// - 6 least significant bits: Hint identifier (tag).
-/// - Bits 6 to 38: Hint payload.
-///
-/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
+/// Converts a [`NoteExecutionHint`] into a [`Felt`] with the layout documented on the type.
 impl From<NoteExecutionHint> for Felt {
     fn from(value: NoteExecutionHint) -> Self {
         let int_representation: u64 = value.into();
@@ -159,12 +183,10 @@ impl From<NoteExecutionHint> for Felt {
     }
 }
 
-/// As a u64, the ExecutionHint is encoded as:
+/// Tries to convert a `u64` into a [`NoteExecutionHint`] with the expected layout documented on the
+/// type.
 ///
-/// - 6 least significant bits: Hint identifier (tag).
-/// - Bits 6 to 38: Hint payload.
-///
-/// This way, hints such as [NoteExecutionHint::Always], are represented by `1u64`
+/// Note: The upper 26 bits are not enforced to be zero.
 impl TryFrom<u64> for NoteExecutionHint {
     type Error = NoteError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
@@ -175,10 +197,55 @@ impl TryFrom<u64> for NoteExecutionHint {
     }
 }
 
+/// Converts a [`NoteExecutionHint`] into a `u64` with the layout documented on the type.
 impl From<NoteExecutionHint> for u64 {
     fn from(value: NoteExecutionHint) -> Self {
         let (tag, payload) = value.into_parts();
         (payload as u64) << 6 | (tag as u64)
+    }
+}
+
+// AFTER BLOCK NUMBER
+// ================================================================================================
+
+/// A wrapper around a block number which enforces that it is not `u32::MAX`.
+///
+/// Used for the [`NoteExecutionHint::AfterBlock`] variant where this constraint is needed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AfterBlockNumber(u32);
+
+impl AfterBlockNumber {
+    /// Creates a new [`AfterBlockNumber`] from the given `block_number`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - `block_number` is equal to `u32::MAX`.
+    pub fn new(block_number: u32) -> Result<Self, NoteError> {
+        if block_number == u32::MAX {
+            Err(NoteError::NoteExecutionHintAfterBlockCannotBeU32Max)
+        } else {
+            Ok(Self(block_number))
+        }
+    }
+
+    /// Returns the block number as a `u32`.
+    pub fn as_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+impl From<AfterBlockNumber> for u32 {
+    fn from(block_number: AfterBlockNumber) -> Self {
+        block_number.0
+    }
+}
+
+impl TryFrom<u32> for AfterBlockNumber {
+    type Error = NoteError;
+
+    fn try_from(block_number: u32) -> Result<Self, Self::Error> {
+        Self::new(block_number)
     }
 }
 
@@ -187,6 +254,8 @@ impl From<NoteExecutionHint> for u64 {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+
     use super::*;
 
     fn assert_hint_serde(note_execution_hint: NoteExecutionHint) {
@@ -199,7 +268,7 @@ mod tests {
     fn test_serialization_round_trip() {
         assert_hint_serde(NoteExecutionHint::None);
         assert_hint_serde(NoteExecutionHint::Always);
-        assert_hint_serde(NoteExecutionHint::AfterBlock { block_num: 15 });
+        assert_hint_serde(NoteExecutionHint::after_block(15).unwrap());
         assert_hint_serde(NoteExecutionHint::OnBlockSlot {
             epoch_len: 9,
             slot_len: 12,
@@ -209,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_encode_round_trip() {
-        let hint = NoteExecutionHint::AfterBlock { block_num: 15 };
+        let hint = NoteExecutionHint::after_block(15).unwrap();
         let hint_int: u64 = hint.into();
         let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
         assert_eq!(hint, decoded_hint);
@@ -235,7 +304,7 @@ mod tests {
         let always = NoteExecutionHint::always();
         assert!(always.can_be_consumed(100).unwrap());
 
-        let after_block = NoteExecutionHint::after_block(12345);
+        let after_block = NoteExecutionHint::after_block(12345).unwrap();
         assert!(!after_block.can_be_consumed(12344).unwrap());
         assert!(after_block.can_be_consumed(12345).unwrap());
 
@@ -260,5 +329,13 @@ mod tests {
         NoteExecutionHint::from_parts(NoteExecutionHint::ON_BLOCK_SLOT_TAG, 0).unwrap();
 
         NoteExecutionHint::from_parts(10, 1).unwrap_err();
+    }
+
+    #[test]
+    fn test_after_block_fails_on_u32_max() {
+        assert_matches!(
+            NoteExecutionHint::after_block(u32::MAX).unwrap_err(),
+            NoteError::NoteExecutionHintAfterBlockCannotBeU32Max
+        );
     }
 }
