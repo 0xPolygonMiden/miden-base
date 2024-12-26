@@ -9,9 +9,9 @@ use std::{
 };
 
 use super::{
-    account_id::compute_digest, AccountError, AccountId, AccountStorageMode, AccountType, Digest,
-    Felt, Word,
+    account_id::compute_digest, AccountError, AccountStorageMode, AccountType, Digest, Felt, Word,
 };
+use crate::accounts::account_id::{validate_first_felt, AccountIdVersion};
 
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
@@ -19,12 +19,14 @@ use super::{
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
 /// using the provided initial seed as a starting point. Using multi-threading.
 #[cfg(feature = "concurrent")]
-pub fn get_account_seed(
+pub fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
+    anchor_block_hash: Digest,
 ) -> Result<Word, AccountError> {
     let thread_count = thread::available_parallelism().map_or(1, |v| v.get());
 
@@ -37,14 +39,16 @@ pub fn get_account_seed(
         let mut init_seed = init_seed;
         init_seed[0] = init_seed[0].wrapping_add(count as u8);
         spawn(move || {
-            get_account_seed_inner(
+            compute_account_seed_inner(
                 send,
                 stop,
                 init_seed,
                 account_type,
                 storage_mode,
+                version,
                 code_commitment,
                 storage_commitment,
+                anchor_block_hash,
             )
         });
     }
@@ -57,8 +61,7 @@ pub fn get_account_seed(
 
     #[cfg(feature = "log")]
     ::log::info!(
-        "Using account seed [pow={}, digest={}, seed={}]",
-        super::account_id::digest_pow(digest),
+        "Using account seed [digest={}, seed={}]",
         log::digest_hex(digest),
         log::word_hex(seed),
     );
@@ -67,14 +70,17 @@ pub fn get_account_seed(
 }
 
 #[cfg(feature = "concurrent")]
-pub fn get_account_seed_inner(
+#[allow(clippy::too_many_arguments)]
+fn compute_account_seed_inner(
     send: Sender<(Digest, Word)>,
     stop: Arc<RwLock<bool>>,
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
+    anchor_block_hash: Digest,
 ) {
     let init_seed: Vec<[u8; 8]> =
         init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
@@ -84,7 +90,8 @@ pub fn get_account_seed_inner(
         Felt::new(u64::from_le_bytes(init_seed[2])),
         Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
-    let mut current_digest = compute_digest(current_seed, code_commitment, storage_commitment);
+    let mut current_digest =
+        compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
 
     #[cfg(feature = "log")]
     let mut log = log::Log::start(current_digest, current_seed, account_type, storage_mode);
@@ -101,50 +108,60 @@ pub fn get_account_seed_inner(
             return;
         }
 
-        // check if the seed satisfies the specified account type
-        if AccountId::validate_seed_digest(&current_digest).is_ok() {
-            if let Ok(account_id) = AccountId::try_from(current_digest[0]) {
-                if account_id.account_type() == account_type
-                    && account_id.storage_mode() == storage_mode
-                {
-                    #[cfg(feature = "log")]
-                    log.done(current_digest, current_seed, account_id);
+        let first_felt = current_digest.as_elements()[0];
+        if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
+            validate_first_felt(first_felt)
+        {
+            if computed_account_type == account_type
+                && computed_storage_mode == storage_mode
+                && computed_version == version
+            {
+                #[cfg(feature = "log")]
+                log.done(current_digest, current_seed);
 
-                    let _ = send.send((current_digest, current_seed));
-                    return;
-                };
-            }
+                let _ = send.send((current_digest, current_seed));
+                return;
+            };
         }
+
         current_seed = current_digest.into();
-        current_digest = compute_digest(current_seed, code_commitment, storage_commitment);
+        current_digest =
+            compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
     }
 }
 
 #[cfg(not(feature = "concurrent"))]
-pub fn get_account_seed(
+pub fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
+    anchor_block_hash: Digest,
 ) -> Result<Word, AccountError> {
-    get_account_seed_single(
+    compute_account_seed_single(
         init_seed,
         account_type,
         storage_mode,
+        version,
         code_commitment,
         storage_commitment,
+        anchor_block_hash,
     )
 }
 
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
 /// using the provided initial seed as a starting point. Using a single thread.
-pub fn get_account_seed_single(
+#[cfg(not(feature = "concurrent"))]
+pub fn compute_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
+    version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
+    anchor_block_hash: Digest,
 ) -> Result<Word, AccountError> {
     let init_seed: Vec<[u8; 8]> =
         init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
@@ -154,7 +171,8 @@ pub fn get_account_seed_single(
         Felt::new(u64::from_le_bytes(init_seed[2])),
         Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
-    let mut current_digest = compute_digest(current_seed, code_commitment, storage_commitment);
+    let mut current_digest =
+        compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
 
     #[cfg(feature = "log")]
     let mut log = log::Log::start(current_digest, current_seed, account_type, storage_mode);
@@ -165,20 +183,24 @@ pub fn get_account_seed_single(
         log.iteration(current_digest, current_seed);
 
         // check if the seed satisfies the specified account type
-        if AccountId::validate_seed_digest(&current_digest).is_ok() {
-            if let Ok(account_id) = AccountId::try_from(current_digest[0]) {
-                if account_id.account_type() == account_type
-                    && account_id.storage_mode() == storage_mode
-                {
-                    #[cfg(feature = "log")]
-                    log.done(current_digest, current_seed, account_id);
+        let first_felt = current_digest.as_elements()[0];
+        if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
+            validate_first_felt(first_felt)
+        {
+            if computed_account_type == account_type
+                && computed_storage_mode == storage_mode
+                && computed_version == version
+            {
+                #[cfg(feature = "log")]
+                log.done(current_digest, current_seed);
 
-                    return Ok(current_seed);
-                };
-            }
+                return Ok(current_seed);
+            };
         }
+
         current_seed = current_digest.into();
-        current_digest = compute_digest(current_seed, code_commitment, storage_commitment);
+        current_digest =
+            compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
     }
 }
 
@@ -190,8 +212,8 @@ mod log {
     use miden_crypto::FieldElement;
 
     use super::{
-        super::{account_id::digest_pow, Digest, Word},
-        AccountId, AccountType,
+        super::{Digest, Word},
+        AccountType,
     };
     use crate::accounts::AccountStorageMode;
 
@@ -221,8 +243,7 @@ mod log {
             storage_mode: AccountStorageMode,
         ) -> Self {
             log::info!(
-                "Generating new account seed [pow={}, digest={}, seed={} type={:?} onchain={:?}]",
-                digest_pow(digest),
+                "Generating new account seed [digest={}, seed={} type={:?} onchain={:?}]",
                 digest_hex(digest),
                 word_hex(seed),
                 account_type,
@@ -235,12 +256,8 @@ mod log {
         pub fn iteration(&mut self, digest: Digest, seed: Word) {
             self.count += 1;
 
-            let pow = digest_pow(digest);
-            if pow >= self.pow {
-                self.digest = digest;
-                self.seed = seed;
-                self.pow = pow;
-            }
+            self.digest = digest;
+            self.seed = seed;
 
             if self.count % 500_000 == 0 {
                 log::debug!(
@@ -253,14 +270,12 @@ mod log {
             }
         }
 
-        pub fn done(self, digest: Digest, seed: Word, account_id: AccountId) {
+        pub fn done(self, digest: Digest, seed: Word) {
             log::info!(
-                "Found account seed [pow={}, current_digest={}, current_seed={} type={:?} onchain={}]]",
-                digest_pow(digest),
+                "Found account seed [current_digest={}, current_seed={}, count={}]]",
                 digest_hex(digest),
                 word_hex(seed),
-                account_id.account_type(),
-                account_id.is_public(),
+                self.count,
             );
         }
     }

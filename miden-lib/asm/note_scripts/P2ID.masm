@@ -5,7 +5,7 @@ use.miden::contracts::wallets::basic->wallet
 # ERRORS
 # =================================================================================================
 
-# P2ID script expects exactly 1 note input
+# P2ID script expects exactly 2 note inputs
 const.ERR_P2ID_WRONG_NUMBER_OF_INPUTS=0x00020050
 
 # P2ID's target account address and transaction address do not match
@@ -86,19 +86,19 @@ begin
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
 
-    # make sure the number of inputs is 1
-    eq.1 assert.err=ERR_P2ID_WRONG_NUMBER_OF_INPUTS
+    # make sure the number of inputs is 2
+    eq.2 assert.err=ERR_P2ID_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
     # read the target account id from the note inputs
-    mem_load
-    # => [target_account_id]
+    padw movup.4 mem_loadw drop drop
+    # => [target_account_id_hi, target_account_id_lo]
 
     exec.account::get_id
-    # => [account_id, target_account_id]
+    # => [account_id_hi, account_id_lo, target_account_id_hi, target_account_id_lo, ...]
 
     # ensure account_id = target_account_id, fails otherwise
-    assert_eq.err=ERR_P2ID_TARGET_ACCT_MISMATCH
+    exec.account::is_id_eq assert.err=ERR_P2ID_TARGET_ACCT_MISMATCH
     # => []
 
     exec.add_note_assets_to_account

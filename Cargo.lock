@@ -119,7 +119,10 @@ dependencies = [
 name = "anyhow"
 version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
+checksum = "4c95c10ba0b00a02636238b814946408b1322d5ac4760326e6fb8ec956d85775"
+dependencies = [
+ "backtrace",
+]
 
 [[package]]
 name = "arc-swap"
@@ -1124,6 +1127,12 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
+
+[[package]]
+name = "hermit-abi"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbf6a919d6cf397374f7dfeeea91d974c7c0a7221d0d0f4f20d859d329e53fcc"
@@ -1473,6 +1482,12 @@ name = "inlinable_string"
 version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8fae54786f62fb2918dcfae3d568594e50eb9b5c25bf04371af6fe7516452fb"
+
+[[package]]
+name = "integer-encoding"
+version = "3.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bb03732005da905c88227371639bf1ad885cc712789c011c31c5fb3ab3ccf02"
 
 [[package]]
 name = "ipnet"
@@ -1905,6 +1920,7 @@ dependencies = [
 name = "miden-objects"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "assert_matches",
  "criterion",
  "getrandom",
@@ -1983,6 +1999,7 @@ dependencies = [
 name = "miden-tx"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "assert_matches",
  "async-trait",
  "miden-assembly",
@@ -2004,6 +2021,7 @@ version = "0.7.0"
 dependencies = [
  "async-trait",
  "axum",
+ "bytes",
  "clap 4.5.23",
  "figment",
  "getrandom",
@@ -2012,6 +2030,11 @@ dependencies = [
  "miden-tx",
  "miette",
  "once_cell",
+ "opentelemetry 0.27.1",
+ "opentelemetry-jaeger",
+ "opentelemetry-otlp",
+ "opentelemetry-semantic-conventions 0.27.0",
+ "opentelemetry_sdk 0.27.1",
  "pingora",
  "pingora-core",
  "pingora-limits",
@@ -2031,6 +2054,7 @@ dependencies = [
  "tonic-web",
  "tonic-web-wasm-client",
  "tracing",
+ "tracing-opentelemetry",
  "tracing-subscriber",
  "uuid",
  "winter-maybe-async",
@@ -2242,6 +2266,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "num_cpus"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
+dependencies = [
+ "hermit-abi 0.3.9",
+ "libc",
+]
+
+[[package]]
 name = "object"
 version = "0.36.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2304,6 +2338,150 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "opentelemetry"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b69a91d4893e713e06f724597ad630f1fa76057a5e1026c0ca67054a9032a76"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "js-sys",
+ "once_cell",
+ "pin-project-lite",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "opentelemetry"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab70038c28ed37b97d8ed414b6429d343a8bbf44c9f79ec854f3a643029ba6d7"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "js-sys",
+ "pin-project-lite",
+ "thiserror 1.0.69",
+ "tracing",
+]
+
+[[package]]
+name = "opentelemetry-jaeger"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "501b471b67b746d9a07d4c29f8be00f952d1a2eca356922ede0098cbaddff19f"
+dependencies = [
+ "async-trait",
+ "futures-core",
+ "futures-util",
+ "opentelemetry 0.23.0",
+ "opentelemetry-semantic-conventions 0.15.0",
+ "opentelemetry_sdk 0.23.0",
+ "thrift",
+]
+
+[[package]]
+name = "opentelemetry-otlp"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91cf61a1868dacc576bf2b2a1c3e9ab150af7272909e80085c3173384fe11f76"
+dependencies = [
+ "async-trait",
+ "futures-core",
+ "http 1.1.0",
+ "opentelemetry 0.27.1",
+ "opentelemetry-proto",
+ "opentelemetry_sdk 0.27.1",
+ "prost",
+ "thiserror 1.0.69",
+ "tokio",
+ "tonic",
+ "tracing",
+]
+
+[[package]]
+name = "opentelemetry-proto"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6e05acbfada5ec79023c85368af14abd0b307c015e9064d249b2a950ef459a6"
+dependencies = [
+ "opentelemetry 0.27.1",
+ "opentelemetry_sdk 0.27.1",
+ "prost",
+ "tonic",
+]
+
+[[package]]
+name = "opentelemetry-semantic-conventions"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1869fb4bb9b35c5ba8a1e40c9b128a7b4c010d07091e864a29da19e4fe2ca4d7"
+
+[[package]]
+name = "opentelemetry-semantic-conventions"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc1b6902ff63b32ef6c489e8048c5e253e2e4a803ea3ea7e783914536eb15c52"
+
+[[package]]
+name = "opentelemetry_sdk"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae312d58eaa90a82d2e627fd86e075cf5230b3f11794e2ed74199ebbe572d4fd"
+dependencies = [
+ "async-trait",
+ "futures-channel",
+ "futures-executor",
+ "futures-util",
+ "lazy_static",
+ "once_cell",
+ "opentelemetry 0.23.0",
+ "ordered-float 4.5.0",
+ "percent-encoding",
+ "rand",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "opentelemetry_sdk"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "231e9d6ceef9b0b2546ddf52335785ce41252bc7474ee8ba05bfad277be13ab8"
+dependencies = [
+ "async-trait",
+ "futures-channel",
+ "futures-executor",
+ "futures-util",
+ "glob",
+ "opentelemetry 0.27.1",
+ "percent-encoding",
+ "rand",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+]
+
+[[package]]
+name = "ordered-float"
+version = "2.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68f19d67e5a2795c94e73e0bb1cc1a7edeb2e28efd39e2e1c9b7a40c1108b11c"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "ordered-float"
+version = "4.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c65ee1f9701bf938026630b455d5315f490640234259037edb259798b3bcf85e"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -3721,6 +3899,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "threadpool"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d050e60b33d41c19108b32cea32164033a9013fe3b46cbd4457559bfbf77afaa"
+dependencies = [
+ "num_cpus",
+]
+
+[[package]]
+name = "thrift"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e54bc85fc7faa8bc175c4bab5b92ba8d9a3ce893d0e9f42cc455c8ab16a9e09"
+dependencies = [
+ "byteorder",
+ "integer-encoding",
+ "log",
+ "ordered-float 2.10.1",
+ "threadpool",
+]
+
+[[package]]
 name = "thrift_codec"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4080,6 +4280,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-opentelemetry"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97a971f6058498b5c0f1affa23e7ea202057a7301dbff68e968b2d578bcbd053"
+dependencies = [
+ "js-sys",
+ "once_cell",
+ "opentelemetry 0.27.1",
+ "opentelemetry_sdk 0.27.1",
+ "smallvec",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber",
+ "web-time",
+]
+
+[[package]]
 name = "tracing-serde"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4398,6 +4616,16 @@ name = "web-sys"
 version = "0.3.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04dd7223427d52553d3702c004d3b2fe07c148165faa56313cb00211e31c12bc"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "web-time"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",

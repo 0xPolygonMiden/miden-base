@@ -1,6 +1,7 @@
 use miden_objects::{
     accounts::{
-        Account, AccountBuilder, AccountComponent, AccountStorageMode, AccountType, StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode,
+        AccountType, StorageSlot,
     },
     assets::TokenSymbol,
     AccountError, Felt, FieldElement, Word,
@@ -90,6 +91,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
 /// - Slot 2: Token metadata of the faucet.
 pub fn create_basic_fungible_faucet(
     init_seed: [u8; 32],
+    id_anchor: AccountIdAnchor,
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
@@ -104,6 +106,7 @@ pub fn create_basic_fungible_faucet(
 
     let (account, account_seed) = AccountBuilder::new()
         .init_seed(init_seed)
+        .anchor(id_anchor)
         .account_type(AccountType::FungibleFaucet)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
@@ -118,7 +121,7 @@ pub fn create_basic_fungible_faucet(
 
 #[cfg(test)]
 mod tests {
-    use miden_objects::{crypto::dsa::rpo_falcon512, FieldElement, ONE};
+    use miden_objects::{crypto::dsa::rpo_falcon512, digest, BlockHeader, FieldElement, ONE};
     use vm_processor::Word;
 
     use super::{create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol};
@@ -140,8 +143,17 @@ mod tests {
         let decimals = 2u8;
         let storage_mode = AccountStorageMode::Private;
 
+        let anchor_block_header_mock = BlockHeader::mock(
+            0,
+            Some(digest!("0xaa")),
+            Some(digest!("0xbb")),
+            &[],
+            digest!("0xcc"),
+        );
+
         let (faucet_account, _) = create_basic_fungible_faucet(
             init_seed,
+            (&anchor_block_header_mock).try_into().unwrap(),
             token_symbol,
             decimals,
             max_supply,

@@ -144,10 +144,10 @@ end
 #! Returns the sender of the note currently being processed.
 #!
 #! Inputs:  []
-#! Outputs: [sender]
+#! Outputs: [sender_hi, sender_lo]
 #!
 #! Where:
-#! - sender is the sender of the note currently being processed.
+#! - sender_{hi,lo} are the first and second felt of the sender of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is being processed.
@@ -165,8 +165,8 @@ export.get_sender
     # => [sender, pad(15)]
 
     # clean the stack
-    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
-    # => [sender]
+    swapdw dropw dropw swapw dropw movdn.3 movdn.3 drop drop
+    # => [sender_hi, sender_lo]
 end
 
 #! Returns the serial number of the note currently being processed.
@@ -218,7 +218,7 @@ end
 #! Invocation: exec
 export.compute_inputs_hash
     # check that number of inputs is less than 128
-    dup.1 push.128 u32assert2 u32lte assert
+    dup.1 push.128 u32assert2 u32lte assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
 
     # compute the hash
     exec.rpo::hash_memory

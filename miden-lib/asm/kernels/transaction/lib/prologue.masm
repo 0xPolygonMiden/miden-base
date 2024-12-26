@@ -58,17 +58,21 @@ const.ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT=0x00020040
 # Note commitment computed from the input note data does not match given note commitment
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x00020041
 
+# New account must have a zero nonce
+const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x0002005B
+
 # PUBLIC INPUTS
 # =================================================================================================
 
 #! Saves global inputs to memory.
 #!
-#! Inputs:  [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Inputs:  [BLOCK_HASH, account_id_hi, account_id_lo, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
 #! Outputs: []
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - acct_id is the account id of the account that the transaction is being executed against.
+#! - account_id_{hi,lo} are the first and second felt of the account id of the account that the
+#!   transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT is the see `transaction::api::get_input_notes_commitment`.
@@ -317,7 +321,7 @@ proc.validate_new_account
     # => []
 
     # Assert the account nonce is 0
-    exec.memory::get_acct_nonce eq.0 assert
+    exec.memory::get_acct_nonce eq.0 assert.err=ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO
     # => []
 
     # Assert the initial vault is empty
@@ -336,14 +340,14 @@ proc.validate_new_account
     # Assert faucet reserved slot is correctly initialized
     # ---------------------------------------------------------------------------------------------
     # check if the account is a faucet
-    exec.account::get_id dup exec.account::is_faucet
-    # => [is_faucet, acct_id]
+    exec.account::get_id swap drop dup exec.account::is_faucet
+    # => [is_faucet, acct_id_hi]
 
     # process conditional logic depending on whether the account is a faucet
     if.true
         # get the faucet reserved slot
         exec.account::get_faucet_storage_data_slot exec.account::get_item
-        # => [FAUCET_RESERVED_SLOT, acct_id]
+        # => [FAUCET_RESERVED_SLOT, acct_id_hi]
 
         # check if the account is a fungible faucet
         movup.4 exec.account::is_fungible_faucet
@@ -382,7 +386,7 @@ proc.validate_new_account
             # => []
         end
     else
-        # drop the account id
+        # drop the hi part of the ID
         drop
         # => []
     end
@@ -425,9 +429,9 @@ end
 #! Inputs:
 #!   Operand stack: []
 #!   Advice stack: [
-#!     account_id, 0, 0, account_nonce, 
-#!     ACCOUNT_VAULT_ROOT, 
-#!     ACCOUNT_STORAGE_COMMITMENT, 
+#!     account_id_lo, account_id_hi, 0, account_nonce,
+#!     ACCOUNT_VAULT_ROOT,
+#!     ACCOUNT_STORAGE_COMMITMENT,
 #!     ACCOUNT_CODE_COMMITMENT
 #!   ]
 #! Outputs:
@@ -435,7 +439,8 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - account_id is the account that the transaction is being executed against.
+#! - account_id_{hi,lo} are the first and second felt of the ID of the account that the transaction
+#!   is being executed against.
 #! - account_nonce is the account's nonce.
 #! - ACCOUNT_VAULT_ROOT is the account's vault root.
 #! - ACCOUNT_STORAGE_COMMITMENT is the account's storage commitment.
@@ -464,7 +469,7 @@ proc.process_account_data
     # assert the account id matches the account id in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
-    assert_eq.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
+    exec.account::is_id_eq assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
     # => [ACCT_HASH]
 
     # store a copy of the initial nonce in global inputs
@@ -666,7 +671,7 @@ proc.process_note_args_and_metadata
     # => [NOTE_METADATA]
 end
 
-#! Copies the note's assets the advice stack to memory and verifies the commitment.
+#! Copies the note's assets from the advice stack to memory and verifies the commitment.
 #!
 #! Inputs:
 #!   Operand stack: [note_ptr]
@@ -806,7 +811,7 @@ end
 #!
 #! Where:
 #! - note_ptr is the memory location for the input note.
-#! - NOTE_ID is the the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
+#! - NOTE_ID is the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
 proc.compute_input_note_id
     # compute SERIAL_HASH: hash(SERIAL_NUMBER || EMPTY_WORD)
     dup exec.memory::get_input_note_serial_num padw hmerge
@@ -869,8 +874,8 @@ end
 #! - is_authenticated is the boolean indicating if the note contains an authentication proof.
 #! - optional values, required if `is_authenticated` is true:
 #!   - block_num is the note's creation block number.
-#!   - BLOCK_SUB_HASH is the the block's sub_hash for which the note was created.
-#!   - NOTE_ROOT is the the merkle root of the note's tree.
+#!   - BLOCK_SUB_HASH is the block's sub_hash for which the note was created.
+#!   - NOTE_ROOT is the merkle root of the note's tree.
 proc.process_input_note
     # note details
     # ---------------------------------------------------------------------------------------------
@@ -1058,7 +1063,7 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - TX_SCRIPT_ROOT is the the transaction's script root.
+#! - TX_SCRIPT_ROOT is the transaction's script root.
 proc.process_tx_script_root
     # read the transaction script root from the advice stack
     adv_loadw
@@ -1081,7 +1086,7 @@ end
 #! Inputs:
 #!   Operand stack: [
 #!     BLOCK_HASH,
-#!     account_id,
+#!     account_id_hi, account_id_lo,
 #!     INITIAL_ACCOUNT_HASH,
 #!     INPUT_NOTES_COMMITMENT,
 #!   ]
@@ -1096,7 +1101,7 @@ end
 #!     [block_num, version, timestamp, 0],
 #!     NOTE_ROOT,
 #!     kernel_version
-#!     [account_id, 0, 0, account_nonce],
+#!     [account_id_lo, account_id_hi, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_COMMITMENT,
 #!     ACCOUNT_CODE_COMMITMENT,
@@ -1117,7 +1122,8 @@ end
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - account_id is the account that the transaction is being executed against.
+#! - account_id_{hi,lo} are the first and second felt of the account that the transaction is being
+#!   executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.

@@ -504,13 +504,11 @@ pub enum NonFungibleDeltaAction {
 mod tests {
     use super::{AccountVaultDelta, Deserializable, Serializable};
     use crate::{
-        accounts::{
-            account_id::testing::{
-                ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            },
-            AccountId,
-        },
+        accounts::{AccountId, AccountIdPrefix},
         assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        testing::account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
     };
 
     #[test]
@@ -588,11 +586,11 @@ mod tests {
         /// Creates an [AccountVaultDelta] with an optional [NonFungibleAsset] delta. This delta
         /// will be added if `Some(true)`, removed for `Some(false)` and missing for `None`.
         fn create_delta_with_non_fungible(
-            account_id: AccountId,
+            account_id_prefix: AccountIdPrefix,
             added: Option<bool>,
         ) -> AccountVaultDelta {
             let asset: Asset = NonFungibleAsset::new(
-                &NonFungibleAssetDetails::new(account_id, vec![1, 2, 3]).unwrap(),
+                &NonFungibleAssetDetails::new(account_id_prefix, vec![1, 2, 3]).unwrap(),
             )
             .unwrap()
             .into();
@@ -604,7 +602,7 @@ mod tests {
             }
         }
 
-        let account_id = NonFungibleAsset::mock_issuer();
+        let account_id = NonFungibleAsset::mock_issuer().prefix();
 
         let mut delta_x = create_delta_with_non_fungible(account_id, x);
         let delta_y = create_delta_with_non_fungible(account_id, y);

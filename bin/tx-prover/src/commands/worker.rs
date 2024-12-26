@@ -3,9 +3,9 @@ use miden_tx_prover::generated::api_server::ApiServer;
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic_health::server::health_reporter;
-use tracing::info;
+use tracing::{info, instrument};
 
-use crate::api::RpcListener;
+use crate::{api::RpcListener, utils::MIDEN_TX_PROVER};
 
 /// Starts a worker.
 #[derive(Debug, Parser)]
@@ -28,6 +28,7 @@ impl StartWorker {
     /// The worker includes a health reporter that will mark the service as serving, following the
     /// [gRPC health checking protocol](
     /// https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto).
+    #[instrument(target = MIDEN_TX_PROVER, name = "worker:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let worker_addr = format!("{}:{}", self.host, self.port);
         let rpc =

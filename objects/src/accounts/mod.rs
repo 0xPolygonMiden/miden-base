@@ -5,10 +5,13 @@ use crate::{
 };
 
 pub mod account_id;
-pub use account_id::{
-    AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
-    ACCOUNT_TYPE_MASK_SHIFT,
-};
+pub use account_id::{AccountId, AccountIdVersion, AccountStorageMode, AccountType};
+
+mod account_id_anchor;
+pub use account_id_anchor::AccountIdAnchor;
+
+mod account_id_prefix;
+pub use account_id_prefix::AccountIdPrefix;
 
 pub mod auth;
 
@@ -34,7 +37,7 @@ pub use delta::{
 pub mod package;
 
 mod seed;
-pub use seed::{get_account_seed, get_account_seed_single};
+pub use seed::compute_account_seed;
 
 mod storage;
 pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
@@ -63,6 +66,9 @@ pub use data::AccountData;
 /// Out of the above components account ID is always immutable (once defined it can never be
 /// changed). Other components may be mutated throughout the lifetime of the account. However,
 /// account state can be changed only by invoking one of account interface methods.
+///
+/// The recommended way to build an account is through an [`AccountBuilder`], which can be
+/// instantiated through [`Account::builder`]. See the type's documentation for details.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
     id: AccountId,
@@ -75,24 +81,6 @@ pub struct Account {
 impl Account {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-
-    /// Creates and returns a new [Account] instantiated with the specified code, storage, and
-    /// account seed.
-    ///
-    /// The returned account has an empty asset vault and the nonce which is initialized to ZERO.
-    ///
-    /// # Errors
-    /// Returns an error if deriving account ID from the specified seed fails.
-    pub fn new(
-        seed: Word,
-        code: AccountCode,
-        storage: AccountStorage,
-    ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
-        let vault = AssetVault::default();
-        let nonce = ZERO;
-        Ok(Self { id, vault, storage, code, nonce })
-    }
 
     /// Returns an [Account] instantiated with the provided components.
     pub fn from_parts(
@@ -367,7 +355,8 @@ pub fn hash_account(
     code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
-    elements[0] = id.into();
+    elements[0] = id.second_felt();
+    elements[1] = id.first_felt();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_commitment);
@@ -407,15 +396,18 @@ mod tests {
     use vm_processor::Digest;
 
     use super::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, AccountCode,
-        AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountVaultDelta,
+        AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
+        AccountVaultDelta,
     };
     use crate::{
         accounts::{
             Account, AccountComponent, AccountType, StorageMap, StorageMapDelta, StorageSlot,
         },
         assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
-        testing::storage::AccountStorageDeltaBuilder,
+        testing::{
+            account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            storage::AccountStorageDeltaBuilder,
+        },
         AccountError,
     };
 
