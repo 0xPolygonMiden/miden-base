@@ -4,6 +4,7 @@
 
 ### Changes
 
+- Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 - Added tracing to the `miden-tx-prover` CLI (#1014).
 - Added health check endpoints to the prover service (#1006).
 - Implemented serialization for `AccountHeader` (#996).
