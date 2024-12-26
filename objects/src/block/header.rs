@@ -43,6 +43,13 @@ pub struct BlockHeader {
 }
 
 impl BlockHeader {
+    /// The length of an epoch expressed as a power of two. `2^(EPOCH_LENGTH_EXPONENT)` is the
+    /// number of blocks in an epoch.
+    ///
+    /// The epoch of a block can be obtained by shifting the block number to the right by this
+    /// exponent.
+    pub const EPOCH_LENGTH_EXPONENT: u8 = 16;
+
     /// Creates a new block header.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -126,6 +133,13 @@ impl BlockHeader {
         self.block_num
     }
 
+    /// Returns the epoch to which this block belongs.
+    ///
+    /// This is the block number shifted right by [`Self::EPOCH_LENGTH_EXPONENT`].
+    pub fn block_epoch(&self) -> u16 {
+        block_epoch_from_number(self.block_num)
+    }
+
     /// Returns the chain root.
     pub fn chain_root(&self) -> Digest {
         self.chain_root
@@ -207,6 +221,9 @@ impl BlockHeader {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
 impl Serializable for BlockHeader {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.version.write_into(target);
@@ -251,6 +268,19 @@ impl Deserializable for BlockHeader {
             timestamp,
         ))
     }
+}
+
+// UTILITIES
+// ================================================================================================
+
+/// Returns the block number of the epoch block for the given `epoch`.
+pub const fn block_num_from_epoch(epoch: u16) -> u32 {
+    (epoch as u32) << BlockHeader::EPOCH_LENGTH_EXPONENT
+}
+
+/// Returns the epoch of the given block number.
+pub const fn block_epoch_from_number(block_number: u32) -> u16 {
+    (block_number >> BlockHeader::EPOCH_LENGTH_EXPONENT) as u16
 }
 
 #[cfg(test)]
