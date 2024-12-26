@@ -187,7 +187,7 @@ impl BlockHeader {
     }
 
     /// Returns the block number of the epoch block to which this block belongs.
-    pub fn get_epoch_block_num(&self) -> u32 {
+    pub fn epoch_block_num(&self) -> u32 {
         block_num_from_epoch(self.block_epoch())
     }
 
