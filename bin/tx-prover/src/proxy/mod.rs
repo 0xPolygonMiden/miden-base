@@ -2,6 +2,7 @@ use std::{collections::VecDeque, future::Future, pin::Pin, sync::Arc, time::Dura
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use miden_tx_prover::error::TxProverProxyError;
 use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
@@ -36,7 +37,7 @@ mod worker;
 /// Localhost address
 const LOCALHOST_ADDR: &str = "127.0.0.1";
 
-// LOAD BALANCER
+// LOAD BALANCER STATE
 // ================================================================================================
 
 /// Load balancer that uses a round robin strategy
@@ -58,7 +59,7 @@ impl LoadBalancerState {
     pub async fn new(
         initial_workers: Vec<Backend>,
         config: &ProxyConfig,
-    ) -> core::result::Result<Self, String> {
+    ) -> core::result::Result<Self, TxProverProxyError> {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
 
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
@@ -120,7 +121,7 @@ impl LoadBalancerState {
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
-    ) -> std::result::Result<(), String> {
+    ) -> std::result::Result<(), TxProverProxyError> {
         let mut workers = self.workers.write().await;
         info!("Current workers: {:?}", workers);
 
@@ -129,7 +130,7 @@ impl LoadBalancerState {
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<Vec<Backend>, _>>()
-            .map_err(|err| format!("Failed to create backend: {}", err))?;
+            .map_err(TxProverProxyError::BackendCreationFailed)?;
 
         let mut native_workers = Vec::new();
 
@@ -326,7 +327,7 @@ impl RequestContext {
     }
 }
 
-// LOAD BALANCER WRAPPER
+// LOAD BALANCER
 // ================================================================================================
 
 /// Wrapper around the load balancer that implements the ProxyHttp trait

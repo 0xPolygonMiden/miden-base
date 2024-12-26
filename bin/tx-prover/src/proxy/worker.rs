@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use miden_tx_prover::error::TxProverProxyError;
 use pingora::lb::Backend;
 use tonic::transport::Channel;
 use tonic_health::pb::{
@@ -28,7 +29,7 @@ impl Worker {
         worker: Backend,
         connection_timeout: Duration,
         total_timeout: Duration,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, TxProverProxyError> {
         let health_check_client =
             create_health_check_client(worker.addr.to_string(), connection_timeout, total_timeout)
                 .await?;

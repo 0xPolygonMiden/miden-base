@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use miden_tx_prover::error::TxProverProxyError;
 use opentelemetry::{trace::TracerProvider as _, KeyValue};
 use opentelemetry_sdk::{
     runtime,
@@ -163,13 +164,14 @@ pub async fn create_health_check_client(
     address: String,
     connection_timeout: Duration,
     total_timeout: Duration,
-) -> Result<HealthClient<Channel>, String> {
-    Channel::from_shared(format!("http://{}", address))
-        .map_err(|err| format!("Invalid format for worker URI: {}", err))?
+) -> Result<HealthClient<Channel>, TxProverProxyError> {
+    let channel = Channel::from_shared(format!("http://{}", address))
+        .map_err(TxProverProxyError::InvalidURI)?
         .connect_timeout(connection_timeout)
         .timeout(total_timeout)
         .connect()
         .await
-        .map(HealthClient::new)
-        .map_err(|err| format!("Failed to create health check client for worker: {}", err))
+        .map_err(TxProverProxyError::ConnectionFailed)?;
+
+    Ok(HealthClient::new(channel))
 }

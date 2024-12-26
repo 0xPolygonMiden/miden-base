@@ -1,4 +1,5 @@
 use clap::Parser;
+use miden_tx_prover::error::TxProverProxyError;
 use pingora::{
     apps::HttpServerOptions,
     lb::Backend,
@@ -40,8 +41,8 @@ impl StartProxy {
         let workers = self
             .workers
             .iter()
-            .map(|worker| Backend::new(worker).map_err(|err| err.to_string()))
-            .collect::<Result<Vec<Backend>, String>>()?;
+            .map(|worker| Backend::new(worker).map_err(TxProverProxyError::BackendCreationFailed))
+            .collect::<Result<Vec<Backend>, TxProverProxyError>>()?;
 
         if workers.is_empty() {
             warn!("Starting the proxy without any workers");
@@ -58,7 +59,7 @@ impl StartProxy {
         let proxy_host = proxy_config.host;
         let proxy_port = proxy_config.port.to_string();
         lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
-        let logic = lb.app_logic_mut().ok_or("Failed to get app logic")?;
+        let logic = lb.app_logic_mut().ok_or(TxProverProxyError::AppLogicNotFound)?;
         let mut http_server_options = HttpServerOptions::default();
 
         // Enable HTTP/2 for plaintext
