@@ -5,7 +5,9 @@ use prometheus::{
     Histogram, IntCounter, IntCounterVec, IntGauge,
 };
 
-// Queue Metrics
+// QUEUE METRICS
+// ================================================================================================
+
 pub static QUEUE_SIZE: LazyLock<IntGauge> =
     LazyLock::new(|| register_int_gauge!("queue_size", "Number of requests in the queue").unwrap());
 pub static QUEUE_LATENCY: LazyLock<Histogram> = LazyLock::new(|| {
@@ -21,7 +23,9 @@ pub static QUEUE_DROP_COUNT: LazyLock<IntCounter> = LazyLock::new(|| {
         .unwrap()
 });
 
-// Worker Metrics
+// WORKER METRICS
+// ================================================================================================
+
 pub static WORKER_COUNT: LazyLock<IntGauge> =
     LazyLock::new(|| register_int_gauge!("worker_count", "Number of workers").unwrap());
 pub static WORKER_UNHEALTHY: LazyLock<IntCounter> = LazyLock::new(|| {
@@ -40,7 +44,9 @@ pub static WORKER_REQUEST_COUNT: LazyLock<IntCounterVec> = LazyLock::new(|| {
     .unwrap()
 });
 
-// Request Metrics
+// REQUEST METRICS
+// ================================================================================================
+
 pub static REQUEST_FAILURE_COUNT: LazyLock<IntCounter> = LazyLock::new(|| {
     register_int_counter!("request_failure_count", "Number of failed requests").unwrap()
 });
@@ -59,7 +65,9 @@ pub static REQUEST_LATENCY: LazyLock<Histogram> = LazyLock::new(|| {
     .unwrap()
 });
 
-// Rate Limiting Metrics
+// RATE LIMITING METRICS
+// ================================================================================================
+
 pub static RATE_LIMITED_REQUESTS: LazyLock<IntCounter> = LazyLock::new(|| {
     register_int_counter!(
         "rate_limited_requests",
