@@ -42,6 +42,8 @@ pub struct ProxyConfig {
     pub available_workers_polling_time_ms: u64,
     /// Health check interval in seconds.
     pub health_check_interval_secs: u64,
+    /// Prometheus metrics host.
+    pub prometheus_host: String,
     /// Prometheus metrics port.
     pub prometheus_port: u16,
 }
@@ -58,6 +60,7 @@ impl Default for ProxyConfig {
             max_req_per_sec: 5,
             available_workers_polling_time_ms: 20,
             health_check_interval_secs: 1,
+            prometheus_host: "127.0.0.1".into(),
             prometheus_port: 6192,
         }
     }
