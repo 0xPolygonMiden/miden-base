@@ -12,10 +12,6 @@ use ::assembly::{
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        },
         AccountBuilder, AccountCode, AccountComponent, AccountStorage, AccountType, StorageSlot,
     },
     assembly::DefaultSourceManager,
@@ -26,6 +22,10 @@ use miden_objects::{
     },
     testing::{
         account_component::AccountMockComponent,
+        account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
         prepare_word,
@@ -446,8 +446,7 @@ fn test_send_note_proc() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor =
-        TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode(true);
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -479,7 +478,7 @@ fn test_send_note_proc() {
         vec![removed_asset_1, removed_asset_2, removed_asset_3],
     ];
 
-    for removed_assets in assets_matrix {
+    for (idx, removed_assets) in assets_matrix.into_iter().enumerate() {
         // Prepare the string containing the procedures required for adding assets to the note.
         // Depending on the number of the assets to remove, the resulting string will be extended
         // with the corresponding number of procedure "blocks"
@@ -563,8 +562,9 @@ fn test_send_note_proc() {
         // expected delta
         // --------------------------------------------------------------------------------------------
         // execute the transaction and get the witness
-        let executed_transaction =
-            executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+        let executed_transaction = executor
+            .execute_transaction(account_id, block_ref, &note_ids, tx_args)
+            .unwrap_or_else(|_| panic!("test failed in iteration {idx}"));
 
         // nonce delta
         // --------------------------------------------------------------------------------------------
@@ -591,8 +591,7 @@ fn executed_transaction_output_notes() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor =
-        TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode(true);
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
 
     // removed assets
@@ -982,14 +981,14 @@ fn transaction_executor_account_code_using_custom_library() {
             .unwrap()
             .with_supports_all_types();
 
-    let (native_account, seed) = AccountBuilder::new()
+    // Build an existing account with nonce 1.
+    let native_account = AccountBuilder::new()
         .init_seed(ChaCha20Rng::from_entropy().gen())
         .with_component(account_component)
-        .build()
+        .build_existing()
         .unwrap();
 
-    let tx_context =
-        TransactionContextBuilder::new(native_account).account_seed(Some(seed)).build();
+    let tx_context = TransactionContextBuilder::new(native_account).build();
 
     let tx_script = TransactionScript::compile(
         tx_script_src,
@@ -1016,6 +1015,6 @@ fn transaction_executor_account_code_using_custom_library() {
 
     let executed_tx = executor.execute_transaction(account_id, block_ref, &[], tx_args).unwrap();
 
-    // Account nonce should have been incremented by 4.
-    assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(4));
+    // Account's initial nonce of 1 should have been incremented by 4.
+    assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(5));
 }

@@ -8,15 +8,15 @@ use miden_objects::{digest, Digest};
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // account_vault_add_asset
-    digest!("0xc69b608da541fea9a41322359cc049cac55f816858f530005e333d0b54f2f284"),
+    digest!("0x88b15f96c05351ecd320b136fb9f082535e1d493b9d6ddbf1851d49ee02db677"),
     // account_vault_get_balance
-    digest!("0x37c528cbc741f6c9d81602bcb435185f471eec705a59a36704ef3632960607e8"),
+    digest!("0xbe5819bf5aabf1a7c9d8ebfc330a7869f610ca4f86e3708265d8d361b5b82f14"),
     // account_vault_has_non_fungible_asset
-    digest!("0x7144f9ac1df4c4c90b770891e1665d25a819ea026227a7d143ab89b89991bc14"),
+    digest!("0xce07ab13a9320a39642412ee6673eeee228a0173e00047c8b05bc259343b209a"),
     // account_vault_remove_asset
-    digest!("0xba1814cd33cbd3504803d8d11c075775f0cb4a2fb959bf15214ad9ce708db3e5"),
+    digest!("0x80c0cdf81ff7f845ee45a6473627611e1b251b3c8368c3764cdc8d48f2e7b806"),
     // get_account_id
-    digest!("0x595d4386e0d4ce6a62ef2c946ef476ba62d1dcf248b200b26fd4f0d51d065711"),
+    digest!("0x48964aab4326214daa06292e147f7f1107666c3f833d8f06ae9003cc50a32dd7"),
     // get_account_item
     digest!("0x1a73504fc477eb17c9c9fcedd97ba4f397c9827c562aff1822a2fd08f8e9da18"),
     // get_account_map_item
@@ -32,21 +32,21 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // incr_account_nonce
     digest!("0xfc2da7d93bd401f08dfa9dd24523db712ea17d528db992e29fd3a6504f5aafe5"),
     // set_account_code
-    digest!("0xf3845893a3b82db542c63867a86aab9bc2c671d6f312ba1e3b3ade2bc1e6f2fd"),
+    digest!("0x9e2110e69e5373b0dfa6ef13a35d7ecbb82f89493a79012fcc8e83c74c715b8f"),
     // set_account_item
-    digest!("0x079a2b36c1799f49981e06509826921bdc6ae49eb1536979bbdc0d7b6ad32de7"),
+    digest!("0x4d2ef9eac1e0560f763cc09c1d669f6f47cf4d0c3deea54e4cb77bfcda9a3602"),
     // set_account_map_item
     digest!("0x02befd8e777bacc5f4c3b14267b7e5558c9557d82970e74612c5aa6d7febf9c2"),
     // burn_asset
-    digest!("0x5b3bcc39db744de02b0111a43191c09c7cafbf138fac5913d959290225f061aa"),
+    digest!("0xd73206fcca792d525ca70c8ce3e241ce6fcad0fc5b2f308884f59f2814ee95b9"),
     // get_fungible_faucet_total_issuance
-    digest!("0x0ba11e1765fac99dd615e32f4035773fad1093f14bd2ed7c98fa5470a60b7e19"),
+    digest!("0xe56c3538757d5e2cee385028a5ba4e78eca3982698a4e6a3d5ddb17ea59fc13a"),
     // mint_asset
-    digest!("0xc1e42d63f41e1b5f8b550e01b0ad69de5b264fe7214d036ca09927998eb8e422"),
+    digest!("0x910b153409b5b6220a76e0b602a1745130d3b2148fc45ed9e1afaf892c4e1ec6"),
     // add_asset_to_note
-    digest!("0x9728db11ce1e4aa6420f53bfd8002289d3aa5b18dae9039d3c3ee2b2541ecbeb"),
+    digest!("0xf72141eb3e07bc175312b1db97b488d3d73820f36fd2fef67157b6193a21d873"),
     // create_note
-    digest!("0xf3c0b7305783deabeae67fca094df529a04a02332c9a79c1622953f63b08959d"),
+    digest!("0x1f4f867434fc2704a16a15edd783f3825b1b5d932e04412b46eee3c85adcf1d2"),
     // get_input_notes_commitment
     digest!("0x44a86433c9a03c7ee99d046b0cd16e05df275f05ebb176b60193207229eae8b5"),
     // get_note_assets_info
@@ -54,7 +54,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // get_note_inputs_hash
     digest!("0xe6209e99b726e1ad25b89e712b30bcfa3bad45feb47b81dc51a650b02b0dcbda"),
     // get_note_sender
-    digest!("0xc579a0432b8f7b9640c13ab3f73c8afb6f0aa409b14a3cfaff536e60d04ea2fd"),
+    digest!("0x9dfb0725ccb6c6f3a5c84bc11cc36e12da9631c1ae5eca40a1348fa5a97df80c"),
     // get_note_serial_number
     digest!("0xad91130ec219756213c6cadeaf8a38de8768e50c620cb7c347c531874c6054b6"),
     // get_script_hash
@@ -66,7 +66,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // get_block_number
     digest!("0x17da2a77b878820854bfff2b5f9eb969a4e2e76a998f97f4967b2b1a7696437c"),
     // start_foreign_context
-    digest!("0xb4d7a4c18ccc26fc22522cde28a950ebe34097937d02307964460f6217d11842"),
+    digest!("0x8d40e8fc5f0efcc5824221577657811f9e71d7193a27ebdfb528b82204dfb511"),
     // end_foreign_context
     digest!("0x132b50feca8ecec10937c740640c59733e643e89c1d8304cf4523120e27a0428"),
     // update_expiration_block_num

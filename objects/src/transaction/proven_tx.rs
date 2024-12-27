@@ -527,13 +527,13 @@ mod tests {
     use super::ProvenTransaction;
     use crate::{
         accounts::{
-            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             delta::AccountUpdateDetails, AccountDelta, AccountId, AccountStorageDelta,
             AccountVaultDelta, StorageMapDelta,
         },
+        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         transaction::TxAccountUpdate,
         utils::Serializable,
-        Digest, Felt, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
+        Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
     };
 
     fn check_if_sync<T: Sync>() {}
@@ -565,7 +565,7 @@ mod tests {
             AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
         let details = AccountUpdateDetails::Delta(delta);
         TxAccountUpdate::new(
-            AccountId::new_unchecked(Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,
@@ -594,7 +594,7 @@ mod tests {
         let details_size = details.get_size_hint();
 
         let err = TxAccountUpdate::new(
-            AccountId::new_unchecked(Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,

@@ -104,11 +104,9 @@ mod tests {
 
     use super::AccountData;
     use crate::{
-        accounts::{
-            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, storage,
-            Account, AccountCode, AccountId, AuthSecretKey, Felt, Word,
-        },
+        accounts::{storage, Account, AccountCode, AccountId, AuthSecretKey, Felt, Word},
         assets::AssetVault,
+        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
 
     fn build_account_data() -> AccountData {

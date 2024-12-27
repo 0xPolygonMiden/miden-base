@@ -17,9 +17,11 @@
 - Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
 - [BREAKING] Added `miden::note::get_script_hash` procedure (#995).
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005).
+- [BREAKING] Extend `AccountId` to two `Felt`s and require block hash in derivation (#982).
 - Removed workers list from the proxy configuration file (#1018).
 - Added tracing to the `miden-tx-prover` CLI (#1014).
 - Added metrics to the `miden-tx-prover` proxy (#1017).
+- Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 
 ## 0.6.2 (2024-11-20)
 

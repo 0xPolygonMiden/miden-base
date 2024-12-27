@@ -1,7 +1,8 @@
 use miden_objects::{
-    accounts::account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    accounts::AccountId,
     assets::NonFungibleAsset,
     testing::{
+        account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         constants::{
             FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
         },
@@ -42,13 +43,14 @@ fn test_create_fungible_asset_succeeds() {
 
     let process = tx_context.execute_code(&code).unwrap();
 
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     assert_eq!(
         process.get_stack_word(0),
         Word::from([
             Felt::new(FUNGIBLE_ASSET_AMOUNT),
             Felt::new(0),
-            Felt::new(0),
-            Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)
+            faucet_id.second_felt(),
+            faucet_id.first_felt(),
         ])
     );
 }
