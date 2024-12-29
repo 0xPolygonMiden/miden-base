@@ -56,8 +56,7 @@ impl ComponentPackage {
     /// Instantiates an [AccountComponent] from the [ComponentPackage].
     ///
     /// The package's component metadata might contain templated values, which can be input by
-    /// mapping key names to [template values](TemplateValue) through the `template_keys`
-    /// parameter.
+    /// mapping key names to template values through the `template_keys` parameter.
     ///
     /// # Errors
     ///

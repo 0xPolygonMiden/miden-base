@@ -21,7 +21,7 @@ pub use template::{TemplateKey, TemplateValue};
 /// Each entry can describe:
 /// - A value slot (single word or multiple words).
 /// - A map slot (key-value map that occupies one storage slot).
-/// - A multi-slot entry (spanning multiple contiguous slots, with multipe values).
+/// - A multi-slot entry (spanning multiple contiguous slots, with multiple values).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StorageEntry {
     /// A value slot, which can contain one or more words. Each word is a hex-encoded string.
