@@ -21,6 +21,7 @@
 - Added tracing to the `miden-tx-prover` CLI (#1014).
 - Introduced `ComponentPackage` and `ComponentConfig` with TOML serialization (#1015).
 - Removed workers list from the proxy configuration file (#1018).
+- Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 
 ## 0.6.2 (2024-11-20)
 
