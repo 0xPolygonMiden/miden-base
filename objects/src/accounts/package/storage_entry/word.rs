@@ -132,7 +132,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                 let word = parse_hex_string_as_word(value).map_err(|_err| {
                     E::invalid_value(
                         Unexpected::Str(value),
-                        &"a valid hexadecimal string or {{dynamic}} format",
+                        &"a valid hexadecimal string or template key (in '{{key}}' format)",
                     )
                 })?;
 
