@@ -81,6 +81,9 @@ impl LoadBalancerState {
         }
 
         WORKER_COUNT.set(workers.len() as i64);
+        RATE_LIMIT_VIOLATIONS.reset();
+        RATE_LIMITED_REQUESTS.reset();
+        REQUEST_RETRIES.reset();
 
         Ok(Self {
             workers: Arc::new(RwLock::new(workers)),
