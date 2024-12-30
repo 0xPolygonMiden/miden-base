@@ -12,8 +12,8 @@ pub enum TxProverServiceError {
     ConnectionFailed(#[source] tonic::transport::Error),
     #[error("failed to create backend for worker")]
     BackendCreationFailed(#[source] Box<pingora::Error>),
-    #[error("app logic not found")]
-    AppLogicNotFound,
+    #[error("failed to setup pingora")]
+    PingoraConfigFailed(String),
 }
 
 impl From<TxProverServiceError> for String {

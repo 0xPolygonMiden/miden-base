@@ -59,7 +59,9 @@ impl StartProxy {
         let proxy_host = proxy_config.host;
         let proxy_port = proxy_config.port.to_string();
         lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
-        let logic = lb.app_logic_mut().ok_or(TxProverServiceError::AppLogicNotFound)?;
+        let logic = lb
+            .app_logic_mut()
+            .ok_or(TxProverServiceError::PingoraConfigFailed("app logic not found".to_string()))?;
         let mut http_server_options = HttpServerOptions::default();
 
         // Enable HTTP/2 for plaintext
