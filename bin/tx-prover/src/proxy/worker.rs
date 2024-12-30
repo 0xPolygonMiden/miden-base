@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use miden_tx_prover::error::TxProverProxyError;
 use pingora::lb::Backend;
 use tonic::transport::Channel;
 use tonic_health::pb::{
@@ -8,7 +7,7 @@ use tonic_health::pb::{
 };
 use tracing::error;
 
-use crate::utils::create_health_check_client;
+use crate::{error::TxProverProxyError, utils::create_health_check_client};
 
 // WORKER
 // ================================================================================================

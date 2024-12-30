@@ -1,5 +1,4 @@
 use clap::Parser;
-use miden_tx_prover::error::TxProverProxyError;
 use pingora::{
     apps::HttpServerOptions,
     lb::Backend,
@@ -10,6 +9,7 @@ use pingora_proxy::http_proxy_service;
 use tracing::warn;
 
 use crate::{
+    error::TxProverProxyError,
     proxy::{LoadBalancer, LoadBalancerState},
     utils::MIDEN_TX_PROVER,
 };

@@ -2,7 +2,6 @@ use std::{collections::VecDeque, future::Future, pin::Pin, sync::Arc, time::Dura
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use miden_tx_prover::error::TxProverProxyError;
 use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
@@ -26,6 +25,7 @@ use crate::{
         update_workers::{Action, UpdateWorkers},
         ProxyConfig,
     },
+    error::TxProverProxyError,
     utils::{
         create_queue_full_response, create_response_with_error_message,
         create_too_many_requests_response, create_workers_updated_response, MIDEN_TX_PROVER,

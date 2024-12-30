@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use miden_tx_prover::error::TxProverProxyError;
 use opentelemetry::{trace::TracerProvider as _, KeyValue};
 use opentelemetry_sdk::{
     runtime,
@@ -16,6 +15,8 @@ use pingora_proxy::Session;
 use tonic::transport::Channel;
 use tonic_health::pb::health_client::HealthClient;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
+
+use crate::error::TxProverProxyError;
 
 pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
 
