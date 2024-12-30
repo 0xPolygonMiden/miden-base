@@ -59,6 +59,8 @@ max_queue_items = 10
 max_retries_per_request = 1
 # Maximum amount of requests that a given IP address can make per second
 max_req_per_sec = 5
+# Time to wait before checking the availability of workers
+available_workers_polling_time_ms = 20
 # Interval to check the health of the workers
 health_check_interval_secs = 1
 # Port of the metrics server
