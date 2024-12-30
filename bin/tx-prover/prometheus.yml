@@ -7,7 +7,7 @@ global:
 scrape_configs:
   # The job name is a label that is used to group targets in the Prometheus UI.
   # It can be any string.
-  - job_name: "proxy"
+  - job_name: "tx_prover"
     # Here you need to specify the address of the Prometheus service endpoint in the proxy
     # We use the default port for Prometheus, but it need to be changed if you use a different host
     # or port.
