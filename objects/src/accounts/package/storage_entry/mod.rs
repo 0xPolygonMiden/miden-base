@@ -179,7 +179,7 @@ impl StorageEntry {
         }
     }
 
-    /// Atttempts to convert the storage entry into a list of [StorageSlot].
+    /// Attempts to convert the storage entry into a list of [StorageSlot].
     ///
     /// - StorageEntry::Value would convert to a [StorageSlot::Value]
     /// - StorageEntry::MultiSlot would convert to as many [StorageSlot::Value] as defined
