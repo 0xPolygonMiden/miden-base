@@ -274,7 +274,8 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 // REQUEST QUEUE
 // ================================================================================================
 
-/// Request queue holds the list of requests that are waiting to be processed by the workers.
+/// Request queue holds the list of requests that are waiting to be processed by the workers and
+/// the time they were enqueued.
 /// It is used to keep track of the order of the requests to then assign them to the workers.
 pub struct RequestQueue {
     queue: RwLock<VecDeque<(Uuid, Instant)>>,
