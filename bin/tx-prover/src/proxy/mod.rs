@@ -259,7 +259,6 @@ impl LoadBalancerState {
             if worker.is_healthy().await {
                 healthy_workers.push(worker.clone());
             } else {
-                WORKER_UNHEALTHY.inc();
                 warn!("Worker {} is not healthy", worker.address());
             }
         }
@@ -772,6 +771,7 @@ impl BackgroundService for LoadBalancerState {
                 let _guard = span.enter();
 
                 let mut workers = self.workers.write().await;
+                let initial_workers_len = workers.len();
 
                 // Perform health checks on workers and retain healthy ones
                 let healthy_workers = self.check_workers_health(workers.iter_mut()).await;
@@ -779,8 +779,10 @@ impl BackgroundService for LoadBalancerState {
                 // Update the worker list with healthy workers
                 *workers = healthy_workers;
 
-                // Update the worker count metric
+                // Update the worker count and worker unhealhy count metrics
                 WORKER_COUNT.set(workers.len() as i64);
+                let unhealthy_workers = initial_workers_len - workers.len();
+                WORKER_UNHEALTHY.inc_by(unhealthy_workers as u64);
 
                 // Sleep for the defined interval before the next health check
                 sleep(self.health_check_frequency).await;
