@@ -80,6 +80,8 @@ impl LoadBalancerState {
             workers.push(Worker::new(worker, connection_timeout, total_timeout).await?);
         }
 
+        WORKER_COUNT.set(workers.len() as i64);
+
         Ok(Self {
             workers: Arc::new(RwLock::new(workers)),
             timeout_secs: total_timeout,
@@ -99,7 +101,6 @@ impl LoadBalancerState {
     /// If no worker is available, it will return None.
     pub async fn pop_available_worker(&self) -> Option<Worker> {
         let mut available_workers = self.workers.write().await;
-        WORKER_COUNT.set(available_workers.len() as i64);
         available_workers.iter_mut().find(|w| w.is_available()).map(|w| {
             w.set_availability(false);
             WORKER_UTILIZATION.inc();
@@ -116,7 +117,6 @@ impl LoadBalancerState {
             w.set_availability(true);
             WORKER_UTILIZATION.dec();
         }
-        WORKER_COUNT.set(available_workers.len() as i64);
     }
 
     /// Updates the list of available workers based on the given action ("add" or "remove").
