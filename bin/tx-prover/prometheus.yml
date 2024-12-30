@@ -10,6 +10,7 @@ scrape_configs:
   - job_name: "tx_prover"
     # Here you need to specify the address of the Prometheus service endpoint in the proxy
     # We use the default port for Prometheus, but it need to be changed if you use a different host
-    # or port.
+    # or port. In case of using Prometheus in a docker container, you can use the
+    # `host.docker.internal` address to access the host machine.
     static_configs:
       - targets: ["127.0.0.1:6192"]
