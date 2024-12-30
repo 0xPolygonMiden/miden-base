@@ -4,7 +4,7 @@ use core::error::Error;
 use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
 use miden_crypto::utils::HexParseError;
 use thiserror::Error;
-use vm_core::Felt;
+use vm_core::{Felt, FieldElement};
 use vm_processor::DeserializationError;
 
 use super::{
@@ -16,7 +16,8 @@ use super::{
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-    accounts::{AccountCode, AccountStorage, AccountType},
+    accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType},
+    block::block_num_from_epoch,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -45,8 +46,6 @@ pub enum AccountError {
     AccountCodeProcedureInvalidPadding(Digest),
     #[error("failed to convert bytes into account id field element")]
     AccountIdInvalidFieldElement(#[source] DeserializationError),
-    #[error("account id contains {0} 1s but must contain at least {min} 1s", min = AccountId::MIN_ACCOUNT_ONES)]
-    AccountIdTooFewOnes(u32),
     #[error("failed to update asset vault")]
     AssetVaultUpdateError(#[source] AssetVaultError),
     #[error("account build error: {0}")]
@@ -137,8 +136,10 @@ pub enum AssetError {
     FungibleAssetAmountTooBig(u64),
     #[error("subtracting {subtrahend} from fungible asset amount {minuend} would overflow")]
     FungibleAssetAmountNotSufficient { minuend: u64, subtrahend: u64 },
-    #[error("fungible asset word {0:?} does not contain expected ZEROs at word index 1 and 2")]
-    FungibleAssetExpectedZeroes(Word),
+    #[error("fungible asset word {hex} does not contain expected ZERO at word index 1",
+      hex = vm_core::utils::to_hex(Felt::elements_as_bytes(.0))
+    )]
+    FungibleAssetExpectedZero(Word),
     #[error("cannot add fungible asset with issuer {other_issuer} to fungible asset with issuer {original_issuer}")]
     FungibleAssetInconsistentFaucetIds {
         original_issuer: AccountId,
@@ -157,7 +158,7 @@ pub enum AssetError {
       id_type = .0.account_type(),
       expected_ty = AccountType::NonFungibleFaucet
     )]
-    NonFungibleFaucetIdTypeMismatch(AccountId),
+    NonFungibleFaucetIdTypeMismatch(AccountIdPrefix),
     #[error("{0}")]
     TokenSymbolError(String),
 }
@@ -207,6 +208,8 @@ pub enum NoteError {
         to = NoteExecutionHint::ON_BLOCK_SLOT_TAG,
     )]
     NoteExecutionHintTagOutOfRange(u8),
+    #[error("note execution hint after block variant cannot contain u32::MAX")]
+    NoteExecutionHintAfterBlockCannotBeU32Max,
     #[error("invalid note execution hint payload {1} for tag {0}")]
     InvalidNoteExecutionHintPayload(u8, u32),
     #[error("note type {0:b} does not match any of the valid note types {public}, {private} or {encrypted}",
@@ -281,6 +284,11 @@ pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     #[error("account seed must not be provided for existing accounts")]
     AccountSeedProvidedForExistingAccount,
+    #[error(
+      "anchor block header for epoch {0} (block number = {block_number}) must be provided in the chain mmr for the new account",
+      block_number = block_num_from_epoch(*.0),
+    )]
+    AnchorBlockHeaderNotProvidedForNewAccount(u16),
     #[error("transaction input note with nullifier {0} is a duplicate")]
     DuplicateInputNote(Nullifier),
     #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]

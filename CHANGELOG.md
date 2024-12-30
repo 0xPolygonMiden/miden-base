@@ -4,21 +4,24 @@
 
 ### Changes
 
-- Introduced `ComponentPackage` and `ComponentMetadata` with TOML serialization and templating (#1015, #1027).
-- Removed workers list from the proxy configuration file (#1018).
-- Added health check endpoints to the prover service (#1006).
-- Implemented serialization for `AccountHeader` (#996).
-- Updated Pingora crates to 0.4 and added polling time to the configuration file (#997).
-- Added support for `miden-tx-prover` proxy to update workers on a running proxy (#989).
-- Refactored `miden-tx-prover` proxy load balancing strategy (#976).
 - [BREAKING] Better error display when queues are full in the prover service (#967).
 - [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
 - [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
+- Refactored `miden-tx-prover` proxy load balancing strategy (#976).
+- [BREAKING] Extend `AccountId` to two `Felt`s and require block hash in derivation (#982).
+- Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
 - Implemented new `digest_from_hex!` macro (#984).
 - Added Format Guidebook to the `miden-lib` crate (#987).
-- Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
+- Added support for `miden-tx-prover` proxy to update workers on a running proxy (#989).
 - [BREAKING] Added `miden::note::get_script_hash` procedure (#995).
+- Implemented serialization for `AccountHeader` (#996).
+- Updated Pingora crates to 0.4 and added polling time to the configuration file (#997).
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005).
+- Added health check endpoints to the prover service (#1006).
+- Added tracing to the `miden-tx-prover` CLI (#1014).
+- Removed workers list from the proxy configuration file (#1018).
+- Introduced `ComponentPackage` and `ComponentMetadata` with TOML serialization and templating (#1015, #1027).
+- Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 
 ## 0.6.2 (2024-11-20)
 

@@ -218,7 +218,7 @@ Example:
 #! - note_type is the storage type of the note.
 #! - execution_hint is the note's execution hint.
 #! - RECIPIENT is the recipient of the note.
-#! - note_idx is the index of the crated note.
+#! - note_idx is the index of the created note.
 ```
 
 ## Panic block

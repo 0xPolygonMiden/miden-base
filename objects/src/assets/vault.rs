@@ -1,11 +1,11 @@
 use alloc::{string::ToString, vec::Vec};
 
 use super::{
-    AccountId, AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    FungibleAsset, NonFungibleAsset, Serializable, ZERO,
+    AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
+    FungibleAsset, NonFungibleAsset, Serializable,
 };
 use crate::{
-    accounts::{AccountVaultDelta, NonFungibleDeltaAction},
+    accounts::{AccountId, AccountVaultDelta, NonFungibleDeltaAction},
     crypto::merkle::Smt,
     AssetVaultError, Digest,
 };
@@ -69,7 +69,10 @@ impl AssetVault {
         }
 
         // if the tree value is [0, 0, 0, 0], the asset is not stored in the vault
-        match self.asset_tree.get_value(&[ZERO, ZERO, ZERO, faucet_id.into()].into()) {
+        match self
+            .asset_tree
+            .get_value(&FungibleAsset::vault_key_from_faucet(faucet_id).into())
+        {
             asset if asset == Smt::EMPTY_VALUE => Ok(0),
             asset => Ok(FungibleAsset::new_unchecked(asset).amount()),
         }

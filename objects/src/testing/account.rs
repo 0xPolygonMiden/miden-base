@@ -3,15 +3,16 @@ use vm_core::FieldElement;
 
 use super::constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA};
 use crate::{
-    accounts::{
-        account_id::testing::{
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    testing::{
+        account_component::AccountMockComponent,
+        account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         },
-        Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot,
+        storage::FAUCET_STORAGE_DATA_SLOT,
     },
-    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
-    testing::{account_component::AccountMockComponent, storage::FAUCET_STORAGE_DATA_SLOT},
     Felt, Word, ZERO,
 };
 
@@ -20,7 +21,7 @@ use crate::{
 
 impl Account {
     /// Creates a non-new mock account with a defined number of assets and storage
-    pub fn mock(account_id: u64, nonce: Felt, assembler: Assembler) -> Self {
+    pub fn mock(account_id: u128, nonce: Felt, assembler: Assembler) -> Self {
         let account_vault = if nonce == Felt::ZERO {
             AssetVault::default()
         } else {
@@ -41,7 +42,7 @@ impl Account {
     }
 
     pub fn mock_fungible_faucet(
-        account_id: u64,
+        account_id: u128,
         nonce: Felt,
         initial_balance: Felt,
         assembler: Assembler,
@@ -63,7 +64,7 @@ impl Account {
     }
 
     pub fn mock_non_fungible_faucet(
-        account_id: u64,
+        account_id: u128,
         nonce: Felt,
         empty_reserved_slot: bool,
         assembler: Assembler,

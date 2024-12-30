@@ -7,8 +7,11 @@ use init::Init;
 use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
+
+use crate::utils::MIDEN_TX_PROVER;
 
 pub mod init;
 pub mod proxy;
@@ -19,7 +22,7 @@ pub mod worker;
 ///
 /// It is stored in a TOML file, which will be created by the `init` command.
 /// It allows manual modification of the configuration file.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProxyConfig {
     /// Host of the proxy.
     pub host: String,
@@ -111,6 +114,7 @@ pub enum Command {
 
 /// CLI entry point
 impl Cli {
+    #[instrument(target = MIDEN_TX_PROVER, name = "cli:execute", skip_all, ret(level = "info"), err)]
     pub async fn execute(&self) -> Result<(), String> {
         match &self.action {
             // For the `StartWorker` command, we need to create a new runtime and run the worker
