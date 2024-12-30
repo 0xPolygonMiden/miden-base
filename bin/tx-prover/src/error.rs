@@ -5,7 +5,7 @@ use thiserror::Error;
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum TxProverProxyError {
+pub enum TxProverServiceError {
     #[error("invalid uri")]
     InvalidURI(#[source] InvalidUri),
     #[error("failed to connect to worker")]
@@ -16,8 +16,8 @@ pub enum TxProverProxyError {
     AppLogicNotFound,
 }
 
-impl From<TxProverProxyError> for String {
-    fn from(err: TxProverProxyError) -> Self {
+impl From<TxProverServiceError> for String {
+    fn from(err: TxProverServiceError) -> Self {
         err.to_string()
     }
 }

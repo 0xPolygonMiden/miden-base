@@ -16,7 +16,7 @@ use tonic::transport::Channel;
 use tonic_health::pb::health_client::HealthClient;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
 
-use crate::error::TxProverProxyError;
+use crate::error::TxProverServiceError;
 
 pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
 
@@ -165,14 +165,14 @@ pub async fn create_health_check_client(
     address: String,
     connection_timeout: Duration,
     total_timeout: Duration,
-) -> Result<HealthClient<Channel>, TxProverProxyError> {
+) -> Result<HealthClient<Channel>, TxProverServiceError> {
     let channel = Channel::from_shared(format!("http://{}", address))
-        .map_err(TxProverProxyError::InvalidURI)?
+        .map_err(TxProverServiceError::InvalidURI)?
         .connect_timeout(connection_timeout)
         .timeout(total_timeout)
         .connect()
         .await
-        .map_err(TxProverProxyError::ConnectionFailed)?;
+        .map_err(TxProverServiceError::ConnectionFailed)?;
 
     Ok(HealthClient::new(channel))
 }

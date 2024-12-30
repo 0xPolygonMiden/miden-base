@@ -25,7 +25,7 @@ use crate::{
         update_workers::{Action, UpdateWorkers},
         ProxyConfig,
     },
-    error::TxProverProxyError,
+    error::TxProverServiceError,
     utils::{
         create_queue_full_response, create_response_with_error_message,
         create_too_many_requests_response, create_workers_updated_response, MIDEN_TX_PROVER,
@@ -59,7 +59,7 @@ impl LoadBalancerState {
     pub async fn new(
         initial_workers: Vec<Backend>,
         config: &ProxyConfig,
-    ) -> core::result::Result<Self, TxProverProxyError> {
+    ) -> core::result::Result<Self, TxProverServiceError> {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
 
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
@@ -121,7 +121,7 @@ impl LoadBalancerState {
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
-    ) -> std::result::Result<(), TxProverProxyError> {
+    ) -> std::result::Result<(), TxProverServiceError> {
         let mut workers = self.workers.write().await;
         info!("Current workers: {:?}", workers);
 
@@ -130,7 +130,7 @@ impl LoadBalancerState {
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<Vec<Backend>, _>>()
-            .map_err(TxProverProxyError::BackendCreationFailed)?;
+            .map_err(TxProverServiceError::BackendCreationFailed)?;
 
         let mut native_workers = Vec::new();
 
