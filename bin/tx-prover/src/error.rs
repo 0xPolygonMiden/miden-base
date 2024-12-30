@@ -6,7 +6,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum TxProverProxyError {
-    #[error("invalid uri error")]
+    #[error("invalid uri")]
     InvalidURI(#[source] InvalidUri),
     #[error("failed to connect to worker")]
     ConnectionFailed(#[source] tonic::transport::Error),

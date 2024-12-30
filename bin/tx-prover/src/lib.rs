@@ -4,8 +4,6 @@ use alloc::string::String;
 
 pub mod generated;
 
-#[cfg(not(target_arch = "wasm32"))]
-pub mod error;
 #[cfg(feature = "async")]
 mod prover;
 #[cfg(feature = "async")]
