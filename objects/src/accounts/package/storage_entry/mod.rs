@@ -570,7 +570,7 @@ mod tests {
 
         assert_eq!(component_metadata.storage_entries().first().unwrap().map_entries().len(), 3);
 
-        let package = ComponentPackage::new(component_metadata, library).unwrap();
+        let package = ComponentPackage::new(component_metadata, library);
         let template_keys = [
             ("key.test".to_string(), TemplateValue::Word(Default::default())),
             ("value.test".to_string(), TemplateValue::Felt(Felt::new(64))),

@@ -57,19 +57,7 @@ impl WordRepresentation {
             WordRepresentation::Array(array) => {
                 let mut result = [Felt::ZERO; 4];
                 for (index, felt_repr) in array.into_iter().enumerate() {
-                    let v = match felt_repr {
-                        FeltRepresentation::SingleHex(base_element) => base_element,
-                        FeltRepresentation::SingleDecimal(base_element) => base_element,
-                        FeltRepresentation::Dynamic(template_key) => *template_values
-                            .get(template_key.inner())
-                            .ok_or_else(|| {
-                                ComponentPackageError::TemplateValueNotProvided(
-                                    template_key.inner().to_string(),
-                                )
-                            })?
-                            .as_felt()?,
-                    };
-                    result[index] = v;
+                    result[index] = felt_repr.try_into_felt(template_values)?;
                 }
                 Ok(result)
             },
@@ -203,11 +191,26 @@ impl FeltRepresentation {
         maybe_key.into_iter()
     }
 
-    pub fn as_felt(&self) -> Option<Felt> {
+    /// Attempts to convert the [FeltRepresentation] into a [Felt].
+    ///
+    /// If the representation is dynamic, the value is retrieved from `template_values`, identified
+    /// by its key. Otherwise, the returned value is just the inner element.
+    pub fn try_into_felt(
+        self,
+        template_values: &BTreeMap<String, TemplateValue>,
+    ) -> Result<Felt, ComponentPackageError> {
         match self {
-            FeltRepresentation::SingleHex(base_element) => Some(*base_element),
-            FeltRepresentation::SingleDecimal(base_element) => Some(*base_element),
-            FeltRepresentation::Dynamic(_) => None,
+            FeltRepresentation::SingleHex(base_element) => Ok(base_element),
+            FeltRepresentation::SingleDecimal(base_element) => Ok(base_element),
+            FeltRepresentation::Dynamic(template_key) => template_values
+                .get(template_key.inner())
+                .ok_or_else(|| {
+                    ComponentPackageError::TemplateValueNotProvided(
+                        template_key.inner().to_string(),
+                    )
+                })?
+                .as_felt()
+                .copied(),
         }
     }
 }

@@ -48,17 +48,8 @@ impl ComponentPackage {
     /// compiled procedures (via the [Library]) and the metadata that defines the component’s
     /// storage layout ([ComponentMetadata]). The metadata can include placeholders (template
     /// keys) that get filled in at the time of the [AccountComponent] instantiation.
-    ///
-    /// # Errors
-    ///
-    /// - If the provided [ComponentMetadata] cannot be serialized into TOML.
-    pub fn new(
-        metadata: ComponentMetadata,
-        library: Library,
-    ) -> Result<Self, ComponentPackageError> {
-        _ = toml::to_string(&metadata)
-            .map_err(|err| ComponentPackageError::MetadataDeserializationError(err.to_string()));
-        Ok(Self { metadata, library })
+    pub fn new(metadata: ComponentMetadata, library: Library) -> Self {
+        Self { metadata, library }
     }
 
     pub fn metadata(&self) -> &ComponentMetadata {
@@ -90,12 +81,7 @@ impl Deserializable for ComponentPackage {
             .map_err(|e| vm_processor::DeserializationError::InvalidValue(e.to_string()))?;
         let library = Library::read_from(source)?;
 
-        let package = ComponentPackage::new(config, library).map_err(|err| {
-            vm_processor::DeserializationError::UnknownError(format!(
-                "error deserializing into a ComponentPackage: {}",
-                err
-            ))
-        })?;
+        let package = ComponentPackage::new(config, library);
         Ok(package)
     }
 }
@@ -398,7 +384,7 @@ mod tests {
         .unwrap();
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
-        let package = ComponentPackage::new(component_template, library).unwrap();
+        let package = ComponentPackage::new(component_template, library);
         _ = AccountComponent::from_package(&package, &BTreeMap::new()).unwrap();
 
         let serialized = package.to_bytes();
