@@ -115,8 +115,13 @@ impl LoadBalancerState {
         let mut available_workers = self.workers.write().await;
         if let Some(w) = available_workers.iter_mut().find(|w| *w == &worker) {
             w.set_availability(true);
-            WORKER_UTILIZATION.dec();
         }
+
+        // If the worker is not in the list it means but this method was called for a worker that
+        // was removed from the list either manually or because it was unhealthy.
+        // Either way when the worker get a job assigned the value of `WORKER_UTILIZATION` was
+        // increased so we need to decrease it here.
+        WORKER_UTILIZATION.dec();
     }
 
     /// Updates the list of available workers based on the given action ("add" or "remove").
