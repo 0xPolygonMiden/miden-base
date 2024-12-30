@@ -10,8 +10,8 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use metrics::{
     QUEUE_DROP_COUNT, QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS,
-    REQUEST_COUNT, REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_COUNT,
-    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY, WORKER_UTILIZATION,
+    REQUEST_COUNT, REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY,
+    WORKER_COUNT, WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
 };
 use once_cell::sync::Lazy;
 use pingora::{
@@ -103,7 +103,7 @@ impl LoadBalancerState {
         let mut available_workers = self.workers.write().await;
         available_workers.iter_mut().find(|w| w.is_available()).map(|w| {
             w.set_availability(false);
-            WORKER_UTILIZATION.inc();
+            WORKER_BUSY.inc();
             w.clone()
         })
     }
@@ -119,9 +119,9 @@ impl LoadBalancerState {
 
         // If the worker is not in the list it means but this method was called for a worker that
         // was removed from the list either manually or because it was unhealthy.
-        // Either way when the worker get a job assigned the value of `WORKER_UTILIZATION` was
+        // Either way when the worker get a job assigned the value of `WORKER_BUSY` was
         // increased so we need to decrease it here.
-        WORKER_UTILIZATION.dec();
+        WORKER_BUSY.dec();
     }
 
     /// Updates the list of available workers based on the given action ("add" or "remove").
