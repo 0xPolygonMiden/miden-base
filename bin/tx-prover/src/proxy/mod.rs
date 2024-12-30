@@ -55,6 +55,9 @@ pub struct LoadBalancerState {
 
 impl LoadBalancerState {
     /// Create a new load balancer
+    ///
+    /// Errors:
+    /// - If the worker cannot be created.
     #[tracing::instrument(name = "proxy:new_load_balancer", skip(initial_workers))]
     pub async fn new(
         initial_workers: Vec<Backend>,
