@@ -5,6 +5,13 @@ use prometheus::{
     Histogram, IntCounter, IntCounterVec, IntGauge,
 };
 
+// SAFETY: The `unwrap` calls here are safe because:
+// 1. The metrics being registered (gauges, counters, histograms) use hardcoded names and
+//    descriptions, which are guaranteed not to conflict within the application.
+// 2. Registration errors occur only if there is a naming conflict, which is not possible in this
+//    context due to controlled metric definitions.
+// 3. Any changes to metric names or types should be carefully reviewed to avoid conflicts.
+
 // QUEUE METRICS
 // ================================================================================================
 
