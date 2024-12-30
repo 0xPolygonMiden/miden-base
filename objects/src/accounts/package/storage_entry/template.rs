@@ -19,15 +19,19 @@ pub struct TemplateKey {
 }
 
 impl TemplateKey {
-    pub fn new(key: String) -> Self {
-        Self { key }
+    pub fn new(key: impl Into<String>) -> Self {
+        Self { key: key.into() }
     }
 
-    pub fn key(&self) -> &str {
+    pub fn inner(&self) -> &str {
         &self.key
     }
+}
 
-    pub(crate) fn try_deserialize(value: &str) -> Result<TemplateKey, String> {
+impl TryFrom<&str> for TemplateKey {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         if value.starts_with("{{") && value.ends_with("}}") {
             let inner = &value[2..value.len() - 2];
             Ok(TemplateKey { key: inner.to_string() })
@@ -37,9 +41,17 @@ impl TemplateKey {
     }
 }
 
-impl From<&str> for TemplateKey {
-    fn from(value: &str) -> Self {
-        TemplateKey::new(value.to_string())
+impl TryFrom<&String> for TemplateKey {
+    type Error = String;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
+    }
+}
+
+impl core::fmt::Display for TemplateKey {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.key)
     }
 }
 
@@ -60,7 +72,7 @@ impl<'de> Deserialize<'de> for TemplateKey {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        TemplateKey::try_deserialize(&s).map_err(serde::de::Error::custom)
+        TemplateKey::try_from(s.as_str()).map_err(serde::de::Error::custom)
     }
 }
 

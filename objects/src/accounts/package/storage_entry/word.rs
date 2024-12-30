@@ -61,10 +61,10 @@ impl WordRepresentation {
                         FeltRepresentation::SingleHex(base_element) => base_element,
                         FeltRepresentation::SingleDecimal(base_element) => base_element,
                         FeltRepresentation::Dynamic(template_key) => *template_values
-                            .get(template_key.key())
+                            .get(template_key.inner())
                             .ok_or_else(|| {
                                 ComponentPackageError::TemplateValueNotProvided(
-                                    template_key.key().to_string(),
+                                    template_key.inner().to_string(),
                                 )
                             })?
                             .as_felt()?,
@@ -75,10 +75,10 @@ impl WordRepresentation {
             },
             WordRepresentation::Dynamic(template_key) => {
                 let user_value = template_values
-                    .get(template_key.key())
+                    .get(template_key.inner())
                     .ok_or_else(|| {
                         ComponentPackageError::TemplateValueNotProvided(
-                            template_key.key().to_string(),
+                            template_key.inner().to_string(),
                         )
                     })?
                     .as_word()?;
@@ -136,7 +136,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                 E: DeError,
             {
                 // Attempt to deserialize as TemplateKey first
-                if let Ok(tk) = TemplateKey::try_deserialize(value) {
+                if let Ok(tk) = TemplateKey::try_from(value) {
                     return Ok(WordRepresentation::Dynamic(tk));
                 }
 
@@ -235,7 +235,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
             Ok(FeltRepresentation::SingleHex(Felt::new(felt_value)))
         } else if let Ok(decimal_value) = value.parse::<u64>() {
             Ok(FeltRepresentation::SingleDecimal(Felt::new(decimal_value)))
-        } else if let Ok(key) = TemplateKey::try_deserialize(&value) {
+        } else if let Ok(key) = TemplateKey::try_from(&value) {
             Ok(FeltRepresentation::Dynamic(key))
         } else {
             Err(serde::de::Error::custom("Value is not a valid element"))

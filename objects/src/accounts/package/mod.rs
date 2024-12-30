@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     string::{String, ToString},
     vec::Vec,
 };
@@ -10,15 +10,14 @@ use serde::{
     de::{Error as DeError, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
 };
-use storage_entry::{TemplateKey, TemplateValue};
 use thiserror::Error;
 use vm_core::utils::{Deserializable, Serializable};
 
-use super::{AccountComponent, AccountType};
+use super::AccountType;
 use crate::AccountError;
 
 mod storage_entry;
-pub use storage_entry::StorageEntry;
+pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
 
 // COMPONENT PACKAGE
 // ================================================================================================
@@ -29,7 +28,7 @@ pub use storage_entry::StorageEntry;
 /// a component within the system. It includes the configuration details and the compiled
 /// library code required for the component's operation.
 ///
-/// A package can be instantiated into [AccountComponent] objects by calling `instantiate()`.
+/// A package can be instantiated into [AccountComponent] objects.
 /// The component metadata can be defined with generic keys that can be replaced at instantiation
 /// time.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -43,7 +42,16 @@ pub struct ComponentPackage {
 }
 
 impl ComponentPackage {
-    /// Create a [ComponentPackage]
+    /// Creates a new [ComponentPackage].
+    ///
+    /// This package holds everything needed to describe and implement a component, including the
+    /// compiled procedures (via the [Library]) and the metadata that defines the component’s
+    /// storage layout ([ComponentMetadata]). The metadata can include placeholders (template
+    /// keys) that get filled in at the time of the [AccountComponent] instantiation.
+    ///
+    /// # Errors
+    ///
+    /// - If the provided [ComponentMetadata] cannot be serialized into TOML.
     pub fn new(
         metadata: ComponentMetadata,
         library: Library,
@@ -53,31 +61,6 @@ impl ComponentPackage {
         Ok(Self { metadata, library })
     }
 
-    /// Instantiates an [AccountComponent] from the [ComponentPackage].
-    ///
-    /// The package's component metadata might contain templated values, which can be input by
-    /// mapping key names to [template values](TemplateValue) through the `template_keys`
-    /// parameter.
-    ///
-    /// # Errors
-    ///
-    /// - If any of the component's storage entries cannot be transformed into a valid storage slot.
-    ///   This could be because the metadata is invalid, or template values were not provided (or
-    ///   they are not of a valid type)
-    pub fn instantiate_component(
-        &self,
-        template_keys: &BTreeMap<String, TemplateValue>,
-    ) -> Result<AccountComponent, ComponentPackageError> {
-        let mut storage_slots = vec![];
-        for storage_entry in self.metadata().storage_entries() {
-            let entry_storage_slots =
-                storage_entry.clone().try_into_storage_slots(template_keys)?;
-            storage_slots.extend(entry_storage_slots);
-        }
-
-        AccountComponent::new(self.library.clone(), storage_slots)
-            .map_err(ComponentPackageError::AccountComponentError)
-    }
     pub fn metadata(&self) -> &ComponentMetadata {
         &self.metadata
     }
@@ -144,11 +127,15 @@ pub struct ComponentMetadata {
 }
 
 impl ComponentMetadata {
-    /// Create a new `ComponentMetadata`.
+    /// Create a new [ComponentMetadata].
     ///
     /// # Errors
     ///
-    /// - If the specified storage slots are not contiguous across all storage entries.
+    /// # Errors
+    ///
+    /// - If the specified storage slots contain duplicates.
+    /// - If the slot number zero is not present.
+    /// - If the slots are not contiguous.
     pub fn new(
         name: String,
         description: String,
@@ -167,12 +154,12 @@ impl ComponentMetadata {
         Ok(component)
     }
 
-    /// Validate the `ComponentMetadata` object.
+    /// Validate the [ComponentMetadata] object.
     ///
     /// # Errors
     ///
     /// - If the specified storage slots contain duplicates.
-    /// - If the first slot is not zero.
+    /// - If the slot number zero is not present.
     /// - If the slots are not contiguous.
     pub fn validate(&self) -> Result<(), ComponentPackageError> {
         let mut all_slots: Vec<u8> = self
@@ -181,17 +168,6 @@ impl ComponentMetadata {
             .flat_map(|entry| entry.slot_indices().iter().copied())
             .collect();
 
-        // Check for duplicates
-        let mut seen = BTreeSet::new();
-        let duplicate =
-            all_slots
-                .iter()
-                .find_map(|&slot| if !seen.insert(slot) { Some(slot) } else { None });
-
-        if let Some(dup) = duplicate {
-            return Err(ComponentPackageError::DuplicateSlots(dup));
-        }
-
         // Check that slots start at 0 and are contiguous
         all_slots.sort_unstable();
         if let Some(&first_slot) = all_slots.first() {
@@ -199,9 +175,15 @@ impl ComponentMetadata {
                 return Err(ComponentPackageError::IncorrectStorageFirstSlot);
             }
         }
+
         for slots in all_slots.windows(2) {
             if slots[1] != slots[0] + 1 {
                 return Err(ComponentPackageError::NonContiguousSlots);
+            }
+
+            // Check for duplicates
+            if slots[1] == slots[0] {
+                return Err(ComponentPackageError::DuplicateSlot(slots[0]));
             }
         }
 
@@ -214,15 +196,14 @@ impl ComponentMetadata {
     ///
     /// - If deserialization or validation fails
     pub fn from_toml(toml_string: &str) -> Result<Self, ComponentPackageError> {
-        let component: ComponentMetadata =
-            toml::from_str(toml_string).map_err(ComponentPackageError::DeserializationError)?;
+        let component: ComponentMetadata = toml::from_str(toml_string)?;
         component.validate()?;
         Ok(component)
     }
 
     /// Retrieves the set of keys (identified by a string) that require a value at the moment of
     /// component instantiation.
-    fn _get_template_keys(&self) -> BTreeSet<TemplateKey> {
+    pub fn get_template_keys(&self) -> BTreeSet<TemplateKey> {
         let mut key_set = BTreeSet::new();
         for storage_entry in &self.storage {
             for key in storage_entry.template_keys() {
@@ -258,9 +239,9 @@ pub enum ComponentPackageError {
     #[error("error creating AccountComponent: {0}")]
     AccountComponentError(AccountError),
     #[error("error trying to deserialize from toml")]
-    DeserializationError(#[source] toml::de::Error),
+    DeserializationError(#[from] toml::de::Error),
     #[error("slot {0} is defined multiple times")]
-    DuplicateSlots(u8),
+    DuplicateSlot(u8),
     #[error("component storage slots have to start at 0")]
     IncorrectStorageFirstSlot,
     #[error("template value was not of the expected type {0}")]
@@ -317,11 +298,13 @@ impl<'de> Deserialize<'de> for AccountType {
 
 #[cfg(test)]
 mod tests {
+    use alloc::collections::BTreeMap;
+
     use assembly::Assembler;
     use storage_entry::WordRepresentation;
 
     use super::*;
-    use crate::testing::account_code::CODE;
+    use crate::{accounts::AccountComponent, testing::account_code::CODE};
 
     #[test]
     fn test_contiguous_value_slots() {
@@ -416,7 +399,7 @@ mod tests {
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
         let package = ComponentPackage::new(component_template, library).unwrap();
-        _ = package.instantiate_component(&BTreeMap::new()).unwrap();
+        _ = AccountComponent::from_package(&package, &BTreeMap::new()).unwrap();
 
         let serialized = package.to_bytes();
         let deserialized = ComponentPackage::read_from_bytes(&serialized).unwrap();

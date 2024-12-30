@@ -1,8 +1,13 @@
-use alloc::{collections::BTreeSet, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    string::String,
+    vec::Vec,
+};
 
 use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
+use super::package::{ComponentPackage, ComponentPackageError, TemplateValue};
 use crate::{
     accounts::{AccountType, StorageSlot},
     AccountError,
@@ -81,6 +86,32 @@ impl AccountComponent {
             .map_err(AccountError::AccountComponentAssemblyError)?;
 
         Self::new(library, storage_slots)
+    }
+
+    /// Instantiates an [AccountComponent] from the [ComponentPackage].
+    ///
+    /// The package's component metadata might contain templated values, which can be input by
+    /// mapping key names to [template values](TemplateValue) through the `template_keys`
+    /// parameter.
+    ///
+    /// # Errors
+    ///
+    /// - If any of the component's storage entries cannot be transformed into a valid storage slot.
+    ///   This could be because the metadata is invalid, or template values were not provided (or
+    ///   they are not of a valid type)
+    pub fn from_package(
+        package: &ComponentPackage,
+        template_keys: &BTreeMap<String, TemplateValue>,
+    ) -> Result<AccountComponent, ComponentPackageError> {
+        let mut storage_slots = vec![];
+        for storage_entry in package.metadata().storage_entries() {
+            let entry_storage_slots =
+                storage_entry.clone().try_into_storage_slots(template_keys)?;
+            storage_slots.extend(entry_storage_slots);
+        }
+
+        AccountComponent::new(package.library().clone(), storage_slots)
+            .map_err(ComponentPackageError::AccountComponentError)
     }
 
     // ACCESSORS

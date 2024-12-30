@@ -205,7 +205,7 @@ impl StorageEntry {
                         let value = value.try_into_word(template_values)?;
                         Ok((key.into(), value))
                     })
-                    .collect::<Result<Vec<(Digest, Word)>, _>>()?; // Collect into a Vec and propagate errors
+                    .collect::<Result<Vec<(Digest, Word)>, ComponentPackageError>>()?; // Collect into a Vec and propagate errors
 
                 let storage_map = StorageMap::with_entries(entries)
                     .map_err(ComponentPackageError::StorageMapError)?;
@@ -450,6 +450,9 @@ impl MapEntry {
     }
 }
 
+// TESTS
+// ================================================================================================
+
 #[cfg(test)]
 mod tests {
     use std::{collections::BTreeSet, string::ToString};
@@ -464,7 +467,7 @@ mod tests {
     use crate::{
         accounts::{
             package::{ComponentMetadata, ComponentPackage},
-            AccountType,
+            AccountComponent, AccountType,
         },
         digest,
         testing::account_code::CODE,
@@ -473,10 +476,10 @@ mod tests {
     #[test]
     fn test_storage_entry_serialization() {
         let array = [
-            FeltRepresentation::SingleDecimal(Felt::new(9)),
+            FeltRepresentation::SingleDecimal(Felt::new(0xabc)),
             FeltRepresentation::SingleDecimal(Felt::new(1218)),
             FeltRepresentation::SingleHex(Felt::new(0xdba3)),
-            FeltRepresentation::Dynamic("test.array.dyn".into()),
+            FeltRepresentation::Dynamic(TemplateKey::new("test.array.dyn")),
         ];
         let storage = vec![
             StorageEntry::Value {
@@ -491,12 +494,12 @@ mod tests {
                 slot: 1,
                 values: vec![
                     MapEntry {
-                        key: WordRepresentation::Dynamic("foo.bar".into()),
+                        key: WordRepresentation::Dynamic(TemplateKey::new("foo.bar")),
                         value: WordRepresentation::SingleHex(digest!("0x2").into()),
                     },
                     MapEntry {
                         key: WordRepresentation::SingleHex(digest!("0x2").into()),
-                        value: WordRepresentation::Dynamic("bar.baz".into()),
+                        value: WordRepresentation::Dynamic(TemplateKey::new("bar.baz")),
                     },
                     MapEntry {
                         key: WordRepresentation::SingleHex(digest!("0x3").into()),
@@ -509,7 +512,7 @@ mod tests {
                 description: Some("Multi slot entry".into()),
                 slots: vec![2, 3, 4],
                 values: vec![
-                    WordRepresentation::Dynamic("test.dynamic".into()),
+                    WordRepresentation::Dynamic(TemplateKey::new("test.dynamic")),
                     WordRepresentation::Array(array),
                     WordRepresentation::SingleHex(digest!("0xabcdef123abcdef123").into()),
                 ],
@@ -518,7 +521,7 @@ mod tests {
                 name: "single-slot".into(),
                 description: Some("Slot with dynamic key".into()),
                 slot: 0,
-                value: WordRepresentation::Dynamic("single-slot-key".into()),
+                value: WordRepresentation::Dynamic(TemplateKey::new("single-slot-key")),
             },
         ];
 
@@ -579,7 +582,7 @@ mod tests {
         .into_iter()
         .collect();
 
-        let component = package.instantiate_component(&template_keys).unwrap();
+        let component = AccountComponent::from_package(&package, &template_keys).unwrap();
         let storage_map = component.storage_slots.first().unwrap();
         match storage_map {
             StorageSlot::Map(storage_map) => assert_eq!(storage_map.entries().count(), 3),
@@ -594,7 +597,7 @@ mod tests {
             _ => panic!("should be value"),
         }
 
-        let failed_instantiation = package.instantiate_component(&BTreeMap::new());
+        let failed_instantiation = AccountComponent::from_package(&package, &BTreeMap::new());
         assert_matches!(
             failed_instantiation,
             Err(ComponentPackageError::TemplateValueNotProvided(_))
