@@ -13,7 +13,7 @@ pub static QUEUE_SIZE: LazyLock<IntGauge> =
 pub static QUEUE_LATENCY: LazyLock<Histogram> = LazyLock::new(|| {
     register_histogram!(
         "queue_latency",
-        "Time requests spend in the queue",
+        "Time (in seconds) requests spend in the queue",
         vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
     )
     .unwrap()
@@ -59,7 +59,7 @@ pub static REQUEST_COUNT: LazyLock<IntCounter> = LazyLock::new(|| {
 pub static REQUEST_LATENCY: LazyLock<Histogram> = LazyLock::new(|| {
     register_histogram!(
         "request_latency",
-        "Time requests take to process",
+        "Time (in seconds) requests take to process",
         vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
     )
     .unwrap()
