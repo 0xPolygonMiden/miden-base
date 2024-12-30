@@ -124,7 +124,7 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 ## Metrics
 
-The proxy includes a service that provides metrics for [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the port defined in the configuration file. The metrics are available at the `/metrics` endpoint.
+The proxy includes a service that provides metrics export for [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the configuration file. The metrics are available at the `/metrics` endpoint.
 
 To consume and display the metrics, you can use Prometheus and Grafana. The simplest way to install Prometheus and Grafana is by using Docker containers. To do so, run:
 
