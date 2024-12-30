@@ -222,8 +222,8 @@ impl ComponentMetadata {
 
 #[derive(Debug, Error)]
 pub enum ComponentPackageError {
-    #[error("error creating AccountComponent: {0}")]
-    AccountComponentError(AccountError),
+    #[error("error creating AccountComponent")]
+    AccountComponentError(#[source] AccountError),
     #[error("error trying to deserialize from toml")]
     DeserializationError(#[from] toml::de::Error),
     #[error("slot {0} is defined multiple times")]
@@ -238,8 +238,8 @@ pub enum ComponentPackageError {
     MetadataDeserializationError(String),
     #[error("component storage slots are not contiguous")]
     NonContiguousSlots,
-    #[error("error creating storage map: {0}")]
-    StorageMapError(AccountError),
+    #[error("error creating storage map")]
+    StorageMapError(#[source] AccountError),
     #[error("template value ({0}) was not provided in the map")]
     TemplateValueNotProvided(String),
 }
