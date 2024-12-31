@@ -47,7 +47,7 @@ impl ComponentPackage {
     /// This package holds everything needed to describe and implement a component, including the
     /// compiled procedures (via the [Library]) and the metadata that defines the component’s
     /// storage layout ([ComponentMetadata]). The metadata can include placeholders (template
-    /// keys) that get filled in at the time of the [AccountComponent](super::AccountComponent) 
+    /// keys) that get filled in at the time of the [AccountComponent](super::AccountComponent)
     /// instantiation.
     pub fn new(metadata: ComponentMetadata, library: Library) -> Self {
         Self { metadata, library }
