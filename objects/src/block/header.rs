@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 
 use super::{Digest, Felt, Hasher, ZERO};
-use crate::utils::serde::{
+use crate::{testing::block, utils::serde::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-};
+}};
 
 /// The header of a block. It contains metadata about the block, commitments to the current
 /// state of the chain and the hash of the proof that attests to the integrity of the chain.
@@ -29,7 +29,7 @@ use crate::utils::serde::{
 pub struct BlockHeader {
     version: u32,
     prev_hash: Digest,
-    block_num: u32,
+    block_num: BlockNumber,
     chain_root: Digest,
     account_root: Digest,
     nullifier_root: Digest,
@@ -88,7 +88,7 @@ impl BlockHeader {
         Self {
             version,
             prev_hash,
-            block_num,
+            block_num:block_num.into(),
             chain_root,
             account_root,
             nullifier_root,
@@ -130,14 +130,14 @@ impl BlockHeader {
 
     /// Returns the block number.
     pub fn block_num(&self) -> u32 {
-        self.block_num
+        self.block_num.0
     }
 
     /// Returns the epoch to which this block belongs.
     ///
     /// This is the block number shifted right by [`Self::EPOCH_LENGTH_EXPONENT`].
     pub fn block_epoch(&self) -> u16 {
-        block_epoch_from_number(self.block_num)
+        block_epoch_from_number(self.block_num.0)
     }
 
     /// Returns the chain root.
@@ -274,6 +274,39 @@ impl Deserializable for BlockHeader {
         ))
     }
 }
+
+
+
+/// BLOCK NUMBER STRUCT
+
+/// Holds `u32` type  to signify Block Number
+
+
+#[derive(Debug, Eq, PartialEq, Copy, Clone, PartialOrd, Ord)]
+pub struct BlockNumber(u32);
+
+impl Serializable for BlockNumber {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u32(self.0);
+    }
+
+    fn get_size_hint(&self) -> usize {
+        core::mem::size_of::<u32>()
+    }
+}
+
+impl From<u32> for BlockNumber {
+    fn from(value: u32) -> Self {
+        BlockNumber(value)
+    }
+}
+
+impl BlockNumber{
+    pub const fn block_epoch_from_number(&self) -> u16 {
+        (self.0 >> BlockHeader::EPOCH_LENGTH_EXPONENT) as u16
+    }
+}
+
 
 // UTILITIES
 // ================================================================================================
