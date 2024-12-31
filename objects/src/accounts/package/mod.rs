@@ -28,7 +28,7 @@ pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
 /// a component within the system. It includes the configuration details and the compiled
 /// library code required for the component's operation.
 ///
-/// A package can be instantiated into [AccountComponent] objects.
+/// A package can be instantiated into [AccountComponent](super::AccountComponent) objects.
 /// The component metadata can be defined with generic keys that can be replaced at instantiation
 /// time.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,7 +47,8 @@ impl ComponentPackage {
     /// This package holds everything needed to describe and implement a component, including the
     /// compiled procedures (via the [Library]) and the metadata that defines the component’s
     /// storage layout ([ComponentMetadata]). The metadata can include placeholders (template
-    /// keys) that get filled in at the time of the [AccountComponent] instantiation.
+    /// keys) that get filled in at the time of the [AccountComponent](super::AccountComponent) 
+    /// instantiation.
     pub fn new(metadata: ComponentMetadata, library: Library) -> Self {
         Self { metadata, library }
     }
