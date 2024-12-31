@@ -8,15 +8,25 @@ use miden_objects::{
 // TRANSACTION KERNEL ERROR
 // ================================================================================================
 
+/// Represents errors that can occur during transaction kernel execution.
+/// These errors cover various aspects of transaction processing including
+/// account operations, note handling, and asset management.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionKernelError {
+    /// Error occurred during account delta operations
     AccountDeltaError(AccountDeltaError),
+    
+    /// Failed to add an asset to a note
     FailedToAddAssetToNote(NoteError),
+    
+    /// Note input data hash mismatch
     InvalidNoteInputs {
         expected: Digest,
         got: Digest,
         data: Option<Vec<Felt>>,
     },
+    
+    /// Storage slot index exceeds maximum allowed value
     InvalidStorageSlotIndex {
         max: u64,
         actual: u64,
@@ -123,9 +133,14 @@ impl std::error::Error for TransactionKernelError {}
 // TRANSACTION EVENT PARSING ERROR
 // ================================================================================================
 
+/// Represents errors that can occur during transaction event parsing.
+/// These errors indicate issues with event identification and validation.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionEventParsingError {
+    /// The event ID represents an invalid transaction event
     InvalidTransactionEvent(u32),
+    
+    /// The event ID does not correspond to a transaction event
     NotTransactionEvent(u32),
 }
 
@@ -148,9 +163,14 @@ impl std::error::Error for TransactionEventParsingError {}
 // TRANSACTION TRACE PARSING ERROR
 // ================================================================================================
 
+/// Represents errors that can occur during transaction trace parsing.
+/// These errors indicate issues with trace identification and validation.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionTraceParsingError {
+    /// The trace ID represents an invalid transaction trace
     InvalidTransactionTrace(u32),
+    
+    /// The trace ID does not correspond to a transaction trace
     NotTransactionTrace(u32),
 }
 
