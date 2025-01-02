@@ -20,7 +20,7 @@
 - Added health check endpoints to the prover service (#1006).
 - Added tracing to the `miden-tx-prover` CLI (#1014).
 - Removed workers list from the proxy configuration file (#1018).
-- Introduced `ComponentPackage` and `ComponentMetadata` with TOML serialization and templating (#1015, #1027).
+- Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
 - Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 
 ## 0.6.2 (2024-11-20)
