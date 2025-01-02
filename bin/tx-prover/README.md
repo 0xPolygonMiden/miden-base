@@ -130,7 +130,7 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `miden-tx-prover.toml` file.
 
-The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Grafana then queries Prometheus to retrieve and visualize these metrics, allowing you to create dashboards and set up alerts based on the stored data.
+The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
 
 The simplest way to install Prometheus and Grafana is by using Docker containers. To do so, run:
 
