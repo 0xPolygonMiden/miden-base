@@ -54,7 +54,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // get_note_inputs_hash
     digest!("0xe6209e99b726e1ad25b89e712b30bcfa3bad45feb47b81dc51a650b02b0dcbda"),
     // get_note_sender
-    digest!("0x9dfb0725ccb6c6f3a5c84bc11cc36e12da9631c1ae5eca40a1348fa5a97df80c"),
+    digest!("0xf5056720c0e58a9e3e1018d320bc04cd5c4a82ecb4563357f91688e03fe1b6cc"),
     // get_note_serial_number
     digest!("0xad91130ec219756213c6cadeaf8a38de8768e50c620cb7c347c531874c6054b6"),
     // get_script_hash

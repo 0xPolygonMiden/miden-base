@@ -386,7 +386,7 @@ end
 export.account_vault_get_balance
     # get the vault root
     exec.memory::get_acct_vault_root_ptr movdn.2
-    # => [faucet_id_hi, faucet_id_lo, acct_vault_root_ptr, pad(13)]
+    # => [faucet_id_hi, faucet_id_lo, acct_vault_root_ptr, pad(14)]
 
     # get the asset balance
     exec.asset_vault::get_balance
@@ -570,7 +570,7 @@ export.get_note_sender
     # => [sender_hi, sender_lo, pad(16)]
     
     # truncate the stack
-    swapw dropw
+    movup.2 drop movup.2 drop
     # => [sender_hi, sender_lo, pad(14)]
 end
 

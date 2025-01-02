@@ -12,9 +12,9 @@ use super::{
 ///
 /// Note type and tag must be internally consistent according to the following rules:
 ///
-/// - For off-chain notes, the most significant bit of the tag must be 0.
-/// - For public notes, the second most significant bit of the tag must be 0.
-/// - For encrypted notes, two most significant bits of the tag must be 00.
+/// - For private notes, the two most significant bits of the tag must be `0b11`.
+/// - For public notes, the two most significant bits of the tag must be `0b00`, `0b01` or `0b10`.
+/// - For encrypted notes, the two most significant bits of the tag must be `0b11`.
 ///
 /// # Word layout & validity
 ///
@@ -41,7 +41,7 @@ pub struct NoteMetadata {
     /// The ID of the account which created the note.
     sender: AccountId,
 
-    /// Defines how the note is to be stored (e.g., on-chain or off-chain).
+    /// Defines how the note is to be stored (e.g. public or private).
     note_type: NoteType,
 
     /// A value which can be used by the recipient(s) to identify notes intended for them.
@@ -161,8 +161,6 @@ impl TryFrom<Word> for NoteMetadata {
 
 impl Serializable for NoteMetadata {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO: Do we need a serialization format that is different from the Word encoding? It was
-        // previously different.
         Word::from(self).write_into(target);
     }
 }

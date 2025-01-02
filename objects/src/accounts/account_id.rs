@@ -46,18 +46,6 @@ impl AccountType {
     }
 }
 
-impl From<AccountId> for AccountType {
-    fn from(id: AccountId) -> Self {
-        id.account_type()
-    }
-}
-
-impl From<AccountIdPrefix> for AccountType {
-    fn from(id_prefix: AccountIdPrefix) -> Self {
-        id_prefix.account_type()
-    }
-}
-
 // ACCOUNT STORAGE MODE
 // ================================================================================================
 
@@ -105,18 +93,6 @@ impl FromStr for AccountStorageMode {
 
     fn from_str(input: &str) -> Result<AccountStorageMode, AccountError> {
         AccountStorageMode::try_from(input)
-    }
-}
-
-impl From<AccountId> for AccountStorageMode {
-    fn from(id: AccountId) -> Self {
-        id.storage_mode()
-    }
-}
-
-impl From<AccountIdPrefix> for AccountStorageMode {
-    fn from(id_prefix: AccountIdPrefix) -> Self {
-        id_prefix.storage_mode()
     }
 }
 
@@ -185,9 +161,9 @@ impl From<AccountIdPrefix> for AccountIdVersion {
 /// block as an anchor - which is why it is also referred to as the anchor block - and creating the
 /// account's initial storage and code. Then a random seed is picked and the hash of (SEED,
 /// CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH) is computed. If the hash's first element
-/// has the desired storage mode, account type, version and the high bit set to zero, the
-/// computation part of the ID generation is done. If not, another random seed is picked and the
-/// process is repeated. The first felt of the ID is then the first element of the hash.
+/// has the desired storage mode, account type and version, the computation part of the ID
+/// generation is done. If not, another random seed is picked and the process is repeated. The first
+/// felt of the ID is then the first element of the hash.
 ///
 /// The second felt of the ID is the second element of the hash. Its upper 16 bits are overwritten
 /// with the epoch in which the ID is anchored and the lower 8 bits are zeroed. Thus, the first felt
