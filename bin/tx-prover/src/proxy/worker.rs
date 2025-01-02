@@ -26,7 +26,7 @@ pub struct Worker {
 impl Worker {
     /// Creates a new worker and a gRPC health check client for the given worker address.
     ///
-    /// Errors:
+    /// # Errors
     /// - Returns [TxProverServiceError::InvalidURI] if the worker address is invalid.
     /// - Returns [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
     pub async fn new(

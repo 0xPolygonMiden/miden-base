@@ -32,11 +32,12 @@ impl StartProxy {
     /// This method will first read the config file to get the parameters for the proxy. It will
     /// then start a proxy with each worker passed as command argument as a backend.
     ///
-    /// Errors:
-    /// - If the config file cannot be read.
-    /// - If the backend cannot be created.
-    /// - If the Pingora configuration fails.
-    /// - If the server cannot be started.
+    /// # Errors
+    /// Returns an error in the following cases:
+    /// - The config file cannot be read.
+    /// - The backend cannot be created.
+    /// - The Pingora configuration fails.
+    /// - The server cannot be started.
     #[tracing::instrument(target = MIDEN_TX_PROVER, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;

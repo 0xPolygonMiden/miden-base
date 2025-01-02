@@ -160,7 +160,7 @@ pub async fn create_response_with_error_message(
 
 /// Create a gRPC [HealthClient] for the given worker address.
 ///
-/// Errors:
+/// # Errors
 /// - [TxProverServiceError::InvalidURI] if the worker address is invalid.
 /// - [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
 pub async fn create_health_check_client(
