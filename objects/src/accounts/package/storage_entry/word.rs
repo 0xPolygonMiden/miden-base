@@ -15,7 +15,7 @@ use vm_core::{Felt, FieldElement, Word};
 use vm_processor::Digest;
 
 use super::{TemplateKey, TemplateValue};
-use crate::{accounts::package::ComponentPackageError, utils::parse_hex_string_as_word};
+use crate::{accounts::package::AccountComponentTemplateError, utils::parse_hex_string_as_word};
 
 // WORDS
 // ================================================================================================
@@ -51,7 +51,7 @@ impl WordRepresentation {
     pub fn try_into_word(
         self,
         template_values: &BTreeMap<String, TemplateValue>,
-    ) -> Result<Word, ComponentPackageError> {
+    ) -> Result<Word, AccountComponentTemplateError> {
         match self {
             WordRepresentation::SingleHex(word) => Ok(word),
             WordRepresentation::Array(array) => {
@@ -65,7 +65,7 @@ impl WordRepresentation {
                 let user_value = template_values
                     .get(template_key.inner())
                     .ok_or_else(|| {
-                        ComponentPackageError::TemplateValueNotProvided(
+                        AccountComponentTemplateError::TemplateValueNotProvided(
                             template_key.inner().to_string(),
                         )
                     })?
@@ -167,6 +167,12 @@ impl<'de> Deserialize<'de> for WordRepresentation {
     }
 }
 
+impl Default for WordRepresentation {
+    fn default() -> Self {
+        WordRepresentation::SingleHex(Default::default())
+    }
+}
+
 // FELTS
 // ================================================================================================
 
@@ -198,14 +204,14 @@ impl FeltRepresentation {
     pub fn try_into_felt(
         self,
         template_values: &BTreeMap<String, TemplateValue>,
-    ) -> Result<Felt, ComponentPackageError> {
+    ) -> Result<Felt, AccountComponentTemplateError> {
         match self {
             FeltRepresentation::SingleHex(base_element) => Ok(base_element),
             FeltRepresentation::SingleDecimal(base_element) => Ok(base_element),
             FeltRepresentation::Dynamic(template_key) => template_values
                 .get(template_key.inner())
                 .ok_or_else(|| {
-                    ComponentPackageError::TemplateValueNotProvided(
+                    AccountComponentTemplateError::TemplateValueNotProvided(
                         template_key.inner().to_string(),
                     )
                 })?
@@ -218,12 +224,6 @@ impl FeltRepresentation {
 impl Default for FeltRepresentation {
     fn default() -> Self {
         FeltRepresentation::SingleHex(Felt::default())
-    }
-}
-
-impl Default for WordRepresentation {
-    fn default() -> Self {
-        WordRepresentation::SingleHex(Default::default())
     }
 }
 

@@ -24,7 +24,7 @@ pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
 
 /// Represents a package containing a component's metadata and its associated library.
 ///
-/// The [ComponentPackage] encapsulates all necessary information to initialize and manage
+/// The [AccountComponentTemplate] encapsulates all necessary information to initialize and manage
 /// a component within the system. It includes the configuration details and the compiled
 /// library code required for the component's operation.
 ///
@@ -32,7 +32,7 @@ pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
 /// The component metadata can be defined with generic keys that can be replaced at instantiation
 /// time.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComponentPackage {
+pub struct AccountComponentTemplate {
     /// The component's metadata. This describes the component and how the storage is laid out,
     /// alongside how storage values are initialized.
     metadata: ComponentMetadata,
@@ -41,8 +41,8 @@ pub struct ComponentPackage {
     library: Library,
 }
 
-impl ComponentPackage {
-    /// Creates a new [ComponentPackage].
+impl AccountComponentTemplate {
+    /// Creates a new [AccountComponentTemplate].
     ///
     /// This package holds everything needed to describe and implement a component, including the
     /// compiled procedures (via the [Library]) and the metadata that defines the component’s
@@ -62,7 +62,7 @@ impl ComponentPackage {
     }
 }
 
-impl Serializable for ComponentPackage {
+impl Serializable for AccountComponentTemplate {
     fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
         // Since `ComponentConfig::new` ensures valid TOML, unwrap is safe here.
         let config_toml =
@@ -72,7 +72,7 @@ impl Serializable for ComponentPackage {
     }
 }
 
-impl Deserializable for ComponentPackage {
+impl Deserializable for AccountComponentTemplate {
     fn read_from<R: vm_core::utils::ByteReader>(
         source: &mut R,
     ) -> Result<Self, vm_processor::DeserializationError> {
@@ -82,7 +82,7 @@ impl Deserializable for ComponentPackage {
             .map_err(|e| vm_processor::DeserializationError::InvalidValue(e.to_string()))?;
         let library = Library::read_from(source)?;
 
-        let package = ComponentPackage::new(config, library);
+        let package = AccountComponentTemplate::new(config, library);
         Ok(package)
     }
 }
@@ -129,7 +129,7 @@ impl ComponentMetadata {
         version: Version,
         targets: BTreeSet<AccountType>,
         storage: Vec<StorageEntry>,
-    ) -> Result<Self, ComponentPackageError> {
+    ) -> Result<Self, AccountComponentTemplateError> {
         let component = Self {
             name,
             description,
@@ -148,7 +148,7 @@ impl ComponentMetadata {
     /// - If the specified storage slots contain duplicates.
     /// - If the slot number zero is not present.
     /// - If the slots are not contiguous.
-    pub fn validate(&self) -> Result<(), ComponentPackageError> {
+    pub fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         let mut all_slots: Vec<u8> = self
             .storage
             .iter()
@@ -159,18 +159,18 @@ impl ComponentMetadata {
         all_slots.sort_unstable();
         if let Some(&first_slot) = all_slots.first() {
             if first_slot != 0 {
-                return Err(ComponentPackageError::IncorrectStorageFirstSlot);
+                return Err(AccountComponentTemplateError::IncorrectStorageFirstSlot);
             }
         }
 
         for slots in all_slots.windows(2) {
             if slots[1] != slots[0] + 1 {
-                return Err(ComponentPackageError::NonContiguousSlots);
+                return Err(AccountComponentTemplateError::NonContiguousSlots);
             }
 
             // Check for duplicates
             if slots[1] == slots[0] {
-                return Err(ComponentPackageError::DuplicateSlot(slots[0]));
+                return Err(AccountComponentTemplateError::DuplicateSlot(slots[0]));
             }
         }
 
@@ -182,7 +182,7 @@ impl ComponentMetadata {
     /// # Errors
     ///
     /// - If deserialization or validation fails
-    pub fn from_toml(toml_string: &str) -> Result<Self, ComponentPackageError> {
+    pub fn from_toml(toml_string: &str) -> Result<Self, AccountComponentTemplateError> {
         let component: ComponentMetadata = toml::from_str(toml_string)?;
         component.validate()?;
         Ok(component)
@@ -222,7 +222,7 @@ impl ComponentMetadata {
 }
 
 #[derive(Debug, Error)]
-pub enum ComponentPackageError {
+pub enum AccountComponentTemplateError {
     #[error("error creating AccountComponent")]
     AccountComponentError(#[source] AccountError),
     #[error("error trying to deserialize from toml")]
@@ -270,12 +270,15 @@ impl<'de> Deserialize<'de> for AccountType {
     {
         let s: String = Deserialize::deserialize(deserializer)?;
 
-        match s.to_lowercase().as_str() {
-            "fungiblefaucet" => Ok(AccountType::FungibleFaucet),
-            "nonfungiblefaucet" => Ok(AccountType::NonFungibleFaucet),
-            "regularaccountimmutablecode" => Ok(AccountType::RegularAccountImmutableCode),
-            "regularaccountupdatablecode" => Ok(AccountType::RegularAccountUpdatableCode),
-            other => Err(D::Error::invalid_value(Unexpected::Str(other), &"a valid account type")),
+        match s.as_str() {
+            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
+            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
+            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
+            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
+            other => Err(D::Error::invalid_value(
+                Unexpected::Str(other),
+                &"a valid account type (\"FungibleFaucet\", \"NonFungibleFaucet\", \"RegularAccountImmutableCode\", or \"RegularAccountUpdatableCode\")",
+            )),            
         }
     }
 }
@@ -352,7 +355,7 @@ mod tests {
             BTreeSet::new(),
             storage,
         );
-        assert!(matches!(result, Err(ComponentPackageError::NonContiguousSlots)));
+        assert!(matches!(result, Err(AccountComponentTemplateError::NonContiguousSlots)));
     }
 
     #[test]
@@ -385,11 +388,11 @@ mod tests {
         .unwrap();
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
-        let package = ComponentPackage::new(component_template, library);
-        _ = AccountComponent::from_package(&package, &BTreeMap::new()).unwrap();
+        let package = AccountComponentTemplate::new(component_template, library);
+        _ = AccountComponent::from_template(&package, &BTreeMap::new()).unwrap();
 
         let serialized = package.to_bytes();
-        let deserialized = ComponentPackage::read_from_bytes(&serialized).unwrap();
+        let deserialized = AccountComponentTemplate::read_from_bytes(&serialized).unwrap();
 
         assert_eq!(deserialized, package)
     }

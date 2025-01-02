@@ -7,7 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use vm_core::{Felt, Word};
 use vm_processor::Digest;
 
-use crate::accounts::package::ComponentPackageError;
+use crate::accounts::package::AccountComponentTemplateError;
 
 // TEMPLATE KEY
 // ================================================================================================
@@ -87,29 +87,29 @@ pub enum TemplateValue {
 
 impl TemplateValue {
     /// Returns `Some(&Felt)` if the variant is `Felt`, otherwise errors.
-    pub fn as_felt(&self) -> Result<&Felt, ComponentPackageError> {
+    pub fn as_felt(&self) -> Result<&Felt, AccountComponentTemplateError> {
         if let TemplateValue::Felt(felt) = self {
             Ok(felt)
         } else {
-            Err(ComponentPackageError::IncorrectTemplateValue("Felt".into()))
+            Err(AccountComponentTemplateError::IncorrectTemplateValue("Felt".into()))
         }
     }
 
     /// Returns `Ok(&Word)` if the variant is `Word`, otherwise errors.
-    pub fn as_word(&self) -> Result<&Word, ComponentPackageError> {
+    pub fn as_word(&self) -> Result<&Word, AccountComponentTemplateError> {
         if let TemplateValue::Word(word) = self {
             Ok(word)
         } else {
-            Err(ComponentPackageError::IncorrectTemplateValue("Word".into()))
+            Err(AccountComponentTemplateError::IncorrectTemplateValue("Word".into()))
         }
     }
 
     /// Returns `Ok(&Vec<(Digest, Word)>>` if the variant is `Map`, otherwise errors.
-    pub fn as_map(&self) -> Result<&Vec<(Digest, Word)>, ComponentPackageError> {
+    pub fn as_map(&self) -> Result<&Vec<(Digest, Word)>, AccountComponentTemplateError> {
         if let TemplateValue::Map(map) = self {
             Ok(map)
         } else {
-            Err(ComponentPackageError::IncorrectTemplateValue("Map".into()))
+            Err(AccountComponentTemplateError::IncorrectTemplateValue("Map".into()))
         }
     }
 }

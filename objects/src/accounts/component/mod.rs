@@ -8,7 +8,7 @@ use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
 #[cfg(feature = "std")]
-use super::package::{ComponentPackage, ComponentPackageError, TemplateValue};
+use super::package::{AccountComponentTemplate, AccountComponentTemplateError, TemplateValue};
 use crate::{
     accounts::{AccountType, StorageSlot},
     AccountError,
@@ -89,7 +89,7 @@ impl AccountComponent {
         Self::new(library, storage_slots)
     }
 
-    /// Instantiates an [AccountComponent] from the [ComponentPackage].
+    /// Instantiates an [AccountComponent] from the [AccountComponentTemplate].
     ///
     /// The package's component metadata might contain templated values, which can be input by
     /// mapping key names to [template values](TemplateValue) through the `template_keys`
@@ -101,10 +101,10 @@ impl AccountComponent {
     ///   This could be because the metadata is invalid, or template values were not provided (or
     ///   they are not of a valid type)
     #[cfg(feature = "std")]
-    pub fn from_package(
-        package: &ComponentPackage,
+    pub fn from_template(
+        package: &AccountComponentTemplate,
         template_keys: &BTreeMap<String, TemplateValue>,
-    ) -> Result<AccountComponent, ComponentPackageError> {
+    ) -> Result<AccountComponent, AccountComponentTemplateError> {
         let mut storage_slots = vec![];
         for storage_entry in package.metadata().storage_entries() {
             let entry_storage_slots =
@@ -113,7 +113,7 @@ impl AccountComponent {
         }
 
         AccountComponent::new(package.library().clone(), storage_slots)
-            .map_err(ComponentPackageError::AccountComponentError)
+            .map_err(AccountComponentTemplateError::AccountComponentError)
     }
 
     // ACCESSORS

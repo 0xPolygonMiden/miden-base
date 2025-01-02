@@ -7,7 +7,7 @@ use vm_processor::Digest;
 mod word;
 pub use word::*;
 
-use super::ComponentPackageError;
+use super::AccountComponentTemplateError;
 use crate::accounts::{StorageMap, StorageSlot};
 
 mod template;
@@ -103,9 +103,15 @@ impl StorageEntry {
         description: Option<impl Into<String>>,
         slots: Vec<u8>,
         values: Vec<impl Into<WordRepresentation>>,
-    ) -> Result<Self, ComponentPackageError> {
+    ) -> Result<Self, AccountComponentTemplateError> {
         if slots.len() != values.len() {
-            return Err(ComponentPackageError::InvalidMultiSlotEntry);
+            return Err(AccountComponentTemplateError::InvalidMultiSlotEntry);
+        }
+
+        for window in slots.windows(2) {
+            if window[1] != window[0] + 1 {
+                return Err(AccountComponentTemplateError::NonContiguousSlots);
+            }
         }
 
         Ok(StorageEntry::MultiSlot {
@@ -120,8 +126,8 @@ impl StorageEntry {
     pub fn slot_indices(&self) -> &[u8] {
         match self {
             StorageEntry::MultiSlot { slots, .. } => slots.as_slice(),
-            StorageEntry::Value { slot, .. } => std::slice::from_ref(slot),
-            StorageEntry::Map { slot, .. } => std::slice::from_ref(slot),
+            StorageEntry::Value { slot, .. } => core::slice::from_ref(slot),
+            StorageEntry::Map { slot, .. } => core::slice::from_ref(slot),
         }
     }
 
@@ -190,7 +196,7 @@ impl StorageEntry {
     pub fn try_into_storage_slots(
         self,
         template_values: &BTreeMap<String, TemplateValue>,
-    ) -> Result<Vec<StorageSlot>, ComponentPackageError> {
+    ) -> Result<Vec<StorageSlot>, AccountComponentTemplateError> {
         match self {
             StorageEntry::Value { value, .. } => {
                 let slot = value.try_into_word(template_values)?;
@@ -205,10 +211,10 @@ impl StorageEntry {
                         let value = value.try_into_word(template_values)?;
                         Ok((key.into(), value))
                     })
-                    .collect::<Result<Vec<(Digest, Word)>, ComponentPackageError>>()?; // Collect into a Vec and propagate errors
+                    .collect::<Result<Vec<(Digest, Word)>, AccountComponentTemplateError>>()?; // Collect into a Vec and propagate errors
 
                 let storage_map = StorageMap::with_entries(entries)
-                    .map_err(ComponentPackageError::StorageMapError)?;
+                    .map_err(AccountComponentTemplateError::StorageMapError)?;
                 Ok(vec![StorageSlot::Map(storage_map)])
             },
             StorageEntry::MultiSlot { values, .. } => Ok(values
@@ -278,49 +284,43 @@ impl<'de> Deserialize<'de> for StorageEntry {
     {
         let raw = RawStorageEntry::deserialize(deserializer)?;
 
-        // Determine presence of fields
+        // Determine presence of fields and do early validation
         let slot_present = raw.slot.is_some();
         let slots_present = raw.slots.is_some();
         let value_present = raw.value.is_some();
         let values_present = raw.values.is_some();
 
         // Use a match on the combination of presence flags to choose variant
-        match (slots_present, values_present) {
-            (false, false) => {
+        match (raw.slots, raw.values) {
+            (None, None) => {
                 // Expect a Value variant: "slot" and "value" must be present
                 // "slots" and "values" must not be present.
-                if !slot_present {
-                    return Err(D::Error::custom("Missing 'slot' field for single-slot entry."));
-                }
-                if !value_present {
-                    return Err(D::Error::custom("Missing 'value' field for single-slot entry."));
-                }
                 Ok(StorageEntry::Value {
                     name: raw.name,
                     description: raw.description,
-                    slot: raw.slot.expect("was checked to be present"),
-                    value: raw.value.expect("was checked to be present"),
+                    slot: raw
+                        .slot
+                        .ok_or(D::Error::custom("Missing 'slot' field for single-slot entry."))?,
+                    value: raw
+                        .value
+                        .ok_or(D::Error::custom("Missing 'value' field for single-slot entry."))?,
                 })
             },
-            (true, false) => {
+            (Some(_), None) => {
                 Err(D::Error::custom("`slots` is defined but no `values` field was found."))
             },
-            (false, true) => {
+            (None, Some(values)) => {
                 // Expect a Map variant:
                 //   - `slot` must be present
                 //   - `values` must be present and convertible to map entries
                 //   - `slots` must not be present
                 //   - `value` must not be present
-                if !slot_present {
-                    return Err(D::Error::missing_field("slot"));
-                }
-                if raw.value.is_some() {
+                if value_present {
                     return Err(D::Error::custom(
                         "Fields 'value' and 'values' are mutually exclusive",
                     ));
                 }
 
-                let values = raw.values.expect("was checked to be present");
                 let map_entries = values
                     .into_map_entries()
                     .ok_or_else(|| D::Error::custom("Invalid 'values' for map entry"))?;
@@ -328,11 +328,11 @@ impl<'de> Deserialize<'de> for StorageEntry {
                 Ok(StorageEntry::Map {
                     name: raw.name,
                     description: raw.description,
-                    slot: raw.slot.expect("was checked to be present"),
+                    slot: raw.slot.ok_or(D::Error::missing_field("slot"))?,
                     values: map_entries,
                 })
             },
-            (true, true) => {
+            (Some(slots), Some(values)) => {
                 // Expect a MultiSlot variant:
                 //   - `slots` must be present
                 //   - `values` must be present and represent words
@@ -348,9 +348,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
                         "Fields 'value' and 'values' are mutually exclusive.",
                     ));
                 }
-                let slots = raw.slots.ok_or_else(|| D::Error::missing_field("slots"))?;
-                let values = raw.values.ok_or_else(|| D::Error::missing_field("values"))?;
-
+                
                 let has_list_of_values = values.is_list_of_words();
                 if has_list_of_values {
                     let slots_count = slots.len();
@@ -466,7 +464,7 @@ mod tests {
     use super::*;
     use crate::{
         accounts::{
-            package::{ComponentMetadata, ComponentPackage},
+            package::{ComponentMetadata, AccountComponentTemplate},
             AccountComponent, AccountType,
         },
         digest,
@@ -570,7 +568,7 @@ mod tests {
 
         assert_eq!(component_metadata.storage_entries().first().unwrap().map_entries().len(), 3);
 
-        let package = ComponentPackage::new(component_metadata, library);
+        let package = AccountComponentTemplate::new(component_metadata, library);
         let template_keys = [
             ("key.test".to_string(), TemplateValue::Word(Default::default())),
             ("value.test".to_string(), TemplateValue::Felt(Felt::new(64))),
@@ -582,7 +580,7 @@ mod tests {
         .into_iter()
         .collect();
 
-        let component = AccountComponent::from_package(&package, &template_keys).unwrap();
+        let component = AccountComponent::from_template(&package, &template_keys).unwrap();
         let storage_map = component.storage_slots.first().unwrap();
         match storage_map {
             StorageSlot::Map(storage_map) => assert_eq!(storage_map.entries().count(), 3),
@@ -597,10 +595,10 @@ mod tests {
             _ => panic!("should be value"),
         }
 
-        let failed_instantiation = AccountComponent::from_package(&package, &BTreeMap::new());
+        let failed_instantiation = AccountComponent::from_template(&package, &BTreeMap::new());
         assert_matches!(
             failed_instantiation,
-            Err(ComponentPackageError::TemplateValueNotProvided(_))
+            Err(AccountComponentTemplateError::TemplateValueNotProvided(_))
         );
     }
 }
