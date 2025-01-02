@@ -25,6 +25,7 @@ use crate::{
         update_workers::{Action, UpdateWorkers},
         ProxyConfig,
     },
+    error::TxProverServiceError,
     utils::{
         create_queue_full_response, create_response_with_error_message,
         create_too_many_requests_response, create_workers_updated_response, MIDEN_TX_PROVER,
@@ -36,7 +37,7 @@ mod worker;
 /// Localhost address
 const LOCALHOST_ADDR: &str = "127.0.0.1";
 
-// LOAD BALANCER
+// LOAD BALANCER STATE
 // ================================================================================================
 
 /// Load balancer that uses a round robin strategy
@@ -54,11 +55,15 @@ pub struct LoadBalancerState {
 
 impl LoadBalancerState {
     /// Create a new load balancer
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The worker cannot be created.
     #[tracing::instrument(name = "proxy:new_load_balancer", skip(initial_workers))]
     pub async fn new(
         initial_workers: Vec<Backend>,
         config: &ProxyConfig,
-    ) -> core::result::Result<Self, String> {
+    ) -> core::result::Result<Self, TxProverServiceError> {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
 
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
@@ -120,7 +125,7 @@ impl LoadBalancerState {
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
-    ) -> std::result::Result<(), String> {
+    ) -> std::result::Result<(), TxProverServiceError> {
         let mut workers = self.workers.write().await;
         info!("Current workers: {:?}", workers);
 
@@ -129,7 +134,7 @@ impl LoadBalancerState {
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<Vec<Backend>, _>>()
-            .map_err(|err| format!("Failed to create backend: {}", err))?;
+            .map_err(TxProverServiceError::BackendCreationFailed)?;
 
         let mut native_workers = Vec::new();
 
@@ -326,7 +331,7 @@ impl RequestContext {
     }
 }
 
-// LOAD BALANCER WRAPPER
+// LOAD BALANCER
 // ================================================================================================
 
 /// Wrapper around the load balancer that implements the ProxyHttp trait
