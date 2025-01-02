@@ -107,8 +107,7 @@ impl AccountComponent {
     ) -> Result<AccountComponent, AccountComponentTemplateError> {
         let mut storage_slots = vec![];
         for storage_entry in package.metadata().storage_entries() {
-            let entry_storage_slots =
-                storage_entry.clone().try_into_storage_slots(template_keys)?;
+            let entry_storage_slots = storage_entry.try_into_storage_slots(template_keys)?;
             storage_slots.extend(entry_storage_slots);
         }
 

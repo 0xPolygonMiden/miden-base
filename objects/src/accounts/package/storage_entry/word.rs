@@ -49,15 +49,15 @@ impl WordRepresentation {
     /// by its key. If any of the inner elements within the value are dynamic, they are retrieved
     /// in the same way.
     pub fn try_into_word(
-        self,
+        &self,
         template_values: &BTreeMap<String, TemplateValue>,
     ) -> Result<Word, AccountComponentTemplateError> {
         match self {
-            WordRepresentation::SingleHex(word) => Ok(word),
+            WordRepresentation::SingleHex(word) => Ok(*word),
             WordRepresentation::Array(array) => {
                 let mut result = [Felt::ZERO; 4];
-                for (index, felt_repr) in array.into_iter().enumerate() {
-                    result[index] = felt_repr.try_into_felt(template_values)?;
+                for (index, felt_repr) in array.iter().enumerate() {
+                    result[index] = felt_repr.clone().try_into_felt(template_values)?;
                 }
                 Ok(result)
             },

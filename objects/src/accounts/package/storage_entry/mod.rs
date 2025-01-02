@@ -194,7 +194,7 @@ impl StorageEntry {
     /// Each of the entry's values could be dynamic. These values are replaced for values found
     /// in `template_values`, identified by its key.
     pub fn try_into_storage_slots(
-        self,
+        &self,
         template_values: &BTreeMap<String, TemplateValue>,
     ) -> Result<Vec<StorageSlot>, AccountComponentTemplateError> {
         match self {
@@ -204,11 +204,10 @@ impl StorageEntry {
             },
             StorageEntry::Map { values, .. } => {
                 let entries = values
-                    .into_iter()
+                    .iter()
                     .map(|map_entry| {
-                        let (key, value) = map_entry.into_parts();
-                        let key = key.try_into_word(template_values)?;
-                        let value = value.try_into_word(template_values)?;
+                        let key = map_entry.key().try_into_word(template_values)?;
+                        let value = map_entry.value().try_into_word(template_values)?;
                         Ok((key.into(), value))
                     })
                     .collect::<Result<Vec<(Digest, Word)>, AccountComponentTemplateError>>()?; // Collect into a Vec and propagate errors
@@ -218,8 +217,10 @@ impl StorageEntry {
                 Ok(vec![StorageSlot::Map(storage_map)])
             },
             StorageEntry::MultiSlot { values, .. } => Ok(values
-                .into_iter()
-                .map(|word_repr| word_repr.try_into_word(template_values).map(StorageSlot::Value))
+                .iter()
+                .map(|word_repr| {
+                    word_repr.clone().try_into_word(template_values).map(StorageSlot::Value)
+                })
                 .collect::<Result<Vec<StorageSlot>, _>>()?),
         }
     }
@@ -286,9 +287,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
 
         // Determine presence of fields and do early validation
         let slot_present = raw.slot.is_some();
-        let slots_present = raw.slots.is_some();
         let value_present = raw.value.is_some();
-        let values_present = raw.values.is_some();
 
         // Use a match on the combination of presence flags to choose variant
         match (raw.slots, raw.values) {
@@ -348,7 +347,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
                         "Fields 'value' and 'values' are mutually exclusive.",
                     ));
                 }
-                
+
                 let has_list_of_values = values.is_list_of_words();
                 if has_list_of_values {
                     let slots_count = slots.len();
@@ -438,6 +437,14 @@ impl MapEntry {
         Self { key: key.into(), value: value.into() }
     }
 
+    pub fn key(&self) -> &WordRepresentation {
+        &self.key
+    }
+
+    pub fn value(&self) -> &WordRepresentation {
+        &self.value
+    }
+
     pub fn template_keys(&self) -> impl Iterator<Item = &TemplateKey> {
         self.key.template_keys().chain(self.value.template_keys())
     }
@@ -464,7 +471,7 @@ mod tests {
     use super::*;
     use crate::{
         accounts::{
-            package::{ComponentMetadata, AccountComponentTemplate},
+            package::{AccountComponentTemplate, ComponentMetadata},
             AccountComponent, AccountType,
         },
         digest,

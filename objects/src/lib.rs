@@ -79,6 +79,8 @@ pub mod utils {
         let mut i = 0;
         while i < hex_bytes.len() {
             let hex_digit = match parse_hex_digit(hex_bytes[i]) {
+                // SAFETY: u8 cast to u64 is safe. We cannot use u64::from in const context so we
+                // are forced to cast.
                 Ok(v) => v as u64,
                 Err(e) => return Err(e),
             };
@@ -86,6 +88,7 @@ pub mod utils {
             // This digit's nibble offset within the felt. We need to invert the nibbles per
             // byte for endianess reasons i.e. ABCD -> BADC.
             let inibble = if i % 2 == 0 { (i + 1) % 16 } else { (i - 1) % 16 };
+
             let value = hex_digit << (inibble * 4);
             felts[i / 2 / 8] += value;
 
