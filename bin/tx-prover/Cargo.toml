@@ -16,45 +16,32 @@ name = "miden-tx-prover"
 path = "src/main.rs"
 required-features = ["std"]
 
-[lib]
-crate-type = ["lib"]
-
 [features]
-async = ["miden-tx/async"]
 default = ["std"]
 std = ["miden-objects/std", "miden-tx/std", "dep:tokio", "dep:tonic-web", "dep:tokio-stream", "dep:axum",  "dep:tracing", "dep:tracing-subscriber", "tonic/transport"]
 testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
 concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-tx/concurrent", "std"]
 
-[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
-tonic-web-wasm-client = { version = "0.6", default-features = false }
-tonic = { version = "0.12", default-features = false, features = ["prost", "codegen"] }
-getrandom = { version = "0.2", features = ["js"], optional = true }
-
-[target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
-bytes = "1.0"
-tonic = { version = "0.12", default-features = false, features = ["prost", "codegen", "transport"] }
-once_cell = "1.19"
-pingora = { version = "0.4", features = [ "lb" ] }
-pingora-core = "0.4"
-pingora-proxy = "0.4"
-pingora-limits = "0.4"
-opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
-opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
-opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
-opentelemetry-semantic-conventions = "0.27"
-opentelemetry-jaeger = "0.22"
-tracing-opentelemetry = "0.28"
-
 [dependencies]
 async-trait = "0.1"
 axum = {version = "0.7", optional = true }
+bytes = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 figment = { version = "0.10", features = ["toml", "env"] }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false }
 miden-tx = { workspace = true, default-features = false }
+once_cell = "1.19"
+opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
+opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
+opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
+opentelemetry-semantic-conventions = "0.27"
+opentelemetry-jaeger = "0.22"
 prost = { version = "0.13", default-features = false, features = ["derive"] }
+pingora = { version = "0.4", features = [ "lb" ] }
+pingora-core = "0.4"
+pingora-proxy = "0.4"
+pingora-limits = "0.4"
 reqwest = { version = "0.11" }
 serde = { version = "1.0", features = ["derive"] }
 serde_qs = { version = "0.13" }
@@ -62,9 +49,11 @@ tokio = { version = "1.38", optional = true, features = ["full"] }
 tokio-stream = { version = "0.1", optional = true, features = [ "net" ]}
 toml = { version = "0.8" }
 thiserror = { workspace = true }
+tonic = { version = "0.12", default-features = false, features = ["prost", "codegen", "transport"] }
 tonic-health = { version = "0.12" }
 tonic-web = { version = "0.12", optional = true }
 tracing = { version = "0.1", optional = true }
+tracing-opentelemetry = "0.28"
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"], optional = true }
 uuid = { version = "1.11", features = ["v4"] }
 winter-maybe-async = { version = "0.10" }

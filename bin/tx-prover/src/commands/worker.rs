@@ -1,11 +1,10 @@
 use clap::Parser;
-use miden_tx_prover::generated::api_server::ApiServer;
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic_health::server::health_reporter;
 use tracing::{info, instrument};
 
-use crate::{api::RpcListener, utils::MIDEN_TX_PROVER};
+use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_TX_PROVER};
 
 /// Starts a worker.
 #[derive(Debug, Parser)]

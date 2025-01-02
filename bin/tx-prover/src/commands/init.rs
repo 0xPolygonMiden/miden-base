@@ -1,9 +1,8 @@
 use std::{fs::File, io::Write};
 
 use clap::Parser;
-use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 
-use crate::commands::ProxyConfig;
+use crate::{commands::ProxyConfig, utils::PROVER_SERVICE_CONFIG_FILE_NAME};
 
 /// Creates a config file for the proxy.
 #[derive(Debug, Parser)]

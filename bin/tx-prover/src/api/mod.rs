@@ -3,15 +3,17 @@ use miden_tx::{
     utils::{Deserializable, Serializable},
     LocalTransactionProver, TransactionProver,
 };
-use miden_tx_prover::generated::{
-    api_server::{Api as ProverApi, ApiServer},
-    ProveTransactionRequest, ProveTransactionResponse,
-};
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
 use tracing::instrument;
 
-use crate::utils::MIDEN_TX_PROVER;
+use crate::{
+    generated::{
+        api_server::{Api as ProverApi, ApiServer},
+        ProveTransactionRequest, ProveTransactionResponse,
+    },
+    utils::MIDEN_TX_PROVER,
+};
 
 pub struct RpcListener {
     pub api_service: ApiServer<ProverRpcApi>,

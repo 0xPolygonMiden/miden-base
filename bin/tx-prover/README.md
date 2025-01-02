@@ -6,8 +6,6 @@ The worker is a gRPC service that can receive transaction witnesses and returns 
 
 The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue, assigning a worker to each request and retrying if the worker is not available. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
-Additionally, the library can be imported to utilize `RemoteTransactionProver`, a client struct that can be used to interact with the prover service from a Rust codebase.
-
 ## Installation
 
 To build the service from a local version, from the root of the workspace you can run:
@@ -128,14 +126,4 @@ Description of this crate's feature:
 | ------------ | ------------------------------------------------------------------------------------------------------------|
 | `std`        | Enable usage of Rust's `std`, use `--no-default-features` for `no-std` support.                             |
 | `concurrent` | Enables concurrent code to speed up runtime execution.                                                      |
-| `async`      | Enables the `RemoteTransactionProver` struct, that implements an async version of `TransactionProver` trait.|
 | `testing`    | Enables testing utilities and reduces proof-of-work requirements to speed up tests' runtimes.               |
-
-### Using RemoteTransactionProver
-To use the `RemoteTransactionProver` struct, enable `async`. Additionally, when compiling for `wasm32-unknown-unknown`, disable default features.
-
-```
-[dependencies]
-miden-tx-prover = { version = "0.7", features = ["async"], default-features = false } # Uses tonic-web-wasm-client transport
-miden-tx-prover = { version = "0.7", features = ["async"] } # Uses tonic's Channel transport
-```

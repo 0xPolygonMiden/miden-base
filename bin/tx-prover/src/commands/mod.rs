@@ -4,14 +4,13 @@ use figment::{
     Figment,
 };
 use init::Init;
-use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
 
-use crate::utils::MIDEN_TX_PROVER;
+use crate::utils::{MIDEN_TX_PROVER, PROVER_SERVICE_CONFIG_FILE_NAME};
 
 pub mod init;
 pub mod proxy;

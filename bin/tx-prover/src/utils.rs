@@ -22,6 +22,9 @@ pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
 
 const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 
+/// Name of the configuration file
+pub const PROVER_SERVICE_CONFIG_FILE_NAME: &str = "miden-tx-prover.toml";
+
 /// Initializes and configures the global tracing and telemetry system for the CLI, worker and
 /// proxy services.
 ///
