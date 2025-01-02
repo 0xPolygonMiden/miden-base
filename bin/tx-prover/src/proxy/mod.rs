@@ -415,9 +415,6 @@ impl ProxyHttp for LoadBalancer {
     where
         Self::CTX: Send + Sync,
     {
-        // Increment the request count
-        REQUEST_COUNT.inc();
-
         // Extract the client address early
         let client_addr = match session.client_addr() {
             Some(addr) => addr.to_string(),
@@ -438,6 +435,9 @@ impl ProxyHttp for LoadBalancer {
                 return response;
             }
         }
+
+        // Increment the request count
+        REQUEST_COUNT.inc();
 
         let user_id = Some(client_addr);
 
