@@ -119,12 +119,6 @@ impl LoadBalancerState {
         if let Some(w) = available_workers.iter_mut().find(|w| *w == &worker) {
             w.set_availability(true);
         }
-
-        // If the worker is not in the list it means but this method was called for a worker that
-        // was removed from the list either manually or because it was unhealthy.
-        // Either way when the worker get a job assigned the value of `WORKER_BUSY` was
-        // increased so we need to decrease it here.
-        WORKER_BUSY.dec();
     }
 
     /// Updates the list of available workers based on the given action ("add" or "remove").
@@ -186,6 +180,11 @@ impl LoadBalancerState {
     /// Get the total number of current workers.
     pub async fn num_workers(&self) -> usize {
         self.workers.read().await.len()
+    }
+
+    /// Get the number of busy workers.
+    pub async fn num_busy_workers(&self) -> usize {
+        self.workers.read().await.iter().filter(|w| !w.is_available()).count()
     }
 
     /// Handles the update workers request.
@@ -597,6 +596,9 @@ impl ProxyHttp for LoadBalancer {
         }
 
         REQUEST_LATENCY.observe(ctx.created_at.elapsed().as_secs_f64());
+
+        // Update the number of busy workers
+        WORKER_BUSY.set(self.0.num_busy_workers().await as i64);
     }
 
     // The following methods are a copy of the default implementation defined in the trait, but
