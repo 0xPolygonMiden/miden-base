@@ -19,8 +19,8 @@
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005).
 - Added health check endpoints to the prover service (#1006).
 - Added tracing to the `miden-tx-prover` CLI (#1014).
-- Introduced `ComponentPackage` and `ComponentConfig` with TOML serialization (#1015).
 - Removed workers list from the proxy configuration file (#1018).
+- Introduced `ComponentPackage` and `ComponentMetadata` with TOML serialization and templating (#1015, #1027).
 - Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 
 ## 0.6.2 (2024-11-20)
