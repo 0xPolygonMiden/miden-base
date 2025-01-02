@@ -12,7 +12,7 @@ pub enum TxProverServiceError {
     ConnectionFailed(#[source] tonic::transport::Error),
     #[error("failed to create backend for worker")]
     BackendCreationFailed(#[source] Box<pingora::Error>),
-    #[error("failed to setup pingora")]
+    #[error("failed to setup pingora: {0}")]
     PingoraConfigFailed(String),
 }
 
