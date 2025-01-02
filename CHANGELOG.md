@@ -26,6 +26,7 @@
 - Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
 - Introduce `AccountIdError` and make account ID byte representations (`u128`, `[u8; 15]`) consistent (#1055).
 - Refactor `AccountId` and `AccountIdPrefix` into version wrappers (#1058).
+- [BREAKING] Removed `miden-tx-prover` crate and created `miden-proving-service` and `miden-remote-provers` (#1047).
 
 ## 0.6.2 (2024-11-20)
 

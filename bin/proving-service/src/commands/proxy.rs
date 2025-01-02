@@ -11,12 +11,12 @@ use tracing::warn;
 use crate::{
     error::TxProverServiceError,
     proxy::{LoadBalancer, LoadBalancerState},
-    utils::MIDEN_TX_PROVER,
+    utils::MIDEN_PROVING_SERVICE,
 };
 
 /// Starts the proxy defined in the config file.
 ///
-/// Example: `miden-tx-prover start-proxy 0.0.0.0:8080 127.0.0.1:9090`
+/// Example: `miden-proving-service start-proxy 0.0.0.0:8080 127.0.0.1:9090`
 #[derive(Debug, Parser)]
 pub struct StartProxy {
     /// List of workers as host:port strings.
@@ -38,7 +38,7 @@ impl StartProxy {
     /// - The backend cannot be created.
     /// - The Pingora configuration fails.
     /// - The server cannot be started.
-    #[tracing::instrument(target = MIDEN_TX_PROVER, name = "proxy:execute")]
+    #[tracing::instrument(target = MIDEN_PROVING_SERVICE, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
         server.bootstrap();

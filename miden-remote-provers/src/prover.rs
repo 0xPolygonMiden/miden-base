@@ -6,7 +6,7 @@ use alloc::{
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
-use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
+use crate::{generated::api_client::ApiClient, RemoteProverError};
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
@@ -41,7 +41,7 @@ impl RemoteTransactionProver {
     /// Establishes a connection to the remote transaction prover server. The connection is
     /// mantained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
-    async fn connect(&self) -> Result<(), RemoteTransactionProverError> {
+    async fn connect(&self) -> Result<(), RemoteProverError> {
         let mut client = self.client.write();
         if client.is_some() {
             return Ok(());
@@ -55,9 +55,9 @@ impl RemoteTransactionProver {
 
         #[cfg(not(target_arch = "wasm32"))]
         let new_client = {
-            ApiClient::connect(self.endpoint.clone()).await.map_err(|_| {
-                RemoteTransactionProverError::ConnectionFailed(self.endpoint.to_string())
-            })?
+            ApiClient::connect(self.endpoint.clone())
+                .await
+                .map_err(|_| RemoteProverError::ConnectionFailed(self.endpoint.to_string()))?
         };
 
         *client = Some(new_client);

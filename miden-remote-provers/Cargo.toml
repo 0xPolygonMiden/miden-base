@@ -1,0 +1,45 @@
+[package]
+name = "miden-remote-provers"
+version = "0.1.0"
+description = "client library that provides a client for the remote provers"
+readme = "README.md"
+keywords = ["miden", "miden-remote-provers"]
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+
+[lib]
+crate-type = ["lib"]
+
+[features]
+default = ["std"]
+std = ["miden-objects/std", "miden-tx/std"]
+tx-prover = ["miden-tx/async"]
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+tonic-web-wasm-client = { version = "0.6", default-features = false }
+tonic = { version = "0.12", default-features = false, features = ["prost", "codegen"] }
+getrandom = { version = "0.2", features = ["js"], optional = true }
+
+[target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
+tonic = { version = "0.12", default-features = false, features = ["prost", "codegen", "transport"] }
+tonic-web = { version = "0.12", optional = true }
+
+[dependencies]
+async-trait = "0.1"
+miden-lib = { workspace = true, default-features = false }
+miden-objects = { workspace = true, default-features = false }
+miden-tx = { workspace = true, default-features = false }
+prost = { version = "0.13", default-features = false, features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+
+[build-dependencies]
+miette = { version = "7.2", features = ["fancy"] }
+prost = { version = "0.13", default-features = false, features = ["derive"] }
+prost-build = { version = "0.13" }
+protox = { version = "0.7" }
+tonic-build = { version = "0.12" }
+

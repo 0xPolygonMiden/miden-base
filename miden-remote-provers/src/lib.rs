@@ -2,24 +2,22 @@ extern crate alloc;
 
 use alloc::string::String;
 
+#[cfg(feature = "tx-prover")]
 pub mod generated;
 
-#[cfg(feature = "async")]
+#[cfg(feature = "tx-prover")]
 mod prover;
-#[cfg(feature = "async")]
+#[cfg(feature = "tx-prover")]
 pub use prover::RemoteTransactionProver;
 
 /// Contains the protobuf definitions
 pub const PROTO_MESSAGES: &str = include_str!("../proto/api.proto");
 
-/// Name of the configuration file
-pub const PROVER_SERVICE_CONFIG_FILE_NAME: &str = "miden-tx-prover.toml";
-
 /// ERRORS
 /// ===============================================================================================
 
 #[derive(Debug)]
-pub enum RemoteTransactionProverError {
+pub enum RemoteProverError {
     /// Indicates that the provided gRPC server endpoint is invalid.
     InvalidEndpoint(String),
 
@@ -27,17 +25,17 @@ pub enum RemoteTransactionProverError {
     ConnectionFailed(String),
 }
 
-impl std::fmt::Display for RemoteTransactionProverError {
+impl std::fmt::Display for RemoteProverError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            RemoteTransactionProverError::InvalidEndpoint(endpoint) => {
+            RemoteProverError::InvalidEndpoint(endpoint) => {
                 write!(f, "Invalid endpoint: {}", endpoint)
             },
-            RemoteTransactionProverError::ConnectionFailed(endpoint) => {
-                write!(f, "Failed to connect to transaction prover at: {}", endpoint)
+            RemoteProverError::ConnectionFailed(endpoint) => {
+                write!(f, "Failed to connect to remote prover at: {}", endpoint)
             },
         }
     }
 }
 
-impl core::error::Error for RemoteTransactionProverError {}
+impl core::error::Error for RemoteProverError {}

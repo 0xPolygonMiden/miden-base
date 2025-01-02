@@ -4,14 +4,13 @@ use figment::{
     Figment,
 };
 use init::Init;
-use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
 
-use crate::utils::MIDEN_TX_PROVER;
+use crate::utils::{MIDEN_PROVING_SERVICE, PROVING_SERVICE_CONFIG_FILE_NAME};
 
 pub mod init;
 pub mod proxy;
@@ -73,7 +72,7 @@ impl ProxyConfig {
     /// [PROVER_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
     pub(crate) fn load_config_from_file() -> Result<ProxyConfig, String> {
         let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
-        current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
+        current_dir.push(PROVING_SERVICE_CONFIG_FILE_NAME);
         let config_path = current_dir.as_path();
 
         Figment::from(Toml::file(config_path))
@@ -85,7 +84,7 @@ impl ProxyConfig {
 /// Root CLI struct
 #[derive(Parser, Debug)]
 #[clap(
-    name = "miden-tx-prover",
+    name = "miden-proving-service",
     about = "A stand-alone service for proving Miden transactions.",
     version,
     rename_all = "kebab-case"
@@ -102,7 +101,7 @@ pub enum Command {
     ///
     /// This method will create a new config file in the current working directory with default
     /// values. The file will be named as defined in the
-    /// [miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME] constant.
+    /// [miden_tx_prover::PROVING_SERVICE_CONFIG_FILE_NAME] constant.
     Init(Init),
     /// Starts the workers with the configuration defined in the command.
     StartWorker(StartWorker),
@@ -120,7 +119,7 @@ pub enum Command {
 
 /// CLI entry point
 impl Cli {
-    #[instrument(target = MIDEN_TX_PROVER, name = "cli:execute", skip_all, ret(level = "info"), err)]
+    #[instrument(target = MIDEN_PROVING_SERVICE, name = "cli:execute", skip_all, ret(level = "info"), err)]
     pub async fn execute(&self) -> Result<(), String> {
         match &self.action {
             // For the `StartWorker` command, we need to create a new runtime and run the worker
