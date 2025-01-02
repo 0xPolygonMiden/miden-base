@@ -63,6 +63,8 @@ max_req_per_sec = 5
 available_workers_polling_time_ms = 20
 # Interval to check the health of the workers
 health_check_interval_secs = 1
+# Host of the metrics server
+prometheus_host = "127.0.0.1"
 # Port of the metrics server
 prometheus_port = 6192
 ```
