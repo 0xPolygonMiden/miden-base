@@ -64,9 +64,9 @@ impl AccountComponentTemplate {
 
 impl Serializable for AccountComponentTemplate {
     fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
-        // Since `ComponentConfig::new` ensures valid TOML, unwrap is safe here.
+        // Since `Self::new` ensures valid TOML, unwrap is safe here.
         let config_toml =
-            toml::to_string(&self.metadata).expect("Failed to serialize ComponentConfig to TOML");
+            toml::to_string(&self.metadata).expect("Failed to serialize AccountComponentTemplate to TOML");
         target.write(config_toml);
         target.write(&self.library);
     }
