@@ -1,7 +1,7 @@
 use axum::http::uri::InvalidUri;
 use thiserror::Error;
 
-// TX PROVER ERROR
+// TX PROVER SERVICE ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
