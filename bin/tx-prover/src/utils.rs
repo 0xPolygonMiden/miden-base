@@ -169,12 +169,12 @@ pub async fn create_health_check_client(
     total_timeout: Duration,
 ) -> Result<HealthClient<Channel>, TxProverServiceError> {
     let channel = Channel::from_shared(format!("http://{}", address))
-        .map_err(TxProverServiceError::InvalidURI)?
+        .map_err(|err| TxProverServiceError::InvalidURI(err, address.clone()))?
         .connect_timeout(connection_timeout)
         .timeout(total_timeout)
         .connect()
         .await
-        .map_err(TxProverServiceError::ConnectionFailed)?;
+        .map_err(|err| TxProverServiceError::ConnectionFailed(err, address))?;
 
     Ok(HealthClient::new(channel))
 }

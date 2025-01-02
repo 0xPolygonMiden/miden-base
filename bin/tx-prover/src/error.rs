@@ -6,10 +6,10 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum TxProverServiceError {
-    #[error("invalid uri")]
-    InvalidURI(#[source] InvalidUri),
-    #[error("failed to connect to worker")]
-    ConnectionFailed(#[source] tonic::transport::Error),
+    #[error("invalid uri {1}")]
+    InvalidURI(#[source] InvalidUri, String),
+    #[error("failed to connect to worker {1}")]
+    ConnectionFailed(#[source] tonic::transport::Error, String),
     #[error("failed to create backend for worker")]
     BackendCreationFailed(#[source] Box<pingora::Error>),
     #[error("failed to setup pingora: {0}")]
