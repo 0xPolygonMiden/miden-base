@@ -34,7 +34,7 @@ pub static QUEUE_DROP_COUNT: LazyLock<IntCounter> = LazyLock::new(|| {
 // ================================================================================================
 
 pub static WORKER_COUNT: LazyLock<IntGauge> =
-    LazyLock::new(|| register_int_gauge!("worker_count", "Number of workers").unwrap());
+    LazyLock::new(|| register_int_gauge!("worker_count", "Total number of workers").unwrap());
 pub static WORKER_UNHEALTHY: LazyLock<IntCounter> = LazyLock::new(|| {
     register_int_counter!(
         "worker_unhealthy",
