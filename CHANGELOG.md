@@ -21,6 +21,7 @@
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005).
 - [BREAKING] Extend `AccountId` to two `Felt`s and require block hash in derivation (#982).
 - Removed workers list from the proxy configuration file (#1018).
+- Introduce `account_id_dummy!` macro to simplify `AccountId` generation in tests (#1045).
 
 ## 0.6.2 (2024-11-20)
 
