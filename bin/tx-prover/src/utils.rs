@@ -16,7 +16,7 @@ use tonic::transport::Channel;
 use tonic_health::pb::health_client::HealthClient;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
 
-use crate::proxy::metrics::QUEUE_DROP_COUNT;
+use crate::{error::TxProverServiceError, proxy::metrics::QUEUE_DROP_COUNT};
 
 pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
 
@@ -164,18 +164,21 @@ pub async fn create_response_with_error_message(
 
 /// Create a gRPC [HealthClient] for the given worker address.
 ///
-/// It will panic if the worker URI is invalid.
+/// # Errors
+/// - [TxProverServiceError::InvalidURI] if the worker address is invalid.
+/// - [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
 pub async fn create_health_check_client(
     address: String,
     connection_timeout: Duration,
     total_timeout: Duration,
-) -> Result<HealthClient<Channel>, String> {
-    Channel::from_shared(format!("http://{}", address))
-        .map_err(|err| format!("Invalid format for worker URI: {}", err))?
+) -> Result<HealthClient<Channel>, TxProverServiceError> {
+    let channel = Channel::from_shared(format!("http://{}", address))
+        .map_err(|err| TxProverServiceError::InvalidURI(err, address.clone()))?
         .connect_timeout(connection_timeout)
         .timeout(total_timeout)
         .connect()
         .await
-        .map(HealthClient::new)
-        .map_err(|err| format!("Failed to create health check client for worker: {}", err))
+        .map_err(|err| TxProverServiceError::ConnectionFailed(err, address))?;
+
+    Ok(HealthClient::new(channel))
 }

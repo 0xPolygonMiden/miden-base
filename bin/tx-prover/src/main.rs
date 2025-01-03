@@ -1,5 +1,6 @@
 pub mod api;
 pub mod commands;
+pub mod error;
 pub mod proxy;
 mod utils;
 use commands::Cli;

@@ -2044,6 +2044,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_qs",
+ "thiserror 2.0.3",
  "tokio",
  "tokio-stream",
  "toml",
