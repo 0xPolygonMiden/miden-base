@@ -3,15 +3,13 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use core::str::FromStr;
 
 use assembly::Library;
 use semver::Version;
-use serde::{
-    de::{Error as DeError, Unexpected},
-    Deserialize, Deserializer, Serialize, Serializer,
-};
 use thiserror::Error;
-use vm_core::utils::{Deserializable, Serializable};
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
 
 use super::AccountType;
 use crate::AccountError;
@@ -19,7 +17,7 @@ use crate::AccountError;
 mod storage_entry;
 pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
 
-// COMPONENT PACKAGE
+// ACCOUNT COMPONENT TEMPLATE
 // ================================================================================================
 
 /// Represents a package containing a component's metadata and its associated library.
@@ -28,15 +26,15 @@ pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
 /// a component within the system. It includes the configuration details and the compiled
 /// library code required for the component's operation.
 ///
-/// A package can be instantiated into [AccountComponent](super::AccountComponent) objects.
-/// The component metadata can be defined with generic keys that can be replaced at instantiation
+/// A template can be instantiated into [AccountComponent](super::AccountComponent) objects.
+/// The component metadata can be defined with template keys that can be replaced at instantiation
 /// time.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AccountComponentTemplate {
     /// The component's metadata. This describes the component and how the storage is laid out,
     /// alongside how storage values are initialized.
     metadata: ComponentMetadata,
-    /// The account's previously-assembled code. This defines all functionality related to the
+    /// The account component's assembled code. This defines all functionality related to the
     /// component.
     library: Library,
 }
@@ -53,10 +51,12 @@ impl AccountComponentTemplate {
         Self { metadata, library }
     }
 
+    /// Returns a reference to the template's [ComponentMetadata].
     pub fn metadata(&self) -> &ComponentMetadata {
         &self.metadata
     }
 
+    /// Returns a reference to the underlying [Library] of this component.
     pub fn library(&self) -> &Library {
         &self.library
     }
@@ -64,9 +64,9 @@ impl AccountComponentTemplate {
 
 impl Serializable for AccountComponentTemplate {
     fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
-        // Since `Self::new` ensures valid TOML, unwrap is safe here.
-        let config_toml = toml::to_string(&self.metadata)
-            .expect("Failed to serialize AccountComponentTemplate to TOML");
+        // TODO: Remove this - we want proper binary serialization here; otherwise this depends on
+        // `std` being set
+        let config_toml = toml::to_string(&self.metadata).expect("");
         target.write(config_toml);
         target.write(&self.library);
     }
@@ -93,7 +93,8 @@ impl Deserializable for AccountComponentTemplate {
 /// Represents the full component template configuration.
 ///
 /// This struct allows for serialization and deserialization to and from a TOML file.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 pub struct ComponentMetadata {
     /// The human-readable name of the component.
     name: String,
@@ -115,8 +116,6 @@ pub struct ComponentMetadata {
 
 impl ComponentMetadata {
     /// Create a new [ComponentMetadata].
-    ///
-    /// # Errors
     ///
     /// # Errors
     ///
@@ -146,9 +145,9 @@ impl ComponentMetadata {
     /// # Errors
     ///
     /// - If the specified storage slots contain duplicates.
-    /// - If the slot number zero is not present.
+    /// - If the slot numbers do not start at zero.
     /// - If the slots are not contiguous.
-    pub fn validate(&self) -> Result<(), AccountComponentTemplateError> {
+    fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         let mut all_slots: Vec<u8> = self
             .storage
             .iter()
@@ -159,7 +158,7 @@ impl ComponentMetadata {
         all_slots.sort_unstable();
         if let Some(&first_slot) = all_slots.first() {
             if first_slot != 0 {
-                return Err(AccountComponentTemplateError::IncorrectStorageFirstSlot);
+                return Err(AccountComponentTemplateError::StorageSlotsMustStartAtZero);
             }
         }
 
@@ -173,7 +172,6 @@ impl ComponentMetadata {
                 return Err(AccountComponentTemplateError::DuplicateSlot(slots[0]));
             }
         }
-
         Ok(())
     }
 
@@ -182,6 +180,7 @@ impl ComponentMetadata {
     /// # Errors
     ///
     /// - If deserialization or validation fails
+    #[cfg(feature = "std")]
     pub fn from_toml(toml_string: &str) -> Result<Self, AccountComponentTemplateError> {
         let component: ComponentMetadata = toml::from_str(toml_string)?;
         component.validate()?;
@@ -200,24 +199,56 @@ impl ComponentMetadata {
         key_set
     }
 
+    /// Returns the component metadata's name.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Returns the component metadata's description.
     pub fn description(&self) -> &str {
         &self.description
     }
 
+    /// Returns a reference to the metadata's semantic version.
     pub fn version(&self) -> &Version {
         &self.version
     }
 
+    /// Returns a reference to the metadata's supported account types.
     pub fn targets(&self) -> &BTreeSet<AccountType> {
         &self.targets
     }
 
+    /// Returns a reference to the metadata's storage entries.
     pub fn storage_entries(&self) -> &Vec<StorageEntry> {
         &self.storage
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ComponentMetadata {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.name.write_into(target);
+        self.description.write_into(target);
+        self.version.to_string().write_into(target);
+        self.targets.write_into(target);
+        self.storage.write_into(target);
+    }
+}
+
+impl Deserializable for ComponentMetadata {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let version = semver::Version::from_str(&String::read_from(source)?)
+            .map_err(|err: semver::Error| DeserializationError::InvalidValue(err.to_string()))?;
+        Ok(Self {
+            name: String::read_from(source)?,
+            description: String::read_from(source)?,
+            version,
+            targets: BTreeSet::<AccountType>::read_from(source)?,
+            storage: Vec::<StorageEntry>::read_from(source)?,
+        })
     }
 }
 
@@ -230,11 +261,11 @@ pub enum AccountComponentTemplateError {
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
     #[error("component storage slots have to start at 0")]
-    IncorrectStorageFirstSlot,
+    StorageSlotsMustStartAtZero,
     #[error("template value was not of the expected type {0}")]
     IncorrectTemplateValue(String),
     #[error("multi-slot entry should contain as many values as storage slots indices")]
-    InvalidMultiSlotEntry,
+    MultiSlotArityMismatch,
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
     #[error("component storage slots are not contiguous")]
@@ -248,10 +279,11 @@ pub enum AccountComponentTemplateError {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serialize for AccountType {
+#[cfg(feature = "std")]
+impl serde::Serialize for AccountType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: serde::Serializer,
     {
         let s = match self {
             AccountType::FungibleFaucet => "FungibleFaucet",
@@ -263,12 +295,14 @@ impl Serialize for AccountType {
     }
 }
 
-impl<'de> Deserialize<'de> for AccountType {
+#[cfg(feature = "std")]
+impl<'de> serde::Deserialize<'de> for AccountType {
     fn deserialize<D>(deserializer: D) -> Result<AccountType, D::Error>
     where
-        D: Deserializer<'de>,
+        D: serde::Deserializer<'de>,
     {
-        let s: String = Deserialize::deserialize(deserializer)?;
+        use serde::de::Error;
+        let s: String = serde::Deserialize::deserialize(deserializer)?;
 
         match s.as_str() {
             "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
@@ -276,7 +310,7 @@ impl<'de> Deserialize<'de> for AccountType {
             "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
             "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
             other => Err(D::Error::invalid_value(
-                Unexpected::Str(other),
+                serde::de::Unexpected::Str(other),
                 &"a valid account type (\"FungibleFaucet\", \"NonFungibleFaucet\", \"RegularAccountImmutableCode\", or \"RegularAccountUpdatableCode\")",
             )),
         }
@@ -291,6 +325,7 @@ mod tests {
     use alloc::collections::BTreeMap;
 
     use assembly::Assembler;
+    use assert_matches::assert_matches;
     use storage_entry::WordRepresentation;
 
     use super::*;
@@ -303,7 +338,7 @@ mod tests {
                 name: "slot0".into(),
                 description: None,
                 slot: 0,
-                value: WordRepresentation::SingleHex(Default::default()),
+                value: WordRepresentation::Hexadecimal(Default::default()),
             },
             StorageEntry::MultiSlot {
                 name: "slot1".into(),
@@ -311,7 +346,7 @@ mod tests {
                 slots: vec![1, 2],
                 values: vec![
                     WordRepresentation::Array(Default::default()),
-                    WordRepresentation::SingleHex(Default::default()),
+                    WordRepresentation::Hexadecimal(Default::default()),
                 ],
             },
         ];
@@ -355,7 +390,7 @@ mod tests {
             BTreeSet::new(),
             storage,
         );
-        assert!(matches!(result, Err(AccountComponentTemplateError::NonContiguousSlots)));
+        assert_matches!(result, Err(AccountComponentTemplateError::NonContiguousSlots));
     }
 
     #[test]
@@ -367,14 +402,14 @@ mod tests {
                 slots: vec![1, 2],
                 values: vec![
                     WordRepresentation::Array(Default::default()),
-                    WordRepresentation::SingleHex(Default::default()),
+                    WordRepresentation::Hexadecimal(Default::default()),
                 ],
             },
             StorageEntry::Value {
                 name: "slot0".into(),
                 description: None,
                 slot: 0,
-                value: WordRepresentation::SingleHex(Default::default()),
+                value: WordRepresentation::Hexadecimal(Default::default()),
             },
         ];
 

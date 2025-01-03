@@ -33,8 +33,7 @@ pub use delta::{
 };
 
 // TODO: Restrict visibility to just necessary structs
-#[cfg(feature = "std")]
-pub mod package;
+pub mod template;
 
 mod seed;
 pub use seed::compute_account_seed;
@@ -389,6 +388,7 @@ mod tests {
     use alloc::vec::Vec;
 
     use assembly::Assembler;
+    use assert_matches::assert_matches;
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Felt, Word,
@@ -644,6 +644,6 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(matches!(err, AccountError::AccountComponentMergeError(_)))
+        assert_matches!(err, AccountError::AccountComponentMergeError(_))
     }
 }

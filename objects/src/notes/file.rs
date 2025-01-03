@@ -87,7 +87,7 @@ impl Deserializable for NoteFile {
                 Ok(NoteFile::NoteWithProof(note, proof))
             },
             v => {
-                Err(DeserializationError::InvalidValue(format!("Unknown variant {v} for NoteFile")))
+                Err(DeserializationError::InvalidValue(format!("unknown variant {v} for NoteFile")))
             },
         }
     }

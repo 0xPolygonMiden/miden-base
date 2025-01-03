@@ -460,7 +460,7 @@ impl Deserializable for InputNote {
                 let note = Note::read_from(source)?;
                 Ok(Self::Unauthenticated { note })
             },
-            v => Err(DeserializationError::InvalidValue(format!("Invalid input note type: {v}"))),
+            v => Err(DeserializationError::InvalidValue(format!("invalid input note type: {v}"))),
         }
     }
 }

@@ -104,7 +104,7 @@ impl Deserializable for NoteType {
             PUBLIC => NoteType::Public,
             v => {
                 return Err(DeserializationError::InvalidValue(format!(
-                    "Value {} is not a valid NoteType",
+                    "value {} is not a valid NoteType",
                     v
                 )))
             },

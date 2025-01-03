@@ -58,6 +58,25 @@ impl From<AccountIdPrefix> for AccountType {
     }
 }
 
+impl Serializable for AccountType {
+    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
+        target.write_u64(*self as u64);
+    }
+}
+
+impl Deserializable for AccountType {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let num: u64 = source.read()?;
+        match num {
+            FUNGIBLE_FAUCET => Ok(AccountType::FungibleFaucet),
+            NON_FUNGIBLE_FAUCET => Ok(AccountType::NonFungibleFaucet),
+            REGULAR_ACCOUNT_IMMUTABLE_CODE => Ok(AccountType::RegularAccountImmutableCode),
+            REGULAR_ACCOUNT_UPDATABLE_CODE => Ok(AccountType::RegularAccountUpdatableCode),
+            _ => Err(DeserializationError::InvalidValue(format!("invalid account type: {num}"))),
+        }
+    }
+}
+
 // ACCOUNT STORAGE MODE
 // ================================================================================================
 

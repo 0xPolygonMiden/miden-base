@@ -1,8 +1,10 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-use vm_core::Word;
-use vm_processor::Digest;
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    Word,
+};
+use vm_processor::{DeserializationError, Digest};
 
 mod word;
 pub use word::*;
@@ -105,7 +107,7 @@ impl StorageEntry {
         values: Vec<impl Into<WordRepresentation>>,
     ) -> Result<Self, AccountComponentTemplateError> {
         if slots.len() != values.len() {
-            return Err(AccountComponentTemplateError::InvalidMultiSlotEntry);
+            return Err(AccountComponentTemplateError::MultiSlotArityMismatch);
         }
 
         for window in slots.windows(2) {
@@ -155,7 +157,7 @@ impl StorageEntry {
     /// For `Map` entries, since they're key-value pairs, return an empty slice.
     pub fn word_values(&self) -> &[WordRepresentation] {
         match self {
-            StorageEntry::Value { value, .. } => std::slice::from_ref(value),
+            StorageEntry::Value { value, .. } => core::slice::from_ref(value),
             StorageEntry::MultiSlot { values, .. } => values.as_slice(),
             StorageEntry::Map { .. } => &[],
         }
@@ -193,21 +195,21 @@ impl StorageEntry {
     ///
     /// Each of the entry's values could be dynamic. These values are replaced for values found
     /// in `template_values`, identified by its key.
-    pub fn try_into_storage_slots(
+    pub fn try_build_storage_slots(
         &self,
         template_values: &BTreeMap<String, TemplateValue>,
     ) -> Result<Vec<StorageSlot>, AccountComponentTemplateError> {
         match self {
             StorageEntry::Value { value, .. } => {
-                let slot = value.try_into_word(template_values)?;
+                let slot = value.try_build_word(template_values)?;
                 Ok(vec![StorageSlot::Value(slot)])
             },
             StorageEntry::Map { values, .. } => {
                 let entries = values
                     .iter()
                     .map(|map_entry| {
-                        let key = map_entry.key().try_into_word(template_values)?;
-                        let value = map_entry.value().try_into_word(template_values)?;
+                        let key = map_entry.key().try_build_word(template_values)?;
+                        let value = map_entry.value().try_build_word(template_values)?;
                         Ok((key.into(), value))
                     })
                     .collect::<Result<Vec<(Digest, Word)>, AccountComponentTemplateError>>()?; // Collect into a Vec and propagate errors
@@ -219,7 +221,7 @@ impl StorageEntry {
             StorageEntry::MultiSlot { values, .. } => Ok(values
                 .iter()
                 .map(|word_repr| {
-                    word_repr.clone().try_into_word(template_values).map(StorageSlot::Value)
+                    word_repr.clone().try_build_word(template_values).map(StorageSlot::Value)
                 })
                 .collect::<Result<Vec<StorageSlot>, _>>()?),
         }
@@ -229,8 +231,9 @@ impl StorageEntry {
 // SERIALIZATION
 // ================================================================================================
 
-#[derive(Default, Serialize, Deserialize)]
 /// Used as a helper for validating and (de)serializing storage entries
+#[derive(Default)]
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 struct RawStorageEntry {
     name: String,
     description: Option<String>,
@@ -268,21 +271,24 @@ impl From<StorageEntry> for RawStorageEntry {
     }
 }
 
-impl Serialize for StorageEntry {
+#[cfg(feature = "std")]
+impl serde::Serialize for StorageEntry {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: serde::Serializer,
     {
         let raw_storage_entry: RawStorageEntry = self.clone().into();
         raw_storage_entry.serialize(serializer)
     }
 }
 
-impl<'de> Deserialize<'de> for StorageEntry {
+#[cfg(feature = "std")]
+impl<'de> serde::Deserialize<'de> for StorageEntry {
     fn deserialize<D>(deserializer: D) -> Result<StorageEntry, D::Error>
     where
-        D: Deserializer<'de>,
+        D: serde::Deserializer<'de>,
     {
+        use serde::de::Error;
         let raw = RawStorageEntry::deserialize(deserializer)?;
 
         // Determine presence of fields and do early validation
@@ -299,14 +305,14 @@ impl<'de> Deserialize<'de> for StorageEntry {
                     description: raw.description,
                     slot: raw
                         .slot
-                        .ok_or(D::Error::custom("Missing 'slot' field for single-slot entry."))?,
+                        .ok_or(D::Error::custom("missing 'slot' field for single-slot entry"))?,
                     value: raw
                         .value
-                        .ok_or(D::Error::custom("Missing 'value' field for single-slot entry."))?,
+                        .ok_or(D::Error::custom("missing 'value' field for single-slot entry"))?,
                 })
             },
             (Some(_), None) => {
-                Err(D::Error::custom("`slots` is defined but no `values` field was found."))
+                Err(D::Error::custom("`slots` is defined but no `values` field was found"))
             },
             (None, Some(values)) => {
                 // Expect a Map variant:
@@ -316,13 +322,13 @@ impl<'de> Deserialize<'de> for StorageEntry {
                 //   - `value` must not be present
                 if value_present {
                     return Err(D::Error::custom(
-                        "Fields 'value' and 'values' are mutually exclusive",
+                        "ields 'value' and 'values' are mutually exclusive",
                     ));
                 }
 
                 let map_entries = values
                     .into_map_entries()
-                    .ok_or_else(|| D::Error::custom("Invalid 'values' for map entry"))?;
+                    .ok_or_else(|| D::Error::custom("invalid 'values' for map entry"))?;
 
                 Ok(StorageEntry::Map {
                     name: raw.name,
@@ -339,12 +345,12 @@ impl<'de> Deserialize<'de> for StorageEntry {
                 //   - `value` must not be present
                 if slot_present {
                     return Err(D::Error::custom(
-                        "Fields 'slot' and 'slots' are mutually exclusive.",
+                        "fields 'slot' and 'slots' are mutually exclusive",
                     ));
                 }
                 if value_present {
                     return Err(D::Error::custom(
-                        "Fields 'value' and 'values' are mutually exclusive.",
+                        "fields 'value' and 'values' are mutually exclusive",
                     ));
                 }
 
@@ -354,7 +360,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
                     let values_count = values.len().expect("checked that it's a list of values");
                     if slots_count != values_count {
                         return Err(D::Error::custom(format!(
-                            "Number of slots ({}) does not match number of values ({}) for multi-slot storage entry.",
+                            "number of slots ({}) does not match number of values ({}) for multi-slot storage entry",
                             slots_count, values_count
                         )));
                     }
@@ -366,9 +372,77 @@ impl<'de> Deserialize<'de> for StorageEntry {
                     slots,
                     values: values
                         .into_words()
-                        .ok_or_else(|| D::Error::custom("Invalid values for multi-slot."))?,
+                        .ok_or_else(|| D::Error::custom("invalid values for multi-slot"))?,
                 })
             },
+        }
+    }
+}
+
+impl Serializable for StorageEntry {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        match self {
+            StorageEntry::Value { name, description, slot, value } => {
+                target.write_u8(0u8);
+                target.write(name);
+                target.write(description);
+                target.write_u8(*slot);
+                target.write(value);
+            },
+            StorageEntry::Map { name, description, slot, values } => {
+                target.write_u8(1u8);
+                target.write(name);
+                target.write(description);
+                target.write_u8(*slot);
+                target.write(values);
+            },
+            StorageEntry::MultiSlot { name, description, slots, values } => {
+                target.write_u8(2u8);
+                target.write(name);
+                target.write(description);
+                target.write(slots);
+                target.write(values);
+            },
+        }
+    }
+}
+
+impl Deserializable for StorageEntry {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let variant_tag = source.read_u8()?;
+        let name: String = source.read()?;
+        let description: Option<String> = source.read()?;
+
+        match variant_tag {
+            // Value
+            0 => {
+                let slot = source.read_u8()?;
+                let value: WordRepresentation = source.read()?;
+
+                Ok(StorageEntry::Value { name, description, slot, value })
+            },
+
+            // Map
+            1 => {
+                let slot = source.read_u8()?;
+                let values: Vec<MapEntry> = source.read()?;
+
+                Ok(StorageEntry::Map { name, description, slot, values })
+            },
+
+            // MultiSlot
+            2 => {
+                let slots: Vec<u8> = source.read()?;
+                let values: Vec<WordRepresentation> = source.read()?;
+
+                Ok(StorageEntry::MultiSlot { name, description, slots, values })
+            },
+
+            // Unknown tag => error
+            _ => Err(DeserializationError::InvalidValue(format!(
+                "unknown variant tag for StorageEntry: {}",
+                variant_tag
+            ))),
         }
     }
 }
@@ -377,8 +451,8 @@ impl<'de> Deserialize<'de> for StorageEntry {
 // ================================================================================================
 
 /// Represents the type of values that can be found in a storage slot's `values` field.
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "std", serde(untagged))]
 enum StorageValues {
     /// List of individual words (for multi-slot entries).
     Words(Vec<WordRepresentation>),
@@ -426,7 +500,8 @@ impl StorageValues {
 // ================================================================================================
 
 /// Key-value entry for storage maps.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 pub struct MapEntry {
     key: WordRepresentation,
     value: WordRepresentation,
@@ -455,6 +530,21 @@ impl MapEntry {
     }
 }
 
+impl Serializable for MapEntry {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.key.write_into(target);
+        self.value.write_into(target);
+    }
+}
+
+impl Deserializable for MapEntry {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let key = WordRepresentation::read_from(source)?;
+        let value = WordRepresentation::read_from(source)?;
+        Ok(MapEntry { key, value })
+    }
+}
+
 // TESTS
 // ================================================================================================
 
@@ -471,7 +561,7 @@ mod tests {
     use super::*;
     use crate::{
         accounts::{
-            package::{AccountComponentTemplate, ComponentMetadata},
+            template::{AccountComponentTemplate, ComponentMetadata},
             AccountComponent, AccountType,
         },
         digest,
@@ -481,9 +571,9 @@ mod tests {
     #[test]
     fn test_storage_entry_serialization() {
         let array = [
-            FeltRepresentation::SingleDecimal(Felt::new(0xabc)),
-            FeltRepresentation::SingleDecimal(Felt::new(1218)),
-            FeltRepresentation::SingleHex(Felt::new(0xdba3)),
+            FeltRepresentation::Decimal(Felt::new(0xabc)),
+            FeltRepresentation::Decimal(Felt::new(1218)),
+            FeltRepresentation::Hexadecimal(Felt::new(0xdba3)),
             FeltRepresentation::Dynamic(TemplateKey::new("test.array.dyn")),
         ];
         let storage = vec![
@@ -491,7 +581,7 @@ mod tests {
                 name: "slot0".into(),
                 description: Some("First slot".into()),
                 slot: 0,
-                value: WordRepresentation::SingleHex(digest!("0x333123").into()),
+                value: WordRepresentation::Hexadecimal(digest!("0x333123").into()),
             },
             StorageEntry::Map {
                 name: "map".into(),
@@ -500,15 +590,15 @@ mod tests {
                 values: vec![
                     MapEntry {
                         key: WordRepresentation::Dynamic(TemplateKey::new("foo.bar")),
-                        value: WordRepresentation::SingleHex(digest!("0x2").into()),
+                        value: WordRepresentation::Hexadecimal(digest!("0x2").into()),
                     },
                     MapEntry {
-                        key: WordRepresentation::SingleHex(digest!("0x2").into()),
+                        key: WordRepresentation::Hexadecimal(digest!("0x2").into()),
                         value: WordRepresentation::Dynamic(TemplateKey::new("bar.baz")),
                     },
                     MapEntry {
-                        key: WordRepresentation::SingleHex(digest!("0x3").into()),
-                        value: WordRepresentation::SingleHex(digest!("0x4").into()),
+                        key: WordRepresentation::Hexadecimal(digest!("0x3").into()),
+                        value: WordRepresentation::Hexadecimal(digest!("0x4").into()),
                     },
                 ],
             },
@@ -519,7 +609,7 @@ mod tests {
                 values: vec![
                     WordRepresentation::Dynamic(TemplateKey::new("test.dynamic")),
                     WordRepresentation::Array(array),
-                    WordRepresentation::SingleHex(digest!("0xabcdef123abcdef123").into()),
+                    WordRepresentation::Hexadecimal(digest!("0xabcdef123abcdef123").into()),
                 ],
             },
             StorageEntry::Value {

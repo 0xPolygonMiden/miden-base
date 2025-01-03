@@ -3,11 +3,13 @@ use alloc::{
     vec::Vec,
 };
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use vm_core::{Felt, Word};
-use vm_processor::Digest;
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    Felt, Word,
+};
+use vm_processor::{DeserializationError, Digest};
 
-use crate::accounts::package::AccountComponentTemplateError;
+use crate::accounts::template::AccountComponentTemplateError;
 
 // TEMPLATE KEY
 // ================================================================================================
@@ -19,10 +21,12 @@ pub struct TemplateKey {
 }
 
 impl TemplateKey {
+    /// Creates a new [TemplateKey]
     pub fn new(key: impl Into<String>) -> Self {
         Self { key: key.into() }
     }
 
+    /// Returns the key name
     pub fn inner(&self) -> &str {
         &self.key
     }
@@ -55,10 +59,24 @@ impl core::fmt::Display for TemplateKey {
     }
 }
 
-impl Serialize for TemplateKey {
+impl Serializable for TemplateKey {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(&self.key);
+    }
+}
+
+impl Deserializable for TemplateKey {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let key: String = source.read()?;
+        Ok(TemplateKey { key })
+    }
+}
+
+#[cfg(feature = "std")]
+impl serde::Serialize for TemplateKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: serde::Serializer,
     {
         // Wrap the key in "{{" and "}}"
         let wrapped = format!("{{{{{}}}}}", self.key);
@@ -66,10 +84,11 @@ impl Serialize for TemplateKey {
     }
 }
 
-impl<'de> Deserialize<'de> for TemplateKey {
+#[cfg(feature = "std")]
+impl<'de> serde::Deserialize<'de> for TemplateKey {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>,
+        D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         TemplateKey::try_from(s.as_str()).map_err(serde::de::Error::custom)

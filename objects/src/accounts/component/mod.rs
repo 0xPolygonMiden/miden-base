@@ -8,7 +8,7 @@ use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
 #[cfg(feature = "std")]
-use super::package::{AccountComponentTemplate, AccountComponentTemplateError, TemplateValue};
+use super::template::{AccountComponentTemplate, AccountComponentTemplateError, TemplateValue};
 use crate::{
     accounts::{AccountType, StorageSlot},
     AccountError,
@@ -91,7 +91,7 @@ impl AccountComponent {
 
     /// Instantiates an [AccountComponent] from the [AccountComponentTemplate].
     ///
-    /// The package's component metadata might contain templated values, which can be input by
+    /// The template's component metadata might contain templated values, which can be input by
     /// mapping key names to [template values](TemplateValue) through the `template_keys`
     /// parameter.
     ///
@@ -100,18 +100,17 @@ impl AccountComponent {
     /// - If any of the component's storage entries cannot be transformed into a valid storage slot.
     ///   This could be because the metadata is invalid, or template values were not provided (or
     ///   they are not of a valid type)
-    #[cfg(feature = "std")]
     pub fn from_template(
-        package: &AccountComponentTemplate,
+        template: &AccountComponentTemplate,
         template_keys: &BTreeMap<String, TemplateValue>,
     ) -> Result<AccountComponent, AccountComponentTemplateError> {
         let mut storage_slots = vec![];
-        for storage_entry in package.metadata().storage_entries() {
-            let entry_storage_slots = storage_entry.try_into_storage_slots(template_keys)?;
+        for storage_entry in template.metadata().storage_entries() {
+            let entry_storage_slots = storage_entry.try_build_storage_slots(template_keys)?;
             storage_slots.extend(entry_storage_slots);
         }
 
-        AccountComponent::new(package.library().clone(), storage_slots)
+        AccountComponent::new(template.library().clone(), storage_slots)
             .map_err(AccountComponentTemplateError::AccountComponentError)
     }
 

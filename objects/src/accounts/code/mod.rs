@@ -307,15 +307,14 @@ fn build_procedure_commitment(procedures: &[AccountProcedureInfo]) -> Digest {
 
 #[cfg(test)]
 mod tests {
-
     use assembly::Assembler;
+    use assert_matches::assert_matches;
     use vm_core::Word;
 
     use super::{AccountCode, Deserializable, Serializable};
-    use crate::{
-        accounts::{code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot},
-        AccountError,
-    };
+    use crate::{accounts::{
+        code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot,
+    }, AccountError};
 
     #[test]
     fn test_serde_account_code() {
@@ -364,6 +363,6 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(matches!(err, AccountError::StorageOffsetPlusSizeOutOfBounds(256)))
+        assert_matches!(err, AccountError::StorageOffsetPlusSizeOutOfBounds(256))
     }
 }
