@@ -312,9 +312,10 @@ mod tests {
     use vm_core::Word;
 
     use super::{AccountCode, Deserializable, Serializable};
-    use crate::{accounts::{
-        code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot,
-    }, AccountError};
+    use crate::{
+        accounts::{code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot},
+        AccountError,
+    };
 
     #[test]
     fn test_serde_account_code() {
