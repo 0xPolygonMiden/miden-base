@@ -1,7 +1,7 @@
 pub mod api;
 pub mod commands;
 pub mod error;
-mod proxy;
+pub mod proxy;
 mod utils;
 use commands::Cli;
 use utils::setup_tracing;
