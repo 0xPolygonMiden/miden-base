@@ -739,7 +739,7 @@ end
 #! 1. Retrieve the anchor block hash by computing the block number of the anchor block and
 #!    retrieving it from the chain mmr.
 #! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
-#! 3. Assert the two least significant elements of the digest is equal to the account id of the
+#! 3. Assert the two least significant elements of the digest are equal to the account id of the
 #!    account the transaction is being executed against.
 #!
 #! Inputs:  []

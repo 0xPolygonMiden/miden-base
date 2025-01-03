@@ -12,9 +12,8 @@ use super::{
 ///
 /// Note type and tag must be internally consistent according to the following rules:
 ///
-/// - For private notes, the two most significant bits of the tag must be `0b11`.
-/// - For public notes, the two most significant bits of the tag must be `0b00`, `0b01` or `0b10`.
-/// - For encrypted notes, the two most significant bits of the tag must be `0b11`.
+/// - For private and encrypted notes, the two most significant bits of the tag must be `0b11`.
+/// - For public notes, the two most significant bits of the tag can be set to any value.
 ///
 /// # Word layout & validity
 ///
