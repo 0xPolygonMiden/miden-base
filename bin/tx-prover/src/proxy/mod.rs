@@ -9,9 +9,9 @@ use std::{
 use async_trait::async_trait;
 use bytes::Bytes;
 use metrics::{
-    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS,
-    REQUEST_COUNT, REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY,
-    WORKER_COUNT, WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
+    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS, REQUEST_COUNT,
+    REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
+    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
 };
 use once_cell::sync::Lazy;
 use pingora::{
@@ -284,12 +284,14 @@ pub struct RequestQueue {
 
 impl RequestQueue {
     /// Create a new empty request queue
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         QUEUE_SIZE.set(0);
         Self { queue: RwLock::new(VecDeque::new()) }
     }
 
     /// Get the length of the queue
+    #[allow(clippy::len_without_is_empty)]
     pub async fn len(&self) -> usize {
         self.queue.read().await.len()
     }
