@@ -12,8 +12,8 @@ pub use word::*;
 use super::AccountComponentTemplateError;
 use crate::accounts::{StorageMap, StorageSlot};
 
-mod template;
-pub use template::{TemplateKey, TemplateValue};
+mod template_key;
+pub use template_key::{TemplateKey, TemplateValue};
 
 // STORAGE ENTRY
 // ================================================================================================
@@ -231,6 +231,77 @@ impl StorageEntry {
 // SERIALIZATION
 // ================================================================================================
 
+impl Serializable for StorageEntry {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        match self {
+            StorageEntry::Value { name, description, slot, value } => {
+                target.write_u8(0u8);
+                target.write(name);
+                target.write(description);
+                target.write_u8(*slot);
+                target.write(value);
+            },
+            StorageEntry::Map { name, description, slot, values } => {
+                target.write_u8(1u8);
+                target.write(name);
+                target.write(description);
+                target.write_u8(*slot);
+                target.write(values);
+            },
+            StorageEntry::MultiSlot { name, description, slots, values } => {
+                target.write_u8(2u8);
+                target.write(name);
+                target.write(description);
+                target.write(slots);
+                target.write(values);
+            },
+        }
+    }
+}
+
+impl Deserializable for StorageEntry {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let variant_tag = source.read_u8()?;
+        let name: String = source.read()?;
+        let description: Option<String> = source.read()?;
+
+        match variant_tag {
+            // Value
+            0 => {
+                let slot = source.read_u8()?;
+                let value: WordRepresentation = source.read()?;
+
+                Ok(StorageEntry::Value { name, description, slot, value })
+            },
+
+            // Map
+            1 => {
+                let slot = source.read_u8()?;
+                let values: Vec<MapEntry> = source.read()?;
+
+                Ok(StorageEntry::Map { name, description, slot, values })
+            },
+
+            // MultiSlot
+            2 => {
+                let slots: Vec<u8> = source.read()?;
+                let values: Vec<WordRepresentation> = source.read()?;
+
+                Ok(StorageEntry::MultiSlot { name, description, slots, values })
+            },
+
+            // Unknown tag => error
+            _ => Err(DeserializationError::InvalidValue(format!(
+                "unknown variant tag for StorageEntry: {}",
+                variant_tag
+            ))),
+        }
+    }
+}
+
+// SERDE SERIALIZATION
+// ================================================================================================
+
 /// Used as a helper for validating and (de)serializing storage entries
 #[derive(Default)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
@@ -379,74 +450,6 @@ impl<'de> serde::Deserialize<'de> for StorageEntry {
     }
 }
 
-impl Serializable for StorageEntry {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        match self {
-            StorageEntry::Value { name, description, slot, value } => {
-                target.write_u8(0u8);
-                target.write(name);
-                target.write(description);
-                target.write_u8(*slot);
-                target.write(value);
-            },
-            StorageEntry::Map { name, description, slot, values } => {
-                target.write_u8(1u8);
-                target.write(name);
-                target.write(description);
-                target.write_u8(*slot);
-                target.write(values);
-            },
-            StorageEntry::MultiSlot { name, description, slots, values } => {
-                target.write_u8(2u8);
-                target.write(name);
-                target.write(description);
-                target.write(slots);
-                target.write(values);
-            },
-        }
-    }
-}
-
-impl Deserializable for StorageEntry {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let variant_tag = source.read_u8()?;
-        let name: String = source.read()?;
-        let description: Option<String> = source.read()?;
-
-        match variant_tag {
-            // Value
-            0 => {
-                let slot = source.read_u8()?;
-                let value: WordRepresentation = source.read()?;
-
-                Ok(StorageEntry::Value { name, description, slot, value })
-            },
-
-            // Map
-            1 => {
-                let slot = source.read_u8()?;
-                let values: Vec<MapEntry> = source.read()?;
-
-                Ok(StorageEntry::Map { name, description, slot, values })
-            },
-
-            // MultiSlot
-            2 => {
-                let slots: Vec<u8> = source.read()?;
-                let values: Vec<WordRepresentation> = source.read()?;
-
-                Ok(StorageEntry::MultiSlot { name, description, slots, values })
-            },
-
-            // Unknown tag => error
-            _ => Err(DeserializationError::InvalidValue(format!(
-                "unknown variant tag for StorageEntry: {}",
-                variant_tag
-            ))),
-        }
-    }
-}
-
 // STORAGE VALUES
 // ================================================================================================
 
@@ -561,7 +564,7 @@ mod tests {
     use super::*;
     use crate::{
         accounts::{
-            template::{AccountComponentTemplate, ComponentMetadata},
+            component::template::{AccountComponentTemplate, ComponentMetadata},
             AccountComponent, AccountType,
         },
         digest,

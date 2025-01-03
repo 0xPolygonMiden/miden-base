@@ -9,7 +9,7 @@ use vm_core::{
 };
 use vm_processor::{DeserializationError, Digest};
 
-use crate::accounts::template::AccountComponentTemplateError;
+use crate::accounts::component::template::AccountComponentTemplateError;
 
 // TEMPLATE KEY
 // ================================================================================================
@@ -55,9 +55,12 @@ impl TryFrom<&String> for TemplateKey {
 
 impl core::fmt::Display for TemplateKey {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.key)
+        write!(f, "{{{{{}}}}}", self.key)
     }
 }
+
+// SERIALIZATION
+// ================================================================================================
 
 impl Serializable for TemplateKey {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -72,15 +75,16 @@ impl Deserializable for TemplateKey {
     }
 }
 
+// SERDE SERIALIZATION
+// ================================================================================================
+
 #[cfg(feature = "std")]
 impl serde::Serialize for TemplateKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        // Wrap the key in "{{" and "}}"
-        let wrapped = format!("{{{{{}}}}}", self.key);
-        serializer.serialize_str(&wrapped)
+        serializer.serialize_str(&self.key.to_string())
     }
 }
 

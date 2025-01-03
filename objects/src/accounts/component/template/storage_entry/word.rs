@@ -13,7 +13,9 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use super::{TemplateKey, TemplateValue};
-use crate::{accounts::template::AccountComponentTemplateError, utils::parse_hex_string_as_word};
+use crate::{
+    accounts::component::template::AccountComponentTemplateError, utils::parse_hex_string_as_word,
+};
 
 // WORDS
 // ================================================================================================
@@ -57,6 +59,7 @@ impl WordRepresentation {
                 for (index, felt_repr) in array.iter().enumerate() {
                     result[index] = felt_repr.clone().try_build_felt(template_values)?;
                 }
+                // SAFETY: result is guaranteed to have all its 4 indices rewritten
                 Ok(result)
             },
             WordRepresentation::Dynamic(template_key) => {
@@ -288,7 +291,7 @@ impl Serializable for FeltRepresentation {
             },
             FeltRepresentation::Dynamic(template_key) => {
                 target.write_u8(2);
-                target.write(template_key);
+                target.write(template_key.to_string());
             },
         }
     }
@@ -363,21 +366,5 @@ impl serde::Serialize for FeltRepresentation {
             },
             FeltRepresentation::Dynamic(key) => key.serialize(serializer),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::println;
-
-    use super::WordRepresentation;
-    use crate::digest;
-
-    #[test]
-    pub fn word_repr_rt() {
-        let word = WordRepresentation::Hexadecimal(digest!("0x123").into());
-        let serialized = toml::to_string(&word).unwrap();
-
-        println!("{serialized}");
     }
 }

@@ -5,10 +5,12 @@ use alloc::{
 };
 
 use assembly::{Assembler, Compile, Library};
+use template::{AccountComponentTemplate, AccountComponentTemplateError, TemplateValue};
 use vm_processor::MastForest;
 
-#[cfg(feature = "std")]
-use super::template::{AccountComponentTemplate, AccountComponentTemplateError, TemplateValue};
+// TODO: Restrict visibility to just necessary structs
+pub mod template;
+
 use crate::{
     accounts::{AccountType, StorageSlot},
     AccountError,

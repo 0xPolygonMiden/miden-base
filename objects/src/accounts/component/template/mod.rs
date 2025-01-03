@@ -64,10 +64,7 @@ impl AccountComponentTemplate {
 
 impl Serializable for AccountComponentTemplate {
     fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
-        // TODO: Remove this - we want proper binary serialization here; otherwise this depends on
-        // `std` being set
-        let config_toml = toml::to_string(&self.metadata).expect("");
-        target.write(config_toml);
+        target.write(&self.metadata);
         target.write(&self.library);
     }
 }
@@ -77,13 +74,10 @@ impl Deserializable for AccountComponentTemplate {
         source: &mut R,
     ) -> Result<Self, vm_processor::DeserializationError> {
         // Read and deserialize the configuration from a TOML string.
-        let config_str = String::read_from(source)?;
-        let config: ComponentMetadata = toml::from_str(&config_str)
-            .map_err(|e| vm_processor::DeserializationError::InvalidValue(e.to_string()))?;
+        let config: ComponentMetadata = source.read()?;
         let library = Library::read_from(source)?;
 
-        let package = AccountComponentTemplate::new(config, library);
-        Ok(package)
+        Ok(AccountComponentTemplate::new(config, library))
     }
 }
 
@@ -163,13 +157,13 @@ impl ComponentMetadata {
         }
 
         for slots in all_slots.windows(2) {
-            if slots[1] != slots[0] + 1 {
-                return Err(AccountComponentTemplateError::NonContiguousSlots);
-            }
-
             // Check for duplicates
             if slots[1] == slots[0] {
                 return Err(AccountComponentTemplateError::DuplicateSlot(slots[0]));
+            }
+
+            if slots[1] != slots[0] + 1 {
+                return Err(AccountComponentTemplateError::NonContiguousSlots);
             }
         }
         Ok(())
@@ -182,7 +176,8 @@ impl ComponentMetadata {
     /// - If deserialization or validation fails
     #[cfg(feature = "std")]
     pub fn from_toml(toml_string: &str) -> Result<Self, AccountComponentTemplateError> {
-        let component: ComponentMetadata = toml::from_str(toml_string)?;
+        let component: ComponentMetadata = toml::from_str(toml_string)
+            .map_err(AccountComponentTemplateError::DeserializationError)?;
         component.validate()?;
         Ok(component)
     }
@@ -256,8 +251,9 @@ impl Deserializable for ComponentMetadata {
 pub enum AccountComponentTemplateError {
     #[error("error creating AccountComponent")]
     AccountComponentError(#[source] AccountError),
+    #[cfg(feature = "std")]
     #[error("error trying to deserialize from toml")]
-    DeserializationError(#[from] toml::de::Error),
+    DeserializationError(#[source] toml::de::Error),
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
     #[error("component storage slots have to start at 0")]
@@ -276,7 +272,7 @@ pub enum AccountComponentTemplateError {
     TemplateValueNotProvided(String),
 }
 
-// SERIALIZATION
+// SERDE SERIALIZATION
 // ================================================================================================
 
 #[cfg(feature = "std")]

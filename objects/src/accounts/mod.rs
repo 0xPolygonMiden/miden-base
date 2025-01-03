@@ -32,9 +32,6 @@ pub use delta::{
     NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
 
-// TODO: Restrict visibility to just necessary structs
-pub mod template;
-
 mod seed;
 pub use seed::compute_account_seed;
 
