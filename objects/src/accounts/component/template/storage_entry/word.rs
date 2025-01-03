@@ -291,7 +291,7 @@ impl Serializable for FeltRepresentation {
             },
             FeltRepresentation::Dynamic(template_key) => {
                 target.write_u8(2);
-                target.write(template_key.to_string());
+                target.write(template_key);
             },
         }
     }

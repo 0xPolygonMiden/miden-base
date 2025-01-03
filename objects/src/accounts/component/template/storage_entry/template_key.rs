@@ -14,7 +14,14 @@ use crate::accounts::component::template::AccountComponentTemplateError;
 // TEMPLATE KEY
 // ================================================================================================
 
-// A simple wrapper type around a string key, used to enable templating.
+/// A simple wrapper type around a string key that enables templating.
+///
+/// A template key is a string that identifies dynamic values within a component's metadata storage
+/// entries. Template keys are serialized as "{{key}}" and can be used as placeholders in map keys,
+/// map values, or individual [Felt] within a [Word].
+///
+/// At component instantiation, a map of keys to [TemplateValue] must be provided to dynamically
+/// replace these placeholders with the instance’s actual values.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TemplateKey {
     key: String,
@@ -84,7 +91,7 @@ impl serde::Serialize for TemplateKey {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&self.key.to_string())
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -102,6 +109,14 @@ impl<'de> serde::Deserialize<'de> for TemplateKey {
 // TEMPLATE VALUE
 // ================================================================================================
 
+/// Represents a value used within a templating context.
+///
+/// A [TemplateValue] can be one of:
+/// - `Felt(Felt)`: a single [Felt] value
+/// - `Word(Word)`: a single [Word] value
+/// - `Map(Vec<(Digest, Word)>)`: alist of storage map entries, mapping [Digest] to [Word]
+///
+/// These values are used to resolve dynamic placeholders at component instantiation.
 pub enum TemplateValue {
     Felt(Felt),
     Word(Word),

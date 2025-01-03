@@ -163,7 +163,7 @@ impl ComponentMetadata {
             }
 
             if slots[1] != slots[0] + 1 {
-                return Err(AccountComponentTemplateError::NonContiguousSlots);
+                return Err(AccountComponentTemplateError::NonContiguousSlots(slots[0], slots[1]));
             }
         }
         Ok(())
@@ -235,12 +235,12 @@ impl Serializable for ComponentMetadata {
 
 impl Deserializable for ComponentMetadata {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let version = semver::Version::from_str(&String::read_from(source)?)
-            .map_err(|err: semver::Error| DeserializationError::InvalidValue(err.to_string()))?;
         Ok(Self {
             name: String::read_from(source)?,
             description: String::read_from(source)?,
-            version,
+            version: semver::Version::from_str(&String::read_from(source)?).map_err(
+                |err: semver::Error| DeserializationError::InvalidValue(err.to_string()),
+            )?,
             targets: BTreeSet::<AccountType>::read_from(source)?,
             storage: Vec::<StorageEntry>::read_from(source)?,
         })
@@ -264,8 +264,8 @@ pub enum AccountComponentTemplateError {
     MultiSlotArityMismatch,
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
-    #[error("component storage slots are not contiguous")]
-    NonContiguousSlots,
+    #[error("component storage slots are not contiguous ({0} is followed by {1})")]
+    NonContiguousSlots(u8, u8),
     #[error("error creating storage map")]
     StorageMapError(#[source] AccountError),
     #[error("template value ({0}) was not provided in the map")]
@@ -386,7 +386,7 @@ mod tests {
             BTreeSet::new(),
             storage,
         );
-        assert_matches!(result, Err(AccountComponentTemplateError::NonContiguousSlots));
+        assert_matches!(result, Err(AccountComponentTemplateError::NonContiguousSlots(0, 2)));
     }
 
     #[test]

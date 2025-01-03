@@ -112,7 +112,9 @@ impl StorageEntry {
 
         for window in slots.windows(2) {
             if window[1] != window[0] + 1 {
-                return Err(AccountComponentTemplateError::NonContiguousSlots);
+                return Err(AccountComponentTemplateError::NonContiguousSlots(
+                    window[0], window[1],
+                ));
             }
         }
 
@@ -668,7 +670,13 @@ mod tests {
 
         assert_eq!(component_metadata.storage_entries().first().unwrap().map_entries().len(), 3);
 
-        let package = AccountComponentTemplate::new(component_metadata, library);
+        let template = AccountComponentTemplate::new(component_metadata, library);
+
+        let template_bytes = template.to_bytes();
+        let template_deserialized =
+            AccountComponentTemplate::read_from_bytes(&template_bytes).unwrap();
+        assert_eq!(template, template_deserialized);
+
         let template_keys = [
             ("key.test".to_string(), TemplateValue::Word(Default::default())),
             ("value.test".to_string(), TemplateValue::Felt(Felt::new(64))),
@@ -680,7 +688,8 @@ mod tests {
         .into_iter()
         .collect();
 
-        let component = AccountComponent::from_template(&package, &template_keys).unwrap();
+        let component = AccountComponent::from_template(&template, &template_keys).unwrap();
+
         let storage_map = component.storage_slots.first().unwrap();
         match storage_map {
             StorageSlot::Map(storage_map) => assert_eq!(storage_map.entries().count(), 3),
@@ -695,7 +704,7 @@ mod tests {
             _ => panic!("should be value"),
         }
 
-        let failed_instantiation = AccountComponent::from_template(&package, &BTreeMap::new());
+        let failed_instantiation = AccountComponent::from_template(&template, &BTreeMap::new());
         assert_matches!(
             failed_instantiation,
             Err(AccountComponentTemplateError::TemplateValueNotProvided(_))
