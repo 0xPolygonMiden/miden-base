@@ -16,6 +16,8 @@ use tonic::transport::Channel;
 use tonic_health::pb::health_client::HealthClient;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
 
+use crate::proxy::metrics::QUEUE_DROP_COUNT;
+
 pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
 
 const RESOURCE_EXHAUSTED_CODE: u16 = 8;
@@ -110,6 +112,10 @@ pub(crate) async fn create_queue_full_response(
     error.set_cause("Too many requests in the queue");
 
     session.write_response_header(Box::new(header), false).await?;
+
+    // Increment the queue drop count metric
+    QUEUE_DROP_COUNT.inc();
+
     Err(error)
 }
 

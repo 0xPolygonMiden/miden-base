@@ -9,7 +9,7 @@ use std::{
 use async_trait::async_trait;
 use bytes::Bytes;
 use metrics::{
-    QUEUE_DROP_COUNT, QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS,
+    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS,
     REQUEST_COUNT, REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY,
     WORKER_COUNT, WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
 };
@@ -42,7 +42,7 @@ use crate::{
     },
 };
 
-mod metrics;
+pub mod metrics;
 mod worker;
 
 /// Localhost address
@@ -462,7 +462,6 @@ impl ProxyHttp for LoadBalancer {
 
         // Check if the queue is full
         if queue_len >= self.0.max_queue_items {
-            QUEUE_DROP_COUNT.inc();
             return create_queue_full_response(session).await;
         }
 

@@ -1,6 +1,6 @@
 pub mod api;
 pub mod commands;
-mod proxy;
+pub mod proxy;
 mod utils;
 use commands::Cli;
 use utils::setup_tracing;
