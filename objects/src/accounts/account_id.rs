@@ -330,7 +330,7 @@ impl AccountId {
     ///   significant end of the ID.
     /// - In the second felt the anchor epoch is set to 0 and the lower 8 bits are cleared.
     #[cfg(any(feature = "testing", test))]
-    pub fn new_dummy(
+    pub fn dummy(
         mut bytes: [u8; 15],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
@@ -768,6 +768,65 @@ pub(super) fn compute_digest(
     Hasher::hash_elements(&elements)
 }
 
+/// Creates an [`AccountId`] for testing purposes using the provided rng to sample randomness.
+///
+/// This uses [`AccountId::dummy`] under the hood, so refer to its documentation for details.
+///
+/// When only an rng is provided, the macro will generate a random [`AccountType`] and
+/// [`AccountStorageMode`] and pass it to [`AccountId::dummy`].
+///
+/// If an rng, an account type and a storage mode is given, only the random input to
+/// [`AccountId::dummy`] is randomly generated and the resulting ID will have the given account
+/// type and storage mode.
+///
+/// # Examples
+///
+/// ```
+/// # use crate::account_id_dummy;
+/// # use crate::accounts::{AccountType, AccountStorageMode};
+///
+/// let mut rng = rand::thread_rng();
+/// let random_id1 = account_id_dummy!(&mut rng);
+/// let random_id2 =
+///     account_id_dummy!(&mut rng, AccountType::FungibleFaucet, AccountStorageMode::Public);
+/// ```
+#[cfg(any(feature = "testing", test))]
+#[macro_export]
+macro_rules! account_id_dummy {
+    ($rng:expr) => {{
+        use rand::prelude::*;
+        fn sample_account_type(mut rng: &mut impl rand::Rng) -> AccountType {
+            let account_type_distribution = rand::distributions::Uniform::new_inclusive(0, 3);
+            match account_type_distribution.sample(&mut rng) {
+                0 => AccountType::RegularAccountImmutableCode,
+                1 => AccountType::RegularAccountUpdatableCode,
+                2 => AccountType::FungibleFaucet,
+                3 => AccountType::NonFungibleFaucet,
+                _ => unreachable!("the uniform distribution should not produce higher values"),
+            }
+        }
+
+        fn sample_storage_mode(mut rng: &mut impl rand::Rng) -> AccountStorageMode {
+            let account_type_distribution = rand::distributions::Uniform::new_inclusive(0, 1);
+            match account_type_distribution.sample(&mut rng) {
+                0 => AccountStorageMode::Public,
+                1 => AccountStorageMode::Private,
+                _ => unreachable!("the uniform distribution should not produce higher values"),
+            }
+        }
+
+        let randomness = $rng.gen();
+        let account_type = sample_account_type($rng);
+        let storage_mode = sample_storage_mode($rng);
+        AccountId::dummy(randomness, account_type, storage_mode)
+    }};
+    ($rng:expr, $account_type:expr, $storage_mode:expr) => {{
+        use rand::prelude::*;
+        let randomness = $rng.gen();
+        AccountId::dummy(randomness, $account_type, $storage_mode)
+    }};
+}
+
 // TESTS
 // ================================================================================================
 
@@ -831,7 +890,7 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountId::new_dummy(input, account_type, storage_mode);
+                    let id = AccountId::dummy(input, account_type, storage_mode);
                     assert_eq!(id.account_type(), account_type);
                     assert_eq!(id.storage_mode(), storage_mode);
                     assert_eq!(id.version(), AccountIdVersion::VERSION_0);

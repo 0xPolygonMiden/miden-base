@@ -334,7 +334,7 @@ mod tests {
 
         let non_fungible: Asset = NonFungibleAsset::new(
             &NonFungibleAssetDetails::new(
-                AccountId::new_dummy(
+                AccountId::dummy(
                     [10; 15],
                     AccountType::NonFungibleFaucet,
                     AccountStorageMode::Public,
@@ -347,7 +347,7 @@ mod tests {
         .unwrap()
         .into();
         let fungible_2: Asset = FungibleAsset::new(
-            AccountId::new_dummy([10; 15], AccountType::FungibleFaucet, AccountStorageMode::Public),
+            AccountId::dummy([10; 15], AccountType::FungibleFaucet, AccountStorageMode::Public),
             10,
         )
         .unwrap()
