@@ -1,6 +1,5 @@
 use alloc::{
     boxed::Box,
-    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -12,7 +11,7 @@ use vm_core::{
 };
 use vm_processor::{DeserializationError, Digest};
 
-use super::{TemplateKey, TemplateValue};
+use super::{InitStorageData, TemplateKey};
 use crate::{
     accounts::component::template::AccountComponentTemplateError, utils::parse_hex_string_as_word,
 };
@@ -45,25 +44,25 @@ impl WordRepresentation {
 
     /// Attempts to convert the [WordRepresentation] into a [Word].
     ///
-    /// If the representation is dynamic, the value is retrieved from `template_values`, identified
-    /// by its key. If any of the inner elements within the value are dynamic, they are retrieved
-    /// in the same way.
+    /// If the representation is dynamic, the value is retrieved from
+    /// `templatinit_storage_datae_values`, identified by its key. If any of the inner elements
+    /// within the value are dynamic, they are retrieved in the same way.
     pub fn try_build_word(
         &self,
-        template_values: &BTreeMap<String, TemplateValue>,
+        init_storage_data: &InitStorageData,
     ) -> Result<Word, AccountComponentTemplateError> {
         match self {
             WordRepresentation::Hexadecimal(word) => Ok(*word),
             WordRepresentation::Array(array) => {
                 let mut result = [Felt::ZERO; 4];
                 for (index, felt_repr) in array.iter().enumerate() {
-                    result[index] = felt_repr.clone().try_build_felt(template_values)?;
+                    result[index] = felt_repr.clone().try_build_felt(init_storage_data)?;
                 }
                 // SAFETY: result is guaranteed to have all its 4 indices rewritten
                 Ok(result)
             },
             WordRepresentation::Dynamic(template_key) => {
-                let user_value = template_values
+                let user_value = init_storage_data
                     .get(template_key.inner())
                     .ok_or_else(|| {
                         AccountComponentTemplateError::TemplateValueNotProvided(
@@ -234,7 +233,7 @@ pub enum FeltRepresentation {
     Hexadecimal(Felt),
     /// Single decimal representation of a field element.
     Decimal(Felt),
-    /// A template key written as "{{key}}".
+    /// A template key, serialized as "{{key}}".
     Dynamic(TemplateKey),
 }
 
@@ -250,16 +249,16 @@ impl FeltRepresentation {
 
     /// Attempts to convert the [FeltRepresentation] into a [Felt].
     ///
-    /// If the representation is dynamic, the value is retrieved from `template_values`, identified
-    /// by its key. Otherwise, the returned value is just the inner element.
+    /// If the representation is dynamic, the value is retrieved from `init_storage_data`,
+    /// identified by its key. Otherwise, the returned value is just the inner element.
     pub fn try_build_felt(
         self,
-        template_values: &BTreeMap<String, TemplateValue>,
+        init_storage_data: &InitStorageData,
     ) -> Result<Felt, AccountComponentTemplateError> {
         match self {
             FeltRepresentation::Hexadecimal(base_element) => Ok(base_element),
             FeltRepresentation::Decimal(base_element) => Ok(base_element),
-            FeltRepresentation::Dynamic(template_key) => template_values
+            FeltRepresentation::Dynamic(template_key) => init_storage_data
                 .get(template_key.inner())
                 .ok_or_else(|| {
                     AccountComponentTemplateError::TemplateValueNotProvided(
@@ -337,7 +336,7 @@ impl<'de> serde::Deserialize<'de> for FeltRepresentation {
             Ok(FeltRepresentation::Hexadecimal(Felt::new(felt_value)))
         } else if let Ok(decimal_value) = value.parse::<u64>() {
             Ok(FeltRepresentation::Decimal(
-                Felt::try_from(decimal_value).map_err(|err| serde::de::Error::custom(err))?,
+                Felt::try_from(decimal_value).map_err(serde::de::Error::custom)?,
             ))
         } else if let Ok(key) = TemplateKey::try_from(&value) {
             Ok(FeltRepresentation::Dynamic(key))
@@ -366,5 +365,114 @@ impl serde::Serialize for FeltRepresentation {
             },
             FeltRepresentation::Dynamic(key) => key.serialize(serializer),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vm_core::{
+        utils::{Deserializable, Serializable},
+        Felt, Word,
+    };
+
+    use crate::accounts::component::template::{
+        storage_entry::{FeltRepresentation, TemplateValue, WordRepresentation},
+        InitStorageData, TemplateKey,
+    };
+
+    #[test]
+    fn test_template_key_try_from_str() {
+        let invalid_strings = vec![
+            "{invalid}",
+            "no_braces",
+            "{{unclosed",
+            "unopened}}",
+            "{}",
+            "{{}}",
+            "{{.}}",
+            "{{foo..bar}}",
+        ];
+
+        for s in invalid_strings {
+            let result = TemplateKey::try_from(s);
+            result.unwrap_err();
+        }
+
+        let s = "{{dynamic_key}}";
+        let tk = TemplateKey::try_from(s).unwrap();
+        assert_eq!(tk.inner(), "dynamic_key");
+    }
+
+    #[test]
+    fn test_template_key_serialization_deserialization() {
+        let original = TemplateKey::new("serialize_test").unwrap();
+        let serialized = original.to_bytes();
+        let deserialized = TemplateKey::read_from_bytes(&serialized).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_felt_representation_serde() {
+        let felt = Felt::new(1234);
+        let original = FeltRepresentation::Hexadecimal(felt);
+        let serialized = original.to_bytes();
+        let deserialized = FeltRepresentation::read_from_bytes(&serialized).unwrap();
+        assert_eq!(original, deserialized);
+
+        let felt = Felt::new(45563);
+        let original = FeltRepresentation::Decimal(felt);
+        let serialized = original.to_bytes();
+        let deserialized = FeltRepresentation::read_from_bytes(&serialized).unwrap();
+        assert_eq!(original, deserialized);
+
+        let template_key = TemplateKey::new("dynamic_felt").unwrap();
+        let original = FeltRepresentation::Dynamic(template_key.clone());
+        let serialized = original.to_bytes();
+        let deserialized = FeltRepresentation::read_from_bytes(&serialized).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_felt_representation_try_build_felt() {
+        let dyn_key = TemplateKey::new("felt_key").unwrap();
+        let dynamic = FeltRepresentation::Dynamic(dyn_key.clone());
+        let init_storage_data =
+            InitStorageData::new([("felt_key".into(), TemplateValue::Felt(Felt::new(300)))]);
+        let built = dynamic.try_build_felt(&init_storage_data).unwrap();
+        assert_eq!(built, Felt::new(300));
+
+        let dyn_key = TemplateKey::new("missing_key").unwrap();
+        let dynamic = FeltRepresentation::Dynamic(dyn_key.clone());
+        let result = dynamic.try_build_felt(&init_storage_data);
+        result.unwrap_err();
+    }
+
+    #[test]
+    fn test_word_representation_serde() {
+        let word = Word::default();
+        let original = WordRepresentation::Hexadecimal(word);
+        let serialized = original.to_bytes();
+        let deserialized = WordRepresentation::read_from_bytes(&serialized).unwrap();
+        assert_eq!(original, deserialized);
+
+        let array = [
+            FeltRepresentation::Hexadecimal(Felt::new(10)),
+            FeltRepresentation::Decimal(Felt::new(20)),
+            FeltRepresentation::Dynamic(TemplateKey::new("word_key1").unwrap()),
+            FeltRepresentation::Dynamic(TemplateKey::new("word_key2").unwrap()),
+        ];
+        let original = WordRepresentation::Array(array);
+        let serialized = original.to_bytes();
+        let deserialized = WordRepresentation::read_from_bytes(&serialized).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_word_representation_dynamic_serialization_deserialization() {
+        let template_key = TemplateKey::new("dynamic_word").unwrap();
+        let original = WordRepresentation::Dynamic(template_key.clone());
+        let serialized = original.to_bytes();
+        let deserialized = WordRepresentation::read_from_bytes(&serialized).unwrap();
+        assert_eq!(original, deserialized);
     }
 }

@@ -1,18 +1,14 @@
-use alloc::{
-    collections::{BTreeMap, BTreeSet},
-    string::String,
-    vec::Vec,
-};
+use alloc::{collections::BTreeSet, vec::Vec};
 
 use assembly::{Assembler, Compile, Library};
-use template::{AccountComponentTemplate, AccountComponentTemplateError, TemplateValue};
 use vm_processor::MastForest;
 
-// TODO: Restrict visibility to just necessary structs
-pub mod template;
+mod template;
+pub use template::{AccountComponentTemplate, InitStorageData, StorageEntry};
 
 use crate::{
     accounts::{AccountType, StorageSlot},
+    errors::AccountComponentTemplateError,
     AccountError,
 };
 
@@ -94,7 +90,7 @@ impl AccountComponent {
     /// Instantiates an [AccountComponent] from the [AccountComponentTemplate].
     ///
     /// The template's component metadata might contain templated values, which can be input by
-    /// mapping key names to [template values](TemplateValue) through the `template_keys`
+    /// mapping key names to [template values](TemplateValue) through the `init_storage_data`
     /// parameter.
     ///
     /// # Errors
@@ -104,11 +100,11 @@ impl AccountComponent {
     ///   they are not of a valid type)
     pub fn from_template(
         template: &AccountComponentTemplate,
-        template_keys: &BTreeMap<String, TemplateValue>,
+        init_storage_data: &InitStorageData,
     ) -> Result<AccountComponent, AccountComponentTemplateError> {
         let mut storage_slots = vec![];
         for storage_entry in template.metadata().storage_entries() {
-            let entry_storage_slots = storage_entry.try_build_storage_slots(template_keys)?;
+            let entry_storage_slots = storage_entry.try_build_storage_slots(init_storage_data)?;
             storage_slots.extend(entry_storage_slots);
         }
 

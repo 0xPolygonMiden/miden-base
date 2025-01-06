@@ -22,6 +22,34 @@ use crate::{
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
+// ACCOUNT COMPONENT TEMPLATE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountComponentTemplateError {
+    #[error("error creating AccountComponent")]
+    AccountComponentError(#[source] AccountError),
+    #[cfg(feature = "std")]
+    #[error("error trying to deserialize from toml")]
+    DeserializationError(#[source] toml::de::Error),
+    #[error("slot {0} is defined multiple times")]
+    DuplicateSlot(u8),
+    #[error("component storage slots have to start at 0")]
+    StorageSlotsMustStartAtZero,
+    #[error("template value was not of the expected type {0}")]
+    IncorrectTemplateValue(String),
+    #[error("multi-slot entry should contain as many values as storage slots indices")]
+    MultiSlotArityMismatch,
+    #[error("error deserializing component metadata: {0}")]
+    MetadataDeserializationError(String),
+    #[error("component storage slots are not contiguous ({0} is followed by {1})")]
+    NonContiguousSlots(u8, u8),
+    #[error("error creating storage map")]
+    StorageMapError(#[source] AccountError),
+    #[error("template value ({0}) was not provided in the map")]
+    TemplateValueNotProvided(String),
+}
+
 // ACCOUNT ERROR
 // ================================================================================================
 

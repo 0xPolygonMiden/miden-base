@@ -7,15 +7,14 @@ use core::str::FromStr;
 
 use assembly::Library;
 use semver::Version;
-use thiserror::Error;
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::AccountType;
-use crate::AccountError;
+use crate::errors::AccountComponentTemplateError;
 
 mod storage_entry;
-pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
+pub use storage_entry::{InitStorageData, StorageEntry, TemplateKey};
 
 // ACCOUNT COMPONENT TEMPLATE
 // ================================================================================================
@@ -250,31 +249,6 @@ impl Deserializable for ComponentMetadata {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum AccountComponentTemplateError {
-    #[error("error creating AccountComponent")]
-    AccountComponentError(#[source] AccountError),
-    #[cfg(feature = "std")]
-    #[error("error trying to deserialize from toml")]
-    DeserializationError(#[source] toml::de::Error),
-    #[error("slot {0} is defined multiple times")]
-    DuplicateSlot(u8),
-    #[error("component storage slots have to start at 0")]
-    StorageSlotsMustStartAtZero,
-    #[error("template value was not of the expected type {0}")]
-    IncorrectTemplateValue(String),
-    #[error("multi-slot entry should contain as many values as storage slots indices")]
-    MultiSlotArityMismatch,
-    #[error("error deserializing component metadata: {0}")]
-    MetadataDeserializationError(String),
-    #[error("component storage slots are not contiguous ({0} is followed by {1})")]
-    NonContiguousSlots(u8, u8),
-    #[error("error creating storage map")]
-    StorageMapError(#[source] AccountError),
-    #[error("template value ({0}) was not provided in the map")]
-    TemplateValueNotProvided(String),
-}
-
 // SERDE SERIALIZATION
 // ================================================================================================
 
@@ -321,7 +295,6 @@ impl<'de> serde::Deserialize<'de> for AccountType {
 
 #[cfg(test)]
 mod tests {
-    use alloc::collections::BTreeMap;
 
     use assembly::Assembler;
     use assert_matches::assert_matches;
@@ -423,7 +396,7 @@ mod tests {
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
         let template = AccountComponentTemplate::new(component_template, library);
-        _ = AccountComponent::from_template(&template, &BTreeMap::new()).unwrap();
+        _ = AccountComponent::from_template(&template, &InitStorageData::default()).unwrap();
 
         let serialized = template.to_bytes();
         let deserialized = AccountComponentTemplate::read_from_bytes(&serialized).unwrap();

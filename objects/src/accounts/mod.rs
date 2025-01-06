@@ -24,7 +24,7 @@ pub mod code;
 pub use code::{procedure::AccountProcedureInfo, AccountCode};
 
 mod component;
-pub use component::AccountComponent;
+pub use component::{AccountComponent, AccountComponentTemplate, InitStorageData, StorageEntry};
 
 pub mod delta;
 pub use delta::{

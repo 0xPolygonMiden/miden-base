@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
@@ -14,6 +14,9 @@ use crate::accounts::{StorageMap, StorageSlot};
 
 mod template_key;
 pub use template_key::{TemplateKey, TemplateValue};
+
+mod init_storage_data;
+pub use init_storage_data::InitStorageData;
 
 // STORAGE ENTRY
 // ================================================================================================
@@ -196,22 +199,22 @@ impl StorageEntry {
     /// - StorageEntry::Map would convert to a [StorageSlot::Map]
     ///
     /// Each of the entry's values could be dynamic. These values are replaced for values found
-    /// in `template_values`, identified by its key.
+    /// in `init_storage_data`, identified by its key.
     pub fn try_build_storage_slots(
         &self,
-        template_values: &BTreeMap<String, TemplateValue>,
+        init_storage_data: &InitStorageData,
     ) -> Result<Vec<StorageSlot>, AccountComponentTemplateError> {
         match self {
             StorageEntry::Value { value, .. } => {
-                let slot = value.try_build_word(template_values)?;
+                let slot = value.try_build_word(init_storage_data)?;
                 Ok(vec![StorageSlot::Value(slot)])
             },
             StorageEntry::Map { values, .. } => {
                 let entries = values
                     .iter()
                     .map(|map_entry| {
-                        let key = map_entry.key().try_build_word(template_values)?;
-                        let value = map_entry.value().try_build_word(template_values)?;
+                        let key = map_entry.key().try_build_word(init_storage_data)?;
+                        let value = map_entry.value().try_build_word(init_storage_data)?;
                         Ok((key.into(), value))
                     })
                     .collect::<Result<Vec<(Digest, Word)>, AccountComponentTemplateError>>()?; // Collect into a Vec and propagate errors
@@ -223,7 +226,7 @@ impl StorageEntry {
             StorageEntry::MultiSlot { values, .. } => Ok(values
                 .iter()
                 .map(|word_repr| {
-                    word_repr.clone().try_build_word(template_values).map(StorageSlot::Value)
+                    word_repr.clone().try_build_word(init_storage_data).map(StorageSlot::Value)
                 })
                 .collect::<Result<Vec<StorageSlot>, _>>()?),
         }
@@ -579,7 +582,7 @@ mod tests {
             FeltRepresentation::Decimal(Felt::new(0xabc)),
             FeltRepresentation::Decimal(Felt::new(1218)),
             FeltRepresentation::Hexadecimal(Felt::new(0xdba3)),
-            FeltRepresentation::Dynamic(TemplateKey::new("test.array.dyn")),
+            FeltRepresentation::Dynamic(TemplateKey::new("test.array.dyn").unwrap()),
         ];
         let storage = vec![
             StorageEntry::Value {
@@ -594,12 +597,12 @@ mod tests {
                 slot: 1,
                 values: vec![
                     MapEntry {
-                        key: WordRepresentation::Dynamic(TemplateKey::new("foo.bar")),
+                        key: WordRepresentation::Dynamic(TemplateKey::new("foo.bar").unwrap()),
                         value: WordRepresentation::Hexadecimal(digest!("0x2").into()),
                     },
                     MapEntry {
                         key: WordRepresentation::Hexadecimal(digest!("0x2").into()),
-                        value: WordRepresentation::Dynamic(TemplateKey::new("bar.baz")),
+                        value: WordRepresentation::Dynamic(TemplateKey::new("bar.baz").unwrap()),
                     },
                     MapEntry {
                         key: WordRepresentation::Hexadecimal(digest!("0x3").into()),
@@ -612,7 +615,7 @@ mod tests {
                 description: Some("Multi slot entry".into()),
                 slots: vec![2, 3, 4],
                 values: vec![
-                    WordRepresentation::Dynamic(TemplateKey::new("test.dynamic")),
+                    WordRepresentation::Dynamic(TemplateKey::new("test.dynamic").unwrap()),
                     WordRepresentation::Array(array),
                     WordRepresentation::Hexadecimal(digest!("0xabcdef123abcdef123").into()),
                 ],
@@ -621,7 +624,7 @@ mod tests {
                 name: "single-slot".into(),
                 description: Some("Slot with dynamic key".into()),
                 slot: 0,
-                value: WordRepresentation::Dynamic(TemplateKey::new("single-slot-key")),
+                value: WordRepresentation::Dynamic(TemplateKey::new("single-slot-key").unwrap()),
             },
         ];
 
@@ -677,16 +680,14 @@ mod tests {
             AccountComponentTemplate::read_from_bytes(&template_bytes).unwrap();
         assert_eq!(template, template_deserialized);
 
-        let template_keys = [
+        let template_keys = InitStorageData::new([
             ("key.test".to_string(), TemplateValue::Word(Default::default())),
             ("value.test".to_string(), TemplateValue::Felt(Felt::new(64))),
             (
                 "word.test".to_string(),
                 TemplateValue::Word([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(128)]),
             ),
-        ]
-        .into_iter()
-        .collect();
+        ]);
 
         let component = AccountComponent::from_template(&template, &template_keys).unwrap();
 
@@ -704,7 +705,8 @@ mod tests {
             _ => panic!("should be value"),
         }
 
-        let failed_instantiation = AccountComponent::from_template(&template, &BTreeMap::new());
+        let failed_instantiation =
+            AccountComponent::from_template(&template, &InitStorageData::default());
         assert_matches!(
             failed_instantiation,
             Err(AccountComponentTemplateError::TemplateValueNotProvided(_))
