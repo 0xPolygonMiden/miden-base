@@ -20,7 +20,7 @@ pub use storage_entry::{StorageEntry, TemplateKey, TemplateValue};
 // ACCOUNT COMPONENT TEMPLATE
 // ================================================================================================
 
-/// Represents a package containing a component's metadata and its associated library.
+/// Represents a template containing a component's metadata and its associated library.
 ///
 /// The [AccountComponentTemplate] encapsulates all necessary information to initialize and manage
 /// a component within the system. It includes the configuration details and the compiled
@@ -42,7 +42,7 @@ pub struct AccountComponentTemplate {
 impl AccountComponentTemplate {
     /// Creates a new [AccountComponentTemplate].
     ///
-    /// This package holds everything needed to describe and implement a component, including the
+    /// This template holds everything needed to describe and implement a component, including the
     /// compiled procedures (via the [Library]) and the metadata that defines the component’s
     /// storage layout ([ComponentMetadata]). The metadata can include placeholders (template
     /// keys) that get filled in at the time of the [AccountComponent](super::AccountComponent)
@@ -114,7 +114,7 @@ impl ComponentMetadata {
     /// # Errors
     ///
     /// - If the specified storage slots contain duplicates.
-    /// - If the slot number zero is not present.
+    /// - If the slot numbers do not start at zero.
     /// - If the slots are not contiguous.
     pub fn new(
         name: String,
@@ -173,7 +173,10 @@ impl ComponentMetadata {
     ///
     /// # Errors
     ///
-    /// - If deserialization or validation fails
+    /// - If deserialization fails
+    /// - If the template specifies storage slots with duplicates.
+    /// - If the template includes slot numbers that do not start at zero.
+    /// - If storage slots in the template are not contiguous.
     #[cfg(feature = "std")]
     pub fn from_toml(toml_string: &str) -> Result<Self, AccountComponentTemplateError> {
         let component: ComponentMetadata = toml::from_str(toml_string)
@@ -419,12 +422,12 @@ mod tests {
         .unwrap();
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
-        let package = AccountComponentTemplate::new(component_template, library);
-        _ = AccountComponent::from_template(&package, &BTreeMap::new()).unwrap();
+        let template = AccountComponentTemplate::new(component_template, library);
+        _ = AccountComponent::from_template(&template, &BTreeMap::new()).unwrap();
 
-        let serialized = package.to_bytes();
+        let serialized = template.to_bytes();
         let deserialized = AccountComponentTemplate::read_from_bytes(&serialized).unwrap();
 
-        assert_eq!(deserialized, package)
+        assert_eq!(deserialized, template)
     }
 }
