@@ -4,7 +4,10 @@ use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
 mod template;
-pub use template::{AccountComponentTemplate, InitStorageData, StorageEntry};
+pub use template::{
+    AccountComponentTemplate, ComponentMetadata, InitStorageData, StorageEntry, TemplateKey,
+    TemplateValue,
+};
 
 use crate::{
     accounts::{AccountType, StorageSlot},

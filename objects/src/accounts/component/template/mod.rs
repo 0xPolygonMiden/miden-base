@@ -14,7 +14,7 @@ use super::AccountType;
 use crate::errors::AccountComponentTemplateError;
 
 mod storage_entry;
-pub use storage_entry::{InitStorageData, StorageEntry, TemplateKey};
+pub use storage_entry::{InitStorageData, StorageEntry, TemplateKey, TemplateValue};
 
 // ACCOUNT COMPONENT TEMPLATE
 // ================================================================================================
