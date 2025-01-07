@@ -98,7 +98,7 @@ impl AccountComponent {
     /// # Errors
     ///
     /// - If any of the component's storage entries cannot be transformed into a valid storage slot.
-    ///   This could be because the metadata is invalid, or template values were not provided (or
+    ///   This could be because the metadata is invalid, or storage values were not provided (or
     ///   they are not of a valid type)
     pub fn from_template(
         template: &AccountComponentTemplate,

@@ -136,7 +136,7 @@ impl Deserializable for StoragePlaceholder {
     }
 }
 
-// TEMPLATE VALUE
+// STORAGE VALUE
 // ================================================================================================
 
 /// Represents a value used within a templating context.
@@ -160,7 +160,7 @@ impl StorageValue {
         if let StorageValue::Felt(felt) = self {
             Ok(felt)
         } else {
-            Err(AccountComponentTemplateError::IncorrectTemplateValue("Felt".into()))
+            Err(AccountComponentTemplateError::IncorrectStorageValue("Felt".into()))
         }
     }
 
@@ -169,7 +169,7 @@ impl StorageValue {
         if let StorageValue::Word(word) = self {
             Ok(word)
         } else {
-            Err(AccountComponentTemplateError::IncorrectTemplateValue("Word".into()))
+            Err(AccountComponentTemplateError::IncorrectStorageValue("Word".into()))
         }
     }
 
@@ -178,7 +178,7 @@ impl StorageValue {
         if let StorageValue::Map(map) = self {
             Ok(map)
         } else {
-            Err(AccountComponentTemplateError::IncorrectTemplateValue("Map".into()))
+            Err(AccountComponentTemplateError::IncorrectStorageValue("Map".into()))
         }
     }
 }

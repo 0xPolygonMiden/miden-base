@@ -34,15 +34,15 @@ pub enum AccountComponentTemplateError {
     DuplicateSlot(u8),
     #[error("component storage slots have to start at 0")]
     StorageSlotsMustStartAtZero,
-    #[error("template value was not of the expected type {0}")]
-    IncorrectTemplateValue(String),
+    #[error("storage value was not of the expected type {0}")]
+    IncorrectStorageValue(String),
     #[error("multi-slot entry should contain as many values as storage slots indices")]
     MultiSlotArityMismatch,
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
     #[error("component storage slots are not contiguous ({0} is followed by {1})")]
     NonContiguousSlots(u8, u8),
-    #[error("template value for placeholder ({0}) was not provided in the map")]
+    #[error("storage value for placeholder ({0}) was not provided in the map")]
     PlaceholderValueNotProvided(StoragePlaceholder),
 }
 

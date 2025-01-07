@@ -483,7 +483,7 @@ mod tests {
             StorageEntry::Value {
                 name: "single-slot".into(),
                 description: Some("Slot with storage placeholder".into()),
-                slot: 0,
+                slot: 5,
                 value: WordRepresentation::Template(
                     StoragePlaceholder::new("single-slot-key").unwrap(),
                 ),
@@ -543,10 +543,16 @@ mod tests {
         assert_eq!(template, template_deserialized);
 
         let storage_placeholders = InitStorageData::new([
-            ("key.test".try_into().unwrap(), StorageValue::Word(Default::default())),
-            ("value.test".try_into().unwrap(), StorageValue::Felt(Felt::new(64))),
             (
-                "word.test".try_into().unwrap(),
+                StoragePlaceholder::new("key.test").unwrap(),
+                StorageValue::Word(Default::default()),
+            ),
+            (
+                StoragePlaceholder::new("value.test").unwrap(),
+                StorageValue::Felt(Felt::new(64)),
+            ),
+            (
+                StoragePlaceholder::new("word.test").unwrap(),
                 StorageValue::Word([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(128)]),
             ),
         ]);

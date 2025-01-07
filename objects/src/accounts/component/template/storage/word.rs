@@ -166,8 +166,9 @@ impl FeltRepresentation {
             FeltRepresentation::Decimal(base_element) => Ok(base_element),
             FeltRepresentation::Template(storage_placeholder) => init_storage_data
                 .get(&storage_placeholder)
-                .ok_or(
-                    AccountComponentTemplateError::PlaceholderValueNotProvided(storage_placeholder))?
+                .ok_or(AccountComponentTemplateError::PlaceholderValueNotProvided(
+                    storage_placeholder,
+                ))?
                 .as_felt()
                 .copied(),
         }
@@ -299,7 +300,7 @@ mod tests {
         let dyn_key = StoragePlaceholder::new("felt_key").unwrap();
         let template = FeltRepresentation::Template(dyn_key.clone());
         let init_storage_data = InitStorageData::new([(
-            "felt_key".try_into().unwrap(),
+            StoragePlaceholder::new("felt_key").unwrap(),
             StorageValue::Felt(Felt::new(300)),
         )]);
         let built = template.try_build_felt(&init_storage_data).unwrap();

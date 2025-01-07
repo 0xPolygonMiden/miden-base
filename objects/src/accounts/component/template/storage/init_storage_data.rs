@@ -6,7 +6,7 @@ use super::{StoragePlaceholder, StorageValue};
 /// [AccountComponent](crate::accounts::AccountComponent).
 #[derive(Clone, Debug, Default)]
 pub struct InitStorageData {
-    /// A mapping of storage placeholder names to their corresponding template values.
+    /// A mapping of storage placeholder names to their corresponding storage values.
     storage_placeholders: BTreeMap<StoragePlaceholder, StorageValue>,
 }
 
@@ -22,13 +22,13 @@ impl InitStorageData {
         }
     }
 
-    /// Retrieves a reference to the template values.
-    pub fn inner(&self) -> &BTreeMap<StoragePlaceholder, StorageValue> {
+    /// Retrieves a reference to the storage placeholders.
+    pub fn storage_placeholders(&self) -> &BTreeMap<StoragePlaceholder, StorageValue> {
         &self.storage_placeholders
     }
 
-    /// Returns a reference to the [StorageValue] corresponding to the key, or [`Option::None`]
-    /// if the key is not present.
+    /// Returns a reference to the [StorageValue] corresponding to the placeholder, or
+    /// [`Option::None`] if the placeholder is not present.
     pub fn get(&self, key: &StoragePlaceholder) -> Option<&StorageValue> {
         self.storage_placeholders.get(key)
     }
