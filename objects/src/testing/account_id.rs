@@ -193,7 +193,12 @@ impl AccountIdBuilder {
     /// If no [`AccountType`] or [`AccountStorageMode`] were previously set, random ones are
     /// generated.
     pub fn build_with_seed(self, rng_seed: [u8; 32]) -> AccountId {
-        let mut rng = rand::rngs::StdRng::from_seed(rng_seed);
+        // On non-64 bit architectures, SmallRng expects 16 bytes as seed input.
+        #[cfg(not(target_pointer_width = "64"))]
+        let rng_seed: [u8; 16] = rng_seed.as_slice()[0..16]
+            .try_into()
+            .expect("we should have sliced off 16 elements");
+        let mut rng = rand::rngs::SmallRng::from_seed(rng_seed);
         self.build_with_rng(&mut rng)
     }
 }
