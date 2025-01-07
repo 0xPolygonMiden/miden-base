@@ -1,3 +1,5 @@
+use rand::SeedableRng;
+
 use crate::accounts::{AccountId, AccountStorageMode, AccountType};
 
 // CONSTANTS
@@ -119,4 +121,85 @@ pub const fn account_id<const CHECK_MIN_ONES: bool>(
     id |= (random_2nd_felt_lower as u128) << 8;
 
     id
+}
+
+/// A builder for creating [`AccountId`]s for testing purposes.
+///
+/// This is essentially a wrapper around [`AccountId::dummy`] generating random values as its input.
+/// Refer to its documentation for details.
+///
+/// # Example
+///
+/// ```
+/// # use miden_objects::accounts::{AccountType, AccountStorageMode, AccountId};
+/// # use miden_objects::testing::account_id::{AccountIdBuilder};
+///
+/// let mut rng = rand::thread_rng();
+///
+/// // A random AccountId with random AccountType and AccountStorageMode.
+/// let random_id1: AccountId = AccountIdBuilder::new().build_with_rng(&mut rng);
+///
+/// // A random AccountId with the given AccountType and AccountStorageMode.
+/// let random_id2: AccountId = AccountIdBuilder::new()
+///     .account_type(AccountType::FungibleFaucet)
+///     .storage_mode(AccountStorageMode::Public)
+///     .build_with_rng(&mut rng);
+/// assert_eq!(random_id2.account_type(), AccountType::FungibleFaucet);
+/// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Public);
+/// ```
+pub struct AccountIdBuilder {
+    account_type: Option<AccountType>,
+    storage_mode: Option<AccountStorageMode>,
+}
+
+impl AccountIdBuilder {
+    /// Creates a new [`AccountIdBuilder`].
+    pub fn new() -> Self {
+        Self { account_type: None, storage_mode: None }
+    }
+
+    /// Sets the [`AccountType`] of the generated [`AccountId`] to the provided value.
+    pub fn account_type(mut self, account_type: AccountType) -> Self {
+        self.account_type = Some(account_type);
+        self
+    }
+
+    /// Sets the [`AccountStorageMode`] of the generated [`AccountId`] to the provided value.
+    pub fn storage_mode(mut self, storage_mode: AccountStorageMode) -> Self {
+        self.storage_mode = Some(storage_mode);
+        self
+    }
+
+    /// Builds an [`AccountId`] using the provided [`rand::Rng`].
+    ///
+    /// If no [`AccountType`] or [`AccountStorageMode`] were previously set, random ones are
+    /// generated.
+    pub fn build_with_rng<R: rand::Rng + ?Sized>(self, rng: &mut R) -> AccountId {
+        let account_type = match self.account_type {
+            Some(account_type) => account_type,
+            None => rng.gen(),
+        };
+
+        let storage_mode = match self.storage_mode {
+            Some(storage_mode) => storage_mode,
+            None => rng.gen(),
+        };
+
+        AccountId::dummy(rng.gen(), account_type, storage_mode)
+    }
+
+    /// Builds an [`AccountId`] using the provided seed as input for a [`rand::rngs::StdRng`].
+    ///
+    /// If no [`AccountType`] or [`AccountStorageMode`] were previously set, random ones are
+    /// generated.
+    pub fn build_with_seed(self, rng_seed: [u8; 32]) -> AccountId {
+        let mut rng = rand::rngs::StdRng::from_seed(rng_seed);
+        self.build_with_rng(&mut rng)
+    }
+}
+
+impl Default for AccountIdBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
