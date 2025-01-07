@@ -59,8 +59,14 @@ max_queue_items = 10
 max_retries_per_request = 1
 # Maximum amount of requests that a given IP address can make per second
 max_req_per_sec = 5
+# Time to wait before checking the availability of workers
+available_workers_polling_time_ms = 20
 # Interval to check the health of the workers
 health_check_interval_secs = 1
+# Host of the metrics server
+prometheus_host = "127.0.0.1"
+# Port of the metrics server
+prometheus_port = 6192
 ```
 
 Then, to start the proxy service, you will need to run:
@@ -119,6 +125,30 @@ docker run -d -p4317:4317 -p16686:16686 jaegertracing/all-in-one:latest
 Then access the Jaeger UI at `http://localhost:16686/`.
 
 If Docker is not an option, Jaeger can also be set up directly on your machine or hosted in the cloud. See the [Jaeger documentation](https://www.jaegertracing.io/docs/) for alternative installation methods.
+
+## Metrics
+
+The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `miden-tx-prover.toml` file.
+
+The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
+
+The simplest way to install Prometheus and Grafana is by using Docker containers. To do so, run:
+
+```bash
+docker run \
+    -d \
+    -p 9090:9090 \
+    -v /path/to/prometheus.yml:/etc/prometheus/prometheus.yml \
+    prom/prometheus
+
+docker run -d -p 3000:3000 --name grafana grafana/grafana-enterprise:latest
+```
+
+In case that Docker is not an option, Prometheus and Grafana can also be set up directly on your machine or hosted in the cloud. See the [Prometheus documentation](https://prometheus.io/docs/prometheus/latest/getting_started/) and [Grafana documentation](https://grafana.com/docs/grafana/latest/setup-grafana/) for alternative installation methods.
+
+A prometheus configuration file is provided in this repository, you will need to modify the `scrape_configs` section to include the host and port of the proxy service.
+
+Then, to add the new Prometheus collector as a datasource for Grafana, you can [follow this tutorial](https://grafana.com/docs/grafana-cloud/connect-externally-hosted/existing-datasource/). A Grafana dashboard under the name `proxy_grafana_dashboard.json` is provided, see this [link](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) to import it. Otherwise, you can [create your own dashboard](https://grafana.com/docs/grafana/latest/getting-started/build-first-dashboard/) using the metrics provided by the proxy and export it by following this [link](https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/#export-a-dashboard-as-json).
 
 ## Features
 

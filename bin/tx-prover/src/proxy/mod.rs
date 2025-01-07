@@ -1,7 +1,18 @@
-use std::{collections::VecDeque, future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    collections::VecDeque,
+    future::Future,
+    pin::Pin,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use metrics::{
+    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS, REQUEST_COUNT,
+    REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
+    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
+};
 use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
@@ -25,18 +36,20 @@ use crate::{
         update_workers::{Action, UpdateWorkers},
         ProxyConfig,
     },
+    error::TxProverServiceError,
     utils::{
         create_queue_full_response, create_response_with_error_message,
         create_too_many_requests_response, create_workers_updated_response, MIDEN_TX_PROVER,
     },
 };
 
+pub mod metrics;
 mod worker;
 
 /// Localhost address
 const LOCALHOST_ADDR: &str = "127.0.0.1";
 
-// LOAD BALANCER
+// LOAD BALANCER STATE
 // ================================================================================================
 
 /// Load balancer that uses a round robin strategy
@@ -54,11 +67,15 @@ pub struct LoadBalancerState {
 
 impl LoadBalancerState {
     /// Create a new load balancer
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The worker cannot be created.
     #[tracing::instrument(name = "proxy:new_load_balancer", skip(initial_workers))]
     pub async fn new(
         initial_workers: Vec<Backend>,
         config: &ProxyConfig,
-    ) -> core::result::Result<Self, String> {
+    ) -> core::result::Result<Self, TxProverServiceError> {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
 
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
@@ -67,6 +84,11 @@ impl LoadBalancerState {
         for worker in initial_workers {
             workers.push(Worker::new(worker, connection_timeout, total_timeout).await?);
         }
+
+        WORKER_COUNT.set(workers.len() as i64);
+        RATE_LIMIT_VIOLATIONS.reset();
+        RATE_LIMITED_REQUESTS.reset();
+        REQUEST_RETRIES.reset();
 
         Ok(Self {
             workers: Arc::new(RwLock::new(workers)),
@@ -89,6 +111,7 @@ impl LoadBalancerState {
         let mut available_workers = self.workers.write().await;
         available_workers.iter_mut().find(|w| w.is_available()).map(|w| {
             w.set_availability(false);
+            WORKER_BUSY.inc();
             w.clone()
         })
     }
@@ -120,7 +143,7 @@ impl LoadBalancerState {
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
-    ) -> std::result::Result<(), String> {
+    ) -> std::result::Result<(), TxProverServiceError> {
         let mut workers = self.workers.write().await;
         info!("Current workers: {:?}", workers);
 
@@ -129,7 +152,7 @@ impl LoadBalancerState {
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<Vec<Backend>, _>>()
-            .map_err(|err| format!("Failed to create backend: {}", err))?;
+            .map_err(TxProverServiceError::BackendCreationFailed)?;
 
         let mut native_workers = Vec::new();
 
@@ -154,6 +177,7 @@ impl LoadBalancerState {
         }
 
         info!("Workers updated: {:?}", workers);
+        WORKER_COUNT.set(workers.len() as i64);
 
         Ok(())
     }
@@ -161,6 +185,11 @@ impl LoadBalancerState {
     /// Get the total number of current workers.
     pub async fn num_workers(&self) -> usize {
         self.workers.read().await.len()
+    }
+
+    /// Get the number of busy workers.
+    pub async fn num_busy_workers(&self) -> usize {
+        self.workers.read().await.iter().filter(|w| !w.is_available()).count()
     }
 
     /// Handles the update workers request.
@@ -251,39 +280,51 @@ static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1))
 // REQUEST QUEUE
 // ================================================================================================
 
-/// Request queue holds the list of requests that are waiting to be processed by the workers.
+/// Request queue holds the list of requests that are waiting to be processed by the workers and
+/// the time they were enqueued.
 /// It is used to keep track of the order of the requests to then assign them to the workers.
 pub struct RequestQueue {
-    queue: RwLock<VecDeque<Uuid>>,
+    queue: RwLock<VecDeque<(Uuid, Instant)>>,
 }
 
 impl RequestQueue {
     /// Create a new empty request queue
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
+        QUEUE_SIZE.set(0);
         Self { queue: RwLock::new(VecDeque::new()) }
     }
 
     /// Get the length of the queue
+    #[allow(clippy::len_without_is_empty)]
     pub async fn len(&self) -> usize {
         self.queue.read().await.len()
     }
 
     /// Enqueue a request
     pub async fn enqueue(&self, request_id: Uuid) {
+        QUEUE_SIZE.inc();
         let mut queue = self.queue.write().await;
-        queue.push_back(request_id);
+        queue.push_back((request_id, Instant::now()));
     }
 
     /// Dequeue a request
     pub async fn dequeue(&self) -> Option<Uuid> {
         let mut queue = self.queue.write().await;
-        queue.pop_front()
+        // If the queue was empty, the queue size does not change
+        if let Some((request_id, queued_time)) = queue.pop_front() {
+            QUEUE_SIZE.dec();
+            QUEUE_LATENCY.observe(queued_time.elapsed().as_secs_f64());
+            Some(request_id)
+        } else {
+            None
+        }
     }
 
     /// Peek at the first request in the queue
     pub async fn peek(&self) -> Option<Uuid> {
         let queue = self.queue.read().await;
-        queue.front().copied()
+        queue.front().copied().map(|(request_id, _)| request_id)
     }
 }
 
@@ -294,8 +335,10 @@ static QUEUE: Lazy<RequestQueue> = Lazy::new(RequestQueue::new);
 // ================================================================================================
 
 /// Custom context for the request/response lifecycle
+///
 /// We use this context to keep track of the number of tries for a request, the unique ID for the
-/// request, and the worker that will process the request.
+/// request, the worker that will process the request, a span that will be used for traces along
+/// the transaction execution, and a timer to track how long the request took.
 #[derive(Debug)]
 pub struct RequestContext {
     /// Number of tries for the request
@@ -306,6 +349,8 @@ pub struct RequestContext {
     worker: Option<Worker>,
     /// Parent span for the request
     parent_span: Span,
+    /// Time when the request was created
+    created_at: Instant,
 }
 
 impl RequestContext {
@@ -317,16 +362,18 @@ impl RequestContext {
             request_id,
             worker: None,
             parent_span: info_span!(target: MIDEN_TX_PROVER, "proxy:new_request", request_id = request_id.to_string()),
+            created_at: Instant::now(),
         }
     }
 
     /// Set the worker that will process the request
     fn set_worker(&mut self, worker: Worker) {
+        WORKER_REQUEST_COUNT.with_label_values(&[&worker.address()]).inc();
         self.worker = Some(worker);
     }
 }
 
-// LOAD BALANCER WRAPPER
+// LOAD BALANCER
 // ================================================================================================
 
 /// Wrapper around the load balancer that implements the ProxyHttp trait
@@ -395,6 +442,9 @@ impl ProxyHttp for LoadBalancer {
             }
         }
 
+        // Increment the request count
+        REQUEST_COUNT.inc();
+
         let user_id = Some(client_addr);
 
         // Retrieve the current window requests
@@ -402,6 +452,13 @@ impl ProxyHttp for LoadBalancer {
 
         // Rate limit the request
         if curr_window_requests > self.0.max_req_per_sec {
+            RATE_LIMITED_REQUESTS.inc();
+
+            // Only count a violation the first time in a given window
+            if curr_window_requests == self.0.max_req_per_sec + 1 {
+                RATE_LIMIT_VIOLATIONS.inc();
+            }
+
             return create_too_many_requests_response(session, self.0.max_req_per_sec).await;
         };
 
@@ -519,6 +576,7 @@ impl ProxyHttp for LoadBalancer {
         if ctx.tries > self.0.max_retries_per_request {
             return e;
         }
+        REQUEST_RETRIES.inc();
         ctx.tries += 1;
         e.set_retry(true);
         e
@@ -534,6 +592,7 @@ impl ProxyHttp for LoadBalancer {
         Self::CTX: Send + Sync,
     {
         if let Some(e) = e {
+            REQUEST_FAILURE_COUNT.inc();
             error!("Error: {:?}", e);
         }
 
@@ -541,6 +600,11 @@ impl ProxyHttp for LoadBalancer {
         if let Some(worker) = ctx.worker.take() {
             self.0.add_available_worker(worker).await;
         }
+
+        REQUEST_LATENCY.observe(ctx.created_at.elapsed().as_secs_f64());
+
+        // Update the number of busy workers
+        WORKER_BUSY.set(self.0.num_busy_workers().await as i64);
     }
 
     // The following methods are a copy of the default implementation defined in the trait, but
@@ -718,12 +782,18 @@ impl BackgroundService for LoadBalancerState {
                 let _guard = span.enter();
 
                 let mut workers = self.workers.write().await;
+                let initial_workers_len = workers.len();
 
                 // Perform health checks on workers and retain healthy ones
                 let healthy_workers = self.check_workers_health(workers.iter_mut()).await;
 
                 // Update the worker list with healthy workers
                 *workers = healthy_workers;
+
+                // Update the worker count and worker unhealhy count metrics
+                WORKER_COUNT.set(workers.len() as i64);
+                let unhealthy_workers = initial_workers_len - workers.len();
+                WORKER_UNHEALTHY.inc_by(unhealthy_workers as u64);
 
                 // Sleep for the defined interval before the next health check
                 sleep(self.health_check_frequency).await;
