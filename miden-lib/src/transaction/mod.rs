@@ -179,6 +179,7 @@ impl TransactionKernel {
         let account_id = account_header.id();
         let storage_root = account_header.storage_commitment();
         let code_root = account_header.code_commitment();
+        // Note: keep in sync with the start_foreign_context kernel procedure
         let account_key =
             Digest::from([account_id.second_felt(), account_id.first_felt(), ZERO, ZERO]);
 
