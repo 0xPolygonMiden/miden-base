@@ -188,17 +188,25 @@ impl AccountIdBuilder {
         AccountId::dummy(rng.gen(), account_type, storage_mode)
     }
 
-    /// Builds an [`AccountId`] using the provided seed as input for a [`rand::rngs::StdRng`].
+    /// Builds an [`AccountId`] using the provided seed as input for an RNG implemented in
+    /// [`rand_xoshiro`].
     ///
     /// If no [`AccountType`] or [`AccountStorageMode`] were previously set, random ones are
     /// generated.
     pub fn build_with_seed(self, rng_seed: [u8; 32]) -> AccountId {
-        // On non-64 bit architectures, SmallRng expects 16 bytes as seed input.
+        // Match the implementation of rand::rngs::SmallRng and use different RNGs depending on the
+        // platform.
         #[cfg(not(target_pointer_width = "64"))]
-        let rng_seed: [u8; 16] = rng_seed.as_slice()[0..16]
-            .try_into()
-            .expect("we should have sliced off 16 elements");
-        let mut rng = rand::rngs::SmallRng::from_seed(rng_seed);
+        let mut rng = {
+            let rng_seed: [u8; 16] = rng_seed.as_slice()[0..16]
+                .try_into()
+                .expect("we should have sliced off 16 elements");
+            rand_xoshiro::Xoshiro128PlusPlus::from_seed(rng_seed)
+        };
+
+        #[cfg(target_pointer_width = "64")]
+        let mut rng = rand_xoshiro::Xoshiro256PlusPlus::from_seed(rng_seed);
+
         self.build_with_rng(&mut rng)
     }
 }

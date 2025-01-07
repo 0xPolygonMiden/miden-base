@@ -50,13 +50,12 @@ impl AccountType {
 impl rand::distributions::Distribution<AccountType> for rand::distributions::Standard {
     /// Samples a uniformly random [`AccountType`] from the given `rng`.
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountType {
-        let account_type_distribution = rand::distributions::Uniform::new_inclusive(0, 3);
-        match account_type_distribution.sample(rng) {
+        match rng.gen_range(0..4) {
             0 => AccountType::RegularAccountImmutableCode,
             1 => AccountType::RegularAccountUpdatableCode,
             2 => AccountType::FungibleFaucet,
             3 => AccountType::NonFungibleFaucet,
-            _ => unreachable!("the uniform distribution should not produce higher values"),
+            _ => unreachable!("gen_range should not produce higher values"),
         }
     }
 }
@@ -115,11 +114,10 @@ impl FromStr for AccountStorageMode {
 impl rand::distributions::Distribution<AccountStorageMode> for rand::distributions::Standard {
     /// Samples a uniformly random [`AccountStorageMode`] from the given `rng`.
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountStorageMode {
-        let account_type_distribution = rand::distributions::Uniform::new_inclusive(0, 1);
-        match account_type_distribution.sample(rng) {
+        match rng.gen_range(0..2) {
             0 => AccountStorageMode::Public,
             1 => AccountStorageMode::Private,
-            _ => unreachable!("the uniform distribution should not produce higher values"),
+            _ => unreachable!("gen_range should not produce higher values"),
         }
     }
 }
