@@ -78,7 +78,7 @@ impl Account {
         };
 
         // construct nft tree
-        let nft_storage_map = StorageMap::with_entries(entries).unwrap();
+        let nft_storage_map = StorageMap::with_entries(entries);
 
         let account_id = AccountId::try_from(account_id).unwrap();
 

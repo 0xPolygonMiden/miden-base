@@ -12,26 +12,26 @@ use vm_processor::{DeserializationError, Digest};
 
 use crate::accounts::component::template::AccountComponentTemplateError;
 
-// TEMPLATE KEY
+// storage placeholder
 // ================================================================================================
 
 /// A simple wrapper type around a string key that enables templating.
 ///
-/// A template key is a string that identifies dynamic values within a component's metadata storage
-/// entries. Template keys are serialized as "{{key}}" and can be used as placeholders in map keys,
-/// map values, or individual [Felt] within a [Word].
+/// A storage placeholder is a string that identifies dynamic values within a component's metadata
+/// storage entries. Storage placeholders are serialized as "{{key}}" and can be used as
+/// placeholders in map keys, map values, or individual [Felt] within a [Word].
 ///
-/// At component instantiation, a map of keys to [TemplateValue] must be provided to dynamically
+/// At component instantiation, a map of keys to [StorageValue] must be provided to dynamically
 /// replace these placeholders with the instance’s actual values.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct TemplateKey {
+pub struct StoragePlaceholder {
     key: String,
 }
 
-impl TemplateKey {
-    /// Creates a new [TemplateKey] from the provided string.
+impl StoragePlaceholder {
+    /// Creates a new [StoragePlaceholder] from the provided string.
     ///
-    /// A [TemplateKey] serves as an identifier for storage values that are determined at
+    /// A [StoragePlaceholder] serves as an identifier for storage values that are determined at
     /// instantiation time of an [AccountComponentTemplate](super::super::AccountComponentTemplate).
     ///
     /// The key can consist of one or more segments separated by dots (`.`).  
@@ -43,7 +43,7 @@ impl TemplateKey {
     /// This method returns an error if:
     /// - Any segment (or the whole key) is empty.
     /// - Any segment contains invalid characters.
-    pub fn new(key: impl Into<String>) -> Result<Self, TemplateKeyError> {
+    pub fn new(key: impl Into<String>) -> Result<Self, StoragePlaceholderError> {
         let key: String = key.into();
         Self::validate(&key)?;
         Ok(Self { key })
@@ -55,21 +55,21 @@ impl TemplateKey {
     }
 
     /// Checks if the given string is a valid key.
-    /// A template key is valid if it's made of one or more segments that are non-empty alphanumeric
-    /// strings.
-    fn validate(key: &str) -> Result<(), TemplateKeyError> {
+    /// A storage placeholder is valid if it's made of one or more segments that are non-empty
+    /// alphanumeric strings.
+    fn validate(key: &str) -> Result<(), StoragePlaceholderError> {
         if key.is_empty() {
-            return Err(TemplateKeyError::EmptyKey);
+            return Err(StoragePlaceholderError::EmptyKey);
         }
 
         for segment in key.split('.') {
             if segment.is_empty() {
-                return Err(TemplateKeyError::EmptyKey);
+                return Err(StoragePlaceholderError::EmptyKey);
             }
 
             for c in segment.chars() {
                 if !(c.is_ascii_alphanumeric() || c == '_' || c == '-') {
-                    return Err(TemplateKeyError::InvalidChar(c));
+                    return Err(StoragePlaceholderError::InvalidChar(key.into(), c));
                 }
             }
         }
@@ -78,84 +78,61 @@ impl TemplateKey {
     }
 }
 
-impl TryFrom<&str> for TemplateKey {
-    type Error = TemplateKeyError;
+impl TryFrom<&str> for StoragePlaceholder {
+    type Error = StoragePlaceholderError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         if value.starts_with("{{") && value.ends_with("}}") {
             let inner = &value[2..value.len() - 2];
             Self::validate(inner)?;
 
-            Ok(TemplateKey { key: inner.to_string() })
+            Ok(StoragePlaceholder { key: inner.to_string() })
         } else {
-            Err(TemplateKeyError::FormatError)
+            Err(StoragePlaceholderError::FormatError(value.into()))
         }
     }
 }
 
-impl TryFrom<&String> for TemplateKey {
-    type Error = TemplateKeyError;
+impl TryFrom<&String> for StoragePlaceholder {
+    type Error = StoragePlaceholderError;
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         Self::try_from(value.as_str())
     }
 }
 
-impl core::fmt::Display for TemplateKey {
+impl core::fmt::Display for StoragePlaceholder {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{{{{{}}}}}", self.key)
     }
 }
 
 #[derive(Debug, Error)]
-pub enum TemplateKeyError {
+pub enum StoragePlaceholderError {
     #[error("key segment cannot be empty")]
     EmptyKey,
-    #[error("expected string in {{...}} format")]
-    FormatError,
+    #[error("key {0} is invalid (expected string in {{...}} format)")]
+    FormatError(String),
     #[error(
-        "invalid character ({0}) found in TOML key (must be alphanumeric, underscore, or hyphen)"
+        "key {0} contains invalid character ({1}) (must be alphanumeric, underscore, or hyphen)"
     )]
-    InvalidChar(char),
+    InvalidChar(String, char),
 }
 
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for TemplateKey {
+impl Serializable for StoragePlaceholder {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(&self.key);
     }
 }
 
-impl Deserializable for TemplateKey {
+impl Deserializable for StoragePlaceholder {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let key: String = source.read()?;
-        TemplateKey::new(key).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
-    }
-}
-
-// SERDE SERIALIZATION
-// ================================================================================================
-
-#[cfg(feature = "std")]
-impl serde::Serialize for TemplateKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
-}
-
-#[cfg(feature = "std")]
-impl<'de> serde::Deserialize<'de> for TemplateKey {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        TemplateKey::try_from(s.as_str()).map_err(serde::de::Error::custom)
+        StoragePlaceholder::new(key)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -164,23 +141,23 @@ impl<'de> serde::Deserialize<'de> for TemplateKey {
 
 /// Represents a value used within a templating context.
 ///
-/// A [TemplateValue] can be one of:
+/// A [StorageValue] can be one of:
 /// - `Felt(Felt)`: a single [Felt] value
 /// - `Word(Word)`: a single [Word] value
 /// - `Map(Vec<(Digest, Word)>)`: alist of storage map entries, mapping [Digest] to [Word]
 ///
 /// These values are used to resolve dynamic placeholders at component instantiation.
 #[derive(Clone, Debug)]
-pub enum TemplateValue {
+pub enum StorageValue {
     Felt(Felt),
     Word(Word),
     Map(Vec<(Digest, Word)>),
 }
 
-impl TemplateValue {
+impl StorageValue {
     /// Returns `Some(&Felt)` if the variant is `Felt`, otherwise errors.
     pub fn as_felt(&self) -> Result<&Felt, AccountComponentTemplateError> {
-        if let TemplateValue::Felt(felt) = self {
+        if let StorageValue::Felt(felt) = self {
             Ok(felt)
         } else {
             Err(AccountComponentTemplateError::IncorrectTemplateValue("Felt".into()))
@@ -189,7 +166,7 @@ impl TemplateValue {
 
     /// Returns `Ok(&Word)` if the variant is `Word`, otherwise errors.
     pub fn as_word(&self) -> Result<&Word, AccountComponentTemplateError> {
-        if let TemplateValue::Word(word) = self {
+        if let StorageValue::Word(word) = self {
             Ok(word)
         } else {
             Err(AccountComponentTemplateError::IncorrectTemplateValue("Word".into()))
@@ -198,7 +175,7 @@ impl TemplateValue {
 
     /// Returns `Ok(&Vec<(Digest, Word)>>` if the variant is `Map`, otherwise errors.
     pub fn as_map(&self) -> Result<&Vec<(Digest, Word)>, AccountComponentTemplateError> {
-        if let TemplateValue::Map(map) = self {
+        if let StorageValue::Map(map) = self {
             Ok(map)
         } else {
             Err(AccountComponentTemplateError::IncorrectTemplateValue("Map".into()))

@@ -5,13 +5,12 @@ use vm_processor::MastForest;
 
 mod template;
 pub use template::{
-    AccountComponentTemplate, ComponentMetadata, InitStorageData, StorageEntry, TemplateKey,
-    TemplateValue,
+    AccountComponentMetadata, AccountComponentTemplate, InitStorageData, StorageEntry,
+    StoragePlaceholder, StorageValue,
 };
 
 use crate::{
     accounts::{AccountType, StorageSlot},
-    errors::AccountComponentTemplateError,
     AccountError,
 };
 
@@ -93,8 +92,8 @@ impl AccountComponent {
     /// Instantiates an [AccountComponent] from the [AccountComponentTemplate].
     ///
     /// The template's component metadata might contain templated values, which can be input by
-    /// mapping key names to [template values](TemplateValue) through the `init_storage_data`
-    /// parameter.
+    /// mapping [storage placeholders](StoragePlaceholder) to [values](StorageValue) through the
+    /// `init_storage_data` parameter.
     ///
     /// # Errors
     ///
@@ -104,15 +103,16 @@ impl AccountComponent {
     pub fn from_template(
         template: &AccountComponentTemplate,
         init_storage_data: &InitStorageData,
-    ) -> Result<AccountComponent, AccountComponentTemplateError> {
+    ) -> Result<AccountComponent, AccountError> {
         let mut storage_slots = vec![];
         for storage_entry in template.metadata().storage_entries() {
-            let entry_storage_slots = storage_entry.try_build_storage_slots(init_storage_data)?;
+            let entry_storage_slots = storage_entry
+                .try_build_storage_slots(init_storage_data)
+                .map_err(AccountError::AccountComponentTemplateInstantiationError)?;
             storage_slots.extend(entry_storage_slots);
         }
 
         AccountComponent::new(template.library().clone(), storage_slots)
-            .map_err(AccountComponentTemplateError::AccountComponentError)
     }
 
     // ACCESSORS

@@ -1,8 +1,7 @@
 use miden_crypto::merkle::EmptySubtreeRoots;
 
 use super::{
-    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest,
-    Serializable, Word,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Serializable, Word,
 };
 use crate::{
     accounts::StorageMapDelta,
@@ -47,9 +46,7 @@ impl StorageMap {
         StorageMap { map: Smt::new() }
     }
 
-    pub fn with_entries(
-        entries: impl IntoIterator<Item = (RpoDigest, Word)>,
-    ) -> Result<Self, AccountError> {
+    pub fn with_entries(entries: impl IntoIterator<Item = (RpoDigest, Word)>) -> Self {
         let mut storage_map = Smt::new();
 
         for (key, value) in entries {
@@ -57,7 +54,7 @@ impl StorageMap {
             storage_map.insert(key, value);
         }
 
-        Ok(StorageMap { map: storage_map })
+        StorageMap { map: storage_map }
     }
 
     // PUBLIC ACCESSORS
@@ -164,7 +161,7 @@ mod tests {
                 [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
             ),
         ];
-        let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
+        let storage_map = StorageMap::with_entries(storage_map_leaves_2);
 
         let bytes = storage_map.to_bytes();
         assert_eq!(storage_map, StorageMap::read_from_bytes(&bytes).unwrap());

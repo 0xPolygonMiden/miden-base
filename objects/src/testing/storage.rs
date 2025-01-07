@@ -121,7 +121,7 @@ impl AccountStorage {
     }
 
     pub fn mock_map() -> StorageMap {
-        StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
+        StorageMap::with_entries(STORAGE_LEAVES_2)
     }
 }
 

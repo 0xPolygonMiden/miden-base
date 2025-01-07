@@ -13,8 +13,8 @@ use vm_processor::DeserializationError;
 use super::AccountType;
 use crate::errors::AccountComponentTemplateError;
 
-mod storage_entry;
-pub use storage_entry::{InitStorageData, StorageEntry, TemplateKey, TemplateValue};
+mod storage;
+pub use storage::{InitStorageData, StorageEntry, StoragePlaceholder, StorageValue};
 
 // ACCOUNT COMPONENT TEMPLATE
 // ================================================================================================
@@ -22,17 +22,17 @@ pub use storage_entry::{InitStorageData, StorageEntry, TemplateKey, TemplateValu
 /// Represents a template containing a component's metadata and its associated library.
 ///
 /// The [AccountComponentTemplate] encapsulates all necessary information to initialize and manage
-/// a component within the system. It includes the configuration details and the compiled
+/// an account component within the system. It includes the configuration details and the compiled
 /// library code required for the component's operation.
 ///
 /// A template can be instantiated into [AccountComponent](super::AccountComponent) objects.
-/// The component metadata can be defined with template keys that can be replaced at instantiation
+/// The component metadata can be defined with placeholders that can be replaced at instantiation
 /// time.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AccountComponentTemplate {
     /// The component's metadata. This describes the component and how the storage is laid out,
     /// alongside how storage values are initialized.
-    metadata: ComponentMetadata,
+    metadata: AccountComponentMetadata,
     /// The account component's assembled code. This defines all functionality related to the
     /// component.
     library: Library,
@@ -43,15 +43,15 @@ impl AccountComponentTemplate {
     ///
     /// This template holds everything needed to describe and implement a component, including the
     /// compiled procedures (via the [Library]) and the metadata that defines the component’s
-    /// storage layout ([ComponentMetadata]). The metadata can include placeholders (template
-    /// keys) that get filled in at the time of the [AccountComponent](super::AccountComponent)
+    /// storage layout ([AccountComponentMetadata]). The metadata can include storage placeholders
+    /// that get filled in at the time of the [AccountComponent](super::AccountComponent)
     /// instantiation.
-    pub fn new(metadata: ComponentMetadata, library: Library) -> Self {
+    pub fn new(metadata: AccountComponentMetadata, library: Library) -> Self {
         Self { metadata, library }
     }
 
-    /// Returns a reference to the template's [ComponentMetadata].
-    pub fn metadata(&self) -> &ComponentMetadata {
+    /// Returns a reference to the template's [AccountComponentMetadata].
+    pub fn metadata(&self) -> &AccountComponentMetadata {
         &self.metadata
     }
 
@@ -73,22 +73,23 @@ impl Deserializable for AccountComponentTemplate {
         source: &mut R,
     ) -> Result<Self, vm_processor::DeserializationError> {
         // Read and deserialize the configuration from a TOML string.
-        let config: ComponentMetadata = source.read()?;
+        let config: AccountComponentMetadata = source.read()?;
         let library = Library::read_from(source)?;
 
         Ok(AccountComponentTemplate::new(config, library))
     }
 }
 
-// COMPONENT METADATA
+// ACCOUNT COMPONENT METADATA
 // ================================================================================================
 
 /// Represents the full component template configuration.
 ///
-/// This struct allows for serialization and deserialization to and from a TOML file.
+/// When the `std` feature is enabled, this struct allows for serialization and deserialization to
+/// and from a TOML file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-pub struct ComponentMetadata {
+pub struct AccountComponentMetadata {
     /// The human-readable name of the component.
     name: String,
 
@@ -107,8 +108,8 @@ pub struct ComponentMetadata {
     storage: Vec<StorageEntry>,
 }
 
-impl ComponentMetadata {
-    /// Create a new [ComponentMetadata].
+impl AccountComponentMetadata {
+    /// Create a new [AccountComponentMetadata].
     ///
     /// # Errors
     ///
@@ -133,7 +134,76 @@ impl ComponentMetadata {
         Ok(component)
     }
 
-    /// Validate the [ComponentMetadata] object.
+    /// Retrieves the set of storage placeholder keys (identified by a string) that require a value
+    /// at the moment of component instantiation. These values will be used for initializing
+    /// storage slot values, or storage map entries.
+    ///
+    /// # Examples
+    ///
+    /// An [AccountComponentMetadata] may have a single-slot storage entry where the last element
+    /// of the slot's word is templated:
+    ///
+    /// ```
+    /// let first_felt = FeltRepresentation::Decimal(Felt::ZERO);
+    /// let second_felt = FeltRepresentation::Decimal(Felt::new(1u64));
+    /// let third_felt = FeltRepresentation::Decimal(Felt::new(2u64));
+    /// // Templated element:
+    /// let last_element = FeltRepresentation::Template(StoragePlaceholder::new("foo"));
+    ///
+    /// let storage_entry = StorageEntry::new_value(
+    ///     "test-entry",
+    ///     "a test entry",
+    ///     0,
+    ///     WordRepresentation::new([first_felt, second_felt, third_felt, last_element]),
+    /// );
+    /// ```
+    ///
+    /// At the moment of instantiating a component that defines this storage entry, we
+    /// must pass a value that replaces "foo":
+    ///
+    /// ```
+    /// let init_storage_data = InitStorageData::new([(
+    ///     StoragePlaceholder::new("foo")?,
+    ///     StorageValue::Felt(Felt::new(300u64)),
+    /// )]);
+    /// let component = AccountComponent::from_template(&template, &init_storage_data)?;
+    /// ```
+    pub fn get_storage_placeholders(&self) -> BTreeSet<StoragePlaceholder> {
+        let mut placeholder_set = BTreeSet::new();
+        for storage_entry in &self.storage {
+            for key in storage_entry.storage_placeholders() {
+                placeholder_set.insert(key.clone());
+            }
+        }
+        placeholder_set
+    }
+
+    /// Returns the name of the account component.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the description of the account component.
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    /// Returns the semantic version of the account component.
+    pub fn version(&self) -> &Version {
+        &self.version
+    }
+
+    /// Returns the account types supported by the component.
+    pub fn targets(&self) -> &BTreeSet<AccountType> {
+        &self.targets
+    }
+
+    /// Returns the list of storage entries of the component.
+    pub fn storage_entries(&self) -> &Vec<StorageEntry> {
+        &self.storage
+    }
+
+    /// Validate the [AccountComponentMetadata].
     ///
     /// # Errors
     ///
@@ -156,7 +226,6 @@ impl ComponentMetadata {
         }
 
         for slots in all_slots.windows(2) {
-            // Check for duplicates
             if slots[1] == slots[0] {
                 return Err(AccountComponentTemplateError::DuplicateSlot(slots[0]));
             }
@@ -167,65 +236,12 @@ impl ComponentMetadata {
         }
         Ok(())
     }
-
-    /// Deserializes `toml_string` and validates the resulting [ComponentMetadata]
-    ///
-    /// # Errors
-    ///
-    /// - If deserialization fails
-    /// - If the template specifies storage slots with duplicates.
-    /// - If the template includes slot numbers that do not start at zero.
-    /// - If storage slots in the template are not contiguous.
-    #[cfg(feature = "std")]
-    pub fn from_toml(toml_string: &str) -> Result<Self, AccountComponentTemplateError> {
-        let component: ComponentMetadata = toml::from_str(toml_string)
-            .map_err(AccountComponentTemplateError::DeserializationError)?;
-        component.validate()?;
-        Ok(component)
-    }
-
-    /// Retrieves the set of keys (identified by a string) that require a value at the moment of
-    /// component instantiation.
-    pub fn get_template_keys(&self) -> BTreeSet<TemplateKey> {
-        let mut key_set = BTreeSet::new();
-        for storage_entry in &self.storage {
-            for key in storage_entry.template_keys() {
-                key_set.insert(key.clone());
-            }
-        }
-        key_set
-    }
-
-    /// Returns the component metadata's name.
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Returns the component metadata's description.
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-
-    /// Returns a reference to the metadata's semantic version.
-    pub fn version(&self) -> &Version {
-        &self.version
-    }
-
-    /// Returns a reference to the metadata's supported account types.
-    pub fn targets(&self) -> &BTreeSet<AccountType> {
-        &self.targets
-    }
-
-    /// Returns a reference to the metadata's storage entries.
-    pub fn storage_entries(&self) -> &Vec<StorageEntry> {
-        &self.storage
-    }
 }
 
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for ComponentMetadata {
+impl Serializable for AccountComponentMetadata {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.name.write_into(target);
         self.description.write_into(target);
@@ -235,7 +251,7 @@ impl Serializable for ComponentMetadata {
     }
 }
 
-impl Deserializable for ComponentMetadata {
+impl Deserializable for AccountComponentMetadata {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
             name: String::read_from(source)?,
@@ -249,47 +265,6 @@ impl Deserializable for ComponentMetadata {
     }
 }
 
-// SERDE SERIALIZATION
-// ================================================================================================
-
-#[cfg(feature = "std")]
-impl serde::Serialize for AccountType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let s = match self {
-            AccountType::FungibleFaucet => "FungibleFaucet",
-            AccountType::NonFungibleFaucet => "NonFungibleFaucet",
-            AccountType::RegularAccountImmutableCode => "RegularAccountImmutableCode",
-            AccountType::RegularAccountUpdatableCode => "RegularAccountUpdatableCode",
-        };
-        serializer.serialize_str(s)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<'de> serde::Deserialize<'de> for AccountType {
-    fn deserialize<D>(deserializer: D) -> Result<AccountType, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        use serde::de::Error;
-        let s: String = serde::Deserialize::deserialize(deserializer)?;
-
-        match s.as_str() {
-            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
-            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
-            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
-            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
-            other => Err(D::Error::invalid_value(
-                serde::de::Unexpected::Str(other),
-                &"a valid account type (\"FungibleFaucet\", \"NonFungibleFaucet\", \"RegularAccountImmutableCode\", or \"RegularAccountUpdatableCode\")",
-            )),
-        }
-    }
-}
-
 // TESTS
 // ================================================================================================
 
@@ -298,7 +273,7 @@ mod tests {
 
     use assembly::Assembler;
     use assert_matches::assert_matches;
-    use storage_entry::WordRepresentation;
+    use storage::WordRepresentation;
 
     use super::*;
     use crate::{accounts::AccountComponent, testing::account_code::CODE};
@@ -323,7 +298,7 @@ mod tests {
             },
         ];
 
-        let original_config = ComponentMetadata::new(
+        let original_config = AccountComponentMetadata::new(
             "test".into(),
             "desc".into(),
             Version::parse("0.1.0").unwrap(),
@@ -333,7 +308,7 @@ mod tests {
         .unwrap();
 
         let serialized = toml::to_string(&original_config).unwrap();
-        let deserialized: ComponentMetadata = toml::from_str(&serialized).unwrap();
+        let deserialized: AccountComponentMetadata = toml::from_str(&serialized).unwrap();
 
         assert_eq!(deserialized, original_config)
     }
@@ -355,7 +330,7 @@ mod tests {
             },
         ];
 
-        let result = ComponentMetadata::new(
+        let result = AccountComponentMetadata::new(
             "test".into(),
             "desc".into(),
             Version::parse("0.1.0").unwrap(),
@@ -385,7 +360,7 @@ mod tests {
             },
         ];
 
-        let component_template = ComponentMetadata::new(
+        let component_template = AccountComponentMetadata::new(
             "test".into(),
             "desc".into(),
             Version::parse("0.1.0").unwrap(),
