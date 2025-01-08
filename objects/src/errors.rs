@@ -19,7 +19,8 @@ use crate::{
     accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType, StoragePlaceholder},
     block::block_num_from_epoch,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
-    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
+    BlockHeader, ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX,
+    MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT COMPONENT TEMPLATE ERROR
@@ -70,8 +71,6 @@ pub enum AccountError {
     AccountComponentMergeError(String),
     #[error("failed to create account component")]
     AccountComponentTemplateInstantiationError(#[source] AccountComponentTemplateError),
-    #[error("failed to convert bytes into account ID field element")]
-    AccountIdInvalidFieldElement(#[source] DeserializationError),
     #[error("failed to update asset vault")]
     AssetVaultUpdateError(#[source] AssetVaultError),
     #[error("account build error: {0}")]
@@ -82,12 +81,6 @@ pub enum AccountError {
     FungibleFaucetMaxSupplyTooLarge { actual: u64, max: u64 },
     #[error("account header data has length {actual} but it must be of length {expected}")]
     HeaderDataIncorrectLength { actual: usize, expected: usize },
-    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
-    // no-std.
-    #[error("failed to parse hex string into account ID: {0}")]
-    AccountIdHexParseError(HexParseError),
-    #[error("`{0}` is not a valid account storage mode")]
-    InvalidAccountStorageMode(String),
     #[error("new account nonce {new} is less than the current nonce {current}")]
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     #[error("digest of the seed has {actual} trailing zeroes but must have at least {expected} trailing zeroes")]
@@ -117,6 +110,36 @@ pub enum AccountError {
     /// this error type.
     #[error("assumption violated: {0}")]
     AssumptionViolated(String),
+    #[error("failed to parse account id from final account header")]
+    FinalAccountHeaderIdParsingFailed(#[source] AccountIdError),
+}
+
+// ACCOUNT ID ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountIdError {
+    #[error("failed to convert bytes into account id prefix field element")]
+    AccountIdInvalidPrefixFieldElement(#[source] DeserializationError),
+    #[error("failed to convert bytes into account id suffix field element")]
+    AccountIdInvalidSuffixFieldElement(#[source] DeserializationError),
+    #[error("`{0}` is not a valid account storage mode")]
+    UnknownAccountStorageMode(Box<str>),
+    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
+    // no-std.
+    #[error("failed to parse hex string into account id: {0}")]
+    AccountIdHexParseError(HexParseError),
+    #[error("`{0}` is not a known account ID version")]
+    UnknownAccountIdVersion(u8),
+    #[error("anchor epoch in account ID must not be u16::MAX ({})", u16::MAX)]
+    AnchorEpochMustNotBeU16Max,
+    #[error("least significant byte of account ID must be zero")]
+    AccountIdSuffixLeastSignificantByteMustBeZero,
+    #[error(
+        "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
+        BlockHeader::EPOCH_LENGTH_EXPONENT
+    )]
+    AnchorBlockMustBeEpochBlock,
 }
 
 // ACCOUNT DELTA ERROR
@@ -225,7 +248,7 @@ pub enum NoteError {
     #[error("adding fungible asset amounts would exceed maximum allowed amount")]
     AddFungibleAssetBalanceError(#[source] AssetError),
     #[error("note sender is not a valid account ID")]
-    NoteSenderInvalidAccountId(#[source] AccountError),
+    NoteSenderInvalidAccountId(#[source] AccountIdError),
     #[error("note tag use case {0} must be less than 2^{exp}", exp = NoteTag::MAX_USE_CASE_ID_EXPONENT)]
     NoteTagUseCaseTooLarge(u16),
     #[error(
@@ -328,7 +351,7 @@ pub enum TransactionInputError {
     #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, u32),
     #[error("account ID computed from seed is invalid")]
-    InvalidAccountIdSeed(#[source] AccountError),
+    InvalidAccountIdSeed(#[source] AccountIdError),
     #[error(
         "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
     )]
