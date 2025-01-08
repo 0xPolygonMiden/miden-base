@@ -287,7 +287,9 @@ mod tests {
             AccountStorageMode, AccountType, StorageMapDelta,
         },
         assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        testing::account_id::{
+            AccountIdBuilder, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        },
         ONE, ZERO,
     };
 
@@ -334,12 +336,11 @@ mod tests {
 
         let non_fungible: Asset = NonFungibleAsset::new(
             &NonFungibleAssetDetails::new(
-                AccountId::new_dummy(
-                    [10; 15],
-                    AccountType::NonFungibleFaucet,
-                    AccountStorageMode::Public,
-                )
-                .prefix(),
+                AccountIdBuilder::new()
+                    .account_type(AccountType::NonFungibleFaucet)
+                    .storage_mode(AccountStorageMode::Public)
+                    .build_with_rng(&mut rand::thread_rng())
+                    .prefix(),
                 vec![6],
             )
             .unwrap(),
@@ -347,7 +348,10 @@ mod tests {
         .unwrap()
         .into();
         let fungible_2: Asset = FungibleAsset::new(
-            AccountId::new_dummy([10; 15], AccountType::FungibleFaucet, AccountStorageMode::Public),
+            AccountIdBuilder::new()
+                .account_type(AccountType::FungibleFaucet)
+                .storage_mode(AccountStorageMode::Public)
+                .build_with_rng(&mut rand::thread_rng()),
             10,
         )
         .unwrap()

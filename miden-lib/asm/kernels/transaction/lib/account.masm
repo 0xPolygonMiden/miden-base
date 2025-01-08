@@ -736,11 +736,11 @@ end
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
-#! 2. Assert the least significant element of the digest is equal to the account id of the account
-#!    the transaction is being executed against.
-#! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the 
-#!    account type the transaction is being executed against.
+#! 1. Retrieve the anchor block hash by computing the block number of the anchor block and
+#!    retrieving it from the chain mmr.
+#! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
+#! 3. Assert the two least significant elements of the digest are equal to the account id of the
+#!    account the transaction is being executed against.
 #!
 #! Inputs:  []
 #! Outputs: []

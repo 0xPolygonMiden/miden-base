@@ -113,7 +113,7 @@ impl NonFungibleAsset {
         let mut vault_key = self.0;
 
         // Swap first felt of faucet ID with hash0.
-        vault_key.swap(0, 3);
+        vault_key.swap(0, FAUCET_ID_POS);
 
         // Set the fungible bit to zero by taking the bitwise `and` of the felt with the inverted
         // is_faucet mask.
