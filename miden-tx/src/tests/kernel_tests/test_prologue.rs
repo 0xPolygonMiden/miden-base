@@ -29,12 +29,15 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        Account, AccountBuilder, AccountIdAnchor, AccountProcedureInfo, AccountStorageMode,
-        AccountType, StorageSlot,
+        Account, AccountBuilder, AccountId, AccountIdAnchor, AccountIdVersion,
+        AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
     },
     testing::{
         account_component::AccountMockComponent,
-        storage::{generate_account_seed, AccountSeedType},
+        account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
+        constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
     },
     transaction::{TransactionArgs, TransactionScript},
     BlockHeader, GENESIS_BLOCK,
@@ -518,6 +521,36 @@ pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
     create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Public)
 }
 
+/// Takes an account with a placeholder ID and returns the same account but with its ID replaced.
+/// The ID is newly generated and anchored in the given block header.
+fn compute_valid_account_id(
+    account: Account,
+    anchor_block_header: &BlockHeader,
+) -> (Account, Word) {
+    let init_seed: [u8; 32] = [5; 32];
+    let seed = AccountId::compute_account_seed(
+        init_seed,
+        account.account_type(),
+        AccountStorageMode::Public,
+        AccountIdVersion::VERSION_0,
+        account.code().commitment(),
+        account.storage().commitment(),
+        anchor_block_header.hash(),
+    )
+    .unwrap();
+
+    let anchor = AccountIdAnchor::try_from(anchor_block_header).unwrap();
+    let account_id =
+        AccountId::new(seed, anchor, account.code().commitment(), account.storage().commitment())
+            .unwrap();
+
+    // Overwrite old ID with generated ID.
+    let (_, vault, storage, code, nonce) = account.into_parts();
+    let account = Account::from_parts(account_id, vault, storage, code, nonce);
+
+    (account, seed)
+}
+
 /// Tests that creating a fungible faucet account with a non-empty initial balance in its reserved
 /// slot fails.
 #[test]
@@ -527,11 +560,13 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
 
     let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
 
-    let (account, _, account_seed) = generate_account_seed(
-        AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        &genesis_block_header,
+    let account = Account::mock_fungible_faucet(
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ZERO,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
         TransactionKernel::assembler().with_debug_mode(true),
     );
+    let (account, account_seed) = compute_valid_account_id(account, &genesis_block_header);
 
     let result = create_account_test(&mock_chain, account, account_seed);
 
@@ -549,11 +584,13 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
 
     let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
 
-    let (account, _, account_seed) = generate_account_seed(
-        AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
-        &genesis_block_header,
+    let account = Account::mock_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ZERO,
+        false,
         TransactionKernel::assembler().with_debug_mode(true),
     );
+    let (account, account_seed) = compute_valid_account_id(account, &genesis_block_header);
 
     let result = create_account_test(&mock_chain, account, account_seed);
 
