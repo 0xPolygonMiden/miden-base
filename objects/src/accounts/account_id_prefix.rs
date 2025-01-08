@@ -137,7 +137,7 @@ impl From<AccountIdPrefix> for Felt {
 impl From<AccountIdPrefix> for [u8; 8] {
     fn from(id: AccountIdPrefix) -> Self {
         let mut result = [0_u8; 8];
-        result[..8].copy_from_slice(&id.prefix.as_int().to_le_bytes());
+        result[..8].copy_from_slice(&id.prefix.as_int().to_be_bytes());
         result
     }
 }
@@ -154,16 +154,19 @@ impl From<AccountIdPrefix> for u64 {
 impl TryFrom<[u8; 8]> for AccountIdPrefix {
     type Error = AccountIdError;
 
-    /// Tries to convert a byte array in little-endian order to an [`AccountIdPrefix`].
+    /// Tries to convert a byte array in big-endian order to an [`AccountIdPrefix`].
     ///
     /// # Errors
     ///
     /// Returns an error if any of the ID constraints of the prefix are not met. See the
     /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
-    fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
-        let element = Felt::try_from(&value[..8])
-            .map_err(AccountIdError::AccountIdInvalidPrefixFieldElement)?;
-        Self::new(element)
+    fn try_from(mut value: [u8; 8]) -> Result<Self, Self::Error> {
+        // Felt::try_from expects little-endian order.
+        value.reverse();
+
+        Felt::try_from(value.as_slice())
+            .map_err(AccountIdError::AccountIdInvalidPrefixFieldElement)
+            .and_then(Self::new)
     }
 }
 

@@ -3,10 +3,7 @@ use super::{
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AssetError, Felt, Hasher, Word, ZERO,
 };
-use crate::accounts::{
-    account_id::{self},
-    AccountIdPrefix,
-};
+use crate::accounts::AccountIdPrefix;
 
 mod fungible;
 pub use fungible::FungibleAsset;
@@ -215,20 +212,18 @@ impl Deserializable for Asset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         // Both asset types have their faucet ID prefix as the first element, so we can use it to
         // inspect what type of asset it is.
-        // Due to little endian byte order, the first byte contains the account ID metadata.
-        let account_metadata = source.peek_u8()?;
-        let account_type = account_id::extract_type(account_metadata as u64);
+        let faucet_id_prefix: AccountIdPrefix = source.read()?;
 
-        match account_type {
+        match faucet_id_prefix.account_type() {
             AccountType::FungibleFaucet => {
-              FungibleAsset::read_from(source).map(Asset::from)
+              FungibleAsset::deserialize_with_faucet_id_prefix(faucet_id_prefix, source).map(Asset::from)
             },
             AccountType::NonFungibleFaucet => {
-                NonFungibleAsset::read_from(source).map(Asset::from)
+                NonFungibleAsset::deserialize_with_faucet_id_prefix (faucet_id_prefix, source).map(Asset::from)
             },
             other_type => {
                  Err(DeserializationError::InvalidValue(format!(
-                    "failed to deserialize asset: expected an account ID of type faucet, found {other_type:?}"
+                    "failed to deserialize asset: expected an account ID prefix of type faucet, found {other_type:?}"
                 )))
             },
         }
@@ -269,7 +264,7 @@ mod tests {
 
     use super::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
     use crate::{
-        accounts::{account_id, AccountId},
+        accounts::{AccountId, AccountIdPrefix},
         testing::account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
@@ -333,29 +328,15 @@ mod tests {
         }
     }
 
-    /// This test asserts that account ID's metadata is serialized in the first byte of assets.
+    /// This test asserts that account ID's prefix is serialized in the first felt of assets.
     /// Asset deserialization relies on that fact and if this changes the serialization must
     /// be updated.
     #[test]
-    fn test_account_id_metadata_is_in_first_serialized_byte() {
+    fn test_account_id_prefix_is_in_first_serialized_felt() {
         for asset in [FungibleAsset::mock(300), NonFungibleAsset::mock(&[0xaa, 0xbb])] {
             let serialized_asset = asset.to_bytes();
-            // Get the first byte and interpret it as a u64 because the extract functions require
-            // it.
-            let first_byte = serialized_asset[0] as u64;
-
-            assert_eq!(
-                account_id::extract_type(first_byte),
-                asset.faucet_id_prefix().account_type()
-            );
-            assert_eq!(
-                account_id::extract_storage_mode(first_byte).unwrap(),
-                asset.faucet_id_prefix().storage_mode()
-            );
-            assert_eq!(
-                account_id::extract_version(first_byte).unwrap(),
-                asset.faucet_id_prefix().version()
-            );
+            let prefix = AccountIdPrefix::read_from_bytes(&serialized_asset).unwrap();
+            assert_eq!(prefix, asset.faucet_id_prefix());
         }
     }
 }

@@ -526,18 +526,9 @@ impl AccountId {
     /// Creates an [`AccountId`] from a hex string. Assumes the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_str: &str) -> Result<AccountId, AccountIdError> {
-        hex_to_bytes(hex_str).map_err(AccountIdError::AccountIdHexParseError).and_then(
-            |mut bytes: [u8; 15]| {
-                // TryFrom<[u8; 15]> expects [prefix, suffix] in little-endian order, so we
-                // need to convert the bytes representation from big endian to little endian by
-                // reversing each felt. The prefix has 8 and the suffix has
-                // 7 bytes.
-                bytes[0..8].reverse();
-                bytes[8..15].reverse();
-
-                AccountId::try_from(bytes)
-            },
-        )
+        hex_to_bytes(hex_str)
+            .map_err(AccountIdError::AccountIdHexParseError)
+            .and_then(AccountId::try_from)
     }
 
     /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix, so it
@@ -579,10 +570,9 @@ impl From<AccountId> for [Felt; 2] {
 impl From<AccountId> for [u8; 15] {
     fn from(id: AccountId) -> Self {
         let mut result = [0_u8; 15];
-        result[..8].copy_from_slice(&id.prefix().as_u64().to_le_bytes());
-        // The last byte of the suffix is always zero, and in little endian this is the first
-        // byte, so we skip it here.
-        result[8..].copy_from_slice(&id.suffix().as_int().to_le_bytes()[1..8]);
+        result[..8].copy_from_slice(&id.prefix().as_u64().to_be_bytes());
+        // The last byte of the suffix is always zero so we skip it here.
+        result[8..].copy_from_slice(&id.suffix().as_int().to_be_bytes()[..7]);
         result
     }
 }
@@ -624,19 +614,24 @@ impl TryFrom<[Felt; 2]> for AccountId {
 impl TryFrom<[u8; 15]> for AccountId {
     type Error = AccountIdError;
 
-    /// Tries to convert a byte array in little-endian order to an [`AccountId`].
+    /// Tries to convert a byte array in big-endian order to an [`AccountId`].
     ///
     /// # Errors
     ///
     /// Returns an error if any of the ID constraints are not met. See the [type
     /// documentation](AccountId) for details.
-    fn try_from(bytes: [u8; 15]) -> Result<Self, Self::Error> {
-        // This slice has 8 bytes.
+    fn try_from(mut bytes: [u8; 15]) -> Result<Self, Self::Error> {
+        // Felt::try_from expects little-endian order, so reverse the individual felt slices.
+        // This prefix slice has 8 bytes.
+        bytes[..8].reverse();
+        // The suffix slice has 7 bytes, since the 8th byte will always be zero.
+        bytes[8..15].reverse();
+
         let prefix_slice = &bytes[..8];
-        // This slice has 7 bytes, since the 8th byte will always be zero.
         let suffix_slice = &bytes[8..15];
 
-        // The byte order is little-endian order, so prepending a 0 sets the least significant byte.
+        // The byte order is little-endian here, so we prepend a 0 to set the least significant
+        // byte.
         let mut suffix_bytes = [0; 8];
         suffix_bytes[1..8].copy_from_slice(suffix_slice);
 
@@ -660,15 +655,8 @@ impl TryFrom<u128> for AccountId {
     /// Returns an error if any of the ID constraints are not met. See the [type
     /// documentation](AccountId) for details.
     fn try_from(int: u128) -> Result<Self, Self::Error> {
-        let little_endian_bytes = int.to_le_bytes();
         let mut bytes: [u8; 15] = [0; 15];
-
-        // Swap the positions of the Felts to match what the TryFrom<[u8; 15]> impl expects.
-        // This copies the prefix's 8 bytes.
-        bytes[..8].copy_from_slice(&little_endian_bytes[8..]);
-        // This copies the suffix's 7 bytes. The least significant byte is zero and is
-        // therefore skipped.
-        bytes[8..].copy_from_slice(&little_endian_bytes[1..8]);
+        bytes.copy_from_slice(&int.to_be_bytes()[0..15]);
 
         Self::try_from(bytes)
     }
@@ -927,11 +915,13 @@ mod tests {
         // Ensure that an AccountIdPrefix can be read from the serialized bytes of an AccountId.
         let account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
         let id_bytes = account_id.to_bytes();
+        assert_eq!(account_id.prefix().to_bytes(), id_bytes[..8]);
+
         let deserialized_prefix = AccountIdPrefix::read_from_bytes(&id_bytes).unwrap();
         assert_eq!(account_id.prefix(), deserialized_prefix);
 
         // Ensure AccountId and AccountIdPrefix's hex representation are compatible.
-        assert!(account_id.to_hex().starts_with(&account_id.prefix().to_string()));
+        assert!(account_id.to_hex().starts_with(&account_id.prefix().to_hex()));
     }
 
     // CONVERSION TESTS
@@ -953,6 +943,9 @@ mod tests {
             assert_eq!(id, AccountId::from_hex(&id.to_hex()).unwrap(), "failed in {idx}");
             assert_eq!(id, AccountId::try_from(<[u8; 15]>::from(id)).unwrap(), "failed in {idx}");
             assert_eq!(id, AccountId::try_from(u128::from(id)).unwrap(), "failed in {idx}");
+            // The u128 big-endian representation without the least significant byte and the
+            // [u8; 15] representations should be equivalent.
+            assert_eq!(u128::from(id).to_be_bytes()[0..15], <[u8; 15]>::from(id));
             assert_eq!(account_id, u128::from(id), "failed in {idx}");
         }
     }
