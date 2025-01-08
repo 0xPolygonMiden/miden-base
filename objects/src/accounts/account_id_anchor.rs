@@ -27,6 +27,12 @@ impl AccountIdAnchor {
 
     /// A "pre-genesis" [`AccountIdAnchor`] which can be used to anchor accounts created in the
     /// genesis block.
+    ///
+    /// This anchor should only be used for accounts included in the genesis state, but should not
+    /// be used as actual anchors in a running network. The reason is that this anchor has the same
+    /// `epoch` as the genesis block will have (epoch `0`). However, the genesis block will have a
+    /// different block_hash than this anchor ([`EMPTY_WORD`]) and so any account ID that would use
+    /// this anchor would be rejected as invalid by the transaction kernel.
     pub const PRE_GENESIS: Self = Self {
         epoch: 0,
         block_hash: Digest::new(EMPTY_WORD),

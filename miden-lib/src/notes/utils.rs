@@ -76,7 +76,7 @@ mod tests {
 
         let offered_asset = Asset::Fungible(
             FungibleAsset::new(
-                AccountId::new_dummy(
+                AccountId::dummy(
                     fungible_faucet_id_bytes,
                     AccountType::FungibleFaucet,
                     AccountStorageMode::Public,
@@ -89,7 +89,7 @@ mod tests {
         let requested_asset = Asset::NonFungible(
             NonFungibleAsset::new(
                 &NonFungibleAssetDetails::new(
-                    AccountId::new_dummy(
+                    AccountId::dummy(
                         non_fungible_faucet_id_bytes,
                         AccountType::NonFungibleFaucet,
                         AccountStorageMode::Public,

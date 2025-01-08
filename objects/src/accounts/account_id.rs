@@ -46,15 +46,17 @@ impl AccountType {
     }
 }
 
-impl From<AccountId> for AccountType {
-    fn from(id: AccountId) -> Self {
-        id.account_type()
-    }
-}
-
-impl From<AccountIdPrefix> for AccountType {
-    fn from(id_prefix: AccountIdPrefix) -> Self {
-        id_prefix.account_type()
+#[cfg(any(feature = "testing", test))]
+impl rand::distributions::Distribution<AccountType> for rand::distributions::Standard {
+    /// Samples a uniformly random [`AccountType`] from the given `rng`.
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountType {
+        match rng.gen_range(0..4) {
+            0 => AccountType::RegularAccountImmutableCode,
+            1 => AccountType::RegularAccountUpdatableCode,
+            2 => AccountType::FungibleFaucet,
+            3 => AccountType::NonFungibleFaucet,
+            _ => unreachable!("gen_range should not produce higher values"),
+        }
     }
 }
 
@@ -108,15 +110,15 @@ impl FromStr for AccountStorageMode {
     }
 }
 
-impl From<AccountId> for AccountStorageMode {
-    fn from(id: AccountId) -> Self {
-        id.storage_mode()
-    }
-}
-
-impl From<AccountIdPrefix> for AccountStorageMode {
-    fn from(id_prefix: AccountIdPrefix) -> Self {
-        id_prefix.storage_mode()
+#[cfg(any(feature = "testing", test))]
+impl rand::distributions::Distribution<AccountStorageMode> for rand::distributions::Standard {
+    /// Samples a uniformly random [`AccountStorageMode`] from the given `rng`.
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountStorageMode {
+        match rng.gen_range(0..2) {
+            0 => AccountStorageMode::Public,
+            1 => AccountStorageMode::Private,
+            _ => unreachable!("gen_range should not produce higher values"),
+        }
     }
 }
 
@@ -185,9 +187,9 @@ impl From<AccountIdPrefix> for AccountIdVersion {
 /// block as an anchor - which is why it is also referred to as the anchor block - and creating the
 /// account's initial storage and code. Then a random seed is picked and the hash of (SEED,
 /// CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH) is computed. If the hash's first element
-/// has the desired storage mode, account type, version and the high bit set to zero, the
-/// computation part of the ID generation is done. If not, another random seed is picked and the
-/// process is repeated. The first felt of the ID is then the first element of the hash.
+/// has the desired storage mode, account type and version, the computation part of the ID
+/// generation is done. If not, another random seed is picked and the process is repeated. The first
+/// felt of the ID is then the first element of the hash.
 ///
 /// The second felt of the ID is the second element of the hash. Its upper 16 bits are overwritten
 /// with the epoch in which the ID is anchored and the lower 8 bits are zeroed. Thus, the first felt
@@ -354,7 +356,7 @@ impl AccountId {
     ///   significant end of the ID.
     /// - In the second felt the anchor epoch is set to 0 and the lower 8 bits are cleared.
     #[cfg(any(feature = "testing", test))]
-    pub fn new_dummy(
+    pub fn dummy(
         mut bytes: [u8; 15],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
@@ -855,7 +857,7 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountId::new_dummy(input, account_type, storage_mode);
+                    let id = AccountId::dummy(input, account_type, storage_mode);
                     assert_eq!(id.account_type(), account_type);
                     assert_eq!(id.storage_mode(), storage_mode);
                     assert_eq!(id.version(), AccountIdVersion::VERSION_0);
