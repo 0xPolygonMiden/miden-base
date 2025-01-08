@@ -12,8 +12,8 @@ use miden_objects::{
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{
-        block_num_from_epoch, compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex,
-        BlockNoteTree, NoteBatch,
+        compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, BlockNumber,
+        NoteBatch,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -592,8 +592,8 @@ impl MockChain {
             let note_block_num = input_note.location().unwrap().block_num();
             if note_block_num != block.header().block_num() {
                 block_headers_map.insert(
-                    note_block_num,
-                    self.blocks.get(note_block_num as usize).unwrap().header(),
+                    note_block_num.as_u32(),
+                    self.blocks.get(note_block_num.as_u32() as usize).unwrap().header(),
                 );
             }
             input_notes.push(input_note);
@@ -602,13 +602,13 @@ impl MockChain {
         // If the account is new, add the anchor block's header from which the account ID is derived
         // to the MMR.
         if account.is_new() {
-            let epoch_block_num = block_num_from_epoch(account.id().anchor_epoch());
+            let epoch_block_num = BlockNumber::from_epoch(account.id().anchor_epoch());
             // The reference block of the transaction is added to the MMR in
             // prologue::process_chain_data so we can skip adding it to the block headers here.
-            if epoch_block_num != block.header().block_num() {
+            if epoch_block_num != block.header().block_num().into() {
                 block_headers_map.insert(
-                    epoch_block_num,
-                    self.blocks.get(epoch_block_num as usize).unwrap().header(),
+                    epoch_block_num.as_u32(),
+                    self.blocks.get(epoch_block_num.as_u32() as usize).unwrap().header(),
                 );
             }
         }
@@ -637,7 +637,7 @@ impl MockChain {
     /// This will also make all the objects currently pending available for use.
     /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
     pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
-        let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num() + 1);
+        let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num().as_u32() + 1);
         let target_block_num = block_num.unwrap_or(next_block_num);
 
         if target_block_num < next_block_num {
@@ -724,7 +724,7 @@ impl MockChain {
                                 BlockNoteIndex::new(batch_index, note_index).unwrap();
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
-                                block.header().block_num(),
+                                block.header().block_num().as_u32(),
                                 block_note_index.leaf_index_value(),
                                 note_path,
                             )

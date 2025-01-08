@@ -6,7 +6,7 @@ use super::{
 };
 
 mod header;
-pub use header::{block_epoch_from_number, block_num_from_epoch, BlockHeader};
+pub use header::{BlockHeader, BlockNumber};
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 

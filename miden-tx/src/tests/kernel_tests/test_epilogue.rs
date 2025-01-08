@@ -244,7 +244,8 @@ fn test_block_expiration_height_monotonically_decreases() {
 
         // Expiry block should be set to transaction's block + the stored expiration delta
         // (which can only decrease, not increase)
-        let expected_expiry = v1.min(v2) + tx_context.tx_inputs().block_header().block_num() as u64;
+        let expected_expiry =
+            v1.min(v2) + tx_context.tx_inputs().block_header().block_num().as_u32() as u64;
         assert_eq!(process.get_stack_item(8).as_int(), expected_expiry);
     }
 }

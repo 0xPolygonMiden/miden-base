@@ -7,6 +7,7 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId},
     assembly::Assembler,
+    block::BlockNumber,
     notes::{Note, NoteId},
     transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
 };
@@ -139,7 +140,7 @@ impl DataStore for TransactionInputs {
     fn get_transaction_inputs(
         &self,
         account_id: AccountId,
-        block_num: u32,
+        block_num: BlockNumber,
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError> {
         assert_eq!(account_id, self.account().id());

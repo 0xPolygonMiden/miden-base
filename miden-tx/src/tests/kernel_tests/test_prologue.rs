@@ -200,7 +200,7 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &Transactio
 
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[BLOCK_NUMBER_IDX],
-        inputs.tx_inputs().block_header().block_num().into(),
+        inputs.tx_inputs().block_header().block_num().as_u32().into(),
         "The block number should be stored at BLOCK_METADATA_PTR[BLOCK_NUMBER_IDX]"
     );
 

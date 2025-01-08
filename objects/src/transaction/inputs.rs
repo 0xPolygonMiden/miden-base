@@ -4,7 +4,7 @@ use core::fmt::Debug;
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
     accounts::{Account, AccountId, AccountIdAnchor},
-    block::block_num_from_epoch,
+    block::BlockNumber,
     notes::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     TransactionInputError, MAX_INPUT_NOTES_PER_TX,
@@ -44,9 +44,9 @@ impl TransactionInputs {
 
         // check the block_chain and block_header are consistent
         let block_num = block_header.block_num();
-        if block_chain.chain_length() != block_header.block_num() as usize {
+        if block_chain.chain_length() != block_header.block_num().as_u32() as usize {
             return Err(TransactionInputError::InconsistentChainLength {
-                expected: block_header.block_num(),
+                expected: block_header.block_num().as_u32(),
                 actual: block_chain.chain_length() as u32,
             });
         }
@@ -67,7 +67,7 @@ impl TransactionInputs {
                     &block_header
                 } else {
                     block_chain
-                        .get_block(note_block_num)
+                        .get_block(note_block_num.as_u32())
                         .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
                 };
 
@@ -402,7 +402,10 @@ fn validate_is_in_block(
         .note_path()
         .verify(note_index, note_hash, &block_header.note_root())
         .map_err(|_| {
-            TransactionInputError::InputNoteNotInBlock(note.id(), proof.location().block_num())
+            TransactionInputError::InputNoteNotInBlock(
+                note.id(),
+                proof.location().block_num().as_u32(),
+            )
         })
 }
 
@@ -477,13 +480,13 @@ pub fn validate_account_seed(
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
-            let anchor_block_number = block_num_from_epoch(account.id().anchor_epoch());
+            let anchor_block_number = BlockNumber::from_epoch(account.id().anchor_epoch());
 
             let anchor_block_hash = if block_header.block_num() == anchor_block_number {
                 block_header.hash()
             } else {
                 let anchor_block_header =
-                    block_chain.get_block(anchor_block_number).ok_or_else(|| {
+                    block_chain.get_block(anchor_block_number.as_u32()).ok_or_else(|| {
                         TransactionInputError::AnchorBlockHeaderNotProvidedForNewAccount(
                             account.id().anchor_epoch(),
                         )

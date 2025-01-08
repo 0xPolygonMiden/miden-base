@@ -1,7 +1,10 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, Serializable,
 };
-use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH};
+use crate::{
+    block::BlockNumber, crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK,
+    MAX_OUTPUT_NOTES_PER_BATCH,
+};
 
 /// Contains information about the location of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,8 +18,8 @@ pub struct NoteLocation {
 
 impl NoteLocation {
     /// Returns the block number the note was created in.
-    pub fn block_num(&self) -> u32 {
-        self.block_num
+    pub fn block_num(&self) -> BlockNumber {
+        self.block_num.into()
     }
 
     /// Returns the index of the note in the note Merkle tree of the block the note was created in.

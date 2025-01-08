@@ -3,6 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::utils::{Deserializable, Serializable};
 
 use crate::{
+    block::BlockNumber,
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     BlockHeader, ChainMmrError,
 };
@@ -26,7 +27,7 @@ pub struct ChainMmr {
     mmr: PartialMmr,
     /// A map of block_num |-> block_header for all blocks for which the partial MMR contains
     /// authentication paths.
-    blocks: BTreeMap<u32, BlockHeader>,
+    blocks: BTreeMap<BlockNumber, BlockHeader>,
 }
 
 impl ChainMmr {
@@ -46,16 +47,19 @@ impl ChainMmr {
 
         let mut block_map = BTreeMap::new();
         for block in blocks.into_iter() {
-            if block.block_num() as usize >= chain_length {
-                return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
+            if block.block_num().as_u32() as usize >= chain_length {
+                return Err(ChainMmrError::block_num_too_big(
+                    chain_length,
+                    block.block_num().as_u32(),
+                ));
             }
 
             if block_map.insert(block.block_num(), block).is_some() {
-                return Err(ChainMmrError::duplicate_block(block.block_num()));
+                return Err(ChainMmrError::duplicate_block(block.block_num().as_u32()));
             }
 
-            if !mmr.is_tracked(block.block_num() as usize) {
-                return Err(ChainMmrError::untracked_block(block.block_num()));
+            if !mmr.is_tracked(block.block_num().as_u32() as usize) {
+                return Err(ChainMmrError::untracked_block(block.block_num().as_u32()));
             }
         }
 
@@ -77,13 +81,13 @@ impl ChainMmr {
 
     /// Returns true if the block is present in this chain MMR.
     pub fn contains_block(&self, block_num: u32) -> bool {
-        self.blocks.contains_key(&block_num)
+        self.blocks.contains_key(&block_num.into())
     }
 
     /// Returns the block header for the specified block, or None if the block is not present in
     /// this chain MMR.
     pub fn get_block(&self, block_num: u32) -> Option<&BlockHeader> {
-        self.blocks.get(&block_num)
+        self.blocks.get(&block_num.into())
     }
 
     // DATA MUTATORS
@@ -99,7 +103,7 @@ impl ChainMmr {
     /// Panics if the `block_header.block_num` is not equal to the current chain length (i.e., the
     /// provided block header is not the next block in the chain).
     pub fn add_block(&mut self, block_header: BlockHeader, track: bool) {
-        assert_eq!(block_header.block_num(), self.chain_length() as u32);
+        assert_eq!(block_header.block_num().as_u32(), self.chain_length() as u32);
         self.mmr.add(block_header.hash(), track);
     }
 
@@ -110,7 +114,9 @@ impl ChainMmr {
     /// MMR.
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
         self.mmr.inner_nodes(
-            self.blocks.values().map(|block| (block.block_num() as usize, block.hash())),
+            self.blocks
+                .values()
+                .map(|block| (block.block_num().as_u32() as usize, block.hash())),
         )
     }
 }
