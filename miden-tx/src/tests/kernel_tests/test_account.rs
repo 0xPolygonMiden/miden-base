@@ -142,7 +142,7 @@ pub fn test_account_type() {
             );
 
             let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-                .stack_inputs(StackInputs::new(vec![account_id.first_felt()]).unwrap())
+                .stack_inputs(StackInputs::new(vec![account_id.prefix().as_felt()]).unwrap())
                 .run(&code)
                 .unwrap();
 
@@ -182,15 +182,15 @@ fn test_is_faucet_procedure() {
             use.kernel::account
 
             begin
-                push.{first_felt}
+                push.{prefix}
                 exec.account::is_faucet
-                # => [is_faucet, account_id_hi]
+                # => [is_faucet, account_id_prefix]
 
                 # truncate the stack
                 swap drop
             end
             ",
-            first_felt = account_id.first_felt(),
+            prefix = account_id.prefix().as_felt(),
         );
 
         let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())

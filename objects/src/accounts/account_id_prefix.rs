@@ -10,16 +10,14 @@ use vm_processor::DeserializationError;
 
 use super::account_id;
 use crate::{
-    accounts::{
-        account_id::validate_first_felt, AccountIdVersion, AccountStorageMode, AccountType,
-    },
+    accounts::{account_id::validate_prefix, AccountIdVersion, AccountStorageMode, AccountType},
     AccountError,
 };
 
 // ACCOUNT ID PREFIX
 // ================================================================================================
 
-/// The first felt of an [`AccountId`][id], i.e. its prefix.
+/// The prefix of an [`AccountId`][id], i.e. its first field element.
 ///
 /// See the type's documentation for details.
 ///
@@ -29,7 +27,7 @@ use crate::{
 /// [id]: crate::accounts::AccountId
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AccountIdPrefix {
-    first_felt: Felt,
+    prefix: Felt,
 }
 
 impl AccountIdPrefix {
@@ -42,7 +40,7 @@ impl AccountIdPrefix {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Constructs a new [`AccountIdPrefix`] from the given `first_felt` without checking its
+    /// Constructs a new [`AccountIdPrefix`] from the given `prefix` without checking its
     /// validity.
     ///
     /// # Warning
@@ -54,34 +52,44 @@ impl AccountIdPrefix {
     /// If debug_assertions are enabled (e.g. in debug mode), this function panics if the given
     /// felt is invalid according to the constraints in the
     /// [`AccountId`](crate::accounts::AccountId) documentation.
-    pub fn new_unchecked(first_felt: Felt) -> Self {
+    pub fn new_unchecked(prefix: Felt) -> Self {
         // Panic on invalid felts in debug mode.
         if cfg!(debug_assertions) {
-            validate_first_felt(first_felt)
-                .expect("AccountIdPrefix::new_unchecked called with invalid first felt");
+            validate_prefix(prefix)
+                .expect("AccountIdPrefix::new_unchecked called with invalid prefix");
         }
 
-        AccountIdPrefix { first_felt }
+        AccountIdPrefix { prefix }
     }
 
-    /// Constructs a new [`AccountIdPrefix`] from the given `first_felt` and checks its validity.
+    /// Constructs a new [`AccountIdPrefix`] from the given `prefix` and checks its validity.
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the first felt are not met. See the
+    /// Returns an error if any of the ID constraints of the prefix are not met. See the
     /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
-    pub fn new(first_felt: Felt) -> Result<Self, AccountError> {
-        validate_first_felt(first_felt)?;
+    pub fn new(prefix: Felt) -> Result<Self, AccountError> {
+        validate_prefix(prefix)?;
 
-        Ok(AccountIdPrefix { first_felt })
+        Ok(AccountIdPrefix { prefix })
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the [`Felt`] that represents this prefix.
+    pub const fn as_felt(&self) -> Felt {
+        self.prefix
+    }
+
+    /// Returns the prefix as a [`u64`].
+    pub const fn as_u64(&self) -> u64 {
+        self.prefix.as_int()
+    }
+
     /// Returns the type of this account ID.
     pub const fn account_type(&self) -> AccountType {
-        account_id::extract_type(self.first_felt.as_int())
+        account_id::extract_type(self.prefix.as_int())
     }
 
     /// Returns true if an account with this ID is a faucet (can issue assets).
@@ -96,7 +104,7 @@ impl AccountIdPrefix {
 
     /// Returns the storage mode of this account ID.
     pub fn storage_mode(&self) -> AccountStorageMode {
-        account_id::extract_storage_mode(self.first_felt.as_int())
+        account_id::extract_storage_mode(self.prefix.as_int())
             .expect("account ID prefix should have been constructed with a valid storage mode")
     }
 
@@ -107,13 +115,13 @@ impl AccountIdPrefix {
 
     /// Returns the version of this account ID.
     pub fn version(&self) -> AccountIdVersion {
-        account_id::extract_version(self.first_felt.as_int())
+        account_id::extract_version(self.prefix.as_int())
             .expect("account ID prefix should have been constructed with a valid version")
     }
 
     /// Returns the prefix as a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
-        format!("0x{:016x}", self.first_felt.as_int())
+        format!("0x{:016x}", self.prefix.as_int())
     }
 }
 
@@ -122,21 +130,21 @@ impl AccountIdPrefix {
 
 impl From<AccountIdPrefix> for Felt {
     fn from(id: AccountIdPrefix) -> Self {
-        id.first_felt
+        id.prefix
     }
 }
 
 impl From<AccountIdPrefix> for [u8; 8] {
     fn from(id: AccountIdPrefix) -> Self {
         let mut result = [0_u8; 8];
-        result[..8].copy_from_slice(&id.first_felt.as_int().to_le_bytes());
+        result[..8].copy_from_slice(&id.prefix.as_int().to_le_bytes());
         result
     }
 }
 
 impl From<AccountIdPrefix> for u64 {
     fn from(id: AccountIdPrefix) -> Self {
-        id.first_felt.as_int()
+        id.prefix.as_int()
     }
 }
 
@@ -150,7 +158,7 @@ impl TryFrom<[u8; 8]> for AccountIdPrefix {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the first felt are not met. See the
+    /// Returns an error if any of the ID constraints of the prefix are not met. See the
     /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
     fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
         let element =
@@ -166,7 +174,7 @@ impl TryFrom<u64> for AccountIdPrefix {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the first felt are not met. See the
+    /// Returns an error if any of the ID constraints of the prefix are not met. See the
     /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let element = Felt::try_from(value.to_le_bytes().as_slice())
@@ -182,7 +190,7 @@ impl TryFrom<Felt> for AccountIdPrefix {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the first felt are not met. See the
+    /// Returns an error if any of the ID constraints of the prefix are not met. See the
     /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
     fn try_from(element: Felt) -> Result<Self, Self::Error> {
         Self::new(element)
@@ -200,7 +208,7 @@ impl PartialOrd for AccountIdPrefix {
 
 impl Ord for AccountIdPrefix {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.first_felt.as_int().cmp(&other.first_felt.as_int())
+        self.prefix.as_int().cmp(&other.prefix.as_int())
     }
 }
 

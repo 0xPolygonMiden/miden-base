@@ -41,15 +41,15 @@ fn test_get_balance() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{second_felt}.{first_felt}
+            push.{suffix}.{prefix}
             exec.account::get_balance
 
             # truncate the stack
             swap drop
         end
         ",
-        first_felt = faucet_id.first_felt(),
-        second_felt = faucet_id.second_felt(),
+        prefix = faucet_id.prefix().as_felt(),
+        suffix = faucet_id.suffix(),
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -72,12 +72,12 @@ fn test_get_balance_non_fungible_fails() {
 
         begin
             exec.prologue::prepare_transaction
-            push.{second_felt}.{first_felt}
+            push.{suffix}.{prefix}
             exec.account::get_balance
         end
         ",
-        first_felt = faucet_id.first_felt(),
-        second_felt = faucet_id.second_felt(),
+        prefix = faucet_id.prefix().as_felt(),
+        suffix = faucet_id.suffix(),
     );
 
     let process = tx_context.execute_code(&code);
@@ -122,9 +122,13 @@ fn test_add_fungible_asset_success() {
     let mut account_vault = tx_context.account().vault().clone();
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT;
-    let add_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
-            .unwrap();
+    let add_fungible_asset = Asset::try_from([
+        Felt::new(amount),
+        ZERO,
+        faucet_id.suffix(),
+        faucet_id.prefix().as_felt(),
+    ])
+    .unwrap();
 
     let code = format!(
         "
@@ -163,9 +167,13 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT + 1;
-    let add_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
-            .unwrap();
+    let add_fungible_asset = Asset::try_from([
+        Felt::new(amount),
+        ZERO,
+        faucet_id.suffix(),
+        faucet_id.prefix().as_felt(),
+    ])
+    .unwrap();
 
     let code = format!(
         "
@@ -267,9 +275,13 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT;
-    let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
-            .unwrap();
+    let remove_fungible_asset = Asset::try_from([
+        Felt::new(amount),
+        ZERO,
+        faucet_id.suffix(),
+        faucet_id.prefix().as_felt(),
+    ])
+    .unwrap();
 
     let code = format!(
         "
@@ -306,9 +318,13 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT + 1;
-    let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
-            .unwrap();
+    let remove_fungible_asset = Asset::try_from([
+        Felt::new(amount),
+        ZERO,
+        faucet_id.suffix(),
+        faucet_id.prefix().as_felt(),
+    ])
+    .unwrap();
 
     let code = format!(
         "
@@ -336,9 +352,13 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT - 1;
-    let remove_fungible_asset =
-        Asset::try_from([Felt::new(amount), ZERO, faucet_id.second_felt(), faucet_id.first_felt()])
-            .unwrap();
+    let remove_fungible_asset = Asset::try_from([
+        Felt::new(amount),
+        ZERO,
+        faucet_id.suffix(),
+        faucet_id.prefix().as_felt(),
+    ])
+    .unwrap();
 
     let code = format!(
         "

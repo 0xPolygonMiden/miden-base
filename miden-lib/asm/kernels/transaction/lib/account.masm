@@ -12,7 +12,7 @@ use.kernel::memory
 # Account nonce cannot be increased by a greater than u32 value
 const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x00020004
 
-# Least significant byte of second felt of the account ID must be zero.
+# Least significant byte of the account ID suffix must be zero.
 const.ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO=0x00020005
 
 # Account code must be updatable for it to be possible to set new code
@@ -78,11 +78,11 @@ const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020058
 # CONSTANTS
 # =================================================================================================
 
-# Given the least significant 32 bits of an account ID's first felt, this mask defines the bits used
+# Given the least significant 32 bits of an account ID's prefix, this mask defines the bits used
 # to determine the account version.
 const.ACCOUNT_VERSION_MASK_U32=0x0f # 0b1111
 
-# Given the least significant 32 bits of an account ID's first felt, this mask defines the bits used
+# Given the least significant 32 bits of an account ID's prefix, this mask defines the bits used
 # to determine the account type.
 const.ACCOUNT_ID_TYPE_MASK_U32=0x30 # 0b11_0000
 
@@ -261,11 +261,11 @@ export.memory::get_init_acct_hash->get_initial_hash
 
 #! Returns a boolean indicating whether the account is a fungible faucet.
 #!
-#! Inputs:  [acct_id_hi]
+#! Inputs:  [acct_id_prefix]
 #! Outputs: [is_fungible_faucet]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account ID.
+#! - acct_id_prefix is the prefix of the account ID.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
 export.is_fungible_faucet
     exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
@@ -274,11 +274,11 @@ end
 
 #! Returns a boolean indicating whether the account is a non-fungible faucet.
 #!
-#! Inputs:  [acct_id_hi]
+#! Inputs:  [acct_id_prefix]
 #! Outputs: [is_non_fungible_faucet]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account ID.
+#! - acct_id_prefix is the prefix of the account ID.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
 export.is_non_fungible_faucet
     exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
@@ -287,11 +287,11 @@ end
 
 #! Returns a boolean indicating whether the account is a faucet.
 #!
-#! Inputs:  [acct_id_hi]
+#! Inputs:  [acct_id_prefix]
 #! Outputs: [is_faucet]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account ID.
+#! - acct_id_prefix is the prefix of the account ID.
 #! - is_faucet is a boolean indicating whether the account is a faucet.
 export.is_faucet
     u32split drop push.FAUCET_ACCOUNT u32and eq.0 not
@@ -300,11 +300,11 @@ end
 
 #! Returns a boolean indicating whether the account is a regular updatable account.
 #!
-#! Inputs:  [acct_id_hi]
+#! Inputs:  [acct_id_prefix]
 #! Outputs: [is_updatable_account]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account ID.
+#! - acct_id_prefix is the prefix of the account ID.
 #! - is_updatable_account is a boolean indicating whether the account is a regular updatable
 #!   account.
 export.is_updatable_account
@@ -314,11 +314,11 @@ end
 
 #! Returns a boolean indicating whether the account is a regular immutable account.
 #!
-#! Inputs:  [acct_id_hi]
+#! Inputs:  [acct_id_prefix]
 #! Outputs: [is_immutable_account]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account ID.
+#! - acct_id_prefix is the prefix of the account ID.
 #! - is_immutable_account is a boolean indicating whether the account is a regular immutable
 #!   account.
 export.is_immutable_account
@@ -328,52 +328,52 @@ end
 
 #! Returns a boolean indicating whether the given account_ids are equal.
 #!
-#! Inputs:  [acct_id_hi, acct_id_lo, other_acct_id_hi, other_acct_id_lo]
+#! Inputs:  [acct_id_prefix, acct_id_suffix, other_acct_id_prefix, other_acct_id_suffix]
 #! Outputs: [is_id_equal]
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of an account ID.
-#! - other_acct_id_{hi,lo} are the first and second felt of the other account ID to compare against.
+#! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
+#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
 export.is_id_eq
     movup.2 eq
-    # => [is_hi_equal, acct_id_lo, other_acct_id_lo]
+    # => [is_prefix_equal, acct_id_suffix, other_acct_id_suffix]
     movdn.2 eq
-    # => [is_lo_equal, is_hi_equal]
+    # => [is_suffix_equal, is_prefix_equal]
     and
     # => [is_id_equal]
 end
 
 #! Validates an account ID.
 #!
-#! Inputs:  [account_id_hi, account_id_lo]
+#! Inputs:  [account_id_prefix, account_id_suffix]
 #! Outputs: []
 #!
 #! Where:
-#! - account_id_{hi,lo} are the first and second felt of the account ID.
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the account ID.
 #!
 #! Panics if:
-#! - account_id_hi does not contain version zero.
-#! - account_id_lo contains an anchor epoch that is greater or equal to 2^16.
-#! - account_id_lo does not have its lower 8 bits set to zero.
+#! - account_id_prefix does not contain version zero.
+#! - account_id_suffix contains an anchor epoch that is greater or equal to 2^16.
+#! - account_id_suffix does not have its lower 8 bits set to zero.
 export.validate_id
-    # Validate version in first felt. For now only version 0 is supported.
+    # Validate version in prefix. For now only version 0 is supported.
     # ---------------------------------------------------------------------------------------------
 
     exec.id_version
-    # => [id_version, account_id_lo]
+    # => [id_version, account_id_suffix]
     assertz.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
-    # => [account_id_lo]
+    # => [account_id_suffix]
 
-    # Validate anchor epoch is less than u16::MAX (0xffff) in second felt.
+    # Validate anchor epoch is less than u16::MAX (0xffff) in suffix.
     # ---------------------------------------------------------------------------------------------
 
     dup exec.id_anchor_epoch
-    # => [anchor_epoch, account_id_lo]
+    # => [anchor_epoch, account_id_suffix]
     lt.0xffff assert.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
-    # => [account_id_lo]
+    # => [account_id_suffix]
 
-    # Validate lower 8 bits of second felt are zero.
+    # Validate lower 8 bits of suffix are zero.
     # ---------------------------------------------------------------------------------------------
 
     u32split drop u32and.0xff eq.0
@@ -395,7 +395,7 @@ end
 export.set_code
     # get the account ID
     exec.memory::get_account_id swap drop
-    # => [acct_id_hi, CODE_COMMITMENT]
+    # => [acct_id_prefix, CODE_COMMITMENT]
 
     # assert the account is an updatable regular account
     exec.is_updatable_account assert.err=ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE
@@ -751,28 +751,28 @@ export.validate_seed
 
     # prepare the advice map key for the seed for later
     exec.memory::get_account_id push.0.0
-    # => [0, 0, account_id_hi, account_id_lo]
+    # => [0, 0, account_id_prefix, account_id_suffix]
 
     # get the anchor block's number
     dup.3 exec.id_anchor_block_num
-    # => [anchor_block_num, 0, 0, account_id_hi, account_id_lo]
+    # => [anchor_block_num, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.memory::get_chain_mmr_ptr swap
-    # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_hi, account_id_lo]
+    # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.mmr::get
-    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_prefix, account_id_suffix]
 
     # assert that the anchor block hash is not the empty word
     padw eqw not assert.err=ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY dropw
-    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_prefix, account_id_suffix]
 
     # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
     # ---------------------------------------------------------------------------------------------
 
     # prepare advice push_mapval
     swapw
-    # => [0, 0, account_id_hi, account_id_lo, ANCHOR_BLOCK_HASH]
+    # => [0, 0, account_id_prefix, account_id_suffix, ANCHOR_BLOCK_HASH]
 
     # populate first four elements of the rate with the account ID seed
     adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
@@ -807,79 +807,79 @@ export.validate_seed
     exec.rpo::squeeze_digest
     # => [DIGEST]
 
-    # Shape second felt to add the anchor epoch and compare computed and provided ID.
+    # Shape suffix to add the anchor epoch and compare computed and provided ID.
     # ---------------------------------------------------------------------------------------------
 
     # extract account ID from digest
     drop drop swap
-    # => [hashed_account_id_hi, hashed_account_id_lo]
+    # => [hashed_account_id_prefix, hashed_account_id_suffix]
 
     exec.memory::get_account_id movdn.3
-    # => [account_id_lo, hashed_account_id_hi, hashed_account_id_lo, account_id_hi]
+    # => [account_id_suffix, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix]
 
     # extract anchor epoch from ID of the new account
     dup movdn.4 exec.id_anchor_epoch
-    # => [anchor_epoch, hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
+    # => [anchor_epoch, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
-    # shape second felt of hashed id, adding the anchor epoch and setting the lower 8 bits to zero
-    movup.2 exec.shape_second_felt swap
-    # => [hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
+    # shape suffix of hashed id, adding the anchor epoch and setting the lower 8 bits to zero
+    movup.2 exec.shape_suffix swap
+    # => [hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
     # assert the account ID matches the account ID of the new account
     exec.is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
     # => []
 end
 
-#! Shapes the second felt so it meets the requirements of the account ID, by overwriting the
+#! Shapes the suffix so it meets the requirements of the account ID, by overwriting the
 #! upper 16 bits with the anchor epoch and setting the lower 8 bits to zero.
 #!
-#! Inputs:  [seed_digest_lo, anchor_epoch]
-#! Outputs: [account_id_lo]
+#! Inputs:  [seed_digest_suffix, anchor_epoch]
+#! Outputs: [account_id_suffix]
 #!
 #! Where:
-#! - seed_digest_lo is the second felt of the digest that should be shaped into the second felt
+#! - seed_digest_suffix is the suffix of the digest that should be shaped into the suffix
 #!   of an account ID.
-#! - account_id_lo is the second felt of an account ID.
+#! - account_id_suffix is the suffix of an account ID.
 #! - anchor_epoch is the epoch number to which this account ID is anchored.
-proc.shape_second_felt
+proc.shape_suffix
   u32split
-  # => [seed_digest_lo_hi, seed_digest_lo_lo, anchor_epoch]
+  # => [seed_digest_suffix_hi, seed_digest_suffix_lo, anchor_epoch]
 
   # clear epoch bits in hi part so we can set them later
   u32and.0x0000ffff swap
-  # => [seed_digest_lo_lo, seed_digest_lo_hi', anchor_epoch]
+  # => [seed_digest_suffix_lo, seed_digest_suffix_hi', anchor_epoch]
 
   # clear lower 8 bits of the lo part
   u32and.0xffffff00 swap.2
-  # => [anchor_epoch, seed_digest_lo_hi', seed_digest_lo_lo']
+  # => [anchor_epoch, seed_digest_suffix_hi', seed_digest_suffix_lo']
 
   # assert epoch is not 2^16
   # this is technically optional as we will compare this id with the provided one for which
   # this property was already checked, but since this check is cheap we include it anyway
   dup eq.0xffff assertz.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
-  # => [anchor_epoch, seed_digest_lo_hi', seed_digest_lo_lo']
+  # => [anchor_epoch, seed_digest_suffix_hi', seed_digest_suffix_lo']
 
   # shift epoch left by 16 bits and set epoch bits on hi part
   u32shl.16 u32or
-  # => [seed_digest_lo_hi'', seed_digest_lo_lo']
+  # => [seed_digest_suffix_hi'', seed_digest_suffix_lo']
 
-  # reassemble the second felt by multiplying the hi part with 2^32 and adding the lo part
+  # reassemble the suffix by multiplying the hi part with 2^32 and adding the lo part
   mul.0x0100000000 add
-  # => [account_id_lo]
+  # => [account_id_suffix]
 end
 
-#! Extracts the block number of the anchor block from the second felt of an account ID.
+#! Extracts the block number of the anchor block from the suffix of an account ID.
 #!
-#! Inputs:  [account_id_lo]
+#! Inputs:  [account_id_suffix]
 #! Outputs: [anchor_block_num]
 #!
 #! Where:
-#! - account_id_lo is the second felt of an account ID.
+#! - account_id_suffix is the suffix of an account ID.
 #! - anchor_block_num is the number of the block to which this account ID is anchored.
 proc.id_anchor_block_num
   # extract the upper 32 bits
   u32split swap drop
-  # => [account_id_lo_hi]
+  # => [account_id_suffix_hi]
 
   # to get the epoch's block number we would have to multiply the epoch in the account ID by 2^16
   # since the epoch is already in the upper 16 bits of the u32, we can simply zero out the
@@ -888,36 +888,36 @@ proc.id_anchor_block_num
   # => [anchor_block_num]
 end
 
-#! Extracts the epoch from the second felt of an account ID.
+#! Extracts the epoch from the suffix of an account ID.
 #!
-#! Inputs:  [account_id_lo]
+#! Inputs:  [account_id_suffix]
 #! Outputs: [anchor_epoch]
 #!
 #! Where:
-#! - account_id_lo is the second felt of an account ID.
+#! - account_id_suffix is the suffix of an account ID.
 #! - anchor_epoch is the epoch number to which this account ID is anchored.
 proc.id_anchor_epoch
   # extract the upper 32 bits
   u32split swap drop
-  # => [account_id_lo_hi]
+  # => [account_id_suffix_hi]
 
   # shift the upper 16 bits to the right to produce the epoch
   u32shr.16
   # => [anchor_epoch]
 end
 
-#! Extracts the account ID version from the first felt of an account ID.
+#! Extracts the account ID version from the prefix of an account ID.
 #!
-#! Inputs:  [account_id_hi]
+#! Inputs:  [account_id_prefix]
 #! Outputs: [id_version]
 #!
 #! Where:
-#! - account_id_hi is the first felt of an account ID.
+#! - account_id_prefix is the prefix of an account ID.
 #! - id_version is the version number of the ID.
 proc.id_version
   # extract the lower 32 bits
   u32split drop
-  # => [account_id_hi_lo]
+  # => [account_id_prefix_lo]
 
   # mask out the version
   u32and.ACCOUNT_VERSION_MASK_U32
@@ -1068,19 +1068,19 @@ end
 # HELPER PROCEDURES
 # =================================================================================================
 
-#! Returns the most significant half with the account type bits masked out.
+#! Returns the least significant half of an account ID prefix with the account type bits masked out.
 #!
-#! The account type can be defined by comparing this value with the following constants:
+#! The account type can be obtained by comparing this value with the following constants:
 #! - REGULAR_ACCOUNT_UPDATABLE_CODE
 #! - REGULAR_ACCOUNT_IMMUTABLE_CODE
 #! - FUNGIBLE_FAUCET_ACCOUNT
 #! - NON_FUNGIBLE_FAUCET_ACCOUNT
 #!
-#! Inputs:  [acct_id_hi]
+#! Inputs:  [acct_id_prefix]
 #! Outputs: [acct_type]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account ID.
+#! - acct_id_prefix is the prefix of the account ID.
 #! - acct_type is the account type.
 proc.type
     u32split drop push.ACCOUNT_ID_TYPE_MASK_U32 u32and
@@ -1142,11 +1142,11 @@ end
 #! Returns the pointer to the next vacant memory slot if the account was not loaded before, and the 
 #! pointer to the account data otherwise.
 #!
-#! Inputs:  [foreign_account_id_hi, foreign_account_id_lo]
-#! Outputs: [was_loaded, ptr, foreign_account_id_hi, foreign_account_id_lo]
+#! Inputs:  [foreign_account_id_prefix, foreign_account_id_suffix]
+#! Outputs: [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 #!
 #! Where: 
-#! - foreign_account_id_{hi,lo} are the first and second felt of the ID of the foreign account
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign account
 #!   whose procedure is going to be executed.
 #! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the
 #!   memory.
@@ -1154,12 +1154,12 @@ end
 #!   data, depending on the value of the was_loaded flag.
 #!
 #! Panics if:
-#! - the first or second felt of the provided foreign account ID equal zero.
+#! - the prefix or suffix of the provided foreign account ID equal zero.
 #! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
 export.get_foreign_account_ptr
     # check that foreign account ID is not equal zero
     dup.1 eq.0 dup.1 eq.0 and not assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
-    # => [foreign_account_id_hi, foreign_account_id_lo]
+    # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
     # check that foreign account ID is not equal to the native account ID
     dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_eq not
@@ -1167,7 +1167,7 @@ export.get_foreign_account_ptr
 
     # get the initial account data pointer
     exec.memory::get_native_account_data_ptr
-    # => [curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo]
+    # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 
     # push the flag to enter the loop
     push.1
@@ -1176,41 +1176,41 @@ export.get_foreign_account_ptr
         # drop the flag left from the previous loop
         # in the first iteration this will be a pad element
         movup.3 drop
-        # => [curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo]
+        # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 
         # move the current account pointer to the next account data block
         exec.memory::get_account_data_length add
-        # => [curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # load the first data word at the current account pointer
         padw dup.4 mem_loadw
-        # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # check whether the last value in the word equals zero
         # if so it means this memory block was not yet initialized
         drop drop dup.1 eq.0
-        # => [is_empty_block, maybe_account_id_hi, maybe_account_id_lo, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [is_empty_block, maybe_account_id_prefix, maybe_account_id_suffix, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # check whether the current id matches the foreign id
         movdn.2 dup.5 dup.5 exec.is_id_eq
-        # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # get the loop flag
         # it equals 1 if both `is_equal_id` and `is_empty_block` flags are equal to 0, so we should 
         # continue iterating
         dup movdn.5 or not
-        # => [loop_flag, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo, is_equal_id]
+        # => [loop_flag, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix, is_equal_id]
     end
 
     # check that the loading of one more account won't exceed the maximum number of the foreign 
     # accounts which can be loaded.
     dup exec.memory::get_max_foreign_account_ptr lte 
     assert.err=ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED
-    # => [curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo, is_equal_id]
+    # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix, is_equal_id]
 
     # the resulting `was_loaded` flag is essentially equal to the `is_equal_id` flag
     movup.3
-    # => [was_loaded, curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo]
+    # => [was_loaded, curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 end
 
 #! Checks that the state of the current foreign account is valid.
@@ -1225,22 +1225,21 @@ export.validate_current_foreign_account
     exec.memory::get_acct_db_root
     # => [ACCOUNT_DB_ROOT]
 
-    # TODO: Update when account tree was updated.
     # get the current account ID
     exec.memory::get_account_id swap drop
-    # => [account_id_hi, ACCOUNT_DB_ROOT]
+    # => [account_id_prefix, ACCOUNT_DB_ROOT]
 
     # push the depth of the account database tree
     push.ACCOUNT_TREE_DEPTH
-    # => [depth, account_id_hi, ACCOUNT_DB_ROOT]
+    # => [depth, account_id_prefix, ACCOUNT_DB_ROOT]
 
     # get the foreign account hash
     exec.get_current_hash
-    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_hi, ACCOUNT_DB_ROOT]
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_prefix, ACCOUNT_DB_ROOT]
 
     # verify that the account database has the hash of the current foreign account
     mtree_verify.err=ERR_FOREIGN_ACCOUNT_INVALID
-    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_hi, ACCOUNT_DB_ROOT]
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_prefix, ACCOUNT_DB_ROOT]
 
     # clean the stack
     dropw drop drop dropw

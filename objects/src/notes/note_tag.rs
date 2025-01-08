@@ -96,11 +96,11 @@ impl NoteTag {
     ) -> Result<Self, NoteError> {
         match execution {
             NoteExecutionMode::Local => {
-                let first_felt_id: u64 = account_id.first_felt().into();
+                let prefix_id: u64 = account_id.prefix().into();
 
                 // Shift the high bits of the account ID such that they are layed out as:
                 // [34 zero bits | remaining high bits (30 bits)].
-                let high_bits = first_felt_id >> 34;
+                let high_bits = prefix_id >> 34;
 
                 // This is equivalent to the following layout, interpreted as a u32:
                 // [2 zero bits | remaining high bits (30 bits)].
@@ -118,11 +118,11 @@ impl NoteTag {
                 if !account_id.is_public() {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
-                    let first_felt_id: u64 = account_id.first_felt().into();
+                    let prefix_id: u64 = account_id.prefix().into();
 
                     // Shift the high bits of the account ID such that they are layed out as:
                     // [34 zero bits | remaining high bits (30 bits)].
-                    let high_bits = first_felt_id >> 34;
+                    let high_bits = prefix_id >> 34;
 
                     // This is equivalent to the following layout, interpreted as a u32:
                     // [2 zero bits | remaining high bits (30 bits)].

@@ -74,7 +74,7 @@ end
 #! Returns the account ID.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [acct_id_hi, acct_id_lo, pad(14)]
+#! Outputs: [acct_id_prefix, acct_id_suffix, pad(14)]
 #!
 #! Where:
 #! - acct_id is the account ID.
@@ -83,11 +83,11 @@ end
 export.get_account_id
     # get the account ID
     exec.account::get_id
-    # => [acct_id_hi, acct_id_lo, pad(16)]
+    # => [acct_id_prefix, acct_id_suffix, pad(16)]
 
     # truncate the stack
     movup.2 drop movup.2 drop
-    # => [acct_id_hi, acct_id_lo, pad(14)]
+    # => [acct_id_prefix, acct_id_suffix, pad(14)]
 end
 
 #! Returns the account nonce.
@@ -371,11 +371,11 @@ end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Inputs:  [faucet_id_hi, faucet_id_lo, pad(14)]
+#! Inputs:  [faucet_id_prefix, faucet_id_suffix, pad(14)]
 #! Outputs: [balance, pad(15)]
 #!
 #! Where:
-#! - faucet_id_{hi,lo} are the first and second felt of the faucet id of the fungible asset
+#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible asset
 #!   of interest.
 #! - balance is the vault balance of the fungible asset.
 #!
@@ -386,7 +386,7 @@ end
 export.account_vault_get_balance
     # get the vault root
     exec.memory::get_acct_vault_root_ptr movdn.2
-    # => [faucet_id_hi, faucet_id_lo, acct_vault_root_ptr, pad(14)]
+    # => [faucet_id_prefix, faucet_id_suffix, acct_vault_root_ptr, pad(14)]
 
     # get the asset balance
     exec.asset_vault::get_balance
@@ -555,10 +555,10 @@ end
 #! Returns the sender of the note currently being processed.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [sender_hi, sender_lo, pad(14)]
+#! Outputs: [sender_id_prefix, sender_id_suffix, pad(14)]
 #!
 #! Where:
-#! - sender_{hi,lo} are the first and second felt of the sender account ID of the note currently
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender account ID of the note currently
 #!   being processed.
 #!
 #! Panics if:
@@ -567,11 +567,11 @@ end
 #! Invocation: dynexec
 export.get_note_sender
     exec.note::get_sender
-    # => [sender_hi, sender_lo, pad(16)]
+    # => [sender_id_prefix, sender_id_suffix, pad(16)]
     
     # truncate the stack
     movup.2 drop movup.2 drop
-    # => [sender_hi, sender_lo, pad(14)]
+    # => [sender_id_prefix, sender_id_suffix, pad(14)]
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.
@@ -881,9 +881,9 @@ end
 #! Moves the account pointer to the currently accessing foreign account.
 #!
 #! Inputs:
-#!   Operand stack: [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
+#!   Operand stack: [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 #!   Advice map: {
-#!     FOREIGN_ACCOUNT_ID: [[foreign_account_lo, foreign_account_id_hi, 0, account_nonce],
+#!     FOREIGN_ACCOUNT_ID: [[foreign_account_id_suffix, foreign_account_id_prefix, 0, account_nonce],
 #!                          VAULT_ROOT, STORAGE_ROOT, CODE_ROOT],
 #!     STORAGE_ROOT: [[STORAGE_SLOT_DATA]],
 #!     CODE_ROOT: [num_procs, [ACCOUNT_PROCEDURE_DATA]]
@@ -892,10 +892,10 @@ end
 #!   Operand stack: [pad(16)]
 #!
 #! Where:
-#! - foreign_account_id_{hi,lo} are the first and second felt of the ID of the foreign account
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign account
 #!   whose procedure is going to be executed.
 #! - FOREIGN_ACCOUNT_ID is the word constructed from the foreign_account_id as follows:
-#!   [foreign_account_lo, foreign_account_id_hi, 0, 0].
+#!   [foreign_account_id_suffix, foreign_account_id_prefix, 0, 0].
 #! - account_nonce is the nonce of the foreign account.
 #! - VAULT_ROOT is the commitment of the foreign account's vault.
 #! - STORAGE_ROOT is the commitment of the foreign account's storage.
@@ -912,27 +912,27 @@ end
 export.start_foreign_context
     # check that this procedure was executed against the native account
     exec.memory::assert_native_account
-    # OS => [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
+    # OS => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
     # get the memory address and a flag whether this account was already loaded.
     exec.account::get_foreign_account_ptr
-    # OS => [was_loaded, ptr, foreign_account_id_hi, foreign_account_id_lo, pad(14)]
+    # OS => [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
     if.true
         exec.memory::set_current_account_data_ptr drop drop
         # OS => [pad(16)]
     else
         exec.memory::set_current_account_data_ptr
-        # OS => [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
+        # OS => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
         # construct the word with account ID to load the core account data from the advice map
         push.0.0
-        # OS => [0, 0, foreign_account_id_hi, foreign_account_id_lo, pad(14)]
+        # OS => [0, 0, foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
         # move the core account data to the advice stack
         adv.push_mapval
-        # OS => [0, 0, foreign_account_id_hi, foreign_account_id_lo, pad(14)]
-        # AS => [[foreign_account_id_hi, foreign_account_lo, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+        # OS => [0, 0, foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
+        # AS => [[foreign_account_id_prefix, foreign_account_id_suffix, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the id and nonce of the foreign account to the memory
         dropw adv_loadw

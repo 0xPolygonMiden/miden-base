@@ -422,36 +422,36 @@ proc.build_note_metadata
     movup.2 add
     # => [note_tag_hint_payload, execution_hint_tag, aux, note_type]
 
-    # Merge sender_lo, note_type and execution_hint_tag.
+    # Merge sender_id_suffix, note_type and execution_hint_tag.
     # --------------------------------------------------------------------------------------------
 
     exec.account::get_id
-    # => [sender_hi, sender_lo, note_tag_hint_payload, execution_hint_tag, aux, note_type]
+    # => [sender_id_prefix, sender_id_suffix, note_tag_hint_payload, execution_hint_tag, aux, note_type]
 
     movup.5
-    # => [note_type, sender_hi, sender_lo, note_tag_hint_payload, execution_hint_tag, aux]
+    # => [note_type, sender_id_prefix, sender_id_suffix, note_tag_hint_payload, execution_hint_tag, aux]
     # multiply by 2^6 to shift the two note_type bits left by 6 bits.
     push.0x40 mul
-    # => [shifted_note_type, sender_hi, sender_lo, note_tag_hint_payload, execution_hint_tag, aux]
+    # => [shifted_note_type, sender_id_prefix, sender_id_suffix, note_tag_hint_payload, execution_hint_tag, aux]
 
     # merge execution_hint_tag into the note_type
     # this produces an 8-bit value with the layout: [note_type (2 bits) | execution_hint_tag (6 bits)]
     movup.4 add
-    # => [merged_note_type_execution_hint_tag, sender_hi, sender_lo, note_tag_hint_payload, aux]
+    # => [merged_note_type_execution_hint_tag, sender_id_prefix, sender_id_suffix, note_tag_hint_payload, aux]
 
-    # merge sender_lo into this value
+    # merge sender_id_suffix into this value
     movup.2 add
-    # => [sender_lo_type_and_hint_tag, sender_hi, note_tag_hint_payload, aux]
+    # => [sender_id_suffix_type_and_hint_tag, sender_id_prefix, note_tag_hint_payload, aux]
 
     # Rearrange elements to produce the final note metadata layout.
     # --------------------------------------------------------------------------------------------
 
     swap movdn.3
-    # => [sender_lo_type_and_hint_tag, note_tag_hint_payload, aux, sender_hi]
+    # => [sender_id_suffix_type_and_hint_tag, note_tag_hint_payload, aux, sender_id_prefix]
     swap
-    # => [note_tag_hint_payload, sender_lo_type_and_hint_tag, aux, sender_hi]
+    # => [note_tag_hint_payload, sender_id_suffix_type_and_hint_tag, aux, sender_id_prefix]
     movup.2
-    # => [NOTE_METADATA = [aux, note_tag_hint_payload, sender_lo_type_and_hint_tag, sender_hi]]
+    # => [NOTE_METADATA = [aux, note_tag_hint_payload, sender_id_suffix_type_and_hint_tag, sender_id_prefix]]
 end
 
 #! Creates a new note and returns the index of the note.
