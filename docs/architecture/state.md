@@ -77,7 +77,7 @@ To prove that a note has not been consumed, the operator must provide a Merkle p
 
 ### Public shared state
 
-In most blockchains, most smart contracts and decentralized applications (e.g., AAVE, Uniswap) need public shared state. Public shared state is also available on Miden and can be represented by the following example:
+In most blockchains, most smart contracts and decentralized applications (e.g., AAVE, Uniswap) need public shared state. Public shared state is also available on Miden and can be represented as in the following example:
 
 ![Public shared state](../img/architecture/state/public-shared-state.png)
 
