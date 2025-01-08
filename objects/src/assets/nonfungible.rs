@@ -125,7 +125,7 @@ impl NonFungibleAsset {
     }
 
     /// Return ID of the faucet which issued this asset.
-    pub fn faucet_id(&self) -> AccountIdPrefix {
+    pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         AccountIdPrefix::new_unchecked(self.0[FAUCET_ID_POS])
     }
 
@@ -185,7 +185,7 @@ impl Serializable for NonFungibleAsset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // All assets should serialize their faucet ID at the first position to allow them to be
         // easily distinguishable during deserialization.
-        target.write(self.faucet_id());
+        target.write(self.faucet_id_prefix());
         target.write(self.0[2]);
         target.write(self.0[1]);
         target.write(self.0[0]);

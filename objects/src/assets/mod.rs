@@ -120,12 +120,12 @@ impl Asset {
 
     /// Returns the prefix of the faucet ID which issued this asset.
     ///
-    /// To get the full [`AccountId`](crate::accounts::AccountId  ) of a fungible asset the asset
+    /// To get the full [`AccountId`](crate::accounts::AccountId) of a fungible asset the asset
     /// must be matched on.
     pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         match self {
-            Self::Fungible(asset) => asset.faucet_id().prefix(),
-            Self::NonFungible(asset) => asset.faucet_id(),
+            Self::Fungible(asset) => asset.faucet_id_prefix(),
+            Self::NonFungible(asset) => asset.faucet_id_prefix(),
         }
     }
 

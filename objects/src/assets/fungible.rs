@@ -59,6 +59,11 @@ impl FungibleAsset {
         self.faucet_id
     }
 
+    /// Return ID prefix of the faucet which issued this asset.
+    pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
+        self.faucet_id.prefix()
+    }
+
     /// Returns the amount of this asset.
     pub fn amount(&self) -> u64 {
         self.amount
