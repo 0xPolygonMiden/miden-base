@@ -73,10 +73,10 @@ impl Deserializable for AccountComponentTemplate {
         source: &mut R,
     ) -> Result<Self, vm_processor::DeserializationError> {
         // Read and deserialize the configuration from a TOML string.
-        let config: AccountComponentMetadata = source.read()?;
+        let metadata: AccountComponentMetadata = source.read()?;
         let library = Library::read_from(source)?;
 
-        Ok(AccountComponentTemplate::new(config, library))
+        Ok(AccountComponentTemplate::new(metadata, library))
     }
 }
 
@@ -171,7 +171,7 @@ impl AccountComponentMetadata {
     pub fn get_storage_placeholders(&self) -> BTreeSet<StoragePlaceholder> {
         let mut placeholder_set = BTreeSet::new();
         for storage_entry in &self.storage {
-            for key in storage_entry.storage_placeholders() {
+            for key in storage_entry.placeholders() {
                 placeholder_set.insert(key.clone());
             }
         }

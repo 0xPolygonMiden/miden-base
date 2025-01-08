@@ -24,12 +24,13 @@ pub mod toml;
 // STORAGE ENTRY
 // ================================================================================================
 
-/// Represents a single entry in the component’s storage layout.
+/// Represents a single entry in the component's storage layout.
 ///
 /// Each entry can describe:
-/// - A value slot (single word or multiple words).
-/// - A map slot (key-value map that occupies one storage slot).
-/// - A multi-slot entry (spanning multiple contiguous slots, with multiple values).
+/// - A value slot with a single word.
+/// - A map slot with a key-value map that occupies one storage slot.
+/// - A multi-slot entry spanning multiple contiguous slots with multiple words (but not maps) that
+///   represent a single logical value.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StorageEntry {
     /// A value slot, which can contain one or more words. Each word is a hex-encoded string.
@@ -178,14 +179,14 @@ impl StorageEntry {
 
     /// Returns an iterator over all of the storage entries's placeholder keys.
     // TODO: Should placeholders be typed?
-    pub fn storage_placeholders(&self) -> Box<dyn Iterator<Item = &StoragePlaceholder> + '_> {
+    pub fn placeholders(&self) -> Box<dyn Iterator<Item = &StoragePlaceholder> + '_> {
         match self {
-            StorageEntry::Value { value, .. } => value.storage_placeholders(),
+            StorageEntry::Value { value, .. } => value.placeholders(),
             StorageEntry::Map { map_entries: values, .. } => {
-                Box::new(values.iter().flat_map(|word| word.storage_placeholders()))
+                Box::new(values.iter().flat_map(|word| word.placeholders()))
             },
             StorageEntry::MultiSlot { values, .. } => {
-                Box::new(values.iter().flat_map(|word| word.storage_placeholders()))
+                Box::new(values.iter().flat_map(|word| word.placeholders()))
             },
         }
     }
@@ -304,8 +305,7 @@ impl Deserializable for StorageEntry {
 
             // Unknown tag => error
             _ => Err(DeserializationError::InvalidValue(format!(
-                "unknown variant tag for StorageEntry: {}",
-                variant_tag
+                "unknown variant tag `{variant_tag}` for StorageEntry"
             ))),
         }
     }
@@ -384,8 +384,8 @@ impl MapEntry {
         &self.value
     }
 
-    pub fn storage_placeholders(&self) -> impl Iterator<Item = &StoragePlaceholder> {
-        self.key.storage_placeholders().chain(self.value.storage_placeholders())
+    pub fn placeholders(&self) -> impl Iterator<Item = &StoragePlaceholder> {
+        self.key.placeholders().chain(self.value.placeholders())
     }
 
     pub fn into_parts(self) -> (WordRepresentation, WordRepresentation) {
@@ -528,6 +528,15 @@ mod tests {
             description = "word"
             slot = 1
             value = "{{word.test}}" 
+
+            [[storage]]
+            name = "multitest"
+            description = "a multi slot test"
+            slots = [2, 3]
+            values = [
+                "{{word.test}}",
+                ["1", "0", "0", "0"],
+            ]
         "#;
 
         let component_metadata = AccountComponentMetadata::from_toml(toml_text).unwrap();

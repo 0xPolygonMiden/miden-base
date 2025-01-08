@@ -20,13 +20,13 @@ use crate::{
 // ACCOUNT TYPE
 // ================================================================================================
 
-const FUNGIBLE_FAUCET: u64 = 0b10;
-const NON_FUNGIBLE_FAUCET: u64 = 0b11;
-const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
-const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
+const FUNGIBLE_FAUCET: u8 = 0b10;
+const NON_FUNGIBLE_FAUCET: u8 = 0b11;
+const REGULAR_ACCOUNT_IMMUTABLE_CODE: u8 = 0b00;
+const REGULAR_ACCOUNT_UPDATABLE_CODE: u8 = 0b01;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u64)]
+#[repr(u8)]
 pub enum AccountType {
     FungibleFaucet = FUNGIBLE_FAUCET,
     NonFungibleFaucet = NON_FUNGIBLE_FAUCET,
@@ -58,15 +58,18 @@ impl From<AccountIdPrefix> for AccountType {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
 impl Serializable for AccountType {
     fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
-        target.write_u64(*self as u64);
+        target.write_u8(*self as u8);
     }
 }
 
 impl Deserializable for AccountType {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num: u64 = source.read()?;
+        let num: u8 = source.read()?;
         match num {
             FUNGIBLE_FAUCET => Ok(AccountType::FungibleFaucet),
             NON_FUNGIBLE_FAUCET => Ok(AccountType::NonFungibleFaucet),
@@ -76,9 +79,6 @@ impl Deserializable for AccountType {
         }
     }
 }
-
-// SERIALIZATION
-// ================================================================================================
 
 #[cfg(feature = "std")]
 impl serde::Serialize for AccountType {
@@ -121,11 +121,11 @@ impl<'de> serde::Deserialize<'de> for AccountType {
 // ACCOUNT STORAGE MODE
 // ================================================================================================
 
-const PUBLIC: u64 = 0b00;
-const PRIVATE: u64 = 0b10;
+const PUBLIC: u8 = 0b00;
+const PRIVATE: u8 = 0b10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u64)]
+#[repr(u8)]
 pub enum AccountStorageMode {
     Public = PUBLIC,
     Private = PRIVATE,
@@ -322,7 +322,7 @@ impl AccountId {
 
     /// The lower two bits of the second least significant nibble determine the account type.
     pub(crate) const TYPE_SHIFT: u64 = 4;
-    pub(crate) const TYPE_MASK: u64 = 0b11 << Self::TYPE_SHIFT;
+    pub(crate) const TYPE_MASK: u8 = 0b11 << Self::TYPE_SHIFT;
 
     /// The least significant nibble determines the account version.
     const VERSION_MASK: u64 = 0b1111;
@@ -333,7 +333,7 @@ impl AccountId {
     /// The higher two bits of the second least significant nibble determine the account storage
     /// mode.
     pub(crate) const STORAGE_MODE_SHIFT: u64 = 6;
-    pub(crate) const STORAGE_MODE_MASK: u64 = 0b11 << Self::STORAGE_MODE_SHIFT;
+    pub(crate) const STORAGE_MODE_MASK: u8 = 0b11 << Self::STORAGE_MODE_SHIFT;
 
     pub(crate) const IS_FAUCET_MASK: u64 = 0b10 << Self::TYPE_SHIFT;
 
@@ -758,8 +758,10 @@ fn validate_second_felt(second_felt: Felt) -> Result<(), AccountError> {
 }
 
 pub(crate) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode, AccountError> {
-    let bits = (first_felt & AccountId::STORAGE_MODE_MASK) >> AccountId::STORAGE_MODE_SHIFT;
-    match bits {
+    let bits =
+        (first_felt & (AccountId::STORAGE_MODE_MASK as u64)) >> AccountId::STORAGE_MODE_SHIFT;
+    // SAFETY: `STORAGE_MODE_MASK` is u8 so casting bits is lossless
+    match bits as u8 {
         PUBLIC => Ok(AccountStorageMode::Public),
         PRIVATE => Ok(AccountStorageMode::Private),
         _ => Err(AccountError::InvalidAccountStorageMode(format!("0b{bits:b}"))),
@@ -778,8 +780,9 @@ pub(crate) fn extract_version(first_felt: u64) -> Result<AccountIdVersion, Accou
 }
 
 pub(crate) const fn extract_type(first_felt: u64) -> AccountType {
-    let bits = (first_felt & AccountId::TYPE_MASK) >> AccountId::TYPE_SHIFT;
-    match bits {
+    let bits = (first_felt & (AccountId::TYPE_MASK as u64)) >> AccountId::TYPE_SHIFT;
+    // SAFETY: `TYPE_MASK` is u8 so casting bits is lossless
+    match bits as u8 {
         REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
         REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
         FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
@@ -996,7 +999,7 @@ mod tests {
     /// normal.
     #[test]
     fn test_account_id_faucet_bit() {
-        const ACCOUNT_IS_FAUCET_MASK: u64 = 0b10;
+        const ACCOUNT_IS_FAUCET_MASK: u8 = 0b10;
 
         // faucets have a bit set
         assert_ne!((FUNGIBLE_FAUCET) & ACCOUNT_IS_FAUCET_MASK, 0);

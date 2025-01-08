@@ -50,7 +50,6 @@ impl StorageMap {
         let mut storage_map = Smt::new();
 
         for (key, value) in entries {
-            // Handle possible errors from insert, if applicable
             storage_map.insert(key, value);
         }
 

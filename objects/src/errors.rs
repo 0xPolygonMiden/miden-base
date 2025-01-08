@@ -42,7 +42,7 @@ pub enum AccountComponentTemplateError {
     MetadataDeserializationError(String),
     #[error("component storage slots are not contiguous ({0} is followed by {1})")]
     NonContiguousSlots(u8, u8),
-    #[error("storage value for placeholder ({0}) was not provided in the map")]
+    #[error("storage value for placeholder `{0}` was not provided in the map")]
     PlaceholderValueNotProvided(StoragePlaceholder),
 }
 
@@ -64,8 +64,8 @@ pub enum AccountError {
     #[error("account procedure {0}'s final two elements must be Felt::ZERO")]
     AccountCodeProcedureInvalidPadding(Digest),
     #[error("failed to assemble account component:\n{}", PrintDiagnostic::new(.0))]
-    // TODO: Use MastForestError once it implements Error in no-std.
     AccountComponentAssemblyError(Report),
+    // TODO: Use MastForestError once it implements Error in no-std.
     #[error("failed to merge account code: {0}")]
     AccountComponentMergeError(String),
     #[error("failed to create account component")]

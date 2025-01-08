@@ -12,14 +12,14 @@ use vm_processor::{DeserializationError, Digest};
 
 use crate::accounts::component::template::AccountComponentTemplateError;
 
-// storage placeholder
+// STORAGE PLACEHOLDER
 // ================================================================================================
 
 /// A simple wrapper type around a string key that enables templating.
 ///
 /// A storage placeholder is a string that identifies dynamic values within a component's metadata
 /// storage entries. Storage placeholders are serialized as "{{key}}" and can be used as
-/// placeholders in map keys, map values, or individual [Felt] within a [Word].
+/// placeholders in map keys, map values, or individual [Felt]s within a [Word].
 ///
 /// At component instantiation, a map of keys to [StorageValue] must be provided to dynamically
 /// replace these placeholders with the instance’s actual values.
@@ -109,12 +109,12 @@ impl core::fmt::Display for StoragePlaceholder {
 
 #[derive(Debug, Error)]
 pub enum StoragePlaceholderError {
-    #[error("key segment cannot be empty")]
+    #[error("entire key and key segments cannot be empty")]
     EmptyKey,
-    #[error("key {0} is invalid (expected string in {{...}} format)")]
+    #[error("key `{0}` is invalid (expected string in {{...}} format)")]
     FormatError(String),
     #[error(
-        "key {0} contains invalid character ({1}) (must be alphanumeric, underscore, or hyphen)"
+        "key `{0}` contains invalid character ({1}) (must be alphanumeric, underscore, or hyphen)"
     )]
     InvalidChar(String, char),
 }
@@ -144,7 +144,7 @@ impl Deserializable for StoragePlaceholder {
 /// A [StorageValue] can be one of:
 /// - `Felt(Felt)`: a single [Felt] value
 /// - `Word(Word)`: a single [Word] value
-/// - `Map(Vec<(Digest, Word)>)`: alist of storage map entries, mapping [Digest] to [Word]
+/// - `Map(Vec<(Digest, Word)>)`: a list of storage map entries, mapping [Digest] to [Word]
 ///
 /// These values are used to resolve dynamic placeholders at component instantiation.
 #[derive(Clone, Debug)]

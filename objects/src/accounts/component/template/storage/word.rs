@@ -25,7 +25,7 @@ pub enum WordRepresentation {
 
 impl WordRepresentation {
     /// Returns an iterator over all storage placeholder references within the [WordRepresentation].
-    pub fn storage_placeholders(&self) -> Box<dyn Iterator<Item = &StoragePlaceholder> + '_> {
+    pub fn placeholders(&self) -> Box<dyn Iterator<Item = &StoragePlaceholder> + '_> {
         match self {
             WordRepresentation::Array(array) => {
                 Box::new(array.iter().flat_map(|felt| felt.storage_placeholders()))
