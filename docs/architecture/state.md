@@ -7,7 +7,7 @@ Miden enables secure, private, and scalable transaction execution. By employing 
 Miden’s state model focuses on:
 
 - **Privacy:**  
-  By using notes and nullifiers, Miden ensures that value transfers remain confidential. Zero-knowledge proofs allow users to prove correctness without revealing sensitive information.
+  Miden ensures that value transfers remain confidential. Zero-knowledge proofs allow users to prove correctness without revealing sensitive information. This is enabled by the state through notes and nullifiers, more on these below.
 
 - **Flexible data storage:**  
   Users can store data privately on their own devices or within the network. This approach reduces reliance on the network for data availability, helps maintain user sovereignty, and minimizes unnecessary on-chain storage.
