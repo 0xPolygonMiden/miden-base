@@ -97,7 +97,7 @@ impl AccountIdPrefix {
     /// Returns the storage mode of this account ID.
     pub fn storage_mode(&self) -> AccountStorageMode {
         account_id::extract_storage_mode(self.first_felt.as_int())
-            .expect("account id prefix should have been constructed with a valid storage mode")
+            .expect("account ID prefix should have been constructed with a valid storage mode")
     }
 
     /// Returns true if an account with this ID is a public account.
@@ -108,7 +108,7 @@ impl AccountIdPrefix {
     /// Returns the version of this account ID.
     pub fn version(&self) -> AccountIdVersion {
         account_id::extract_version(self.first_felt.as_int())
-            .expect("account id prefix should have been constructed with a valid version")
+            .expect("account ID prefix should have been constructed with a valid version")
     }
 
     /// Returns the prefix as a big-endian, hex-encoded string.

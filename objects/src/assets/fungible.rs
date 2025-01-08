@@ -27,7 +27,7 @@ impl FungibleAsset {
 
     /// The serialized size of a [`FungibleAsset`] in bytes.
     ///
-    /// Currently an account id (15 bytes) plus an amount (u64).
+    /// Currently an account ID (15 bytes) plus an amount (u64).
     pub const SERIALIZED_SIZE: usize = AccountId::SERIALIZED_SIZE + core::mem::size_of::<u64>();
 
     // CONSTRUCTOR

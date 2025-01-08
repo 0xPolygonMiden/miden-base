@@ -184,7 +184,7 @@ impl Deserializable for NoteMetadata {
 /// ```
 ///
 /// One of the upper 16 bits is guaranteed to be zero due to the guarantees of the epoch in the
-/// account id.
+/// account ID.
 ///
 /// Note that `sender_id_lo` is the second felt of the sender's account ID.
 fn merge_id_type_and_hint_tag(

@@ -59,11 +59,11 @@ export.validate_fungible_asset
     dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO
     # => [ASSET]
 
-    # assert that the tuple (ASSET[3], ASSET[2]) forms a valid account id
+    # assert that the tuple (ASSET[3], ASSET[2]) forms a valid account ID
     dup.1 dup.1 exec.account::validate_id
     # => [ASSET]
 
-    # assert that the first felt (ASSET[3]) of the account id is of type fungible faucet
+    # assert that the first felt (ASSET[3]) of the account ID is of type fungible faucet
     dup exec.account::is_fungible_faucet
     assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
@@ -101,7 +101,7 @@ end
 #! Panics if:
 #! - the asset is not well formed.
 export.validate_non_fungible_asset
-    # assert that ASSET[3] is a valid account id prefix
+    # assert that ASSET[3] is a valid account ID prefix
     # hack: because we only have the first felt we add a 0 as the second felt which is always valid
     push.0 dup.1 exec.account::validate_id
     # => [ASSET]
@@ -159,7 +159,7 @@ end
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id_hi is the first felt of the faucet's account id.
+#! - faucet_id_hi is the first felt of the faucet's account ID.
 #! - ASSET is the asset to validate.
 export.validate_fungible_asset_origin
     # assert the origin of the asset is the faucet_id provided via the stack
@@ -180,7 +180,7 @@ end
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id_hi is the first felt of the faucet's account id.
+#! - faucet_id_hi is the first felt of the faucet's account ID.
 #! - ASSET is the asset to validate.
 export.validate_non_fungible_asset_origin
     # assert the origin of the asset is the faucet_id prefix provided via the stack

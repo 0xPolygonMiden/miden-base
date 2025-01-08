@@ -502,7 +502,7 @@ impl AccountId {
     /// Returns the storage mode of this account ID.
     pub fn storage_mode(&self) -> AccountStorageMode {
         extract_storage_mode(self.first_felt().as_int())
-            .expect("account id should have been constructed with a valid storage mode")
+            .expect("account ID should have been constructed with a valid storage mode")
     }
 
     /// Returns true if an account with this ID is a public account.
@@ -513,7 +513,7 @@ impl AccountId {
     /// Returns the version of this account ID.
     pub fn version(&self) -> AccountIdVersion {
         extract_version(self.first_felt().as_int())
-            .expect("account id should have been constructed with a valid version")
+            .expect("account ID should have been constructed with a valid version")
     }
 
     /// Returns the anchor epoch of this account ID.
@@ -890,7 +890,7 @@ mod tests {
         for anchor_epoch in [0, u16::MAX - 1, 5000] {
             let anchor = AccountIdAnchor::new_unchecked(anchor_epoch, anchor_block_hash);
             let id = AccountId::new(seed, anchor, code_commitment, storage_commitment).unwrap();
-            assert_eq!(id.anchor_epoch(), anchor_epoch, "failed for account id: {id}");
+            assert_eq!(id.anchor_epoch(), anchor_epoch, "failed for account ID: {id}");
         }
     }
 

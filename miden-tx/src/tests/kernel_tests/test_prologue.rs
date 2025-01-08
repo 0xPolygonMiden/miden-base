@@ -252,7 +252,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
             ZERO,
             inputs.account().nonce()
         ],
-        "The account id should be stored at NATIVE_ACCT_ID_AND_NONCE_PTR[0]"
+        "The account ID should be stored at NATIVE_ACCT_ID_AND_NONCE_PTR[0]"
     );
 
     assert_eq!(

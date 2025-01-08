@@ -71,7 +71,7 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x0002005B
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - account_id_{hi,lo} are the first and second felt of the account id of the account that the
+#! - account_id_{hi,lo} are the first and second felt of the account ID of the account that the
 #!   transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.
@@ -308,7 +308,7 @@ end
 #! for a new account.
 #!
 #! Applies the following validation to the new account:
-#! - assert that the account id is valid.
+#! - assert that the account ID is valid.
 #! - assert that the account vault is empty.
 #! - assert that the account nonce is set to 0.
 #! - read the account seed from the advice provider and assert it satisfies seed requirements.
@@ -316,7 +316,7 @@ end
 #! Inputs:  []
 #! Outputs: []
 proc.validate_new_account
-    # Assert the account id of the account is valid
+    # Assert the account ID of the account is valid
     exec.memory::get_account_id exec.account::validate_id
     # => []
 
@@ -466,7 +466,7 @@ proc.process_account_data
     movup.4 drop
     # => [ACCT_HASH]
 
-    # assert the account id matches the account id in global inputs
+    # assert the account ID matches the account ID in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
     exec.account::is_id_eq assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER

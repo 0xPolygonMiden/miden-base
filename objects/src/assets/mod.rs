@@ -249,7 +249,7 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
         },
         Err(err) => {
             #[cfg(debug_assertions)]
-            panic!("invalid account id prefix passed to is_not_a_non_fungible_asset: {err}");
+            panic!("invalid account ID prefix passed to is_not_a_non_fungible_asset: {err}");
             #[cfg(not(debug_assertions))]
             false
         },

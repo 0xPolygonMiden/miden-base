@@ -46,7 +46,7 @@ const.ERR_NOTE_INVALID_TYPE=0x00020043
 #   account
 # Target: Is a hint for the type of target. Use case means the note may be consumed by anyone,
 #   specific means there is a specific target for the note (the target may be a public key, a user
-#   that knows some secret, or a specific account id)
+#   that knows some secret, or a specific account ID)
 #
 # Only the note type from the above list is enforced. The other values are only hints intended as a
 # best effort optimization strategy. A badly formatted note may 1. not be consumed because honest

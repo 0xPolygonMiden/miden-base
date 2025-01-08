@@ -12,7 +12,7 @@ use.kernel::memory
 # Account nonce cannot be increased by a greater than u32 value
 const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x00020004
 
-# Least significant byte of second felt of the account id must be zero.
+# Least significant byte of second felt of the account ID must be zero.
 const.ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO=0x00020005
 
 # Account code must be updatable for it to be possible to set new code
@@ -69,7 +69,7 @@ const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020016
 # State of the current foreign account is invalid.
 const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020017
 
-# Unknown version in account id.
+# Unknown version in account ID.
 const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020057
 
 # Epoch must be less than u16::MAX (0xffff).
@@ -78,11 +78,11 @@ const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020058
 # CONSTANTS
 # =================================================================================================
 
-# Given the least significant 32 bits of an account id's first felt, this mask defines the bits used
+# Given the least significant 32 bits of an account ID's first felt, this mask defines the bits used
 # to determine the account version.
 const.ACCOUNT_VERSION_MASK_U32=0x0f # 0b1111
 
-# Given the least significant 32 bits of an account id's first felt, this mask defines the bits used
+# Given the least significant 32 bits of an account ID's first felt, this mask defines the bits used
 # to determine the account type.
 const.ACCOUNT_ID_TYPE_MASK_U32=0x30 # 0b11_0000
 
@@ -232,13 +232,13 @@ export.incr_nonce
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
-#! Returns the account id.
+#! Returns the account ID.
 #!
 #! Inputs:  []
 #! Outputs: [acct_id]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id is the account ID.
 export.memory::get_account_id->get_id
 
 #! Returns the account nonce.
@@ -265,7 +265,7 @@ export.memory::get_init_acct_hash->get_initial_hash
 #! Outputs: [is_fungible_faucet]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_hi is the first felt of the account ID.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
 export.is_fungible_faucet
     exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
@@ -278,7 +278,7 @@ end
 #! Outputs: [is_non_fungible_faucet]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_hi is the first felt of the account ID.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
 export.is_non_fungible_faucet
     exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
@@ -291,7 +291,7 @@ end
 #! Outputs: [is_faucet]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_hi is the first felt of the account ID.
 #! - is_faucet is a boolean indicating whether the account is a faucet.
 export.is_faucet
     u32split drop push.FAUCET_ACCOUNT u32and eq.0 not
@@ -304,7 +304,7 @@ end
 #! Outputs: [is_updatable_account]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_hi is the first felt of the account ID.
 #! - is_updatable_account is a boolean indicating whether the account is a regular updatable
 #!   account.
 export.is_updatable_account
@@ -318,7 +318,7 @@ end
 #! Outputs: [is_immutable_account]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_hi is the first felt of the account ID.
 #! - is_immutable_account is a boolean indicating whether the account is a regular immutable
 #!   account.
 export.is_immutable_account
@@ -332,9 +332,9 @@ end
 #! Outputs: [is_id_equal]
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of an account id.
-#! - other_acct_id_{hi,lo} are the first and second felt of the other account id to compare against.
-#! - is_id_equal is a boolean indicating whether the account ids are equal.
+#! - acct_id_{hi,lo} are the first and second felt of an account ID.
+#! - other_acct_id_{hi,lo} are the first and second felt of the other account ID to compare against.
+#! - is_id_equal is a boolean indicating whether the account IDs are equal.
 export.is_id_eq
     movup.2 eq
     # => [is_hi_equal, acct_id_lo, other_acct_id_lo]
@@ -344,13 +344,13 @@ export.is_id_eq
     # => [is_id_equal]
 end
 
-#! Validates an account id.
+#! Validates an account ID.
 #!
 #! Inputs:  [account_id_hi, account_id_lo]
 #! Outputs: []
 #!
 #! Where:
-#! - account_id_{hi,lo} are the first and second felt of the account id.
+#! - account_id_{hi,lo} are the first and second felt of the account ID.
 #!
 #! Panics if:
 #! - account_id_hi does not contain version zero.
@@ -393,7 +393,7 @@ end
 #! Panics if:
 #! - this procedure is executed on an account whose type differs from `regular mutable`.
 export.set_code
-    # get the account id
+    # get the account ID
     exec.memory::get_account_id swap drop
     # => [acct_id_hi, CODE_COMMITMENT]
 
@@ -739,7 +739,7 @@ end
 #! 1. Retrieve the anchor block hash by computing the block number of the anchor block and
 #!    retrieving it from the chain mmr.
 #! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
-#! 3. Assert the two least significant elements of the digest are equal to the account id of the
+#! 3. Assert the two least significant elements of the digest are equal to the account ID of the
 #!    account the transaction is being executed against.
 #!
 #! Inputs:  []
@@ -774,7 +774,7 @@ export.validate_seed
     swapw
     # => [0, 0, account_id_hi, account_id_lo, ANCHOR_BLOCK_HASH]
 
-    # populate first four elements of the rate with the account id seed
+    # populate first four elements of the rate with the account ID seed
     adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
     adv_loadw
     # => [SEED, ANCHOR_BLOCK_HASH]
@@ -810,7 +810,7 @@ export.validate_seed
     # Shape second felt to add the anchor epoch and compare computed and provided ID.
     # ---------------------------------------------------------------------------------------------
 
-    # extract account id from digest
+    # extract account ID from digest
     drop drop swap
     # => [hashed_account_id_hi, hashed_account_id_lo]
 
@@ -825,7 +825,7 @@ export.validate_seed
     movup.2 exec.shape_second_felt swap
     # => [hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
 
-    # assert the account id matches the account id of the new account
+    # assert the account ID matches the account ID of the new account
     exec.is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
     # => []
 end
@@ -881,7 +881,7 @@ proc.id_anchor_block_num
   u32split swap drop
   # => [account_id_lo_hi]
 
-  # to get the epoch's block number we would have to multiply the epoch in the account id by 2^16
+  # to get the epoch's block number we would have to multiply the epoch in the account ID by 2^16
   # since the epoch is already in the upper 16 bits of the u32, we can simply zero out the
   # lower 16 bits to achieve the same result.
   u32and.0xffff0000
@@ -1080,7 +1080,7 @@ end
 #! Outputs: [acct_type]
 #!
 #! Where:
-#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_hi is the first felt of the account ID.
 #! - acct_type is the account type.
 proc.type
     u32split drop push.ACCOUNT_ID_TYPE_MASK_U32 u32and
@@ -1157,11 +1157,11 @@ end
 #! - the first or second felt of the provided foreign account ID equal zero.
 #! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
 export.get_foreign_account_ptr
-    # check that foreign account id is not equal zero
+    # check that foreign account ID is not equal zero
     dup.1 eq.0 dup.1 eq.0 and not assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
     # => [foreign_account_id_hi, foreign_account_id_lo]
 
-    # check that foreign account id is not equal to the native account id
+    # check that foreign account ID is not equal to the native account ID
     dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_eq not
     assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
 

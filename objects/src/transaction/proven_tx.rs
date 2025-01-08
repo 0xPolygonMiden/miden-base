@@ -285,7 +285,7 @@ impl ProvenTransactionBuilder {
     /// # Errors
     ///
     /// An error will be returned if an on-chain account is used without provided on-chain detail.
-    /// Or if the account details, i.e. account id and final hash, don't match the transaction.
+    /// Or if the account details, i.e. account ID and final hash, don't match the transaction.
     pub fn build(self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let input_notes =
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;

@@ -354,13 +354,13 @@ mod tests {
             assert_matches!(
                 NoteTag::from_account_id(off_chain, NoteExecutionMode::Network).unwrap_err(),
                 NoteError::NetworkExecutionRequiresOnChainAccount,
-                "Tag generation must fail if network execution and off-chain account id are mixed"
+                "Tag generation must fail if network execution and off-chain account ID are mixed"
             )
         }
 
         for on_chain in on_chain_accounts {
             let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Network)
-                .expect("tag generation must work with network execution and on-chain account id");
+                .expect("tag generation must work with network execution and on-chain account ID");
             assert!(tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Network);
 
@@ -378,7 +378,7 @@ mod tests {
 
         for off_chain in off_chain_accounts {
             let tag = NoteTag::from_account_id(off_chain, NoteExecutionMode::Local)
-                .expect("tag generation must work with local execution and off-chain account id");
+                .expect("tag generation must work with local execution and off-chain account ID");
             assert!(!tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
@@ -392,7 +392,7 @@ mod tests {
 
         for on_chain in on_chain_accounts {
             let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Local)
-                .expect("Tag generation must work with local execution and on-chain account id");
+                .expect("Tag generation must work with local execution and on-chain account ID");
             assert!(!tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 

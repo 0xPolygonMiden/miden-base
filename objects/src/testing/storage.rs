@@ -137,7 +137,7 @@ pub enum AccountSeedType {
     RegularAccountUpdatableCodeOffChain,
 }
 
-/// Returns the account id and seed for the specified account type.
+/// Returns the account ID and seed for the specified account type.
 ///
 /// TODO: Not all variants are needed anymore, remove unneeded parts.
 pub fn generate_account_seed(

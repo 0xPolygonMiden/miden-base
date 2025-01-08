@@ -19,7 +19,7 @@ pub enum TransactionExecutorError {
     TransactionProgramExecutionFailed(ExecutionError),
     #[error("failed to fetch transaction inputs from the data store")]
     FetchTransactionInputsFailed(#[source] DataStoreError),
-    #[error("input account id {input_id} does not match output account id {output_id}")]
+    #[error("input account ID {input_id} does not match output account ID {output_id}")]
     InconsistentAccountId {
         input_id: AccountId,
         output_id: AccountId,

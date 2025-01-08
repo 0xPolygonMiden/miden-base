@@ -49,7 +49,7 @@ const.GLOBAL_INPUTS_SECTION_OFFSET=100
 # The memory address at which the latest known block hash is stored
 const.BLK_HASH_PTR=100
 
-# The memory address at which the account id felts are stored.
+# The memory address at which the account ID felts are stored.
 const.ACCT_ID_PTR=101
 
 # The memory address at which the initial account hash is stored
@@ -328,13 +328,13 @@ export.get_block_hash
     padw push.BLK_HASH_PTR mem_loadw
 end
 
-#! Sets the account id.
+#! Sets the account ID.
 #!
 #! Inputs:  [acct_id_hi, acct_id_lo]
 #! Outputs: []
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account ID.
 export.set_global_acct_id
     push.0.0
     # => [0, 0, acct_id_hi, acct_id_lo]
@@ -343,13 +343,13 @@ export.set_global_acct_id
     # => []
 end
 
-#! Returns the global account id.
+#! Returns the global account ID.
 #!
 #! Inputs:  []
 #! Outputs: [acct_id_hi, acct_id_lo]
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of the account id.
+#! - acct_id_{hi,lo} are the first and second felt of the account ID.
 export.get_global_acct_id
     padw mem_loadw.ACCT_ID_PTR
     # => [0, 0, acct_id_hi, acct_id_lo]
@@ -734,7 +734,7 @@ end
 #! Outputs: [curr_acct_id_hi, curr_acct_id_lo]
 #!
 #! Where:
-#! - curr_acct_id_{hi,lo} are the first and second felt of the account id of the currently
+#! - curr_acct_id_{hi,lo} are the first and second felt of the account ID of the currently
 #!   accessing account.
 export.get_account_id
     padw exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
@@ -743,7 +743,7 @@ export.get_account_id
     # => [curr_acct_id_hi, curr_acct_id_lo]
 end
 
-#! Sets the account id and nonce.
+#! Sets the account ID and nonce.
 #!
 #! Inputs:  [account_nonce, 0, account_id_hi, account_id_lo]
 #! Outputs: [account_nonce, 0, account_id_hi, account_id_lo]

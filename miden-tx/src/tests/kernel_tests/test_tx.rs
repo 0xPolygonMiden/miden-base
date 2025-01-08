@@ -743,7 +743,7 @@ fn test_fpi_memory() {
             # get the hash of the `get_item_foreign` procedure of the foreign account 
             push.{get_item_foreign_hash}
 
-            # push the foreign account id
+            # push the foreign account ID
             push.{foreign_second_felt}.{foreign_first_felt}
             # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
 
@@ -796,7 +796,7 @@ fn test_fpi_memory() {
             # get the hash of the `get_map_item_foreign` account procedure
             push.{get_map_item_foreign_hash}
 
-            # push the foreign account id
+            # push the foreign account ID
             push.{foreign_second_felt}.{foreign_first_felt}
             # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
@@ -850,7 +850,7 @@ fn test_fpi_memory() {
             # get the hash of the `get_item_foreign` procedure of the foreign account 
             push.{get_item_foreign_hash}
 
-            # push the foreign account id
+            # push the foreign account ID
             push.{foreign_second_felt}.{foreign_first_felt}
             # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
@@ -868,7 +868,7 @@ fn test_fpi_memory() {
             # get the hash of the `get_item_foreign` procedure of the foreign account 
             push.{get_item_foreign_hash}
 
-            # push the foreign account id
+            # push the foreign account ID
             push.{foreign_second_felt}.{foreign_first_felt}
             # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
@@ -975,7 +975,7 @@ fn test_fpi_execute_foreign_procedure() {
             # get the hash of the `get_item` account procedure
             push.{get_item_foreign_hash}
 
-            # push the foreign account id
+            # push the foreign account ID
             push.{foreign_second_felt}.{foreign_first_felt}
             # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
@@ -1000,7 +1000,7 @@ fn test_fpi_execute_foreign_procedure() {
             # get the hash of the `get_map_item_foreign` account procedure
             push.{get_map_item_foreign_hash}
 
-            # push the foreign account id
+            # push the foreign account ID
             push.{foreign_second_felt}.{foreign_first_felt}
             # => [foreign_account_id_hi, foreign_account_id_lo, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 

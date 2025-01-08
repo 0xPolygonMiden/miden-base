@@ -71,17 +71,17 @@ end
 # KERNEL PROCEDURES
 # =================================================================================================
 
-#! Returns the account id.
+#! Returns the account ID.
 #!
 #! Inputs:  [pad(16)]
 #! Outputs: [acct_id_hi, acct_id_lo, pad(14)]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id is the account ID.
 #!
 #! Invocation: dynexec
 export.get_account_id
-    # get the account id
+    # get the account ID
     exec.account::get_id
     # => [acct_id_hi, acct_id_lo, pad(16)]
 
@@ -558,7 +558,7 @@ end
 #! Outputs: [sender_hi, sender_lo, pad(14)]
 #!
 #! Where:
-#! - sender_{hi,lo} are the first and second felt of the sender account id of the note currently
+#! - sender_{hi,lo} are the first and second felt of the sender account ID of the note currently
 #!   being processed.
 #!
 #! Panics if:
