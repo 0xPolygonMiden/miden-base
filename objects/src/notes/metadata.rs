@@ -325,7 +325,7 @@ mod tests {
 
         let note_type = NoteType::Public;
         let note_execution_hint = NoteExecutionHint::OnBlockSlot {
-            epoch_len: 10,
+            round_len: 10,
             slot_len: 11,
             slot_offset: 12,
         };
