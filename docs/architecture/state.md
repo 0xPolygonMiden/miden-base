@@ -1,21 +1,21 @@
 # State
 
+> The snapshot of all accounts, notes, nullifiers and their statuses in Miden, reflecting the “current reality” of the protocol at any given time.
+
 ## What is the purpose of state?
 
-Miden enables secure, private, and scalable transaction execution. By employing a concurrent state model with local execution and proving, Miden achieves three primary objectives: preserving privacy, supporting parallel transactions, and minimizing on-chain data storage (state bloat).
+By employing a concurrent state model with local execution and proving, Miden achieves three primary properties: preserving privacy, supporting parallel transactions, and reducing state-bloat by minimizing on-chain data storage (state bloat).
 
 Miden’s state model focuses on:
 
-- **Privacy:**  
-  By using notes and nullifiers, Miden ensures that value transfers remain confidential. Zero-knowledge proofs allow users to prove correctness without revealing sensitive information.
+- **Concurrency:**  
+  Multiple transactions can be processed concurrently by distinct actors using local transaction execution which improves throughput and efficiency.
 
 - **Flexible data storage:**  
   Users can store data privately on their own devices or within the network. This approach reduces reliance on the network for data availability, helps maintain user sovereignty, and minimizes unnecessary on-chain storage.
-
-- **Concurrency:**  
-  Multiple transactions can be processed concurrently by distinct actors which improves throughput and efficiency.
-
-Miden’s state model supports a private, secure, and high-throughput environment while also addressing the challenges of state bloat commonly associated with continuously growing blockchain states.
+ 
+- **Privacy:**  
+  By using notes and nullifiers, Miden ensures that value transfers remain confidential. Zero-knowledge proofs allow users to prove correctness without revealing sensitive information.
 
 ## What is state?
 
@@ -40,9 +40,9 @@ The accounts database stores the latest account states for public accounts or st
 As described in the [accounts section](accounts.md), there are two types of accounts:
 
 - **Public accounts:** where all account data is stored on-chain.
-- **Private accounts:** where only the hash of the account is stored on-chain.
+- **Private accounts:** where only the commitments to the account is stored on-chain.
 
-Private accounts significantly reduce storage overhead. A private account contributes only $40$ bytes to the global state ($8$ bytes for the account ID + $32$ bytes for the account hash). For example, 1 billion private accounts take up only $40$ GB of state.
+Private accounts significantly reduce storage overhead. A private account contributes only $40$ bytes to the global state ($15$ bytes for the account ID + $32$ bytes for the account commitment + $4$ bytes for the block number). For example, 1 billion private accounts take up only $47.47$ GB of state.
 
 The storage contribution of a public account depends on the amount of data it stores.
 
@@ -54,7 +54,7 @@ The storage contribution of a public account depends on the amount of data it st
 As described in the [notes section](notes.md), there are two types of notes:
 
 - **Public notes:** where the entire note content is stored on-chain.
-- **Private notes:** where only the note’s hash is stored on-chain.
+- **Private notes:** where only the note’s commitment is stored on-chain.
 
 Private notes greatly reduce storage requirements and thus result in lower fees. They add only $64$ bytes to the state ($32$ bytes when produced and $32$ bytes when consumed).
 
@@ -66,7 +66,7 @@ At high throughput (e.g., 1K TPS), the note database could grow by about 1TB/yea
 
 Each [note](notes.md) has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.
 
-To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is `0`. Since nullifiers are $32$ bytes each, the Sparse Merkle Tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers.
+To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is `0`. Since nullifiers are $32$ bytes each, the Sparse Merkle Tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
 
 > **Note**
 > - Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the [note’s nullifier](notes.md#note-nullifier-ensuring-private-consumption), one must know the note’s data.
@@ -102,7 +102,7 @@ In this diagram, multiple participants interact with a common, publicly accessib
 
 ### State bloat minimization
 
-Miden nodes do not need to know the entire state to verify or produce new blocks. Rather than storing the full state data with the nodes, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes state bloat and preserves privacy, since nodes and other users only see hashes of user data.
+Miden nodes do not need to know the entire state to verify or produce new blocks. Rather than storing the full state data with the nodes, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes state bloat. Furthermore the Miden rollup can discard non-required data after certain conditions have been met.
 
 This ensures that the account and note databases remain manageable, even under sustained high usage.
 
