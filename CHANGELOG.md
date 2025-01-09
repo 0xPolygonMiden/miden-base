@@ -1,5 +1,7 @@
 # Changelog
 
+- Update on the roadmap (#1053).
+
 ## 0.6.2 (2024-11-20)
 
 - Avoid writing to the filesystem during docs.rs build (#970).
@@ -12,7 +14,7 @@
 
 ### Fixes
 
-- Fixed `AccountId::new_with_type_and_mode()` (#958). 
+- Fixed `AccountId::new_with_type_and_mode()` (#958).
 
 ## 0.6.0 (2024-11-05)
 
