@@ -2,6 +2,7 @@ use.std::collections::smt
 use.std::sys
 
 use.kernel::account
+use.kernel::account_utils
 use.kernel::asset_vault
 use.kernel::constants
 use.kernel::faucet
@@ -193,7 +194,7 @@ export.get_account_item
     # => [storage_offset, storage_size, index, pad(15)]
 
     # apply offset to storage slot index
-    exec.account::apply_storage_offset
+    exec.account_utils::apply_storage_offset
     # => [index_with_offset, pad(15)]
 
     # fetch the account storage item
@@ -228,8 +229,8 @@ export.set_account_item
 
     # if the transaction is being executed against a faucet account then assert
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
-    dup exec.account::get_faucet_storage_data_slot eq
-    exec.account::get_id swap drop exec.account::is_faucet
+    dup exec.account_utils::get_faucet_storage_data_slot eq
+    exec.account::get_id swap drop exec.account_utils::is_faucet
     and assertz.err=ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED
     # => [index, V', pad(11)]
 
@@ -238,7 +239,7 @@ export.set_account_item
     # => [storage_offset, storage_size, index, V', pad(11)]
 
     # apply offset to storage slot index
-    exec.account::apply_storage_offset
+    exec.account_utils::apply_storage_offset
     # => [index_with_offset, V', pad(11)]
 
     # set the account storage item
@@ -279,7 +280,7 @@ export.get_account_map_item
     # => [storage_offset, storage_size, index, KEY, pad(11)]
 
     # apply offset to storage slot index
-    exec.account::apply_storage_offset
+    exec.account_utils::apply_storage_offset
     # => [index_with_offset, KEY, pad(11)]
 
     # fetch the account storage item, which is ROOT of the map
@@ -325,7 +326,7 @@ export.set_account_map_item.1
     # => [storage_offset, storage_size, index, KEY, NEW_VALUE, pad(7)]
 
     # apply offset to storage slot index
-    exec.account::apply_storage_offset
+    exec.account_utils::apply_storage_offset
     # => [index_with_offset, KEY, NEW_VALUE, pad(7)]
 
     # store index for later
@@ -820,7 +821,7 @@ end
 #! Invocation: dynexec
 export.get_fungible_faucet_total_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
-    exec.account::get_id swap drop exec.account::is_fungible_faucet 
+    exec.account::get_id swap drop exec.account_utils::is_fungible_faucet 
     assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [pad(16)]
 

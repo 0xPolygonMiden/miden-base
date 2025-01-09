@@ -1,4 +1,5 @@
 use.kernel::account
+use.kernel::account_utils
 
 # ERRORS
 # =================================================================================================
@@ -56,11 +57,11 @@ export.validate_fungible_asset
     # => [ASSET]
 
     # assert that the tuple (ASSET[3], ASSET[2]) forms a valid account id
-    dup.1 dup.1 exec.account::validate_id
+    dup.1 dup.1 exec.account_utils::validate_id
     # => [ASSET]
 
     # assert that the first felt (ASSET[3]) of the account id is of type fungible faucet
-    dup exec.account::is_fungible_faucet
+    dup exec.account_utils::is_fungible_faucet
     assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
@@ -99,11 +100,11 @@ end
 export.validate_non_fungible_asset
     # assert that ASSET[3] is a valid account id prefix
     # hack: because we only have the first felt we add a 0 as the second felt which is always valid
-    push.0 dup.1 exec.account::validate_id
+    push.0 dup.1 exec.account_utils::validate_id
     # => [ASSET]
 
     # assert that the account ID prefix ASSET[3] is of type non fungible faucet
-    dup exec.account::is_non_fungible_faucet
+    dup exec.account_utils::is_non_fungible_faucet
     assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 end
@@ -162,7 +163,7 @@ export.validate_fungible_asset_origin
     dup.3 dup.3
     # => [asset_id_hi, asset_id_lo, faucet_id_hi, faucet_id_lo, ASSET]
 
-    exec.account::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
+    exec.account_utils::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the fungible asset is valid
