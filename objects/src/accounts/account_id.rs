@@ -45,6 +45,16 @@ impl AccountType {
     pub fn is_regular_account(&self) -> bool {
         matches!(self, Self::RegularAccountImmutableCode | Self::RegularAccountUpdatableCode)
     }
+
+    /// Returns the string representation of the [`AccountType`].
+    fn as_str(&self) -> &'static str {
+        match self {
+            AccountType::FungibleFaucet => "FungibleFaucet",
+            AccountType::NonFungibleFaucet => "NonFungibleFaucet",
+            AccountType::RegularAccountImmutableCode => "RegularAccountImmutableCode",
+            AccountType::RegularAccountUpdatableCode => "RegularAccountUpdatableCode",
+        }
+    }
 }
 
 #[cfg(any(feature = "testing", test))]
@@ -83,19 +93,33 @@ impl Deserializable for AccountType {
     }
 }
 
+impl FromStr for AccountType {
+    type Err = AccountIdError;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        match string {
+            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
+            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
+            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
+            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
+            other => Err(AccountIdError::UnknownAccountType(other.into())),
+        }
+    }
+}
+
+impl core::fmt::Display for AccountType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[cfg(feature = "std")]
 impl serde::Serialize for AccountType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let s = match self {
-            AccountType::FungibleFaucet => "FungibleFaucet",
-            AccountType::NonFungibleFaucet => "NonFungibleFaucet",
-            AccountType::RegularAccountImmutableCode => "RegularAccountImmutableCode",
-            AccountType::RegularAccountUpdatableCode => "RegularAccountUpdatableCode",
-        };
-        serializer.serialize_str(s)
+        serializer.serialize_str(self.as_str())
     }
 }
 
@@ -106,18 +130,8 @@ impl<'de> serde::Deserialize<'de> for AccountType {
         D: serde::Deserializer<'de>,
     {
         use serde::de::Error;
-        let s: String = serde::Deserialize::deserialize(deserializer)?;
-
-        match s.as_str() {
-            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
-            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
-            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
-            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
-            other => Err(D::Error::invalid_value(
-                serde::de::Unexpected::Str(other),
-                &"a valid account type (\"FungibleFaucet\", \"NonFungibleFaucet\", \"RegularAccountImmutableCode\", or \"RegularAccountUpdatableCode\")",
-            )),
-        }
+        let string: String = serde::Deserialize::deserialize(deserializer)?;
+        string.parse().map_err(D::Error::custom)
     }
 }
 

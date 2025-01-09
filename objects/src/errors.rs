@@ -101,7 +101,7 @@ pub enum AccountError {
         "procedure which does not access storage (storage size = 0) has non-zero storage offset"
     )]
     PureProcedureWithStorageOffset,
-    #[error("account component at index {component_index} is incompatible with account of type {account_type:?}")]
+    #[error("account component at index {component_index} is incompatible with account of type {account_type}")]
     UnsupportedComponentForAccountType {
         account_type: AccountType,
         component_index: usize,
@@ -123,8 +123,10 @@ pub enum AccountIdError {
     AccountIdInvalidPrefixFieldElement(#[source] DeserializationError),
     #[error("failed to convert bytes into account id suffix field element")]
     AccountIdInvalidSuffixFieldElement(#[source] DeserializationError),
-    #[error("`{0}` is not a valid account storage mode")]
+    #[error("`{0}` is not a known account storage mode")]
     UnknownAccountStorageMode(Box<str>),
+    #[error(r#"`{0}` is not a known account type, expected one of "FungibleFaucet", "NonFungibleFaucet", "RegularAccountImmutableCode" or "RegularAccountUpdatableCode""#)]
+    UnknownAccountType(Box<str>),
     // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
     // no-std.
     #[error("failed to parse hex string into account id: {0}")]
@@ -197,13 +199,13 @@ pub enum AssetError {
     #[error("faucet account ID in asset is invalid")]
     InvalidFaucetAccountId(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error(
-      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for fungible assets",
+      "faucet id {0} of type {id_type} must be of type {expected_ty} for fungible assets",
       id_type = .0.account_type(),
       expected_ty = AccountType::FungibleFaucet
     )]
     FungibleFaucetIdTypeMismatch(AccountId),
     #[error(
-      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for non fungible assets",
+      "faucet id {0} of type {id_type} must be of type {expected_ty} for non fungible assets",
       id_type = .0.account_type(),
       expected_ty = AccountType::NonFungibleFaucet
     )]
