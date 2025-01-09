@@ -323,8 +323,7 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -470,8 +469,7 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -619,8 +617,7 @@ fn test_account_component_storage_offset() {
     .unwrap()
     .with_supported_type(AccountType::RegularAccountUpdatableCode);
 
-    let mut account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let mut account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(component1)
         .with_component(component2)
         .build_existing()
