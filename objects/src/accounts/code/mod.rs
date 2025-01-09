@@ -307,8 +307,8 @@ fn build_procedure_commitment(procedures: &[AccountProcedureInfo]) -> Digest {
 
 #[cfg(test)]
 mod tests {
-
     use assembly::Assembler;
+    use assert_matches::assert_matches;
     use vm_core::Word;
 
     use super::{AccountCode, Deserializable, Serializable};
@@ -364,6 +364,6 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(matches!(err, AccountError::StorageOffsetPlusSizeOutOfBounds(256)))
+        assert_matches!(err, AccountError::StorageOffsetPlusSizeOutOfBounds(256))
     }
 }

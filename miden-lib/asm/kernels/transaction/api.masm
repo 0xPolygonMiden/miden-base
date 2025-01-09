@@ -386,7 +386,7 @@ end
 export.account_vault_get_balance
     # get the vault root
     exec.memory::get_acct_vault_root_ptr movdn.2
-    # => [faucet_id_hi, faucet_id_lo, acct_vault_root_ptr, pad(13)]
+    # => [faucet_id_hi, faucet_id_lo, acct_vault_root_ptr, pad(14)]
 
     # get the asset balance
     exec.asset_vault::get_balance
@@ -570,7 +570,7 @@ export.get_note_sender
     # => [sender_hi, sender_lo, pad(16)]
     
     # truncate the stack
-    swapw dropw
+    movup.2 drop movup.2 drop
     # => [sender_hi, sender_lo, pad(14)]
 end
 
@@ -895,7 +895,7 @@ end
 #! - foreign_account_id_{hi,lo} are the first and second felt of the ID of the foreign account
 #!   whose procedure is going to be executed.
 #! - FOREIGN_ACCOUNT_ID is the word constructed from the foreign_account_id as follows:
-#!   [foreign_account_id_hi, foreign_account_lo, 0, 0].
+#!   [foreign_account_lo, foreign_account_id_hi, 0, 0].
 #! - account_nonce is the nonce of the foreign account.
 #! - VAULT_ROOT is the commitment of the foreign account's vault.
 #! - STORAGE_ROOT is the commitment of the foreign account's storage.
@@ -926,12 +926,12 @@ export.start_foreign_context
         # OS => [foreign_account_id_hi, foreign_account_id_lo, pad(14)]
 
         # construct the word with account ID to load the core account data from the advice map
-        swap push.0.0
-        # OS => [0, 0, foreign_account_id_lo, foreign_account_id_hi, pad(14)]
+        push.0.0
+        # OS => [0, 0, foreign_account_id_hi, foreign_account_id_lo, pad(14)]
 
         # move the core account data to the advice stack
         adv.push_mapval
-        # OS => [0, 0, foreign_account_id_lo, foreign_account_id_hi, pad(14)]
+        # OS => [0, 0, foreign_account_id_hi, foreign_account_id_lo, pad(14)]
         # AS => [[foreign_account_id_hi, foreign_account_lo, 0, account_nonce], VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
 
         # store the id and nonce of the foreign account to the memory

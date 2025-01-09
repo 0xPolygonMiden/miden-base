@@ -20,13 +20,13 @@ use crate::{
 // ACCOUNT TYPE
 // ================================================================================================
 
-const FUNGIBLE_FAUCET: u64 = 0b10;
-const NON_FUNGIBLE_FAUCET: u64 = 0b11;
-const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
-const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
+const FUNGIBLE_FAUCET: u8 = 0b10;
+const NON_FUNGIBLE_FAUCET: u8 = 0b11;
+const REGULAR_ACCOUNT_IMMUTABLE_CODE: u8 = 0b00;
+const REGULAR_ACCOUNT_UPDATABLE_CODE: u8 = 0b01;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u64)]
+#[repr(u8)]
 pub enum AccountType {
     FungibleFaucet = FUNGIBLE_FAUCET,
     NonFungibleFaucet = NON_FUNGIBLE_FAUCET,
@@ -46,26 +46,88 @@ impl AccountType {
     }
 }
 
-impl From<AccountId> for AccountType {
-    fn from(id: AccountId) -> Self {
-        id.account_type()
+#[cfg(any(feature = "testing", test))]
+impl rand::distributions::Distribution<AccountType> for rand::distributions::Standard {
+    /// Samples a uniformly random [`AccountType`] from the given `rng`.
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountType {
+        match rng.gen_range(0..4) {
+            0 => AccountType::RegularAccountImmutableCode,
+            1 => AccountType::RegularAccountUpdatableCode,
+            2 => AccountType::FungibleFaucet,
+            3 => AccountType::NonFungibleFaucet,
+            _ => unreachable!("gen_range should not produce higher values"),
+        }
     }
 }
 
-impl From<AccountIdPrefix> for AccountType {
-    fn from(id_prefix: AccountIdPrefix) -> Self {
-        id_prefix.account_type()
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AccountType {
+    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
+        target.write_u8(*self as u8);
+    }
+}
+
+impl Deserializable for AccountType {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let num: u8 = source.read()?;
+        match num {
+            FUNGIBLE_FAUCET => Ok(AccountType::FungibleFaucet),
+            NON_FUNGIBLE_FAUCET => Ok(AccountType::NonFungibleFaucet),
+            REGULAR_ACCOUNT_IMMUTABLE_CODE => Ok(AccountType::RegularAccountImmutableCode),
+            REGULAR_ACCOUNT_UPDATABLE_CODE => Ok(AccountType::RegularAccountUpdatableCode),
+            _ => Err(DeserializationError::InvalidValue(format!("invalid account type: {num}"))),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl serde::Serialize for AccountType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s = match self {
+            AccountType::FungibleFaucet => "FungibleFaucet",
+            AccountType::NonFungibleFaucet => "NonFungibleFaucet",
+            AccountType::RegularAccountImmutableCode => "RegularAccountImmutableCode",
+            AccountType::RegularAccountUpdatableCode => "RegularAccountUpdatableCode",
+        };
+        serializer.serialize_str(s)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<'de> serde::Deserialize<'de> for AccountType {
+    fn deserialize<D>(deserializer: D) -> Result<AccountType, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+        let s: String = serde::Deserialize::deserialize(deserializer)?;
+
+        match s.as_str() {
+            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
+            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
+            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
+            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
+            other => Err(D::Error::invalid_value(
+                serde::de::Unexpected::Str(other),
+                &"a valid account type (\"FungibleFaucet\", \"NonFungibleFaucet\", \"RegularAccountImmutableCode\", or \"RegularAccountUpdatableCode\")",
+            )),
+        }
     }
 }
 
 // ACCOUNT STORAGE MODE
 // ================================================================================================
 
-const PUBLIC: u64 = 0b00;
-const PRIVATE: u64 = 0b10;
+const PUBLIC: u8 = 0b00;
+const PRIVATE: u8 = 0b10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u64)]
+#[repr(u8)]
 pub enum AccountStorageMode {
     Public = PUBLIC,
     Private = PRIVATE,
@@ -108,15 +170,15 @@ impl FromStr for AccountStorageMode {
     }
 }
 
-impl From<AccountId> for AccountStorageMode {
-    fn from(id: AccountId) -> Self {
-        id.storage_mode()
-    }
-}
-
-impl From<AccountIdPrefix> for AccountStorageMode {
-    fn from(id_prefix: AccountIdPrefix) -> Self {
-        id_prefix.storage_mode()
+#[cfg(any(feature = "testing", test))]
+impl rand::distributions::Distribution<AccountStorageMode> for rand::distributions::Standard {
+    /// Samples a uniformly random [`AccountStorageMode`] from the given `rng`.
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountStorageMode {
+        match rng.gen_range(0..2) {
+            0 => AccountStorageMode::Public,
+            1 => AccountStorageMode::Private,
+            _ => unreachable!("gen_range should not produce higher values"),
+        }
     }
 }
 
@@ -185,9 +247,9 @@ impl From<AccountIdPrefix> for AccountIdVersion {
 /// block as an anchor - which is why it is also referred to as the anchor block - and creating the
 /// account's initial storage and code. Then a random seed is picked and the hash of (SEED,
 /// CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH) is computed. If the hash's first element
-/// has the desired storage mode, account type, version and the high bit set to zero, the
-/// computation part of the ID generation is done. If not, another random seed is picked and the
-/// process is repeated. The first felt of the ID is then the first element of the hash.
+/// has the desired storage mode, account type and version, the computation part of the ID
+/// generation is done. If not, another random seed is picked and the process is repeated. The first
+/// felt of the ID is then the first element of the hash.
 ///
 /// The second felt of the ID is the second element of the hash. Its upper 16 bits are overwritten
 /// with the epoch in which the ID is anchored and the lower 8 bits are zeroed. Thus, the first felt
@@ -262,7 +324,7 @@ impl AccountId {
 
     /// The lower two bits of the second least significant nibble determine the account type.
     pub(crate) const TYPE_SHIFT: u64 = 4;
-    pub(crate) const TYPE_MASK: u64 = 0b11 << Self::TYPE_SHIFT;
+    pub(crate) const TYPE_MASK: u8 = 0b11 << Self::TYPE_SHIFT;
 
     /// The least significant nibble determines the account version.
     const VERSION_MASK: u64 = 0b1111;
@@ -273,7 +335,7 @@ impl AccountId {
     /// The higher two bits of the second least significant nibble determine the account storage
     /// mode.
     pub(crate) const STORAGE_MODE_SHIFT: u64 = 6;
-    pub(crate) const STORAGE_MODE_MASK: u64 = 0b11 << Self::STORAGE_MODE_SHIFT;
+    pub(crate) const STORAGE_MODE_MASK: u8 = 0b11 << Self::STORAGE_MODE_SHIFT;
 
     pub(crate) const IS_FAUCET_MASK: u64 = 0b10 << Self::TYPE_SHIFT;
 
@@ -354,7 +416,7 @@ impl AccountId {
     ///   significant end of the ID.
     /// - In the second felt the anchor epoch is set to 0 and the lower 8 bits are cleared.
     #[cfg(any(feature = "testing", test))]
-    pub fn new_dummy(
+    pub fn dummy(
         mut bytes: [u8; 15],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
@@ -698,8 +760,10 @@ fn validate_second_felt(second_felt: Felt) -> Result<(), AccountError> {
 }
 
 pub(crate) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode, AccountError> {
-    let bits = (first_felt & AccountId::STORAGE_MODE_MASK) >> AccountId::STORAGE_MODE_SHIFT;
-    match bits {
+    let bits =
+        (first_felt & (AccountId::STORAGE_MODE_MASK as u64)) >> AccountId::STORAGE_MODE_SHIFT;
+    // SAFETY: `STORAGE_MODE_MASK` is u8 so casting bits is lossless
+    match bits as u8 {
         PUBLIC => Ok(AccountStorageMode::Public),
         PRIVATE => Ok(AccountStorageMode::Private),
         _ => Err(AccountError::InvalidAccountStorageMode(format!("0b{bits:b}"))),
@@ -718,8 +782,9 @@ pub(crate) fn extract_version(first_felt: u64) -> Result<AccountIdVersion, Accou
 }
 
 pub(crate) const fn extract_type(first_felt: u64) -> AccountType {
-    let bits = (first_felt & AccountId::TYPE_MASK) >> AccountId::TYPE_SHIFT;
-    match bits {
+    let bits = (first_felt & (AccountId::TYPE_MASK as u64)) >> AccountId::TYPE_SHIFT;
+    // SAFETY: `TYPE_MASK` is u8 so casting bits is lossless
+    match bits as u8 {
         REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
         REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
         FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
@@ -855,7 +920,7 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountId::new_dummy(input, account_type, storage_mode);
+                    let id = AccountId::dummy(input, account_type, storage_mode);
                     assert_eq!(id.account_type(), account_type);
                     assert_eq!(id.storage_mode(), storage_mode);
                     assert_eq!(id.version(), AccountIdVersion::VERSION_0);
@@ -936,7 +1001,7 @@ mod tests {
     /// normal.
     #[test]
     fn test_account_id_faucet_bit() {
-        const ACCOUNT_IS_FAUCET_MASK: u64 = 0b10;
+        const ACCOUNT_IS_FAUCET_MASK: u8 = 0b10;
 
         // faucets have a bit set
         assert_ne!((FUNGIBLE_FAUCET) & ACCOUNT_IS_FAUCET_MASK, 0);

@@ -261,7 +261,7 @@ impl Deserializable for OutputNote {
             FULL => Ok(OutputNote::Full(Note::read_from(source)?)),
             PARTIAL => Ok(OutputNote::Partial(PartialNote::read_from(source)?)),
             HEADER => Ok(OutputNote::Header(NoteHeader::read_from(source)?)),
-            v => Err(DeserializationError::InvalidValue(format!("Invalid note type: {v}"))),
+            v => Err(DeserializationError::InvalidValue(format!("invalid note type: {v}"))),
         }
     }
 }

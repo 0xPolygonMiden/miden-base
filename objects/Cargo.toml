@@ -22,8 +22,8 @@ bench = false
 [features]
 concurrent = ["std"]
 default = ["std"]
-std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
-testing = ["dep:winter-rand-utils", "dep:rand"]
+std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std", "dep:toml", "dep:serde"]
+testing = ["dep:winter-rand-utils", "dep:rand", "dep:rand_xoshiro"]
 
 [dependencies]
 assembly = { workspace = true }
@@ -31,6 +31,10 @@ log = { version = "0.4", optional = true }
 miden-crypto = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true, optional = true }
+rand_xoshiro = { version = "0.6.0", default-features = false, optional = true }
+semver = { version = "1.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"], optional = true }
+toml = { version = "0.8", optional = true }
 thiserror = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }

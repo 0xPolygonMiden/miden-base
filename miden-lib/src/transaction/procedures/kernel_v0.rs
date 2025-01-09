@@ -54,7 +54,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // get_note_inputs_hash
     digest!("0xe6209e99b726e1ad25b89e712b30bcfa3bad45feb47b81dc51a650b02b0dcbda"),
     // get_note_sender
-    digest!("0x9dfb0725ccb6c6f3a5c84bc11cc36e12da9631c1ae5eca40a1348fa5a97df80c"),
+    digest!("0xf5056720c0e58a9e3e1018d320bc04cd5c4a82ecb4563357f91688e03fe1b6cc"),
     // get_note_serial_number
     digest!("0xad91130ec219756213c6cadeaf8a38de8768e50c620cb7c347c531874c6054b6"),
     // get_script_hash
@@ -66,7 +66,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // get_block_number
     digest!("0x17da2a77b878820854bfff2b5f9eb969a4e2e76a998f97f4967b2b1a7696437c"),
     // start_foreign_context
-    digest!("0x228bc2ebcd247c52fc78f7889e05578a26ddb053527a4254c5d1325de12d63c1"),
+    digest!("0xe67a01afe8cab81113844e8dbf056d9c34c18f78cf6c5c5e70b02bd308f007da"),
     // end_foreign_context
     digest!("0x132b50feca8ecec10937c740640c59733e643e89c1d8304cf4523120e27a0428"),
     // update_expiration_block_num

@@ -7,7 +7,7 @@ use tonic_health::pb::{
 };
 use tracing::error;
 
-use crate::utils::create_health_check_client;
+use crate::{error::TxProverServiceError, utils::create_health_check_client};
 
 // WORKER
 // ================================================================================================
@@ -24,11 +24,16 @@ pub struct Worker {
 }
 
 impl Worker {
+    /// Creates a new worker and a gRPC health check client for the given worker address.
+    ///
+    /// # Errors
+    /// - Returns [TxProverServiceError::InvalidURI] if the worker address is invalid.
+    /// - Returns [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
     pub async fn new(
         worker: Backend,
         connection_timeout: Duration,
         total_timeout: Duration,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, TxProverServiceError> {
         let health_check_client =
             create_health_check_client(worker.addr.to_string(), connection_timeout, total_timeout)
                 .await?;

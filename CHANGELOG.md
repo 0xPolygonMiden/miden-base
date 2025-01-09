@@ -4,7 +4,6 @@
 
 ### Changes
 
-- Added tracing to the `miden-tx-prover` CLI (#1014).
 - Added health check endpoints to the prover service (#1006).
 - Implemented serialization for `AccountHeader` (#996).
 - Updated Pingora crates to 0.4 and added polling time to the configuration file (#997).
@@ -21,6 +20,11 @@
 - [BREAKING] Extend `AccountId` to two `Felt`s and require block hash in derivation (#982).
 - Removed workers list from the proxy configuration file (#1018).
 - [BREAKING] Moved the duplicate `masm` procedures to the `utils` module (#1002).
+- Added tracing to the `miden-tx-prover` CLI (#1014).
+- Added metrics to the `miden-tx-prover` proxy (#1017).
+- Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
+- Introduce `AccountIdBuilder` to simplify `AccountId` generation in tests (#1045).
+- Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
 
 ## 0.6.2 (2024-11-20)
 

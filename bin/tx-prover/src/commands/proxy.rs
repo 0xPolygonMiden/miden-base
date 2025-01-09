@@ -9,6 +9,7 @@ use pingora_proxy::http_proxy_service;
 use tracing::warn;
 
 use crate::{
+    error::TxProverServiceError,
     proxy::{LoadBalancer, LoadBalancerState},
     utils::MIDEN_TX_PROVER,
 };
@@ -30,6 +31,13 @@ impl StartProxy {
     ///
     /// This method will first read the config file to get the parameters for the proxy. It will
     /// then start a proxy with each worker passed as command argument as a backend.
+    ///
+    /// # Errors
+    /// Returns an error in the following cases:
+    /// - The config file cannot be read.
+    /// - The backend cannot be created.
+    /// - The Pingora configuration fails.
+    /// - The server cannot be started.
     #[tracing::instrument(target = MIDEN_TX_PROVER, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
@@ -40,8 +48,8 @@ impl StartProxy {
         let workers = self
             .workers
             .iter()
-            .map(|worker| Backend::new(worker).map_err(|err| err.to_string()))
-            .collect::<Result<Vec<Backend>, String>>()?;
+            .map(|worker| Backend::new(worker).map_err(TxProverServiceError::BackendCreationFailed))
+            .collect::<Result<Vec<Backend>, TxProverServiceError>>()?;
 
         if workers.is_empty() {
             warn!("Starting the proxy without any workers");
@@ -58,13 +66,23 @@ impl StartProxy {
         let proxy_host = proxy_config.host;
         let proxy_port = proxy_config.port.to_string();
         lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
-        let logic = lb.app_logic_mut().ok_or("Failed to get app logic")?;
+        let logic = lb
+            .app_logic_mut()
+            .ok_or(TxProverServiceError::PingoraConfigFailed("app logic not found".to_string()))?;
         let mut http_server_options = HttpServerOptions::default();
 
         // Enable HTTP/2 for plaintext
         http_server_options.h2c = true;
         logic.server_options = Some(http_server_options);
 
+        // Enable Prometheus metrics
+        let mut prometheus_service_http =
+            pingora::services::listening::Service::prometheus_http_service();
+        prometheus_service_http.add_tcp(
+            format!("{}:{}", proxy_config.prometheus_host, proxy_config.prometheus_port).as_str(),
+        );
+
+        server.add_service(prometheus_service_http);
         server.add_service(health_check_service);
         server.add_service(lb);
         tokio::task::spawn_blocking(|| server.run_forever())

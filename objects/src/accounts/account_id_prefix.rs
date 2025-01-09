@@ -1,4 +1,4 @@
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use core::fmt;
 
 use miden_crypto::utils::ByteWriter;
@@ -110,6 +110,11 @@ impl AccountIdPrefix {
         account_id::extract_version(self.first_felt.as_int())
             .expect("account id prefix should have been constructed with a valid version")
     }
+
+    /// Returns the prefix as a big-endian, hex-encoded string.
+    pub fn to_hex(&self) -> String {
+        format!("0x{:016x}", self.first_felt.as_int())
+    }
 }
 
 // CONVERSIONS FROM ACCOUNT ID PREFIX
@@ -201,7 +206,7 @@ impl Ord for AccountIdPrefix {
 
 impl fmt::Display for AccountIdPrefix {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{:016x}", self.first_felt.as_int())
+        write!(f, "{}", self.to_hex())
     }
 }
 
@@ -246,7 +251,7 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountId::new_dummy(input, account_type, storage_mode);
+                    let id = AccountId::dummy(input, account_type, storage_mode);
                     let prefix = id.prefix();
                     assert_eq!(prefix.account_type(), account_type);
                     assert_eq!(prefix.storage_mode(), storage_mode);

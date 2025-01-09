@@ -41,7 +41,7 @@ pub enum NoteExecutionMode {
 /// Tags are light-weight values used to speed up queries. The 2 most significant bits of the tags
 /// have the following interpretation:
 ///
-/// | Prefix | Execution hint | Target   | Allowed [NoteType] |
+/// | Prefix | Execution mode | Target   | Allowed [NoteType] |
 /// | ------ | :------------: | :------: | :----------------: |
 /// | `0b00` | Network        | Specific | [NoteType::Public] |
 /// | `0b01` | Network        | Use case | [NoteType::Public] |
