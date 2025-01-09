@@ -33,7 +33,12 @@ The Miden node maintains three databases to describe state:
 
 ### Account database
 
-The accounts database stores the latest account states for public accounts or state commitments for private accounts.
+The accounts database has two main purposes:
+
+1. Track state commitments of all accounts
+2. Store account data for public accounts
+
+This is done using an authenticated data structure, a sparse merkle tree.
 
 ![Architecture core concepts](../img/architecture/state/account-db.png)
 
@@ -56,9 +61,16 @@ As described in the [notes section](notes.md), there are two types of notes:
 - **Public notes:** where the entire note content is stored on-chain.
 - **Private notes:** where only the note’s commitment is stored on-chain.
 
-Private notes greatly reduce storage requirements and thus result in lower fees. They add only $64$ bytes to the state ($32$ bytes when produced and $32$ bytes when consumed).
+Private notes greatly reduce storage requirements and thus result in lower fees. At high throughput (e.g., 1K TPS), the note database could grow by about 1TB/year. However, only unconsumed public notes and enough information to construct membership proofs must be stored explicitly. Private notes, as well as consumed public notes, can be discarded. This solves the issue of infinitely growing note databases.
 
-At high throughput (e.g., 1K TPS), the note database could grow by about 1TB/year. However, only unconsumed public notes and enough information to construct membership proofs must be stored explicitly. Private notes, as well as consumed public notes, can be discarded. This solves the issue of infinitely growing note databases.
+Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). 
+
+Using a Merkle Mountain Range (append-only accumulator) is important for two reasons:
+
+1. Membership witnesses (that a note exists in the database) against such an accumulator needs to be updated very infrequently.
+2. Old membership witnesses can be extended to a new accumulator value, but this extension does not need to be done by the original witness holder.
+ 
+Both of these properties are needed for supporting local transactions using client-side proofs and privacy. In an append-only data structure, witness data does not become stale when the data structure is updated. That means users can generate valid proofs even if they don’t have the latest state of this database; so there is no need to query the operator on a constantly changing state.
 
 ![Architecture core concepts](../img/architecture/state/note-db.png)
 
