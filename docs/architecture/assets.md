@@ -41,7 +41,7 @@ Faucets can issue either fungible or non-fungible `Asset`s as defined at account
 
 #### Fungible asset
 
-Fungible `Asset`s are encoded with the amount and the `faucet_id` of the issuing faucet. The amount is always `$2^{63} - 1$` or smaller, representing the maximum supply for any fungible `Asset`. Examples include ETH and various stablecoins (e.g., DAI, USDT, USDC).
+Fungible `Asset`s are encoded with the amount and the `faucet_id` of the issuing faucet. The amount is always 2^{63} - 1 or smaller, representing the maximum supply for any fungible `Asset`. Examples include ETH and various stablecoins (e.g., DAI, USDT, USDC).
 
 #### Non-fungible asset
 
