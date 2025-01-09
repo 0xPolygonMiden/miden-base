@@ -100,9 +100,6 @@ fn main() -> Result<()> {
 /// - {target_dir}/tx_kernel.masl               -> contains kernel library compiled from api.masm.
 /// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
 /// - src/transaction/procedures/kernel_v0.rs   -> contains the kernel procedures table.
-///
-/// When the `testing` feature is enabled, the POW requirements for account ID generation are
-/// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
 fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
     let assembler = build_assembler(None)?;
 

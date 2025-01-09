@@ -106,12 +106,12 @@ pub enum AccountError {
         account_type: AccountType,
         component_index: usize,
     },
+    #[error("failed to parse account ID from final account header")]
+    FinalAccountHeaderIdParsingFailed(#[source] AccountIdError),
     /// This variant can be used by methods that are not inherent to the account but want to return
     /// this error type.
     #[error("assumption violated: {0}")]
     AssumptionViolated(String),
-    #[error("failed to parse account id from final account header")]
-    FinalAccountHeaderIdParsingFailed(#[source] AccountIdError),
 }
 
 // ACCOUNT ID ERROR
@@ -119,9 +119,9 @@ pub enum AccountError {
 
 #[derive(Debug, Error)]
 pub enum AccountIdError {
-    #[error("failed to convert bytes into account id prefix field element")]
+    #[error("failed to convert bytes into account ID prefix field element")]
     AccountIdInvalidPrefixFieldElement(#[source] DeserializationError),
-    #[error("failed to convert bytes into account id suffix field element")]
+    #[error("failed to convert bytes into account ID suffix field element")]
     AccountIdInvalidSuffixFieldElement(#[source] DeserializationError),
     #[error("`{0}` is not a known account storage mode")]
     UnknownAccountStorageMode(Box<str>),
@@ -129,13 +129,13 @@ pub enum AccountIdError {
     UnknownAccountType(Box<str>),
     // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
     // no-std.
-    #[error("failed to parse hex string into account id: {0}")]
+    #[error("failed to parse hex string into account ID: {0}")]
     AccountIdHexParseError(HexParseError),
     #[error("`{0}` is not a known account ID version")]
     UnknownAccountIdVersion(u8),
     #[error("anchor epoch in account ID must not be u16::MAX ({})", u16::MAX)]
     AnchorEpochMustNotBeU16Max,
-    #[error("least significant byte of account ID must be zero")]
+    #[error("least significant byte of account ID suffix must be zero")]
     AccountIdSuffixLeastSignificantByteMustBeZero,
     #[error(
         "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
