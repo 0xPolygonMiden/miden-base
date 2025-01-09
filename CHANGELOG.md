@@ -24,6 +24,7 @@
 - Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 - Introduce `AccountIdBuilder` to simplify `AccountId` generation in tests (#1045).
 - Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
+- Introduce `AccountIdError` and make account ID byte representations (`u128`, `[u8; 15]`) consistent (#1055).
 
 ## 0.6.2 (2024-11-20)
 
