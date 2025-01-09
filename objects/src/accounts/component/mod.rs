@@ -3,6 +3,12 @@ use alloc::{collections::BTreeSet, vec::Vec};
 use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
+mod template;
+pub use template::{
+    AccountComponentMetadata, AccountComponentTemplate, InitStorageData, StorageEntry,
+    StoragePlaceholder, StorageValue,
+};
+
 use crate::{
     accounts::{AccountType, StorageSlot},
     AccountError,
@@ -81,6 +87,32 @@ impl AccountComponent {
             .map_err(AccountError::AccountComponentAssemblyError)?;
 
         Self::new(library, storage_slots)
+    }
+
+    /// Instantiates an [AccountComponent] from the [AccountComponentTemplate].
+    ///
+    /// The template's component metadata might contain templated values, which can be input by
+    /// mapping [storage placeholders](StoragePlaceholder) to [values](StorageValue) through the
+    /// `init_storage_data` parameter.
+    ///
+    /// # Errors
+    ///
+    /// - If any of the component's storage entries cannot be transformed into a valid storage slot.
+    ///   This could be because the metadata is invalid, or storage values were not provided (or
+    ///   they are not of a valid type)
+    pub fn from_template(
+        template: &AccountComponentTemplate,
+        init_storage_data: &InitStorageData,
+    ) -> Result<AccountComponent, AccountError> {
+        let mut storage_slots = vec![];
+        for storage_entry in template.metadata().storage_entries() {
+            let entry_storage_slots = storage_entry
+                .try_build_storage_slots(init_storage_data)
+                .map_err(AccountError::AccountComponentTemplateInstantiationError)?;
+            storage_slots.extend(entry_storage_slots);
+        }
+
+        AccountComponent::new(template.library().clone(), storage_slots)
     }
 
     // ACCESSORS

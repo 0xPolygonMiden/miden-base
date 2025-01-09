@@ -16,22 +16,41 @@ use super::{
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-    accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType},
+    accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType, StoragePlaceholder},
     block::block_num_from_epoch,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
+
+// ACCOUNT COMPONENT TEMPLATE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountComponentTemplateError {
+    #[cfg(feature = "std")]
+    #[error("error trying to deserialize from toml")]
+    DeserializationError(#[source] toml::de::Error),
+    #[error("slot {0} is defined multiple times")]
+    DuplicateSlot(u8),
+    #[error("component storage slots have to start at 0")]
+    StorageSlotsMustStartAtZero,
+    #[error("storage value was not of the expected type {0}")]
+    IncorrectStorageValue(String),
+    #[error("multi-slot entry should contain as many values as storage slots indices")]
+    MultiSlotArityMismatch,
+    #[error("error deserializing component metadata: {0}")]
+    MetadataDeserializationError(String),
+    #[error("component storage slots are not contiguous ({0} is followed by {1})")]
+    NonContiguousSlots(u8, u8),
+    #[error("storage value for placeholder `{0}` was not provided in the map")]
+    PlaceholderValueNotProvided(StoragePlaceholder),
+}
 
 // ACCOUNT ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
 pub enum AccountError {
-    #[error("failed to assemble account component:\n{}", PrintDiagnostic::new(.0))]
-    AccountComponentAssemblyError(Report),
-    // TODO: Use MastForestError once it implements Error in no-std.
-    #[error("failed to merge account code: {0}")]
-    AccountComponentMergeError(String),
     #[error("failed to deserialize account code")]
     AccountCodeDeserializationError(#[source] DeserializationError),
     #[error("account code does not contain procedures but must contain at least one procedure")]
@@ -44,6 +63,13 @@ pub enum AccountError {
     AccountCodeProcedureStorageSizeTooLarge(Digest, Felt),
     #[error("account procedure {0}'s final two elements must be Felt::ZERO")]
     AccountCodeProcedureInvalidPadding(Digest),
+    #[error("failed to assemble account component:\n{}", PrintDiagnostic::new(.0))]
+    AccountComponentAssemblyError(Report),
+    // TODO: Use MastForestError once it implements Error in no-std.
+    #[error("failed to merge account code: {0}")]
+    AccountComponentMergeError(String),
+    #[error("failed to create account component")]
+    AccountComponentTemplateInstantiationError(#[source] AccountComponentTemplateError),
     #[error("failed to convert bytes into account id field element")]
     AccountIdInvalidFieldElement(#[source] DeserializationError),
     #[error("failed to update asset vault")]
