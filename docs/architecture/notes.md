@@ -104,7 +104,7 @@ Upon successful verification of the transaction:
 1. The Miden operator records the `Note`’s nullifier as “consumed” in the nullifier database.
 2. The `Note`’s one-time claim is thus extinguished, preventing reuse.
 
-#### Note recipient - restricting consumption
+#### Note recipient restricting consumption
 
 Consumption of a `Note` can be restricted to certain accounts or entities. For instance, the P2ID and P2IDR `Note` scripts target a specific account ID. Alternatively, Miden defines a RECIPIENT (represented as 32 bytes) computed as:
 
@@ -118,7 +118,7 @@ The [transaction prologue](transactions/kernel.md) requires all necessary data t
 
 For a practical example, refer to the [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm), where the RECIPIENT ensures that only a defined target can consume the swapped asset.
 
-#### Note nullifier - ensuring private consumption
+#### Note nullifier ensuring private consumption
 
 The `Note` nullifier, computed as:
 
