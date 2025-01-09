@@ -31,3 +31,17 @@ jobs:
         run: make test-default
       - name: test-prove
         run: make test-prove
+
+  doc-tests:
+    name: doc-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: doc-tests-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
+      - name: Install rust
+        run: rustup update --no-self-update
+      - name: Run doc-tests
+        run: make test-docs  

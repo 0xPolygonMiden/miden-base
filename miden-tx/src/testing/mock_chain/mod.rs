@@ -93,6 +93,10 @@ impl MockFungibleFaucet {
         &self.0
     }
 
+    pub fn id(&self) -> AccountId {
+        self.0.id()
+    }
+
     pub fn mint(&self, amount: u64) -> Asset {
         FungibleAsset::new(self.0.id(), amount).unwrap().into()
     }
@@ -201,15 +205,27 @@ impl PendingObjects {
 ///
 /// # Examples
 ///
-/// ## Create mock objects
+/// ## Create mock objects and build a transaction context
 /// ```
-/// let mut mock_chain = MockChain::default();
+/// # use miden_tx::testing::{Auth, MockChain, TransactionContextBuilder};
+/// # use miden_objects::{assets::FungibleAsset, Felt, notes::NoteType};
+/// let mut mock_chain = MockChain::new();
 /// let faucet = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100_000);  // Create a USDT faucet
 /// let asset = faucet.mint(1000);  
-/// let note = mock_chain.add_p2id_note(asset, sender...);
 /// let sender = mock_chain.add_new_wallet(Auth::BasicAuth);  
-///
-/// mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build().execute()
+/// let target = mock_chain.add_new_wallet(Auth::BasicAuth);  
+/// let note = mock_chain
+///     .add_p2id_note(
+///         faucet.id(),
+///         target.id(),
+///         &[FungibleAsset::mock(10)],
+///         NoteType::Public,
+///       None,
+///     )
+///   .unwrap();
+/// mock_chain.seal_block(None);
+/// let tx_context = mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build();
+/// // tx_context.execute();
 /// ```
 ///
 /// ## Executing a Simple Transaction
@@ -218,12 +234,17 @@ impl PendingObjects {
 /// an authenticator.
 ///
 /// ```
+/// # use miden_tx::testing::{Auth, MockChain, TransactionContextBuilder};
+/// # use miden_objects::{assets::FungibleAsset, Felt, transaction::TransactionScript};
+/// # use miden_lib::transaction::TransactionKernel;
 /// let mut mock_chain = MockChain::new();
-/// let sender = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![asset]);  // Add a wallet with assets
+/// let sender = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(256)]);  // Add a wallet with assets
 /// let receiver = mock_chain.add_new_wallet(Auth::BasicAuth);  // Add a recipient wallet
 ///
 /// let tx_context = mock_chain.build_tx_context(sender.id(), &[], &[]);
-/// let tx_script = TransactionScript::compile("...", vec![], TransactionKernel::testing_assembler()).unwrap();
+///
+/// let script = "begin nop end";
+/// let tx_script = TransactionScript::compile(script, vec![], TransactionKernel::testing_assembler()).unwrap();
 ///
 /// let transaction = tx_context.tx_script(tx_script).build().execute().unwrap();
 /// mock_chain.apply_executed_transaction(&transaction);  // Apply transaction

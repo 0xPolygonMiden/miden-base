@@ -14,7 +14,7 @@ use super::AccountType;
 use crate::errors::AccountComponentTemplateError;
 
 mod storage;
-pub use storage::{InitStorageData, StorageEntry, StoragePlaceholder, StorageValue};
+pub use storage::*;
 
 // ACCOUNT COMPONENT TEMPLATE
 // ================================================================================================
@@ -134,40 +134,55 @@ impl AccountComponentMetadata {
         Ok(component)
     }
 
-    /// Retrieves the set of storage placeholder keys (identified by a string) that require a value
-    /// at the moment of component instantiation. These values will be used for initializing
-    /// storage slot values, or storage map entries.
+    /// Retrieves the set of storage placeholder keys (identified by a string) that
+    /// require a value at the moment of component instantiation. These values will
+    /// be used for initializing storage slot values, or storage map entries.
     ///
-    /// # Examples
-    ///
-    /// An [AccountComponentMetadata] may have a single-slot storage entry where the last element
-    /// of the slot's word is templated:
+    /// # Example
     ///
     /// ```
-    /// let first_felt = FeltRepresentation::Decimal(Felt::ZERO);
+    /// # use semver::Version;
+    /// # use std::collections::BTreeSet;
+    /// # use miden_objects::{testing::account_code::CODE, accounts::{
+    /// #     AccountComponent, AccountComponentMetadata, InitStorageData, StorageEntry,
+    /// #     StoragePlaceholder, StorageValue,
+    /// #     AccountComponentTemplate, FeltRepresentation, WordRepresentation},
+    /// #     assembly::Assembler, Felt};
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let first_felt = FeltRepresentation::Decimal(Felt::new(0u64));
     /// let second_felt = FeltRepresentation::Decimal(Felt::new(1u64));
     /// let third_felt = FeltRepresentation::Decimal(Felt::new(2u64));
     /// // Templated element:
-    /// let last_element = FeltRepresentation::Template(StoragePlaceholder::new("foo"));
+    /// let last_element = FeltRepresentation::Template(StoragePlaceholder::new("foo")?);
     ///
     /// let storage_entry = StorageEntry::new_value(
     ///     "test-entry",
-    ///     "a test entry",
+    ///     Some("a test entry"),
     ///     0,
-    ///     WordRepresentation::new([first_felt, second_felt, third_felt, last_element]),
+    ///     WordRepresentation::Array([first_felt, second_felt, third_felt, last_element]),
     /// );
-    /// ```
     ///
-    /// At the moment of instantiating a component that defines this storage entry, we
-    /// must pass a value that replaces "foo":
-    ///
-    /// ```
     /// let init_storage_data = InitStorageData::new([(
     ///     StoragePlaceholder::new("foo")?,
     ///     StorageValue::Felt(Felt::new(300u64)),
     /// )]);
+    ///
+    /// let component_template = AccountComponentMetadata::new(
+    ///     "test".into(),
+    ///     "desc".into(),
+    ///     Version::parse("0.1.0").unwrap(),
+    ///     BTreeSet::new(),
+    ///     vec![],
+    /// )?;
+    ///
+    /// let library = Assembler::default().assemble_library([CODE]).unwrap();
+    /// let template = AccountComponentTemplate::new(component_template, library);
+    ///
     /// let component = AccountComponent::from_template(&template, &init_storage_data)?;
+    /// # Ok(())
+    /// # }
     /// ```
+
     pub fn get_storage_placeholders(&self) -> BTreeSet<StoragePlaceholder> {
         let mut placeholder_set = BTreeSet::new();
         for storage_entry in &self.storage {
@@ -307,9 +322,9 @@ mod tests {
         )
         .unwrap();
 
-        let serialized = toml::to_string(&original_config).unwrap();
-        let deserialized: AccountComponentMetadata = toml::from_str(&serialized).unwrap();
+        let serialized = original_config.as_toml().unwrap();
 
+        let deserialized = AccountComponentMetadata::from_toml(&serialized).unwrap();
         assert_eq!(deserialized, original_config)
     }
 
