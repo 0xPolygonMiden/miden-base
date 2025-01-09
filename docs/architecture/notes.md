@@ -1,6 +1,6 @@
 # Note
 
-> The medium through which [Accounts](accounts.md) communicate in the Miden protocol
+> The medium through which [Accounts](accounts.md) communicate in the Miden protocol.
 
 ## What is the purpose of a note?
 
