@@ -603,8 +603,6 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
 }
 
 /// Tests that supplying an invalid seed causes account creation to fail.
-///
-/// TODO: Add variant of this test with incorrect block hash.
 #[test]
 pub fn create_account_invalid_seed() {
     let mut mock_chain = MockChain::new();
