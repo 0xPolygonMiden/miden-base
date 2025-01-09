@@ -4,9 +4,9 @@
 
 ## What is the purpose of state?
 
-By employing a concurrent state model with local execution and proving, Miden achieves three primary properties: preserving privacy, supporting parallel transactions, and reducing state-bloat by minimizing on-chain data storage (state bloat).
+By employing a concurrent `State` model with local execution and proving, Miden achieves three primary properties: preserving privacy, supporting parallel transactions, and reducing state-bloat by minimizing on-chain data storage.
 
-Miden’s state model focuses on:
+Miden’s `State` model focuses on:
 
 - **Concurrency:**  
   Multiple transactions can be processed concurrently by distinct actors using local transaction execution which improves throughput and efficiency.
@@ -19,11 +19,11 @@ Miden’s state model focuses on:
 
 ## What is state?
 
-The state of the Miden rollup describes the current condition of all accounts and notes in the protocol; i.e., the current reality.
+The `State` of the Miden rollup describes the current condition of all accounts and notes in the protocol; i.e., the current reality.
 
 ## State model components
 
-The Miden node maintains three databases to describe state:
+The Miden node maintains three databases to describe `State`:
 
 1. Accounts
 2. Notes
@@ -47,12 +47,12 @@ As described in the [accounts section](accounts.md), there are two types of acco
 - **Public accounts:** where all account data is stored on-chain.
 - **Private accounts:** where only the commitments to the account is stored on-chain.
 
-Private accounts significantly reduce storage overhead. A private account contributes only $40$ bytes to the global state ($15$ bytes for the account ID + $32$ bytes for the account commitment + $4$ bytes for the block number). For example, 1 billion private accounts take up only $47.47$ GB of state.
+Private accounts significantly reduce storage overhead. A private account contributes only 40 bytes to the global `State` (15 bytes for the account ID + 32 bytes for the account commitment + 4 bytes for the block number). For example, 1 billion private accounts take up only 47.47 GB of `State`.
 
 The storage contribution of a public account depends on the amount of data it stores.
 
 > **Warning**
-> - In Miden, when the user is the custodian of their account state (in the case of a private account), losing this state amounts to losing their funds, similar to losing a private key.
+> - In Miden, when the user is the custodian of their account `State` (in the case of a private account), losing this `State` amounts to losing their funds, similar to losing a private key.
 
 ### Note database
 
@@ -70,7 +70,7 @@ Using a Merkle Mountain Range (append-only accumulator) is important for two rea
 1. Membership witnesses (that a note exists in the database) against such an accumulator needs to be updated very infrequently.
 2. Old membership witnesses can be extended to a new accumulator value, but this extension does not need to be done by the original witness holder.
  
-Both of these properties are needed for supporting local transactions using client-side proofs and privacy. In an append-only data structure, witness data does not become stale when the data structure is updated. That means users can generate valid proofs even if they don’t have the latest state of this database; so there is no need to query the operator on a constantly changing state.
+Both of these properties are needed for supporting local transactions using client-side proofs and privacy. In an append-only data structure, witness data does not become stale when the data structure is updated. That means users can generate valid proofs even if they don’t have the latest `State` of this database; so there is no need to query the operator on a constantly changing `State`.
 
 ![Architecture core concepts](../img/architecture/state/note-db.png)
 
@@ -78,7 +78,7 @@ Both of these properties are needed for supporting local transactions using clie
 
 Each [note](notes.md) has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.
 
-To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is `0`. Since nullifiers are $32$ bytes each, the Sparse Merkle Tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
+To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is 0. Since nullifiers are 32 bytes each, the Sparse Merkle Tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
 
 > **Note**
 > - Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the [note’s nullifier](notes.md#note-nullifier-ensuring-private-consumption), one must know the note’s data.
@@ -89,35 +89,35 @@ To prove that a note has not been consumed, the operator must provide a Merkle p
 
 ### Public shared state
 
-In most blockchains, most smart contracts and decentralized applications (e.g., AAVE, Uniswap) need public shared state. Public shared state is also available on Miden and can be represented as in the following example:
+In most blockchains, most smart contracts and decentralized applications (e.g., AAVE, Uniswap) need public shared `State`. Public shared `State` is also available on Miden and can be represented as in the following example:
 
 ![Public shared state](../img/architecture/state/public-shared-state.png)
 
-In this diagram, multiple participants interact with a common, publicly accessible state. The figure illustrates how notes are created and consumed:
+In this diagram, multiple participants interact with a common, publicly accessible `State`. The figure illustrates how notes are created and consumed:
 
 1. **Independent Transactions Creating Notes (tx1 & tx2):**  
    Two separate users (Acc1 and Acc2) execute transactions independently:
-   - `tx1` produces **note 1**
-   - `tx2` produces **note 2**
+   - **tx1** produces **note 1**
+   - **tx2** produces **note 2**
 
    These transactions occur in parallel and do not rely on each other, allowing concurrent processing without contention.
 
 2. **Sequencing and Consuming Notes (tx3):**  
-   The Miden node executes `tx3` against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. `tx3` is a network transaction executed by the sequencer. It merges independent contributions into a unified state update.
+   The Miden node executes tx3 against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. tx3 is a network transaction executed by the sequencer. It merges independent contributions into a unified `State` update.
 
 3. **Further Independent Transactions (tx4 & tx5):**  
-   After the shared state is updated:
-   - `tx4` consumes **note 4**
-   - `tx5` consumes **note 5**
+   After the shared `State` is updated:
+   - **tx4** consumes **note 4**
+   - **tx5** consumes **note 5**
    
-   Both users can now interact with notes generated by the public account, continuing the cycle of state evolution.
+   Both users can now interact with notes generated by the public account, continuing the cycle of `State` evolution.
 
 ### State bloat minimization
 
-Miden nodes do not need to know the entire state to verify or produce new blocks. Rather than storing the full state data with the nodes, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes state bloat. Furthermore the Miden rollup can discard non-required data after certain conditions have been met.
+Miden nodes do not need to know the entire `State` to verify or produce new blocks. Rather than storing the full `State` data with the nodes, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes `State` bloat. Furthermore the Miden rollup can discard non-required data after certain conditions have been met.
 
 This ensures that the account and note databases remain manageable, even under sustained high usage.
 
 ## Conclusion
 
-Miden’s state model lays the foundation for a scalable, privacy-preserving, and user-centric environment. By combining parallelizable execution, flexible data storage, and Zero-knowledge proofs that ensure integrity and confidentiality, Miden addresses many of the challenges of traditional blockchains. As a result, the network can handle high throughput, maintain manageable state sizes, and support a wide range of applications.
+Miden’s `State` model lays the foundation for a scalable, privacy-preserving, and user-centric environment. By combining parallelizable execution, flexible data storage, and Zero-knowledge proofs that ensure integrity and confidentiality, Miden addresses many of the challenges of traditional blockchains. As a result, the network can handle high throughput, maintain manageable `State` sizes, and support a wide range of applications.
