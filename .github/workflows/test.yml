@@ -39,7 +39,6 @@ jobs:
       - uses: actions/checkout@main
       - uses: Swatinem/rust-cache@v2
         with:
-          key: doc-tests-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Install rust
         run: rustup update --no-self-update
