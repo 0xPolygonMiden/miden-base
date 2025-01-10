@@ -266,7 +266,7 @@ mod tests {
                     let prefix = id.prefix();
                     assert_eq!(prefix.account_type(), account_type);
                     assert_eq!(prefix.storage_mode(), storage_mode);
-                    assert_eq!(prefix.version(), AccountIdVersion::VERSION_0);
+                    assert_eq!(prefix.version(), AccountIdVersion::Version0);
 
                     // Do a serialization roundtrip to ensure validity.
                     let serialized_prefix = prefix.to_bytes();

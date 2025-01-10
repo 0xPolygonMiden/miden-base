@@ -200,26 +200,35 @@ impl rand::distributions::Distribution<AccountStorageMode> for rand::distributio
 // ACCOUNT ID VERSION
 // ================================================================================================
 
+const VERSION_0_NUMBER: u8 = 0;
+
 /// The version of an [`AccountId`].
 ///
 /// Each version has a public associated constant, e.g. [`AccountIdVersion::VERSION_0`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AccountIdVersion(u8);
+#[repr(u8)]
+pub enum AccountIdVersion {
+    Version0 = VERSION_0_NUMBER,
+}
 
 impl AccountIdVersion {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    const VERSION_0_NUMBER: u8 = 0;
-    /// Version 0 of the [`AccountId`].
-    pub const VERSION_0: AccountIdVersion = AccountIdVersion(Self::VERSION_0_NUMBER);
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns the version number.
     pub const fn as_u8(&self) -> u8 {
-        self.0
+        *self as u8
+    }
+}
+
+impl TryFrom<u8> for AccountIdVersion {
+    type Error = AccountIdError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            VERSION_0_NUMBER => Ok(AccountIdVersion::Version0),
+            other_version => Err(AccountIdError::UnknownAccountIdVersion(other_version)),
+        }
     }
 }
 
@@ -434,7 +443,7 @@ impl AccountId {
         account_type: AccountType,
         storage_mode: AccountStorageMode,
     ) -> AccountId {
-        let version = AccountIdVersion::VERSION_0_NUMBER;
+        let version = AccountIdVersion::Version0 as u8;
         let low_nibble = (storage_mode as u8) << Self::STORAGE_MODE_SHIFT
             | (account_type as u8) << Self::TYPE_SHIFT
             | version;
@@ -760,14 +769,11 @@ pub(crate) fn extract_storage_mode(prefix: u64) -> Result<AccountStorageMode, Ac
     }
 }
 
-pub(crate) const fn extract_version(prefix: u64) -> Result<AccountIdVersion, AccountIdError> {
+pub(crate) fn extract_version(prefix: u64) -> Result<AccountIdVersion, AccountIdError> {
     // SAFETY: The mask guarantees that we only mask out the least significant nibble, so casting to
     // u8 is safe.
     let version = (prefix & AccountId::VERSION_MASK) as u8;
-    match version {
-        AccountIdVersion::VERSION_0_NUMBER => Ok(AccountIdVersion::VERSION_0),
-        other => Err(AccountIdError::UnknownAccountIdVersion(other)),
-    }
+    AccountIdVersion::try_from(version)
 }
 
 pub(crate) const fn extract_type(prefix: u64) -> AccountType {
@@ -869,7 +875,7 @@ mod tests {
             [10; 32],
             AccountType::FungibleFaucet,
             AccountStorageMode::Public,
-            AccountIdVersion::VERSION_0,
+            AccountIdVersion::Version0,
             code_commitment,
             storage_commitment,
             anchor_block_hash,
@@ -891,7 +897,7 @@ mod tests {
         let id1 = AccountId::new_unchecked([valid_prefix, valid_suffix]);
         assert_eq!(id1.account_type(), AccountType::RegularAccountImmutableCode);
         assert_eq!(id1.storage_mode(), AccountStorageMode::Public);
-        assert_eq!(id1.version(), AccountIdVersion::VERSION_0);
+        assert_eq!(id1.version(), AccountIdVersion::Version0);
         assert_eq!(id1.anchor_epoch(), u16::MAX - 1);
     }
 
@@ -912,7 +918,7 @@ mod tests {
                     let id = AccountId::dummy(input, account_type, storage_mode);
                     assert_eq!(id.account_type(), account_type);
                     assert_eq!(id.storage_mode(), storage_mode);
-                    assert_eq!(id.version(), AccountIdVersion::VERSION_0);
+                    assert_eq!(id.version(), AccountIdVersion::Version0);
                     assert_eq!(id.anchor_epoch(), 0);
 
                     // Do a serialization roundtrip to ensure validity.

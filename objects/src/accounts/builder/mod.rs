@@ -63,7 +63,7 @@ impl AccountBuilder {
             init_seed,
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
-            id_version: AccountIdVersion::VERSION_0,
+            id_version: AccountIdVersion::Version0,
         }
     }
 

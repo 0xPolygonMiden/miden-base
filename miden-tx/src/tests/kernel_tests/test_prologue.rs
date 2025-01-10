@@ -531,7 +531,7 @@ fn compute_valid_account_id(
         init_seed,
         account.account_type(),
         AccountStorageMode::Public,
-        AccountIdVersion::VERSION_0,
+        AccountIdVersion::Version0,
         account.code().commitment(),
         account.storage().commitment(),
         anchor_block_header.hash(),
