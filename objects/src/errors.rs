@@ -70,7 +70,7 @@ pub enum AccountError {
     AccountComponentMergeError(String),
     #[error("failed to create account component")]
     AccountComponentTemplateInstantiationError(#[source] AccountComponentTemplateError),
-    #[error("failed to convert bytes into account id field element")]
+    #[error("failed to convert bytes into account ID field element")]
     AccountIdInvalidFieldElement(#[source] DeserializationError),
     #[error("failed to update asset vault")]
     AssetVaultUpdateError(#[source] AssetVaultError),
@@ -84,7 +84,7 @@ pub enum AccountError {
     HeaderDataIncorrectLength { actual: usize, expected: usize },
     // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
     // no-std.
-    #[error("failed to parse hex string into account id: {0}")]
+    #[error("failed to parse hex string into account ID: {0}")]
     AccountIdHexParseError(HexParseError),
     #[error("`{0}` is not a valid account storage mode")]
     InvalidAccountStorageMode(String),
@@ -146,7 +146,7 @@ pub enum AccountDeltaError {
     },
     #[error("inconsistent nonce update: {0}")]
     InconsistentNonceUpdate(String),
-    #[error("account id {0} in fungible asset delta is not of type fungible faucet")]
+    #[error("account ID {0} in fungible asset delta is not of type fungible faucet")]
     NotAFungibleFaucetId(AccountId),
 }
 
@@ -171,7 +171,7 @@ pub enum AssetError {
         original_issuer: AccountId,
         other_issuer: AccountId,
     },
-    #[error("faucet account id in asset is invalid")]
+    #[error("faucet account ID in asset is invalid")]
     InvalidFaucetAccountId(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error(
       "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for fungible assets",
@@ -224,7 +224,7 @@ pub enum NoteError {
     InconsistentNoteTag(NoteType, u64),
     #[error("adding fungible asset amounts would exceed maximum allowed amount")]
     AddFungibleAssetBalanceError(#[source] AssetError),
-    #[error("note sender is not a valid account id")]
+    #[error("note sender is not a valid account ID")]
     NoteSenderInvalidAccountId(#[source] AccountError),
     #[error("note tag use case {0} must be less than 2^{exp}", exp = NoteTag::MAX_USE_CASE_ID_EXPONENT)]
     NoteTagUseCaseTooLarge(u16),
@@ -330,7 +330,7 @@ pub enum TransactionInputError {
     InputNoteBlockNotInChainMmr(NoteId),
     #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, u32),
-    #[error("account id computed from seed is invalid")]
+    #[error("account ID computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountError),
     #[error(
         "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
@@ -367,7 +367,7 @@ pub enum ProvenTransactionError {
         tx_final_hash: Digest,
         details_hash: Digest,
     },
-    #[error("proven transaction's final account id {tx_account_id} and account details id {details_account_id} must match")]
+    #[error("proven transaction's final account ID {tx_account_id} and account details id {details_account_id} must match")]
     AccountIdMismatch {
         tx_account_id: AccountId,
         details_account_id: AccountId,

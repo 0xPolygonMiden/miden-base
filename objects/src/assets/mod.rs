@@ -32,7 +32,7 @@ pub use vault::AssetVault;
 /// - ZERO for a fungible asset.
 /// - non-ZERO for a non-fungible asset.
 ///
-/// Element 3 of both asset types is an [`AccountIdPrefix`] or equivalently, the first felt of an
+/// Element 3 of both asset types is an [`AccountIdPrefix`] or equivalently, the prefix of an
 /// [`AccountId`](crate::accounts::AccountId), which can be used to distinguish assets
 /// based on [`AccountIdPrefix::account_type`].
 ///
@@ -48,11 +48,11 @@ pub use vault::AssetVault;
 ///
 /// # Fungible assets
 ///
-/// - A fungible asset's data layout is: `[amount, 0, faucet_id_lo, faucet_id_hi]`.
-/// - A fungible asset's vault key layout is: `[0, 0, faucet_id_lo, faucet_id_hi]`.
+/// - A fungible asset's data layout is: `[amount, 0, faucet_id_suffix, faucet_id_prefix]`.
+/// - A fungible asset's vault key layout is: `[0, 0, faucet_id_suffix, faucet_id_prefix]`.
 ///
-/// The most significant elements of a fungible asset are set to the first (`faucet_id_hi`) and
-/// second felt (`faucet_id_lo`) of the ID of the faucet which issues the asset. This guarantees the
+/// The most significant elements of a fungible asset are set to the prefix (`faucet_id_prefix`) and
+/// suffix (`faucet_id_suffix`) of the ID of the faucet which issues the asset. This guarantees the
 /// properties described above (the fungible bit is `1`).
 ///
 /// The least significant element is set to the amount of the asset. This amount cannot be greater
@@ -66,16 +66,16 @@ pub use vault::AssetVault;
 ///
 /// # Non-fungible assets
 ///
-/// - A non-fungible asset's data layout is: `[hash0, hash1, hash2, faucet_id_hi]`.
-/// - A non-fungible asset's vault key layout is: `[faucet_id_hi, hash1, hash2, hash0']`, where
+/// - A non-fungible asset's data layout is: `[hash0, hash1, hash2, faucet_id_prefix]`.
+/// - A non-fungible asset's vault key layout is: `[faucet_id_prefix, hash1, hash2, hash0']`, where
 ///   `hash0'` is equivalent to `hash0` with the fungible bit set to `0`. See
 ///   [`NonFungibleAsset::vault_key`] for more details.
 ///
 /// The 4 elements of non-fungible assets are computed as follows:
 /// - First the asset data is hashed. This compresses an asset of an arbitrary length to 4 field
 ///   elements: `[hash0, hash1, hash2, hash3]`.
-/// - `hash3` is then replaced with the first felt of the faucet ID (`faucet_id_hi`) which issues
-///   the asset: `[hash0, hash1, hash2, faucet_id_hi]`.
+/// - `hash3` is then replaced with the prefix of the faucet ID (`faucet_id_prefix`) which issues
+///   the asset: `[hash0, hash1, hash2, faucet_id_prefix]`.
 ///
 /// It is impossible to find a collision between two non-fungible assets issued by different faucets
 /// as the faucet_id is included in the description of the non-fungible asset and this is guaranteed
@@ -249,7 +249,7 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
         },
         Err(err) => {
             #[cfg(debug_assertions)]
-            panic!("invalid account id prefix passed to is_not_a_non_fungible_asset: {err}");
+            panic!("invalid account ID prefix passed to is_not_a_non_fungible_asset: {err}");
             #[cfg(not(debug_assertions))]
             false
         },

@@ -69,8 +69,8 @@ fn test_get_sender() {
     let process = tx_context.execute_code(code).unwrap();
 
     let sender = tx_context.input_notes().get_note(0).note().metadata().sender();
-    assert_eq!(process.stack.get(0), sender.first_felt());
-    assert_eq!(process.stack.get(1), sender.second_felt());
+    assert_eq!(process.stack.get(0), sender.prefix().as_felt());
+    assert_eq!(process.stack.get(1), sender.suffix());
 }
 
 #[test]

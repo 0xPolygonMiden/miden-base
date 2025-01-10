@@ -16,7 +16,7 @@ pub fn build_p2id_recipient(
     serial_num: Word,
 ) -> Result<NoteRecipient, NoteError> {
     let note_script = scripts::p2id();
-    let note_inputs = NoteInputs::new(vec![target.second_felt(), target.first_felt()])?;
+    let note_inputs = NoteInputs::new(vec![target.suffix(), target.prefix().as_felt()])?;
 
     Ok(NoteRecipient::new(serial_num, note_script, note_inputs))
 }

@@ -49,7 +49,7 @@ const.GLOBAL_INPUTS_SECTION_OFFSET=100
 # The memory address at which the latest known block hash is stored
 const.BLK_HASH_PTR=100
 
-# The memory address at which the account id felts are stored.
+# The memory address at which the account ID felts are stored.
 const.ACCT_ID_PTR=101
 
 # The memory address at which the initial account hash is stored
@@ -328,31 +328,31 @@ export.get_block_hash
     padw push.BLK_HASH_PTR mem_loadw
 end
 
-#! Sets the account id.
+#! Sets the account ID.
 #!
-#! Inputs:  [acct_id_hi, acct_id_lo]
+#! Inputs:  [acct_id_prefix, acct_id_suffix]
 #! Outputs: []
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of the account id.
+#! - acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID.
 export.set_global_acct_id
     push.0.0
-    # => [0, 0, acct_id_hi, acct_id_lo]
+    # => [0, 0, acct_id_prefix, acct_id_suffix]
     mem_storew.ACCT_ID_PTR
     dropw
     # => []
 end
 
-#! Returns the global account id.
+#! Returns the global account ID.
 #!
 #! Inputs:  []
-#! Outputs: [acct_id_hi, acct_id_lo]
+#! Outputs: [acct_id_prefix, acct_id_suffix]
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of the account id.
+#! - acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID.
 export.get_global_acct_id
     padw mem_loadw.ACCT_ID_PTR
-    # => [0, 0, acct_id_hi, acct_id_lo]
+    # => [0, 0, acct_id_prefix, acct_id_suffix]
     drop drop
 end
 
@@ -731,25 +731,25 @@ end
 #! Returns the id of the current account.
 #!
 #! Inputs:  []
-#! Outputs: [curr_acct_id_hi, curr_acct_id_lo]
+#! Outputs: [curr_acct_id_prefix, curr_acct_id_suffix]
 #!
 #! Where:
-#! - curr_acct_id_{hi,lo} are the first and second felt of the account id of the currently
+#! - curr_acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the currently
 #!   accessing account.
 export.get_account_id
     padw exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
-    # => [nonce, 0, curr_acct_id_hi, curr_acct_id_lo]
+    # => [nonce, 0, curr_acct_id_prefix, curr_acct_id_suffix]
     drop drop
-    # => [curr_acct_id_hi, curr_acct_id_lo]
+    # => [curr_acct_id_prefix, curr_acct_id_suffix]
 end
 
-#! Sets the account id and nonce.
+#! Sets the account ID and nonce.
 #!
-#! Inputs:  [account_nonce, 0, account_id_hi, account_id_lo]
-#! Outputs: [account_nonce, 0, account_id_hi, account_id_lo]
+#! Inputs:  [account_nonce, 0, account_id_prefix, account_id_suffix]
+#! Outputs: [account_nonce, 0, account_id_prefix, account_id_suffix]
 #!
 #! Where:
-#! - account_id_{hi,lo} are the first and second felt of the id of the currently accessing account.
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the id of the currently accessing account.
 #! - account_nonce is the nonce of the currently accessing account.
 export.set_acct_id_and_nonce
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
@@ -759,15 +759,15 @@ end
 #! Returns the id of the native account.
 #!
 #! Inputs:  []
-#! Outputs: [native_acct_id_hi, native_acct_id_lo]
+#! Outputs: [native_acct_id_prefix, native_acct_id_suffix]
 #!
 #! Where:
-#! - native_acct_id_{hi,lo} are the first and second felt of the id of the native account.
+#! - native_acct_id_{prefix,suffix} are the prefix and suffix felts of the id of the native account.
 export.get_native_account_id
     padw push.NATIVE_ACCOUNT_DATA_PTR push.ACCT_ID_AND_NONCE_OFFSET add mem_loadw
-    # => [nonce, 0, native_acct_id_hi, native_acct_id_lo]
+    # => [nonce, 0, native_acct_id_prefix, native_acct_id_suffix]
     drop drop
-    # => [native_acct_id_hi, native_acct_id_lo]
+    # => [native_acct_id_prefix, native_acct_id_suffix]
 end
 
 #! Returns the account nonce.
@@ -795,7 +795,7 @@ export.set_acct_nonce
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add padw
     # => [0, 0, 0, 0, acct_id_and_nonce_ptr, new_nonce]
     dup.4 mem_loadw
-    # => [old_nonce, 0, old_id_hi, old_id_lo, acct_id_and_nonce_ptr, new_nonce]
+    # => [old_nonce, 0, old_id_prefix, old_id_suffix, acct_id_and_nonce_ptr, new_nonce]
     drop movup.4 movup.4 mem_storew dropw
     # => []
 end
@@ -1261,7 +1261,7 @@ end
 #! Returns the sender for the input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
-#! Outputs: [sender_hi, sender_lo]
+#! Outputs: [sender_id_prefix, sender_id_suffix]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
@@ -1270,22 +1270,22 @@ export.get_input_note_sender
     padw
     movup.4 push.INPUT_NOTE_METADATA_OFFSET add
     mem_loadw
-    # => [aux, merged_tag_hint_payload, merged_sender_id_type_hint_tag, sender_hi]
+    # => [aux, merged_tag_hint_payload, merged_sender_id_type_hint_tag, sender_id_prefix]
 
     drop drop
-    # => [merged_sender_id_type_hint_tag, sender_hi]
+    # => [merged_sender_id_type_hint_tag, sender_id_prefix]
 
-    # extract second felt of sender from merged layout, which means clearing the least significant byte
+    # extract suffix of sender from merged layout, which means clearing the least significant byte
     u32split swap
-    # => [merged_lo, merged_hi, sender_hi]
+    # => [merged_lo, merged_hi, sender_id_prefix]
 
     # clear least significant byte
     u32and.0xffffff00 swap
-    # => [sender_lo_hi, sender_lo_lo, sender_hi]
+    # => [sender_id_suffix_hi, sender_id_suffix_lo, sender_id_prefix]
 
-    # reassemble the second felt by multiplying the high part with 2^32 and adding the lo part
+    # reassemble the suffix by multiplying the high part with 2^32 and adding the lo part
     mul.0x0100000000 add swap
-    # => [sender_hi, sender_lo]
+    # => [sender_id_prefix, sender_id_suffix]
 
 end
 

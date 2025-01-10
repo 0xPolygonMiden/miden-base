@@ -21,8 +21,8 @@ const FAUCET_ID_POS: usize = 3;
 /// The commitment is constructed as follows:
 ///
 /// - Hash the asset data producing `[hash0, hash1, hash2, hash3]`.
-/// - Replace the value of `hash3` with the first felt of the faucet id (`faucet_id_hi`) producing
-///   `[hash0, hash1, hash2, faucet_id_hi]`.
+/// - Replace the value of `hash3` with the prefix of the faucet id (`faucet_id_prefix`) producing
+///   `[hash0, hash1, hash2, faucet_id_prefix]`.
 /// - This layout ensures that fungible and non-fungible assets are distinguishable by interpreting
 ///   the 3rd element of an asset as an [`AccountIdPrefix`] and checking its type.
 ///
@@ -112,7 +112,7 @@ impl NonFungibleAsset {
     pub fn vault_key(&self) -> Word {
         let mut vault_key = self.0;
 
-        // Swap first felt of faucet ID with hash0.
+        // Swap prefix of faucet ID with hash0.
         vault_key.swap(0, FAUCET_ID_POS);
 
         // Set the fungible bit to zero by taking the bitwise `and` of the felt with the inverted

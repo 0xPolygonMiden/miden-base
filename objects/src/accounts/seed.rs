@@ -11,7 +11,7 @@ use std::{
 use super::{
     account_id::compute_digest, AccountError, AccountStorageMode, AccountType, Digest, Felt, Word,
 };
-use crate::accounts::account_id::{validate_first_felt, AccountIdVersion};
+use crate::accounts::account_id::{validate_prefix, AccountIdVersion};
 
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
@@ -108,9 +108,9 @@ fn compute_account_seed_inner(
             return;
         }
 
-        let first_felt = current_digest.as_elements()[0];
+        let prefix = current_digest.as_elements()[0];
         if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
-            validate_first_felt(first_felt)
+            validate_prefix(prefix)
         {
             if computed_account_type == account_type
                 && computed_storage_mode == storage_mode
@@ -183,9 +183,9 @@ pub fn compute_account_seed_single(
         log.iteration(current_digest, current_seed);
 
         // check if the seed satisfies the specified account type
-        let first_felt = current_digest.as_elements()[0];
+        let prefix = current_digest.as_elements()[0];
         if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
-            validate_first_felt(first_felt)
+            validate_prefix(prefix)
         {
             if computed_account_type == account_type
                 && computed_storage_mode == storage_mode

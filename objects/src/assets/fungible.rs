@@ -27,7 +27,7 @@ impl FungibleAsset {
 
     /// The serialized size of a [`FungibleAsset`] in bytes.
     ///
-    /// Currently an account id (15 bytes) plus an amount (u64).
+    /// Currently an account ID (15 bytes) plus an amount (u64).
     pub const SERIALIZED_SIZE: usize = AccountId::SERIALIZED_SIZE + core::mem::size_of::<u64>();
 
     // CONSTRUCTOR
@@ -142,8 +142,8 @@ impl FungibleAsset {
     /// Returns the key which is used to store this asset in the account vault.
     pub(super) fn vault_key_from_faucet(faucet_id: AccountId) -> Word {
         let mut key = Word::default();
-        key[2] = faucet_id.second_felt();
-        key[3] = faucet_id.first_felt();
+        key[2] = faucet_id.suffix();
+        key[3] = faucet_id.prefix().as_felt();
         key
     }
 }
@@ -152,8 +152,8 @@ impl From<FungibleAsset> for Word {
     fn from(asset: FungibleAsset) -> Self {
         let mut result = Word::default();
         result[0] = Felt::new(asset.amount);
-        result[2] = asset.faucet_id.second_felt();
-        result[3] = asset.faucet_id.first_felt();
+        result[2] = asset.faucet_id.suffix();
+        result[3] = asset.faucet_id.prefix().as_felt();
         debug_assert!(is_not_a_non_fungible_asset(result));
         result
     }

@@ -43,7 +43,7 @@ pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_i
     0xeeff_ccdd,
 );
 
-// These faucet IDs all have a unique first and second felt. This is to ensure that when they
+// These faucet IDs all have a unique prefix and suffix felts. This is to ensure that when they
 // are used to issue an asset they don't cause us to run into the "multiple leaf" case when
 // calling std::collections::smt::{set,get} which doesn't support the "multiple leaf" case at
 // this time.
@@ -100,10 +100,10 @@ pub const fn account_id<const CHECK_MIN_ONES: bool>(
     storage_mode: AccountStorageMode,
     random: u32,
 ) -> u128 {
-    let mut first_felt: u64 = 0;
+    let mut prefix: u64 = 0;
 
-    first_felt |= (account_type as u64) << AccountId::TYPE_SHIFT;
-    first_felt |= (storage_mode as u64) << AccountId::STORAGE_MODE_SHIFT;
+    prefix |= (account_type as u64) << AccountId::TYPE_SHIFT;
+    prefix |= (storage_mode as u64) << AccountId::STORAGE_MODE_SHIFT;
 
     // Produce non-trivial IDs by distributing the random value.
     let random_1st_felt_upper = random & 0xff00_0000;
@@ -112,10 +112,10 @@ pub const fn account_id<const CHECK_MIN_ONES: bool>(
     let random_2nd_felt_lower = random & 0x0000_00ff;
 
     // Shift the random part of the ID to start at the most significant end.
-    first_felt |= (random_1st_felt_upper as u64) << 32;
-    first_felt |= (random_1st_felt_lower as u64) >> 8;
+    prefix |= (random_1st_felt_upper as u64) << 32;
+    prefix |= (random_1st_felt_lower as u64) >> 8;
 
-    let mut id = (first_felt as u128) << 64;
+    let mut id = (prefix as u128) << 64;
 
     id |= (random_2nd_felt_upper as u128) << 32;
     id |= (random_2nd_felt_lower as u128) << 8;

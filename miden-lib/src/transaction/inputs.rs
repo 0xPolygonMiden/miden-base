@@ -94,8 +94,8 @@ fn build_advice_stack(
     // Note: keep in sync with the process_account_data kernel procedure
     let account = tx_inputs.account();
     inputs.extend_stack([
-        account.id().second_felt(),
-        account.id().first_felt(),
+        account.id().suffix(),
+        account.id().prefix().as_felt(),
         ZERO,
         account.nonce(),
     ]);
@@ -152,7 +152,7 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// - The account storage commitment |-> storage slots and types vector.
 /// - The account code commitment |-> procedures vector.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
-/// - [account_id_lo, account_id_hi, 0, 0] |-> account_seed, when account seed is provided.
+/// - [account_id_suffix, account_id_prefix, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
 fn add_account_to_advice_inputs(
     account: &Account,
@@ -194,7 +194,7 @@ fn add_account_to_advice_inputs(
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {
         inputs.extend_map(vec![(
-            [account.id().second_felt(), account.id().first_felt(), ZERO, ZERO].into(),
+            [account.id().suffix(), account.id().prefix().as_felt(), ZERO, ZERO].into(),
             account_seed.to_vec(),
         )]);
     }

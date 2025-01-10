@@ -4,10 +4,10 @@ use miden_objects::{
 };
 
 use super::memory::{
-    ACCT_CODE_COMMITMENT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_HI_IDX,
-    ACCT_NONCE_IDX, ACCT_STORAGE_COMMITMENT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
+    ACCT_CODE_COMMITMENT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_NONCE_IDX,
+    ACCT_STORAGE_COMMITMENT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
-use crate::transaction::memory::ACCT_ID_LO_IDX;
+use crate::transaction::memory::{ACCT_ID_PREFIX_IDX, ACCT_ID_SUFFIX_IDX};
 
 // STACK OUTPUTS
 // ================================================================================================
@@ -35,8 +35,8 @@ pub fn parse_final_account_header(elements: &[Word]) -> Result<AccountHeader, Ac
     }
 
     let id = AccountId::try_from([
-        elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_ID_HI_IDX],
-        elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_ID_LO_IDX],
+        elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_ID_PREFIX_IDX],
+        elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_ID_SUFFIX_IDX],
     ])?;
     let nonce = elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_NONCE_IDX];
     let vault_root = elements[ACCT_VAULT_ROOT_OFFSET as usize].into();
