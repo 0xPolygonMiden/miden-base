@@ -8,11 +8,19 @@ use std::{
     thread::{self, spawn},
 };
 
-use super::{
-    account_id::compute_digest, AccountError, AccountStorageMode, AccountType, Digest, Felt, Word,
-};
-use crate::accounts::account_id::{validate_prefix, AccountIdVersion};
+use vm_core::{Felt, Word};
+use vm_processor::Digest;
 
+use crate::{
+    accounts::{
+        account_id::{
+            id_v0::{compute_digest, validate_prefix},
+            AccountIdVersion,
+        },
+        AccountStorageMode, AccountType,
+    },
+    AccountError,
+};
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
 
@@ -210,11 +218,10 @@ mod log {
 
     use assembly::utils::to_hex;
     use miden_crypto::FieldElement;
+    use vm_core::Word;
+    use vm_processor::Digest;
 
-    use super::{
-        super::{Digest, Word},
-        AccountType,
-    };
+    use super::AccountType;
     use crate::accounts::AccountStorageMode;
 
     /// Keeps track of the best digest found so far and count how many iterations have been done.

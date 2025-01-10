@@ -5,8 +5,8 @@ use vm_processor::Digest;
 
 use crate::{
     accounts::{
-        Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdVersion,
-        AccountStorage, AccountStorageMode, AccountType,
+        Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdV0,
+        AccountIdVersion, AccountStorage, AccountStorageMode, AccountType,
     },
     assets::AssetVault,
     AccountError, Felt, Word,
@@ -132,7 +132,7 @@ impl AccountBuilder {
         storage_commitment: Digest,
         block_hash: Digest,
     ) -> Result<Word, AccountError> {
-        let seed = AccountId::compute_account_seed(
+        let seed = AccountIdV0::compute_account_seed(
             init_seed,
             self.account_type,
             self.storage_mode,
@@ -186,8 +186,14 @@ impl AccountBuilder {
             id_anchor.block_hash(),
         )?;
 
-        let account_id = AccountId::new(seed, id_anchor, code.commitment(), storage.commitment())
-            .expect("get_account_seed should provide a suitable seed");
+        let account_id = AccountId::new(
+            seed,
+            id_anchor,
+            AccountIdVersion::Version0,
+            code.commitment(),
+            storage.commitment(),
+        )
+        .expect("get_account_seed should provide a suitable seed");
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
@@ -220,7 +226,12 @@ impl AccountBuilder {
         let account_id = {
             let bytes = <[u8; 15]>::try_from(&self.init_seed[0..15])
                 .expect("we should have sliced exactly 15 bytes off");
-            AccountId::dummy(bytes, self.account_type, self.storage_mode)
+            AccountId::dummy(
+                bytes,
+                AccountIdVersion::Version0,
+                self.account_type,
+                self.storage_mode,
+            )
         };
 
         Ok(Account::from_parts(account_id, vault, storage, code, Felt::ONE))
@@ -323,6 +334,7 @@ mod tests {
         let computed_id = AccountId::new(
             seed,
             id_anchor,
+            AccountIdVersion::Version0,
             account.code.commitment(),
             account.storage.commitment(),
         )

@@ -56,7 +56,7 @@ pub fn build_swap_tag(
 mod tests {
     use miden_objects::{
         self,
-        accounts::{AccountStorageMode, AccountType},
+        accounts::{AccountIdVersion, AccountStorageMode, AccountType},
         assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     };
 
@@ -78,6 +78,7 @@ mod tests {
             FungibleAsset::new(
                 AccountId::dummy(
                     fungible_faucet_id_bytes,
+                    AccountIdVersion::Version0,
                     AccountType::FungibleFaucet,
                     AccountStorageMode::Public,
                 ),
@@ -91,6 +92,7 @@ mod tests {
                 &NonFungibleAssetDetails::new(
                     AccountId::dummy(
                         non_fungible_faucet_id_bytes,
+                        AccountIdVersion::Version0,
                         AccountType::NonFungibleFaucet,
                         AccountStorageMode::Public,
                     )

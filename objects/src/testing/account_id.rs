@@ -1,6 +1,6 @@
 use rand::SeedableRng;
 
-use crate::accounts::{AccountId, AccountStorageMode, AccountType};
+use crate::accounts::{AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType};
 
 // CONSTANTS
 // --------------------------------------------------------------------------------------------
@@ -102,8 +102,8 @@ pub const fn account_id(
 ) -> u128 {
     let mut prefix: u64 = 0;
 
-    prefix |= (account_type as u64) << AccountId::TYPE_SHIFT;
-    prefix |= (storage_mode as u64) << AccountId::STORAGE_MODE_SHIFT;
+    prefix |= (account_type as u64) << AccountIdV0::TYPE_SHIFT;
+    prefix |= (storage_mode as u64) << AccountIdV0::STORAGE_MODE_SHIFT;
 
     // Produce non-trivial IDs by distributing the random value.
     let random_1st_felt_upper = random & 0xff00_0000;
@@ -185,7 +185,7 @@ impl AccountIdBuilder {
             None => rng.gen(),
         };
 
-        AccountId::dummy(rng.gen(), account_type, storage_mode)
+        AccountId::dummy(rng.gen(), AccountIdVersion::Version0, account_type, storage_mode)
     }
 
     /// Builds an [`AccountId`] using the provided seed as input for an RNG implemented in

@@ -5,7 +5,7 @@ use vm_core::{FieldElement, WORD_SIZE};
 
 use super::{AccountIdPrefix, AccountType, Asset, AssetError, Felt, Hasher, Word};
 use crate::{
-    accounts::AccountId,
+    accounts::AccountIdV0,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
 };
@@ -117,7 +117,8 @@ impl NonFungibleAsset {
 
         // Set the fungible bit to zero by taking the bitwise `and` of the felt with the inverted
         // is_faucet mask.
-        let clear_fungible_bit_mask = !AccountId::IS_FAUCET_MASK;
+        // This depends on the ID V0 layout.
+        let clear_fungible_bit_mask = !AccountIdV0::IS_FAUCET_MASK;
         vault_key[3] = Felt::try_from(vault_key[3].as_int() & clear_fungible_bit_mask)
             .expect("felt should still be valid as we cleared a bit and did not set any");
 

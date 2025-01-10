@@ -8,9 +8,11 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::account_id;
+use super::id_v0;
 use crate::{
-    accounts::{account_id::validate_prefix, AccountIdVersion, AccountStorageMode, AccountType},
+    accounts::{
+        account_id::id_v0::validate_prefix, AccountIdVersion, AccountStorageMode, AccountType,
+    },
     errors::AccountIdError,
 };
 
@@ -89,7 +91,7 @@ impl AccountIdPrefix {
 
     /// Returns the type of this account ID.
     pub const fn account_type(&self) -> AccountType {
-        account_id::extract_type(self.prefix.as_int())
+        id_v0::extract_type(self.prefix.as_int())
     }
 
     /// Returns true if an account with this ID is a faucet (can issue assets).
@@ -104,7 +106,7 @@ impl AccountIdPrefix {
 
     /// Returns the storage mode of this account ID.
     pub fn storage_mode(&self) -> AccountStorageMode {
-        account_id::extract_storage_mode(self.prefix.as_int())
+        id_v0::extract_storage_mode(self.prefix.as_int())
             .expect("account ID prefix should have been constructed with a valid storage mode")
     }
 
@@ -115,7 +117,7 @@ impl AccountIdPrefix {
 
     /// Returns the version of this account ID.
     pub fn version(&self) -> AccountIdVersion {
-        account_id::extract_version(self.prefix.as_int())
+        id_v0::extract_version(self.prefix.as_int())
             .expect("account ID prefix should have been constructed with a valid version")
     }
 
@@ -246,7 +248,7 @@ impl Deserializable for AccountIdPrefix {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::accounts::AccountId;
+    use crate::accounts::AccountIdV0;
 
     #[test]
     fn account_id_prefix_construction() {
@@ -262,7 +264,7 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountId::dummy(input, account_type, storage_mode);
+                    let id = AccountIdV0::dummy(input, account_type, storage_mode);
                     let prefix = id.prefix();
                     assert_eq!(prefix.account_type(), account_type);
                     assert_eq!(prefix.storage_mode(), storage_mode);

@@ -539,9 +539,14 @@ fn compute_valid_account_id(
     .unwrap();
 
     let anchor = AccountIdAnchor::try_from(anchor_block_header).unwrap();
-    let account_id =
-        AccountId::new(seed, anchor, account.code().commitment(), account.storage().commitment())
-            .unwrap();
+    let account_id = AccountId::new(
+        seed,
+        anchor,
+        AccountIdVersion::Version0,
+        account.code().commitment(),
+        account.storage().commitment(),
+    )
+    .unwrap();
 
     // Overwrite old ID with generated ID.
     let (_, vault, storage, code, nonce) = account.into_parts();

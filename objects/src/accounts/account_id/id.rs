@@ -1,8 +1,7 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use core::fmt;
-use std::string::ToString;
 
-use miden_crypto::utils::hex_to_bytes;
+use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
 use vm_core::{
     utils::{ByteReader, Deserializable, Serializable},
     Felt, Word,
@@ -11,19 +10,23 @@ use vm_processor::{DeserializationError, Digest};
 
 use crate::{
     accounts::{
-        account_id, AccountId, AccountIdAnchor, AccountIdPrefix, AccountIdVersion,
+        account_id::id_v0, AccountIdAnchor, AccountIdPrefix, AccountIdV0, AccountIdVersion,
         AccountStorageMode, AccountType,
     },
     errors::AccountIdError,
-    AccountError,
+    AccountError, ACCOUNT_TREE_DEPTH,
 };
 
+/// The identifier of an [`Account`](crate::accounts::Account).
+///
+/// This enum is a wrapper around concrete versions of IDs. Refer to the documentation of the
+/// concrete versions for details.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AccountIDWrapper {
-    V0(AccountId),
+pub enum AccountId {
+    V0(AccountIdV0),
 }
 
-impl AccountIDWrapper {
+impl AccountId {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
 
@@ -56,7 +59,7 @@ impl AccountIDWrapper {
     ) -> Result<Self, AccountIdError> {
         match version {
             AccountIdVersion::Version0 => {
-                AccountId::new(seed, anchor, code_commitment, storage_commitment).map(Self::V0)
+                AccountIdV0::new(seed, anchor, code_commitment, storage_commitment).map(Self::V0)
             },
         }
     }
@@ -70,11 +73,17 @@ impl AccountIDWrapper {
     ///
     /// # Panics
     ///
+    /// Panics if the prefix does not contain a known account ID version.
+    ///
     /// If debug_assertions are enabled (e.g. in debug mode), this function panics if any of the ID
     /// constraints are not met. See the [type documentation](AccountId) for details.
-    pub fn new_unchecked(version: AccountIdVersion, elements: [Felt; 2]) -> Self {
-        match version {
-            AccountIdVersion::Version0 => Self::V0(AccountId::new_unchecked(elements)),
+    pub fn new_unchecked(elements: [Felt; 2]) -> Self {
+        // The prefix contains the metadata.
+        // If we add more versions in the future, we may need to generalize this.
+        match id_v0::extract_version(elements[0].as_int())
+            .expect("prefix should contain a valid account ID version")
+        {
+            AccountIdVersion::Version0 => Self::V0(AccountIdV0::new_unchecked(elements)),
         }
     }
 
@@ -100,7 +109,9 @@ impl AccountIDWrapper {
         storage_mode: AccountStorageMode,
     ) -> AccountId {
         match version {
-            AccountIdVersion::Version0 => AccountId::dummy(bytes, account_type, storage_mode),
+            AccountIdVersion::Version0 => {
+                Self::V0(AccountIdV0::dummy(bytes, account_type, storage_mode))
+            },
         }
     }
 
@@ -120,7 +131,7 @@ impl AccountIDWrapper {
         anchor_block_hash: Digest,
     ) -> Result<Word, AccountError> {
         match version {
-            AccountIdVersion::Version0 => AccountId::compute_account_seed(
+            AccountIdVersion::Version0 => AccountIdV0::compute_account_seed(
                 init_seed,
                 account_type,
                 storage_mode,
@@ -138,7 +149,7 @@ impl AccountIDWrapper {
     /// Returns the type of this account ID.
     pub const fn account_type(&self) -> AccountType {
         match self {
-            AccountIDWrapper::V0(account_id) => account_id.account_type(),
+            AccountId::V0(account_id) => account_id.account_type(),
         }
     }
 
@@ -155,7 +166,7 @@ impl AccountIDWrapper {
     /// Returns the storage mode of this account ID.
     pub fn storage_mode(&self) -> AccountStorageMode {
         match self {
-            AccountIDWrapper::V0(account_id) => account_id.storage_mode(),
+            AccountId::V0(account_id) => account_id.storage_mode(),
         }
     }
 
@@ -167,7 +178,7 @@ impl AccountIDWrapper {
     /// Returns the version of this account ID.
     pub fn version(&self) -> AccountIdVersion {
         match self {
-            AccountIDWrapper::V0(_) => AccountIdVersion::Version0,
+            AccountId::V0(_) => AccountIdVersion::Version0,
         }
     }
 
@@ -177,7 +188,7 @@ impl AccountIDWrapper {
     /// generation of the ID.
     pub fn anchor_epoch(&self) -> u16 {
         match self {
-            AccountIDWrapper::V0(account_id) => account_id.anchor_epoch(),
+            AccountId::V0(account_id) => account_id.anchor_epoch(),
         }
     }
 
@@ -186,14 +197,14 @@ impl AccountIDWrapper {
     pub fn from_hex(hex_str: &str) -> Result<Self, AccountIdError> {
         hex_to_bytes(hex_str)
             .map_err(AccountIdError::AccountIdHexParseError)
-            .and_then(AccountIDWrapper::try_from)
+            .and_then(AccountId::try_from)
     }
 
     /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix. This means
     /// it encodes 15 bytes.
     pub fn to_hex(self) -> String {
         match self {
-            AccountIDWrapper::V0(account_id) => account_id.to_hex(),
+            AccountId::V0(account_id) => account_id.to_hex(),
         }
     }
 
@@ -202,14 +213,14 @@ impl AccountIDWrapper {
     /// The prefix of an account ID is guaranteed to be unique.
     pub fn prefix(&self) -> AccountIdPrefix {
         match self {
-            AccountIDWrapper::V0(account_id) => account_id.prefix(),
+            AccountId::V0(account_id) => account_id.prefix(),
         }
     }
 
     /// Returns the suffix of this ID as a [`Felt`].
     pub const fn suffix(&self) -> Felt {
         match self {
-            AccountIDWrapper::V0(account_id) => account_id.suffix(),
+            AccountId::V0(account_id) => account_id.suffix(),
         }
     }
 }
@@ -217,26 +228,35 @@ impl AccountIDWrapper {
 // CONVERSIONS FROM ACCOUNT ID
 // ================================================================================================
 
-impl From<AccountIDWrapper> for [Felt; 2] {
-    fn from(id: AccountIDWrapper) -> Self {
+impl From<AccountId> for [Felt; 2] {
+    fn from(id: AccountId) -> Self {
         match id {
-            AccountIDWrapper::V0(account_id) => account_id.into(),
+            AccountId::V0(account_id) => account_id.into(),
         }
     }
 }
 
-impl From<AccountIDWrapper> for [u8; 15] {
-    fn from(id: AccountIDWrapper) -> Self {
+impl From<AccountId> for [u8; 15] {
+    fn from(id: AccountId) -> Self {
         match id {
-            AccountIDWrapper::V0(account_id) => account_id.into(),
+            AccountId::V0(account_id) => account_id.into(),
         }
     }
 }
 
-impl From<AccountIDWrapper> for u128 {
-    fn from(id: AccountIDWrapper) -> Self {
+impl From<AccountId> for u128 {
+    fn from(id: AccountId) -> Self {
         match id {
-            AccountIDWrapper::V0(account_id) => account_id.into(),
+            AccountId::V0(account_id) => account_id.into(),
+        }
+    }
+}
+
+/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
+impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
+    fn from(id: AccountId) -> Self {
+        match id {
+            AccountId::V0(account_id) => account_id.into(),
         }
     }
 }
@@ -244,13 +264,13 @@ impl From<AccountIDWrapper> for u128 {
 // CONVERSIONS TO ACCOUNT ID
 // ================================================================================================
 
-impl From<AccountId> for AccountIDWrapper {
-    fn from(id: AccountId) -> Self {
+impl From<AccountIdV0> for AccountId {
+    fn from(id: AccountIdV0) -> Self {
         Self::V0(id)
     }
 }
 
-impl TryFrom<[Felt; 2]> for AccountIDWrapper {
+impl TryFrom<[Felt; 2]> for AccountId {
     type Error = AccountIdError;
 
     /// Returns an [`AccountId`] instantiated with the provided field elements where `elements[0]`
@@ -263,13 +283,13 @@ impl TryFrom<[Felt; 2]> for AccountIDWrapper {
     fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.
-        match account_id::extract_version(elements[0].as_int())? {
-            AccountIdVersion::Version0 => AccountId::try_from(elements).map(Self::V0),
+        match id_v0::extract_version(elements[0].as_int())? {
+            AccountIdVersion::Version0 => AccountIdV0::try_from(elements).map(Self::V0),
         }
     }
 }
 
-impl TryFrom<[u8; 15]> for AccountIDWrapper {
+impl TryFrom<[u8; 15]> for AccountId {
     type Error = AccountIdError;
 
     /// Tries to convert a byte array in big-endian order to an [`AccountIdWrapper`].
@@ -283,15 +303,15 @@ impl TryFrom<[u8; 15]> for AccountIDWrapper {
         let metadata_byte = bytes[7];
         // We only have one supported version for now, so we use the extractor from that version.
         // If we add more versions in the future, we may need to generalize this.
-        let version = account_id::extract_version(metadata_byte as u64)?;
+        let version = id_v0::extract_version(metadata_byte as u64)?;
 
         match version {
-            AccountIdVersion::Version0 => AccountId::try_from(bytes).map(Self::V0),
+            AccountIdVersion::Version0 => AccountIdV0::try_from(bytes).map(Self::V0),
         }
     }
 }
 
-impl TryFrom<u128> for AccountIDWrapper {
+impl TryFrom<u128> for AccountId {
     type Error = AccountIdError;
 
     /// Tries to convert a u128 into an [`AccountId`].
@@ -311,19 +331,19 @@ impl TryFrom<u128> for AccountIDWrapper {
 // COMMON TRAIT IMPLS
 // ================================================================================================
 
-impl PartialOrd for AccountIDWrapper {
+impl PartialOrd for AccountId {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for AccountIDWrapper {
+impl Ord for AccountId {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         u128::from(*self).cmp(&u128::from(*other))
     }
 }
 
-impl fmt::Display for AccountIDWrapper {
+impl fmt::Display for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_hex())
     }
@@ -332,10 +352,10 @@ impl fmt::Display for AccountIDWrapper {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for AccountIDWrapper {
+impl Serializable for AccountId {
     fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
         match self {
-            AccountIDWrapper::V0(account_id) => {
+            AccountId::V0(account_id) => {
                 account_id.write_into(target);
             },
         }
@@ -343,12 +363,12 @@ impl Serializable for AccountIDWrapper {
 
     fn get_size_hint(&self) -> usize {
         match self {
-            AccountIDWrapper::V0(account_id) => account_id.get_size_hint(),
+            AccountId::V0(account_id) => account_id.get_size_hint(),
         }
     }
 }
 
-impl Deserializable for AccountIDWrapper {
+impl Deserializable for AccountId {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         <[u8; 15]>::read_from(source)?
             .try_into()
@@ -380,10 +400,10 @@ mod tests {
         .into_iter()
         .enumerate()
         {
-            let wrapper = AccountIDWrapper::try_from(account_id).unwrap();
+            let wrapper = AccountId::try_from(account_id).unwrap();
             assert_eq!(
                 wrapper,
-                AccountIDWrapper::read_from_bytes(&wrapper.to_bytes()).unwrap(),
+                AccountId::read_from_bytes(&wrapper.to_bytes()).unwrap(),
                 "failed in {idx}"
             );
         }
