@@ -10,27 +10,29 @@ use vm_processor::DeserializationError;
 
 use super::id_v0;
 use crate::{
-    accounts::{account_id::AccountIdPrefixV0, AccountIdVersion, AccountStorageMode, AccountType},
+    accounts::{
+        account_id::id_v0::validate_prefix, AccountIdVersion, AccountStorageMode, AccountType,
+    },
     errors::AccountIdError,
 };
 
-// ACCOUNT ID PREFIX
+// ACCOUNT ID PREFIX VERSION 0
 // ================================================================================================
 
 /// The prefix of an [`AccountId`][id], i.e. its first field element.
 ///
-/// See the [`AccountId`][id] documentation for details.
+/// See the type's documentation for details.
 ///
 /// The serialization formats of [`AccountIdPrefix`] and [`AccountId`][id] are compatible. In
 /// particular, a prefix can be deserialized from the serialized bytes of a full id.
 ///
 /// [id]: crate::accounts::AccountId
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum AccountIdPrefix {
-    V0(AccountIdPrefixV0),
+pub struct AccountIdPrefixV0 {
+    prefix: Felt,
 }
 
-impl AccountIdPrefix {
+impl AccountIdPrefixV0 {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
 
@@ -49,19 +51,17 @@ impl AccountIdPrefix {
     ///
     /// # Panics
     ///
-    /// Panics if the prefix does not contain a known account ID version.
-    ///
     /// If debug_assertions are enabled (e.g. in debug mode), this function panics if the given
     /// felt is invalid according to the constraints in the
     /// [`AccountId`](crate::accounts::AccountId) documentation.
     pub fn new_unchecked(prefix: Felt) -> Self {
-        // The prefix contains the metadata.
-        // If we add more versions in the future, we may need to generalize this.
-        match id_v0::extract_version(prefix.as_int())
-            .expect("prefix should contain a valid account ID version")
-        {
-            AccountIdVersion::Version0 => Self::V0(AccountIdPrefixV0::new_unchecked(prefix)),
+        // Panic on invalid felts in debug mode.
+        if cfg!(debug_assertions) {
+            validate_prefix(prefix)
+                .expect("AccountIdPrefix::new_unchecked called with invalid prefix");
         }
+
+        AccountIdPrefixV0 { prefix }
     }
 
     /// Constructs a new [`AccountIdPrefix`] from the given `prefix` and checks its validity.
@@ -71,11 +71,9 @@ impl AccountIdPrefix {
     /// Returns an error if any of the ID constraints of the prefix are not met. See the
     /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
     pub fn new(prefix: Felt) -> Result<Self, AccountIdError> {
-        // The prefix contains the metadata.
-        // If we add more versions in the future, we may need to generalize this.
-        match id_v0::extract_version(prefix.as_int())? {
-            AccountIdVersion::Version0 => AccountIdPrefixV0::new(prefix).map(Self::V0),
-        }
+        validate_prefix(prefix)?;
+
+        Ok(AccountIdPrefixV0 { prefix })
     }
 
     // PUBLIC ACCESSORS
@@ -83,23 +81,17 @@ impl AccountIdPrefix {
 
     /// Returns the [`Felt`] that represents this prefix.
     pub const fn as_felt(&self) -> Felt {
-        match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.as_felt(),
-        }
+        self.prefix
     }
 
     /// Returns the prefix as a [`u64`].
     pub const fn as_u64(&self) -> u64 {
-        match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.as_u64(),
-        }
+        self.prefix.as_int()
     }
 
     /// Returns the type of this account ID.
     pub const fn account_type(&self) -> AccountType {
-        match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.account_type(),
-        }
+        id_v0::extract_type(self.prefix.as_int())
     }
 
     /// Returns true if an account with this ID is a faucet (can issue assets).
@@ -114,9 +106,8 @@ impl AccountIdPrefix {
 
     /// Returns the storage mode of this account ID.
     pub fn storage_mode(&self) -> AccountStorageMode {
-        match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.storage_mode(),
-        }
+        id_v0::extract_storage_mode(self.prefix.as_int())
+            .expect("account ID prefix should have been constructed with a valid storage mode")
     }
 
     /// Returns true if an account with this ID is a public account.
@@ -126,56 +117,43 @@ impl AccountIdPrefix {
 
     /// Returns the version of this account ID.
     pub fn version(&self) -> AccountIdVersion {
-        match self {
-            AccountIdPrefix::V0(_) => AccountIdVersion::Version0,
-        }
+        id_v0::extract_version(self.prefix.as_int())
+            .expect("account ID prefix should have been constructed with a valid version")
     }
 
     /// Returns the prefix as a big-endian, hex-encoded string.
     pub fn to_hex(self) -> String {
-        match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.to_hex(),
-        }
+        format!("0x{:016x}", self.prefix.as_int())
     }
 }
 
 // CONVERSIONS FROM ACCOUNT ID PREFIX
 // ================================================================================================
 
-impl From<AccountIdPrefixV0> for AccountIdPrefix {
+impl From<AccountIdPrefixV0> for Felt {
     fn from(id: AccountIdPrefixV0) -> Self {
-        Self::V0(id)
+        id.prefix
     }
 }
 
-impl From<AccountIdPrefix> for Felt {
-    fn from(id: AccountIdPrefix) -> Self {
-        match id {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.into(),
-        }
+impl From<AccountIdPrefixV0> for [u8; 8] {
+    fn from(id: AccountIdPrefixV0) -> Self {
+        let mut result = [0_u8; 8];
+        result[..8].copy_from_slice(&id.prefix.as_int().to_be_bytes());
+        result
     }
 }
 
-impl From<AccountIdPrefix> for [u8; 8] {
-    fn from(id: AccountIdPrefix) -> Self {
-        match id {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.into(),
-        }
-    }
-}
-
-impl From<AccountIdPrefix> for u64 {
-    fn from(id: AccountIdPrefix) -> Self {
-        match id {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.into(),
-        }
+impl From<AccountIdPrefixV0> for u64 {
+    fn from(id: AccountIdPrefixV0) -> Self {
+        id.prefix.as_int()
     }
 }
 
 // CONVERSIONS TO ACCOUNT ID PREFIX
 // ================================================================================================
 
-impl TryFrom<[u8; 8]> for AccountIdPrefix {
+impl TryFrom<[u8; 8]> for AccountIdPrefixV0 {
     type Error = AccountIdError;
 
     /// Tries to convert a byte array in big-endian order to an [`AccountIdPrefix`].
@@ -184,20 +162,17 @@ impl TryFrom<[u8; 8]> for AccountIdPrefix {
     ///
     /// Returns an error if any of the ID constraints of the prefix are not met. See the
     /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
-    fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
-        // The least significant byte of the ID prefix contains the metadata.
-        let metadata_byte = value[7];
-        // We only have one supported version for now, so we use the extractor from that version.
-        // If we add more versions in the future, we may need to generalize this.
-        let version = id_v0::extract_version(metadata_byte as u64)?;
+    fn try_from(mut value: [u8; 8]) -> Result<Self, Self::Error> {
+        // Felt::try_from expects little-endian order.
+        value.reverse();
 
-        match version {
-            AccountIdVersion::Version0 => AccountIdPrefixV0::try_from(value).map(Self::V0),
-        }
+        Felt::try_from(value.as_slice())
+            .map_err(AccountIdError::AccountIdInvalidPrefixFieldElement)
+            .and_then(Self::new)
     }
 }
 
-impl TryFrom<u64> for AccountIdPrefix {
+impl TryFrom<u64> for AccountIdPrefixV0 {
     type Error = AccountIdError;
 
     /// Tries to convert a `u64` into an [`AccountIdPrefix`].
@@ -213,7 +188,7 @@ impl TryFrom<u64> for AccountIdPrefix {
     }
 }
 
-impl TryFrom<Felt> for AccountIdPrefix {
+impl TryFrom<Felt> for AccountIdPrefixV0 {
     type Error = AccountIdError;
 
     /// Returns an [`AccountIdPrefix`] instantiated with the provided field .
@@ -230,19 +205,19 @@ impl TryFrom<Felt> for AccountIdPrefix {
 // COMMON TRAIT IMPLS
 // ================================================================================================
 
-impl PartialOrd for AccountIdPrefix {
+impl PartialOrd for AccountIdPrefixV0 {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for AccountIdPrefix {
+impl Ord for AccountIdPrefixV0 {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        u64::from(*self).cmp(&u64::from(*other))
+        self.prefix.as_int().cmp(&other.prefix.as_int())
     }
 }
 
-impl fmt::Display for AccountIdPrefix {
+impl fmt::Display for AccountIdPrefixV0 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_hex())
     }
@@ -251,21 +226,18 @@ impl fmt::Display for AccountIdPrefix {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for AccountIdPrefix {
+impl Serializable for AccountIdPrefixV0 {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.write_into(target),
-        }
+        let bytes: [u8; 8] = (*self).into();
+        bytes.write_into(target);
     }
 
     fn get_size_hint(&self) -> usize {
-        match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.get_size_hint(),
-        }
+        Self::SERIALIZED_SIZE
     }
 }
 
-impl Deserializable for AccountIdPrefix {
+impl Deserializable for AccountIdPrefixV0 {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         <[u8; 8]>::read_from(source)?
             .try_into()
@@ -279,34 +251,34 @@ impl Deserializable for AccountIdPrefix {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::accounts::AccountIdV0;
+    use crate::{
+        accounts::{AccountId, AccountIdPrefix},
+        testing::account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        },
+    };
 
     #[test]
-    fn account_id_prefix_construction() {
-        // Use the highest possible input to check if the constructed id is a valid Felt in that
-        // scenario.
-        // Use the lowest possible input to check whether the constructor produces valid IDs with
-        // all-zeroes input.
-        for input in [[0xff; 15], [0; 15]] {
-            for account_type in [
-                AccountType::FungibleFaucet,
-                AccountType::NonFungibleFaucet,
-                AccountType::RegularAccountImmutableCode,
-                AccountType::RegularAccountUpdatableCode,
-            ] {
-                for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountIdV0::dummy(input, account_type, storage_mode);
-                    let prefix = id.prefix();
-                    assert_eq!(prefix.account_type(), account_type);
-                    assert_eq!(prefix.storage_mode(), storage_mode);
-                    assert_eq!(prefix.version(), AccountIdVersion::Version0);
-
-                    // Do a serialization roundtrip to ensure validity.
-                    let serialized_prefix = prefix.to_bytes();
-                    AccountIdPrefix::read_from_bytes(&serialized_prefix).unwrap();
-                    assert_eq!(serialized_prefix.len(), AccountIdPrefix::SERIALIZED_SIZE);
-                }
-            }
+    fn test_account_id_prefix_conversion_roundtrip() {
+        for (idx, account_id) in [
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_OFF_CHAIN_SENDER,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let full_id = AccountId::try_from(account_id).unwrap();
+            let prefix = full_id.prefix();
+            assert_eq!(
+                prefix,
+                AccountIdPrefix::read_from_bytes(&prefix.to_bytes()).unwrap(),
+                "failed in {idx}"
+            );
         }
     }
 }

@@ -249,7 +249,7 @@ impl From<AccountIdPrefix> for AccountIdVersion {
     }
 }
 
-// ACCOUNT ID
+// ACCOUNT ID VERSION 0
 // ================================================================================================
 
 /// The identifier of an [`Account`](crate::accounts::Account).

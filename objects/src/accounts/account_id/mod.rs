@@ -7,6 +7,9 @@ pub use id_v0::{AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType};
 mod id_prefix;
 pub use id_prefix::AccountIdPrefix;
 
+mod id_prefix_v0;
+pub use id_prefix_v0::AccountIdPrefixV0;
+
 mod id;
 pub use id::AccountId;
 
