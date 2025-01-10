@@ -4,6 +4,8 @@ use crate::{
     AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
+mod account_id_wrapper;
+
 pub mod account_id;
 pub use account_id::{AccountId, AccountIdVersion, AccountStorageMode, AccountType};
 

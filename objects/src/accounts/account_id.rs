@@ -554,9 +554,9 @@ impl AccountId {
             .and_then(AccountId::try_from)
     }
 
-    /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix, so it
-    /// encodes 15 bytes.
-    pub fn to_hex(&self) -> String {
+    /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix. This means
+    /// it encodes 15 bytes.
+    pub fn to_hex(self) -> String {
         // We need to pad the suffix with 16 zeroes so it produces a correctly padded 8 byte
         // big-endian hex string. Only then can we cut off the last zero byte by truncating. We
         // cannot use `:014x` padding.
