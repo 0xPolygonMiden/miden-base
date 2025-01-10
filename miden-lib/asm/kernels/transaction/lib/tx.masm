@@ -365,7 +365,9 @@ end
 #!   or off-chain).
 #! - execution_hint is the hint which specifies when a note is ready to be consumed.
 #! - NOTE_METADATA is the metadata associated with a note.
-proc.build_note_metadata
+export.build_note_metadata
+    # This procedure is only exported so it can be tested.
+
     # Validate the note type.
     # --------------------------------------------------------------------------------------------
 
