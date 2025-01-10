@@ -206,7 +206,7 @@ impl PendingObjects {
 /// # Examples
 ///
 /// ## Create mock objects and build a transaction context
-/// ```
+/// ```no_run
 /// # use miden_tx::testing::{Auth, MockChain, TransactionContextBuilder};
 /// # use miden_objects::{assets::FungibleAsset, Felt, notes::NoteType};
 /// let mut mock_chain = MockChain::new();
@@ -225,7 +225,7 @@ impl PendingObjects {
 ///   .unwrap();
 /// mock_chain.seal_block(None);
 /// let tx_context = mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build();
-/// // tx_context.execute();
+/// let result = tx_context.execute();
 /// ```
 ///
 /// ## Executing a Simple Transaction

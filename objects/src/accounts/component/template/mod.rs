@@ -85,8 +85,57 @@ impl Deserializable for AccountComponentTemplate {
 
 /// Represents the full component template configuration.
 ///
+/// An account component metadata describes the component alongside its storage layout.
+/// On the storage layout, [placeholders](StoragePlaceholder) can be utilized to identify
+/// [values](StorageValue) that should be provided at the moment of instantiation.
+///
 /// When the `std` feature is enabled, this struct allows for serialization and deserialization to
 /// and from a TOML file.
+///
+/// # Example
+///
+/// ```
+/// # use semver::Version;
+/// # use std::collections::BTreeSet;
+/// # use miden_objects::{testing::account_code::CODE, accounts::{
+/// #     AccountComponent, AccountComponentMetadata, InitStorageData, StorageEntry,
+/// #     StoragePlaceholder, StorageValue,
+/// #     AccountComponentTemplate, FeltRepresentation, WordRepresentation},
+/// #     assembly::Assembler, Felt};
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let first_felt = FeltRepresentation::Decimal(Felt::new(0u64));
+/// let second_felt = FeltRepresentation::Decimal(Felt::new(1u64));
+/// let third_felt = FeltRepresentation::Decimal(Felt::new(2u64));
+/// // Templated element:
+/// let last_element = FeltRepresentation::Template(StoragePlaceholder::new("foo")?);
+///
+/// let storage_entry = StorageEntry::new_value(
+///     "test-entry",
+///     Some("a test entry"),
+///     0,
+///     WordRepresentation::Array([first_felt, second_felt, third_felt, last_element]),
+/// );
+///
+/// let init_storage_data = InitStorageData::new([(
+///     StoragePlaceholder::new("foo")?,
+///     StorageValue::Felt(Felt::new(300u64)),
+/// )]);
+///
+/// let component_template = AccountComponentMetadata::new(
+///     "test".into(),
+///     "desc".into(),
+///     Version::parse("0.1.0")?,
+///     BTreeSet::new(),
+///     vec![],
+/// )?;
+///
+/// let library = Assembler::default().assemble_library([CODE]).unwrap();
+/// let template = AccountComponentTemplate::new(component_template, library);
+///
+/// let component = AccountComponent::from_template(&template, &init_storage_data)?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountComponentMetadata {
@@ -137,52 +186,8 @@ impl AccountComponentMetadata {
     /// Retrieves the set of storage placeholder keys (identified by a string) that
     /// require a value at the moment of component instantiation. These values will
     /// be used for initializing storage slot values, or storage map entries.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use semver::Version;
-    /// # use std::collections::BTreeSet;
-    /// # use miden_objects::{testing::account_code::CODE, accounts::{
-    /// #     AccountComponent, AccountComponentMetadata, InitStorageData, StorageEntry,
-    /// #     StoragePlaceholder, StorageValue,
-    /// #     AccountComponentTemplate, FeltRepresentation, WordRepresentation},
-    /// #     assembly::Assembler, Felt};
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let first_felt = FeltRepresentation::Decimal(Felt::new(0u64));
-    /// let second_felt = FeltRepresentation::Decimal(Felt::new(1u64));
-    /// let third_felt = FeltRepresentation::Decimal(Felt::new(2u64));
-    /// // Templated element:
-    /// let last_element = FeltRepresentation::Template(StoragePlaceholder::new("foo")?);
-    ///
-    /// let storage_entry = StorageEntry::new_value(
-    ///     "test-entry",
-    ///     Some("a test entry"),
-    ///     0,
-    ///     WordRepresentation::Array([first_felt, second_felt, third_felt, last_element]),
-    /// );
-    ///
-    /// let init_storage_data = InitStorageData::new([(
-    ///     StoragePlaceholder::new("foo")?,
-    ///     StorageValue::Felt(Felt::new(300u64)),
-    /// )]);
-    ///
-    /// let component_template = AccountComponentMetadata::new(
-    ///     "test".into(),
-    ///     "desc".into(),
-    ///     Version::parse("0.1.0").unwrap(),
-    ///     BTreeSet::new(),
-    ///     vec![],
-    /// )?;
-    ///
-    /// let library = Assembler::default().assemble_library([CODE]).unwrap();
-    /// let template = AccountComponentTemplate::new(component_template, library);
-    ///
-    /// let component = AccountComponent::from_template(&template, &init_storage_data)?;
-    /// # Ok(())
-    /// # }
-    /// ```
-
+    /// For a full example on how a placeholder may be utilized, refer to the docs
+    /// for [AccountComponentMetadata].
     pub fn get_storage_placeholders(&self) -> BTreeSet<StoragePlaceholder> {
         let mut placeholder_set = BTreeSet::new();
         for storage_entry in &self.storage {
