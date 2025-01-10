@@ -63,7 +63,7 @@ use crate::{
 /// - The prefix contains account ID metadata (storage mode, type or version) that does not match
 ///   any of the known values.
 /// - The anchor epoch in the suffix is equal to [`u16::MAX`].
-/// - The lower 8 bits of the suffix are not zero, although [`AccountId::new`] ensures this is the
+/// - The lower 8 bits of the suffix are not zero, although [`AccountIdV0::new`] ensures this is the
 ///   case rather than return an error.
 ///
 /// # Design Rationale
@@ -119,7 +119,7 @@ impl AccountIdV0 {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
 
-    /// The serialized size of an [`AccountId`] in bytes.
+    /// The serialized size of an [`AccountIdV0`] in bytes.
     pub const SERIALIZED_SIZE: usize = 15;
 
     /// The lower two bits of the second least significant nibble determine the account type.
@@ -142,7 +142,7 @@ impl AccountIdV0 {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Creates an [`AccountId`] by hashing the given `seed`, `code_commitment`,
+    /// Creates an [`AccountIdV0`] by hashing the given `seed`, `code_commitment`,
     /// `storage_commitment` and [`AccountIdAnchor::block_hash`] from the `anchor` and using the
     /// resulting first and second element of the hash as the prefix and suffix felts of the ID.
     /// The [`AccountIdAnchor::epoch`] from the `anchor` overwrites part of the suffix.
@@ -150,12 +150,12 @@ impl AccountIdV0 {
     /// Note that the `anchor` must correspond to a valid block in the chain for the ID to be deemed
     /// valid during creation.
     ///
-    /// See the documentation of the [`AccountId`] for more details on the generation.
+    /// See the documentation of the [`AccountIdV0`] for more details on the generation.
     ///
     /// # Errors
     ///
     /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountId) for details.
+    /// documentation](AccountIdV0) for details.
     pub fn new(
         seed: Word,
         anchor: AccountIdAnchor,
@@ -175,7 +175,7 @@ impl AccountIdV0 {
         account_id_from_felts(felts)
     }
 
-    /// Creates an [`AccountId`] from the given felts where the felt at index 0 is the prefix
+    /// Creates an [`AccountIdV0`] from the given felts where the felt at index 0 is the prefix
     /// and the felt at index 2 is the suffix.
     ///
     /// # Warning
@@ -185,7 +185,7 @@ impl AccountIdV0 {
     /// # Panics
     ///
     /// If debug_assertions are enabled (e.g. in debug mode), this function panics if any of the ID
-    /// constraints are not met. See the [type documentation](AccountId) for details.
+    /// constraints are not met. See the [type documentation](AccountIdV0) for details.
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
         let prefix = elements[0];
         let suffix = elements[1];
@@ -199,7 +199,7 @@ impl AccountIdV0 {
         Self { prefix, suffix }
     }
 
-    /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
+    /// Constructs an [`AccountIdV0`] for testing purposes with the given account type and storage
     /// mode.
     ///
     /// This function does the following:
@@ -322,7 +322,7 @@ impl AccountIdV0 {
         extract_anchor_epoch(self.suffix().as_int())
     }
 
-    /// Creates an [`AccountId`] from a hex string. Assumes the string starts with "0x" and
+    /// Creates an [`AccountIdV0`] from a hex string. Assumes the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_str: &str) -> Result<AccountIdV0, AccountIdError> {
         hex_to_bytes(hex_str)
@@ -398,13 +398,13 @@ impl From<AccountIdV0> for LeafIndex<ACCOUNT_TREE_DEPTH> {
 impl TryFrom<[Felt; 2]> for AccountIdV0 {
     type Error = AccountIdError;
 
-    /// Returns an [`AccountId`] instantiated with the provided field elements where `elements[0]`
+    /// Returns an [`AccountIdV0`] instantiated with the provided field elements where `elements[0]`
     /// is taken as the prefix and `elements[1]` is taken as the second element.
     ///
     /// # Errors
     ///
     /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountId) for details.
+    /// documentation](AccountIdV0) for details.
     fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
         account_id_from_felts(elements)
     }
@@ -413,12 +413,12 @@ impl TryFrom<[Felt; 2]> for AccountIdV0 {
 impl TryFrom<[u8; 15]> for AccountIdV0 {
     type Error = AccountIdError;
 
-    /// Tries to convert a byte array in big-endian order to an [`AccountId`].
+    /// Tries to convert a byte array in big-endian order to an [`AccountIdV0`].
     ///
     /// # Errors
     ///
     /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountId) for details.
+    /// documentation](AccountIdV0) for details.
     fn try_from(mut bytes: [u8; 15]) -> Result<Self, Self::Error> {
         // Felt::try_from expects little-endian order, so reverse the individual felt slices.
         // This prefix slice has 8 bytes.
@@ -447,12 +447,12 @@ impl TryFrom<[u8; 15]> for AccountIdV0 {
 impl TryFrom<u128> for AccountIdV0 {
     type Error = AccountIdError;
 
-    /// Tries to convert a u128 into an [`AccountId`].
+    /// Tries to convert a u128 into an [`AccountIdV0`].
     ///
     /// # Errors
     ///
     /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountId) for details.
+    /// documentation](AccountIdV0) for details.
     fn try_from(int: u128) -> Result<Self, Self::Error> {
         let mut bytes: [u8; 15] = [0; 15];
         bytes.copy_from_slice(&int.to_be_bytes()[0..15]);
@@ -491,7 +491,7 @@ impl Deserializable for AccountIdV0 {
 /// # Errors
 ///
 /// Returns an error if any of the ID constraints are not met. See the See the [type
-/// documentation](AccountId) for details.
+/// documentation](AccountIdV0) for details.
 fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountIdV0, AccountIdError> {
     validate_prefix(elements[0])?;
     validate_suffix(elements[1])?;

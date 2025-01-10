@@ -292,7 +292,7 @@ impl TryFrom<[Felt; 2]> for AccountId {
 impl TryFrom<[u8; 15]> for AccountId {
     type Error = AccountIdError;
 
-    /// Tries to convert a byte array in big-endian order to an [`AccountIdWrapper`].
+    /// Tries to convert a byte array in big-endian order to an [`AccountId`].
     ///
     /// # Errors
     ///

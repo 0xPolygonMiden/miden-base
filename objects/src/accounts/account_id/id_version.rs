@@ -5,9 +5,7 @@ use crate::errors::AccountIdError;
 
 const VERSION_0_NUMBER: u8 = 0;
 
-/// The version of an [`AccountId`].
-///
-/// Each version has a public associated constant, e.g. [`AccountIdVersion::VERSION_0`].
+/// The version of an [`AccountId`](crate::accounts::AccountId).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum AccountIdVersion {

@@ -24,7 +24,7 @@ use crate::{
 /// By default, the builder is initialized with:
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
-/// - The `version` set to [`AccountIdVersion::VERSION_0`].
+/// - The `version` set to [`AccountIdVersion::Version0`].
 ///
 /// The methods that are required to be called are:
 ///
