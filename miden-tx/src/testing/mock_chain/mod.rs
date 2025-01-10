@@ -605,7 +605,7 @@ impl MockChain {
             let epoch_block_num = BlockNumber::from_epoch(account.id().anchor_epoch());
             // The reference block of the transaction is added to the MMR in
             // prologue::process_chain_data so we can skip adding it to the block headers here.
-            if epoch_block_num != block.header().block_num().into() {
+            if epoch_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     epoch_block_num.as_u32(),
                     self.blocks.get(epoch_block_num.as_u32() as usize).unwrap().header(),

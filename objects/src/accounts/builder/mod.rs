@@ -326,8 +326,7 @@ mod tests {
 
         let anchor_block_hash = Digest::new([Felt::new(42); 4]);
         let anchor_block_number = 1 << 16;
-        let id_anchor =
-            AccountIdAnchor::new(anchor_block_number.into(), anchor_block_hash).unwrap();
+        let id_anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash).unwrap();
 
         let (account, seed) = Account::builder()
             .init_seed([5; 32])

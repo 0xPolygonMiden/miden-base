@@ -12,8 +12,8 @@ use crate::{block::BlockNumber, AccountError, BlockHeader, Digest, EMPTY_WORD};
 /// # Constraints
 ///
 /// This type enforces the following constraints.
-/// - The `anchor_block_number` % 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`] must be zero. In other
-///   words, the block number must a multiple of 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`].
+/// - The `anchor_block_number` % 2^[`BlockNumber::EPOCH_LENGTH_EXPONENT`] must be zero. In other
+///   words, the block number must a multiple of 2^[`BlockNumber::EPOCH_LENGTH_EXPONENT`].
 /// - The epoch derived from the `anchor_block_number` must be strictly less than [`u16::MAX`].
 #[derive(Debug, Clone, Copy)]
 pub struct AccountIdAnchor {
@@ -49,9 +49,10 @@ impl AccountIdAnchor {
     /// Returns an error if any of the anchor constraints are not met. See the [type
     /// documentation](AccountIdAnchor) for details.
     pub fn new(
-        anchor_block_number: BlockNumber,
+        anchor_block_number: impl Into<BlockNumber>,
         anchor_block_hash: Digest,
     ) -> Result<Self, AccountError> {
+        let anchor_block_number = anchor_block_number.into();
         if anchor_block_number.as_u32() & 0x0000_ffff != 0 {
             return Err(AccountError::AssumptionViolated(format!(
           "TODO: Make proper error: anchor block must be an epoch block, i.e. its block number must be a multiple of 2^{}",
@@ -122,6 +123,6 @@ impl TryFrom<&BlockHeader> for AccountIdAnchor {
     /// Returns an error if any of the anchor constraints are not met. See the [type
     /// documentation](AccountIdAnchor) for details.
     fn try_from(block_header: &BlockHeader) -> Result<Self, Self::Error> {
-        Self::new(BlockNumber::from(block_header.block_num()), block_header.hash())
+        Self::new(block_header.block_num(), block_header.hash())
     }
 }

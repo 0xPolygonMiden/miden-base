@@ -279,16 +279,19 @@ pub enum ChainMmrError {
 }
 
 impl ChainMmrError {
-    pub fn block_num_too_big(chain_length: usize, block_num: u32) -> Self {
-        Self::BlockNumTooBig { chain_length, block_num }
+    pub fn block_num_too_big(chain_length: usize, block_num: BlockNumber) -> Self {
+        Self::BlockNumTooBig {
+            chain_length,
+            block_num: block_num.as_u32(),
+        }
     }
 
-    pub fn duplicate_block(block_num: u32) -> Self {
-        Self::DuplicateBlock { block_num }
+    pub fn duplicate_block(block_num: BlockNumber) -> Self {
+        Self::DuplicateBlock { block_num: block_num.as_u32() }
     }
 
-    pub fn untracked_block(block_num: u32) -> Self {
-        Self::UntrackedBlock { block_num }
+    pub fn untracked_block(block_num: BlockNumber) -> Self {
+        Self::UntrackedBlock { block_num: block_num.as_u32() }
     }
 }
 

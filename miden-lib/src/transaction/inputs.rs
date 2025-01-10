@@ -267,7 +267,7 @@ fn add_input_notes_to_advice_inputs(
                 } else {
                     tx_inputs
                         .block_chain()
-                        .get_block(block_num.as_u32())
+                        .get_block(block_num)
                         .expect("block not found in chain MMR")
                 };
 

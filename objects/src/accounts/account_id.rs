@@ -308,7 +308,7 @@ impl From<AccountIdPrefix> for AccountIdVersion {
 ///       hashes to the user's ID can claim the assets sent to the user's ID. Adding the anchor
 ///       block hash to ID generation process makes this attack practically impossible.
 ///
-/// [epoch_len_exp]: crate::block::BlockHeader::EPOCH_LENGTH_EXPONENT
+/// [epoch_len_exp]: crate::block::BlockNumber::EPOCH_LENGTH_EXPONENT
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AccountId {
     first_felt: Felt,

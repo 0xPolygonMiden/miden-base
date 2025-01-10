@@ -67,7 +67,7 @@ impl TransactionInputs {
                     &block_header
                 } else {
                     block_chain
-                        .get_block(note_block_num.as_u32())
+                        .get_block(note_block_num)
                         .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
                 };
 
@@ -486,7 +486,7 @@ pub fn validate_account_seed(
                 block_header.hash()
             } else {
                 let anchor_block_header =
-                    block_chain.get_block(anchor_block_number.as_u32()).ok_or_else(|| {
+                    block_chain.get_block(anchor_block_number).ok_or_else(|| {
                         TransactionInputError::AnchorBlockHeaderNotProvidedForNewAccount(
                             account.id().anchor_epoch(),
                         )

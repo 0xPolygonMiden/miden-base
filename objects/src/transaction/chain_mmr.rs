@@ -48,18 +48,15 @@ impl ChainMmr {
         let mut block_map = BTreeMap::new();
         for block in blocks.into_iter() {
             if block.block_num().as_u32() as usize >= chain_length {
-                return Err(ChainMmrError::block_num_too_big(
-                    chain_length,
-                    block.block_num().as_u32(),
-                ));
+                return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
             }
 
             if block_map.insert(block.block_num(), block).is_some() {
-                return Err(ChainMmrError::duplicate_block(block.block_num().as_u32()));
+                return Err(ChainMmrError::duplicate_block(block.block_num()));
             }
 
             if !mmr.is_tracked(block.block_num().as_u32() as usize) {
-                return Err(ChainMmrError::untracked_block(block.block_num().as_u32()));
+                return Err(ChainMmrError::untracked_block(block.block_num()));
             }
         }
 
@@ -80,14 +77,14 @@ impl ChainMmr {
     }
 
     /// Returns true if the block is present in this chain MMR.
-    pub fn contains_block(&self, block_num: u32) -> bool {
-        self.blocks.contains_key(&block_num.into())
+    pub fn contains_block(&self, block_num: BlockNumber) -> bool {
+        self.blocks.contains_key(&block_num)
     }
 
     /// Returns the block header for the specified block, or None if the block is not present in
     /// this chain MMR.
-    pub fn get_block(&self, block_num: u32) -> Option<&BlockHeader> {
-        self.blocks.get(&block_num.into())
+    pub fn get_block(&self, block_num: BlockNumber) -> Option<&BlockHeader> {
+        self.blocks.get(&block_num)
     }
 
     // DATA MUTATORS
@@ -155,6 +152,7 @@ mod tests {
     use super::ChainMmr;
     use crate::{
         alloc::vec::Vec,
+        block::BlockNumber,
         crypto::merkle::{Mmr, PartialMmr},
         BlockHeader, Digest,
     };
@@ -164,7 +162,7 @@ mod tests {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
-            let block_header = int_to_block_header(i);
+            let block_header = int_to_block_header(i.into());
             mmr.add(block_header.hash());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
@@ -172,7 +170,7 @@ mod tests {
 
         // add a new block to the chain MMR, this reduces the number of peaks to 1
         let block_num = 3;
-        let bock_header = int_to_block_header(block_num);
+        let bock_header = int_to_block_header(block_num.into());
         mmr.add(bock_header.hash());
         chain_mmr.add_block(bock_header, true);
 
@@ -183,7 +181,7 @@ mod tests {
 
         // add one more block to the chain MMR, the number of peaks is again 2
         let block_num = 4;
-        let bock_header = int_to_block_header(block_num);
+        let bock_header = int_to_block_header(block_num.into());
         mmr.add(bock_header.hash());
         chain_mmr.add_block(bock_header, true);
 
@@ -194,7 +192,7 @@ mod tests {
 
         // add one more block to the chain MMR, the number of peaks is still 2
         let block_num = 5;
-        let bock_header = int_to_block_header(block_num);
+        let bock_header = int_to_block_header(block_num.into());
         mmr.add(bock_header.hash());
         chain_mmr.add_block(bock_header, true);
 
@@ -209,7 +207,7 @@ mod tests {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
-            let block_header = int_to_block_header(i);
+            let block_header = int_to_block_header(i.into());
             mmr.add(block_header.hash());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
@@ -221,11 +219,11 @@ mod tests {
         assert_eq!(chain_mmr, deserialized);
     }
 
-    fn int_to_block_header(block_num: u32) -> BlockHeader {
+    fn int_to_block_header(block_num: BlockNumber) -> BlockHeader {
         BlockHeader::new(
             0,
             Digest::default(),
-            block_num,
+            block_num.as_u32(),
             Digest::default(),
             Digest::default(),
             Digest::default(),

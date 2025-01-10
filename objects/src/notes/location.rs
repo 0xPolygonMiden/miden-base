@@ -10,7 +10,7 @@ use crate::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoteLocation {
     /// The block number the note was created in.
-    block_num: u32,
+    block_num: BlockNumber,
 
     /// The index of the note in the note Merkle tree of the block the note was created in.
     node_index_in_block: u16,
@@ -19,7 +19,7 @@ pub struct NoteLocation {
 impl NoteLocation {
     /// Returns the block number the note was created in.
     pub fn block_num(&self) -> BlockNumber {
-        self.block_num.into()
+        self.block_num
     }
 
     /// Returns the index of the note in the note Merkle tree of the block the note was created in.
@@ -57,7 +57,10 @@ impl NoteInclusionProof {
                 highest_index: HIGHEST_INDEX,
             });
         }
-        let location = NoteLocation { block_num, node_index_in_block };
+        let location = NoteLocation {
+            block_num: block_num.into(),
+            node_index_in_block,
+        };
 
         Ok(Self { location, note_path })
     }
@@ -82,7 +85,7 @@ impl NoteInclusionProof {
 
 impl Serializable for NoteLocation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u32(self.block_num);
+        target.write_u32(self.block_num.as_u32());
         target.write_u16(self.node_index_in_block);
     }
 }
@@ -92,7 +95,10 @@ impl Deserializable for NoteLocation {
         let block_num = source.read_u32()?;
         let node_index_in_block = source.read_u16()?;
 
-        Ok(Self { block_num, node_index_in_block })
+        Ok(Self {
+            block_num: block_num.into(),
+            node_index_in_block,
+        })
     }
 }
 
