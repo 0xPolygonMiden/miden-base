@@ -20,17 +20,18 @@ use super::{
 /// [`NoteMetadata`] can be encoded into a [`Word`] with the following layout:
 ///
 /// ```text
-/// 1st felt: [sender_id_hi (64 bits)]
-/// 2nd felt: [sender_id_lo (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
+/// 1st felt: [sender_id_prefix (64 bits)]
+/// 2nd felt: [sender_id_suffix (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
 /// 3rd felt: [note_execution_hint_payload (32 bits) | note_tag (32 bits)]
 /// 4th felt: [aux (64 bits)]
 /// ```
 ///
 /// The rationale for the above layout is to ensure the validity of each felt:
-/// - 1st felt: Is equivalent to the first felt of the account ID so it inherits its validity.
-/// - 2nd felt: The second felt of the account ID is designed such that its lower 8 bits can all be
-///   set to `1` and still retain its validity due to the anchor epoch in the upper 16 bits always
-///   containing at least one `0` bit.
+/// - 1st felt: Is equivalent to the prefix of the account ID so it inherits its validity.
+/// - 2nd felt: The lower 8 bits of the account ID suffix are `0` by construction, so that they can
+///   be overwritten with other data. The suffix is designed such that it retains its felt validity
+///   even if all of its lower 8 bits are be set to `1`. This is because the anchor epoch in the
+///   upper 16 bits always contains at least one `0` bit.
 /// - 3rd felt: The note execution hint payload must contain at least one `0` bit in its encoding,
 ///   so the upper 32 bits of the felt will contain at least one `0` bit making the entire felt
 ///   valid.
@@ -121,9 +122,9 @@ impl From<&NoteMetadata> for Word {
     /// The produced layout of the word is documented on the [`NoteMetadata`] type.
     fn from(metadata: &NoteMetadata) -> Self {
         let mut elements = Word::default();
-        elements[0] = metadata.sender.first_felt();
+        elements[0] = metadata.sender.prefix().as_felt();
         elements[1] = merge_id_type_and_hint_tag(
-            metadata.sender.second_felt(),
+            metadata.sender.suffix(),
             metadata.note_type,
             metadata.execution_hint,
         );
@@ -140,12 +141,12 @@ impl TryFrom<Word> for NoteMetadata {
     ///
     /// The expected layout of the word is documented on the [`NoteMetadata`] type.
     fn try_from(elements: Word) -> Result<Self, Self::Error> {
-        let sender_id_first_felt: Felt = elements[0];
+        let sender_id_prefix: Felt = elements[0];
 
-        let (sender_id_second_felt, note_type, execution_hint_tag) =
+        let (sender_id_suffix, note_type, execution_hint_tag) =
             unmerge_id_type_and_hint_tag(elements[1])?;
 
-        let sender = AccountId::try_from([sender_id_first_felt, sender_id_second_felt])
+        let sender = AccountId::try_from([sender_id_prefix, sender_id_suffix])
             .map_err(NoteError::NoteSenderInvalidAccountId)?;
 
         let (execution_hint, note_tag) =
@@ -174,25 +175,25 @@ impl Deserializable for NoteMetadata {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Merges the second felt of an [`AccountId`], a [`NoteType`] and the tag of a
+/// Merges the suffix of an [`AccountId`], a [`NoteType`] and the tag of a
 /// [`NoteExecutionHint`] into a single [`Felt`].
 ///
 /// The layout is as follows:
 ///
 /// ```text
-/// [sender_id_lo (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
+/// [sender_id_suffix (56 bits) | note_type (2 bits) | note_execution_hint_tag (6 bits)]
 /// ```
 ///
 /// One of the upper 16 bits is guaranteed to be zero due to the guarantees of the epoch in the
-/// account id.
+/// account ID.
 ///
-/// Note that `sender_id_lo` is the second felt of the sender's account ID.
+/// Note that `sender_id_suffix` is the suffix of the sender's account ID.
 fn merge_id_type_and_hint_tag(
-    sender_id_second_felt: Felt,
+    sender_id_suffix: Felt,
     note_type: NoteType,
     note_execution_hint: NoteExecutionHint,
 ) -> Felt {
-    let mut merged = sender_id_second_felt.as_int();
+    let mut merged = sender_id_suffix.as_int();
 
     let type_bits = note_type as u8;
     let (tag_bits, _) = note_execution_hint.into_parts();
@@ -208,12 +209,12 @@ fn merge_id_type_and_hint_tag(
     merged |= (type_bits << 6) as u64;
     merged |= tag_bits as u64;
 
-    // SAFETY: One of the top 16 bits of the second felt (the anchor epoch) is zero by construction
+    // SAFETY: One of the top 16 bits (the anchor epoch) of the suffix is zero by construction
     // so the bytes will be a valid felt.
     Felt::try_from(merged).expect("encoded value should be a valid felt")
 }
 
-/// Unmerges the given felt into the second felt of an [`AccountId`], a [`NoteType`] and the tag of
+/// Unmerges the given felt into the suffix of an [`AccountId`], a [`NoteType`] and the tag of
 /// a [`NoteExecutionHint`].
 fn unmerge_id_type_and_hint_tag(element: Felt) -> Result<(Felt, NoteType, u8), NoteError> {
     let element = element.as_int();
@@ -230,9 +231,9 @@ fn unmerge_id_type_and_hint_tag(element: Felt) -> Result<(Felt, NoteType, u8), N
 
     // SAFETY: The input was a valid felt and and we cleared additional bits and did not set any
     // bits, so it must still be a valid felt.
-    let sender_id_second_felt = Felt::try_from(element).expect("element should still be valid");
+    let sender_id_suffix = Felt::try_from(element).expect("element should still be valid");
 
-    Ok((sender_id_second_felt, note_type, tag_bits))
+    Ok((sender_id_suffix, note_type, tag_bits))
 }
 
 /// Merges the [`NoteExecutionHint`] payload and a [`NoteTag`] into a single [`Felt`].
@@ -320,7 +321,7 @@ mod tests {
         // Use the Account ID with the maximum one bits to test if the merge function always
         // produces valid felts.
         let sender = AccountId::try_from(ACCOUNT_ID_MAX_ONES).unwrap();
-        let sender_second_felt = sender.second_felt();
+        let sender_id_suffix = sender.suffix();
 
         let note_type = NoteType::Public;
         let note_execution_hint = NoteExecutionHint::OnBlockSlot {
@@ -330,36 +331,36 @@ mod tests {
         };
 
         let merged_value =
-            merge_id_type_and_hint_tag(sender_second_felt, note_type, note_execution_hint);
-        let (extracted_second_felt, extracted_note_type, extracted_note_execution_hint_tag) =
+            merge_id_type_and_hint_tag(sender_id_suffix, note_type, note_execution_hint);
+        let (extracted_suffix, extracted_note_type, extracted_note_execution_hint_tag) =
             unmerge_id_type_and_hint_tag(merged_value).unwrap();
 
         assert_eq!(note_type, extracted_note_type);
         assert_eq!(note_execution_hint.into_parts().0, extracted_note_execution_hint_tag);
-        assert_eq!(sender_second_felt, extracted_second_felt);
+        assert_eq!(sender_id_suffix, extracted_suffix);
 
         let note_type = NoteType::Private;
         let note_execution_hint = NoteExecutionHint::Always;
 
         let merged_value =
-            merge_id_type_and_hint_tag(sender_second_felt, note_type, note_execution_hint);
-        let (extracted_second_felt, extracted_note_type, extracted_note_execution_hint_tag) =
+            merge_id_type_and_hint_tag(sender_id_suffix, note_type, note_execution_hint);
+        let (extracted_suffix, extracted_note_type, extracted_note_execution_hint_tag) =
             unmerge_id_type_and_hint_tag(merged_value).unwrap();
 
         assert_eq!(note_type, extracted_note_type);
         assert_eq!(note_execution_hint.into_parts().0, extracted_note_execution_hint_tag);
-        assert_eq!(sender_second_felt, extracted_second_felt);
+        assert_eq!(sender_id_suffix, extracted_suffix);
 
         let note_type = NoteType::Private;
         let note_execution_hint = NoteExecutionHint::None;
 
         let merged_value =
-            merge_id_type_and_hint_tag(sender_second_felt, note_type, note_execution_hint);
-        let (extracted_second_felt, extracted_note_type, extracted_note_execution_hint_tag) =
+            merge_id_type_and_hint_tag(sender_id_suffix, note_type, note_execution_hint);
+        let (extracted_suffix, extracted_note_type, extracted_note_execution_hint_tag) =
             unmerge_id_type_and_hint_tag(merged_value).unwrap();
 
         assert_eq!(note_type, extracted_note_type);
         assert_eq!(note_execution_hint.into_parts().0, extracted_note_execution_hint_tag);
-        assert_eq!(sender_second_felt, extracted_second_felt);
+        assert_eq!(sender_id_suffix, extracted_suffix);
     }
 }

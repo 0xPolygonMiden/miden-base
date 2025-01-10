@@ -251,26 +251,26 @@ impl From<AccountIdPrefix> for AccountIdVersion {
 /// generation is done. If not, another random seed is picked and the process is repeated. The first
 /// felt of the ID is then the first element of the hash.
 ///
-/// The second felt of the ID is the second element of the hash. Its upper 16 bits are overwritten
-/// with the epoch in which the ID is anchored and the lower 8 bits are zeroed. Thus, the first felt
-/// of the ID must derive exactly from the hash, while only part of the second felt is derived from
+/// The suffix of the ID is the second element of the hash. Its upper 16 bits are overwritten
+/// with the epoch in which the ID is anchored and the lower 8 bits are zeroed. Thus, the prefix
+/// of the ID must derive exactly from the hash, while only part of the suffix is derived from
 /// the hash.
 ///
 /// # Constraints
 ///
 /// Constructors will return an error if:
 ///
-/// - The first felt contains account ID metadata (storage mode, type or version) that does not
-///   match any of the known values.
-/// - The anchor epoch in the second felt is equal to [`u16::MAX`].
-/// - The lower 8 bits of the second felt are not zero, although [`AccountId::new`] ensures this is
-///   the case rather than return an error.
+/// - The prefix contains account ID metadata (storage mode, type or version) that does not match
+///   any of the known values.
+/// - The anchor epoch in the suffix is equal to [`u16::MAX`].
+/// - The lower 8 bits of the suffix are not zero, although [`AccountId::new`] ensures this is the
+///   case rather than return an error.
 ///
 /// # Design Rationale
 ///
 /// The rationale behind the above layout is as follows.
 ///
-/// - The first felt is the output of a hash function so it will be a valid field element without
+/// - The prefix is the output of a hash function so it will be a valid field element without
 ///   requiring additional constraints.
 /// - The version is placed at a static offset such that future ID versions which may change the
 ///   number of type or storage mode bits will not cause the version to be at a different offset.
@@ -278,19 +278,19 @@ impl From<AccountIdPrefix> for AccountIdVersion {
 ///   remainder of the ID depending on the version. Having only 4 bits for the version is a trade
 ///   off between future proofing to be able to introduce more versions and the version requiring
 ///   Proof of Work as part of the ID generation.
-/// - The version, type and storage mode are part of the first felt which is included in the
-///   representation of a non-fungible asset. The first felt alone is enough to determine all of
-///   these properties about the ID.
+/// - The version, type and storage mode are part of the prefix which is included in the
+///   representation of a non-fungible asset. The prefix alone is enough to determine all of these
+///   properties about the ID.
 ///     - The anchor epoch is not important beyond the creation process, so placing it in the second
-///       felt is fine. Moreover, all properties of the first felt must be derived from the seed, so
+///       felt is fine. Moreover, all properties of the prefix must be derived from the seed, so
 ///       they add to the proof of work difficulty. Adding 16 bits of PoW for the epoch would be
 ///       significant.
-/// - The anchor epoch is placed at the most significant end of the second felt. Its value must be
-///   less than [`u16::MAX`] so that at least one of the upper 16 bits is always zero. This ensures
-///   that the entire second felt is valid even if the remaining bits of the felt are one.
-/// - The lower 8 bits of the second felt may be overwritten when the ID is encoded in other layouts
-///   such as the [`NoteMetadata`](crate::notes::NoteMetadata). In such cases, it can happen that
-///   all bits of the encoded second felt would be one, so having the epoch constraint is important.
+/// - The anchor epoch is placed at the most significant end of the suffix. Its value must be less
+///   than [`u16::MAX`] so that at least one of the upper 16 bits is always zero. This ensures that
+///   the entire suffix is valid even if the remaining bits of the felt are one.
+/// - The lower 8 bits of the suffix may be overwritten when the ID is encoded in other layouts such
+///   as the [`NoteMetadata`](crate::notes::NoteMetadata). In such cases, it can happen that all
+///   bits of the encoded suffix would be one, so having the epoch constraint is important.
 /// - The ID is dependent on the hash of an epoch block. This is a block whose number is a multiple
 ///   of 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`][epoch_len_exp], e.g. `0`, `65536`, `131072`, ...
 ///   These are the first blocks of epoch 0, 1, 2, ... We call this dependence _anchoring_ because
@@ -311,8 +311,8 @@ impl From<AccountIdPrefix> for AccountIdVersion {
 /// [epoch_len_exp]: crate::block::BlockHeader::EPOCH_LENGTH_EXPONENT
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AccountId {
-    first_felt: Felt,
-    second_felt: Felt,
+    prefix: Felt,
+    suffix: Felt,
 }
 
 impl AccountId {
@@ -344,8 +344,8 @@ impl AccountId {
 
     /// Creates an [`AccountId`] by hashing the given `seed`, `code_commitment`,
     /// `storage_commitment` and [`AccountIdAnchor::block_hash`] from the `anchor` and using the
-    /// resulting first and second element of the hash as the first and second felt of the ID.
-    /// The [`AccountIdAnchor::epoch`] from the `anchor` overwrites part of the second felt.
+    /// resulting first and second element of the hash as the prefix and suffix felts of the ID.
+    /// The [`AccountIdAnchor::epoch`] from the `anchor` overwrites part of the suffix.
     ///
     /// Note that the `anchor` must correspond to a valid block in the chain for the ID to be deemed
     /// valid during creation.
@@ -369,14 +369,14 @@ impl AccountId {
             .try_into()
             .expect("we should have sliced off 2 elements");
 
-        felts[1] = shape_second_felt(felts[1], anchor.epoch());
+        felts[1] = shape_suffix(felts[1], anchor.epoch())?;
 
         // This will validate that the anchor_epoch we have just written is not u16::MAX.
         account_id_from_felts(felts)
     }
 
-    /// Creates an [`AccountId`] from the given felts where the felt at index 0 is the first felt
-    /// and the felt at index 2 is the second felt.
+    /// Creates an [`AccountId`] from the given felts where the felt at index 0 is the prefix
+    /// and the felt at index 2 is the suffix.
     ///
     /// # Warning
     ///
@@ -387,34 +387,32 @@ impl AccountId {
     /// If debug_assertions are enabled (e.g. in debug mode), this function panics if any of the ID
     /// constraints are not met. See the [type documentation](AccountId) for details.
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
-        let first_felt = elements[0];
-        let second_felt = elements[1];
+        let prefix = elements[0];
+        let suffix = elements[1];
 
         // Panic on invalid felts in debug mode.
         if cfg!(debug_assertions) {
-            validate_first_felt(first_felt)
-                .expect("AccountId::new_unchecked called with invalid first felt");
-            validate_second_felt(second_felt)
-                .expect("AccountId::new_unchecked called with invalid first felt");
+            validate_prefix(prefix).expect("AccountId::new_unchecked called with invalid prefix");
+            validate_suffix(suffix).expect("AccountId::new_unchecked called with invalid suffix");
         }
 
-        Self { first_felt, second_felt }
+        Self { prefix, suffix }
     }
 
     /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
     /// mode.
     ///
     /// This function does the following:
-    /// - Split the given bytes into a `first_felt = bytes[0..8]` and `second_felt = bytes[8..]`
-    ///   part to be used for the first and second felt, respectively.
-    /// - The least significant byte of the first felt is set to the version 0, and the given type
-    ///   and storage mode.
-    /// - The 32nd most significant bit in the first felt is cleared to ensure it is a valid felt.
-    ///   The 32nd is chosen as it is the lowest bit that we can clear and still ensure felt
-    ///   validity. This leaves the upper 31 bits to be set by the input `bytes` which makes it
-    ///   simpler to create test values which more often need specific values for the most
-    ///   significant end of the ID.
-    /// - In the second felt the anchor epoch is set to 0 and the lower 8 bits are cleared.
+    /// - Split the given bytes into a `prefix = bytes[0..8]` and `suffix = bytes[8..]` part to be
+    ///   used for the prefix and suffix felts, respectively.
+    /// - The least significant byte of the prefix is set to the version 0, and the given type and
+    ///   storage mode.
+    /// - The 32nd most significant bit in the prefix is cleared to ensure it is a valid felt. The
+    ///   32nd is chosen as it is the lowest bit that we can clear and still ensure felt validity.
+    ///   This leaves the upper 31 bits to be set by the input `bytes` which makes it simpler to
+    ///   create test values which more often need specific values for the most significant end of
+    ///   the ID.
+    /// - In the suffix the anchor epoch is set to 0 and the lower 8 bits are cleared.
     #[cfg(any(feature = "testing", test))]
     pub fn dummy(
         mut bytes: [u8; 15],
@@ -432,21 +430,21 @@ impl AccountId {
         // Clear the 32nd most significant bit.
         bytes[3] &= 0b1111_1110;
 
-        let first_felt_bytes =
+        let prefix_bytes =
             bytes[0..8].try_into().expect("we should have sliced off exactly 8 bytes");
-        let first_felt = Felt::try_from(u64::from_be_bytes(first_felt_bytes))
+        let prefix = Felt::try_from(u64::from_be_bytes(prefix_bytes))
             .expect("should be a valid felt due to the most significant bit being zero");
 
-        let mut second_felt_bytes = [0; 8];
+        let mut suffix_bytes = [0; 8];
         // Overwrite first 7 bytes, leaving the 8th byte 0 (which will be cleared by
-        // shape_second_felt anyway).
-        second_felt_bytes[..7].copy_from_slice(&bytes[8..]);
+        // shape_suffix anyway).
+        suffix_bytes[..7].copy_from_slice(&bytes[8..]);
         // If the value is too large modular reduction is performed, which is fine here.
-        let mut second_felt = Felt::new(u64::from_be_bytes(second_felt_bytes));
+        let mut suffix = Felt::new(u64::from_be_bytes(suffix_bytes));
 
-        second_felt = shape_second_felt(second_felt, 0);
+        suffix = shape_suffix(suffix, 0).expect("anchor epoch is not u16::MAX");
 
-        let account_id = account_id_from_felts([first_felt, second_felt])
+        let account_id = account_id_from_felts([prefix, suffix])
             .expect("we should have shaped the felts to produce a valid id");
 
         debug_assert_eq!(account_id.account_type(), account_type);
@@ -486,7 +484,7 @@ impl AccountId {
 
     /// Returns the type of this account ID.
     pub const fn account_type(&self) -> AccountType {
-        extract_type(self.first_felt().as_int())
+        extract_type(self.prefix.as_int())
     }
 
     /// Returns true if an account with this ID is a faucet which can issue assets.
@@ -501,8 +499,8 @@ impl AccountId {
 
     /// Returns the storage mode of this account ID.
     pub fn storage_mode(&self) -> AccountStorageMode {
-        extract_storage_mode(self.first_felt().as_int())
-            .expect("account id should have been constructed with a valid storage mode")
+        extract_storage_mode(self.prefix().as_u64())
+            .expect("account ID should have been constructed with a valid storage mode")
     }
 
     /// Returns true if an account with this ID is a public account.
@@ -512,8 +510,8 @@ impl AccountId {
 
     /// Returns the version of this account ID.
     pub fn version(&self) -> AccountIdVersion {
-        extract_version(self.first_felt().as_int())
-            .expect("account id should have been constructed with a valid version")
+        extract_version(self.prefix().as_u64())
+            .expect("account ID should have been constructed with a valid version")
     }
 
     /// Returns the anchor epoch of this account ID.
@@ -521,7 +519,7 @@ impl AccountId {
     /// This is the epoch to which this ID is anchored. The hash of this epoch block is used in the
     /// generation of the ID.
     pub fn anchor_epoch(&self) -> u16 {
-        extract_anchor_epoch(self.second_felt().as_int())
+        extract_anchor_epoch(self.suffix().as_int())
     }
 
     /// Creates an [`AccountId`] from a hex string. Assumes the string starts with "0x" and
@@ -529,9 +527,9 @@ impl AccountId {
     pub fn from_hex(hex_str: &str) -> Result<AccountId, AccountError> {
         hex_to_bytes(hex_str).map_err(AccountError::AccountIdHexParseError).and_then(
             |mut bytes: [u8; 15]| {
-                // TryFrom<[u8; 15]> expects [first_felt, second_felt] in little-endian order, so we
+                // TryFrom<[u8; 15]> expects [prefix, suffix] in little-endian order, so we
                 // need to convert the bytes representation from big endian to little endian by
-                // reversing each felt. The first felt has 8 and the second felt has
+                // reversing each felt. The prefix has 8 and the suffix has
                 // 7 bytes.
                 bytes[0..8].reverse();
                 bytes[8..15].reverse();
@@ -544,30 +542,27 @@ impl AccountId {
     /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix, so it
     /// encodes 15 bytes.
     pub fn to_hex(&self) -> String {
-        // We need to pad the second felt with 16 zeroes so it produces a correctly padded 8 byte
+        // We need to pad the suffix with 16 zeroes so it produces a correctly padded 8 byte
         // big-endian hex string. Only then can we cut off the last zero byte by truncating. We
         // cannot use `:014x` padding.
         let mut hex_string =
-            format!("0x{:016x}{:016x}", self.first_felt().as_int(), self.second_felt().as_int());
+            format!("0x{:016x}{:016x}", self.prefix().as_u64(), self.suffix().as_int());
         hex_string.truncate(32);
         hex_string
     }
 
-    /// Returns the [`AccountIdPrefix`] of this ID which is equivalent to the first felt.
+    /// Returns the [`AccountIdPrefix`] of this ID.
+    ///
+    /// The prefix of an account ID is guaranteed to be unique.
     pub fn prefix(&self) -> AccountIdPrefix {
-        // SAFETY: We only construct accounts with valid first felts, so we don't have to validate
+        // SAFETY: We only construct account IDs with valid prefixes, so we don't have to validate
         // it again.
-        AccountIdPrefix::new_unchecked(self.first_felt)
+        AccountIdPrefix::new_unchecked(self.prefix)
     }
 
-    /// Returns the first felt of this ID.
-    pub const fn first_felt(&self) -> Felt {
-        self.first_felt
-    }
-
-    /// Returns the second felt of this ID.
-    pub const fn second_felt(&self) -> Felt {
-        self.second_felt
+    /// Returns the suffix of this ID as a [`Felt`].
+    pub const fn suffix(&self) -> Felt {
+        self.suffix
     }
 }
 
@@ -576,17 +571,17 @@ impl AccountId {
 
 impl From<AccountId> for [Felt; 2] {
     fn from(id: AccountId) -> Self {
-        [id.first_felt, id.second_felt]
+        [id.prefix, id.suffix]
     }
 }
 
 impl From<AccountId> for [u8; 15] {
     fn from(id: AccountId) -> Self {
         let mut result = [0_u8; 15];
-        result[..8].copy_from_slice(&id.first_felt().as_int().to_le_bytes());
-        // The last byte of the second felt is always zero, and in little endian this is the first
+        result[..8].copy_from_slice(&id.prefix().as_u64().to_le_bytes());
+        // The last byte of the suffix is always zero, and in little endian this is the first
         // byte, so we skip it here.
-        result[8..].copy_from_slice(&id.second_felt().as_int().to_le_bytes()[1..8]);
+        result[8..].copy_from_slice(&id.suffix().as_int().to_le_bytes()[1..8]);
         result
     }
 }
@@ -594,8 +589,8 @@ impl From<AccountId> for [u8; 15] {
 impl From<AccountId> for u128 {
     fn from(id: AccountId) -> Self {
         let mut le_bytes = [0_u8; 16];
-        le_bytes[..8].copy_from_slice(&id.second_felt().as_int().to_le_bytes());
-        le_bytes[8..].copy_from_slice(&id.first_felt().as_int().to_le_bytes());
+        le_bytes[..8].copy_from_slice(&id.suffix().as_int().to_le_bytes());
+        le_bytes[8..].copy_from_slice(&id.prefix().as_u64().to_le_bytes());
         u128::from_le_bytes(le_bytes)
     }
 }
@@ -603,7 +598,7 @@ impl From<AccountId> for u128 {
 /// Account IDs are used as indexes in the account database, which is a tree of depth 64.
 impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
     fn from(id: AccountId) -> Self {
-        LeafIndex::new_max_depth(id.first_felt().as_int())
+        LeafIndex::new_max_depth(id.prefix().as_u64())
     }
 }
 
@@ -614,7 +609,7 @@ impl TryFrom<[Felt; 2]> for AccountId {
     type Error = AccountError;
 
     /// Returns an [`AccountId`] instantiated with the provided field elements where `elements[0]`
-    /// is taken as the first felt and `elements[1]` is taken as the second element.
+    /// is taken as the prefix and `elements[1]` is taken as the second element.
     ///
     /// # Errors
     ///
@@ -636,21 +631,21 @@ impl TryFrom<[u8; 15]> for AccountId {
     /// documentation](AccountId) for details.
     fn try_from(bytes: [u8; 15]) -> Result<Self, Self::Error> {
         // This slice has 8 bytes.
-        let first_felt_slice = &bytes[..8];
+        let prefix_slice = &bytes[..8];
         // This slice has 7 bytes, since the 8th byte will always be zero.
-        let second_felt_slice = &bytes[8..15];
+        let suffix_slice = &bytes[8..15];
 
         // The byte order is little-endian order, so prepending a 0 sets the least significant byte.
-        let mut second_felt_bytes = [0; 8];
-        second_felt_bytes[1..8].copy_from_slice(second_felt_slice);
+        let mut suffix_bytes = [0; 8];
+        suffix_bytes[1..8].copy_from_slice(suffix_slice);
 
-        let first_felt =
-            Felt::try_from(first_felt_slice).map_err(AccountError::AccountIdInvalidFieldElement)?;
+        let prefix =
+            Felt::try_from(prefix_slice).map_err(AccountError::AccountIdInvalidFieldElement)?;
 
-        let second_felt = Felt::try_from(second_felt_bytes.as_slice())
+        let suffix = Felt::try_from(suffix_bytes.as_slice())
             .map_err(AccountError::AccountIdInvalidFieldElement)?;
 
-        Self::try_from([first_felt, second_felt])
+        Self::try_from([prefix, suffix])
     }
 }
 
@@ -668,9 +663,9 @@ impl TryFrom<u128> for AccountId {
         let mut bytes: [u8; 15] = [0; 15];
 
         // Swap the positions of the Felts to match what the TryFrom<[u8; 15]> impl expects.
-        // This copies the first felt's 8 bytes.
+        // This copies the prefix's 8 bytes.
         bytes[..8].copy_from_slice(&little_endian_bytes[8..]);
-        // This copies the second felt's 7 bytes. The least significant byte is zero and is
+        // This copies the suffix's 7 bytes. The least significant byte is zero and is
         // therefore skipped.
         bytes[8..].copy_from_slice(&little_endian_bytes[1..8]);
 
@@ -710,58 +705,54 @@ impl Deserializable for AccountId {
 /// Returns an error if any of the ID constraints are not met. See the See the [type
 /// documentation](AccountId) for details.
 fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountError> {
-    validate_first_felt(elements[0])?;
-    validate_second_felt(elements[1])?;
+    validate_prefix(elements[0])?;
+    validate_suffix(elements[1])?;
 
-    Ok(AccountId {
-        first_felt: elements[0],
-        second_felt: elements[1],
-    })
+    Ok(AccountId { prefix: elements[0], suffix: elements[1] })
 }
 
-/// Checks that the first felt:
+/// Checks that the prefix:
 /// - has known values for metadata (storage mode, type and version).
-pub(super) fn validate_first_felt(
-    first_felt: Felt,
+pub(super) fn validate_prefix(
+    prefix: Felt,
 ) -> Result<(AccountType, AccountStorageMode, AccountIdVersion), AccountError> {
-    let first_felt = first_felt.as_int();
+    let prefix = prefix.as_int();
 
     // Validate storage bits.
-    let storage_mode = extract_storage_mode(first_felt)?;
+    let storage_mode = extract_storage_mode(prefix)?;
 
     // Validate version bits.
-    let version = extract_version(first_felt)?;
+    let version = extract_version(prefix)?;
 
-    let account_type = extract_type(first_felt);
+    let account_type = extract_type(prefix);
 
     Ok((account_type, storage_mode, version))
 }
 
-/// Checks that the second felt:
+/// Checks that the suffix:
 /// - has an anchor_epoch that is not [`u16::MAX`].
 /// - has its lower 8 bits set to zero.
-fn validate_second_felt(second_felt: Felt) -> Result<(), AccountError> {
-    let second_felt = second_felt.as_int();
+fn validate_suffix(suffix: Felt) -> Result<(), AccountError> {
+    let suffix = suffix.as_int();
 
-    if extract_anchor_epoch(second_felt) == u16::MAX {
+    if extract_anchor_epoch(suffix) == u16::MAX {
         return Err(AccountError::AssumptionViolated(
-            "TODO: Make proper error: second felt epoch must be less than 2^16".into(),
+            "TODO: Make proper error: suffix epoch must be less than 2^16".into(),
         ));
     }
 
-    // Validate lower 8 bits of second felt are zero.
-    if second_felt & 0xff != 0 {
+    // Validate lower 8 bits of suffix are zero.
+    if suffix & 0xff != 0 {
         return Err(AccountError::AssumptionViolated(
-            "TODO: Make proper error: second felt lower 8 bits must be zero".into(),
+            "TODO: Make proper error: suffix lower 8 bits must be zero".into(),
         ));
     }
 
     Ok(())
 }
 
-pub(crate) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode, AccountError> {
-    let bits =
-        (first_felt & (AccountId::STORAGE_MODE_MASK as u64)) >> AccountId::STORAGE_MODE_SHIFT;
+pub(crate) fn extract_storage_mode(prefix: u64) -> Result<AccountStorageMode, AccountError> {
+    let bits = (prefix & AccountId::STORAGE_MODE_MASK as u64) >> AccountId::STORAGE_MODE_SHIFT;
     // SAFETY: `STORAGE_MODE_MASK` is u8 so casting bits is lossless
     match bits as u8 {
         PUBLIC => Ok(AccountStorageMode::Public),
@@ -770,8 +761,8 @@ pub(crate) fn extract_storage_mode(first_felt: u64) -> Result<AccountStorageMode
     }
 }
 
-pub(crate) fn extract_version(first_felt: u64) -> Result<AccountIdVersion, AccountError> {
-    let bits = first_felt & AccountId::VERSION_MASK;
+pub(crate) fn extract_version(prefix: u64) -> Result<AccountIdVersion, AccountError> {
+    let bits = prefix & AccountId::VERSION_MASK;
     let version = bits.try_into().expect("TODO");
     match version {
         AccountIdVersion::VERSION_0_NUMBER => Ok(AccountIdVersion::VERSION_0),
@@ -781,8 +772,8 @@ pub(crate) fn extract_version(first_felt: u64) -> Result<AccountIdVersion, Accou
     }
 }
 
-pub(crate) const fn extract_type(first_felt: u64) -> AccountType {
-    let bits = (first_felt & (AccountId::TYPE_MASK as u64)) >> AccountId::TYPE_SHIFT;
+pub(crate) const fn extract_type(prefix: u64) -> AccountType {
+    let bits = (prefix & (AccountId::TYPE_MASK as u64)) >> AccountId::TYPE_SHIFT;
     // SAFETY: `TYPE_MASK` is u8 so casting bits is lossless
     match bits as u8 {
         REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
@@ -796,28 +787,28 @@ pub(crate) const fn extract_type(first_felt: u64) -> AccountType {
     }
 }
 
-fn extract_anchor_epoch(second_felt: u64) -> u16 {
-    ((second_felt & AccountId::ANCHOR_EPOCH_MASK) >> AccountId::ANCHOR_EPOCH_SHIFT) as u16
+const fn extract_anchor_epoch(suffix: u64) -> u16 {
+    ((suffix & AccountId::ANCHOR_EPOCH_MASK) >> AccountId::ANCHOR_EPOCH_SHIFT) as u16
 }
 
-/// Shapes the second felt so it meets the requirements of the account ID, by overwriting the
+/// Shapes the suffix so it meets the requirements of the account ID, by overwriting the
 /// upper 16 bits with the epoch and setting the lower 8 bits to zero.
-fn shape_second_felt(second_felt: Felt, anchor_epoch: u16) -> Felt {
+fn shape_suffix(suffix: Felt, anchor_epoch: u16) -> Result<Felt, AccountError> {
     if anchor_epoch == u16::MAX {
         unimplemented!("TODO: Return error");
     }
 
-    let mut second_felt = second_felt.as_int();
+    let mut suffix = suffix.as_int();
 
     // Clear upper 16 epoch bits and the lower 8 bits.
-    second_felt &= 0x0000_ffff_ffff_ff00;
+    suffix &= 0x0000_ffff_ffff_ff00;
 
     // Set the upper 16 anchor epoch bits.
-    second_felt |= (anchor_epoch as u64) << AccountId::ANCHOR_EPOCH_SHIFT;
+    suffix |= (anchor_epoch as u64) << AccountId::ANCHOR_EPOCH_SHIFT;
 
     // SAFETY: We disallow u16::MAX which would be all 1 bits, so at least one of the most
     // significant bits will always be zero.
-    Felt::try_from(second_felt).expect("epoch is never all ones so felt should be valid")
+    Ok(Felt::try_from(suffix).expect("epoch is never all ones so felt should be valid"))
 }
 
 // COMMON TRAIT IMPLS
@@ -890,16 +881,16 @@ mod tests {
         for anchor_epoch in [0, u16::MAX - 1, 5000] {
             let anchor = AccountIdAnchor::new_unchecked(anchor_epoch, anchor_block_hash);
             let id = AccountId::new(seed, anchor, code_commitment, storage_commitment).unwrap();
-            assert_eq!(id.anchor_epoch(), anchor_epoch, "failed for account id: {id}");
+            assert_eq!(id.anchor_epoch(), anchor_epoch, "failed for account ID: {id}");
         }
     }
 
     #[test]
     fn account_id_from_felts_with_high_pop_count() {
-        let valid_second_felt = Felt::try_from(0xfffe_ffff_ffff_ff00u64).unwrap();
-        let valid_first_felt = Felt::try_from(0x7fff_ffff_ffff_ff00u64).unwrap();
+        let valid_suffix = Felt::try_from(0xfffe_ffff_ffff_ff00u64).unwrap();
+        let valid_prefix = Felt::try_from(0x7fff_ffff_ffff_ff00u64).unwrap();
 
-        let id1 = AccountId::new_unchecked([valid_first_felt, valid_second_felt]);
+        let id1 = AccountId::new_unchecked([valid_prefix, valid_suffix]);
         assert_eq!(id1.account_type(), AccountType::RegularAccountImmutableCode);
         assert_eq!(id1.storage_mode(), AccountStorageMode::Public);
         assert_eq!(id1.version(), AccountIdVersion::VERSION_0);

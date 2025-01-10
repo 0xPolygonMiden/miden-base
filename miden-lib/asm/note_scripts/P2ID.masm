@@ -90,12 +90,12 @@ begin
     eq.2 assert.err=ERR_P2ID_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
-    # read the target account id from the note inputs
+    # read the target account ID from the note inputs
     padw movup.4 mem_loadw drop drop
-    # => [target_account_id_hi, target_account_id_lo]
+    # => [target_account_id_prefix, target_account_id_suffix]
 
     exec.account::get_id
-    # => [account_id_hi, account_id_lo, target_account_id_hi, target_account_id_lo, ...]
+    # => [account_id_prefix, account_id_suffix, target_account_id_prefix, target_account_id_suffix, ...]
 
     # ensure account_id = target_account_id, fails otherwise
     exec.account::is_id_eq assert.err=ERR_P2ID_TARGET_ACCT_MISMATCH

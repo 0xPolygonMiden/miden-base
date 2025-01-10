@@ -42,12 +42,12 @@ const.INVERSE_FUNGIBLE_BITMASK_U32=0xffffffdf # last byte: 0b1101_1111
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Inputs:  [faucet_id_hi, faucet_id_lo, vault_root_ptr]
+#! Inputs:  [faucet_id_prefix, faucet_id_suffix, vault_root_ptr]
 #! Outputs: [balance]
 #!
 #! Where:
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
-#! - faucet_id_hi is the first felt of the faucet id of the fungible asset of interest.
+#! - faucet_id_prefix is the prefix of the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
 #!
 #! Panics if:
@@ -56,15 +56,15 @@ export.get_balance
     # assert that the faucet id is a fungible faucet
     dup exec.account::is_fungible_faucet 
     assert.err=ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
-    # => [faucet_id_hi, faucet_id_lo, vault_root_ptr]
+    # => [faucet_id_prefix, faucet_id_suffix, vault_root_ptr]
 
     # get the asset vault root
     padw movup.6 mem_loadw
-    # => [ASSET_VAULT_ROOT, faucet_id_hi, faucet_id_lo]
+    # => [ASSET_VAULT_ROOT, faucet_id_prefix, faucet_id_suffix]
 
     # prepare the key for fungible asset lookup (pad least significant elements with zeros)
     push.0.0 movup.7 movup.7
-    # => [faucet_id_hi, faucet_id_lo, 0, 0, ASSET_VAULT_ROOT]
+    # => [faucet_id_prefix, faucet_id_suffix, 0, 0, ASSET_VAULT_ROOT]
 
     # lookup asset
     exec.smt::get swapw dropw
@@ -134,15 +134,15 @@ export.add_fungible_asset
     # Create the asset key from the asset.
     # ---------------------------------------------------------------------------------------------
 
-    # => [faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
+    # => [faucet_id_prefix, faucet_id_suffix, 0, amount, vault_root_ptr]
     dupw
-    # => [faucet_id_hi, faucet_id_lo, 0, amount, faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
+    # => [faucet_id_prefix, faucet_id_suffix, 0, amount, faucet_id_prefix, faucet_id_suffix, 0, amount, vault_root_ptr]
     push.0 swap.4 drop
-    # => [[faucet_id_hi, faucet_id_lo, 0, 0], faucet_id_hi, faucet_id_lo, 0, amount, vault_root_ptr]
+    # => [[faucet_id_prefix, faucet_id_suffix, 0, 0], faucet_id_prefix, faucet_id_suffix, 0, amount, vault_root_ptr]
     movup.6 drop
-    # => [[faucet_id_hi, faucet_id_lo, 0, 0], faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
+    # => [[faucet_id_prefix, faucet_id_suffix, 0, 0], faucet_id_prefix, faucet_id_suffix, amount, vault_root_ptr]
     padw dup.11
-    # => [vault_root_ptr, pad(4), ASSET_KEY, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
+    # => [vault_root_ptr, pad(4), ASSET_KEY, faucet_id_prefix, faucet_id_suffix, amount, vault_root_ptr]
 
     # Get the asset vault root and read the current asset using the `push_smtpeek` decorator.
     # ---------------------------------------------------------------------------------------------
@@ -150,18 +150,18 @@ export.add_fungible_asset
     # the current asset may be the empty word if it does not exist and so its faucet id would be zeroes
     # we therefore overwrite the faucet id with the faucet id from ASSET to account for this edge case
     mem_loadw swapw
-    # => [ASSET_KEY, VAULT_ROOT, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
+    # => [ASSET_KEY, VAULT_ROOT, faucet_id_prefix, faucet_id_suffix, amount, vault_root_ptr]
     adv.push_smtpeek push.15329 drop            # TODO: remove line, see miden-vm/#1122
     adv_loadw
-    # => [CUR_VAULT_VALUE, VAULT_ROOT, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
+    # => [CUR_VAULT_VALUE, VAULT_ROOT, faucet_id_prefix, faucet_id_suffix, amount, vault_root_ptr]
     swapw
-    # => [VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
+    # => [VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_prefix, faucet_id_suffix, amount, vault_root_ptr]
     dupw.1
-    # => [CUR_VAULT_VALUE, VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
+    # => [CUR_VAULT_VALUE, VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_prefix, faucet_id_suffix, amount, vault_root_ptr]
     drop drop
-    # => [[0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_hi, faucet_id_lo, amount, vault_root_ptr]
+    # => [[0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, faucet_id_prefix, faucet_id_suffix, amount, vault_root_ptr]
     movup.11 movup.11
-    # => [[faucet_id_hi, faucet_id_lo, 0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
+    # => [[faucet_id_prefix, faucet_id_suffix, 0, cur_amount], VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
 
     # Check the new amount does not exceed the maximum allowed amount and add the two
     # fungible assets together.
@@ -169,16 +169,16 @@ export.add_fungible_asset
 
     # arrange amounts
     movup.3 movup.12 dup
-    # => [amount, amount, cur_amount, faucet_id_hi, faucet_id_lo, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
+    # => [amount, amount, cur_amount, faucet_id_prefix, faucet_id_suffix, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # compute max_amount - cur_amount
     exec.asset::get_fungible_asset_max_amount dup.3 sub
-    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id_hi, faucet_id_lo, 0, VAULT_ROOT,
+    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id_prefix, faucet_id_suffix, 0, VAULT_ROOT,
     #     CUR_VAULT_VALUE, vault_root_ptr]
 
     # assert amount + cur_amount < max_amount
     lte assert.err=ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED
-    # => [amount, cur_amount, faucet_id_hi, faucet_id_lo, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
+    # => [amount, cur_amount, faucet_id_prefix, faucet_id_suffix, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # add asset amounts
     add movdn.3
@@ -193,7 +193,7 @@ export.add_fungible_asset
     dupw
     # => [ASSET', ASSET', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
     push.0 swap.4 drop
-    # => [[faucet_id_hi, faucet_id_lo, 0, 0], ASSET', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
+    # => [[faucet_id_prefix, faucet_id_suffix, 0, 0], ASSET', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
     swapw
     # => [ASSET', ASSET_KEY', VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
 
@@ -433,17 +433,17 @@ end
 #! - ASSET_KEY is the vault key of the non-fungible asset.
 proc.build_non_fungible_asset_vault_key
     # create the asset key from the non-fungible asset by swapping hash0 with the faucet id
-    # => [faucet_id_hi, hash2, hash1, hash0]
+    # => [faucet_id_prefix, hash2, hash1, hash0]
     swap.3
-    # => [hash0, hash2, hash1 faucet_id_hi]
+    # => [hash0, hash2, hash1 faucet_id_prefix]
 
     # disassemble hash0 into u32 limbs
     u32split swap
-    # => [hash0_lo, hash0_hi, hash2, hash1 faucet_id_hi]
+    # => [hash0_lo, hash0_hi, hash2, hash1 faucet_id_prefix]
 
     # set the fungible bit to 0
     u32and.INVERSE_FUNGIBLE_BITMASK_U32
-    # => [hash0_lo', hash0_hi, hash2, hash1 faucet_id_hi]
+    # => [hash0_lo', hash0_hi, hash2, hash1 faucet_id_prefix]
 
     # reassemble hash0 felt by multiplying the high part with 2^32 and adding the lo part
     swap push.0x0100000000 mul add

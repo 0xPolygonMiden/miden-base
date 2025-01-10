@@ -3,13 +3,13 @@ use.miden::kernel_proc_offsets
 # NATIVE ACCOUNT PROCEDURES
 # =================================================================================================
 
-#! Returns the account id.
+#! Returns the account ID.
 #!
 #! Inputs:  []
-#! Outputs: [acct_id_hi, acct_id_lo]
+#! Outputs: [acct_id_prefix, acct_id_suffix]
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of the account id.
+#! - acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID.
 #!
 #! Invocation: exec
 export.get_id
@@ -24,11 +24,11 @@ export.get_id
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [acct_id_hi, acct_id_lo, pad(14)]
+    # => [acct_id_prefix, acct_id_suffix, pad(14)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 movdn.3 drop drop
-    # => [acct_id_hi, acct_id_lo]
+    # => [acct_id_prefix, acct_id_suffix]
 end
 
 #! Returns the account nonce.
@@ -294,11 +294,11 @@ end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #!
-#! Inputs:  [faucet_id_hi, faucet_id_lo]
+#! Inputs:  [faucet_id_prefix, faucet_id_suffix]
 #! Outputs: [balance]
 #!
 #! Where:
-#! - faucet_id_{hi,lo} are the first and second felt of the faucet id of the fungible asset
+#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible asset
 #!   of interest.
 #! - balance is the vault balance of the fungible asset.
 #! 
@@ -308,11 +308,11 @@ end
 #! Invocation: exec
 export.get_balance
     exec.kernel_proc_offsets::account_vault_get_balance_offset
-    # => [offset, faucet_id_hi, faucet_id_lo]
+    # => [offset, faucet_id_prefix, faucet_id_suffix]
 
     # pad the stack
     push.0 movdn.3 padw swapw padw padw swapdw
-    # => [offset, faucet_id_hi, faucet_id_lo, pad(13)]
+    # => [offset, faucet_id_prefix, faucet_id_suffix, pad(13)]
 
     syscall.exec_kernel_proc
     # => [balance, pad(15)]
@@ -442,7 +442,7 @@ end
 # PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
 # =================================================================================================
 
-# Given the least significant 32 bits of an account id's first felt, this mask defines the bits used
+# Given the least significant 32 bits of an account ID's prefix, this mask defines the bits used
 # to determine the account type.
 const.ACCOUNT_ID_TYPE_MASK_U32=0x30 # 0b11_0000
 
@@ -462,10 +462,10 @@ const.NON_FUNGIBLE_FAUCET_ACCOUNT=0x30 # 0b11_0000
 #! - FUNGIBLE_FAUCET_ACCOUNT
 #! - NON_FUNGIBLE_FAUCET_ACCOUNT
 #!
-#! Stack: [acct_id_hi]
+#! Stack: [acct_id_prefix]
 #! Output: [acct_type]
 #!
-#! - acct_id_hi is the first felt of the account id.
+#! - acct_id_prefix is the prefix of the account ID.
 #! - acct_type is the account type.
 proc.type
     u32split drop push.ACCOUNT_ID_TYPE_MASK_U32 u32and
@@ -477,7 +477,7 @@ end
 #! Stack: [acct_id]
 #! Output: [is_fungible_faucet]
 #!
-#! - acct_id is the account id.
+#! - acct_id is the account ID.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
 export.is_fungible_faucet
     exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
@@ -489,7 +489,7 @@ end
 #! Stack: [acct_id]
 #! Output: [is_non_fungible_faucet]
 #!
-#! - acct_id is the account id.
+#! - acct_id is the account ID.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
 export.is_non_fungible_faucet
     exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
@@ -500,18 +500,18 @@ end
 #!
 #! Returns a boolean indicating whether the given account_ids are equal.
 #!
-#! Inputs:  [acct_id_hi, acct_id_lo, other_acct_id_hi, other_acct_id_lo]
+#! Inputs:  [acct_id_prefix, acct_id_suffix, other_acct_id_prefix, other_acct_id_suffix]
 #! Outputs: [is_id_equal]
 #!
 #! Where:
-#! - acct_id_{hi,lo} are the first and second felt of an account id.
-#! - other_acct_id_{hi,lo} are the first and second felt of the other account id to compare against.
-#! - is_id_equal is a boolean indicating whether the account ids are equal.
+#! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
+#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
+#! - is_id_equal is a boolean indicating whether the account IDs are equal.
 export.is_id_eq
     movup.2 eq
-    # => [is_hi_equal, acct_id_lo, other_acct_id_lo]
-    swap movup.2 eq
-    # => [is_lo_equal, is_hi_equal]
+    # => [is_prefix_equal, acct_id_suffix, other_acct_id_suffix]
+    movdn.2 eq
+    # => [is_suffix_equal, is_prefix_equal]
     and
     # => [is_id_equal]
 end
