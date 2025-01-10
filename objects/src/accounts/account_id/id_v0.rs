@@ -2,7 +2,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::{fmt, str::FromStr};
+use core::fmt;
 
 use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
 use vm_core::{
@@ -12,242 +12,19 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use crate::{
-    accounts::{AccountIdAnchor, AccountIdPrefix},
+    accounts::{
+        account_id::{
+            account_type::{
+                FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET, REGULAR_ACCOUNT_IMMUTABLE_CODE,
+                REGULAR_ACCOUNT_UPDATABLE_CODE,
+            },
+            storage_mode::{PRIVATE, PUBLIC},
+        },
+        AccountIdAnchor, AccountIdPrefix, AccountIdVersion, AccountStorageMode, AccountType,
+    },
     errors::AccountIdError,
     AccountError, Hasher, ACCOUNT_TREE_DEPTH,
 };
-
-// ACCOUNT TYPE
-// ================================================================================================
-
-const FUNGIBLE_FAUCET: u8 = 0b10;
-const NON_FUNGIBLE_FAUCET: u8 = 0b11;
-const REGULAR_ACCOUNT_IMMUTABLE_CODE: u8 = 0b00;
-const REGULAR_ACCOUNT_UPDATABLE_CODE: u8 = 0b01;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u8)]
-pub enum AccountType {
-    FungibleFaucet = FUNGIBLE_FAUCET,
-    NonFungibleFaucet = NON_FUNGIBLE_FAUCET,
-    RegularAccountImmutableCode = REGULAR_ACCOUNT_IMMUTABLE_CODE,
-    RegularAccountUpdatableCode = REGULAR_ACCOUNT_UPDATABLE_CODE,
-}
-
-impl AccountType {
-    /// Returns `true` if the account is a faucet.
-    pub fn is_faucet(&self) -> bool {
-        matches!(self, Self::FungibleFaucet | Self::NonFungibleFaucet)
-    }
-
-    /// Returns `true` if the account is a regular account.
-    pub fn is_regular_account(&self) -> bool {
-        matches!(self, Self::RegularAccountImmutableCode | Self::RegularAccountUpdatableCode)
-    }
-
-    /// Returns the string representation of the [`AccountType`].
-    fn as_str(&self) -> &'static str {
-        match self {
-            AccountType::FungibleFaucet => "FungibleFaucet",
-            AccountType::NonFungibleFaucet => "NonFungibleFaucet",
-            AccountType::RegularAccountImmutableCode => "RegularAccountImmutableCode",
-            AccountType::RegularAccountUpdatableCode => "RegularAccountUpdatableCode",
-        }
-    }
-}
-
-#[cfg(any(feature = "testing", test))]
-impl rand::distributions::Distribution<AccountType> for rand::distributions::Standard {
-    /// Samples a uniformly random [`AccountType`] from the given `rng`.
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountType {
-        match rng.gen_range(0..4) {
-            0 => AccountType::RegularAccountImmutableCode,
-            1 => AccountType::RegularAccountUpdatableCode,
-            2 => AccountType::FungibleFaucet,
-            3 => AccountType::NonFungibleFaucet,
-            _ => unreachable!("gen_range should not produce higher values"),
-        }
-    }
-}
-
-// SERIALIZATION
-// ================================================================================================
-
-impl Serializable for AccountType {
-    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
-        target.write_u8(*self as u8);
-    }
-}
-
-impl Deserializable for AccountType {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num: u8 = source.read()?;
-        match num {
-            FUNGIBLE_FAUCET => Ok(AccountType::FungibleFaucet),
-            NON_FUNGIBLE_FAUCET => Ok(AccountType::NonFungibleFaucet),
-            REGULAR_ACCOUNT_IMMUTABLE_CODE => Ok(AccountType::RegularAccountImmutableCode),
-            REGULAR_ACCOUNT_UPDATABLE_CODE => Ok(AccountType::RegularAccountUpdatableCode),
-            _ => Err(DeserializationError::InvalidValue(format!("invalid account type: {num}"))),
-        }
-    }
-}
-
-impl FromStr for AccountType {
-    type Err = AccountIdError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        match string {
-            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
-            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
-            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
-            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
-            other => Err(AccountIdError::UnknownAccountType(other.into())),
-        }
-    }
-}
-
-impl core::fmt::Display for AccountType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-#[cfg(feature = "std")]
-impl serde::Serialize for AccountType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-#[cfg(feature = "std")]
-impl<'de> serde::Deserialize<'de> for AccountType {
-    fn deserialize<D>(deserializer: D) -> Result<AccountType, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        use serde::de::Error;
-        let string: String = serde::Deserialize::deserialize(deserializer)?;
-        string.parse().map_err(D::Error::custom)
-    }
-}
-
-// ACCOUNT STORAGE MODE
-// ================================================================================================
-
-const PUBLIC: u8 = 0b00;
-const PRIVATE: u8 = 0b10;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum AccountStorageMode {
-    Public = PUBLIC,
-    Private = PRIVATE,
-}
-
-impl fmt::Display for AccountStorageMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AccountStorageMode::Public => write!(f, "public"),
-            AccountStorageMode::Private => write!(f, "private"),
-        }
-    }
-}
-
-impl TryFrom<&str> for AccountStorageMode {
-    type Error = AccountIdError;
-
-    fn try_from(value: &str) -> Result<Self, AccountIdError> {
-        match value.to_lowercase().as_str() {
-            "public" => Ok(AccountStorageMode::Public),
-            "private" => Ok(AccountStorageMode::Private),
-            _ => Err(AccountIdError::UnknownAccountStorageMode(value.into())),
-        }
-    }
-}
-
-impl TryFrom<String> for AccountStorageMode {
-    type Error = AccountIdError;
-
-    fn try_from(value: String) -> Result<Self, AccountIdError> {
-        AccountStorageMode::from_str(&value)
-    }
-}
-
-impl FromStr for AccountStorageMode {
-    type Err = AccountIdError;
-
-    fn from_str(input: &str) -> Result<AccountStorageMode, AccountIdError> {
-        AccountStorageMode::try_from(input)
-    }
-}
-
-#[cfg(any(feature = "testing", test))]
-impl rand::distributions::Distribution<AccountStorageMode> for rand::distributions::Standard {
-    /// Samples a uniformly random [`AccountStorageMode`] from the given `rng`.
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountStorageMode {
-        match rng.gen_range(0..2) {
-            0 => AccountStorageMode::Public,
-            1 => AccountStorageMode::Private,
-            _ => unreachable!("gen_range should not produce higher values"),
-        }
-    }
-}
-
-// ACCOUNT ID VERSION
-// ================================================================================================
-
-const VERSION_0_NUMBER: u8 = 0;
-
-/// The version of an [`AccountId`].
-///
-/// Each version has a public associated constant, e.g. [`AccountIdVersion::VERSION_0`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum AccountIdVersion {
-    Version0 = VERSION_0_NUMBER,
-}
-
-impl AccountIdVersion {
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the version number.
-    pub const fn as_u8(&self) -> u8 {
-        *self as u8
-    }
-}
-
-impl TryFrom<u8> for AccountIdVersion {
-    type Error = AccountIdError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            VERSION_0_NUMBER => Ok(AccountIdVersion::Version0),
-            other_version => Err(AccountIdError::UnknownAccountIdVersion(other_version)),
-        }
-    }
-}
-
-impl From<AccountIdVersion> for u8 {
-    fn from(value: AccountIdVersion) -> Self {
-        value.as_u8()
-    }
-}
-
-impl From<AccountIdV0> for AccountIdVersion {
-    fn from(id: AccountIdV0) -> Self {
-        id.version()
-    }
-}
-
-impl From<AccountIdPrefix> for AccountIdVersion {
-    fn from(id_prefix: AccountIdPrefix) -> Self {
-        id_prefix.version()
-    }
-}
 
 // ACCOUNT ID VERSION 0
 // ================================================================================================
@@ -994,20 +771,5 @@ mod tests {
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::NonFungibleFaucet);
         assert!(!account_id.is_public());
-    }
-
-    /// The following test ensure there is a bit available to identify an account as a faucet or
-    /// normal.
-    #[test]
-    fn test_account_id_faucet_bit() {
-        const ACCOUNT_IS_FAUCET_MASK: u8 = 0b10;
-
-        // faucets have a bit set
-        assert_ne!((FUNGIBLE_FAUCET) & ACCOUNT_IS_FAUCET_MASK, 0);
-        assert_ne!((NON_FUNGIBLE_FAUCET) & ACCOUNT_IS_FAUCET_MASK, 0);
-
-        // normal accounts do not have the faucet bit set
-        assert_eq!((REGULAR_ACCOUNT_IMMUTABLE_CODE) & ACCOUNT_IS_FAUCET_MASK, 0);
-        assert_eq!((REGULAR_ACCOUNT_UPDATABLE_CODE) & ACCOUNT_IS_FAUCET_MASK, 0);
     }
 }
