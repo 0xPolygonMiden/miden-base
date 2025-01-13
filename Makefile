@@ -42,7 +42,7 @@ format-check: ## Runs Format using nightly toolchain but only in check mode
 
 
 .PHONY: lint
-lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, formatting)
+lint: format fix clippy clippy-no-std ## Runs all linting tasks at once (Clippy, fixing, formatting)
 
 # --- docs ----------------------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ check: ## Check all targets and features for errors without code generation
 
 
 .PHONY: check-no-std
-check-no-std: ## Check all targets and features for errors without code generation
+check-no-std: ## Check the no-std target without any features for errors without code generation
 	${BUILD_KERNEL_ERRORS} cargo check --no-default-features --target wasm32-unknown-unknown --workspace --lib
 
 # --- building ------------------------------------------------------------------------------------
