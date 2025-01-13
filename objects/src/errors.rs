@@ -271,27 +271,27 @@ pub enum NoteError {
 #[derive(Debug, Error)]
 pub enum ChainMmrError {
     #[error("block num {block_num} exceeds chain length {chain_length} implied by the chain MMR")]
-    BlockNumTooBig { chain_length: usize, block_num: u32 },
+    BlockNumTooBig {
+        chain_length: usize,
+        block_num: BlockNumber,
+    },
     #[error("duplicate block {block_num} in chain MMR")]
-    DuplicateBlock { block_num: u32 },
+    DuplicateBlock { block_num: BlockNumber },
     #[error("chain MMR does not track authentication paths for block {block_num}")]
-    UntrackedBlock { block_num: u32 },
+    UntrackedBlock { block_num: BlockNumber },
 }
 
 impl ChainMmrError {
     pub fn block_num_too_big(chain_length: usize, block_num: BlockNumber) -> Self {
-        Self::BlockNumTooBig {
-            chain_length,
-            block_num: block_num.as_u32(),
-        }
+        Self::BlockNumTooBig { chain_length, block_num }
     }
 
     pub fn duplicate_block(block_num: BlockNumber) -> Self {
-        Self::DuplicateBlock { block_num: block_num.as_u32() }
+        Self::DuplicateBlock { block_num }
     }
 
     pub fn untracked_block(block_num: BlockNumber) -> Self {
-        Self::UntrackedBlock { block_num: block_num.as_u32() }
+        Self::UntrackedBlock { block_num }
     }
 }
 
