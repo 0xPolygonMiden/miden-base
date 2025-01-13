@@ -121,7 +121,7 @@ impl NonFungibleAsset {
         vault_key
     }
 
-    /// Return ID of the faucet which issued this asset.
+    /// Return ID prefix of the faucet which issued this asset.
     pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         AccountIdPrefix::new_unchecked(self.0[FAUCET_ID_POS])
     }
@@ -203,8 +203,8 @@ impl Deserializable for NonFungibleAsset {
 }
 
 impl NonFungibleAsset {
-    /// Deserializes a [`NonFungibleAsset`] from an [`AccountId`] and the remaining data from the
-    /// given `source`.
+    /// Deserializes a [`NonFungibleAsset`] from an [`AccountIdPrefix`] and the remaining data from
+    /// the given `source`.
     pub(super) fn deserialize_with_faucet_id_prefix<R: ByteReader>(
         faucet_id_prefix: AccountIdPrefix,
         source: &mut R,
