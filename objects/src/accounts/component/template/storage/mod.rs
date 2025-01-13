@@ -316,8 +316,8 @@ impl Deserializable for StorageEntry {
 
 /// Represents the type of values that can be found in a storage slot's `values` field.
 #[cfg(feature = "std")]
-#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "std", serde(untagged))]
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
 enum StorageValues {
     /// List of individual words (for multi-slot entries).
     Words(Vec<WordRepresentation>),
