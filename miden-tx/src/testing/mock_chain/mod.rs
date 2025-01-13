@@ -695,7 +695,7 @@ impl MockChain {
             let header = BlockHeader::new(
                 version,
                 prev_hash,
-                current_block_num,
+                BlockNumber::from(current_block_num),
                 chain_root,
                 account_root,
                 nullifier_root,

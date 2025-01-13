@@ -49,7 +49,7 @@ impl BlockHeader {
     pub fn new(
         version: u32,
         prev_hash: Digest,
-        block_num: u32,
+        block_num: BlockNumber,
         chain_root: Digest,
         account_root: Digest,
         nullifier_root: Digest,
@@ -70,7 +70,7 @@ impl BlockHeader {
             kernel_root,
             proof_hash,
             timestamp,
-            block_num,
+            block_num.as_u32(),
         );
 
         // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the
@@ -82,7 +82,7 @@ impl BlockHeader {
         Self {
             version,
             prev_hash,
-            block_num: block_num.into(),
+            block_num,
             chain_root,
             account_root,
             nullifier_root,
@@ -284,6 +284,12 @@ impl Serializable for BlockNumber {
 
     fn get_size_hint(&self) -> usize {
         core::mem::size_of::<u32>()
+    }
+}
+
+impl Deserializable for BlockNumber {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        source.read::<u32>().map(BlockNumber::from)
     }
 }
 

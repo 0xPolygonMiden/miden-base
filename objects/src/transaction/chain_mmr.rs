@@ -162,7 +162,7 @@ mod tests {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
-            let block_header = int_to_block_header(i.into());
+            let block_header = int_to_block_header(i);
             mmr.add(block_header.hash());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
@@ -170,7 +170,7 @@ mod tests {
 
         // add a new block to the chain MMR, this reduces the number of peaks to 1
         let block_num = 3;
-        let bock_header = int_to_block_header(block_num.into());
+        let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.hash());
         chain_mmr.add_block(bock_header, true);
 
@@ -181,7 +181,7 @@ mod tests {
 
         // add one more block to the chain MMR, the number of peaks is again 2
         let block_num = 4;
-        let bock_header = int_to_block_header(block_num.into());
+        let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.hash());
         chain_mmr.add_block(bock_header, true);
 
@@ -192,7 +192,7 @@ mod tests {
 
         // add one more block to the chain MMR, the number of peaks is still 2
         let block_num = 5;
-        let bock_header = int_to_block_header(block_num.into());
+        let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.hash());
         chain_mmr.add_block(bock_header, true);
 
@@ -207,7 +207,7 @@ mod tests {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
-            let block_header = int_to_block_header(i.into());
+            let block_header = int_to_block_header(i);
             mmr.add(block_header.hash());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
@@ -219,11 +219,11 @@ mod tests {
         assert_eq!(chain_mmr, deserialized);
     }
 
-    fn int_to_block_header(block_num: BlockNumber) -> BlockHeader {
+    fn int_to_block_header(block_num: impl Into<BlockNumber>) -> BlockHeader {
         BlockHeader::new(
             0,
             Digest::default(),
-            block_num.as_u32(),
+            block_num.into(),
             Digest::default(),
             Digest::default(),
             Digest::default(),

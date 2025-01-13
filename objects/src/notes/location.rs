@@ -85,20 +85,17 @@ impl NoteInclusionProof {
 
 impl Serializable for NoteLocation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u32(self.block_num.as_u32());
+        target.write(self.block_num);
         target.write_u16(self.node_index_in_block);
     }
 }
 
 impl Deserializable for NoteLocation {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let block_num = source.read_u32()?;
+        let block_num = source.read()?;
         let node_index_in_block = source.read_u16()?;
 
-        Ok(Self {
-            block_num: block_num.into(),
-            node_index_in_block,
-        })
+        Ok(Self { block_num, node_index_in_block })
     }
 }
 
