@@ -371,8 +371,8 @@ impl TryFrom<[Felt; 2]> for AccountId {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountId) for details.
+    /// Returns an error if any of the ID constraints are not met. See the [constraints
+    /// documentation](AccountId#constraints) for details.
     fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.
@@ -389,8 +389,8 @@ impl TryFrom<[u8; 15]> for AccountId {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountId) for details.
+    /// Returns an error if any of the ID constraints are not met. See the [constraints
+    /// documentation](AccountId#constraints) for details.
     fn try_from(bytes: [u8; 15]) -> Result<Self, Self::Error> {
         // The least significant byte of the ID prefix contains the metadata.
         let metadata_byte = bytes[7];
@@ -411,8 +411,8 @@ impl TryFrom<u128> for AccountId {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountId) for details.
+    /// Returns an error if any of the ID constraints are not met. See the [constraints
+    /// documentation](AccountId#constraints) for details.
     fn try_from(int: u128) -> Result<Self, Self::Error> {
         let mut bytes: [u8; 15] = [0; 15];
         bytes.copy_from_slice(&int.to_be_bytes()[0..15]);

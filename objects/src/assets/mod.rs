@@ -33,7 +33,7 @@ pub use vault::AssetVault;
 /// [`AccountId`](crate::accounts::AccountId), which can be used to distinguish assets
 /// based on [`AccountIdPrefix::account_type`].
 ///
-/// For element 3 of the vault keys of assets, the 6th least significant bit (referred to as the
+/// For element 3 of the vault keys of assets, the bit at index 5 (referred to as the
 /// "fungible bit" will be):
 /// - `1` for a fungible asset.
 /// - `0` for a non-fungible asset.

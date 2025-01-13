@@ -29,6 +29,9 @@ use crate::{
 // ACCOUNT ID VERSION 0
 // ================================================================================================
 
+/// Version 0 of the [`Account`](crate::accounts::Account) identifier.
+///
+/// See the [`AccountId`](super::AccountId) type's documentation for details.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AccountIdV0 {
     prefix: Felt,
@@ -40,42 +43,31 @@ impl AccountIdV0 {
     // --------------------------------------------------------------------------------------------
 
     /// The serialized size of an [`AccountIdV0`] in bytes.
-    pub const SERIALIZED_SIZE: usize = 15;
+    const SERIALIZED_SIZE: usize = 15;
 
-    /// The lower two bits of the second least significant nibble determine the account type.
-    pub(crate) const TYPE_SHIFT: u64 = 4;
+    /// The lower two bits of the second least significant nibble encode the account type.
     pub(crate) const TYPE_MASK: u8 = 0b11 << Self::TYPE_SHIFT;
+    pub(crate) const TYPE_SHIFT: u64 = 4;
 
     /// The least significant nibble determines the account version.
     const VERSION_MASK: u64 = 0b1111;
 
-    const ANCHOR_EPOCH_SHIFT: u64 = 48;
+    /// The two most significant bytes of the suffix encdode the anchor epoch.
     const ANCHOR_EPOCH_MASK: u64 = 0xffff << Self::ANCHOR_EPOCH_SHIFT;
+    const ANCHOR_EPOCH_SHIFT: u64 = 48;
 
-    /// The higher two bits of the second least significant nibble determine the account storage
+    /// The higher two bits of the second least significant nibble encode the account storage
     /// mode.
-    pub(crate) const STORAGE_MODE_SHIFT: u64 = 6;
     pub(crate) const STORAGE_MODE_MASK: u8 = 0b11 << Self::STORAGE_MODE_SHIFT;
+    pub(crate) const STORAGE_MODE_SHIFT: u64 = 6;
 
+    /// The bit at index 5 of the prefix encodes whether the account is a faucet.
     pub(crate) const IS_FAUCET_MASK: u64 = 0b10 << Self::TYPE_SHIFT;
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Creates an [`AccountIdV0`] by hashing the given `seed`, `code_commitment`,
-    /// `storage_commitment` and [`AccountIdAnchor::block_hash`] from the `anchor` and using the
-    /// resulting first and second element of the hash as the prefix and suffix felts of the ID.
-    /// The [`AccountIdAnchor::epoch`] from the `anchor` overwrites part of the suffix.
-    ///
-    /// Note that the `anchor` must correspond to a valid block in the chain for the ID to be deemed
-    /// valid during creation.
-    ///
-    /// See the documentation of the [`AccountIdV0`] for more details on the generation.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountIdV0) for details.
+    /// See [`AccountId::new`](super::AccountId::new) for details.
     pub fn new(
         seed: Word,
         anchor: AccountIdAnchor,
@@ -95,18 +87,7 @@ impl AccountIdV0 {
         account_id_from_felts(felts)
     }
 
-    /// Creates an [`AccountIdV0`] from the given felts where the felt at index 0 is the prefix
-    /// and the felt at index 2 is the suffix.
-    ///
-    /// # Warning
-    ///
-    /// Validity of the ID must be ensured by the caller. An invalid ID may lead to panics.
-    ///
-    /// # Panics
-    ///
-    /// If debug_assertions are enabled (e.g. in debug mode), this function panics if any of the ID
-    /// constraints are not met. See the [constraints documentation](super::AccountId#constraints)
-    /// for details.
+    /// See [`AccountId::new_unchecked`](super::AccountId::new_unchecked) for details.
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
         let prefix = elements[0];
         let suffix = elements[1];
@@ -120,20 +101,7 @@ impl AccountIdV0 {
         Self { prefix, suffix }
     }
 
-    /// Constructs an [`AccountIdV0`] for testing purposes with the given account type and storage
-    /// mode.
-    ///
-    /// This function does the following:
-    /// - Split the given bytes into a `prefix = bytes[0..8]` and `suffix = bytes[8..]` part to be
-    ///   used for the prefix and suffix felts, respectively.
-    /// - The least significant byte of the prefix is set to the version 0, and the given type and
-    ///   storage mode.
-    /// - The 32nd most significant bit in the prefix is cleared to ensure it is a valid felt. The
-    ///   32nd is chosen as it is the lowest bit that we can clear and still ensure felt validity.
-    ///   This leaves the upper 31 bits to be set by the input `bytes` which makes it simpler to
-    ///   create test values which more often need specific values for the most significant end of
-    ///   the ID.
-    /// - In the suffix the anchor epoch is set to 0 and the lower 8 bits are cleared.
+    /// See [`AccountId::dummy`](super::AccountId::dummy) for details.
     #[cfg(any(feature = "testing", test))]
     pub fn dummy(
         mut bytes: [u8; 15],
@@ -174,12 +142,7 @@ impl AccountIdV0 {
         account_id
     }
 
-    /// Grinds an account seed until its hash matches the given `account_type`, `storage_mode` and
-    /// `version` and returns it as a [`Word`]. The input to the hash function next to the seed are
-    /// the `code_commitment`, `storage_commitment` and `anchor_block_hash`.
-    ///
-    /// The grinding process is started from the given `init_seed` which should be a random seed
-    /// generated from a cryptographically secure source.
+    /// See [`AccountId::compute_account_seed`](super::AccountId::compute_account_seed) for details.
     pub fn compute_account_seed(
         init_seed: [u8; 32],
         account_type: AccountType,
@@ -203,56 +166,51 @@ impl AccountIdV0 {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the type of this account ID.
+    /// See [`AccountId::account_type`](super::AccountId::account_type) for details.
     pub const fn account_type(&self) -> AccountType {
         extract_type(self.prefix.as_int())
     }
 
-    /// Returns true if an account with this ID is a faucet which can issue assets.
+    /// See [`AccountId::is_faucet`](super::AccountId::is_faucet) for details.
     pub fn is_faucet(&self) -> bool {
         self.account_type().is_faucet()
     }
 
-    /// Returns true if an account with this ID is a regular account.
+    /// See [`AccountId::is_regular_account`](super::AccountId::is_regular_account) for details.
     pub fn is_regular_account(&self) -> bool {
         self.account_type().is_regular_account()
     }
 
-    /// Returns the storage mode of this account ID.
+    /// See [`AccountId::storage_mode`](super::AccountId::storage_mode) for details.
     pub fn storage_mode(&self) -> AccountStorageMode {
         extract_storage_mode(self.prefix().as_u64())
             .expect("account ID should have been constructed with a valid storage mode")
     }
 
-    /// Returns true if an account with this ID is a public account.
+    /// See [`AccountId::is_public`](super::AccountId::is_public) for details.
     pub fn is_public(&self) -> bool {
         self.storage_mode() == AccountStorageMode::Public
     }
 
-    /// Returns the version of this account ID.
+    /// See [`AccountId::version`](super::AccountId::version) for details.
     pub fn version(&self) -> AccountIdVersion {
         extract_version(self.prefix().as_u64())
             .expect("account ID should have been constructed with a valid version")
     }
 
-    /// Returns the anchor epoch of this account ID.
-    ///
-    /// This is the epoch to which this ID is anchored. The hash of this epoch block is used in the
-    /// generation of the ID.
+    /// See [`AccountId::anchor_epoch`](super::AccountId::anchor_epoch) for details.
     pub fn anchor_epoch(&self) -> u16 {
         extract_anchor_epoch(self.suffix().as_int())
     }
 
-    /// Creates an [`AccountIdV0`] from a hex string. Assumes the string starts with "0x" and
-    /// that the hexadecimal characters are big-endian encoded.
+    /// See [`AccountId::from_hex`](super::AccountId::from_hex) for details.
     pub fn from_hex(hex_str: &str) -> Result<AccountIdV0, AccountIdError> {
         hex_to_bytes(hex_str)
             .map_err(AccountIdError::AccountIdHexParseError)
             .and_then(AccountIdV0::try_from)
     }
 
-    /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix. This means
-    /// it encodes 15 bytes.
+    /// See [`AccountId::to_hex`](super::AccountId::to_hex) for details.
     pub fn to_hex(self) -> String {
         // We need to pad the suffix with 16 zeroes so it produces a correctly padded 8 byte
         // big-endian hex string. Only then can we cut off the last zero byte by truncating. We
@@ -263,16 +221,14 @@ impl AccountIdV0 {
         hex_string
     }
 
-    /// Returns the [`AccountIdPrefix`] of this ID.
-    ///
-    /// The prefix of an account ID is guaranteed to be unique.
+    /// See [`AccountId::prefix`](super::AccountId::prefix) for details.
     pub fn prefix(&self) -> AccountIdPrefix {
         // SAFETY: We only construct account IDs with valid prefixes, so we don't have to validate
         // it again.
         AccountIdPrefix::new_unchecked(self.prefix)
     }
 
-    /// Returns the suffix of this ID as a [`Felt`].
+    /// See [`AccountId::suffix`](super::AccountId::suffix) for details.
     pub const fn suffix(&self) -> Felt {
         self.suffix
     }
@@ -319,13 +275,8 @@ impl From<AccountIdV0> for LeafIndex<ACCOUNT_TREE_DEPTH> {
 impl TryFrom<[Felt; 2]> for AccountIdV0 {
     type Error = AccountIdError;
 
-    /// Returns an [`AccountIdV0`] instantiated with the provided field elements where `elements[0]`
-    /// is taken as the prefix and `elements[1]` is taken as the second element.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountIdV0) for details.
+    /// See [`TryFrom<[Felt; 2]> for
+    /// AccountId`](super::AccountId#impl-TryFrom<%5BFelt;+2%5D>-for-AccountId) for details.
     fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
         account_id_from_felts(elements)
     }
@@ -334,12 +285,8 @@ impl TryFrom<[Felt; 2]> for AccountIdV0 {
 impl TryFrom<[u8; 15]> for AccountIdV0 {
     type Error = AccountIdError;
 
-    /// Tries to convert a byte array in big-endian order to an [`AccountIdV0`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountIdV0) for details.
+    /// See [`TryFrom<[u8; 15]> for
+    /// AccountId`](super::AccountId#impl-TryFrom<%5Bu8;+15%5D>-for-AccountId) for details.
     fn try_from(mut bytes: [u8; 15]) -> Result<Self, Self::Error> {
         // Felt::try_from expects little-endian order, so reverse the individual felt slices.
         // This prefix slice has 8 bytes.
@@ -368,12 +315,8 @@ impl TryFrom<[u8; 15]> for AccountIdV0 {
 impl TryFrom<u128> for AccountIdV0 {
     type Error = AccountIdError;
 
-    /// Tries to convert a u128 into an [`AccountIdV0`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any of the ID constraints are not met. See the [type
-    /// documentation](AccountIdV0) for details.
+    /// See [`TryFrom<u128> for AccountId`](super::AccountId#impl-TryFrom<u128>-for-AccountId) for
+    /// details.
     fn try_from(int: u128) -> Result<Self, Self::Error> {
         let mut bytes: [u8; 15] = [0; 15];
         bytes.copy_from_slice(&int.to_be_bytes()[0..15]);
@@ -411,8 +354,8 @@ impl Deserializable for AccountIdV0 {
 ///
 /// # Errors
 ///
-/// Returns an error if any of the ID constraints are not met. See the See the [type
-/// documentation](AccountIdV0) for details.
+/// Returns an error if any of the ID constraints are not met. See the [constraints
+/// documentation](AccountId#constraints) for details.
 fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountIdV0, AccountIdError> {
     validate_prefix(elements[0])?;
     validate_suffix(elements[1])?;
