@@ -315,6 +315,7 @@ impl Deserializable for StorageEntry {
 // ================================================================================================
 
 /// Represents the type of values that can be found in a storage slot's `values` field.
+#[cfg(feature = "std")]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "std", serde(untagged))]
 enum StorageValues {
@@ -326,6 +327,7 @@ enum StorageValues {
     Template(StoragePlaceholder),
 }
 
+#[cfg(feature = "std")]
 impl StorageValues {
     pub fn is_list_of_words(&self) -> bool {
         match self {
