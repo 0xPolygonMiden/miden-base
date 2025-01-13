@@ -500,6 +500,7 @@ pub fn validate_account_seed(
             let account_id = AccountId::new(
                 seed,
                 anchor,
+                account.id().version(),
                 account.code().commitment(),
                 account.storage().commitment(),
             )
