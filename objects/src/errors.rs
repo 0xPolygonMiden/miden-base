@@ -70,8 +70,6 @@ pub enum AccountError {
     AccountComponentMergeError(String),
     #[error("failed to create account component")]
     AccountComponentTemplateInstantiationError(#[source] AccountComponentTemplateError),
-    #[error("failed to convert bytes into account ID field element")]
-    AccountIdInvalidFieldElement(#[source] DeserializationError),
     #[error("failed to update asset vault")]
     AssetVaultUpdateError(#[source] AssetVaultError),
     #[error("account build error: {0}")]
@@ -82,12 +80,6 @@ pub enum AccountError {
     FungibleFaucetMaxSupplyTooLarge { actual: u64, max: u64 },
     #[error("account header data has length {actual} but it must be of length {expected}")]
     HeaderDataIncorrectLength { actual: usize, expected: usize },
-    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
-    // no-std.
-    #[error("failed to parse hex string into account ID: {0}")]
-    AccountIdHexParseError(HexParseError),
-    #[error("`{0}` is not a valid account storage mode")]
-    InvalidAccountStorageMode(String),
     #[error("new account nonce {new} is less than the current nonce {current}")]
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     #[error("digest of the seed has {actual} trailing zeroes but must have at least {expected} trailing zeroes")]
@@ -108,15 +100,47 @@ pub enum AccountError {
         "procedure which does not access storage (storage size = 0) has non-zero storage offset"
     )]
     PureProcedureWithStorageOffset,
-    #[error("account component at index {component_index} is incompatible with account of type {account_type:?}")]
+    #[error("account component at index {component_index} is incompatible with account of type {account_type}")]
     UnsupportedComponentForAccountType {
         account_type: AccountType,
         component_index: usize,
     },
+    #[error("failed to parse account ID from final account header")]
+    FinalAccountHeaderIdParsingFailed(#[source] AccountIdError),
     /// This variant can be used by methods that are not inherent to the account but want to return
     /// this error type.
     #[error("assumption violated: {0}")]
     AssumptionViolated(String),
+}
+
+// ACCOUNT ID ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountIdError {
+    #[error("failed to convert bytes into account ID prefix field element")]
+    AccountIdInvalidPrefixFieldElement(#[source] DeserializationError),
+    #[error("failed to convert bytes into account ID suffix field element")]
+    AccountIdInvalidSuffixFieldElement(#[source] DeserializationError),
+    #[error("`{0}` is not a known account storage mode")]
+    UnknownAccountStorageMode(Box<str>),
+    #[error(r#"`{0}` is not a known account type, expected one of "FungibleFaucet", "NonFungibleFaucet", "RegularAccountImmutableCode" or "RegularAccountUpdatableCode""#)]
+    UnknownAccountType(Box<str>),
+    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
+    // no-std.
+    #[error("failed to parse hex string into account ID: {0}")]
+    AccountIdHexParseError(HexParseError),
+    #[error("`{0}` is not a known account ID version")]
+    UnknownAccountIdVersion(u8),
+    #[error("anchor epoch in account ID must not be u16::MAX ({})", u16::MAX)]
+    AnchorEpochMustNotBeU16Max,
+    #[error("least significant byte of account ID suffix must be zero")]
+    AccountIdSuffixLeastSignificantByteMustBeZero,
+    #[error(
+        "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
+        BlockNumber::EPOCH_LENGTH_EXPONENT
+    )]
+    AnchorBlockMustBeEpochBlock,
 }
 
 // ACCOUNT DELTA ERROR
@@ -174,13 +198,13 @@ pub enum AssetError {
     #[error("faucet account ID in asset is invalid")]
     InvalidFaucetAccountId(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error(
-      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for fungible assets",
+      "faucet id {0} of type {id_type} must be of type {expected_ty} for fungible assets",
       id_type = .0.account_type(),
       expected_ty = AccountType::FungibleFaucet
     )]
     FungibleFaucetIdTypeMismatch(AccountId),
     #[error(
-      "faucet id {0} of type {id_type:?} must be of type {expected_ty:?} for non fungible assets",
+      "faucet id {0} of type {id_type} must be of type {expected_ty} for non fungible assets",
       id_type = .0.account_type(),
       expected_ty = AccountType::NonFungibleFaucet
     )]
@@ -225,7 +249,7 @@ pub enum NoteError {
     #[error("adding fungible asset amounts would exceed maximum allowed amount")]
     AddFungibleAssetBalanceError(#[source] AssetError),
     #[error("note sender is not a valid account ID")]
-    NoteSenderInvalidAccountId(#[source] AccountError),
+    NoteSenderInvalidAccountId(#[source] AccountIdError),
     #[error("note tag use case {0} must be less than 2^{exp}", exp = NoteTag::MAX_USE_CASE_ID_EXPONENT)]
     NoteTagUseCaseTooLarge(u16),
     #[error(
@@ -331,7 +355,7 @@ pub enum TransactionInputError {
     #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, u32),
     #[error("account ID computed from seed is invalid")]
-    InvalidAccountIdSeed(#[source] AccountError),
+    InvalidAccountIdSeed(#[source] AccountIdError),
     #[error(
         "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
     )]

@@ -354,6 +354,8 @@ end
 
 #! Builds the stack into the NOTE_METADATA word, encoding the note type and execution hint into a 
 #! single element.
+#! Note that this procedure is only exported so it can be tested. It should not be called from
+#! non-test code.
 #!
 #! Inputs:  [tag, aux, note_type, execution_hint]
 #! Outputs: [NOTE_METADATA]
@@ -365,7 +367,8 @@ end
 #!   or off-chain).
 #! - execution_hint is the hint which specifies when a note is ready to be consumed.
 #! - NOTE_METADATA is the metadata associated with a note.
-proc.build_note_metadata
+export.build_note_metadata
+
     # Validate the note type.
     # --------------------------------------------------------------------------------------------
 

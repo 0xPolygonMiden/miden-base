@@ -404,18 +404,15 @@ impl MockChain {
 
     /// Adds a new wallet with the specified authentication method and assets.
     pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder =
-            AccountBuilder::new().init_seed(self.rng.gen()).with_component(BasicWallet);
+        let account_builder = AccountBuilder::new(self.rng.gen()).with_component(BasicWallet);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::New)
     }
 
     /// Adds an existing wallet (nonce == 1) with the specified authentication method and assets.
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new()
-            .init_seed(self.rng.gen())
-            .with_component(BasicWallet)
-            .with_assets(assets);
+        let account_builder =
+            Account::builder(self.rng.gen()).with_component(BasicWallet).with_assets(assets);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::Exists)
     }
@@ -427,8 +424,7 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let account_builder = AccountBuilder::new()
-            .init_seed(self.rng.gen())
+        let account_builder = AccountBuilder::new(self.rng.gen())
             .account_type(AccountType::FungibleFaucet)
             .with_component(
                 BasicFungibleFaucet::new(
@@ -454,7 +450,7 @@ impl MockChain {
         max_supply: u64,
         total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        let mut account_builder = AccountBuilder::new()
+        let mut account_builder = AccountBuilder::new(self.rng.gen())
             .with_component(
                 BasicFungibleFaucet::new(
                     TokenSymbol::new(token_symbol).unwrap(),
@@ -463,7 +459,6 @@ impl MockChain {
                 )
                 .unwrap(),
             )
-            .init_seed(self.rng.gen())
             .account_type(AccountType::FungibleFaucet);
 
         let authenticator = match auth_method.build_component() {

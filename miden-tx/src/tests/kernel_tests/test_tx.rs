@@ -689,14 +689,12 @@ fn test_fpi_memory() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -937,14 +935,12 @@ fn test_fpi_execute_foreign_procedure() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),

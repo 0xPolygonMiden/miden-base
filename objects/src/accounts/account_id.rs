@@ -14,6 +14,7 @@ use vm_processor::{DeserializationError, Digest};
 use super::Hasher;
 use crate::{
     accounts::{AccountIdAnchor, AccountIdPrefix},
+    errors::AccountIdError,
     AccountError, ACCOUNT_TREE_DEPTH,
 };
 
@@ -43,6 +44,16 @@ impl AccountType {
     /// Returns `true` if the account is a regular account.
     pub fn is_regular_account(&self) -> bool {
         matches!(self, Self::RegularAccountImmutableCode | Self::RegularAccountUpdatableCode)
+    }
+
+    /// Returns the string representation of the [`AccountType`].
+    fn as_str(&self) -> &'static str {
+        match self {
+            AccountType::FungibleFaucet => "FungibleFaucet",
+            AccountType::NonFungibleFaucet => "NonFungibleFaucet",
+            AccountType::RegularAccountImmutableCode => "RegularAccountImmutableCode",
+            AccountType::RegularAccountUpdatableCode => "RegularAccountUpdatableCode",
+        }
     }
 }
 
@@ -82,19 +93,33 @@ impl Deserializable for AccountType {
     }
 }
 
+impl FromStr for AccountType {
+    type Err = AccountIdError;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        match string {
+            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
+            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
+            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
+            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
+            other => Err(AccountIdError::UnknownAccountType(other.into())),
+        }
+    }
+}
+
+impl core::fmt::Display for AccountType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[cfg(feature = "std")]
 impl serde::Serialize for AccountType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let s = match self {
-            AccountType::FungibleFaucet => "FungibleFaucet",
-            AccountType::NonFungibleFaucet => "NonFungibleFaucet",
-            AccountType::RegularAccountImmutableCode => "RegularAccountImmutableCode",
-            AccountType::RegularAccountUpdatableCode => "RegularAccountUpdatableCode",
-        };
-        serializer.serialize_str(s)
+        serializer.serialize_str(self.as_str())
     }
 }
 
@@ -105,18 +130,8 @@ impl<'de> serde::Deserialize<'de> for AccountType {
         D: serde::Deserializer<'de>,
     {
         use serde::de::Error;
-        let s: String = serde::Deserialize::deserialize(deserializer)?;
-
-        match s.as_str() {
-            "FungibleFaucet" => Ok(AccountType::FungibleFaucet),
-            "NonFungibleFaucet" => Ok(AccountType::NonFungibleFaucet),
-            "RegularAccountImmutableCode" => Ok(AccountType::RegularAccountImmutableCode),
-            "RegularAccountUpdatableCode" => Ok(AccountType::RegularAccountUpdatableCode),
-            other => Err(D::Error::invalid_value(
-                serde::de::Unexpected::Str(other),
-                &"a valid account type (\"FungibleFaucet\", \"NonFungibleFaucet\", \"RegularAccountImmutableCode\", or \"RegularAccountUpdatableCode\")",
-            )),
-        }
+        let string: String = serde::Deserialize::deserialize(deserializer)?;
+        string.parse().map_err(D::Error::custom)
     }
 }
 
@@ -143,29 +158,29 @@ impl fmt::Display for AccountStorageMode {
 }
 
 impl TryFrom<&str> for AccountStorageMode {
-    type Error = AccountError;
+    type Error = AccountIdError;
 
-    fn try_from(value: &str) -> Result<Self, AccountError> {
+    fn try_from(value: &str) -> Result<Self, AccountIdError> {
         match value.to_lowercase().as_str() {
             "public" => Ok(AccountStorageMode::Public),
             "private" => Ok(AccountStorageMode::Private),
-            _ => Err(AccountError::InvalidAccountStorageMode(value.into())),
+            _ => Err(AccountIdError::UnknownAccountStorageMode(value.into())),
         }
     }
 }
 
 impl TryFrom<String> for AccountStorageMode {
-    type Error = AccountError;
+    type Error = AccountIdError;
 
-    fn try_from(value: String) -> Result<Self, AccountError> {
+    fn try_from(value: String) -> Result<Self, AccountIdError> {
         AccountStorageMode::from_str(&value)
     }
 }
 
 impl FromStr for AccountStorageMode {
-    type Err = AccountError;
+    type Err = AccountIdError;
 
-    fn from_str(input: &str) -> Result<AccountStorageMode, AccountError> {
+    fn from_str(input: &str) -> Result<AccountStorageMode, AccountIdError> {
         AccountStorageMode::try_from(input)
     }
 }
@@ -361,7 +376,7 @@ impl AccountId {
         anchor: AccountIdAnchor,
         code_commitment: Digest,
         storage_commitment: Digest,
-    ) -> Result<Self, AccountError> {
+    ) -> Result<Self, AccountIdError> {
         let seed_digest =
             compute_digest(seed, code_commitment, storage_commitment, anchor.block_hash());
 
@@ -524,19 +539,10 @@ impl AccountId {
 
     /// Creates an [`AccountId`] from a hex string. Assumes the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
-    pub fn from_hex(hex_str: &str) -> Result<AccountId, AccountError> {
-        hex_to_bytes(hex_str).map_err(AccountError::AccountIdHexParseError).and_then(
-            |mut bytes: [u8; 15]| {
-                // TryFrom<[u8; 15]> expects [prefix, suffix] in little-endian order, so we
-                // need to convert the bytes representation from big endian to little endian by
-                // reversing each felt. The prefix has 8 and the suffix has
-                // 7 bytes.
-                bytes[0..8].reverse();
-                bytes[8..15].reverse();
-
-                AccountId::try_from(bytes)
-            },
-        )
+    pub fn from_hex(hex_str: &str) -> Result<AccountId, AccountIdError> {
+        hex_to_bytes(hex_str)
+            .map_err(AccountIdError::AccountIdHexParseError)
+            .and_then(AccountId::try_from)
     }
 
     /// Returns a big-endian, hex-encoded string of length 32, including the `0x` prefix, so it
@@ -578,10 +584,9 @@ impl From<AccountId> for [Felt; 2] {
 impl From<AccountId> for [u8; 15] {
     fn from(id: AccountId) -> Self {
         let mut result = [0_u8; 15];
-        result[..8].copy_from_slice(&id.prefix().as_u64().to_le_bytes());
-        // The last byte of the suffix is always zero, and in little endian this is the first
-        // byte, so we skip it here.
-        result[8..].copy_from_slice(&id.suffix().as_int().to_le_bytes()[1..8]);
+        result[..8].copy_from_slice(&id.prefix().as_u64().to_be_bytes());
+        // The last byte of the suffix is always zero so we skip it here.
+        result[8..].copy_from_slice(&id.suffix().as_int().to_be_bytes()[..7]);
         result
     }
 }
@@ -606,7 +611,7 @@ impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
 // ================================================================================================
 
 impl TryFrom<[Felt; 2]> for AccountId {
-    type Error = AccountError;
+    type Error = AccountIdError;
 
     /// Returns an [`AccountId`] instantiated with the provided field elements where `elements[0]`
     /// is taken as the prefix and `elements[1]` is taken as the second element.
@@ -621,36 +626,41 @@ impl TryFrom<[Felt; 2]> for AccountId {
 }
 
 impl TryFrom<[u8; 15]> for AccountId {
-    type Error = AccountError;
+    type Error = AccountIdError;
 
-    /// Tries to convert a byte array in little-endian order to an [`AccountId`].
+    /// Tries to convert a byte array in big-endian order to an [`AccountId`].
     ///
     /// # Errors
     ///
     /// Returns an error if any of the ID constraints are not met. See the [type
     /// documentation](AccountId) for details.
-    fn try_from(bytes: [u8; 15]) -> Result<Self, Self::Error> {
-        // This slice has 8 bytes.
+    fn try_from(mut bytes: [u8; 15]) -> Result<Self, Self::Error> {
+        // Felt::try_from expects little-endian order, so reverse the individual felt slices.
+        // This prefix slice has 8 bytes.
+        bytes[..8].reverse();
+        // The suffix slice has 7 bytes, since the 8th byte will always be zero.
+        bytes[8..15].reverse();
+
         let prefix_slice = &bytes[..8];
-        // This slice has 7 bytes, since the 8th byte will always be zero.
         let suffix_slice = &bytes[8..15];
 
-        // The byte order is little-endian order, so prepending a 0 sets the least significant byte.
+        // The byte order is little-endian here, so we prepend a 0 to set the least significant
+        // byte.
         let mut suffix_bytes = [0; 8];
         suffix_bytes[1..8].copy_from_slice(suffix_slice);
 
-        let prefix =
-            Felt::try_from(prefix_slice).map_err(AccountError::AccountIdInvalidFieldElement)?;
+        let prefix = Felt::try_from(prefix_slice)
+            .map_err(AccountIdError::AccountIdInvalidPrefixFieldElement)?;
 
         let suffix = Felt::try_from(suffix_bytes.as_slice())
-            .map_err(AccountError::AccountIdInvalidFieldElement)?;
+            .map_err(AccountIdError::AccountIdInvalidSuffixFieldElement)?;
 
         Self::try_from([prefix, suffix])
     }
 }
 
 impl TryFrom<u128> for AccountId {
-    type Error = AccountError;
+    type Error = AccountIdError;
 
     /// Tries to convert a u128 into an [`AccountId`].
     ///
@@ -659,15 +669,8 @@ impl TryFrom<u128> for AccountId {
     /// Returns an error if any of the ID constraints are not met. See the [type
     /// documentation](AccountId) for details.
     fn try_from(int: u128) -> Result<Self, Self::Error> {
-        let little_endian_bytes = int.to_le_bytes();
         let mut bytes: [u8; 15] = [0; 15];
-
-        // Swap the positions of the Felts to match what the TryFrom<[u8; 15]> impl expects.
-        // This copies the prefix's 8 bytes.
-        bytes[..8].copy_from_slice(&little_endian_bytes[8..]);
-        // This copies the suffix's 7 bytes. The least significant byte is zero and is
-        // therefore skipped.
-        bytes[8..].copy_from_slice(&little_endian_bytes[1..8]);
+        bytes.copy_from_slice(&int.to_be_bytes()[0..15]);
 
         Self::try_from(bytes)
     }
@@ -691,7 +694,7 @@ impl Deserializable for AccountId {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         <[u8; 15]>::read_from(source)?
             .try_into()
-            .map_err(|err: AccountError| DeserializationError::InvalidValue(err.to_string()))
+            .map_err(|err: AccountIdError| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -704,7 +707,7 @@ impl Deserializable for AccountId {
 ///
 /// Returns an error if any of the ID constraints are not met. See the See the [type
 /// documentation](AccountId) for details.
-fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountError> {
+fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountIdError> {
     validate_prefix(elements[0])?;
     validate_suffix(elements[1])?;
 
@@ -715,7 +718,7 @@ fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountId, AccountError>
 /// - has known values for metadata (storage mode, type and version).
 pub(super) fn validate_prefix(
     prefix: Felt,
-) -> Result<(AccountType, AccountStorageMode, AccountIdVersion), AccountError> {
+) -> Result<(AccountType, AccountStorageMode, AccountIdVersion), AccountIdError> {
     let prefix = prefix.as_int();
 
     // Validate storage bits.
@@ -732,43 +735,38 @@ pub(super) fn validate_prefix(
 /// Checks that the suffix:
 /// - has an anchor_epoch that is not [`u16::MAX`].
 /// - has its lower 8 bits set to zero.
-fn validate_suffix(suffix: Felt) -> Result<(), AccountError> {
+const fn validate_suffix(suffix: Felt) -> Result<(), AccountIdError> {
     let suffix = suffix.as_int();
 
     if extract_anchor_epoch(suffix) == u16::MAX {
-        return Err(AccountError::AssumptionViolated(
-            "TODO: Make proper error: suffix epoch must be less than 2^16".into(),
-        ));
+        return Err(AccountIdError::AnchorEpochMustNotBeU16Max);
     }
 
-    // Validate lower 8 bits of suffix are zero.
+    // Validate lower 8 bits of second felt are zero.
     if suffix & 0xff != 0 {
-        return Err(AccountError::AssumptionViolated(
-            "TODO: Make proper error: suffix lower 8 bits must be zero".into(),
-        ));
+        return Err(AccountIdError::AccountIdSuffixLeastSignificantByteMustBeZero);
     }
 
     Ok(())
 }
 
-pub(crate) fn extract_storage_mode(prefix: u64) -> Result<AccountStorageMode, AccountError> {
+pub(crate) fn extract_storage_mode(prefix: u64) -> Result<AccountStorageMode, AccountIdError> {
     let bits = (prefix & AccountId::STORAGE_MODE_MASK as u64) >> AccountId::STORAGE_MODE_SHIFT;
     // SAFETY: `STORAGE_MODE_MASK` is u8 so casting bits is lossless
     match bits as u8 {
         PUBLIC => Ok(AccountStorageMode::Public),
         PRIVATE => Ok(AccountStorageMode::Private),
-        _ => Err(AccountError::InvalidAccountStorageMode(format!("0b{bits:b}"))),
+        _ => Err(AccountIdError::UnknownAccountStorageMode(format!("0b{bits:b}").into())),
     }
 }
 
-pub(crate) fn extract_version(prefix: u64) -> Result<AccountIdVersion, AccountError> {
-    let bits = prefix & AccountId::VERSION_MASK;
-    let version = bits.try_into().expect("TODO");
+pub(crate) const fn extract_version(prefix: u64) -> Result<AccountIdVersion, AccountIdError> {
+    // SAFETY: The mask guarantees that we only mask out the least significant nibble, so casting to
+    // u8 is safe.
+    let version = (prefix & AccountId::VERSION_MASK) as u8;
     match version {
         AccountIdVersion::VERSION_0_NUMBER => Ok(AccountIdVersion::VERSION_0),
-        other => Err(AccountError::AssumptionViolated(format!(
-            "TODO: Error. Unexpected version {other}"
-        ))),
+        other => Err(AccountIdError::UnknownAccountIdVersion(other)),
     }
 }
 
@@ -782,7 +780,7 @@ pub(crate) const fn extract_type(prefix: u64) -> AccountType {
         NON_FUNGIBLE_FAUCET => AccountType::NonFungibleFaucet,
         _ => {
             // SAFETY: type mask contains only 2 bits and we've covered all 4 possible options.
-            unreachable!()
+            panic!("type mask contains only 2 bits and we've covered all 4 possible options")
         },
     }
 }
@@ -793,9 +791,9 @@ const fn extract_anchor_epoch(suffix: u64) -> u16 {
 
 /// Shapes the suffix so it meets the requirements of the account ID, by overwriting the
 /// upper 16 bits with the epoch and setting the lower 8 bits to zero.
-fn shape_suffix(suffix: Felt, anchor_epoch: u16) -> Result<Felt, AccountError> {
+fn shape_suffix(suffix: Felt, anchor_epoch: u16) -> Result<Felt, AccountIdError> {
     if anchor_epoch == u16::MAX {
-        unimplemented!("TODO: Return error");
+        return Err(AccountIdError::AnchorEpochMustNotBeU16Max);
     }
 
     let mut suffix = suffix.as_int();
@@ -931,11 +929,13 @@ mod tests {
         // Ensure that an AccountIdPrefix can be read from the serialized bytes of an AccountId.
         let account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
         let id_bytes = account_id.to_bytes();
+        assert_eq!(account_id.prefix().to_bytes(), id_bytes[..8]);
+
         let deserialized_prefix = AccountIdPrefix::read_from_bytes(&id_bytes).unwrap();
         assert_eq!(account_id.prefix(), deserialized_prefix);
 
         // Ensure AccountId and AccountIdPrefix's hex representation are compatible.
-        assert!(account_id.to_hex().starts_with(&account_id.prefix().to_string()));
+        assert!(account_id.to_hex().starts_with(&account_id.prefix().to_hex()));
     }
 
     // CONVERSION TESTS
@@ -957,6 +957,9 @@ mod tests {
             assert_eq!(id, AccountId::from_hex(&id.to_hex()).unwrap(), "failed in {idx}");
             assert_eq!(id, AccountId::try_from(<[u8; 15]>::from(id)).unwrap(), "failed in {idx}");
             assert_eq!(id, AccountId::try_from(u128::from(id)).unwrap(), "failed in {idx}");
+            // The u128 big-endian representation without the least significant byte and the
+            // [u8; 15] representations should be equivalent.
+            assert_eq!(u128::from(id).to_be_bytes()[0..15], <[u8; 15]>::from(id));
             assert_eq!(account_id, u128::from(id), "failed in {idx}");
         }
     }

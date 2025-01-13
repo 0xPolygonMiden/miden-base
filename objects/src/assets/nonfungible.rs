@@ -124,8 +124,8 @@ impl NonFungibleAsset {
         vault_key
     }
 
-    /// Return ID of the faucet which issued this asset.
-    pub fn faucet_id(&self) -> AccountIdPrefix {
+    /// Return ID prefix of the faucet which issued this asset.
+    pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         AccountIdPrefix::new_unchecked(self.0[FAUCET_ID_POS])
     }
 
@@ -185,7 +185,7 @@ impl Serializable for NonFungibleAsset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // All assets should serialize their faucet ID at the first position to allow them to be
         // easily distinguishable during deserialization.
-        target.write(self.0[FAUCET_ID_POS]);
+        target.write(self.faucet_id_prefix());
         target.write(self.0[2]);
         target.write(self.0[1]);
         target.write(self.0[0]);
@@ -200,11 +200,23 @@ impl Deserializable for NonFungibleAsset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let faucet_id_prefix: AccountIdPrefix = source.read()?;
 
+        Self::deserialize_with_faucet_id_prefix(faucet_id_prefix, source)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+impl NonFungibleAsset {
+    /// Deserializes a [`NonFungibleAsset`] from an [`AccountIdPrefix`] and the remaining data from
+    /// the given `source`.
+    pub(super) fn deserialize_with_faucet_id_prefix<R: ByteReader>(
+        faucet_id_prefix: AccountIdPrefix,
+        source: &mut R,
+    ) -> Result<Self, DeserializationError> {
         let hash_2: Felt = source.read()?;
         let hash_1: Felt = source.read()?;
         let hash_0: Felt = source.read()?;
 
-        // The second felt in the data_hash will be replaced by the faucet id, so we can set it to
+        // The last felt in the data_hash will be replaced by the faucet id, so we can set it to
         // zero here.
         NonFungibleAsset::from_parts(faucet_id_prefix, [hash_0, hash_1, hash_2, Felt::ZERO])
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))

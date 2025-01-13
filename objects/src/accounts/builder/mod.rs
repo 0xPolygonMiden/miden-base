@@ -28,7 +28,6 @@ use crate::{
 ///
 /// The methods that are required to be called are:
 ///
-/// - [`AccountBuilder::init_seed`],
 /// - [`AccountBuilder::with_component`], which must be called at least once.
 /// - [`AccountBuilder::anchor`].
 ///
@@ -47,32 +46,26 @@ pub struct AccountBuilder {
     account_type: AccountType,
     storage_mode: AccountStorageMode,
     id_anchor: Option<AccountIdAnchor>,
-    init_seed: Option<[u8; 32]>,
+    init_seed: [u8; 32],
     id_version: AccountIdVersion,
 }
 
 impl AccountBuilder {
-    /// Creates a new builder for a single account.
-    pub fn new() -> Self {
+    /// Creates a new builder for an account and sets the initial seed from which the grinding
+    /// process for that account's [`AccountId`] will start.
+    ///
+    /// This initial seed should come from a cryptographic random number generator.
+    pub fn new(init_seed: [u8; 32]) -> Self {
         Self {
             #[cfg(any(feature = "testing", test))]
             assets: vec![],
             components: vec![],
-            init_seed: None,
             id_anchor: None,
+            init_seed,
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
             id_version: AccountIdVersion::VERSION_0,
         }
-    }
-
-    /// Sets the initial seed from which the grind for an [`AccountId`] will start. This initial
-    /// seed should come from a cryptographic random number generator.
-    ///
-    ///  This method **must** be called.
-    pub fn init_seed(mut self, init_seed: [u8; 32]) -> Self {
-        self.init_seed = Some(init_seed);
-        self
     }
 
     /// Sets the [`AccountIdAnchor`] used for the generation of the account ID.
@@ -109,14 +102,7 @@ impl AccountBuilder {
     }
 
     /// Builds the common parts of testing and non-testing code.
-    fn build_inner(
-        &self,
-    ) -> Result<([u8; 32], AssetVault, AccountCode, AccountStorage), AccountError> {
-        let init_seed = self.init_seed.ok_or(AccountError::BuildError(
-            "init_seed must be set on the account builder".into(),
-            None,
-        ))?;
-
+    fn build_inner(&self) -> Result<(AssetVault, AccountCode, AccountStorage), AccountError> {
         #[cfg(any(feature = "testing", test))]
         let vault = AssetVault::new(&self.assets).map_err(|err| {
             AccountError::BuildError(format!("asset vault failed to build: {err}"), None)
@@ -135,7 +121,7 @@ impl AccountBuilder {
                 },
             )?;
 
-        Ok((init_seed, vault, code, storage))
+        Ok((vault, code, storage))
     }
 
     /// Grinds a new [`AccountId`] using the `init_seed` as a starting point.
@@ -179,7 +165,7 @@ impl AccountBuilder {
     /// - If duplicate assets were added to the builder (only under the `testing` feature).
     /// - If the vault is not empty on new accounts (only under the `testing` feature).
     pub fn build(self) -> Result<(Account, Word), AccountError> {
-        let (init_seed, vault, code, storage) = self.build_inner()?;
+        let (vault, code, storage) = self.build_inner()?;
 
         let id_anchor = self
             .id_anchor
@@ -194,7 +180,7 @@ impl AccountBuilder {
         }
 
         let seed = self.grind_account_id(
-            init_seed,
+            self.init_seed,
             self.id_version,
             code.commitment(),
             storage.commitment(),
@@ -230,21 +216,15 @@ impl AccountBuilder {
     ///
     /// For possible errors, see the documentation of [`Self::build`].
     pub fn build_existing(self) -> Result<Account, AccountError> {
-        let (init_seed, vault, code, storage) = self.build_inner()?;
+        let (vault, code, storage) = self.build_inner()?;
 
         let account_id = {
-            let bytes = <[u8; 15]>::try_from(&init_seed[0..15])
+            let bytes = <[u8; 15]>::try_from(&self.init_seed[0..15])
                 .expect("we should have sliced exactly 15 bytes off");
             AccountId::dummy(bytes, self.account_type, self.storage_mode)
         };
 
         Ok(Account::from_parts(account_id, vault, storage, code, Felt::ONE))
-    }
-}
-
-impl Default for AccountBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -260,7 +240,7 @@ mod tests {
     use vm_core::FieldElement;
 
     use super::*;
-    use crate::accounts::StorageSlot;
+    use crate::{accounts::StorageSlot, block::BlockNumber};
 
     const CUSTOM_CODE1: &str = "
           export.foo
@@ -326,10 +306,11 @@ mod tests {
 
         let anchor_block_hash = Digest::new([Felt::new(42); 4]);
         let anchor_block_number = 1 << 16;
-        let id_anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash).unwrap();
+        let id_anchor =
+            AccountIdAnchor::new(BlockNumber::from(anchor_block_number), anchor_block_hash)
+                .unwrap();
 
-        let (account, seed) = Account::builder()
-            .init_seed([5; 32])
+        let (account, seed) = Account::builder([5; 32])
             .anchor(id_anchor)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_component(CustomComponent2 {
@@ -398,8 +379,7 @@ mod tests {
         let storage_slot0 = 25;
 
         let anchor = AccountIdAnchor::new_unchecked(5, Digest::default());
-        let build_error = Account::builder()
-            .init_seed([0xff; 32])
+        let build_error = Account::builder([0xff; 32])
             .anchor(anchor)
             .with_component(CustomComponent1 { slot0: storage_slot0 })
             .with_assets(AssetVault::mock().assets())
