@@ -4,14 +4,11 @@ use crate::{
     AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
-pub mod account_id;
-pub use account_id::{AccountId, AccountIdVersion, AccountStorageMode, AccountType};
-
-mod account_id_anchor;
-pub use account_id_anchor::AccountIdAnchor;
-
-mod account_id_prefix;
-pub use account_id_prefix::AccountIdPrefix;
+mod account_id;
+pub use account_id::{
+    AccountId, AccountIdAnchor, AccountIdPrefix, AccountIdPrefixV0, AccountIdV0, AccountIdVersion,
+    AccountStorageMode, AccountType,
+};
 
 pub mod auth;
 
@@ -34,9 +31,6 @@ pub use delta::{
     AccountDelta, AccountStorageDelta, AccountVaultDelta, FungibleAssetDelta,
     NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
-
-mod seed;
-pub use seed::compute_account_seed;
 
 mod storage;
 pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
