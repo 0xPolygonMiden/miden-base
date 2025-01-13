@@ -1,23 +1,14 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
-use assembly::Assembler;
 use miden_crypto::EMPTY_WORD;
-use vm_core::{Felt, FieldElement, Word, ZERO};
+use vm_core::{Felt, Word};
 use vm_processor::Digest;
 
-use super::{constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word};
+use super::prepare_word;
 use crate::{
-    accounts::{
-        Account, AccountId, AccountIdAnchor, AccountIdVersion, AccountStorage, AccountStorageDelta,
-        AccountStorageMode, AccountType, StorageMap, StorageMapDelta, StorageSlot,
-    },
+    accounts::{AccountStorage, AccountStorageDelta, StorageMap, StorageMapDelta, StorageSlot},
     notes::NoteAssets,
-    testing::account_id::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    },
-    AccountDeltaError, BlockHeader,
+    AccountDeltaError,
 };
 
 // ACCOUNT STORAGE DELTA BUILDER
@@ -123,106 +114,6 @@ impl AccountStorage {
     pub fn mock_map() -> StorageMap {
         StorageMap::with_entries(STORAGE_LEAVES_2)
     }
-}
-
-// ACCOUNT SEED GENERATION
-// ================================================================================================
-
-pub enum AccountSeedType {
-    FungibleFaucetInvalidInitialBalance,
-    FungibleFaucetValidInitialBalance,
-    NonFungibleFaucetInvalidReservedSlot,
-    NonFungibleFaucetValidReservedSlot,
-    RegularAccountUpdatableCodeOnChain,
-    RegularAccountUpdatableCodeOffChain,
-}
-
-/// Returns the account ID and seed for the specified account type.
-///
-/// TODO: Not all variants are needed anymore, remove unneeded parts.
-pub fn generate_account_seed(
-    account_seed_type: AccountSeedType,
-    anchor_block_header: &BlockHeader,
-    assembler: Assembler,
-) -> (Account, AccountId, Word) {
-    let init_seed: [u8; 32] = Default::default();
-
-    let (account, account_type) = match account_seed_type {
-        AccountSeedType::FungibleFaucetInvalidInitialBalance => (
-            Account::mock_fungible_faucet(
-                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-                ZERO,
-                Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
-                assembler,
-            ),
-            AccountType::FungibleFaucet,
-        ),
-        AccountSeedType::FungibleFaucetValidInitialBalance => (
-            Account::mock_fungible_faucet(
-                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-                ZERO,
-                ZERO,
-                assembler,
-            ),
-            AccountType::FungibleFaucet,
-        ),
-        AccountSeedType::NonFungibleFaucetInvalidReservedSlot => (
-            Account::mock_non_fungible_faucet(
-                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-                ZERO,
-                false,
-                assembler,
-            ),
-            AccountType::NonFungibleFaucet,
-        ),
-        AccountSeedType::NonFungibleFaucetValidReservedSlot => (
-            Account::mock_non_fungible_faucet(
-                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-                ZERO,
-                true,
-                assembler,
-            ),
-            AccountType::NonFungibleFaucet,
-        ),
-        AccountSeedType::RegularAccountUpdatableCodeOnChain => (
-            Account::mock(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-                Felt::ZERO,
-                assembler,
-            ),
-            AccountType::RegularAccountUpdatableCode,
-        ),
-        AccountSeedType::RegularAccountUpdatableCodeOffChain => (
-            Account::mock(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                Felt::ZERO,
-                assembler,
-            ),
-            AccountType::RegularAccountUpdatableCode,
-        ),
-    };
-
-    let seed = AccountId::compute_account_seed(
-        init_seed,
-        account_type,
-        AccountStorageMode::Public,
-        AccountIdVersion::VERSION_0,
-        account.code().commitment(),
-        account.storage().commitment(),
-        anchor_block_header.hash(),
-    )
-    .unwrap();
-
-    let anchor = AccountIdAnchor::try_from(anchor_block_header).unwrap();
-    let account_id =
-        AccountId::new(seed, anchor, account.code().commitment(), account.storage().commitment())
-            .unwrap();
-
-    // Overwrite old ID with generated ID.
-    let (_, vault, storage, code, nonce) = account.into_parts();
-    let account = Account::from_parts(account_id, vault, storage, code, nonce);
-
-    (account, account_id, seed)
 }
 
 // UTILITIES

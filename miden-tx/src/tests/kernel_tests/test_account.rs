@@ -1,6 +1,13 @@
-use miden_lib::transaction::{
-    memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
-    TransactionKernel,
+use miden_lib::{
+    errors::tx_kernel_errors::{
+        ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX,
+        ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
+        ERR_ACCOUNT_ID_UNKNOWN_VERSION, TX_KERNEL_ERRORS,
+    },
+    transaction::{
+        memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
+        TransactionKernel,
+    },
 };
 use miden_objects::{
     accounts::{
@@ -22,7 +29,7 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{Digest, MemAdviceProvider, ProcessState};
+use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
 use super::{Felt, StackInputs, Word, ONE, ZERO};
 use crate::{
@@ -166,6 +173,80 @@ pub fn test_account_type() {
 }
 
 #[test]
+pub fn test_account_validate_id() -> anyhow::Result<()> {
+    let test_cases = [
+        (ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, None),
+        (ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, None),
+        (ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, None),
+        (ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, None),
+        (
+            // Set version to a non-zero value (10).
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN | (0x0a << 64),
+            Some(ERR_ACCOUNT_ID_UNKNOWN_VERSION),
+        ),
+        (
+            // Set epoch to u16::MAX.
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN | (0xffff << 48),
+            Some(ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX),
+        ),
+        (
+            // Set storage mode to an unknown value (0b01).
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN | (0b01 << (64 + 6)),
+            Some(ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE),
+        ),
+        (
+            // Set lower 8 bits to a non-zero value (1).
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN | 1,
+            Some(ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO),
+        ),
+    ];
+
+    let error_map = alloc::collections::BTreeMap::from(TX_KERNEL_ERRORS);
+    for (account_id, expected_error) in test_cases.iter() {
+        // Manually split the account ID into prefix and suffix since we can't use AccountId methods
+        // on invalid ids.
+        let prefix = Felt::try_from((account_id / (1u128 << 64)) as u64).unwrap();
+        let suffix = Felt::try_from((account_id % (1u128 << 64)) as u64).unwrap();
+
+        let code = "
+            use.kernel::account
+
+            begin
+                exec.account::validate_id
+            end
+            ";
+
+        let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
+            .stack_inputs(StackInputs::new(vec![suffix, prefix]).unwrap())
+            .run(code);
+
+        match (result, expected_error) {
+            (Ok(_), None) => (),
+            (Ok(_), Some(err)) => {
+                anyhow::bail!("expected error {} but validation was successful", error_map[err])
+            },
+            (Err(ExecutionError::FailedAssertion { err_code, .. }), Some(err)) => {
+                if err_code != *err {
+                    anyhow::bail!(
+                        "actual error {err_code} ({}) did not match expected error {err} ({})",
+                        error_map[&err_code],
+                        error_map[err]
+                    );
+                }
+            },
+            (Err(err), None) => {
+                anyhow::bail!("validation is supposed to succeed but error occurred {}", err)
+            },
+            (Err(err), Some(_)) => {
+                anyhow::bail!("unexpected different error than expected {}", err)
+            },
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
 fn test_is_faucet_procedure() {
     let test_cases = [
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
@@ -242,8 +323,7 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -389,8 +469,7 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -538,8 +617,7 @@ fn test_account_component_storage_offset() {
     .unwrap()
     .with_supported_type(AccountType::RegularAccountUpdatableCode);
 
-    let mut account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let mut account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(component1)
         .with_component(component2)
         .build_existing()

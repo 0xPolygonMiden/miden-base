@@ -19,7 +19,8 @@ use crate::{
 ///
 /// [ChainMmr] represents a partial view into the actual MMR and contains authentication paths
 /// for a limited set of blocks. The intent is to include only the blocks relevant for execution
-/// of a specific transaction (i.e., the blocks corresponding to all input notes).
+/// of a specific transaction (i.e., the blocks corresponding to all input notes and the one needed
+/// to validate the seed of a new account, if applicable).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChainMmr {
     /// Partial view of the Chain MMR with authentication paths for the blocks listed below.

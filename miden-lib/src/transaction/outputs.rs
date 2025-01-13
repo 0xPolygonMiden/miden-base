@@ -37,7 +37,8 @@ pub fn parse_final_account_header(elements: &[Word]) -> Result<AccountHeader, Ac
     let id = AccountId::try_from([
         elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_ID_PREFIX_IDX],
         elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_ID_SUFFIX_IDX],
-    ])?;
+    ])
+    .map_err(AccountError::FinalAccountHeaderIdParsingFailed)?;
     let nonce = elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_NONCE_IDX];
     let vault_root = elements[ACCT_VAULT_ROOT_OFFSET as usize].into();
     let storage_commitment = elements[ACCT_STORAGE_COMMITMENT_OFFSET as usize].into();

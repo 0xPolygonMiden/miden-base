@@ -5,9 +5,13 @@ use miden_lib::{
     transaction::memory::CURRENT_INPUT_NOTE_PTR,
 };
 use miden_objects::{
-    notes::Note, testing::prepare_word, transaction::TransactionArgs, Hasher, WORD_SIZE,
+    accounts::AccountId,
+    notes::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
+    testing::{account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, prepare_word},
+    transaction::TransactionArgs,
+    Hasher, WORD_SIZE,
 };
-use vm_processor::{ProcessState, EMPTY_WORD, ONE};
+use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 
 use super::{Felt, Process, ZERO};
 use crate::{
@@ -543,4 +547,65 @@ fn test_get_current_script_hash() {
 
     let script_hash = tx_context.input_notes().get_note(0).note().script().hash();
     assert_eq!(process.stack.get_word(0), script_hash.as_elements());
+}
+
+#[test]
+fn test_build_note_metadata() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
+    let sender = tx_context.account().id();
+    let receiver =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+
+    let test_metadata1 = NoteMetadata::new(
+        sender,
+        NoteType::Private,
+        NoteTag::from_account_id(receiver, NoteExecutionMode::Local).unwrap(),
+        NoteExecutionHint::after_block(500).unwrap(),
+        Felt::try_from(1u64 << 63).unwrap(),
+    )
+    .unwrap();
+    let test_metadata2 = NoteMetadata::new(
+        sender,
+        NoteType::Public,
+        // Use largest allowed use_case_id.
+        NoteTag::for_public_use_case((1 << 14) - 1, u16::MAX, NoteExecutionMode::Local).unwrap(),
+        NoteExecutionHint::on_block_slot(u8::MAX, u8::MAX, u8::MAX),
+        Felt::try_from(0u64).unwrap(),
+    )
+    .unwrap();
+
+    for (iteration, test_metadata) in [test_metadata1, test_metadata2].into_iter().enumerate() {
+        let code = format!(
+            "
+        use.kernel::prologue
+        use.kernel::tx
+
+        begin
+          exec.prologue::prepare_transaction
+          push.{execution_hint}.{note_type}.{aux}.{tag}
+          exec.tx::build_note_metadata
+
+          # truncate the stack
+          swapw dropw
+        end
+        ",
+            execution_hint = Felt::from(test_metadata.execution_hint()),
+            note_type = Felt::from(test_metadata.note_type()),
+            aux = test_metadata.aux(),
+            tag = test_metadata.tag(),
+        );
+
+        let process = tx_context.execute_code(&code).unwrap();
+
+        let metadata_word = [
+            process.stack.get(3),
+            process.stack.get(2),
+            process.stack.get(1),
+            process.stack.get(0),
+        ];
+
+        assert_eq!(Word::from(test_metadata), metadata_word, "failed in iteration {iteration}");
+    }
 }

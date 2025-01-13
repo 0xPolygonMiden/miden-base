@@ -63,8 +63,7 @@ pub fn create_basic_wallet(
         AuthScheme::RpoFalcon512 { pub_key } => RpoFalcon512::new(pub_key),
     };
 
-    let (account, account_seed) = AccountBuilder::new()
-        .init_seed(init_seed)
+    let (account, account_seed) = AccountBuilder::new(init_seed)
         .anchor(id_anchor)
         .account_type(account_type)
         .storage_mode(account_storage_mode)
