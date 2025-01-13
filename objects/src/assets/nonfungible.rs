@@ -5,7 +5,6 @@ use vm_core::{FieldElement, WORD_SIZE};
 
 use super::{AccountIdPrefix, AccountType, Asset, AssetError, Felt, Hasher, Word};
 use crate::{
-    accounts::AccountIdV0,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
 };
@@ -115,12 +114,9 @@ impl NonFungibleAsset {
         // Swap prefix of faucet ID with hash0.
         vault_key.swap(0, FAUCET_ID_POS);
 
-        // Set the fungible bit to zero by taking the bitwise `and` of the felt with the inverted
-        // is_faucet mask.
-        // This depends on the ID V0 layout.
-        let clear_fungible_bit_mask = !AccountIdV0::IS_FAUCET_MASK;
-        vault_key[3] = Felt::try_from(vault_key[3].as_int() & clear_fungible_bit_mask)
-            .expect("felt should still be valid as we cleared a bit and did not set any");
+        // Set the fungible bit to zero.
+        vault_key[3] =
+            AccountIdPrefix::clear_fungible_bit(self.faucet_id_prefix().version(), vault_key[3]);
 
         vault_key
     }

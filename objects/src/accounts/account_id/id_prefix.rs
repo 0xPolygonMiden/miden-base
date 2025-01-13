@@ -10,7 +10,10 @@ use vm_processor::DeserializationError;
 
 use super::id_v0;
 use crate::{
-    accounts::{account_id::AccountIdPrefixV0, AccountIdVersion, AccountStorageMode, AccountType},
+    accounts::{
+        account_id::AccountIdPrefixV0, AccountIdV0, AccountIdVersion, AccountStorageMode,
+        AccountType,
+    },
     errors::AccountIdError,
 };
 
@@ -135,6 +138,20 @@ impl AccountIdPrefix {
     pub fn to_hex(self) -> String {
         match self {
             AccountIdPrefix::V0(id_prefix) => id_prefix.to_hex(),
+        }
+    }
+
+    /// Returns `felt` with the fungible bit set to zero. The version must be passed as the location
+    /// of the fungible bit may depend on the underlying account ID version.
+    pub(crate) fn clear_fungible_bit(version: AccountIdVersion, felt: Felt) -> Felt {
+        match version {
+            AccountIdVersion::Version0 => {
+                // Set the fungible bit to zero by taking the bitwise `and` of the felt with the
+                // inverted is_faucet mask.
+                let clear_fungible_bit_mask = !AccountIdV0::IS_FAUCET_MASK;
+                Felt::try_from(felt.as_int() & clear_fungible_bit_mask)
+                    .expect("felt should still be valid as we cleared a bit and did not set any")
+            },
         }
     }
 }
