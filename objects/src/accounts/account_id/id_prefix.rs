@@ -8,7 +8,7 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::id_v0;
+use super::v0;
 use crate::{
     accounts::{
         account_id::AccountIdPrefixV0, AccountIdV0, AccountIdVersion, AccountStorageMode,
@@ -60,7 +60,7 @@ impl AccountIdPrefix {
     pub fn new_unchecked(prefix: Felt) -> Self {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.
-        match id_v0::extract_version(prefix.as_int())
+        match v0::extract_version(prefix.as_int())
             .expect("prefix should contain a valid account ID version")
         {
             AccountIdVersion::Version0 => Self::V0(AccountIdPrefixV0::new_unchecked(prefix)),
@@ -76,7 +76,7 @@ impl AccountIdPrefix {
     pub fn new(prefix: Felt) -> Result<Self, AccountIdError> {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.
-        match id_v0::extract_version(prefix.as_int())? {
+        match v0::extract_version(prefix.as_int())? {
             AccountIdVersion::Version0 => AccountIdPrefixV0::new(prefix).map(Self::V0),
         }
     }
@@ -206,7 +206,7 @@ impl TryFrom<[u8; 8]> for AccountIdPrefix {
         let metadata_byte = value[7];
         // We only have one supported version for now, so we use the extractor from that version.
         // If we add more versions in the future, we may need to generalize this.
-        let version = id_v0::extract_version(metadata_byte as u64)?;
+        let version = v0::extract_version(metadata_byte as u64)?;
 
         match version {
             AccountIdVersion::Version0 => AccountIdPrefixV0::try_from(value).map(Self::V0),

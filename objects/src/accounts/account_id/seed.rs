@@ -14,7 +14,7 @@ use vm_processor::Digest;
 use crate::{
     accounts::{
         account_id::{
-            id_v0::{compute_digest, validate_prefix},
+            v0::{compute_digest, validate_prefix},
             AccountIdVersion,
         },
         AccountStorageMode, AccountType,

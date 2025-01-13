@@ -1,3 +1,4 @@
+mod prefix;
 use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -5,6 +6,7 @@ use alloc::{
 use core::fmt;
 
 use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
+pub use prefix::AccountIdPrefixV0;
 use vm_core::{
     utils::{ByteReader, Deserializable, Serializable},
     Felt, Word,
@@ -19,7 +21,6 @@ use crate::{
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
             },
             storage_mode::{PRIVATE, PUBLIC},
-            AccountIdPrefixV0,
         },
         AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
     },

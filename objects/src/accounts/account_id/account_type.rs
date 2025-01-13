@@ -1,4 +1,3 @@
-use alloc::string::String;
 use core::{fmt, str::FromStr};
 
 use vm_core::utils::{ByteReader, Deserializable, Serializable};
@@ -117,7 +116,10 @@ impl<'de> serde::Deserialize<'de> for AccountType {
     where
         D: serde::Deserializer<'de>,
     {
+        use alloc::string::String;
+
         use serde::de::Error;
+
         let string: String = serde::Deserialize::deserialize(deserializer)?;
         string.parse().map_err(D::Error::custom)
     }

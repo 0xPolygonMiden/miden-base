@@ -8,10 +8,10 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::id_v0;
 use crate::{
     accounts::{
-        account_id::id_v0::validate_prefix, AccountIdVersion, AccountStorageMode, AccountType,
+        account_id::v0::{self, validate_prefix},
+        AccountIdVersion, AccountStorageMode, AccountType,
     },
     errors::AccountIdError,
 };
@@ -37,7 +37,8 @@ impl AccountIdPrefixV0 {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// See [`AccountIdPrefix::new_unchecked`](super::AccountIdPrefix::new_unchecked) for details.
+    /// See [`AccountIdPrefix::new_unchecked`](crate::accounts::AccountIdPrefix::new_unchecked) for
+    /// details.
     pub fn new_unchecked(prefix: Felt) -> Self {
         // Panic on invalid felts in debug mode.
         if cfg!(debug_assertions) {
@@ -48,7 +49,7 @@ impl AccountIdPrefixV0 {
         AccountIdPrefixV0 { prefix }
     }
 
-    /// See [`AccountIdPrefix::new`](super::AccountIdPrefix::new) for details.
+    /// See [`AccountIdPrefix::new`](crate::accounts::AccountIdPrefix::new) for details.
     pub fn new(prefix: Felt) -> Result<Self, AccountIdError> {
         validate_prefix(prefix)?;
 
@@ -58,50 +59,52 @@ impl AccountIdPrefixV0 {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// See [`AccountIdPrefix::as_felt`](super::AccountIdPrefix::as_felt) for details.
+    /// See [`AccountIdPrefix::as_felt`](crate::accounts::AccountIdPrefix::as_felt) for details.
     pub const fn as_felt(&self) -> Felt {
         self.prefix
     }
 
-    /// See [`AccountIdPrefix::as_u64`](super::AccountIdPrefix::as_u64) for details.
+    /// See [`AccountIdPrefix::as_u64`](crate::accounts::AccountIdPrefix::as_u64) for details.
     pub const fn as_u64(&self) -> u64 {
         self.prefix.as_int()
     }
 
-    /// See [`AccountIdPrefix::account_type`](super::AccountIdPrefix::account_type) for details.
+    /// See [`AccountIdPrefix::account_type`](crate::accounts::AccountIdPrefix::account_type) for
+    /// details.
     pub const fn account_type(&self) -> AccountType {
-        id_v0::extract_type(self.prefix.as_int())
+        v0::extract_type(self.prefix.as_int())
     }
 
-    /// See [`AccountIdPrefix::is_faucet`](super::AccountIdPrefix::is_faucet) for details.
+    /// See [`AccountIdPrefix::is_faucet`](crate::accounts::AccountIdPrefix::is_faucet) for details.
     pub fn is_faucet(&self) -> bool {
         self.account_type().is_faucet()
     }
 
-    /// See [`AccountIdPrefix::is_regular_account`](super::AccountIdPrefix::is_regular_account) for
+    /// See [`AccountIdPrefix::is_regular_account`](crate::accounts::AccountIdPrefix::is_regular_account) for
     /// details.
     pub fn is_regular_account(&self) -> bool {
         self.account_type().is_regular_account()
     }
 
-    /// See [`AccountIdPrefix::storage_mode`](super::AccountIdPrefix::storage_mode) for details.
+    /// See [`AccountIdPrefix::storage_mode`](crate::accounts::AccountIdPrefix::storage_mode) for
+    /// details.
     pub fn storage_mode(&self) -> AccountStorageMode {
-        id_v0::extract_storage_mode(self.prefix.as_int())
+        v0::extract_storage_mode(self.prefix.as_int())
             .expect("account ID prefix should have been constructed with a valid storage mode")
     }
 
-    /// See [`AccountIdPrefix::is_public`](super::AccountIdPrefix::is_public) for details.
+    /// See [`AccountIdPrefix::is_public`](crate::accounts::AccountIdPrefix::is_public) for details.
     pub fn is_public(&self) -> bool {
         self.storage_mode() == AccountStorageMode::Public
     }
 
-    /// See [`AccountIdPrefix::version`](super::AccountIdPrefix::version) for details.
+    /// See [`AccountIdPrefix::version`](crate::accounts::AccountIdPrefix::version) for details.
     pub fn version(&self) -> AccountIdVersion {
-        id_v0::extract_version(self.prefix.as_int())
+        v0::extract_version(self.prefix.as_int())
             .expect("account ID prefix should have been constructed with a valid version")
     }
 
-    /// See [`AccountIdPrefix::to_hex`](super::AccountIdPrefix::to_hex) for details.
+    /// See [`AccountIdPrefix::to_hex`](crate::accounts::AccountIdPrefix::to_hex) for details.
     pub fn to_hex(self) -> String {
         format!("0x{:016x}", self.prefix.as_int())
     }
@@ -137,8 +140,8 @@ impl TryFrom<[u8; 8]> for AccountIdPrefixV0 {
     type Error = AccountIdError;
 
     /// See [`TryFrom<[u8; 8]> for
-    /// AccountIdPrefix`](super::AccountIdPrefix#impl-TryFrom<%5Bu8;+8%5D>-for-AccountIdPrefix) for
-    /// details.
+    /// AccountIdPrefix`](crate::accounts::AccountIdPrefix#impl-TryFrom<%5Bu8;+8%
+    /// 5D>-for-AccountIdPrefix) for details.
     fn try_from(mut value: [u8; 8]) -> Result<Self, Self::Error> {
         // Felt::try_from expects little-endian order.
         value.reverse();
@@ -153,8 +156,8 @@ impl TryFrom<u64> for AccountIdPrefixV0 {
     type Error = AccountIdError;
 
     /// See [`TryFrom<u64> for
-    /// AccountIdPrefix`](super::AccountIdPrefix#impl-TryFrom<u64>-for-AccountIdPrefix) for
-    /// details.
+    /// AccountIdPrefix`](crate::accounts::AccountIdPrefix#impl-TryFrom<u64>-for-AccountIdPrefix)
+    /// for details.
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let element = Felt::try_from(value.to_le_bytes().as_slice())
             .map_err(AccountIdError::AccountIdInvalidPrefixFieldElement)?;
@@ -166,8 +169,8 @@ impl TryFrom<Felt> for AccountIdPrefixV0 {
     type Error = AccountIdError;
 
     /// See [`TryFrom<Felt> for
-    /// AccountIdPrefix`](super::AccountIdPrefix#impl-TryFrom<Felt>-for-AccountIdPrefix) for
-    /// details.
+    /// AccountIdPrefix`](crate::accounts::AccountIdPrefix#impl-TryFrom<Felt>-for-AccountIdPrefix)
+    /// for details.
     fn try_from(element: Felt) -> Result<Self, Self::Error> {
         Self::new(element)
     }

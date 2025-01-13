@@ -1,14 +1,11 @@
 mod id_anchor;
 pub use id_anchor::AccountIdAnchor;
 
-pub(crate) mod id_v0;
-pub use id_v0::AccountIdV0;
+pub(crate) mod v0;
+pub use v0::{AccountIdPrefixV0, AccountIdV0};
 
 mod id_prefix;
 pub use id_prefix::AccountIdPrefix;
-
-mod id_prefix_v0;
-pub use id_prefix_v0::AccountIdPrefixV0;
 
 mod seed;
 
@@ -173,7 +170,7 @@ impl AccountId {
     pub fn new_unchecked(elements: [Felt; 2]) -> Self {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.
-        match id_v0::extract_version(elements[0].as_int())
+        match v0::extract_version(elements[0].as_int())
             .expect("prefix should contain a valid account ID version")
         {
             AccountIdVersion::Version0 => Self::V0(AccountIdV0::new_unchecked(elements)),
@@ -367,7 +364,7 @@ impl TryFrom<[Felt; 2]> for AccountId {
     type Error = AccountIdError;
 
     /// Returns an [`AccountId`] instantiated with the provided field elements where `elements[0]`
-    /// is taken as the prefix and `elements[1]` is taken as the second element.
+    /// is taken as the prefix and `elements[1]` is taken as the suffix.
     ///
     /// # Errors
     ///
@@ -376,7 +373,7 @@ impl TryFrom<[Felt; 2]> for AccountId {
     fn try_from(elements: [Felt; 2]) -> Result<Self, Self::Error> {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.
-        match id_v0::extract_version(elements[0].as_int())? {
+        match v0::extract_version(elements[0].as_int())? {
             AccountIdVersion::Version0 => AccountIdV0::try_from(elements).map(Self::V0),
         }
     }
@@ -396,7 +393,7 @@ impl TryFrom<[u8; 15]> for AccountId {
         let metadata_byte = bytes[7];
         // We only have one supported version for now, so we use the extractor from that version.
         // If we add more versions in the future, we may need to generalize this.
-        let version = id_v0::extract_version(metadata_byte as u64)?;
+        let version = v0::extract_version(metadata_byte as u64)?;
 
         match version {
             AccountIdVersion::Version0 => AccountIdV0::try_from(bytes).map(Self::V0),
