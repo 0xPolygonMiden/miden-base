@@ -40,18 +40,15 @@ pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 
 /// [TransactionContextBuilder] is a utility to construct [TransactionContext] for testing
 /// purposes. It allows users to build accounts, create notes, provide advice inputs, and
-/// execute code.
+/// execute code. The VM process can be inspected afterward.
 ///
 /// # Examples
 ///
 /// Create a new account and execute code:
 /// ```
-/// let tx_context = TransactionContextBuilder::with_fungible_faucet(
-///     acct_id.into(),
-///     Felt::ZERO,
-///     Felt::new(1000),
-/// )
-/// .build();
+/// # use miden_tx::testing::TransactionContextBuilder;
+/// # use miden_objects::{accounts::AccountBuilder,Felt, FieldElement};
+/// let tx_context = TransactionContextBuilder::with_standard_account(Felt::ONE).build();
 ///
 /// let code = "
 /// use.kernel::prologue
@@ -59,13 +56,13 @@ pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 ///
 /// begin
 ///     exec.prologue::prepare_transaction
-///     push.0
-///     exec.account::get_item
+///     push.5
+///     swap drop
 /// end
 /// ";
 ///
-/// let process = tx_context.execute_code(code);
-/// assert!(process.is_ok());
+/// let process = tx_context.execute_code(code).unwrap();
+/// assert_eq!(process.stack.get(0), Felt::new(5),);
 /// ```
 pub struct TransactionContextBuilder {
     assembler: Assembler,
