@@ -1,7 +1,5 @@
 # Changelog
 
-- Update on the roadmap (#1053).
-
 ## 0.6.2 (2024-11-20)
 
 - Avoid writing to the filesystem during docs.rs build (#970).
