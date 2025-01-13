@@ -378,7 +378,7 @@ impl RequestContext {
 
 /// Wrapper around the load balancer that implements the ProxyHttp trait
 ///
-/// This wrapper is used to implement the ProxyHttp trait for Arc<LoadBalancer>.
+/// This wrapper is used to implement the ProxyHttp trait for `Arc<LoadBalancer>`.
 /// This is necessary because we want to share the load balancer between the proxy server and the
 /// health check background service.
 #[derive(Debug)]

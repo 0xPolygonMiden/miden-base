@@ -12,7 +12,7 @@ impl Init {
     /// Creates a config file for the proxy.
     ///
     /// This method will create a new config file names
-    /// [miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME] in the current working directory with
+    /// [PROVING_SERVICE_CONFIG_FILE_NAME] in the current working directory with
     /// default values.
     pub fn execute(&self) -> Result<(), String> {
         let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;

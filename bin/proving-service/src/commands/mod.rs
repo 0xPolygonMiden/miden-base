@@ -69,7 +69,7 @@ impl ProxyConfig {
     /// Loads config file from current directory and default filename and returns it
     ///
     /// This function will look for the configuration file with the name defined at the
-    /// [PROVER_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
+    /// [PROVING_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
     pub(crate) fn load_config_from_file() -> Result<ProxyConfig, String> {
         let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
         current_dir.push(PROVING_SERVICE_CONFIG_FILE_NAME);
@@ -101,7 +101,7 @@ pub enum Command {
     ///
     /// This method will create a new config file in the current working directory with default
     /// values. The file will be named as defined in the
-    /// [miden_tx_prover::PROVING_SERVICE_CONFIG_FILE_NAME] constant.
+    /// [PROVING_SERVICE_CONFIG_FILE_NAME] constant.
     Init(Init),
     /// Starts the workers with the configuration defined in the command.
     StartWorker(StartWorker),
