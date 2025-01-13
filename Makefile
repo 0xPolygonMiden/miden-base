@@ -67,6 +67,11 @@ test-default: ## Run default tests excluding `prove`
 	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
 
 
+.PHONY: test-dev
+test-dev: ## Run default tests excluding slow tests (prove and ID anchor block tests) in debug mode intended to be run locally
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --features concurrent,testing --filter-expr "not test(prove) & not test(create_accounts_with_non_zero_anchor_block)"
+
+
 .PHONY: test-prove
 test-prove: ## Run `prove` tests (tests which use the Miden prover)
 	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
