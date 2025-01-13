@@ -19,8 +19,9 @@ use crate::{
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
             },
             storage_mode::{PRIVATE, PUBLIC},
+            AccountIdPrefixV0,
         },
-        AccountIdAnchor, AccountIdPrefix, AccountIdVersion, AccountStorageMode, AccountType,
+        AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
     },
     errors::AccountIdError,
     AccountError, Hasher, ACCOUNT_TREE_DEPTH,
@@ -221,11 +222,13 @@ impl AccountIdV0 {
         hex_string
     }
 
-    /// See [`AccountId::prefix`](super::AccountId::prefix) for details.
-    pub fn prefix(&self) -> AccountIdPrefix {
+    /// Returns the [`AccountIdPrefixV0`] of this account ID.
+    ///
+    /// See also [`AccountId::prefix`](super::AccountId::prefix) for details.
+    pub fn prefix(&self) -> AccountIdPrefixV0 {
         // SAFETY: We only construct account IDs with valid prefixes, so we don't have to validate
         // it again.
-        AccountIdPrefix::new_unchecked(self.prefix)
+        AccountIdPrefixV0::new_unchecked(self.prefix)
     }
 
     /// See [`AccountId::suffix`](super::AccountId::suffix) for details.
@@ -499,10 +502,13 @@ pub(crate) fn compute_digest(
 mod tests {
 
     use super::*;
-    use crate::testing::account_id::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-        ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    use crate::{
+        accounts::AccountIdPrefix,
+        testing::account_id::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        },
     };
 
     #[test]
@@ -578,7 +584,7 @@ mod tests {
         assert_eq!(account_id.prefix().to_bytes(), id_bytes[..8]);
 
         let deserialized_prefix = AccountIdPrefix::read_from_bytes(&id_bytes).unwrap();
-        assert_eq!(account_id.prefix(), deserialized_prefix);
+        assert_eq!(AccountIdPrefix::V0(account_id.prefix()), deserialized_prefix);
 
         // Ensure AccountId and AccountIdPrefix's hex representation are compatible.
         assert!(account_id.to_hex().starts_with(&account_id.prefix().to_hex()));

@@ -71,8 +71,8 @@ impl AccountIdPrefix {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the prefix are not met. See the
-    /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
+    /// Returns an error if any of the ID constraints are not met. See the [constraints
+    /// documentation](super::AccountId#constraints) for details.
     pub fn new(prefix: Felt) -> Result<Self, AccountIdError> {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.
@@ -199,8 +199,8 @@ impl TryFrom<[u8; 8]> for AccountIdPrefix {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the prefix are not met. See the
-    /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
+    /// Returns an error if any of the ID constraints are not met. See the [constraints
+    /// documentation](super::AccountId#constraints) for details.
     fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
         // The least significant byte of the ID prefix contains the metadata.
         let metadata_byte = value[7];
@@ -221,8 +221,8 @@ impl TryFrom<u64> for AccountIdPrefix {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the prefix are not met. See the
-    /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
+    /// Returns an error if any of the ID constraints are not met. See the [constraints
+    /// documentation](super::AccountId#constraints) for details.
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let element = Felt::try_from(value.to_le_bytes().as_slice())
             .map_err(AccountIdError::AccountIdInvalidPrefixFieldElement)?;
@@ -233,12 +233,12 @@ impl TryFrom<u64> for AccountIdPrefix {
 impl TryFrom<Felt> for AccountIdPrefix {
     type Error = AccountIdError;
 
-    /// Returns an [`AccountIdPrefix`] instantiated with the provided field .
+    /// Returns an [`AccountIdPrefix`] instantiated with the provided field element.
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the ID constraints of the prefix are not met. See the
-    /// [`AccountId`](crate::accounts::AccountId) type documentation for details.
+    /// Returns an error if any of the ID constraints are not met. See the [constraints
+    /// documentation](super::AccountId#constraints) for details.
     fn try_from(element: Felt) -> Result<Self, Self::Error> {
         Self::new(element)
     }

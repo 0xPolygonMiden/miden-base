@@ -306,7 +306,7 @@ impl AccountId {
     /// The prefix of an account ID is guaranteed to be unique.
     pub fn prefix(&self) -> AccountIdPrefix {
         match self {
-            AccountId::V0(account_id) => account_id.prefix(),
+            AccountId::V0(account_id) => AccountIdPrefix::V0(account_id.prefix()),
         }
     }
 
