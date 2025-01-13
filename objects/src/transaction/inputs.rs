@@ -44,7 +44,7 @@ impl TransactionInputs {
 
         // check the block_chain and block_header are consistent
         let block_num = block_header.block_num();
-        if block_chain.chain_length() != block_header.block_num().as_u32() as usize {
+        if block_chain.chain_length() != block_header.block_num().as_usize() {
             return Err(TransactionInputError::InconsistentChainLength {
                 expected: block_header.block_num().as_u32(),
                 actual: block_chain.chain_length() as u32,

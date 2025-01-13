@@ -588,7 +588,7 @@ impl MockChain {
             if note_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     note_block_num.as_u32(),
-                    self.blocks.get(note_block_num.as_u32() as usize).unwrap().header(),
+                    self.blocks.get(note_block_num.as_usize()).unwrap().header(),
                 );
             }
             input_notes.push(input_note);
@@ -603,7 +603,7 @@ impl MockChain {
             if epoch_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     epoch_block_num.as_u32(),
-                    self.blocks.get(epoch_block_num.as_u32() as usize).unwrap().header(),
+                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header(),
                 );
             }
         }
@@ -719,7 +719,7 @@ impl MockChain {
                                 BlockNoteIndex::new(batch_index, note_index).unwrap();
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
-                                block.header().block_num().as_u32(),
+                                block.header().block_num(),
                                 block_note_index.leaf_index_value(),
                                 note_path,
                             )

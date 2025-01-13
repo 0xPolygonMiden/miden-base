@@ -269,41 +269,14 @@ impl Deserializable for BlockHeader {
     }
 }
 
-/// BLOCK NUMBER
+// BLOCK NUMBER
+// ================================================================================================
 
 /// A convenience wrapper around a `u32` representing the number of a block.
 ///
 /// Each block has a unique number and block numbers increase monotonically by `1`.
 #[derive(Debug, Eq, PartialEq, Copy, Clone, PartialOrd, Ord, Hash)]
 pub struct BlockNumber(u32);
-
-impl Serializable for BlockNumber {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u32(self.0);
-    }
-
-    fn get_size_hint(&self) -> usize {
-        core::mem::size_of::<u32>()
-    }
-}
-
-impl Deserializable for BlockNumber {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        source.read::<u32>().map(BlockNumber::from)
-    }
-}
-
-impl From<u32> for BlockNumber {
-    fn from(value: u32) -> Self {
-        BlockNumber(value)
-    }
-}
-
-impl fmt::Display for BlockNumber {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 impl BlockNumber {
     /// The length of an epoch expressed as a power of two. `2^(EPOCH_LENGTH_EXPONENT)` is the
@@ -326,6 +299,50 @@ impl BlockNumber {
     /// Returns the block number as a `u32`.
     pub fn as_u32(&self) -> u32 {
         self.0
+    }
+
+    /// Returns the block number as a `u64`.
+    pub fn as_u64(&self) -> u64 {
+        self.0 as u64
+    }
+
+    /// Returns the block number as a `usize`.
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl Serializable for BlockNumber {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u32(self.0);
+    }
+
+    fn get_size_hint(&self) -> usize {
+        core::mem::size_of::<u32>()
+    }
+}
+
+impl Deserializable for BlockNumber {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        source.read::<u32>().map(BlockNumber::from)
+    }
+}
+
+impl From<BlockNumber> for Felt {
+    fn from(value: BlockNumber) -> Self {
+        Felt::from(value.as_u32())
+    }
+}
+
+impl From<u32> for BlockNumber {
+    fn from(value: u32) -> Self {
+        BlockNumber(value)
+    }
+}
+
+impl fmt::Display for BlockNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

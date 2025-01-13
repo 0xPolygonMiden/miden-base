@@ -79,7 +79,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.kernel_root());
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([
-        header.block_num().as_u32().into(),
+        header.block_num().into(),
         header.version().into(),
         header.timestamp().into(),
         ZERO,
@@ -282,7 +282,7 @@ fn add_input_notes_to_advice_inputs(
                         .inner_nodes(proof.location().node_index_in_block().into(), note.hash())
                         .unwrap(),
                 );
-                note_data.push(proof.location().block_num().as_u32().into());
+                note_data.push(proof.location().block_num().into());
                 note_data.extend(note_block_header.sub_hash());
                 note_data.extend(note_block_header.note_root());
                 note_data.push(proof.location().node_index_in_block().into());

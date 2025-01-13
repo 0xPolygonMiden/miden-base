@@ -48,7 +48,7 @@ impl ChainMmr {
 
         let mut block_map = BTreeMap::new();
         for block in blocks.into_iter() {
-            if block.block_num().as_u32() as usize >= chain_length {
+            if block.block_num().as_usize() >= chain_length {
                 return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
             }
 
@@ -56,7 +56,7 @@ impl ChainMmr {
                 return Err(ChainMmrError::duplicate_block(block.block_num()));
             }
 
-            if !mmr.is_tracked(block.block_num().as_u32() as usize) {
+            if !mmr.is_tracked(block.block_num().as_usize()) {
                 return Err(ChainMmrError::untracked_block(block.block_num()));
             }
         }
@@ -112,9 +112,7 @@ impl ChainMmr {
     /// MMR.
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
         self.mmr.inner_nodes(
-            self.blocks
-                .values()
-                .map(|block| (block.block_num().as_u32() as usize, block.hash())),
+            self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
         )
     }
 }

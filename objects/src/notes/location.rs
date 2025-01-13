@@ -46,7 +46,7 @@ pub struct NoteInclusionProof {
 impl NoteInclusionProof {
     /// Returns a new [NoteInclusionProof].
     pub fn new(
-        block_num: u32,
+        block_num: BlockNumber,
         node_index_in_block: u16,
         note_path: MerklePath,
     ) -> Result<Self, NoteError> {
@@ -57,10 +57,8 @@ impl NoteInclusionProof {
                 highest_index: HIGHEST_INDEX,
             });
         }
-        let location = NoteLocation {
-            block_num: block_num.into(),
-            node_index_in_block,
-        };
+
+        let location = NoteLocation { block_num, node_index_in_block };
 
         Ok(Self { location, note_path })
     }
