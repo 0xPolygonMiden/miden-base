@@ -21,6 +21,11 @@ clippy: ## Runs Clippy with configs
 	cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
 
 
+.PHONY: clippy-no-std
+clippy-no-std: ## Runs Clippy with configs
+	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib -- -D warnings
+
+
 .PHONY: fix
 fix: ## Runs Fix with configs
 	cargo fix --workspace --allow-staged --allow-dirty --all-targets $(ALL_FEATURES_BUT_ASYNC)
@@ -75,6 +80,11 @@ test: test-default test-prove ## Run all tests
 .PHONY: check
 check: ## Check all targets and features for errors without code generation
 	${BUILD_KERNEL_ERRORS} cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+
+
+.PHONY: check-no-std
+check-no-std: ## Check all targets and features for errors without code generation
+	${BUILD_KERNEL_ERRORS} cargo check --no-default-features --target wasm32-unknown-unknown --workspace --lib
 
 # --- building ------------------------------------------------------------------------------------
 
