@@ -144,8 +144,9 @@ impl Account {
     }
 
     /// Creates a new [`AccountBuilder`] for an account and sets the initial seed from which the
-    /// grinding process for that account's [`AccountId`] will start. This initial seed should
-    /// come from a cryptographic random number generator.
+    /// grinding process for that account's [`AccountId`] will start.
+    ///
+    /// This initial seed should come from a cryptographic random number generator.
     pub fn builder(init_seed: [u8; 32]) -> AccountBuilder {
         AccountBuilder::new(init_seed)
     }

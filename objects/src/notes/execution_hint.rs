@@ -84,7 +84,8 @@ impl NoteExecutionHint {
             .map(|block_number| NoteExecutionHint::AfterBlock { block_num: block_number })
     }
 
-    /// Creates a [NoteExecutionHint::OnBlockSlot] for the given parameters
+    /// Creates a [NoteExecutionHint::OnBlockSlot] for the given parameters. See the variants
+    /// documentation for details on the parameters.
     pub fn on_block_slot(round_len: u8, slot_len: u8, slot_offset: u8) -> Self {
         NoteExecutionHint::OnBlockSlot { round_len, slot_len, slot_offset }
     }

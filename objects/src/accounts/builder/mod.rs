@@ -52,8 +52,9 @@ pub struct AccountBuilder {
 
 impl AccountBuilder {
     /// Creates a new builder for an account and sets the initial seed from which the grinding
-    /// process for that account's [`AccountId`] will start. This initial seed should come from a
-    /// cryptographic random number generator.
+    /// process for that account's [`AccountId`] will start.
+    ///
+    /// This initial seed should come from a cryptographic random number generator.
     pub fn new(init_seed: [u8; 32]) -> Self {
         Self {
             #[cfg(any(feature = "testing", test))]
