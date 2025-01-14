@@ -153,8 +153,8 @@ impl TransactionKernel {
         let mut inputs: Vec<Felt> = Vec::with_capacity(14);
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
-        inputs.push(account_id.second_felt());
-        inputs.push(account_id.first_felt());
+        inputs.push(account_id.suffix());
+        inputs.push(account_id.prefix().as_felt());
         inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())
@@ -181,7 +181,7 @@ impl TransactionKernel {
         let code_root = account_header.code_commitment();
         // Note: keep in sync with the start_foreign_context kernel procedure
         let account_key =
-            Digest::from([account_id.second_felt(), account_id.first_felt(), ZERO, ZERO]);
+            Digest::from([account_id.suffix(), account_id.prefix().as_felt(), ZERO, ZERO]);
 
         // Extend the advice inputs with the new data
         advice_inputs.extend_map([
@@ -195,8 +195,8 @@ impl TransactionKernel {
 
         // Extend the advice inputs with Merkle store data
         advice_inputs.extend_merkle_store(
-            // The first felt is the index in the account tree.
-            merkle_path.inner_nodes(account_id.first_felt().as_int(), account_header.hash())?,
+            // The prefix is the index in the account tree.
+            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.hash())?,
         );
 
         Ok(())

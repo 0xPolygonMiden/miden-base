@@ -144,10 +144,10 @@ end
 #! Returns the sender of the note currently being processed.
 #!
 #! Inputs:  []
-#! Outputs: [sender_hi, sender_lo]
+#! Outputs: [sender_id_prefix, sender_id_suffix]
 #!
 #! Where:
-#! - sender_{hi,lo} are the first and second felt of the sender of the note currently being processed.
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is being processed.
@@ -166,7 +166,7 @@ export.get_sender
 
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 movdn.3 drop drop
-    # => [sender_hi, sender_lo]
+    # => [sender_id_prefix, sender_id_suffix]
 end
 
 #! Returns the serial number of the note currently being processed.

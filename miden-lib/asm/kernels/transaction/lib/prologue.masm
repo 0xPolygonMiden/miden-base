@@ -66,12 +66,12 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x0002005B
 
 #! Saves global inputs to memory.
 #!
-#! Inputs:  [BLOCK_HASH, account_id_hi, account_id_lo, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Inputs:  [BLOCK_HASH, account_id_prefix, account_id_suffix, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
 #! Outputs: []
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - account_id_{hi,lo} are the first and second felt of the account id of the account that the
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the account that the
 #!   transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.
@@ -308,7 +308,7 @@ end
 #! for a new account.
 #!
 #! Applies the following validation to the new account:
-#! - assert that the account id is valid.
+#! - assert that the account ID is valid.
 #! - assert that the account vault is empty.
 #! - assert that the account nonce is set to 0.
 #! - read the account seed from the advice provider and assert it satisfies seed requirements.
@@ -316,7 +316,7 @@ end
 #! Inputs:  []
 #! Outputs: []
 proc.validate_new_account
-    # Assert the account id of the account is valid
+    # Assert the account ID of the account is valid
     exec.memory::get_account_id exec.account::validate_id
     # => []
 
@@ -341,13 +341,13 @@ proc.validate_new_account
     # ---------------------------------------------------------------------------------------------
     # check if the account is a faucet
     exec.account::get_id swap drop dup exec.account::is_faucet
-    # => [is_faucet, acct_id_hi]
+    # => [is_faucet, acct_id_prefix]
 
     # process conditional logic depending on whether the account is a faucet
     if.true
         # get the faucet reserved slot
         exec.account::get_faucet_storage_data_slot exec.account::get_item
-        # => [FAUCET_RESERVED_SLOT, acct_id_hi]
+        # => [FAUCET_RESERVED_SLOT, acct_id_prefix]
 
         # check if the account is a fungible faucet
         movup.4 exec.account::is_fungible_faucet
@@ -429,7 +429,7 @@ end
 #! Inputs:
 #!   Operand stack: []
 #!   Advice stack: [
-#!     account_id_lo, account_id_hi, 0, account_nonce,
+#!     account_id_suffix, account_id_prefix, 0, account_nonce,
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_COMMITMENT,
 #!     ACCOUNT_CODE_COMMITMENT
@@ -439,7 +439,7 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - account_id_{hi,lo} are the first and second felt of the ID of the account that the transaction
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the account that the transaction
 #!   is being executed against.
 #! - account_nonce is the account's nonce.
 #! - ACCOUNT_VAULT_ROOT is the account's vault root.
@@ -466,7 +466,7 @@ proc.process_account_data
     movup.4 drop
     # => [ACCT_HASH]
 
-    # assert the account id matches the account id in global inputs
+    # assert the account ID matches the account ID in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
     exec.account::is_id_eq assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
@@ -1086,7 +1086,7 @@ end
 #! Inputs:
 #!   Operand stack: [
 #!     BLOCK_HASH,
-#!     account_id_hi, account_id_lo,
+#!     account_id_prefix, account_id_suffix,
 #!     INITIAL_ACCOUNT_HASH,
 #!     INPUT_NOTES_COMMITMENT,
 #!   ]
@@ -1101,7 +1101,7 @@ end
 #!     [block_num, version, timestamp, 0],
 #!     NOTE_ROOT,
 #!     kernel_version
-#!     [account_id_lo, account_id_hi, 0, account_nonce],
+#!     [account_id_suffix, account_id_prefix, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_COMMITMENT,
 #!     ACCOUNT_CODE_COMMITMENT,
@@ -1122,7 +1122,7 @@ end
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - account_id_{hi,lo} are the first and second felt of the account that the transaction is being
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the transaction is being
 #!   executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.

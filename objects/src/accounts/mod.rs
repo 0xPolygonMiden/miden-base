@@ -4,14 +4,11 @@ use crate::{
     AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
-pub mod account_id;
-pub use account_id::{AccountId, AccountIdVersion, AccountStorageMode, AccountType};
-
-mod account_id_anchor;
-pub use account_id_anchor::AccountIdAnchor;
-
-mod account_id_prefix;
-pub use account_id_prefix::AccountIdPrefix;
+mod account_id;
+pub use account_id::{
+    AccountId, AccountIdAnchor, AccountIdPrefix, AccountIdPrefixV0, AccountIdV0, AccountIdVersion,
+    AccountStorageMode, AccountType,
+};
 
 pub mod auth;
 
@@ -25,8 +22,8 @@ pub use code::{procedure::AccountProcedureInfo, AccountCode};
 
 mod component;
 pub use component::{
-    AccountComponent, AccountComponentMetadata, AccountComponentTemplate, InitStorageData,
-    StorageEntry, StoragePlaceholder, StorageValue,
+    AccountComponent, AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation,
+    InitStorageData, StorageEntry, StoragePlaceholder, StorageValue, WordRepresentation,
 };
 
 pub mod delta;
@@ -34,9 +31,6 @@ pub use delta::{
     AccountDelta, AccountStorageDelta, AccountVaultDelta, FungibleAssetDelta,
     NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
-
-mod seed;
-pub use seed::compute_account_seed;
 
 mod storage;
 pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
@@ -143,9 +137,12 @@ impl Account {
         Ok((code, storage))
     }
 
-    /// Returns a new [`AccountBuilder`]. See its documentation for details.
-    pub fn builder() -> AccountBuilder {
-        AccountBuilder::new()
+    /// Creates a new [`AccountBuilder`] for an account and sets the initial seed from which the
+    /// grinding process for that account's [`AccountId`] will start.
+    ///
+    /// This initial seed should come from a cryptographic random number generator.
+    pub fn builder(init_seed: [u8; 32]) -> AccountBuilder {
+        AccountBuilder::new(init_seed)
     }
 
     // PUBLIC ACCESSORS
@@ -354,8 +351,8 @@ pub fn hash_account(
     code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
-    elements[0] = id.second_felt();
-    elements[1] = id.first_felt();
+    elements[0] = id.suffix();
+    elements[1] = id.prefix().as_felt();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_commitment);

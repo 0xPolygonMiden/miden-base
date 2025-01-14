@@ -3,10 +3,7 @@ use super::{
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AssetError, Felt, Hasher, Word, ZERO,
 };
-use crate::accounts::{
-    account_id::{self},
-    AccountIdPrefix,
-};
+use crate::accounts::AccountIdPrefix;
 
 mod fungible;
 pub use fungible::FungibleAsset;
@@ -32,11 +29,11 @@ pub use vault::AssetVault;
 /// - ZERO for a fungible asset.
 /// - non-ZERO for a non-fungible asset.
 ///
-/// Element 3 of both asset types is an [`AccountIdPrefix`] or equivalently, the first felt of an
+/// Element 3 of both asset types is an [`AccountIdPrefix`] or equivalently, the prefix of an
 /// [`AccountId`](crate::accounts::AccountId), which can be used to distinguish assets
 /// based on [`AccountIdPrefix::account_type`].
 ///
-/// For element 3 of the vault keys of assets, the 6th least significant bit (referred to as the
+/// For element 3 of the vault keys of assets, the bit at index 5 (referred to as the
 /// "fungible bit" will be):
 /// - `1` for a fungible asset.
 /// - `0` for a non-fungible asset.
@@ -48,11 +45,11 @@ pub use vault::AssetVault;
 ///
 /// # Fungible assets
 ///
-/// - A fungible asset's data layout is: `[amount, 0, faucet_id_lo, faucet_id_hi]`.
-/// - A fungible asset's vault key layout is: `[0, 0, faucet_id_lo, faucet_id_hi]`.
+/// - A fungible asset's data layout is: `[amount, 0, faucet_id_suffix, faucet_id_prefix]`.
+/// - A fungible asset's vault key layout is: `[0, 0, faucet_id_suffix, faucet_id_prefix]`.
 ///
-/// The most significant elements of a fungible asset are set to the first (`faucet_id_hi`) and
-/// second felt (`faucet_id_lo`) of the ID of the faucet which issues the asset. This guarantees the
+/// The most significant elements of a fungible asset are set to the prefix (`faucet_id_prefix`) and
+/// suffix (`faucet_id_suffix`) of the ID of the faucet which issues the asset. This guarantees the
 /// properties described above (the fungible bit is `1`).
 ///
 /// The least significant element is set to the amount of the asset. This amount cannot be greater
@@ -66,16 +63,16 @@ pub use vault::AssetVault;
 ///
 /// # Non-fungible assets
 ///
-/// - A non-fungible asset's data layout is: `[hash0, hash1, hash2, faucet_id_hi]`.
-/// - A non-fungible asset's vault key layout is: `[faucet_id_hi, hash1, hash2, hash0']`, where
+/// - A non-fungible asset's data layout is: `[hash0, hash1, hash2, faucet_id_prefix]`.
+/// - A non-fungible asset's vault key layout is: `[faucet_id_prefix, hash1, hash2, hash0']`, where
 ///   `hash0'` is equivalent to `hash0` with the fungible bit set to `0`. See
 ///   [`NonFungibleAsset::vault_key`] for more details.
 ///
 /// The 4 elements of non-fungible assets are computed as follows:
 /// - First the asset data is hashed. This compresses an asset of an arbitrary length to 4 field
 ///   elements: `[hash0, hash1, hash2, hash3]`.
-/// - `hash3` is then replaced with the first felt of the faucet ID (`faucet_id_hi`) which issues
-///   the asset: `[hash0, hash1, hash2, faucet_id_hi]`.
+/// - `hash3` is then replaced with the prefix of the faucet ID (`faucet_id_prefix`) which issues
+///   the asset: `[hash0, hash1, hash2, faucet_id_prefix]`.
 ///
 /// It is impossible to find a collision between two non-fungible assets issued by different faucets
 /// as the faucet_id is included in the description of the non-fungible asset and this is guaranteed
@@ -123,12 +120,12 @@ impl Asset {
 
     /// Returns the prefix of the faucet ID which issued this asset.
     ///
-    /// To get the full [`AccountId`](crate::accounts::AccountId  ) of a fungible asset the asset
+    /// To get the full [`AccountId`](crate::accounts::AccountId) of a fungible asset the asset
     /// must be matched on.
     pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         match self {
-            Self::Fungible(asset) => asset.faucet_id().prefix(),
-            Self::NonFungible(asset) => asset.faucet_id(),
+            Self::Fungible(asset) => asset.faucet_id_prefix(),
+            Self::NonFungible(asset) => asset.faucet_id_prefix(),
         }
     }
 
@@ -215,20 +212,18 @@ impl Deserializable for Asset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         // Both asset types have their faucet ID prefix as the first element, so we can use it to
         // inspect what type of asset it is.
-        // Due to little endian byte order, the first byte contains the account ID metadata.
-        let account_metadata = source.peek_u8()?;
-        let account_type = account_id::extract_type(account_metadata as u64);
+        let faucet_id_prefix: AccountIdPrefix = source.read()?;
 
-        match account_type {
+        match faucet_id_prefix.account_type() {
             AccountType::FungibleFaucet => {
-              FungibleAsset::read_from(source).map(Asset::from)
+              FungibleAsset::deserialize_with_faucet_id_prefix(faucet_id_prefix, source).map(Asset::from)
             },
             AccountType::NonFungibleFaucet => {
-                NonFungibleAsset::read_from(source).map(Asset::from)
+                NonFungibleAsset::deserialize_with_faucet_id_prefix (faucet_id_prefix, source).map(Asset::from)
             },
             other_type => {
                  Err(DeserializationError::InvalidValue(format!(
-                    "failed to deserialize asset: expected an account ID of type faucet, found {other_type:?}"
+                    "failed to deserialize asset: expected an account ID prefix of type faucet, found {other_type:?}"
                 )))
             },
         }
@@ -249,7 +244,7 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
         },
         Err(err) => {
             #[cfg(debug_assertions)]
-            panic!("invalid account id prefix passed to is_not_a_non_fungible_asset: {err}");
+            panic!("invalid account ID prefix passed to is_not_a_non_fungible_asset: {err}");
             #[cfg(not(debug_assertions))]
             false
         },
@@ -269,7 +264,7 @@ mod tests {
 
     use super::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
     use crate::{
-        accounts::{account_id, AccountId},
+        accounts::{AccountId, AccountIdPrefix},
         testing::account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
@@ -333,29 +328,15 @@ mod tests {
         }
     }
 
-    /// This test asserts that account ID's metadata is serialized in the first byte of assets.
+    /// This test asserts that account ID's prefix is serialized in the first felt of assets.
     /// Asset deserialization relies on that fact and if this changes the serialization must
     /// be updated.
     #[test]
-    fn test_account_id_metadata_is_in_first_serialized_byte() {
+    fn test_account_id_prefix_is_in_first_serialized_felt() {
         for asset in [FungibleAsset::mock(300), NonFungibleAsset::mock(&[0xaa, 0xbb])] {
             let serialized_asset = asset.to_bytes();
-            // Get the first byte and interpret it as a u64 because the extract functions require
-            // it.
-            let first_byte = serialized_asset[0] as u64;
-
-            assert_eq!(
-                account_id::extract_type(first_byte),
-                asset.faucet_id_prefix().account_type()
-            );
-            assert_eq!(
-                account_id::extract_storage_mode(first_byte).unwrap(),
-                asset.faucet_id_prefix().storage_mode()
-            );
-            assert_eq!(
-                account_id::extract_version(first_byte).unwrap(),
-                asset.faucet_id_prefix().version()
-            );
+            let prefix = AccountIdPrefix::read_from_bytes(&serialized_asset).unwrap();
+            assert_eq!(prefix, asset.faucet_id_prefix());
         }
     }
 }

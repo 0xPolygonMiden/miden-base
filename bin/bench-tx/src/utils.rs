@@ -70,8 +70,7 @@ pub fn get_account_with_basic_authenticated_wallet(
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    AccountBuilder::new()
-        .init_seed(init_seed)
+    AccountBuilder::new(init_seed)
         .account_type(account_type)
         .storage_mode(storage_mode)
         .with_assets(assets)

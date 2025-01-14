@@ -120,8 +120,7 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -956,8 +955,7 @@ fn transaction_executor_account_code_using_custom_library() {
             .with_supports_all_types();
 
     // Build an existing account with nonce 1.
-    let native_account = AccountBuilder::new()
-        .init_seed(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .with_component(account_component)
         .build_existing()
         .unwrap();

@@ -85,7 +85,7 @@ pub const GLOBAL_INPUTS_SECTION_OFFSET: MemoryOffset = 100;
 /// The memory address at which the latest known block hash is stored.
 pub const BLK_HASH_PTR: MemoryAddress = 100;
 
-/// The memory address at which the account id is stored.
+/// The memory address at which the account ID is stored.
 pub const ACCT_ID_PTR: MemoryAddress = 101;
 
 /// The memory address at which the initial account hash is stored.
@@ -176,19 +176,19 @@ pub const NATIVE_ACCOUNT_DATA_PTR: MemoryAddress = 2048;
 /// The length of the memory interval that the account data occupies.
 pub const ACCOUNT_DATA_LENGTH: MemSize = 2048;
 
-/// The offset at which the account id and nonce are stored relative to the start of
+/// The offset at which the account ID and nonce are stored relative to the start of
 /// the account data segment.
 pub const ACCT_ID_AND_NONCE_OFFSET: MemoryOffset = 0;
 
-/// The memory address at which the account id and nonce are stored in the native account.
+/// The memory address at which the account ID and nonce are stored in the native account.
 pub const NATIVE_ACCT_ID_AND_NONCE_PTR: MemoryAddress =
     NATIVE_ACCOUNT_DATA_PTR + ACCT_ID_AND_NONCE_OFFSET;
 
-/// The index of the account id within the account id and nonce data.
-pub const ACCT_ID_LO_IDX: DataIndex = 0;
-pub const ACCT_ID_HI_IDX: DataIndex = 1;
+/// The index of the account ID within the account ID and nonce data.
+pub const ACCT_ID_SUFFIX_IDX: DataIndex = 0;
+pub const ACCT_ID_PREFIX_IDX: DataIndex = 1;
 
-/// The index of the account nonce within the account id and nonce data.
+/// The index of the account nonce within the account ID and nonce data.
 pub const ACCT_NONCE_IDX: DataIndex = 3;
 
 /// The offset at which the account vault root is stored relative to the start of the account

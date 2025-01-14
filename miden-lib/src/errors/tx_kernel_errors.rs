@@ -15,6 +15,7 @@ pub const ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH: u32 = 0x0002000F;
 pub const ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE: u32 = 0x00020006;
 pub const ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX: u32 = 0x00020058;
 pub const ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO: u32 = 0x00020005;
+pub const ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE: u32 = 0x00020059;
 pub const ERR_ACCOUNT_ID_UNKNOWN_VERSION: u32 = 0x00020057;
 pub const ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x00020013;
 pub const ERR_ACCOUNT_IS_NOT_NATIVE: u32 = 0x00020030;
@@ -114,13 +115,14 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002001C;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x0002001F;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x0002001E;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 89] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY, "Anchor block hash must not be empty"),
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
     (ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX, "Epoch must be less than u16::MAX (0xffff)."),
-    (ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, "Least significant byte of second felt of the account id must be zero."),
-    (ERR_ACCOUNT_ID_UNKNOWN_VERSION, "Unknown version in account id."),
+    (ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, "Least significant byte of the account ID suffix must be zero."),
+    (ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE, "Unknown account storage mode in account ID."),
+    (ERR_ACCOUNT_ID_UNKNOWN_VERSION, "Unknown version in account ID."),
     (ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage offset is invalid for 0 storage size (should be 0)"),
     (ERR_ACCOUNT_IS_NOT_NATIVE, "The current account is not native"),
     (ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE, "Account nonce did not increase after a state changing transaction"),

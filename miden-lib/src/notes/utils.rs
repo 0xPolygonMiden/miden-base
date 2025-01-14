@@ -16,7 +16,7 @@ pub fn build_p2id_recipient(
     serial_num: Word,
 ) -> Result<NoteRecipient, NoteError> {
     let note_script = scripts::p2id();
-    let note_inputs = NoteInputs::new(vec![target.second_felt(), target.first_felt()])?;
+    let note_inputs = NoteInputs::new(vec![target.suffix(), target.prefix().as_felt()])?;
 
     Ok(NoteRecipient::new(serial_num, note_script, note_inputs))
 }
@@ -56,7 +56,7 @@ pub fn build_swap_tag(
 mod tests {
     use miden_objects::{
         self,
-        accounts::{AccountStorageMode, AccountType},
+        accounts::{AccountIdVersion, AccountStorageMode, AccountType},
         assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     };
 
@@ -78,6 +78,7 @@ mod tests {
             FungibleAsset::new(
                 AccountId::dummy(
                     fungible_faucet_id_bytes,
+                    AccountIdVersion::Version0,
                     AccountType::FungibleFaucet,
                     AccountStorageMode::Public,
                 ),
@@ -91,6 +92,7 @@ mod tests {
                 &NonFungibleAssetDetails::new(
                     AccountId::dummy(
                         non_fungible_faucet_id_bytes,
+                        AccountIdVersion::Version0,
                         AccountType::NonFungibleFaucet,
                         AccountStorageMode::Public,
                     )

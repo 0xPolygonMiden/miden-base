@@ -26,10 +26,10 @@ export.auth_tx_rpo_falcon512
 
     # Get current AccountID and pad
     exec.account::get_id push.0.0
-    # => [0, 0, account_id_hi, account_id_lo, 0, 0, 0, nonce, INPUT_NOTES_HASH, OUTPUT_NOTES_HASH, pad(16)]
+    # => [0, 0, account_id_prefix, account_id_suffix, 0, 0, 0, nonce, INPUT_NOTES_HASH, OUTPUT_NOTES_HASH, pad(16)]
 
     # Compute the message to be signed
-    # MESSAGE = h(OUTPUT_NOTES_HASH, h(INPUT_NOTES_HASH, h(0, 0, account_id_hi, account_id_lo, 0, 0, 0, nonce)))
+    # MESSAGE = h(OUTPUT_NOTES_HASH, h(INPUT_NOTES_HASH, h(0, 0, account_id_prefix, account_id_suffix, 0, 0, 0, nonce)))
     hmerge hmerge hmerge
     # => [MESSAGE, pad(16)]
 
