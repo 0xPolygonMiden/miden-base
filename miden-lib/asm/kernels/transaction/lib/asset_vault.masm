@@ -1,6 +1,7 @@
 use.std::collections::smt
 
 use.utils::account_utils
+use.utils::asset_vault_utils
 
 use.kernel::account
 use.kernel::asset
@@ -32,12 +33,6 @@ const.ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID=0x0002001E
 
 # Failed to remove non-existent non-fungible asset from the vault
 const.ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND=0x0002001F
-
-# CONSTANTS
-# =================================================================================================
-
-# The bitmask that when applied will set the fungible bit to zero.
-const.INVERSE_FUNGIBLE_BITMASK_U32=0xffffffdf # last byte: 0b1101_1111
 
 # ACCESSORS
 # =================================================================================================
@@ -96,7 +91,7 @@ export.has_non_fungible_asset
     # => [ASSET, vault_root_ptr]
 
     # build the asset key from the non-fungible asset
-    exec.build_non_fungible_asset_vault_key
+    exec.asset_vault_utils::build_non_fungible_asset_vault_key
     # => [ASSET_KEY, vault_root_ptr]
 
     # prepare the stack to read non-fungible asset from vault
@@ -226,7 +221,7 @@ export.add_non_fungible_asset
     # Build the asset key from the non-fungible asset.
     # ---------------------------------------------------------------------------------------------
 
-    dupw exec.build_non_fungible_asset_vault_key
+    dupw exec.asset_vault_utils::build_non_fungible_asset_vault_key
     # => [ASSET_KEY, ASSET, vault_root_ptr]
 
     # Load VAULT_ROOT and insert asset.
@@ -369,7 +364,7 @@ end
 #! - the non-fungible asset is not found in the vault.
 export.remove_non_fungible_asset
     # build non-fungible asset key
-    dupw exec.build_non_fungible_asset_vault_key padw
+    dupw exec.asset_vault_utils::build_non_fungible_asset_vault_key padw
     # => [pad(4), ASSET_KEY, ASSET, vault_root_ptr]
 
     # load vault root
@@ -419,35 +414,4 @@ export.remove_asset
         exec.remove_non_fungible_asset
         # => [ASSET]
     end
-end
-
-# HELPER PROCEDURES
-# =================================================================================================
-
-#! Builds the vault key of a non fungible asset. The asset is NOT validated and therefore must
-#! be a valid non-fungible asset.
-#!
-#! Inputs:  [ASSET]
-#! Outputs: [ASSET_KEY]
-#!
-#! Where:
-#! - ASSET is the non-fungible asset for which the vault key is built.
-#! - ASSET_KEY is the vault key of the non-fungible asset.
-proc.build_non_fungible_asset_vault_key
-    # create the asset key from the non-fungible asset by swapping hash0 with the faucet id
-    # => [faucet_id_prefix, hash2, hash1, hash0]
-    swap.3
-    # => [hash0, hash2, hash1 faucet_id_prefix]
-
-    # disassemble hash0 into u32 limbs
-    u32split swap
-    # => [hash0_lo, hash0_hi, hash2, hash1 faucet_id_prefix]
-
-    # set the fungible bit to 0
-    u32and.INVERSE_FUNGIBLE_BITMASK_U32
-    # => [hash0_lo', hash0_hi, hash2, hash1 faucet_id_prefix]
-
-    # reassemble hash0 felt by multiplying the high part with 2^32 and adding the lo part
-    swap push.0x0100000000 mul add
-    # => [ASSET_KEY]
 end

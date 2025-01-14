@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use miden_lib::transaction::TransactionKernel;
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, Program, StackInputs,

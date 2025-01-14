@@ -21,7 +21,7 @@ const.ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID=0x0002004D
 #! Outputs: [fungible_asset_max_amount]
 #!
 #! fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.::utils::utils::get_fungible_asset_max_amount
+export.::utils::asset_utils::get_fungible_asset_max_amount
 
 #! Builds a fungible asset for the specified fungible faucet and amount.
 #!

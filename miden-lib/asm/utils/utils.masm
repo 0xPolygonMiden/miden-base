@@ -1,21 +1,5 @@
 # TODO: move these procedures to the dedicated `*_uitls` masm file
 
-### ASSET ###########################################################
-
-const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
-
-#! Returns the maximum amount of a fungible asset.
-#!
-#! Inputs:  []
-#! Outputs: [fungible_asset_max_amount]
-#!
-#! Where:
-#! - fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.get_fungible_asset_max_amount
-    push.FUNGIBLE_ASSET_MAX_AMOUNT
-    # => [fungible_asset_max_amount]
-end
-
 ### NOTE ############################################################
 
 # The maximum number of input values associated with a single note.

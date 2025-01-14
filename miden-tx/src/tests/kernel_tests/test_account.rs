@@ -139,10 +139,10 @@ pub fn test_account_type() {
 
             let code = format!(
                 "
-                use.kernel::account
+                use.utils::account_utils
 
                 begin
-                    exec.account::{}
+                    exec.account_utils::{}
                 end
                 ",
                 procedure
@@ -209,10 +209,10 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
         let suffix = Felt::try_from((account_id % (1u128 << 64)) as u64).unwrap();
 
         let code = "
-            use.kernel::account
+            use.utils::account_utils
 
             begin
-                exec.account::validate_id
+                exec.account_utils::validate_id
             end
             ";
 
@@ -260,11 +260,11 @@ fn test_is_faucet_procedure() {
 
         let code = format!(
             "
-            use.kernel::account
+            use.utils::account_utils
 
             begin
                 push.{prefix}
-                exec.account::is_faucet
+                exec.account_utils::is_faucet
                 # => [is_faucet, account_id_prefix]
 
                 # truncate the stack

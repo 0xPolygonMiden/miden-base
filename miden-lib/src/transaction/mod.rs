@@ -2,7 +2,7 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
     accounts::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
-    assembly::{Assembler, DefaultSourceManager, KernelLibrary},
+    assembly::{Assembler, DefaultSourceManager, KernelLibrary, LibraryNamespace},
     crypto::merkle::{MerkleError, MerklePath},
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
@@ -352,17 +352,29 @@ impl TransactionKernel {
     /// The `kernel` library is added separately because even though the library (`api.masm`) and
     /// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding
     /// it separately, we can expose procedures from `/lib` and test them individually.
+    ///
+    /// This assembler also includes the `utils` namespace which contains the modules defined
+    /// in the utils directory.
     pub fn testing_assembler() -> Assembler {
         let source_manager = Arc::new(DefaultSourceManager::default());
         let kernel_library = Self::kernel_as_library();
 
-        Assembler::with_kernel(source_manager, Self::kernel())
+        let mut assembler = Assembler::with_kernel(source_manager, Self::kernel())
             .with_library(StdLibrary::default())
             .expect("failed to load std-lib")
             .with_library(MidenLib::default())
             .expect("failed to load miden-lib")
             .with_library(kernel_library)
-            .expect("failed to load kernel library (/lib)")
+            .expect("failed to load kernel library (/lib)");
+
+        // Add the utils modules under the utils namespace.
+        let utils_namespace = LibraryNamespace::new("utils").expect("invalid namespace");
+        let utils_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("asm").join("utils");
+        assembler
+            .add_modules_from_dir(utils_namespace, &utils_path)
+            .expect("util library should exist and assemble successfully");
+
+        assembler
     }
 
     /// Returns the testing assembler, and additionally contains the library for
