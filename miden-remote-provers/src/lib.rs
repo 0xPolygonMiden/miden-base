@@ -2,6 +2,8 @@ extern crate alloc;
 
 use alloc::string::String;
 
+use thiserror::Error;
+
 #[cfg(feature = "tx-prover")]
 pub mod generated;
 
@@ -16,26 +18,18 @@ pub const PROTO_MESSAGES: &str = include_str!("../proto/api.proto");
 /// ERRORS
 /// ===============================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RemoteProverError {
     /// Indicates that the provided gRPC server endpoint is invalid.
+    #[error("invalid uri {0}")]
     InvalidEndpoint(String),
-
+    #[error("failed to connect to prover {0}")]
     /// Indicates that the connection to the server failed.
     ConnectionFailed(String),
 }
 
-impl std::fmt::Display for RemoteProverError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            RemoteProverError::InvalidEndpoint(endpoint) => {
-                write!(f, "Invalid endpoint: {}", endpoint)
-            },
-            RemoteProverError::ConnectionFailed(endpoint) => {
-                write!(f, "Failed to connect to remote prover at: {}", endpoint)
-            },
-        }
+impl From<RemoteProverError> for String {
+    fn from(err: RemoteProverError) -> Self {
+        err.to_string()
     }
 }
-
-impl core::error::Error for RemoteProverError {}

@@ -2027,6 +2027,7 @@ dependencies = [
  "prost-build",
  "protox",
  "serde",
+ "thiserror 2.0.11",
  "tonic",
  "tonic-build",
  "tonic-web",
