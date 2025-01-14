@@ -45,8 +45,7 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     let file_descriptors = protox::compile(protos, includes)?;
     fs::write(&file_descriptor_path, file_descriptors.encode_to_vec()).into_diagnostic()?;
 
-    let std_path = dst_dir.join("std");
-    build_tonic_server(&file_descriptor_path, &std_path, protos, includes)?;
+    build_tonic_server(&file_descriptor_path, &dst_dir, protos, includes)?;
 
     Ok(())
 }

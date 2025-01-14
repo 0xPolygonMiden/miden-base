@@ -1,8 +1,10 @@
 use miden_objects::transaction::ProvenTransaction;
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
 
-pub mod std;
-pub use std::api::*;
+#[rustfmt::skip]
+pub mod api;
+
+pub use api::*;
 
 // CONVERSIONS
 // ================================================================================================
