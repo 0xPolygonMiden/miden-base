@@ -25,7 +25,7 @@ mod errors;
 pub use block::BlockHeader;
 pub use constants::*;
 pub use errors::{
-    AccountDeltaError, AccountError, AssetError, AssetVaultError, BlockError, ChainMmrError,
+    AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError, BlockError, ChainMmrError,
     NoteError, ProvenTransactionError, TransactionInputError, TransactionOutputError,
     TransactionScriptError,
 };
