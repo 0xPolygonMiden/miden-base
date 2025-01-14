@@ -1,7 +1,8 @@
 use.std::collections::smt
 
+use.utils::account_utils
+
 use.kernel::account
-use.kernel::account_utils
 use.kernel::asset
 use.kernel::memory
 

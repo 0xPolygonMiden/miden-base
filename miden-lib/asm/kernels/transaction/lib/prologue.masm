@@ -2,8 +2,9 @@ use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::rpo
 
+use.utils::account_utils
+
 use.kernel::account
-use.kernel::account_utils
 use.kernel::asset_vault
 use.kernel::constants
 use.kernel::memory

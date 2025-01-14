@@ -1,5 +1,6 @@
+use.utils::account_utils
+
 use.kernel::account
-use.kernel::account_utils
 
 # ERRORS
 # =================================================================================================
@@ -39,7 +40,7 @@ const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 #! Outputs: [fungible_asset_max_amount]
 #!
 #! fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.::utils::get_fungible_asset_max_amount
+export.::utils::utils::get_fungible_asset_max_amount
 
 #! Validates that a fungible asset is well formed.
 #!

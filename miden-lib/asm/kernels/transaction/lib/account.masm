@@ -3,7 +3,8 @@ use.std::collections::smt
 use.std::crypto::hashes::rpo
 use.std::mem
 
-use.kernel::account_utils
+use.utils::account_utils
+
 use.kernel::constants
 use.kernel::memory
 

@@ -21,7 +21,7 @@ const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004F
 #! Output: [max_inputs_per_note]
 #!
 #! - max_inputs_per_note is the max inputs per note.
-export.::utils::get_max_inputs_per_note
+export.::utils::utils::get_max_inputs_per_note
 
 #! Writes the data currently on the advice stack into the memory at the specified location and
 #! verifies that the hash of the written data is equal to the provided hash.

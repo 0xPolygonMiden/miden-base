@@ -1,8 +1,9 @@
 use.std::collections::smt
 use.std::sys
 
+use.utils::account_utils
+
 use.kernel::account
-use.kernel::account_utils
 use.kernel::asset_vault
 use.kernel::constants
 use.kernel::faucet
