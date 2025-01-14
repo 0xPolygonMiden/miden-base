@@ -581,13 +581,13 @@ impl MockChain {
         let block = self.blocks.last().unwrap();
 
         let mut input_notes = vec![];
-        let mut block_headers_map: BTreeMap<u32, BlockHeader> = BTreeMap::new();
+        let mut block_headers_map: BTreeMap<BlockNumber, BlockHeader> = BTreeMap::new();
         for note in notes {
             let input_note = self.available_notes.get(note).expect("Note not found").clone();
             let note_block_num = input_note.location().unwrap().block_num();
             if note_block_num != block.header().block_num() {
                 block_headers_map.insert(
-                    note_block_num.as_u32(),
+                    note_block_num,
                     self.blocks.get(note_block_num.as_usize()).unwrap().header(),
                 );
             }
@@ -602,7 +602,7 @@ impl MockChain {
             // prologue::process_chain_data so we can skip adding it to the block headers here.
             if epoch_block_num != block.header().block_num() {
                 block_headers_map.insert(
-                    epoch_block_num.as_u32(),
+                    epoch_block_num,
                     self.blocks.get(epoch_block_num.as_usize()).unwrap().header(),
                 );
             }
@@ -632,7 +632,7 @@ impl MockChain {
     /// This will also make all the objects currently pending available for use.
     /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
     pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
-        let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num().as_u32() + 1);
+        let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num().child());
         let target_block_num = block_num.unwrap_or(next_block_num);
 
         if target_block_num < next_block_num {

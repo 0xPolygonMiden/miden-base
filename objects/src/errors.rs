@@ -347,7 +347,10 @@ pub enum TransactionInputError {
     #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
     #[error("chain mmr has length {actual} which does not match block number {expected} ")]
-    InconsistentChainLength { expected: u32, actual: u32 },
+    InconsistentChainLength {
+        expected: BlockNumber,
+        actual: BlockNumber,
+    },
     #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
     InconsistentChainRoot { expected: Digest, actual: Digest },
     #[error("block in which input note with id {0} was created is not in chain mmr")]

@@ -6,7 +6,9 @@ use super::{
 };
 
 mod header;
-pub use header::{BlockHeader, BlockNumber};
+pub use header::BlockHeader;
+mod block_number;
+pub use block_number::BlockNumber;
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 

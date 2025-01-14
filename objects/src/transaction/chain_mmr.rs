@@ -73,8 +73,11 @@ impl ChainMmr {
     }
 
     /// Returns total number of blocks contain in the chain described by this MMR.
-    pub fn chain_length(&self) -> usize {
-        self.mmr.forest()
+    pub fn chain_length(&self) -> BlockNumber {
+        BlockNumber::from(
+            u32::try_from(self.mmr.forest())
+                .expect("chain mmr should never contain more than u32::MAX blocks"),
+        )
     }
 
     /// Returns true if the block is present in this chain MMR.
@@ -101,7 +104,7 @@ impl ChainMmr {
     /// Panics if the `block_header.block_num` is not equal to the current chain length (i.e., the
     /// provided block header is not the next block in the chain).
     pub fn add_block(&mut self, block_header: BlockHeader, track: bool) {
-        assert_eq!(block_header.block_num().as_u32(), self.chain_length() as u32);
+        assert_eq!(block_header.block_num(), self.chain_length());
         self.mmr.add(block_header.hash(), track);
     }
 
