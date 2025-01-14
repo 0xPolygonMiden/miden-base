@@ -1,7 +1,7 @@
 # ERRORS
 # =================================================================================================
 
-# Unknown version in account id.
+# Unknown version in account ID.
 const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020057
 
 # Epoch must be less than u16::MAX (0xffff).

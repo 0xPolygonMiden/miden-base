@@ -2,7 +2,7 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
     accounts::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
-    assembly::{Assembler, DefaultSourceManager, KernelLibrary, LibraryNamespace},
+    assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     crypto::merkle::{MerkleError, MerklePath},
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
@@ -354,12 +354,12 @@ impl TransactionKernel {
     /// it separately, we can expose procedures from `/lib` and test them individually.
     ///
     /// This assembler also includes the `utils` namespace which contains the modules defined
-    /// in the utils directory.
+    /// in the utils directory (only under feature `std`).
     pub fn testing_assembler() -> Assembler {
         let source_manager = Arc::new(DefaultSourceManager::default());
         let kernel_library = Self::kernel_as_library();
 
-        let mut assembler = Assembler::with_kernel(source_manager, Self::kernel())
+        let assembler = Assembler::with_kernel(source_manager, Self::kernel())
             .with_library(StdLibrary::default())
             .expect("failed to load std-lib")
             .with_library(MidenLib::default())
@@ -367,12 +367,21 @@ impl TransactionKernel {
             .with_library(kernel_library)
             .expect("failed to load kernel library (/lib)");
 
-        // Add the utils modules under the utils namespace.
-        let utils_namespace = LibraryNamespace::new("utils").expect("invalid namespace");
-        let utils_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("asm").join("utils");
-        assembler
-            .add_modules_from_dir(utils_namespace, &utils_path)
-            .expect("util library should exist and assemble successfully");
+        #[cfg(feature = "std")]
+        let mut assembler = assembler;
+        // We don't build the utils modules as a library in build.rs so we have to load it here
+        // instead. This means it won't be included in no_std environments.
+        #[cfg(feature = "std")]
+        {
+            // Add the utils modules under the utils namespace.
+            let utils_namespace =
+                miden_objects::assembly::LibraryNamespace::new("utils").expect("invalid namespace");
+            let utils_path =
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("asm").join("utils");
+            assembler
+                .add_modules_from_dir(utils_namespace, &utils_path)
+                .expect("util library should exist and assemble successfully");
+        }
 
         assembler
     }
