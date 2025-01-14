@@ -12,9 +12,6 @@ const.PUBLIC_NOTE=1     # 0b01
 const.PRIVATE_NOTE=2    # 0b10
 const.ENCRYPTED_NOTE=3  # 0b11
 
-# Two raised to the power of 38 (2^38), used for shifting the note type value
-const.TWO_POW_38=274877906944
-
 # Max value for U16, used as the upper limit for expiration block delta
 const.EXPIRY_UPPER_LIMIT=0xFFFF+1
 
@@ -352,8 +349,13 @@ proc.add_fungible_asset_to_note
     # => [note_ptr, note_idx]
 end
 
-#! Builds the stack into the NOTE_METADATA word, encoding the note type and execution hint into a 
-#! single element.
+#! Builds the inputs on the stack into the NOTE_METADATA word with the following layout:
+#!
+#! 1st felt: [sender_id_prefix (64 bits)]
+#! 2nd felt: [sender_id_suffix (56 bits) | note_type (2 bits) | execution_hint_tag (6 bits)]
+#! 3rd felt: [execution_hint_payload (32 bits) | tag (32 bits)]
+#! 4th felt: [aux (64 bits)]
+#!
 #! Note that this procedure is only exported so it can be tested. It should not be called from
 #! non-test code.
 #!

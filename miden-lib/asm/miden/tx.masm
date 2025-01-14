@@ -173,16 +173,7 @@ end
 #! - RECIPIENT is the recipient of the note.
 #!
 #! Invocation: exec
-export.build_recipient_hash
-  padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
-
-  swapw hmerge
-  # => [MERGE_SCRIPT, INPUT_HASH]
-
-  swapw hmerge
-  # [RECIPIENT]
-end
+export.::utils::note_utils::build_recipient_hash
 
 #! Executes the provided procedure against the foreign account.
 #!
