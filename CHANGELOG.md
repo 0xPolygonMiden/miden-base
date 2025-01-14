@@ -24,6 +24,7 @@
 - Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 - Introduce `AccountIdBuilder` to simplify `AccountId` generation in tests (#1045).
 - Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
+- [BREAKING] Updated the names and values of the kernel procedure offsets and corresponding kernel procedures (#1037).
 
 ## 0.6.2 (2024-11-20)
 

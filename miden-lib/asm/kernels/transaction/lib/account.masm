@@ -382,28 +382,30 @@ export.validate_id
     # => []
 end
 
-#! Sets the code of the account the transaction is being executed against.
+#! Gets the code commitment of the account the transaction is being executed against.
 #!
-#! Inputs:  [CODE_COMMITMENT]
-#! Outputs: []
+#! Inputs:  []
+#! Outputs: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_COMMITMENT is the hash of the code to set.
-#!
-#! Panics if:
-#! - this procedure is executed on an account whose type differs from `regular mutable`.
-export.set_code
-    # get the account id
-    exec.memory::get_account_id swap drop
-    # => [acct_id_hi, CODE_COMMITMENT]
-
-    # assert the account is an updatable regular account
-    exec.is_updatable_account assert.err=ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE
+#! - CODE_COMMITMENT is the hash of the account code.
+export.get_code_commitment
+    # get the code commitment
+    exec.memory::get_acct_code_commitment
     # => [CODE_COMMITMENT]
+end
 
-    # set the code commitment
-    exec.memory::set_new_acct_code_commitment dropw
-    # => []
+#! Gets the storage commitment of the account the transaction is being executed against.
+#!
+#! Inputs:  []
+#! Outputs: [STORAGE_COMMITMENT]
+#!
+#! Where:
+#! - STORAGE_COMMITMENT is the hash of the account code.
+export.get_storage_commitment
+    # get the storage commitment
+    exec.memory::get_acct_storage_commitment
+    # => [STORAGE_COMMITMENT]
 end
 
 #! Applies storage offset to provided storage slot index for storage access.
