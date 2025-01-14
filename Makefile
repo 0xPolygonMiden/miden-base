@@ -21,6 +21,11 @@ clippy: ## Runs Clippy with configs
 	cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
 
 
+.PHONY: clippy-no-std
+clippy-no-std: ## Runs Clippy with configs
+	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib -- -D warnings
+
+
 .PHONY: fix
 fix: ## Runs Fix with configs
 	cargo fix --workspace --allow-staged --allow-dirty --all-targets $(ALL_FEATURES_BUT_ASYNC)
@@ -37,7 +42,7 @@ format-check: ## Runs Format using nightly toolchain but only in check mode
 
 
 .PHONY: lint
-lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, formatting)
+lint: format fix clippy clippy-no-std ## Runs all linting tasks at once (Clippy, fixing, formatting)
 
 # --- docs ----------------------------------------------------------------------------------------
 
@@ -62,6 +67,11 @@ test-default: ## Run default tests excluding `prove`
 	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
 
 
+.PHONY: test-dev
+test-dev: ## Run default tests excluding slow tests (prove and ID anchor block tests) in debug mode intended to be run locally
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --features concurrent,testing --filter-expr "not test(prove) & not test(create_accounts_with_non_zero_anchor_block)"
+
+
 .PHONY: test-docs
 test-docs: ## Run documentation tests
 	$(WARNINGS) $(DEBUG_ASSERTIONS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
@@ -80,6 +90,11 @@ test: test-default test-prove ## Run all tests
 .PHONY: check
 check: ## Check all targets and features for errors without code generation
 	${BUILD_KERNEL_ERRORS} cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+
+
+.PHONY: check-no-std
+check-no-std: ## Check the no-std target without any features for errors without code generation
+	${BUILD_KERNEL_ERRORS} cargo check --no-default-features --target wasm32-unknown-unknown --workspace --lib
 
 # --- building ------------------------------------------------------------------------------------
 
