@@ -77,20 +77,19 @@ impl TransactionProver for RemoteTransactionProver {
             TransactionProverError::other_with_source("failed to connect to the remote prover", err)
         })?;
 
-        let mut client = self.client.write();
+        let mut client = self
+            .client
+            .write()
+            .take()
+            .ok_or_else(|| TransactionProverError::other("client should be connected"))?;
 
         let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
             transaction_witness: tx_witness.to_bytes(),
         });
 
-        let response = client
-            .as_mut()
-            .expect("client should be connected")
-            .prove_transaction(request)
-            .await
-            .map_err(|err| {
-                TransactionProverError::other_with_source("failed to prove transaction", err)
-            })?;
+        let response = client.prove_transaction(request).await.map_err(|err| {
+            TransactionProverError::other_with_source("failed to prove transaction", err)
+        })?;
 
         // Deserialize the response bytes back into a ProvenTransaction.
         let proven_transaction =

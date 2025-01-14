@@ -23,7 +23,7 @@ clippy: ## Runs Clippy with configs
 
 .PHONY: clippy-no-std
 clippy-no-std: ## Runs Clippy with configs
-	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib -- -D warnings
+	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --exclude miden-proving-service --features tx-prover -- -D warnings
 
 
 .PHONY: fix
