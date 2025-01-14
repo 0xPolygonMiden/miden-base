@@ -18,7 +18,7 @@ path = "tests/integration/main.rs"
 
 [features]
 async = ["winter-maybe-async/async"]
-concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
+concurrent = ["miden-lib/concurrent", "miden-prover/concurrent", "std"]
 default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
 testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/testing", "dep:rand_chacha"]

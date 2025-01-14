@@ -20,7 +20,6 @@ harness = false
 bench = false
 
 [features]
-concurrent = ["std"]
 default = ["std"]
 std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std", "dep:toml", "dep:serde"]
 testing = ["dep:winter-rand-utils", "dep:rand", "dep:rand_xoshiro"]

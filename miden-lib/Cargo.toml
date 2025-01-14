@@ -15,7 +15,7 @@ edition.workspace = true
 [lib]
 
 [features]
-concurrent = ["miden-objects/concurrent", "std"]
+concurrent = ["std"]
 default = ["std"]
 std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std"]
 # the testing feature is required to enable the account creation pow patch
