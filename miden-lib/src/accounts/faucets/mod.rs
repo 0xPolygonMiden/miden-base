@@ -33,8 +33,12 @@ pub struct BasicFungibleFaucet {
 impl BasicFungibleFaucet {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
-    const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
-    const MAX_DECIMALS: u8 = 12;
+
+    /// The maximum value for the `max_supply` field.
+    pub const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
+
+    /// The maximum number of decimals supported by the component.
+    pub const MAX_DECIMALS: u8 = 12;
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
