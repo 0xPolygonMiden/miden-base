@@ -2,8 +2,8 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     env,
     fmt::Write,
-    fs::{self, File},
-    io::{self, BufRead, BufReader},
+    fs::{self},
+    io::{self},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -101,9 +101,6 @@ fn main() -> Result<()> {
 /// - {target_dir}/tx_kernel.masl               -> contains kernel library compiled from api.masm.
 /// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
 /// - src/transaction/procedures/kernel_v0.rs   -> contains the kernel procedures table.
-///
-/// When the `testing` feature is enabled, the POW requirements for account ID generation are
-/// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
 fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
     let utils_path = Path::new(ASM_DIR).join("utils.masm");
     let utils_compile_options = CompileOptions {
@@ -115,31 +112,6 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     let assembler = build_assembler(None)?
         .with_module_and_options(utils_path.clone(), utils_compile_options.clone())
         .expect("provided utils module is not a library module");
-
-    // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
-    match env::var("CARGO_FEATURE_TESTING") {
-        Ok(ref s) if s == "1" => {
-            let constants = source_dir.join("lib/constants.masm");
-            let patched = source_dir.join("lib/constants.masm.patched");
-
-            // scope for file handlers
-            {
-                let read = File::open(&constants).unwrap();
-                let mut write = File::create(&patched).unwrap();
-                let modified = BufReader::new(read).lines().map(decrease_pow);
-
-                for line in modified {
-                    io::Write::write_all(&mut write, line.unwrap().as_bytes()).unwrap();
-                    io::Write::write_all(&mut write, b"\n").unwrap();
-                }
-                io::Write::flush(&mut write).unwrap();
-            }
-
-            fs::remove_file(&constants).unwrap();
-            fs::rename(&patched, &constants).unwrap();
-        },
-        _ => (),
-    }
 
     // assemble the kernel library and write it to the "tx_kernel.masl" file
     let kernel_lib = KernelLibrary::from_dir(
@@ -184,20 +156,6 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     }
 
     Ok(assembler)
-}
-
-fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
-    let mut line = line?;
-    if line.starts_with("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS") {
-        line.clear();
-        // 2**5
-        line.push_str("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=32 # reduced via build.rs");
-    } else if line.starts_with("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS") {
-        line.clear();
-        // 2**6
-        line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=64 # reduced via build.rs");
-    }
-    Ok(line)
 }
 
 /// Generates `kernel_v0.rs` file based on the kernel library

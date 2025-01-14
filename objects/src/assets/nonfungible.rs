@@ -5,7 +5,6 @@ use vm_core::{FieldElement, WORD_SIZE};
 
 use super::{AccountIdPrefix, AccountType, Asset, AssetError, Felt, Hasher, Word};
 use crate::{
-    accounts::AccountId,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
 };
@@ -21,8 +20,8 @@ const FAUCET_ID_POS: usize = 3;
 /// The commitment is constructed as follows:
 ///
 /// - Hash the asset data producing `[hash0, hash1, hash2, hash3]`.
-/// - Replace the value of `hash3` with the first felt of the faucet id (`faucet_id_hi`) producing
-///   `[hash0, hash1, hash2, faucet_id_hi]`.
+/// - Replace the value of `hash3` with the prefix of the faucet id (`faucet_id_prefix`) producing
+///   `[hash0, hash1, hash2, faucet_id_prefix]`.
 /// - This layout ensures that fungible and non-fungible assets are distinguishable by interpreting
 ///   the 3rd element of an asset as an [`AccountIdPrefix`] and checking its type.
 ///
@@ -112,20 +111,18 @@ impl NonFungibleAsset {
     pub fn vault_key(&self) -> Word {
         let mut vault_key = self.0;
 
-        // Swap first felt of faucet ID with hash0.
+        // Swap prefix of faucet ID with hash0.
         vault_key.swap(0, FAUCET_ID_POS);
 
-        // Set the fungible bit to zero by taking the bitwise `and` of the felt with the inverted
-        // is_faucet mask.
-        let clear_fungible_bit_mask = !AccountId::IS_FAUCET_MASK;
-        vault_key[3] = Felt::try_from(vault_key[3].as_int() & clear_fungible_bit_mask)
-            .expect("felt should still be valid as we cleared a bit and did not set any");
+        // Set the fungible bit to zero.
+        vault_key[3] =
+            AccountIdPrefix::clear_fungible_bit(self.faucet_id_prefix().version(), vault_key[3]);
 
         vault_key
     }
 
-    /// Return ID of the faucet which issued this asset.
-    pub fn faucet_id(&self) -> AccountIdPrefix {
+    /// Return ID prefix of the faucet which issued this asset.
+    pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         AccountIdPrefix::new_unchecked(self.0[FAUCET_ID_POS])
     }
 
@@ -185,7 +182,7 @@ impl Serializable for NonFungibleAsset {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // All assets should serialize their faucet ID at the first position to allow them to be
         // easily distinguishable during deserialization.
-        target.write(self.0[FAUCET_ID_POS]);
+        target.write(self.faucet_id_prefix());
         target.write(self.0[2]);
         target.write(self.0[1]);
         target.write(self.0[0]);
@@ -200,11 +197,23 @@ impl Deserializable for NonFungibleAsset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let faucet_id_prefix: AccountIdPrefix = source.read()?;
 
+        Self::deserialize_with_faucet_id_prefix(faucet_id_prefix, source)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+impl NonFungibleAsset {
+    /// Deserializes a [`NonFungibleAsset`] from an [`AccountIdPrefix`] and the remaining data from
+    /// the given `source`.
+    pub(super) fn deserialize_with_faucet_id_prefix<R: ByteReader>(
+        faucet_id_prefix: AccountIdPrefix,
+        source: &mut R,
+    ) -> Result<Self, DeserializationError> {
         let hash_2: Felt = source.read()?;
         let hash_1: Felt = source.read()?;
         let hash_0: Felt = source.read()?;
 
-        // The second felt in the data_hash will be replaced by the faucet id, so we can set it to
+        // The last felt in the data_hash will be replaced by the faucet id, so we can set it to
         // zero here.
         NonFungibleAsset::from_parts(faucet_id_prefix, [hash_0, hash_1, hash_2, Felt::ZERO])
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))

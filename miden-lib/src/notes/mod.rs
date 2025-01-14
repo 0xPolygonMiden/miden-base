@@ -71,7 +71,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let note_script = scripts::p2idr();
 
     let inputs =
-        NoteInputs::new(vec![target.second_felt(), target.first_felt(), recall_height.into()])?;
+        NoteInputs::new(vec![target.suffix(), target.prefix().as_felt(), recall_height.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
 

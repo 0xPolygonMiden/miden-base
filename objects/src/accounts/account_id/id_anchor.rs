@@ -1,4 +1,6 @@
-use crate::{block::block_epoch_from_number, AccountError, BlockHeader, Digest, EMPTY_WORD};
+use crate::{
+    block::block_epoch_from_number, errors::AccountIdError, BlockHeader, Digest, EMPTY_WORD,
+};
 
 // ACCOUNT ID ANCHOR
 // ================================================================================================
@@ -48,20 +50,18 @@ impl AccountIdAnchor {
     ///
     /// Returns an error if any of the anchor constraints are not met. See the [type
     /// documentation](AccountIdAnchor) for details.
-    pub fn new(anchor_block_number: u32, anchor_block_hash: Digest) -> Result<Self, AccountError> {
+    pub fn new(
+        anchor_block_number: u32,
+        anchor_block_hash: Digest,
+    ) -> Result<Self, AccountIdError> {
         if anchor_block_number & 0x0000_ffff != 0 {
-            return Err(AccountError::AssumptionViolated(format!(
-          "TODO: Make proper error: anchor block must be an epoch block, i.e. its block number must be a multiple of 2^{}",
-          BlockHeader::EPOCH_LENGTH_EXPONENT)));
+            return Err(AccountIdError::AnchorBlockMustBeEpochBlock);
         }
 
         let anchor_epoch = block_epoch_from_number(anchor_block_number);
 
         if anchor_epoch == u16::MAX {
-            return Err(AccountError::AssumptionViolated(format!(
-                "TODO: Make proper error: anchor epoch cannot be {}",
-                u16::MAX
-            )));
+            return Err(AccountIdError::AnchorEpochMustNotBeU16Max);
         }
 
         Ok(Self {
@@ -109,7 +109,7 @@ impl AccountIdAnchor {
 // ================================================================================================
 
 impl TryFrom<&BlockHeader> for AccountIdAnchor {
-    type Error = AccountError;
+    type Error = AccountIdError;
 
     /// Extracts the [`BlockHeader::block_num`] and [`BlockHeader::hash`] from the provided
     /// `block_header` and tries to convert it to an [`AccountIdAnchor`].

@@ -8,11 +8,19 @@ use std::{
     thread::{self, spawn},
 };
 
-use super::{
-    account_id::compute_digest, AccountError, AccountStorageMode, AccountType, Digest, Felt, Word,
-};
-use crate::accounts::account_id::{validate_first_felt, AccountIdVersion};
+use vm_core::{Felt, Word};
+use vm_processor::Digest;
 
+use crate::{
+    accounts::{
+        account_id::{
+            v0::{compute_digest, validate_prefix},
+            AccountIdVersion,
+        },
+        AccountStorageMode, AccountType,
+    },
+    AccountError,
+};
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
 
@@ -108,9 +116,9 @@ fn compute_account_seed_inner(
             return;
         }
 
-        let first_felt = current_digest.as_elements()[0];
+        let prefix = current_digest.as_elements()[0];
         if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
-            validate_first_felt(first_felt)
+            validate_prefix(prefix)
         {
             if computed_account_type == account_type
                 && computed_storage_mode == storage_mode
@@ -183,9 +191,9 @@ pub fn compute_account_seed_single(
         log.iteration(current_digest, current_seed);
 
         // check if the seed satisfies the specified account type
-        let first_felt = current_digest.as_elements()[0];
+        let prefix = current_digest.as_elements()[0];
         if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
-            validate_first_felt(first_felt)
+            validate_prefix(prefix)
         {
             if computed_account_type == account_type
                 && computed_storage_mode == storage_mode
@@ -210,11 +218,10 @@ mod log {
 
     use assembly::utils::to_hex;
     use miden_crypto::FieldElement;
+    use vm_core::Word;
+    use vm_processor::Digest;
 
-    use super::{
-        super::{Digest, Word},
-        AccountType,
-    };
+    use super::AccountType;
     use crate::accounts::AccountStorageMode;
 
     /// Keeps track of the best digest found so far and count how many iterations have been done.

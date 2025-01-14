@@ -99,16 +99,16 @@ begin
     eq.3 assert.err=ERR_P2IDR_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
-    # read the reclaim block height and target account id from the note inputs
+    # read the reclaim block height and target account ID from the note inputs
     padw movup.4 mem_loadw drop
-    # => [reclaim_block_height, target_account_id_hi, target_account_id_lo]
+    # => [reclaim_block_height, target_account_id_prefix, target_account_id_suffix]
 
     exec.account::get_id dup.1 dup.1
-    # => [account_id_hi, account_id_lo, account_id_hi, account_id_lo, reclaim_block_height, target_account_id_hi, target_account_id_lo, ...]
+    # => [account_id_prefix, account_id_suffix, account_id_prefix, account_id_suffix, reclaim_block_height, target_account_id_prefix, target_account_id_suffix, ...]
 
     # determine if the current account is the target account
     movup.6 movup.6 exec.account::is_id_eq
-    # => [is_target, account_id_hi, account_id_lo, reclaim_block_height]
+    # => [is_target, account_id_prefix, account_id_suffix, reclaim_block_height]
 
     if.true
         # if current account is the target, we don't need to check anything else
@@ -118,9 +118,9 @@ begin
     else
         # if current account is not the target, we need to ensure it is the sender
         exec.note::get_sender
-        # => [sender_account_id_hi, sender_account_id_lo, account_id_hi, account_id_lo, reclaim_block_height]
+        # => [sender_account_id_prefix, sender_account_id_suffix, account_id_prefix, account_id_suffix, reclaim_block_height]
 
-        # ensure current account id = sender account id
+        # ensure current account ID = sender account ID
         exec.account::is_id_eq assert.err=ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
         # => [reclaim_block_height]
 

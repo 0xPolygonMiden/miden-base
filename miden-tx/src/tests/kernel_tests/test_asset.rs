@@ -49,8 +49,8 @@ fn test_create_fungible_asset_succeeds() {
         Word::from([
             Felt::new(FUNGIBLE_ASSET_AMOUNT),
             Felt::new(0),
-            faucet_id.second_felt(),
-            faucet_id.first_felt(),
+            faucet_id.suffix(),
+            faucet_id.prefix().as_felt(),
         ])
     );
 }

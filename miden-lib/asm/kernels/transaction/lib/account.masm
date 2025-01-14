@@ -148,13 +148,13 @@ export.incr_nonce
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
-#! Returns the account id.
+#! Returns the account ID.
 #!
 #! Inputs:  []
 #! Outputs: [acct_id]
 #!
 #! Where:
-#! - acct_id is the account id.
+#! - acct_id is the account ID.
 export.memory::get_account_id->get_id
 
 #! Returns the account nonce.
@@ -186,9 +186,9 @@ export.memory::get_init_acct_hash->get_initial_hash
 #! Panics if:
 #! - this procedure is executed on an account whose type differs from `regular mutable`.
 export.set_code
-    # get the account id
+    # get the account ID
     exec.memory::get_account_id swap drop
-    # => [acct_id_hi, CODE_COMMITMENT]
+    # => [acct_id_prefix, CODE_COMMITMENT]
 
     # assert the account is an updatable regular account
     exec.account_utils::is_updatable_account assert.err=ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE
@@ -509,7 +509,7 @@ end
 #! 1. Retrieve the anchor block hash by computing the block number of the anchor block and
 #!    retrieving it from the chain mmr.
 #! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
-#! 3. Assert the two least significant elements of the digest are equal to the account id of the
+#! 3. Assert the two least significant elements of the digest are equal to the account ID of the
 #!    account the transaction is being executed against.
 #!
 #! Inputs:  []
@@ -521,30 +521,30 @@ export.validate_seed
 
     # prepare the advice map key for the seed for later
     exec.memory::get_account_id push.0.0
-    # => [0, 0, account_id_hi, account_id_lo]
+    # => [0, 0, account_id_prefix, account_id_suffix]
 
     # get the anchor block's number
     dup.3 exec.account_utils::id_anchor_block_num
-    # => [anchor_block_num, 0, 0, account_id_hi, account_id_lo]
+    # => [anchor_block_num, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.memory::get_chain_mmr_ptr swap
-    # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_hi, account_id_lo]
+    # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.mmr::get
-    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_prefix, account_id_suffix]
 
     # assert that the anchor block hash is not the empty word
     padw eqw not assert.err=ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY dropw
-    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_hi, account_id_lo]
+    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_prefix, account_id_suffix]
 
     # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
     # ---------------------------------------------------------------------------------------------
 
     # prepare advice push_mapval
     swapw
-    # => [0, 0, account_id_hi, account_id_lo, ANCHOR_BLOCK_HASH]
+    # => [0, 0, account_id_prefix, account_id_suffix, ANCHOR_BLOCK_HASH]
 
-    # populate first four elements of the rate with the account id seed
+    # populate first four elements of the rate with the account ID seed
     adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
     adv_loadw
     # => [SEED, ANCHOR_BLOCK_HASH]
@@ -577,25 +577,25 @@ export.validate_seed
     exec.rpo::squeeze_digest
     # => [DIGEST]
 
-    # Shape second felt to add the anchor epoch and compare computed and provided ID.
+    # Shape suffix to add the anchor epoch and compare computed and provided ID.
     # ---------------------------------------------------------------------------------------------
 
-    # extract account id from digest
+    # extract account ID from digest
     drop drop swap
-    # => [hashed_account_id_hi, hashed_account_id_lo]
+    # => [hashed_account_id_prefix, hashed_account_id_suffix]
 
     exec.memory::get_account_id movdn.3
-    # => [account_id_lo, hashed_account_id_hi, hashed_account_id_lo, account_id_hi]
+    # => [account_id_suffix, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix]
 
     # extract anchor epoch from ID of the new account
     dup movdn.4 exec.account_utils::id_anchor_epoch
-    # => [anchor_epoch, hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
+    # => [anchor_epoch, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
-    # shape second felt of hashed id, adding the anchor epoch and setting the lower 8 bits to zero
-    movup.2 exec.account_utils::shape_second_felt swap
-    # => [hashed_account_id_hi, hashed_account_id_lo, account_id_hi, account_id_lo]
+    # shape suffix of hashed id, adding the anchor epoch and setting the lower 8 bits to zero
+    movup.2 exec.account_utils::shape_suffix swap
+    # => [hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
-    # assert the account id matches the account id of the new account
+    # assert the account ID matches the account ID of the new account
     exec.account_utils::is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
     # => []
 end
@@ -799,11 +799,11 @@ end
 #! Returns the pointer to the next vacant memory slot if the account was not loaded before, and the 
 #! pointer to the account data otherwise.
 #!
-#! Inputs:  [foreign_account_id_hi, foreign_account_id_lo]
-#! Outputs: [was_loaded, ptr, foreign_account_id_hi, foreign_account_id_lo]
+#! Inputs:  [foreign_account_id_prefix, foreign_account_id_suffix]
+#! Outputs: [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 #!
 #! Where: 
-#! - foreign_account_id_{hi,lo} are the first and second felt of the ID of the foreign account
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign account
 #!   whose procedure is going to be executed.
 #! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the
 #!   memory.
@@ -811,20 +811,20 @@ end
 #!   data, depending on the value of the was_loaded flag.
 #!
 #! Panics if:
-#! - the first or second felt of the provided foreign account ID equal zero.
+#! - the prefix or suffix of the provided foreign account ID equal zero.
 #! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
 export.get_foreign_account_ptr
-    # check that foreign account id is not equal zero
+    # check that foreign account ID is not equal zero
     dup.1 eq.0 dup.1 eq.0 and not assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
-    # => [foreign_account_id_hi, foreign_account_id_lo]
+    # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
-    # check that foreign account id is not equal to the native account id
+    # check that foreign account ID is not equal to the native account ID
     dup.1 dup.1 exec.memory::get_native_account_id exec.account_utils::is_id_eq not
     assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
 
     # get the initial account data pointer
     exec.memory::get_native_account_data_ptr
-    # => [curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo]
+    # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 
     # push the flag to enter the loop
     push.1
@@ -833,41 +833,41 @@ export.get_foreign_account_ptr
         # drop the flag left from the previous loop
         # in the first iteration this will be a pad element
         movup.3 drop
-        # => [curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo]
+        # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 
         # move the current account pointer to the next account data block
         exec.memory::get_account_data_length add
-        # => [curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # load the first data word at the current account pointer
         padw dup.4 mem_loadw
-        # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [FIRST_DATA_WORD, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # check whether the last value in the word equals zero
         # if so it means this memory block was not yet initialized
         drop drop dup.1 eq.0
-        # => [is_empty_block, maybe_account_id_hi, maybe_account_id_lo, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [is_empty_block, maybe_account_id_prefix, maybe_account_id_suffix, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # check whether the current id matches the foreign id
         movdn.2 dup.5 dup.5 exec.account_utils::is_id_eq
-        # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo]
+        # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # get the loop flag
         # it equals 1 if both `is_equal_id` and `is_empty_block` flags are equal to 0, so we should 
         # continue iterating
         dup movdn.5 or not
-        # => [loop_flag, curr_account_ptr', foreign_account_id_hi, foreign_account_id_lo, is_equal_id]
+        # => [loop_flag, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix, is_equal_id]
     end
 
     # check that the loading of one more account won't exceed the maximum number of the foreign 
     # accounts which can be loaded.
     dup exec.memory::get_max_foreign_account_ptr lte 
     assert.err=ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED
-    # => [curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo, is_equal_id]
+    # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix, is_equal_id]
 
     # the resulting `was_loaded` flag is essentially equal to the `is_equal_id` flag
     movup.3
-    # => [was_loaded, curr_account_ptr, foreign_account_id_hi, foreign_account_id_lo]
+    # => [was_loaded, curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 end
 
 #! Checks that the state of the current foreign account is valid.
@@ -882,22 +882,21 @@ export.validate_current_foreign_account
     exec.memory::get_acct_db_root
     # => [ACCOUNT_DB_ROOT]
 
-    # TODO: Update when account tree was updated.
     # get the current account ID
     exec.memory::get_account_id swap drop
-    # => [account_id_hi, ACCOUNT_DB_ROOT]
+    # => [account_id_prefix, ACCOUNT_DB_ROOT]
 
     # push the depth of the account database tree
     push.ACCOUNT_TREE_DEPTH
-    # => [depth, account_id_hi, ACCOUNT_DB_ROOT]
+    # => [depth, account_id_prefix, ACCOUNT_DB_ROOT]
 
     # get the foreign account hash
     exec.get_current_hash
-    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_hi, ACCOUNT_DB_ROOT]
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_prefix, ACCOUNT_DB_ROOT]
 
     # verify that the account database has the hash of the current foreign account
     mtree_verify.err=ERR_FOREIGN_ACCOUNT_INVALID
-    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_hi, ACCOUNT_DB_ROOT]
+    # => [FOREIGN_ACCOUNT_HASH, depth, account_id_prefix, ACCOUNT_DB_ROOT]
 
     # clean the stack
     dropw drop drop dropw

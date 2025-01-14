@@ -93,6 +93,10 @@ impl MockFungibleFaucet {
         &self.0
     }
 
+    pub fn id(&self) -> AccountId {
+        self.0.id()
+    }
+
     pub fn mint(&self, amount: u64) -> Asset {
         FungibleAsset::new(self.0.id(), amount).unwrap().into()
     }
@@ -201,15 +205,27 @@ impl PendingObjects {
 ///
 /// # Examples
 ///
-/// ## Create mock objects
-/// ```
-/// let mut mock_chain = MockChain::default();
+/// ## Create mock objects and build a transaction context
+/// ```no_run
+/// # use miden_tx::testing::{Auth, MockChain, TransactionContextBuilder};
+/// # use miden_objects::{assets::FungibleAsset, Felt, notes::NoteType};
+/// let mut mock_chain = MockChain::new();
 /// let faucet = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100_000);  // Create a USDT faucet
 /// let asset = faucet.mint(1000);  
-/// let note = mock_chain.add_p2id_note(asset, sender...);
 /// let sender = mock_chain.add_new_wallet(Auth::BasicAuth);  
-///
-/// mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build().execute()
+/// let target = mock_chain.add_new_wallet(Auth::BasicAuth);  
+/// let note = mock_chain
+///     .add_p2id_note(
+///         faucet.id(),
+///         target.id(),
+///         &[FungibleAsset::mock(10)],
+///         NoteType::Public,
+///       None,
+///     )
+///   .unwrap();
+/// mock_chain.seal_block(None);
+/// let tx_context = mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build();
+/// let result = tx_context.execute();
 /// ```
 ///
 /// ## Executing a Simple Transaction
@@ -218,12 +234,17 @@ impl PendingObjects {
 /// an authenticator.
 ///
 /// ```
+/// # use miden_tx::testing::{Auth, MockChain, TransactionContextBuilder};
+/// # use miden_objects::{assets::FungibleAsset, Felt, transaction::TransactionScript};
+/// # use miden_lib::transaction::TransactionKernel;
 /// let mut mock_chain = MockChain::new();
-/// let sender = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![asset]);  // Add a wallet with assets
+/// let sender = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(256)]);  // Add a wallet with assets
 /// let receiver = mock_chain.add_new_wallet(Auth::BasicAuth);  // Add a recipient wallet
 ///
 /// let tx_context = mock_chain.build_tx_context(sender.id(), &[], &[]);
-/// let tx_script = TransactionScript::compile("...", vec![], TransactionKernel::testing_assembler()).unwrap();
+///
+/// let script = "begin nop end";
+/// let tx_script = TransactionScript::compile(script, vec![], TransactionKernel::testing_assembler()).unwrap();
 ///
 /// let transaction = tx_context.tx_script(tx_script).build().execute().unwrap();
 /// mock_chain.apply_executed_transaction(&transaction);  // Apply transaction
@@ -404,18 +425,15 @@ impl MockChain {
 
     /// Adds a new wallet with the specified authentication method and assets.
     pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder =
-            AccountBuilder::new().init_seed(self.rng.gen()).with_component(BasicWallet);
+        let account_builder = AccountBuilder::new(self.rng.gen()).with_component(BasicWallet);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::New)
     }
 
     /// Adds an existing wallet (nonce == 1) with the specified authentication method and assets.
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = AccountBuilder::new()
-            .init_seed(self.rng.gen())
-            .with_component(BasicWallet)
-            .with_assets(assets);
+        let account_builder =
+            Account::builder(self.rng.gen()).with_component(BasicWallet).with_assets(assets);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::Exists)
     }
@@ -427,8 +445,7 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let account_builder = AccountBuilder::new()
-            .init_seed(self.rng.gen())
+        let account_builder = AccountBuilder::new(self.rng.gen())
             .account_type(AccountType::FungibleFaucet)
             .with_component(
                 BasicFungibleFaucet::new(
@@ -454,7 +471,7 @@ impl MockChain {
         max_supply: u64,
         total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        let mut account_builder = AccountBuilder::new()
+        let mut account_builder = AccountBuilder::new(self.rng.gen())
             .with_component(
                 BasicFungibleFaucet::new(
                     TokenSymbol::new(token_symbol).unwrap(),
@@ -463,7 +480,6 @@ impl MockChain {
                 )
                 .unwrap(),
             )
-            .init_seed(self.rng.gen())
             .account_type(AccountType::FungibleFaucet);
 
         let authenticator = match auth_method.build_component() {

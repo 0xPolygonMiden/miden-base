@@ -8,7 +8,7 @@ use miden_objects::{digest, Digest};
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // account_vault_add_asset
-    digest!("0x88b15f96c05351ecd320b136fb9f082535e1d493b9d6ddbf1851d49ee02db677"),
+    digest!("0x78d6a2544fcb8d8749165ece83cd72f73ffed433f39543f87090691f5c052838"),
     // account_vault_get_balance
     digest!("0xbe5819bf5aabf1a7c9d8ebfc330a7869f610ca4f86e3708265d8d361b5b82f14"),
     // account_vault_has_non_fungible_asset
@@ -38,13 +38,13 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // set_account_map_item
     digest!("0x02befd8e777bacc5f4c3b14267b7e5558c9557d82970e74612c5aa6d7febf9c2"),
     // burn_asset
-    digest!("0x9df67ac813e88de3458a656e30198fa31b1e5988355da9f4531af93621cc7242"),
+    digest!("0x27f721dba5a5710e295ac9404e17a9497f2052bbbb73293cd0fe0ba1ad63bad6"),
     // get_fungible_faucet_total_issuance
     digest!("0xe56c3538757d5e2cee385028a5ba4e78eca3982698a4e6a3d5ddb17ea59fc13a"),
     // mint_asset
-    digest!("0x17963d842f2b9749af27d68d6962ca60344cde443930ba790d561c56546a334c"),
+    digest!("0x83521ee1aec0ffb09cfc65c47bb08aa5ad3924da42ab5a4bff9152d6534d4918"),
     // add_asset_to_note
-    digest!("0xf72141eb3e07bc175312b1db97b488d3d73820f36fd2fef67157b6193a21d873"),
+    digest!("0xf0ae3bde840b005661422bcf64d1700602aae19f5bcff038ed7fed95b384a42f"),
     // create_note
     digest!("0x1f4f867434fc2704a16a15edd783f3825b1b5d932e04412b46eee3c85adcf1d2"),
     // get_input_notes_commitment
@@ -66,7 +66,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // get_block_number
     digest!("0x17da2a77b878820854bfff2b5f9eb969a4e2e76a998f97f4967b2b1a7696437c"),
     // start_foreign_context
-    digest!("0xe67a01afe8cab81113844e8dbf056d9c34c18f78cf6c5c5e70b02bd308f007da"),
+    digest!("0x8c3adb3aff1686205283a59d3908e074c1f4768ac4c7a778ef2b873693ca9101"),
     // end_foreign_context
     digest!("0x132b50feca8ecec10937c740640c59733e643e89c1d8304cf4523120e27a0428"),
     // update_expiration_block_num

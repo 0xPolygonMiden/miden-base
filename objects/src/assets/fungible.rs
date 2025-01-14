@@ -5,7 +5,7 @@ use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{is_not_a_non_fungible_asset, AccountType, Asset, AssetError, Felt, Word, ZERO};
-use crate::accounts::AccountId;
+use crate::accounts::{AccountId, AccountIdPrefix};
 
 // FUNGIBLE ASSET
 // ================================================================================================
@@ -27,7 +27,7 @@ impl FungibleAsset {
 
     /// The serialized size of a [`FungibleAsset`] in bytes.
     ///
-    /// Currently an account id (15 bytes) plus an amount (u64).
+    /// Currently an account ID (15 bytes) plus an amount (u64).
     pub const SERIALIZED_SIZE: usize = AccountId::SERIALIZED_SIZE + core::mem::size_of::<u64>();
 
     // CONSTRUCTOR
@@ -57,6 +57,11 @@ impl FungibleAsset {
     /// Return ID of the faucet which issued this asset.
     pub fn faucet_id(&self) -> AccountId {
         self.faucet_id
+    }
+
+    /// Return ID prefix of the faucet which issued this asset.
+    pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
+        self.faucet_id.prefix()
     }
 
     /// Returns the amount of this asset.
@@ -142,8 +147,8 @@ impl FungibleAsset {
     /// Returns the key which is used to store this asset in the account vault.
     pub(super) fn vault_key_from_faucet(faucet_id: AccountId) -> Word {
         let mut key = Word::default();
-        key[2] = faucet_id.second_felt();
-        key[3] = faucet_id.first_felt();
+        key[2] = faucet_id.suffix();
+        key[3] = faucet_id.prefix().as_felt();
         key
     }
 }
@@ -152,8 +157,8 @@ impl From<FungibleAsset> for Word {
     fn from(asset: FungibleAsset) -> Self {
         let mut result = Word::default();
         result[0] = Felt::new(asset.amount);
-        result[2] = asset.faucet_id.second_felt();
-        result[3] = asset.faucet_id.first_felt();
+        result[2] = asset.faucet_id.suffix();
+        result[3] = asset.faucet_id.prefix().as_felt();
         debug_assert!(is_not_a_non_fungible_asset(result));
         result
     }
@@ -203,9 +208,31 @@ impl Serializable for FungibleAsset {
 
 impl Deserializable for FungibleAsset {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let faucet_id: AccountId = source.read()?;
-        let amount: u64 = source.read()?;
+        let faucet_id_prefix: AccountIdPrefix = source.read()?;
+        FungibleAsset::deserialize_with_faucet_id_prefix(faucet_id_prefix, source)
+    }
+}
 
+impl FungibleAsset {
+    /// Deserializes a [`FungibleAsset`] from an [`AccountIdPrefix`] and the remaining data from the
+    /// given `source`.
+    pub(super) fn deserialize_with_faucet_id_prefix<R: ByteReader>(
+        faucet_id_prefix: AccountIdPrefix,
+        source: &mut R,
+    ) -> Result<Self, DeserializationError> {
+        // The 8 bytes of the prefix have already been read, so we only need to read the remaining 7
+        // bytes of the account ID's 15 total bytes.
+        let suffix_bytes: [u8; 7] = source.read()?;
+        // Convert prefix back to bytes so we can call the TryFrom<[u8; 15]> impl.
+        let prefix_bytes: [u8; 8] = faucet_id_prefix.into();
+        let mut id_bytes: [u8; 15] = [0; 15];
+        id_bytes[..8].copy_from_slice(&prefix_bytes);
+        id_bytes[8..].copy_from_slice(&suffix_bytes);
+
+        let faucet_id = AccountId::try_from(id_bytes)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+
+        let amount: u64 = source.read()?;
         FungibleAsset::new(faucet_id, amount)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
