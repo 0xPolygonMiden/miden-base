@@ -11,6 +11,15 @@ use rand::{Rng, SeedableRng};
 /// computation.
 ///
 /// Passing --features concurrent will use the multi-threaded account seed computation.
+///
+/// To produce a flamegraph, run with the `--profile-time` argument.
+///
+/// ```sh
+/// cargo bench -p miden-objects --no-default-features -- --profile-time 10
+/// ```
+///
+/// The flamegraph will be saved as `target/criterion/grind-seed/Grind regular on-chain account
+/// seed/profile/flamegraph.svg`.
 fn grind_account_seed(c: &mut Criterion) {
     let mut group = c.benchmark_group("grind-seed");
     // Increase measurement time (= target time) from the default 5s as suggested by criterion
@@ -38,24 +47,19 @@ fn grind_account_seed(c: &mut Criterion) {
         })
     });
 
-    // Reinitialize the RNG.
-    let mut rng = rand_xoshiro::Xoshiro256PlusPlus::from_seed(init_seed);
-    group.bench_function("Grind fungible faucet on-chain account seed", |bench| {
-        bench.iter(|| {
-            AccountId::compute_account_seed(
-                rng.gen(),
-                AccountType::FungibleFaucet,
-                AccountStorageMode::Public,
-                AccountIdVersion::Version0,
-                Digest::default(),
-                Digest::default(),
-                Digest::default(),
-            )
-        })
-    });
-
     group.finish();
 }
 
-criterion_group!(account_seed, grind_account_seed);
+fn with_pprof_profiler() -> Criterion {
+    Criterion::default().with_profiler(pprof::criterion::PProfProfiler::new(
+        1_000_000,
+        pprof::criterion::Output::Flamegraph(None),
+    ))
+}
+
+criterion_group! {
+  name = account_seed;
+  config = with_pprof_profiler();
+  targets = grind_account_seed
+}
 criterion_main!(account_seed);

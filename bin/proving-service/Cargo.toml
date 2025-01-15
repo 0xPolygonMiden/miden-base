@@ -18,7 +18,7 @@ path = "src/main.rs"
 [features]
 default = ["concurrent"]
 testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
-concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-tx/concurrent"]
+concurrent = ["miden-tx/concurrent"]
 
 [dependencies]
 async-trait = "0.1"
