@@ -1,12 +1,4 @@
 use alloc::vec::Vec;
-#[cfg(feature = "concurrent")]
-use std::{
-    sync::{
-        mpsc::{self, Sender},
-        Arc, RwLock,
-    },
-    thread::{self, spawn},
-};
 
 use vm_core::{Felt, Word};
 use vm_processor::Digest;
@@ -21,125 +13,14 @@ use crate::{
     },
     AccountError,
 };
-// SEED GENERATORS
-// --------------------------------------------------------------------------------------------
 
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
-/// using the provided initial seed as a starting point. Using multi-threading.
-#[cfg(feature = "concurrent")]
-pub fn compute_account_seed(
-    init_seed: [u8; 32],
-    account_type: AccountType,
-    storage_mode: AccountStorageMode,
-    version: AccountIdVersion,
-    code_commitment: Digest,
-    storage_commitment: Digest,
-    anchor_block_hash: Digest,
-) -> Result<Word, AccountError> {
-    let thread_count = thread::available_parallelism().map_or(1, |v| v.get());
-
-    let (send, recv) = mpsc::channel();
-    let stop = Arc::new(RwLock::new(false));
-
-    for count in 0..thread_count {
-        let send = send.clone();
-        let stop = Arc::clone(&stop);
-        let mut init_seed = init_seed;
-        init_seed[0] = init_seed[0].wrapping_add(count as u8);
-        spawn(move || {
-            compute_account_seed_inner(
-                send,
-                stop,
-                init_seed,
-                account_type,
-                storage_mode,
-                version,
-                code_commitment,
-                storage_commitment,
-                anchor_block_hash,
-            )
-        });
-    }
-
-    #[allow(unused_variables)]
-    let (digest, seed) = recv.recv().unwrap();
-
-    // Safety: this is the only writer for this lock, it should never be poisoned
-    *stop.write().unwrap() = true;
-
-    #[cfg(feature = "log")]
-    ::log::info!(
-        "Using account seed [digest={}, seed={}]",
-        log::digest_hex(digest),
-        log::word_hex(seed),
-    );
-
-    Ok(seed)
-}
-
-#[cfg(feature = "concurrent")]
-#[allow(clippy::too_many_arguments)]
-fn compute_account_seed_inner(
-    send: Sender<(Digest, Word)>,
-    stop: Arc<RwLock<bool>>,
-    init_seed: [u8; 32],
-    account_type: AccountType,
-    storage_mode: AccountStorageMode,
-    version: AccountIdVersion,
-    code_commitment: Digest,
-    storage_commitment: Digest,
-    anchor_block_hash: Digest,
-) {
-    let init_seed: Vec<[u8; 8]> =
-        init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
-    let mut current_seed: Word = [
-        Felt::new(u64::from_le_bytes(init_seed[0])),
-        Felt::new(u64::from_le_bytes(init_seed[1])),
-        Felt::new(u64::from_le_bytes(init_seed[2])),
-        Felt::new(u64::from_le_bytes(init_seed[3])),
-    ];
-    let mut current_digest =
-        compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
-
-    #[cfg(feature = "log")]
-    let mut log = log::Log::start(current_digest, current_seed, account_type, storage_mode);
-
-    // loop until we have a seed that satisfies the specified account type.
-    let mut count = 0;
-    loop {
-        #[cfg(feature = "log")]
-        log.iteration(current_digest, current_seed);
-
-        // regularly check if another thread found a digest
-        count += 1;
-        if count % 500_000 == 0 && *stop.read().unwrap() {
-            return;
-        }
-
-        let prefix = current_digest.as_elements()[0];
-        if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
-            validate_prefix(prefix)
-        {
-            if computed_account_type == account_type
-                && computed_storage_mode == storage_mode
-                && computed_version == version
-            {
-                #[cfg(feature = "log")]
-                log.done(current_digest, current_seed);
-
-                let _ = send.send((current_digest, current_seed));
-                return;
-            };
-        }
-
-        current_seed = current_digest.into();
-        current_digest =
-            compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
-    }
-}
-
-#[cfg(not(feature = "concurrent"))]
-pub fn compute_account_seed(
+/// using the provided initial seed as a starting point.
+///
+/// This currently always uses a single thread. This method used to either use a single- or
+/// multi-threaded implementation based on a compile-time feature flag. The multi-threaded
+/// implementation was removed in commit dab6159318832fc537bb35abf251870a9129ac8c in PR 1061.
+pub(super) fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
@@ -159,10 +40,7 @@ pub fn compute_account_seed(
     )
 }
 
-/// Finds and returns a seed suitable for creating an account ID for the specified account type
-/// using the provided initial seed as a starting point. Using a single thread.
-#[cfg(not(feature = "concurrent"))]
-pub fn compute_account_seed_single(
+fn compute_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
