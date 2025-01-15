@@ -30,7 +30,6 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
         .expect("bin directory should exist")
         .parent() // Go up to the workspace root
         .expect("Workspace root should exist")
-        .join("miden-remote-provers")
         .join("proto");
 
     // Remove `api.rs` if it exists.

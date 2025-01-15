@@ -13,7 +13,7 @@ mod prover;
 pub use prover::RemoteTransactionProver;
 
 /// Contains the protobuf definitions
-pub const PROTO_MESSAGES: &str = include_str!("../proto/api.proto");
+pub const PROTO_MESSAGES: &str = include_str!("../../proto/api.proto");
 
 /// ERRORS
 /// ===============================================================================================

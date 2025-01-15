@@ -25,7 +25,13 @@ fn compile_tonic_client_proto() -> miette::Result<()> {
     let crate_root =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("generated");
-    let proto_dir = crate_root.join("proto");
+
+    // Compute the directory of the `proto` definitions
+    let cwd: PathBuf = env::current_dir().expect("current directory");
+
+    let cwd = cwd.parent().expect("navigating to parent directory");
+
+    let proto_dir: PathBuf = cwd.join("proto");
 
     // Remove `api.rs` if it exists.
     fs::remove_file(dst_dir.join("api.rs")).into_diagnostic().ok();
