@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [ 
-    "miden-lib",
-    "miden-tx",
-    "objects",
+    "crates/miden-lib",
+    "crates/miden-tx",
+    "crates/miden-objects",
     "bin/bench-tx",
     "bin/tx-prover",
 ]
@@ -35,11 +35,11 @@ lto = true
 assembly = { package = "miden-assembly", version = "0.11", default-features = false }
 assert_matches = { version = "1.5", default-features = false }
 miden-crypto = { version = "0.12", default-features = false }
-miden-lib = { path = "miden-lib", version = "0.7", default-features = false }
-miden-objects = { path = "objects", version = "0.7", default-features = false }
+miden-lib = { path = "crates/miden-lib", version = "0.7", default-features = false }
+miden-objects = { path = "crates/miden-objects", version = "0.7", default-features = false }
 miden-prover = { version = "0.11", default-features = false }
 miden-stdlib = { version = "0.11", default-features = false }
-miden-tx = { path = "miden-tx", version = "0.7", default-features = false }
+miden-tx = { path = "crates/miden-tx", version = "0.7", default-features = false }
 miden-verifier = { version = "0.11", default-features = false }
 rand = { version = "0.8", default-features = false }
 thiserror = { version = "2.0", default-features = false }
