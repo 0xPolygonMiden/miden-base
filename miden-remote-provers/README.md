@@ -4,7 +4,7 @@ This crate provides a `RemoteTransactionProver`, a client struct that can be use
 
 ## Features
 
-Description of this crate's feature:
+Description of this crate's features:
 
 | Features     | Description                                                                                                 |
 | ------------ | ------------------------------------------------------------------------------------------------------------|
