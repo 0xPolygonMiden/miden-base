@@ -18,13 +18,20 @@ fn main() -> miette::Result<()> {
         return Ok(());
     }
 
-    compile_tonic_server_proto()
+    compile_tonic_client_proto()
 }
-fn compile_tonic_server_proto() -> miette::Result<()> {
+
+fn compile_tonic_client_proto() -> miette::Result<()> {
     let crate_root =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("generated");
-    let proto_dir = crate_root.join("proto");
+
+    // Compute the directory of the `proto` definitions
+    let cwd: PathBuf = env::current_dir().expect("current directory");
+
+    let cwd = cwd.parent().expect("navigating to parent directory");
+
+    let proto_dir: PathBuf = cwd.join("proto");
 
     // Remove `api.rs` if it exists.
     fs::remove_file(dst_dir.join("api.rs")).into_diagnostic().ok();
@@ -41,8 +48,8 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     // Codegen for wasm transport and std transport
     let nostd_path = dst_dir.join("nostd");
     let std_path = dst_dir.join("std");
-    build_tonic_server(&file_descriptor_path, &std_path, protos, includes, false)?;
-    build_tonic_server(&file_descriptor_path, &nostd_path, protos, includes, true)?;
+    build_tonic_client(&file_descriptor_path, &std_path, protos, includes, false)?;
+    build_tonic_client(&file_descriptor_path, &nostd_path, protos, includes, true)?;
 
     // Replace `std` references with `core` and `alloc` in `api.rs`.
     // (Only for nostd version)
@@ -64,7 +71,7 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     Ok(())
 }
 
-fn build_tonic_server(
+fn build_tonic_client(
     file_descriptor_path: &Path,
     out_dir: &Path,
     protos: &[PathBuf],
@@ -75,7 +82,7 @@ fn build_tonic_server(
         .file_descriptor_set_path(file_descriptor_path)
         .skip_protoc_run()
         .out_dir(out_dir)
-        .build_server(!for_no_std)
+        .build_server(false) // Skip server generation
         .build_transport(!for_no_std)
         .compile_protos_with_config(prost_build::Config::new(), protos, includes)
         .into_diagnostic()

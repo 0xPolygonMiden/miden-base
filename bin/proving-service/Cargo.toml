@@ -1,0 +1,70 @@
+[package]
+name = "miden-proving-service"
+version = "0.7.0"
+description = "Miden rollup proving service"
+readme = "README.md"
+keywords = ["miden", "proving-service"]
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "miden-proving-service"
+path = "src/main.rs"
+
+[features]
+default = ["concurrent"]
+testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
+concurrent = ["miden-tx/concurrent"]
+
+[dependencies]
+async-trait = "0.1"
+axum = {version = "0.7" }
+bytes = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+figment = { version = "0.10", features = ["toml", "env"] }
+miden-lib = { workspace = true, default-features = false }
+miden-objects = { workspace = true, default-features = false, features = ["std"] }
+miden-tx = { workspace = true, default-features = false, features = ["std"] }
+once_cell = "1.19"
+opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
+opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
+opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
+opentelemetry-semantic-conventions = "0.27"
+opentelemetry-jaeger = "0.22"
+prometheus = "0.13"
+prost = { version = "0.13", default-features = false, features = ["derive"] }
+pingora = { version = "0.4", features = [ "lb" ] }
+pingora-core = "0.4"
+pingora-proxy = "0.4"
+pingora-limits = "0.4"
+reqwest = { version = "0.11" }
+serde = { version = "1.0", features = ["derive"] }
+serde_qs = { version = "0.13" }
+tokio = { version = "1.38", features = ["full"] }
+tokio-stream = { version = "0.1", features = [ "net" ]}
+toml = { version = "0.8" }
+thiserror = { workspace = true }
+tonic = { version = "0.12", default-features = false, features = ["prost", "codegen", "transport"] }
+tonic-health = { version = "0.12" }
+tonic-web = { version = "0.12" }
+tracing = { version = "0.1" }
+tracing-opentelemetry = "0.28"
+tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
+uuid = { version = "1.11", features = ["v4"] }
+winter-maybe-async = { version = "0.10" }
+
+[dev-dependencies]
+miden-lib = { workspace = true , default-features = false, features = ["testing"]}
+miden-objects = { workspace = true, default-features = false, features = ["testing"] }
+miden-tx = { workspace = true, default-features = false, features = ["testing"] }
+
+[build-dependencies]
+miette = { version = "7.2", features = ["fancy"] }
+prost = { version = "0.13", default-features = false, features = ["derive"] }
+prost-build = { version = "0.13" }
+protox = { version = "0.7" }
+tonic-build = { version = "0.12" }

@@ -18,9 +18,12 @@ use tracing_subscriber::{layer::SubscriberExt, Registry};
 
 use crate::{error::TxProverServiceError, proxy::metrics::QUEUE_DROP_COUNT};
 
-pub const MIDEN_TX_PROVER: &str = "miden-tx-prover";
+pub const MIDEN_PROVING_SERVICE: &str = "miden-proving-service";
 
 const RESOURCE_EXHAUSTED_CODE: u16 = 8;
+
+/// Name of the configuration file
+pub const PROVING_SERVICE_CONFIG_FILE_NAME: &str = "miden-proving-service.toml";
 
 /// Initializes and configures the global tracing and telemetry system for the CLI, worker and
 /// proxy services.
@@ -81,7 +84,7 @@ pub(crate) fn setup_tracing() -> Result<(), String> {
         .with_batch_exporter(exporter, runtime::Tokio)
         .build();
 
-    let tracer = provider.tracer(MIDEN_TX_PROVER);
+    let tracer = provider.tracer(MIDEN_PROVING_SERVICE);
 
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
