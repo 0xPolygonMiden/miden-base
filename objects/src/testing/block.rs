@@ -52,8 +52,17 @@ impl BlockHeader {
         };
 
         #[cfg(target_family = "wasm")]
-        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) =
-            Default::default();
+        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
+            (
+                Default::default(),
+                chain_root.unwrap_or_default(),
+                Default::default(),
+                note_root.unwrap_or_default(),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+            )
+        };
 
         BlockHeader::new(
             0,

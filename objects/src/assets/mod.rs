@@ -242,9 +242,9 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
         Ok(prefix) => {
             matches!(prefix.account_type(), AccountType::FungibleFaucet)
         },
-        Err(err) => {
+        Err(_err) => {
             #[cfg(debug_assertions)]
-            panic!("invalid account ID prefix passed to is_not_a_non_fungible_asset: {err}");
+            panic!("invalid account ID prefix passed to is_not_a_non_fungible_asset: {_err}");
             #[cfg(not(debug_assertions))]
             false
         },
