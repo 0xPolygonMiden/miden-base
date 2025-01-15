@@ -117,10 +117,6 @@ build-no-std-testing: ## Build without the standard library. Includes the `testi
 build-async: ## Build with the `async` feature enabled (only libraries)
 	${BUILD_KERNEL_ERRORS} cargo build --lib --release --features async
 
-.PHONY: build-remote-provers
-build-remote-provers: ## Build the remote provers
-	${BUILD_KERNEL_ERRORS} cargo build --release --lib --features tx-prover -p miden-remote-provers
-
 # --- benchmarking --------------------------------------------------------------------------------
 
 .PHONY: bench-tx
