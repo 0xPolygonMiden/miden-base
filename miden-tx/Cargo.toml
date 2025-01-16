@@ -33,7 +33,7 @@ rand = { workspace = true }
 rand_chacha = { version = "0.3", default-features = false, optional = true }
 thiserror = { workspace = true }
 vm-processor = { workspace = true }
-winter-maybe-async = { version = "0.10" }
+winter-maybe-async = { version = "0.11" }
 
 [dev-dependencies]
 anyhow = { version = "1.0.93", default-features = false, features = ["std", "backtrace"]}
