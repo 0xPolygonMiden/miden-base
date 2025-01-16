@@ -19,7 +19,7 @@ use.miden::kernel_proc_offsets
 #!
 #! Invocation: exec
 export.mint
-    exec.kernel_proc_offsets::mint_asset_offset
+    exec.kernel_proc_offsets::faucet_mint_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -54,7 +54,7 @@ end
 #!
 #! Invocation: exec
 export.burn
-    exec.kernel_proc_offsets::burn_asset_offset
+    exec.kernel_proc_offsets::faucet_burn_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -87,7 +87,7 @@ export.get_total_issuance
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::get_fungible_faucet_total_issuance_offset
+    exec.kernel_proc_offsets::faucet_get_total_fungible_asset_issuance_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc

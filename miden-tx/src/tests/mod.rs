@@ -11,9 +11,7 @@ use ::assembly::{
 };
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{
-        AccountBuilder, AccountCode, AccountComponent, AccountStorage, AccountType, StorageSlot,
-    },
+    accounts::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
     assembly::DefaultSourceManager,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     notes::{
@@ -137,24 +135,6 @@ fn executed_transaction_account_delta_new() {
     let mut tx_context = TransactionContextBuilder::new(account)
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
-
-    let new_acct_code_src = "\
-    export.account_proc_1
-        push.9.9.9.9
-        dropw
-    end
-    ";
-
-    let component = AccountComponent::compile(
-        new_acct_code_src,
-        TransactionKernel::testing_assembler(),
-        vec![],
-    )
-    .unwrap()
-    .with_supports_all_types();
-    let new_acct_code =
-        AccountCode::from_components(&[component], AccountType::RegularAccountUpdatableCode)
-            .unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
@@ -280,18 +260,12 @@ fn executed_transaction_account_delta_new() {
             ## ------------------------------------------------------------------------------------
             {send_asset_script}
 
-            ## Update account code
-            ## ------------------------------------------------------------------------------------
-            push.{NEW_ACCOUNT_COMMITMENT} call.account::set_code dropw
-            # => []
-            dropw dropw dropw dropw
             ## Update the account nonce
             ## ------------------------------------------------------------------------------------
             push.1 call.account::incr_nonce drop
             # => []
         end
     ",
-        NEW_ACCOUNT_COMMITMENT = prepare_word(&new_acct_code.commitment()),
         UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
         UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
         UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),

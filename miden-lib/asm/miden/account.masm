@@ -16,7 +16,7 @@ export.get_id
     # start padding the stack
     push.0.0.0
 
-    exec.kernel_proc_offsets::get_account_id_offset
+    exec.kernel_proc_offsets::account_get_id_offset
     # => [offset, 0, 0, 0]
 
     # pad the stack
@@ -44,7 +44,7 @@ export.get_nonce
     # start padding the stack
     push.0.0.0
 
-    exec.kernel_proc_offsets::get_account_nonce_offset
+    exec.kernel_proc_offsets::account_get_nonce_offset
     # => [offset, 0, 0, 0]
 
     # pad the stack
@@ -73,7 +73,7 @@ export.get_initial_hash
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::get_initial_account_hash_offset
+    exec.kernel_proc_offsets::account_get_initial_hash_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
@@ -98,7 +98,7 @@ export.get_current_hash
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::get_current_account_hash_offset
+    exec.kernel_proc_offsets::account_get_current_hash_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
@@ -124,7 +124,7 @@ export.incr_nonce
     push.0.0 movup.2
     # => [value, 0, 0]
 
-    exec.kernel_proc_offsets::incr_account_nonce_offset
+    exec.kernel_proc_offsets::account_incr_nonce_offset
     # => [offset, value, 0, 0]
 
     # pad the stack
@@ -154,7 +154,7 @@ export.get_item
     push.0.0 movup.2
     # => [index, 0, 0]
 
-    exec.kernel_proc_offsets::get_account_item_offset
+    exec.kernel_proc_offsets::account_get_item_offset
     # => [offset, index, 0, 0]
 
     # pad the stack
@@ -185,7 +185,7 @@ end
 #!
 #! Invocation: exec
 export.set_item
-    exec.kernel_proc_offsets::set_account_item_offset
+    exec.kernel_proc_offsets::account_set_item_offset
     # => [offset, index, V']
 
     # pad the stack
@@ -216,7 +216,7 @@ end
 #!
 #! Invocation: exec
 export.get_map_item
-    exec.kernel_proc_offsets::get_account_map_item_offset
+    exec.kernel_proc_offsets::account_get_map_item_offset
     # => [offset, index, KEY]
 
     # pad the stack
@@ -249,7 +249,7 @@ end
 #!
 #! Invocation: exec
 export.set_map_item
-    exec.kernel_proc_offsets::set_account_map_item_offset
+    exec.kernel_proc_offsets::account_set_map_item_offset
     # => [offset, index, KEY, VALUE]
 
     # pad the stack
@@ -264,32 +264,54 @@ export.set_map_item
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE]
 end
 
-#! Sets the code of the account the transaction is being executed against.
+#! Gets the code commitment of the account the transaction is being executed against.
 #!
-#! Inputs:  [CODE_COMMITMENT]
-#! Outputs: []
+#! Inputs:  []
+#! Outputs: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_COMMITMENT is the hash of the code to set.
-#!
-#! Panics if:
-#! - this procedure is executed on an account whose type differs from `regular mutable`.
+#! - CODE_COMMITMENT is the hash of the account code.
 #!
 #! Invocation: exec
-export.set_code
-    exec.kernel_proc_offsets::set_account_code_offset
-    # => [offset, CODE_COMMITMENT]
+export.get_code_commitment
+    exec.kernel_proc_offsets::account_get_code_commitment_offset
+    # => [offset]
 
     # pad the stack
-    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
-    # => [offset, CODE_COMMITMENT, pad(11)]
+    push.0.0.0 movup.3 padw swapw padw padw swapdw
+    # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [pad(16)]
+    # => [CODE_COMMITMENT, pad(12)]
 
     # clean the stack
-    dropw dropw dropw dropw 
-    # => []
+    swapdw dropw dropw swapw dropw
+    # => [CODE_COMMITMENT]
+end
+
+#! Gets the storage commitment of the account the transaction is being executed against.
+#!
+#! Inputs:  []
+#! Outputs: [STORAGE_COMMITMENT]
+#!
+#! Where:
+#! - STORAGE_COMMITMENT is the hash of the account storage.
+#!
+#! Invocation: exec
+export.get_storage_commitment
+    exec.kernel_proc_offsets::account_get_storage_commitment_offset
+    # => [offset]
+
+    # pad the stack
+    push.0.0.0 movup.3 padw swapw padw padw swapdw
+    # => [offset, pad(15)]
+
+    syscall.exec_kernel_proc
+    # => [STORAGE_COMMITMENT, pad(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
+    # => [STORAGE_COMMITMENT]
 end
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
@@ -307,7 +329,7 @@ end
 #!
 #! Invocation: exec
 export.get_balance
-    exec.kernel_proc_offsets::account_vault_get_balance_offset
+    exec.kernel_proc_offsets::account_get_balance_offset
     # => [offset, faucet_id_prefix, faucet_id_suffix]
 
     # pad the stack
@@ -336,7 +358,7 @@ end
 #!
 #! Invocation: exec
 export.has_non_fungible_asset
-    exec.kernel_proc_offsets::account_vault_has_non_fungible_asset_offset
+    exec.kernel_proc_offsets::account_has_non_fungible_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -369,7 +391,7 @@ end
 #!
 #! Invocation: exec
 export.add_asset
-    exec.kernel_proc_offsets::account_vault_add_asset_offset
+    exec.kernel_proc_offsets::account_add_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -399,7 +421,7 @@ end
 #!
 #! Invocation: exec
 export.remove_asset
-    exec.kernel_proc_offsets::account_vault_remove_asset_offset
+    exec.kernel_proc_offsets::account_remove_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -428,7 +450,7 @@ export.get_vault_commitment
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::get_account_vault_commitment_offset
+    exec.kernel_proc_offsets::account_get_vault_commitment_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
@@ -439,39 +461,6 @@ export.get_vault_commitment
     # => [COM]
 end
 
-# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
-# =================================================================================================
-
-# Given the least significant 32 bits of an account ID's prefix, this mask defines the bits used
-# to determine the account type.
-const.ACCOUNT_ID_TYPE_MASK_U32=0x30 # 0b11_0000
-
-# Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
-const.FUNGIBLE_FAUCET_ACCOUNT=0x20 # 0b10_0000
-
-# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been
-# applied.
-const.NON_FUNGIBLE_FAUCET_ACCOUNT=0x30 # 0b11_0000
-
-#! Returns the most significant half with the account type bits masked out.
-#!
-#! The account type can be defined by comparing this value with the following constants:
-#!
-#! - REGULAR_ACCOUNT_UPDATABLE_CODE
-#! - REGULAR_ACCOUNT_IMMUTABLE_CODE
-#! - FUNGIBLE_FAUCET_ACCOUNT
-#! - NON_FUNGIBLE_FAUCET_ACCOUNT
-#!
-#! Stack: [acct_id_prefix]
-#! Output: [acct_type]
-#!
-#! - acct_id_prefix is the prefix of the account ID.
-#! - acct_type is the account type.
-proc.type
-    u32split drop push.ACCOUNT_ID_TYPE_MASK_U32 u32and
-    # => [acct_type]
-end
-
 #! Returns a boolean indicating whether the account is a fungible faucet.
 #!
 #! Stack: [acct_id]
@@ -479,10 +468,7 @@ end
 #!
 #! - acct_id is the account ID.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
-export.is_fungible_faucet
-    exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_fungible_faucet]
-end
+export.::miden::util::account_id::is_fungible_faucet
 
 #! Returns a boolean indicating whether the account is a non-fungible faucet.
 #!
@@ -491,13 +477,8 @@ end
 #!
 #! - acct_id is the account ID.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
-export.is_non_fungible_faucet
-    exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_non_fungible_faucet]
-end
+export.::miden::util::account_id::is_non_fungible_faucet
 
-#! TODO: This is a copy; move to utils.
-#!
 #! Returns a boolean indicating whether the given account_ids are equal.
 #!
 #! Inputs:  [acct_id_prefix, acct_id_suffix, other_acct_id_prefix, other_acct_id_suffix]
@@ -507,11 +488,4 @@ end
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
 #! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
-export.is_id_eq
-    movup.2 eq
-    # => [is_prefix_equal, acct_id_suffix, other_acct_id_suffix]
-    movdn.2 eq
-    # => [is_suffix_equal, is_prefix_equal]
-    and
-    # => [is_id_equal]
-end
+export.::miden::util::account_id::is_equal->is_id_equal
