@@ -73,10 +73,10 @@ begin
     drop padw mem_loadw
     # => [RECIPIENT]
 
-    padw mem_loadw.1
+    padw mem_loadw.4
     # => [ASSET, RECIPIENT]
 
-    padw mem_loadw.2
+    padw mem_loadw.8
     # => [0, 0, execution_hint, tag, ASSET, RECIPIENT]
 
     drop drop swap

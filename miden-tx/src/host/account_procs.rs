@@ -44,16 +44,17 @@ impl AccountProcedureIndexMap {
     /// map.
     pub fn get_proc_index(
         &self,
-        process: &impl ProcessState,
+        process: &ProcessState,
     ) -> Result<u8, TransactionKernelError> {
         // get current account code commitment
         let code_commitment = {
             let curr_data_ptr = process
                 .get_mem_value(process.ctx(), CURRENT_ACCOUNT_DATA_PTR)
-                .expect("Current account pointer was not initialized")[0]
+                .expect("Current account pointer was not initialized")
                 .as_int();
             process
-                .get_mem_value(process.ctx(), curr_data_ptr as u32 + ACCT_CODE_COMMITMENT_OFFSET)
+                .get_mem_word(process.ctx(), curr_data_ptr as u32 + ACCT_CODE_COMMITMENT_OFFSET)
+                .unwrap()
                 .expect("current account code commitment was not initialized")
         };
 

@@ -172,7 +172,7 @@ const.INPUT_NOTE_ASSETS_OFFSET=32
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the output notes section begins.
-const.OUTPUT_NOTE_SECTION_OFFSET=16_777_216
+const.OUTPUT_NOTE_SECTION_OFFSET=16777216
 
 # The offsets at which data of an output note is stored relative to the start of its data segment.
 const.OUTPUT_NOTE_ID_OFFSET=0

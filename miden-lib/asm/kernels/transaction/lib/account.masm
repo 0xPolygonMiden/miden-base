@@ -633,7 +633,7 @@ end
 #! Panics if:
 #! - the storage slot type is not map.
 #! - no map is found for ROOT.
-export.set_map_item.3
+export.set_map_item.12
     # store index for later
     dup loc_store.0
     # => [index, KEY, NEW_VALUE, ...]
@@ -662,7 +662,7 @@ export.set_map_item.3
     # => [OLD_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
 
     # store OLD_VALUE and NEW_ROOT until the end of the procedure
-    loc_storew.1 dropw loc_storew.2 dropw
+    loc_storew.4 dropw loc_storew.8 dropw
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
@@ -672,7 +672,7 @@ export.set_map_item.3
     # => [KEY, NEW_VALUE, ...]
 
     # load OLD_VALUE and NEW_ROOT on the top of the stack
-    loc_loadw.2 swapw loc_loadw.1 swapw
+    loc_loadw.8 swapw loc_loadw.4 swapw
     # => [NEW_ROOT, OLD_VALUE, ...]
 
     # set the root of the map in the respective account storage slot

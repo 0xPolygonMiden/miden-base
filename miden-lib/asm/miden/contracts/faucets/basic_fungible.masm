@@ -53,7 +53,7 @@ export.basic::auth_tx_rpo_falcon512
 #! - the total issuance after minting is greater than the maximum allowed supply.
 #!
 #! Invocation: call
-export.distribute.1
+export.distribute.4
     # get max supply of this faucet. We assume it is stored at pos 3 of slot 1
     push.METADATA_SLOT exec.account::get_item drop drop drop
     # => [max_supply, amount, tag, aux, note_type, execution_hint, RECIPIENT, pad(7)]

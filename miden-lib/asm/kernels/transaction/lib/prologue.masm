@@ -554,7 +554,7 @@ end
 #! - BLOCK_SUB_HASH is the sub_hash of the block which created the input note.
 #! - NOTE_ROOT is the merkle root of the notes tree containing the input note.
 #! - note_index is the input note's position in the notes tree.
-proc.authenticate_note.2
+proc.authenticate_note.8
     # Load the BLOCK_HASH from the CHAIN_MMR
     # ---------------------------------------------------------------------------------------------
 
@@ -587,7 +587,7 @@ proc.authenticate_note.2
     # ---------------------------------------------------------------------------------------------
 
     # load the note root from memory
-    loc_loadw.1 swapw
+    loc_loadw.4 swapw
     # => [NOTE_HASH, NOTE_ROOT]
 
     # load the index of the note

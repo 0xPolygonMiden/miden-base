@@ -73,17 +73,19 @@ fn test_mint_fungible_asset_succeeds() {
         suffix = faucet_id.suffix(),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     let expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE + FUNGIBLE_ASSET_AMOUNT;
     let faucet_reserved_slot_storage_location =
         FAUCET_STORAGE_DATA_SLOT as u32 + NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR;
+    let faucet_storage_amount_location = faucet_reserved_slot_storage_location + 3;
 
-    let faucet_memory_value_word = process
-        .get_mem_value(process.ctx(), faucet_reserved_slot_storage_location)
-        .unwrap();
+    let faucet_storage_amount = process_state
+        .get_mem_value(process_state.ctx(), faucet_storage_amount_location)
+        .unwrap().as_int();
 
-    assert_eq!(faucet_memory_value_word[3].as_int(), expected_final_storage_amount);
+    assert_eq!(faucet_storage_amount, expected_final_storage_amount);
 }
 
 #[test]
@@ -350,17 +352,19 @@ fn test_burn_fungible_asset_succeeds() {
         final_input_vault_asset_amount = CONSUMED_ASSET_1_AMOUNT - FUNGIBLE_ASSET_AMOUNT,
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     let expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE - FUNGIBLE_ASSET_AMOUNT;
     let faucet_reserved_slot_storage_location =
         FAUCET_STORAGE_DATA_SLOT as u32 + NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR;
+    let faucet_storage_amount_location = faucet_reserved_slot_storage_location + 3;
 
-    let faucet_memory_value_word = process
-        .get_mem_value(process.ctx(), faucet_reserved_slot_storage_location)
-        .unwrap();
+    let faucet_storage_amount = process_state
+        .get_mem_value(process_state.ctx(), faucet_storage_amount_location)
+        .unwrap().as_int();
 
-    assert_eq!(faucet_memory_value_word[3].as_int(), expected_final_storage_amount);
+    assert_eq!(faucet_storage_amount, expected_final_storage_amount);
 }
 
 #[test]
