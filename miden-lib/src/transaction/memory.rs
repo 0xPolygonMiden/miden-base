@@ -20,7 +20,7 @@ pub type StorageSlot = u8;
 // | Global inputs     | 400           | 423         | 100                   | 105                  |
 // | Block header      | 800           | 835         | 200                   | 208                  |
 // | Chain MMR         | 1_200         | 1_331?      | 300                   | 332?                 |
-// | Kernel data       | 1_600         | 1_719       | 400                   | 429                  |
+// | Kernel data       | 1_600         | 1_739       | 400                   | 434                  |
 // | Accounts data     | 8_192         | 532_479     | 2048                  | 133_119              | 64 foreign accounts max
 // | Input notes       | 4_194_304     | ?           | 1_048_576             | ?                    |
 // | Output notes      | 16_777_216    | ?           | 4_194_304             | ?                    |
