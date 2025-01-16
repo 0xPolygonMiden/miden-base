@@ -61,19 +61,16 @@ const.EPILOGUE_END=131081
 proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.PROLOGUE_START
 
     exec.prologue::prepare_transaction
     # => []
 
-    push.1 drop                         # TODO: remove line, see miden-vm/#1122
     trace.PROLOGUE_END
 
     # Note Processing
     # ---------------------------------------------------------------------------------------------
 
-    push.2 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_START
 
     exec.memory::get_num_input_notes
@@ -87,7 +84,6 @@ proc.main.1
     # => [should_loop]
 
     while.true
-        push.4 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_START
         # => []
 
@@ -109,20 +105,17 @@ proc.main.1
         loc_load.0 neq
         # => [should_loop]
 
-        push.5 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_END
     end
 
     exec.note::note_processing_teardown
     # => []
 
-    push.3 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_END
 
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
 
-    push.6 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_START
 
     # get the memory address of the transaction script root and load it to the stack
@@ -147,13 +140,11 @@ proc.main.1
         # => []
     end
 
-    push.7 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_END
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
-    push.8 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_START
 
     # execute the transaction epilogue
@@ -163,7 +154,6 @@ proc.main.1
     # truncate the stack
     movupw.3 dropw movupw.3 dropw movup.9 drop
 
-    push.9 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_END
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 end

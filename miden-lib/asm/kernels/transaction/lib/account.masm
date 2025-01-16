@@ -237,13 +237,11 @@ export.incr_nonce
     u32assert.err=ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32
 
     # emit event to signal that account nonce is being incremented
-    push.20261 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT
 
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
 
-    push.20357 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
@@ -586,7 +584,6 @@ end
 #! Panics if:
 #! - the storage slot type is not value.
 export.set_item
-    push.20443 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
     # => [index, V']
 
@@ -610,7 +607,6 @@ export.set_item
 
     # emit event to signal that an account storage item is being updated
     swapw movup.8
-    push.20551 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
     # => [V]
 end
@@ -647,7 +643,6 @@ export.set_map_item.3
     assert.err=ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    push.20693 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
@@ -667,7 +662,6 @@ export.set_map_item.3
 
     # emit event to signal that an account storage item is being updated
     movup.8
-    push.20771 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop
     # => [KEY, NEW_VALUE, ...]
 
@@ -749,7 +743,6 @@ end
 #! - the procedure root is not part of the account code.
 export.authenticate_procedure
     # load procedure index
-    push.20897 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
     # => [index, PROC_ROOT]
 
@@ -804,8 +797,7 @@ export.validate_seed
     # => [0, 0, account_id_prefix, account_id_suffix, ANCHOR_BLOCK_HASH]
 
     # populate first four elements of the rate with the account ID seed
-    adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
-    adv_loadw
+    adv.push_mapval adv_loadw
     # => [SEED, ANCHOR_BLOCK_HASH]
 
     # pad capacity element of hasher
@@ -977,7 +969,7 @@ end
 #! - the computed account storage commitment does not match the provided account storage commitment
 export.save_account_storage_data
     # move storage slot data from the advice map to the advice stack
-    adv.push_mapvaln push.15160 drop                # TODO: remove line, see miden-vm/#1122
+    adv.push_mapvaln
     # OS => [STORAGE_COMMITMENT]
     # AS => [storage_slot_data_len, [STORAGE_SLOT_DATA]]
 
@@ -1046,7 +1038,7 @@ end
 #! - the computed account code commitment does not match the provided account code commitment
 export.save_account_procedure_data
     # move procedure data from the advice map to the advice stack
-    adv.push_mapvaln push.15161 drop               # TODO: remove line, see miden-vm/#1122
+    adv.push_mapvaln
     # OS => [CODE_COMMITMENT]
     # AS => [account_procedure_data_len, [ACCOUNT_PROCEDURE_DATA]]
 
