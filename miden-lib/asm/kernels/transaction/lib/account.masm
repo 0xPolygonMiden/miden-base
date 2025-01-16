@@ -632,24 +632,24 @@ end
 export.get_map_item
     # check if storage slot type is map
     dup exec.get_storage_slot_type
-    # => [slot_type, index, KEY, pad(11)]
+    # => [slot_type, index, KEY]
 
     # check if type == map
     exec.constants::get_storage_slot_type_map eq
     assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
-    # => [index, KEY, pad(11)]
+    # => [index, KEY]
 
     # fetch the account storage item, which is ROOT of the map
     exec.get_item swapw
-    # => [KEY, ROOT, pad(11)]
+    # => [KEY, ROOT]
 
     # fetch the VALUE located under KEY in the tree
     exec.smt::get
-    # => [VALUE, ROOT, pad(11)]
+    # => [VALUE, ROOT]
 
     # remove the ROOT from the stack
     swapw dropw
-    # => [VALUE, pad(12)]
+    # => [VALUE]
 end
 
 #! Stores NEW_VALUE under the specified KEY within the map contained in the given account storage slot.
