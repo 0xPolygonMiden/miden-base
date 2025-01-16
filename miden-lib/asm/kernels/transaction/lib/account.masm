@@ -333,7 +333,7 @@ export.::kernel::util::account_id::is_immutable_account
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
 #! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
-export.::kernel::util::account_id::is_id_eq
+export.::kernel::util::account_id::is_equal->is_id_equal
 
 #! Validates an account ID. Note that this does not validate anything about the account type,
 #! since any bit pattern is a valid account type.
@@ -349,7 +349,7 @@ export.::kernel::util::account_id::is_id_eq
 #! - account_id_prefix does not contain either the public or private storage mode.
 #! - account_id_suffix contains an anchor epoch that is greater or equal to 2^16.
 #! - account_id_suffix does not have its lower 8 bits set to zero.
-export.::kernel::util::account_id::validate_id
+export.::kernel::util::account_id::validate->validate_id
 
 #! Sets the code of the account the transaction is being executed against.
 #!
@@ -795,7 +795,7 @@ export.validate_seed
     # => [hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
     # assert the account ID matches the account ID of the new account
-    exec.is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
+    exec.is_id_equal assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
     # => []
 end
 
@@ -1018,7 +1018,7 @@ export.get_foreign_account_ptr
     # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
     # check that foreign account ID is not equal to the native account ID
-    dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_eq not
+    dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_equal not
     assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
 
     # get the initial account data pointer
@@ -1048,7 +1048,7 @@ export.get_foreign_account_ptr
         # => [is_empty_block, maybe_account_id_prefix, maybe_account_id_suffix, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # check whether the current id matches the foreign id
-        movdn.2 dup.5 dup.5 exec.is_id_eq
+        movdn.2 dup.5 dup.5 exec.is_id_equal
         # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # get the loop flag

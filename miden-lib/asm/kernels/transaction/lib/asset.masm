@@ -161,7 +161,7 @@ export.validate_fungible_asset_origin
     dup.3 dup.3
     # => [asset_id_prefix, asset_id_suffix, faucet_id_prefix, faucet_id_suffix, ASSET]
 
-    exec.account::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
+    exec.account::is_id_equal assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the fungible asset is valid

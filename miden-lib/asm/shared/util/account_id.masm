@@ -93,7 +93,7 @@ end
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
 #! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
-export.is_id_eq
+export.is_equal
     movup.2 eq
     # => [is_prefix_equal, acct_id_suffix, other_acct_id_suffix]
     movdn.2 eq
@@ -157,7 +157,7 @@ end
 #! - account_id_prefix does not contain either the public or private storage mode.
 #! - account_id_suffix contains an anchor epoch that is greater or equal to 2^16.
 #! - account_id_suffix does not have its lower 8 bits set to zero.
-export.validate_id
+export.validate
     # Validate version in prefix. For now only version 0 is supported.
     # ---------------------------------------------------------------------------------------------
 
