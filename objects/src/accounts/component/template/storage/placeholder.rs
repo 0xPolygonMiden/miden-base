@@ -38,6 +38,16 @@ pub enum PlaceholderType {
     Word,
 }
 
+impl core::fmt::Display for PlaceholderType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            PlaceholderType::Felt => f.write_str("Felt"),
+            PlaceholderType::Map => f.write_str("Map"),
+            PlaceholderType::Word => f.write_str("Word"),
+        }
+    }
+}
+
 impl StoragePlaceholder {
     /// Creates a new [StoragePlaceholder] from the provided string.
     ///
