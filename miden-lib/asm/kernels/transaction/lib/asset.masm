@@ -24,10 +24,8 @@ const.ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020026
 # The origin of the non-fungible asset is not this faucet
 const.ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020027
 
-# CONSTANTS
+# CONSTANT ACCESSORS
 # =================================================================================================
-
-const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 
 #! Returns the maximum amount of a fungible asset.
 #!
@@ -36,10 +34,7 @@ const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 #!
 #! Where:
 #! - fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.get_fungible_asset_max_amount
-    push.FUNGIBLE_ASSET_MAX_AMOUNT
-    # => [fungible_asset_max_amount]
-end
+export.::kernel::util::asset::get_fungible_asset_max_amount
 
 # PROCEDURES
 # =================================================================================================
@@ -69,7 +64,7 @@ export.validate_fungible_asset
     # => [ASSET]
 
     # assert that the max amount (ASSET[0]) of a fungible asset is not exceeded
-    dup.3 push.FUNGIBLE_ASSET_MAX_AMOUNT lte 
+    dup.3 exec.get_fungible_asset_max_amount lte 
     assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS
     # => [ASSET]
 end
@@ -166,7 +161,7 @@ export.validate_fungible_asset_origin
     dup.3 dup.3
     # => [asset_id_prefix, asset_id_suffix, faucet_id_prefix, faucet_id_suffix, ASSET]
 
-    exec.account::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
+    exec.account::is_id_equal assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the fungible asset is valid

@@ -3,6 +3,7 @@ use.std::collections::smt
 use.std::crypto::hashes::rpo
 use.std::mem
 
+use.kernel::util::account_id
 use.kernel::constants
 use.kernel::memory
 
@@ -11,9 +12,6 @@ use.kernel::memory
 
 # Account nonce cannot be increased by a greater than u32 value
 const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x00020004
-
-# Least significant byte of the account ID suffix must be zero.
-const.ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO=0x00020005
 
 # Account code must be updatable for it to be possible to set new code
 const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020006
@@ -81,6 +79,20 @@ const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE=0x00020059
 # CONSTANTS
 # =================================================================================================
 
+# The account storage slot at which faucet data is stored.
+# Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
+# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+const.FAUCET_STORAGE_DATA_SLOT=0
+
+# The maximum storage slot index
+const.MAX_STORAGE_SLOT_INDEX=254
+
+# The maximum number of account storage slots.
+const.MAX_NUM_STORAGE_SLOTS=MAX_STORAGE_SLOT_INDEX+1
+
+# The maximum number of account interface procedures.
+const.MAX_NUM_PROCEDURES=256
+
 # Given the least significant 32 bits of an account ID's prefix, this mask defines the bits used
 # to determine the account version.
 const.ACCOUNT_VERSION_MASK_U32=0x0f # 0b1111
@@ -116,20 +128,6 @@ const.NON_FUNGIBLE_FAUCET_ACCOUNT=0x30 # 0b11_0000
 
 # Bit pattern for a faucet account, after the account type mask has been applied.
 const.FAUCET_ACCOUNT=0x20 # 0b10_0000
-
-# The maximum number of account interface procedures.
-const.MAX_NUM_PROCEDURES=256
-
-# The account storage slot at which faucet data is stored.
-# Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
-# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
-const.FAUCET_STORAGE_DATA_SLOT=0
-
-# The maximum storage slot index
-const.MAX_STORAGE_SLOT_INDEX=254
-
-# The maximum number of account storage slots.
-const.MAX_NUM_STORAGE_SLOTS=MAX_STORAGE_SLOT_INDEX+1
 
 # Depth of the account database tree.
 const.ACCOUNT_TREE_DEPTH=64
@@ -282,10 +280,7 @@ export.memory::get_init_acct_hash->get_initial_hash
 #! Where:
 #! - acct_id_prefix is the prefix of the account ID.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
-export.is_fungible_faucet
-    exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_fungible_faucet]
-end
+export.::kernel::util::account_id::is_fungible_faucet
 
 #! Returns a boolean indicating whether the account is a non-fungible faucet.
 #!
@@ -295,10 +290,7 @@ end
 #! Where:
 #! - acct_id_prefix is the prefix of the account ID.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
-export.is_non_fungible_faucet
-    exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_non_fungible_faucet]
-end
+export.::kernel::util::account_id::is_non_fungible_faucet
 
 #! Returns a boolean indicating whether the account is a faucet.
 #!
@@ -308,10 +300,7 @@ end
 #! Where:
 #! - acct_id_prefix is the prefix of the account ID.
 #! - is_faucet is a boolean indicating whether the account is a faucet.
-export.is_faucet
-    u32split drop push.FAUCET_ACCOUNT u32and eq.0 not
-    # => [is_faucet]
-end
+export.::kernel::util::account_id::is_faucet
 
 #! Returns a boolean indicating whether the account is a regular updatable account.
 #!
@@ -322,10 +311,7 @@ end
 #! - acct_id_prefix is the prefix of the account ID.
 #! - is_updatable_account is a boolean indicating whether the account is a regular updatable
 #!   account.
-export.is_updatable_account
-    exec.type push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
-    # => [is_updatable_account]
-end
+export.::kernel::util::account_id::is_updatable_account
 
 #! Returns a boolean indicating whether the account is a regular immutable account.
 #!
@@ -336,10 +322,7 @@ end
 #! - acct_id_prefix is the prefix of the account ID.
 #! - is_immutable_account is a boolean indicating whether the account is a regular immutable
 #!   account.
-export.is_immutable_account
-    exec.type push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
-    # => [is_immutable_account]
-end
+export.::kernel::util::account_id::is_immutable_account
 
 #! Returns a boolean indicating whether the given account_ids are equal.
 #!
@@ -350,14 +333,7 @@ end
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
 #! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
-export.is_id_eq
-    movup.2 eq
-    # => [is_prefix_equal, acct_id_suffix, other_acct_id_suffix]
-    movdn.2 eq
-    # => [is_suffix_equal, is_prefix_equal]
-    and
-    # => [is_id_equal]
-end
+export.::kernel::util::account_id::is_equal->is_id_equal
 
 #! Validates an account ID. Note that this does not validate anything about the account type,
 #! since any bit pattern is a valid account type.
@@ -373,43 +349,7 @@ end
 #! - account_id_prefix does not contain either the public or private storage mode.
 #! - account_id_suffix contains an anchor epoch that is greater or equal to 2^16.
 #! - account_id_suffix does not have its lower 8 bits set to zero.
-export.validate_id
-    # Validate version in prefix. For now only version 0 is supported.
-    # ---------------------------------------------------------------------------------------------
-
-    dup exec.id_version
-    # => [id_version, account_id_prefix, account_id_suffix]
-    assertz.err=ERR_ACCOUNT_ID_UNKNOWN_VERSION
-    # => [account_id_prefix, account_id_suffix]
-
-    # Validate storage mode in prefix.
-    # ---------------------------------------------------------------------------------------------
-
-    u32split drop
-    # => [account_id_prefix_lo, account_id_suffix]
-    u32and.ACCOUNT_ID_STORAGE_MODE_MASK_U32 dup eq.ACCOUNT_ID_STORAGE_MODE_PRIVATE_U32
-    # => [is_private_storage_mode, id_storage_mode_masked, account_id_suffix]
-    swap eq.ACCOUNT_ID_STORAGE_MODE_PUBLIC_U32
-    # => [is_public_storage_mode, is_private_storage_mode, account_id_suffix]
-    or assert.err=ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE
-    # => [account_id_suffix]
-
-    # Validate anchor epoch is less than u16::MAX (0xffff) in suffix.
-    # ---------------------------------------------------------------------------------------------
-
-    dup exec.id_anchor_epoch
-    # => [anchor_epoch, account_id_suffix]
-    lt.0xffff assert.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
-    # => [account_id_suffix]
-
-    # Validate lower 8 bits of suffix are zero.
-    # ---------------------------------------------------------------------------------------------
-
-    u32split drop u32and.0xff eq.0
-    # => [is_least_significant_byte_zero]
-    assert.err=ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO
-    # => []
-end
+export.::kernel::util::account_id::validate->validate_id
 
 #! Sets the code of the account the transaction is being executed against.
 #!
@@ -783,7 +723,7 @@ export.validate_seed
     # => [0, 0, account_id_prefix, account_id_suffix]
 
     # get the anchor block's number
-    dup.3 exec.id_anchor_block_num
+    dup.3 exec.account_id::id_anchor_block_num
     # => [anchor_block_num, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.memory::get_chain_mmr_ptr swap
@@ -847,110 +787,16 @@ export.validate_seed
     # => [account_id_suffix, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix]
 
     # extract anchor epoch from ID of the new account
-    dup movdn.4 exec.id_anchor_epoch
+    dup movdn.4 exec.account_id::id_anchor_epoch
     # => [anchor_epoch, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
     # shape suffix of hashed id, adding the anchor epoch and setting the lower 8 bits to zero
-    movup.2 exec.shape_suffix swap
+    movup.2 exec.account_id::shape_suffix swap
     # => [hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
     # assert the account ID matches the account ID of the new account
-    exec.is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
+    exec.is_id_equal assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
     # => []
-end
-
-#! Shapes the suffix so it meets the requirements of the account ID, by overwriting the
-#! upper 16 bits with the anchor epoch and setting the lower 8 bits to zero.
-#!
-#! Inputs:  [seed_digest_suffix, anchor_epoch]
-#! Outputs: [account_id_suffix]
-#!
-#! Where:
-#! - seed_digest_suffix is the suffix of the digest that should be shaped into the suffix
-#!   of an account ID.
-#! - account_id_suffix is the suffix of an account ID.
-#! - anchor_epoch is the epoch number to which this account ID is anchored.
-proc.shape_suffix
-  u32split
-  # => [seed_digest_suffix_hi, seed_digest_suffix_lo, anchor_epoch]
-
-  # clear epoch bits in hi part so we can set them later
-  u32and.0x0000ffff swap
-  # => [seed_digest_suffix_lo, seed_digest_suffix_hi', anchor_epoch]
-
-  # clear lower 8 bits of the lo part
-  u32and.0xffffff00 swap.2
-  # => [anchor_epoch, seed_digest_suffix_hi', seed_digest_suffix_lo']
-
-  # assert epoch is not 2^16
-  # this is technically optional as we will compare this id with the provided one for which
-  # this property was already checked, but since this check is cheap we include it anyway
-  dup eq.0xffff assertz.err=ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX
-  # => [anchor_epoch, seed_digest_suffix_hi', seed_digest_suffix_lo']
-
-  # shift epoch left by 16 bits and set epoch bits on hi part
-  u32shl.16 u32or
-  # => [seed_digest_suffix_hi'', seed_digest_suffix_lo']
-
-  # reassemble the suffix by multiplying the hi part with 2^32 and adding the lo part
-  mul.0x0100000000 add
-  # => [account_id_suffix]
-end
-
-#! Extracts the block number of the anchor block from the suffix of an account ID.
-#!
-#! Inputs:  [account_id_suffix]
-#! Outputs: [anchor_block_num]
-#!
-#! Where:
-#! - account_id_suffix is the suffix of an account ID.
-#! - anchor_block_num is the number of the block to which this account ID is anchored.
-proc.id_anchor_block_num
-  # extract the upper 32 bits
-  u32split swap drop
-  # => [account_id_suffix_hi]
-
-  # to get the epoch's block number we would have to multiply the epoch in the account ID by 2^16
-  # since the epoch is already in the upper 16 bits of the u32, we can simply zero out the
-  # lower 16 bits to achieve the same result.
-  u32and.0xffff0000
-  # => [anchor_block_num]
-end
-
-#! Extracts the epoch from the suffix of an account ID.
-#!
-#! Inputs:  [account_id_suffix]
-#! Outputs: [anchor_epoch]
-#!
-#! Where:
-#! - account_id_suffix is the suffix of an account ID.
-#! - anchor_epoch is the epoch number to which this account ID is anchored.
-proc.id_anchor_epoch
-  # extract the upper 32 bits
-  u32split swap drop
-  # => [account_id_suffix_hi]
-
-  # shift the upper 16 bits to the right to produce the epoch
-  u32shr.16
-  # => [anchor_epoch]
-end
-
-#! Extracts the account ID version from the prefix of an account ID.
-#!
-#! Inputs:  [account_id_prefix]
-#! Outputs: [id_version]
-#!
-#! Where:
-#! - account_id_prefix is the prefix of an account ID.
-#! - id_version is the version number of the ID.
-proc.id_version
-  # extract the lower 32 bits
-  u32split drop
-  # => [account_id_prefix_lo]
-
-  # mask out the version
-  u32and.ACCOUNT_VERSION_MASK_U32
-  # => [id_version]
 end
 
 # DATA LOADERS
@@ -1097,25 +943,6 @@ end
 # HELPER PROCEDURES
 # =================================================================================================
 
-#! Returns the least significant half of an account ID prefix with the account type bits masked out.
-#!
-#! The account type can be obtained by comparing this value with the following constants:
-#! - REGULAR_ACCOUNT_UPDATABLE_CODE
-#! - REGULAR_ACCOUNT_IMMUTABLE_CODE
-#! - FUNGIBLE_FAUCET_ACCOUNT
-#! - NON_FUNGIBLE_FAUCET_ACCOUNT
-#!
-#! Inputs:  [acct_id_prefix]
-#! Outputs: [acct_type]
-#!
-#! Where:
-#! - acct_id_prefix is the prefix of the account ID.
-#! - acct_type is the account type.
-proc.type
-    u32split drop push.ACCOUNT_ID_TYPE_MASK_U32 u32and
-    # => [acct_type]
-end
-
 #! Sets an item in the account storage. Doesn't emit any events.
 #!
 #! Inputs:  [index, NEW_VALUE]
@@ -1191,7 +1018,7 @@ export.get_foreign_account_ptr
     # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
     # check that foreign account ID is not equal to the native account ID
-    dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_eq not
+    dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_equal not
     assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
 
     # get the initial account data pointer
@@ -1221,7 +1048,7 @@ export.get_foreign_account_ptr
         # => [is_empty_block, maybe_account_id_prefix, maybe_account_id_suffix, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # check whether the current id matches the foreign id
-        movdn.2 dup.5 dup.5 exec.is_id_eq
+        movdn.2 dup.5 dup.5 exec.is_id_equal
         # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # get the loop flag
@@ -1233,7 +1060,7 @@ export.get_foreign_account_ptr
 
     # check that the loading of one more account won't exceed the maximum number of the foreign 
     # accounts which can be loaded.
-    dup exec.memory::get_max_foreign_account_ptr lte 
+    dup exec.memory::get_max_foreign_account_ptr lte
     assert.err=ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED
     # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix, is_equal_id]
 
