@@ -4,10 +4,7 @@ use miden_lib::{
         ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
         ERR_ACCOUNT_ID_UNKNOWN_VERSION, TX_KERNEL_ERRORS,
     },
-    transaction::{
-        memory::{NATIVE_ACCT_CODE_COMMITMENT_PTR, NEW_CODE_ROOT_PTR},
-        TransactionKernel,
-    },
+    transaction::TransactionKernel,
 };
 use miden_objects::{
     accounts::{
@@ -32,83 +29,30 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
 use super::{Felt, StackInputs, Word, ONE, ZERO};
-use crate::{
-    testing::{executor::CodeExecutor, TransactionContextBuilder},
-    tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
-};
+use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
 
 #[test]
-pub fn test_set_code_is_not_immediate() {
+pub fn test_get_code() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
         use.kernel::prologue
         use.kernel::account
         begin
             exec.prologue::prepare_transaction
-            push.1.2.3.4
-            exec.account::set_code
+            exec.account::get_code_commitment
+            swapw dropw
         end
         ";
 
     let process = tx_context.execute_code(code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
+        process.get_stack_word(0),
         tx_context.account().code().commitment().as_elements(),
-        "the code commitment must not change immediately",
-    );
-
-    assert_eq!(
-        read_root_mem_value(&process, NEW_CODE_ROOT_PTR),
-        [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
-        "the code commitment must be cached",
-    );
-}
-
-#[test]
-pub fn test_set_code_succeeds() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .with_mock_notes_preserved()
-        .build();
-
-    let output_notes_data_procedure =
-        output_notes_data_procedure(tx_context.expected_output_notes());
-
-    let code = format!(
-        "
-        use.kernel::account
-        use.kernel::prologue
-        use.kernel::epilogue
-
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
-
-            push.0.1.2.3
-            exec.account::set_code
-
-            exec.create_mock_notes
-
-            push.1
-            exec.account::incr_nonce
-
-            exec.epilogue::finalize_transaction
-
-            # clean the stack
-            dropw dropw dropw dropw
-        end
-        "
-    );
-
-    let process = tx_context.execute_code(&code).unwrap();
-
-    assert_eq!(
-        read_root_mem_value(&process, NATIVE_ACCT_CODE_COMMITMENT_PTR),
-        [ZERO, ONE, Felt::new(2), Felt::new(3)],
-        "the code commitment must change after the epilogue",
+        "obtained code commitment is not equal to the account code commitment",
     );
 }
 
