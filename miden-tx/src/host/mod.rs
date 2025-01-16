@@ -176,7 +176,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
 
     /// Adds an asset at the top of the [OutputNoteBuilder] identified by the note pointer.
     ///
-    /// Expected stack state: [ASSET, note_ptr, ...]
+    /// Expected stack state: [ASSET, note_ptr, num_of_assets, note_idx]
     fn on_note_before_add_asset<S: ProcessState>(
         &mut self,
         process: &S,
