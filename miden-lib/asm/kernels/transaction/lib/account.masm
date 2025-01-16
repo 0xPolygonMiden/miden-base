@@ -79,6 +79,20 @@ const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE=0x00020059
 # CONSTANTS
 # =================================================================================================
 
+# The account storage slot at which faucet data is stored.
+# Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
+# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+const.FAUCET_STORAGE_DATA_SLOT=0
+
+# The maximum storage slot index
+const.MAX_STORAGE_SLOT_INDEX=254
+
+# The maximum number of account storage slots.
+const.MAX_NUM_STORAGE_SLOTS=MAX_STORAGE_SLOT_INDEX+1
+
+# The maximum number of account interface procedures.
+const.MAX_NUM_PROCEDURES=256
+
 # Given the least significant 32 bits of an account ID's prefix, this mask defines the bits used
 # to determine the account version.
 const.ACCOUNT_VERSION_MASK_U32=0x0f # 0b1111
@@ -158,7 +172,9 @@ const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131082
 #!
 #! Where:
 #! - faucet_storage_data_slot is the account storage slot at which faucet data is stored.
-export.::kernel::util::account_id::get_faucet_storage_data_slot
+export.get_faucet_storage_data_slot
+    push.FAUCET_STORAGE_DATA_SLOT
+end
 
 #! Returns the maximum number of account storage slots.
 #!
@@ -167,7 +183,9 @@ export.::kernel::util::account_id::get_faucet_storage_data_slot
 #!
 #! Where:
 #! - max_num_storage_slots is the maximum number of account storage slots.
-export.::kernel::util::account_id::get_max_num_storage_slots
+export.get_max_num_storage_slots
+    push.MAX_NUM_STORAGE_SLOTS
+end
 
 #! Returns the maximum number of account interface procedures.
 #!
@@ -176,7 +194,9 @@ export.::kernel::util::account_id::get_max_num_storage_slots
 #!
 #! Where:
 #! - max_num_procedures is the maximum number of account interface procedures.
-export.::kernel::util::account_id::get_max_num_procedures
+export.get_max_num_procedures
+    push.MAX_NUM_PROCEDURES
+end
 
 # PROCEDURES
 # =================================================================================================
@@ -368,7 +388,15 @@ end
 #!
 #! Panics if:
 #! - the computed index is out of bounds
-export.::kernel::util::account_id::apply_storage_offset
+export.apply_storage_offset
+    # offset index
+    dup movup.3 add
+    # => [offset_slot_index, storage_offset, storage_size]
+
+    # verify that slot_index is in bounds
+    movdn.2 add dup.1 gt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [offset_slot_index]
+end
 
 #! Validates all account procedures storage metadata by checking that:
 #! - All storage offsets and sizes are in bounds.
