@@ -653,7 +653,9 @@ impl MockChain {
     /// This will also make all the objects currently pending available for use.
     /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
     pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
-        let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num().child());
+        let next_block_num =
+            self.blocks.last().map_or(0, |b| b.header().block_num().child().as_u32());
+
         let target_block_num = block_num.unwrap_or(next_block_num);
 
         if target_block_num < next_block_num {

@@ -356,7 +356,7 @@ pub enum TransactionInputError {
     #[error("block in which input note with id {0} was created is not in chain mmr")]
     InputNoteBlockNotInChainMmr(NoteId),
     #[error("input note with id {0} was not created in block {1}")]
-    InputNoteNotInBlock(NoteId, u32),
+    InputNoteNotInBlock(NoteId, BlockNumber),
     #[error("account ID computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountIdError),
     #[error(

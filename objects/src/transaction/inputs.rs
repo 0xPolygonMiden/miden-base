@@ -402,10 +402,7 @@ fn validate_is_in_block(
         .note_path()
         .verify(note_index, note_hash, &block_header.note_root())
         .map_err(|_| {
-            TransactionInputError::InputNoteNotInBlock(
-                note.id(),
-                proof.location().block_num().as_u32(),
-            )
+            TransactionInputError::InputNoteNotInBlock(note.id(), proof.location().block_num())
         })
 }
 

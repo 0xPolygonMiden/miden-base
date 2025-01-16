@@ -22,14 +22,17 @@ impl BlockNumber {
     /// exponent.
     pub const EPOCH_LENGTH_EXPONENT: u8 = 16;
 
+    /// Genesis BlockNumber
+    pub const GENESIS: Self = Self(0);
+
     /// Returns the previous block number
-    pub fn parent(&self) -> u32 {
-        self.checked_sub(1).expect("Cannot go below Genesis block!").0
+    pub fn parent(self) -> Option<BlockNumber> {
+        self.checked_sub(1)
     }
 
     /// Returns the next block number
-    pub fn child(&mut self) -> u32 {
-        self.0 + 1
+    pub fn child(self) -> BlockNumber {
+        self + 1
     }
 
     /// Creates the [`BlockNumber`] corresponding to the epoch block for the provided `epoch`.
@@ -62,7 +65,7 @@ impl BlockNumber {
         self.0 as usize
     }
 
-    /// Checked integer subtraction. Computes `self - rhs`, returning `None` if overflow occurred.
+    /// Checked integer subtraction. Computes `self - rhs`, returning `None` if underflow occurred.
     pub fn checked_sub(&self, rhs: u32) -> Option<Self> {
         self.0.checked_sub(rhs).map(Self)
     }
