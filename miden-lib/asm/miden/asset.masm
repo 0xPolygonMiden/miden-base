@@ -104,18 +104,10 @@ export.create_non_fungible_asset
     # => [ASSET]
 end
 
-# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
-# =================================================================================================
-
-const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
-
 #! Returns the maximum amount of a fungible asset.
 #!
 #! Stack: []
 #! Outputs: [fungible_asset_max_amount]
 #!
 #! fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.get_fungible_asset_max_amount
-    push.FUNGIBLE_ASSET_MAX_AMOUNT
-    # => [fungible_asset_max_amount]
-end
+export.::miden::util::asset::get_fungible_asset_max_amount

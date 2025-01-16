@@ -24,12 +24,14 @@
 - Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
 - Introduce `AccountIdBuilder` to simplify `AccountId` generation in tests (#1045).
 - Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
+- [BREAKING] Updated the names and values of the kernel procedure offsets and corresponding kernel procedures (#1037).
 - Introduce `AccountIdError` and make account ID byte representations (`u128`, `[u8; 15]`) consistent (#1055).
 - Refactor `AccountId` and `AccountIdPrefix` into version wrappers (#1058).
 - Remove multi-threaded account seed generation due to single-threaded generation being faster (#1061).
 - Made `AccountIdError` public (#1067).
 - Made `BasicFungibleFaucet::MAX_DECIMALS` public (#1063).
 - [BREAKING] Removed `miden-tx-prover` crate and created `miden-proving-service` and `miden-remote-provers` (#1047).
+- Deduplicate `masm` procedures across kernel and miden lib to a shared `util` module (#1070).
 - Added storage placeholder types and support for templated map (#1074).
 
 ## 0.6.2 (2024-11-20)
