@@ -67,7 +67,7 @@ const.ACCOUNT_ID_STORAGE_MODE_PRIVATE_U32=0x80 # 0b1000_0000
 #! - acct_id_prefix is the prefix of the account ID.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
 export.is_fungible_faucet
-    exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
+    exec.id_type push.FUNGIBLE_FAUCET_ACCOUNT eq
     # => [is_fungible_faucet]
 end
 
@@ -80,7 +80,7 @@ end
 #! - acct_id_prefix is the prefix of the account ID.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
 export.is_non_fungible_faucet
-    exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    exec.id_type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
     # => [is_non_fungible_faucet]
 end
 
@@ -125,7 +125,7 @@ end
 #! - is_updatable_account is a boolean indicating whether the account is a regular updatable
 #!   account.
 export.is_updatable_account
-    exec.type push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
+    exec.id_type push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
     # => [is_updatable_account]
 end
 
@@ -139,7 +139,7 @@ end
 #! - is_immutable_account is a boolean indicating whether the account is a regular immutable
 #!   account.
 export.is_immutable_account
-    exec.type push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
+    exec.id_type push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
     # => [is_immutable_account]
 end
 
@@ -195,9 +195,6 @@ export.validate_id
     # => []
 end
 
-# HELPER PROCEDURES
-# =================================================================================================
-
 #! Shapes the suffix so it meets the requirements of the account ID, by overwriting the
 #! upper 16 bits with the anchor epoch and setting the lower 8 bits to zero.
 #!
@@ -209,7 +206,7 @@ end
 #!   of an account ID.
 #! - account_id_suffix is the suffix of an account ID.
 #! - anchor_epoch is the epoch number to which this account ID is anchored.
-proc.shape_suffix
+export.shape_suffix
     u32split
     # => [seed_digest_suffix_hi, seed_digest_suffix_lo, anchor_epoch]
 
@@ -235,6 +232,9 @@ proc.shape_suffix
     mul.0x0100000000 add
     # => [account_id_suffix]
 end
+
+# HELPER PROCEDURES
+# =================================================================================================
 
 #! Extracts the block number of the anchor block from the suffix of an account ID.
 #!
@@ -306,7 +306,7 @@ end
 #! Where:
 #! - acct_id_prefix is the prefix of the account ID.
 #! - acct_type is the account type.
-proc.type
+proc.id_type
     u32split drop push.ACCOUNT_ID_TYPE_MASK_U32 u32and
     # => [acct_type]
 end
