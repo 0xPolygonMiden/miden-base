@@ -27,9 +27,6 @@ const.ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED=0x00020000
 # The get_fungible_faucet_total_issuance procedure can only be called on a fungible faucet
 const.ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET=0x00020001
 
-# Failed to read an account map item from a non-map storage slot
-const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020002
-
 # Provided kernel procedure offset is out of bounds
 const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020003
 
@@ -250,7 +247,8 @@ export.set_account_item
     # => [R', V, pad(8)]
 end
 
-#! Returns VALUE located under specified KEY in map in specified account storage slot.
+#! Returns the VALUE located under the specified KEY within the map contained in the given
+#! account storage slot.
 #!
 #! Inputs:  [index, KEY, pad(11)]
 #! Outputs: [VALUE, pad(12)]
@@ -265,15 +263,6 @@ end
 #!
 #! Invocation: dynexec
 export.get_account_map_item
-    # check if storage type is map
-    dup exec.account::get_storage_slot_type
-    # => [slot_type, index, KEY, pad(11)]
-
-    # check if type == map
-    exec.constants::get_storage_slot_type_map eq 
-    assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
-    # => [index, KEY, pad(11)]
-
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [storage_offset, storage_size, index, KEY, pad(11)]
@@ -282,16 +271,8 @@ export.get_account_map_item
     exec.account::apply_storage_offset
     # => [index_with_offset, KEY, pad(11)]
 
-    # fetch the account storage item, which is ROOT of the map
-    exec.account::get_item swapw
-    # => [KEY, ROOT, pad(11)]
-
-    # fetch the VALUE located under KEY in the tree
-    exec.smt::get
-    # => [VALUE, ROOT, pad(11)]
-
-    # remove the ROOT from the stack
-    swapw dropw
+    # fetch the map item from account storage
+    exec.account::get_map_item
     # => [VALUE, pad(12)]
 end
 

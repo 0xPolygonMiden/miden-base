@@ -20,7 +20,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 33] = [
     // get_account_item
     digest!("0x677538ad2411983435f0b942b1fc6b3e5df0cf0d10bae34d56b48c54311b773a"),
     // get_account_map_item
-    digest!("0xa20686331cca5fa283c51cb5cc516b45f93870c987b4d93d3153e43eb389b6e6"),
+    digest!("0xac89c3cd71f8f96e15b8f4c83b6c5b4abd9e161d3b195ebb4e1f885d7ce94b94"),
     // get_account_nonce
     digest!("0x7456aa74a3bddeacfbcf02eb04130b8aea0772b5b15f0aeb49f91b1269d16bf7"),
     // get_account_vault_commitment
