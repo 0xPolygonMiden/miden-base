@@ -3,8 +3,7 @@ use.std::collections::smt
 use.std::crypto::hashes::rpo
 use.std::mem
 
-use.utils::account_utils
-
+use.kernel::util::account_id
 use.kernel::constants
 use.kernel::memory
 
@@ -192,7 +191,7 @@ export.set_code
     # => [acct_id_prefix, CODE_COMMITMENT]
 
     # assert the account is an updatable regular account
-    exec.account_utils::is_updatable_account assert.err=ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE
+    exec.account_id::is_updatable_account assert.err=ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE
     # => [CODE_COMMITMENT]
 
     # set the code commitment
@@ -218,7 +217,7 @@ export.validate_procedure_metadata
     # => [start_loop, index, num_storage_slots, num_account_procedures]
 
     # check if the account is a faucet
-    exec.get_id swap drop exec.account_utils::is_faucet
+    exec.get_id swap drop exec.account_id::is_faucet
     # => [is_faucet, start_loop, index, num_storage_slots, num_account_procedures]
 
     # we do not check if num_account_procedures == 0 here because a valid
@@ -525,7 +524,7 @@ export.validate_seed
     # => [0, 0, account_id_prefix, account_id_suffix]
 
     # get the anchor block's number
-    dup.3 exec.account_utils::id_anchor_block_num
+    dup.3 exec.account_id::id_anchor_block_num
     # => [anchor_block_num, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.memory::get_chain_mmr_ptr swap
@@ -589,15 +588,15 @@ export.validate_seed
     # => [account_id_suffix, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix]
 
     # extract anchor epoch from ID of the new account
-    dup movdn.4 exec.account_utils::id_anchor_epoch
+    dup movdn.4 exec.account_id::id_anchor_epoch
     # => [anchor_epoch, hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
     # shape suffix of hashed id, adding the anchor epoch and setting the lower 8 bits to zero
-    movup.2 exec.account_utils::shape_suffix swap
+    movup.2 exec.account_id::shape_suffix swap
     # => [hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
     # assert the account ID matches the account ID of the new account
-    exec.account_utils::is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
+    exec.account_id::is_id_eq assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
     # => []
 end
 
@@ -636,7 +635,7 @@ export.save_account_storage_data
     # AS => [[STORAGE_SLOT_DATA]]
 
     # assert that account does not exceed allowed maximum number of storage slots
-    dup exec.account_utils::get_max_num_storage_slots lte assert.err=ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS
+    dup exec.account_id::get_max_num_storage_slots lte assert.err=ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS
     # OS => [num_storage_slots, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
@@ -705,7 +704,7 @@ export.save_account_procedure_data
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
     # assert that account does not exceed allowed maximum number of procedures
-    dup exec.account_utils::get_max_num_procedures lte assert.err=ERR_ACCOUNT_TOO_MANY_PROCEDURES
+    dup exec.account_id::get_max_num_procedures lte assert.err=ERR_ACCOUNT_TOO_MANY_PROCEDURES
     # OS => [num_procs, CODE_COMMITMENT]
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
@@ -820,7 +819,7 @@ export.get_foreign_account_ptr
     # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
     # check that foreign account ID is not equal to the native account ID
-    dup.1 dup.1 exec.memory::get_native_account_id exec.account_utils::is_id_eq not
+    dup.1 dup.1 exec.memory::get_native_account_id exec.account_id::is_id_eq not
     assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
 
     # get the initial account data pointer
@@ -850,7 +849,7 @@ export.get_foreign_account_ptr
         # => [is_empty_block, maybe_account_id_prefix, maybe_account_id_suffix, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # check whether the current id matches the foreign id
-        movdn.2 dup.5 dup.5 exec.account_utils::is_id_eq
+        movdn.2 dup.5 dup.5 exec.account_id::is_id_eq
         # => [is_equal_id, is_empty_word, curr_account_ptr', foreign_account_id_prefix, foreign_account_id_suffix]
 
         # get the loop flag

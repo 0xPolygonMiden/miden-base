@@ -2,8 +2,7 @@ use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::rpo
 
-use.utils::account_utils
-
+use.kernel::util::account_id
 use.kernel::account
 use.kernel::asset_vault
 use.kernel::constants
@@ -319,7 +318,7 @@ end
 #! Outputs: []
 proc.validate_new_account
     # Assert the account ID of the account is valid
-    exec.memory::get_account_id exec.account_utils::validate_id
+    exec.memory::get_account_id exec.account_id::validate_id
     # => []
 
     # Assert the account nonce is 0
@@ -342,17 +341,17 @@ proc.validate_new_account
     # Assert faucet reserved slot is correctly initialized
     # ---------------------------------------------------------------------------------------------
     # check if the account is a faucet
-    exec.account::get_id swap drop dup exec.account_utils::is_faucet
+    exec.account::get_id swap drop dup exec.account_id::is_faucet
     # => [is_faucet, acct_id_prefix]
 
     # process conditional logic depending on whether the account is a faucet
     if.true
         # get the faucet reserved slot
-        exec.account_utils::get_faucet_storage_data_slot exec.account::get_item
+        exec.account_id::get_faucet_storage_data_slot exec.account::get_item
         # => [FAUCET_RESERVED_SLOT, acct_id_prefix]
 
         # check if the account is a fungible faucet
-        movup.4 exec.account_utils::is_fungible_faucet
+        movup.4 exec.account_id::is_fungible_faucet
         # => [is_fungible_faucet, FAUCET_RESERVED_SLOT]
 
         if.true
@@ -363,7 +362,7 @@ proc.validate_new_account
             # => []
 
             # get the faucet reserved storage data slot type
-            exec.account_utils::get_faucet_storage_data_slot exec.account::get_storage_slot_type
+            exec.account_id::get_faucet_storage_data_slot exec.account::get_storage_slot_type
             # => [slot_type]
 
             # assert the fungible faucet reserved slot type == value
@@ -379,7 +378,7 @@ proc.validate_new_account
             push.1001 drop                              # TODO: remove line, see miden-vm/#1122
 
             # get the faucet reserved storage data slot type
-            exec.account_utils::get_faucet_storage_data_slot exec.account::get_storage_slot_type
+            exec.account_id::get_faucet_storage_data_slot exec.account::get_storage_slot_type
             # => [slot_type]
 
             # assert the non-fungible faucet reserved slot type == map
@@ -471,7 +470,7 @@ proc.process_account_data
     # assert the account ID matches the account ID in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
-    exec.account_utils::is_id_eq assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
+    exec.account_id::is_id_eq assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
     # => [ACCT_HASH]
 
     # store a copy of the initial nonce in global inputs

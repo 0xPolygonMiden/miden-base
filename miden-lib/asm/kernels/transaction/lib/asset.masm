@@ -1,5 +1,4 @@
-use.kernel::account
-use.utils::account_utils
+use.kernel::util::account_id
 
 # ERRORS
 # =================================================================================================
@@ -34,7 +33,7 @@ const.ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020027
 #! Outputs: [fungible_asset_max_amount]
 #!
 #! fungible_asset_max_amount is the maximum amount of a fungible asset.
-export.::utils::asset_utils::get_fungible_asset_max_amount
+export.::kernel::util::asset::get_fungible_asset_max_amount
 
 #! Validates that a fungible asset is well formed.
 #!
@@ -52,11 +51,11 @@ export.validate_fungible_asset
     # => [ASSET]
 
     # assert that the tuple (ASSET[3], ASSET[2]) forms a valid account ID
-    dup.1 dup.1 exec.account_utils::validate_id
+    dup.1 dup.1 exec.account_id::validate_id
     # => [ASSET]
 
     # assert that the prefix (ASSET[3]) of the account ID is of type fungible faucet
-    dup exec.account_utils::is_fungible_faucet
+    dup exec.account_id::is_fungible_faucet
     assert.err=ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 
@@ -74,7 +73,7 @@ end
 #! Where:
 #! - ASSET is the asset to check.
 #! - is_fungible_asset is a boolean indicating whether the asset is fungible.
-export.::utils::asset_utils::is_fungible_asset
+export.::kernel::util::asset::is_fungible_asset
 
 #! Validates that a non fungible asset is well formed.
 #!
@@ -89,11 +88,11 @@ export.::utils::asset_utils::is_fungible_asset
 export.validate_non_fungible_asset
     # assert that ASSET[3] is a valid account ID prefix
     # hack: because we only have the prefix we add a 0 as the suffix which is always valid
-    push.0 dup.1 exec.account_utils::validate_id
+    push.0 dup.1 exec.account_id::validate_id
     # => [ASSET]
 
     # assert that the account ID prefix ASSET[3] is of type non fungible faucet
-    dup exec.account_utils::is_non_fungible_faucet
+    dup exec.account_id::is_non_fungible_faucet
     assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID
     # => [ASSET]
 end
@@ -106,7 +105,7 @@ end
 #! Where:
 #! - ASSET is the asset to check.
 #! - is_non_fungible_asset is a boolean indicating whether the asset is non-fungible.
-export.::utils::asset_utils::is_non_fungible_asset
+export.::kernel::util::asset::is_non_fungible_asset
 
 #! Validates that an asset is well formed.
 #!
@@ -146,7 +145,7 @@ export.validate_fungible_asset_origin
     dup.3 dup.3
     # => [asset_id_prefix, asset_id_suffix, faucet_id_prefix, faucet_id_suffix, ASSET]
 
-    exec.account_utils::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
+    exec.account_id::is_id_eq assert.err=ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN
     # => [ASSET]
 
     # assert the fungible asset is valid

@@ -45,7 +45,7 @@ const.REGULAR_ACCOUNT_IMMUTABLE_CODE=0 # 0b00_0000
 # Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
 const.FUNGIBLE_FAUCET_ACCOUNT=0x20 # 0b10_0000
 
-# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been 
+# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been
 # applied.
 const.NON_FUNGIBLE_FAUCET_ACCOUNT=0x30 # 0b11_0000
 
