@@ -76,7 +76,7 @@ const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=34   # mutator
 
 ### ACCOUNT #####################################
 
-#! Returns an offset of the `account_get_initial_hash` kernel procedure.
+#! Returns the offset of the `account_get_initial_hash` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -88,7 +88,7 @@ export.account_get_initial_hash_offset
     push.ACCOUNT_GET_INITIAL_HASH_OFFSET
 end
 
-#! Returns an offset of the `account_get_current_hash` kernel procedure.
+#! Returns the offset of the `account_get_current_hash` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -100,7 +100,7 @@ export.account_get_current_hash_offset
     push.ACCOUNT_GET_CURRENT_HASH_OFFSET
 end
 
-#! Returns an offset of the `account_get_id` kernel procedure.
+#! Returns the offset of the `account_get_id` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -112,7 +112,7 @@ export.account_get_id_offset
     push.ACCOUNT_GET_ID_OFFSET
 end
 
-#! Returns an offset of the `account_get_nonce` kernel procedure.
+#! Returns the offset of the `account_get_nonce` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -124,7 +124,7 @@ export.account_get_nonce_offset
     push.ACCOUNT_GET_NONCE_OFFSET
 end
 
-#! Returns an offset of the `account_incr_nonce` kernel procedure.
+#! Returns the offset of the `account_incr_nonce` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -136,7 +136,7 @@ export.account_incr_nonce_offset
     push.ACCOUNT_INCR_NONCE_OFFSET
 end
 
-#! Returns an offset of the `account_get_code_commitment` kernel procedure.
+#! Returns the offset of the `account_get_code_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -148,7 +148,7 @@ export.account_get_code_commitment_offset
     push.ACCOUNT_GET_CODE_COMMITMENT_OFFSET
 end
 
-#! Returns an offset of the `account_get_storage_commitment` kernel procedure.
+#! Returns the offset of the `account_get_storage_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -160,7 +160,7 @@ export.account_get_storage_commitment_offset
     push.ACCOUNT_GET_STORAGE_COMMITMENT_OFFSET
 end
 
-#! Returns an offset of the `account_get_item` kernel procedure.
+#! Returns the offset of the `account_get_item` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -172,7 +172,7 @@ export.account_get_item_offset
     push.ACCOUNT_GET_ITEM_OFFSET
 end
 
-#! Returns an offset of the `account_set_item` kernel procedure.
+#! Returns the offset of the `account_set_item` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -184,7 +184,7 @@ export.account_set_item_offset
     push.ACCOUNT_SET_ITEM_OFFSET
 end
 
-#! Returns an offset of the `account_get_map_item` kernel procedure.
+#! Returns the offset of the `account_get_map_item` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -196,7 +196,7 @@ export.account_get_map_item_offset
     push.ACCOUNT_GET_MAP_ITEM_OFFSET
 end
 
-#! Returns an offset of the `account_set_map_item` kernel procedure.
+#! Returns the offset of the `account_set_map_item` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -208,7 +208,7 @@ export.account_set_map_item_offset
     push.ACCOUNT_SET_MAP_ITEM_OFFSET
 end
 
-#! Returns an offset of the `account_get_vault_commitment` kernel procedure.
+#! Returns the offset of the `account_get_vault_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -220,7 +220,7 @@ export.account_get_vault_commitment_offset
     push.ACCOUNT_GET_VAULT_COMMITMENT_OFFSET
 end
 
-#! Returns an offset of the `account_add_asset` kernel procedure.
+#! Returns the offset of the `account_add_asset` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -232,7 +232,7 @@ export.account_add_asset_offset
     push.ACCOUNT_ADD_ASSET_OFFSET
 end
 
-#! Returns an offset of the `account_remove_asset` kernel procedure.
+#! Returns the offset of the `account_remove_asset` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -244,7 +244,7 @@ export.account_remove_asset_offset
     push.ACCOUNT_REMOVE_ASSET_OFFSET
 end
 
-#! Returns an offset of the `account_get_balance` kernel procedure.
+#! Returns the offset of the `account_get_balance` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -256,7 +256,7 @@ export.account_get_balance_offset
     push.ACCOUNT_GET_BALANCE_OFFSET
 end
 
-#! Returns an offset of the `account_has_non_fungible_asset` kernel procedure.
+#! Returns the offset of the `account_has_non_fungible_asset` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -271,7 +271,7 @@ end
 
 ### FAUCET ######################################
 
-#! Returns an offset of the `faucet_mint_asset` kernel procedure.
+#! Returns the offset of the `faucet_mint_asset` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -283,7 +283,7 @@ export.faucet_mint_asset_offset
     push.FAUCET_MINT_ASSET_OFFSET
 end
 
-#! Returns an offset of the `faucet_burn_asset` kernel procedure.
+#! Returns the offset of the `faucet_burn_asset` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -295,7 +295,7 @@ export.faucet_burn_asset_offset
     push.FAUCET_BURN_ASSET_OFFSET
 end
 
-#! Returns an offset of the `faucet_get_total_fungible_asset_issuance` kernel procedure.
+#! Returns the offset of the `faucet_get_total_fungible_asset_issuance` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -307,7 +307,7 @@ export.faucet_get_total_fungible_asset_issuance_offset
     push.FAUCET_GET_TOTAL_FUNGIBLE_ASSET_ISSUANCE_OFFSET
 end
 
-#! Returns an offset of the `faucet_is_non_fungible_asset_issued` kernel procedure.
+#! Returns the offset of the `faucet_is_non_fungible_asset_issued` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -321,7 +321,7 @@ end
 
 ### NOTE ########################################
 
-#! Returns an offset of the `note_get_assets_info` kernel procedure.
+#! Returns the offset of the `note_get_assets_info` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -333,7 +333,7 @@ export.note_get_assets_info_offset
     push.NOTE_GET_ASSETS_INFO_OFFSET
 end
 
-#! Returns an offset of the `note_add_asset` kernel procedure.
+#! Returns the offset of the `note_add_asset` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -345,7 +345,7 @@ export.note_add_asset_offset
     push.NOTE_ADD_ASSET_OFFSET
 end
 
-#! Returns an offset of the `note_get_serial_number` kernel procedure.
+#! Returns the offset of the `note_get_serial_number` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -357,7 +357,7 @@ export.note_get_serial_number_offset
     push.NOTE_GET_SERIAL_NUMBER_OFFSET
 end
 
-#! Returns an offset of the `note_get_inputs_hash` kernel procedure.
+#! Returns the offset of the `note_get_inputs_hash` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -369,7 +369,7 @@ export.note_get_inputs_hash_offset
     push.NOTE_GET_INPUTS_HASH_OFFSET
 end
 
-#! Returns an offset of the `note_get_sender` kernel procedure.
+#! Returns the offset of the `note_get_sender` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -381,7 +381,7 @@ export.note_get_sender_offset
     push.NOTE_GET_SENDER_OFFSET
 end
 
-#! Returns an offset of the `note_get_script_hash` kernel procedure.
+#! Returns the offset of the `note_get_script_hash` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -396,7 +396,7 @@ end
 
 ### TRANSACTION #################################
 
-#! Returns an offset of the `tx_create_note` kernel procedure.
+#! Returns the offset of the `tx_create_note` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -408,7 +408,7 @@ export.tx_create_note_offset
     push.TX_CREATE_NOTE_OFFSET
 end
 
-#! Returns an offset of the `tx_get_input_notes_commitment` kernel procedure.
+#! Returns the offset of the `tx_get_input_notes_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -420,7 +420,7 @@ export.tx_get_input_notes_commitment_offset
     push.TX_GET_INPUT_NOTES_COMMITMENT_OFFSET
 end
 
-#! Returns an offset of the `tx_get_output_notes_commitment` kernel procedure.
+#! Returns the offset of the `tx_get_output_notes_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -432,7 +432,7 @@ export.tx_get_output_notes_commitment_offset
     push.TX_GET_OUTPUT_NOTES_COMMITMENT_OFFSET
 end
 
-#! Returns an offset of the `tx_get_block_hash` kernel procedure.
+#! Returns the offset of the `tx_get_block_hash` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -444,7 +444,7 @@ export.tx_get_block_hash_offset
     push.TX_GET_BLOCK_HASH_OFFSET
 end
 
-#! Returns an offset of the `tx_get_block_number` kernel procedure.
+#! Returns the offset of the `tx_get_block_number` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -456,7 +456,7 @@ export.tx_get_block_number_offset
     push.TX_GET_BLOCK_NUMBER_OFFSET
 end
 
-#! Returns an offset of the `tx_start_foreign_context` kernel procedure.
+#! Returns the offset of the `tx_start_foreign_context` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -468,7 +468,7 @@ export.tx_start_foreign_context_offset
     push.TX_START_FOREIGN_CONTEXT_OFFSET
 end
 
-#! Returns an offset of the `tx_end_foreign_context` kernel procedure.
+#! Returns the offset of the `tx_end_foreign_context` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -480,7 +480,7 @@ export.tx_end_foreign_context_offset
     push.TX_END_FOREIGN_CONTEXT_OFFSET
 end
 
-#! Returns an offset of the `tx_update_expiration_block_num` kernel procedure.
+#! Returns the offset of the `tx_update_expiration_block_num` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
@@ -492,7 +492,7 @@ export.tx_update_expiration_block_num_offset
     push.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET
 end
 
-#! Returns an offset of the `tx_get_expiration_delta` kernel procedure.
+#! Returns the offset of the `tx_get_expiration_delta` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
