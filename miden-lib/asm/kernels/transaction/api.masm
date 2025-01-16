@@ -254,8 +254,8 @@ end
 #! Outputs: [VALUE, pad(12)]
 #!
 #! Where:
-#! - index is the index of the item to get.
-#! - VALUE is the value of the item.
+#! - index is the index of the storage slot that contains the the map root.
+#! - VALUE is the value of the map item at KEY.
 #!
 #! Panics if:
 #! - the index is out of bounds (>255).
@@ -276,18 +276,17 @@ export.get_account_map_item
     # => [VALUE, pad(12)]
 end
 
-#! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
+#! Stores NEW_VALUE under the specified KEY within the map contained in the given account storage slot.
 #!
 #! Inputs:  [index, KEY, NEW_VALUE, pad(7)]
 #! Outputs: [OLD_MAP_ROOT, OLD_MAP_VALUE, pad(8)]
 #!
 #! Where:
-#! - index is the index of the item to get.
+#! - index is the index of the storage slot which contains the map root.
 #! - NEW_VALUE is the value of the new map item for the respective KEY.
 #! - OLD_VALUE is the value of the old map item for the respective KEY.
 #! - KEY is the key of the new item.
 #! - OLD_MAP_ROOT is the root of the old map before insertion
-#! - NEW_MAP_ROOT is the root of the new map after insertion.
 #!
 #! Panics if:
 #! - the index is out of bounds (>255).

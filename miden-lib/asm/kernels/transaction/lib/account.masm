@@ -624,8 +624,8 @@ end
 #! - We assume that index has been validated and is within bounds.
 #!
 #! Where:
-#! - index is the index of the item to get.
-#! - VALUE is the value of the item.
+#! - index is the index of the storage slot that contains the the map root.
+#! - VALUE is the value of the map item at KEY.
 #!
 #! Panics if:
 #! - the requested storage slot type is not map.
@@ -652,20 +652,21 @@ export.get_map_item
     # => [VALUE, pad(12)]
 end
 
-#! Sets an item in the specified account storage map.
+#! Stores NEW_VALUE under the specified KEY within the map contained in the given account storage slot.
 #!
 #! Note:
 #! - We assume that index has been validated and is within bounds.
 #!
 #! Inputs:  [index, KEY, NEW_VALUE, OLD_ROOT]
-#! Outputs: [OLD_VALUE, NEW_ROOT]
+#! Outputs: [OLD_MAP_ROOT, OLD_MAP_VALUE]
 #!
 #! Where:
+#! - index is the index of the storage slot which contains the map root.
 #! - OLD_ROOT is the root of the map to set the KEY NEW_VALUE pair.
 #! - NEW_VALUE is the value to set under KEY.
 #! - KEY is the key to set.
-#! - OLD_VALUE is the previous value of the item.
-#! - NEW_ROOT is the new root of the map.
+#! - OLD_MAP_VALUE is the previous value of the item.
+#! - OLD_MAP_ROOT is the root of the old map before insertion
 #!
 #! Panics if:
 #! - the storage slot type is not map.
@@ -695,9 +696,9 @@ export.set_map_item.3
     # set the NEW_VALUE under KEY in the tree
     # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
     swapw exec.smt::set
-    # => [OLD_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
+    # => [OLD_MAP_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
 
-    # store OLD_VALUE and NEW_ROOT until the end of the procedure
+    # store OLD_MAP_VALUE and NEW_ROOT until the end of the procedure
     loc_storew.1 dropw loc_storew.2 dropw
     # => [KEY, NEW_VALUE, index, ...]
 
@@ -706,13 +707,13 @@ export.set_map_item.3
     emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop
     # => [KEY, NEW_VALUE, ...]
 
-    # load OLD_VALUE and NEW_ROOT on the top of the stack
+    # load OLD_MAP_VALUE and NEW_ROOT on the top of the stack
     loc_loadw.2 swapw loc_loadw.1 swapw
-    # => [NEW_ROOT, OLD_VALUE, ...]
+    # => [NEW_ROOT, OLD_MAP_VALUE, ...]
 
     # set the root of the map in the respective account storage slot
     loc_load.0 exec.set_item_raw
-    # => [OLD_MAP_ROOT, OLD_VALUE, ...]
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, ...]
 end
 
 #! Returns the type of the requested storage slot.
