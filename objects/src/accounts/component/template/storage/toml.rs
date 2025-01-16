@@ -8,10 +8,11 @@ use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use vm_core::Felt;
 use vm_processor::Digest;
 
-use super::{FeltRepresentation, StorageEntry, StoragePlaceholder, WordRepresentation};
+use super::{
+    FeltRepresentation, MapRepresentation, StorageEntry, StoragePlaceholder, WordRepresentation,
+};
 use crate::{
-    accounts::{component::template::MapEntry, AccountComponentMetadata},
-    errors::AccountComponentTemplateError,
+    accounts::AccountComponentMetadata, errors::AccountComponentTemplateError,
     utils::parse_hex_string_as_word,
 };
 
@@ -40,6 +41,7 @@ impl AccountComponentMetadata {
         Ok(toml)
     }
 }
+
 // WORD REPRESENTATION SERIALIZATION
 // ================================================================================================
 
@@ -207,9 +209,7 @@ enum StorageValues {
     /// List of individual words (for multi-slot entries).
     Words(Vec<WordRepresentation>),
     /// List of key-value entries (for map storage slots).
-    MapEntries(Vec<MapEntry>),
-    /// A placeholder value, represented as "{{key}}".
-    Template(StoragePlaceholder),
+    MapEntries(MapRepresentation),
 }
 
 impl StorageValues {
@@ -217,7 +217,6 @@ impl StorageValues {
         match self {
             StorageValues::Words(_) => true,
             StorageValues::MapEntries(_) => false,
-            StorageValues::Template(_) => false,
         }
     }
 
@@ -225,23 +224,20 @@ impl StorageValues {
         match self {
             StorageValues::Words(vec) => Some(vec),
             StorageValues::MapEntries(_) => None,
-            StorageValues::Template(_) => None,
         }
     }
 
-    pub fn into_map_entries(self) -> Option<Vec<MapEntry>> {
+    pub fn into_map_entries(self) -> Option<MapRepresentation> {
         match self {
             StorageValues::Words(_) => None,
-            StorageValues::MapEntries(vec) => Some(vec),
-            StorageValues::Template(_) => None,
+            StorageValues::MapEntries(map) => Some(map),
         }
     }
 
     pub fn len(&self) -> Option<usize> {
         match self {
             StorageValues::Words(vec) => Some(vec.len()),
-            StorageValues::MapEntries(vec) => Some(vec.len()),
-            StorageValues::Template(_) => None,
+            StorageValues::MapEntries(map) => map.len(),
         }
     }
 }

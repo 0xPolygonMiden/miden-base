@@ -1,5 +1,5 @@
 use alloc::{
-    collections::BTreeSet,
+    collections::{btree_map::Entry, BTreeMap, BTreeSet},
     string::{String, ToString},
     vec::Vec,
 };
@@ -188,14 +188,14 @@ impl AccountComponentMetadata {
     /// be used for initializing storage slot values, or storage map entries.
     /// For a full example on how a placeholder may be utilized, refer to the docs
     /// for [AccountComponentMetadata].
-    pub fn get_storage_placeholders(&self) -> BTreeSet<StoragePlaceholder> {
-        let mut placeholder_set = BTreeSet::new();
+    pub fn get_storage_placeholders(&self) -> BTreeMap<StoragePlaceholder, PlaceholderType> {
+        let mut placeholder_map = BTreeMap::new();
         for storage_entry in &self.storage {
-            for key in storage_entry.placeholders() {
-                placeholder_set.insert(key.clone());
+            for (placeholder, placeholder_type) in storage_entry.placeholders() {
+                placeholder_map.insert(placeholder.clone(), placeholder_type);
             }
         }
-        placeholder_set
+        placeholder_map
     }
 
     /// Returns the name of the account component.
@@ -254,6 +254,29 @@ impl AccountComponentMetadata {
                 return Err(AccountComponentTemplateError::NonContiguousSlots(slots[0], slots[1]));
             }
         }
+
+        // Check that placeholders do not appear more than once with a different type
+        let mut placeholders = BTreeMap::new();
+        for storage_entry in &self.storage {
+            for (placeholder, placeholder_type) in storage_entry.placeholders() {
+                match placeholders.entry(placeholder.clone()) {
+                    Entry::Occupied(entry) => {
+                        // if already exists, make sure it's the same type
+                        if *entry.get() != placeholder_type {
+                            return Err(
+                                AccountComponentTemplateError::StoragePlaceholderDuplicate(
+                                    placeholder.clone(),
+                                ),
+                            );
+                        }
+                    },
+                    Entry::Vacant(slot) => {
+                        slot.insert(placeholder_type);
+                    },
+                }
+            }
+        }
+
         Ok(())
     }
 }
@@ -290,7 +313,6 @@ impl Deserializable for AccountComponentMetadata {
 
 #[cfg(test)]
 mod tests {
-
     use assembly::Assembler;
     use assert_matches::assert_matches;
     use storage::WordRepresentation;

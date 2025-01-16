@@ -1,13 +1,13 @@
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, FieldElement, Word,
 };
-use vm_processor::DeserializationError;
+use vm_processor::{DeserializationError, Digest};
 
-use super::{InitStorageData, StoragePlaceholder};
-use crate::accounts::component::template::AccountComponentTemplateError;
+use super::{placeholder::PlaceholderType, InitStorageData, MapEntry, StoragePlaceholder};
+use crate::accounts::{component::template::AccountComponentTemplateError, StorageMap};
 
 // WORDS
 // ================================================================================================
@@ -24,14 +24,17 @@ pub enum WordRepresentation {
 }
 
 impl WordRepresentation {
-    /// Returns an iterator over all storage placeholder references within the [WordRepresentation].
-    pub fn placeholders(&self) -> Box<dyn Iterator<Item = &StoragePlaceholder> + '_> {
+    /// Returns an iterator over all storage placeholder references within the [WordRepresentation]
+    /// along with their expected types
+    pub fn placeholders(
+        &self,
+    ) -> Box<dyn Iterator<Item = (&StoragePlaceholder, PlaceholderType)> + '_> {
         match self {
             WordRepresentation::Array(array) => {
-                Box::new(array.iter().flat_map(|felt| felt.storage_placeholders()))
+                Box::new(array.iter().flat_map(|felt| felt.placeholders()))
             },
             WordRepresentation::Template(storage_placeholder) => {
-                Box::new(core::iter::once(storage_placeholder))
+                Box::new(core::iter::once((storage_placeholder, PlaceholderType::Word)))
             },
             WordRepresentation::Hexadecimal(_) => Box::new(core::iter::empty()),
         }
@@ -144,9 +147,12 @@ pub enum FeltRepresentation {
 }
 
 impl FeltRepresentation {
-    pub fn storage_placeholders(&self) -> impl Iterator<Item = &StoragePlaceholder> {
+    /// Returns the storage placeholders within this representation, alongside their expected type.
+    pub fn placeholders(&self) -> impl Iterator<Item = (&StoragePlaceholder, PlaceholderType)> {
         let maybe_key = match self {
-            FeltRepresentation::Template(storage_placeholder) => Some(storage_placeholder),
+            FeltRepresentation::Template(storage_placeholder) => {
+                Some((storage_placeholder, PlaceholderType::Felt))
+            },
             _ => None,
         };
 
@@ -223,6 +229,103 @@ impl Deserializable for FeltRepresentation {
             _ => Err(DeserializationError::InvalidValue(format!(
                 "unknown variant tag for FeltRepresentation: {}",
                 variant_tag
+            ))),
+        }
+    }
+}
+
+// MAP REPRESENTATION
+// ================================================================================================
+
+/// Supported map representations for a component's storage entries.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(::serde::Deserialize, ::serde::Serialize))]
+#[cfg_attr(feature = "std", serde(untagged))]
+pub enum MapRepresentation {
+    List(Vec<MapEntry>),
+    Template(StoragePlaceholder),
+}
+
+impl MapRepresentation {
+    /// Returns an iterator over all of the storage entries's placeholder keys, alongside their
+    /// expected type.
+    pub fn placeholders(
+        &self,
+    ) -> Box<dyn Iterator<Item = (&StoragePlaceholder, PlaceholderType)> + '_> {
+        match self {
+            MapRepresentation::Template(storage_placeholder) => {
+                Box::new(core::iter::once((storage_placeholder, PlaceholderType::Map)))
+            },
+            MapRepresentation::List(entries) => {
+                Box::new(entries.iter().flat_map(|entry| entry.placeholders()))
+            },
+        }
+    }
+
+    /// Returns the amount of key-value pairs in the entry, or `None` if the representation is a
+    /// placeholder.
+    pub fn len(&self) -> Option<usize> {
+        match self {
+            MapRepresentation::List(vec) => Some(vec.len()),
+            MapRepresentation::Template(_) => None,
+        }
+    }
+
+    /// Attempts to convert the [MapRepresentation] into a [StorageMap].
+    ///
+    /// If the representation is a template, the value is retrieved from
+    /// `init_storage_data`, identified by its key. If any of the inner elements
+    /// within the value are a template, they are retrieved in the same way.
+    pub fn try_build_map(
+        &self,
+        init_storage_data: &InitStorageData,
+    ) -> Result<StorageMap, AccountComponentTemplateError> {
+        let entries = match self {
+            MapRepresentation::List(vec) => vec
+                .iter()
+                .map(|map_entry| {
+                    let key = map_entry.key().try_build_word(init_storage_data)?;
+                    let value = map_entry.value().try_build_word(init_storage_data)?;
+                    Ok((key.into(), value))
+                })
+                .collect::<Result<Vec<(Digest, Word)>, _>>()?,
+            MapRepresentation::Template(storage_placeholder) => init_storage_data
+                .get(storage_placeholder)
+                .ok_or_else(|| {
+                    AccountComponentTemplateError::PlaceholderValueNotProvided(
+                        storage_placeholder.clone(),
+                    )
+                })?
+                .as_map()
+                .cloned()?,
+        };
+        Ok(StorageMap::with_entries(entries))
+    }
+}
+
+impl Serializable for MapRepresentation {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        match self {
+            MapRepresentation::List(entries) => {
+                target.write_u8(0);
+                entries.write_into(target);
+            },
+            MapRepresentation::Template(storage_placeholder) => {
+                target.write_u8(1);
+                storage_placeholder.write_into(target);
+            },
+        }
+    }
+}
+
+impl Deserializable for MapRepresentation {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        match source.read_u8()? {
+            0 => Ok(MapRepresentation::List(Vec::<MapEntry>::read_from(source)?)),
+            1 => Ok(MapRepresentation::Template(StoragePlaceholder::read_from(source)?)),
+            other => Err(DeserializationError::InvalidValue(format!(
+                "Unknown variant tag for MapRepresentation: {}",
+                other
             ))),
         }
     }

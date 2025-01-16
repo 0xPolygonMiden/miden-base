@@ -28,6 +28,16 @@ pub struct StoragePlaceholder {
     key: String,
 }
 
+/// An identifier for the expected type for a storage placeholder.
+/// These indicate which variant of [StorageValue] should be provided when instantiating a
+/// component.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PlaceholderType {
+    Felt,
+    Map,
+    Word,
+}
+
 impl StoragePlaceholder {
     /// Creates a new [StoragePlaceholder] from the provided string.
     ///

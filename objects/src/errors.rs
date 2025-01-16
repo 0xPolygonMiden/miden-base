@@ -35,6 +35,10 @@ pub enum AccountComponentTemplateError {
     DuplicateSlot(u8),
     #[error("component storage slots have to start at 0")]
     StorageSlotsMustStartAtZero,
+    #[error(
+        "storage placeholder `{0}` appears more than once, representing different types of values"
+    )]
+    StoragePlaceholderDuplicate(StoragePlaceholder),
     #[error("storage value was not of the expected type {0}")]
     IncorrectStorageValue(String),
     #[error("multi-slot entry should contain as many values as storage slots indices")]

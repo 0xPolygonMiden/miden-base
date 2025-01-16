@@ -30,6 +30,7 @@
 - Made `AccountIdError` public (#1067).
 - Made `BasicFungibleFaucet::MAX_DECIMALS` public (#1063).
 - [BREAKING] Removed `miden-tx-prover` crate and created `miden-proving-service` and `miden-remote-provers` (#1047).
+- Added storage placeholder types and support for templated map (#1074).
 
 ## 0.6.2 (2024-11-20)
 
