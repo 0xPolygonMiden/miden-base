@@ -27,9 +27,9 @@ const ASM_DIR: &str = "asm";
 const ASM_MIDEN_DIR: &str = "miden";
 const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
+const SHARED_DIR: &str = "shared";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
-
 const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 
 // PRE-PROCESSING
@@ -56,6 +56,7 @@ fn main() -> Result<()> {
 
     // set target directory to {OUT_DIR}/assets
     let target_dir = Path::new(&build_dir).join(ASSETS_DIR);
+
     // compile transaction kernel
     let mut assembler =
         compile_tx_kernel(&source_dir.join(ASM_TX_KERNEL_DIR), &target_dir.join("kernels"))?;
@@ -101,7 +102,12 @@ fn main() -> Result<()> {
 /// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
 /// - src/transaction/procedures/kernel_v0.rs   -> contains the kernel procedures table.
 fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
-    let assembler = build_assembler(None)?;
+    let shared_path = Path::new(ASM_DIR).join(SHARED_DIR);
+    let kernel_namespace = LibraryNamespace::new("kernel").expect("namespace should be valid");
+
+    let mut assembler = build_assembler(None)?;
+    // add the shared modules to the kernel lib under the kernel::util namespace
+    assembler.add_modules_from_dir(kernel_namespace.clone(), &shared_path)?;
 
     // assemble the kernel library and write it to the "tx_kernel.masl" file
     let kernel_lib = KernelLibrary::from_dir(
@@ -120,8 +126,9 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 
     // assemble the kernel program and write it the "tx_kernel.masb" file
     let mut main_assembler = assembler.clone();
-    let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
-    main_assembler.add_modules_from_dir(namespace, &source_dir.join("lib"))?;
+    main_assembler.add_modules_from_dir(kernel_namespace.clone(), &source_dir.join("lib"))?;
+    // add the shared modules to the kernel lib under the kernel::util namespace
+    main_assembler.add_modules_from_dir(kernel_namespace, &shared_path)?;
 
     let main_file_path = source_dir.join("main.masm").clone();
     let kernel_main = main_assembler.assemble_program(main_file_path)?;
@@ -131,12 +138,19 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 
     #[cfg(any(feature = "testing", test))]
     {
+        let mut kernel_lib_assembler = assembler.clone();
         // Build kernel as a library and save it to file.
         // This is needed in test assemblers to access individual procedures which would otherwise
         // be hidden when using KernelLibrary (api.masm)
-        let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
+        let kernel_namespace =
+            "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
+
+        // add the shared modules to the kernel lib under the kernel::util namespace
+        kernel_lib_assembler.add_modules_from_dir(kernel_namespace.clone(), &shared_path)?;
+
         let test_lib =
-            Library::from_dir(source_dir.join("lib"), namespace, assembler.clone()).unwrap();
+            Library::from_dir(source_dir.join("lib"), kernel_namespace, kernel_lib_assembler)
+                .unwrap();
 
         let masb_file_path =
             target_dir.join("kernel_library").with_extension(Library::LIBRARY_EXTENSION);
@@ -225,12 +239,16 @@ fn parse_proc_offsets(filename: impl AsRef<Path>) -> Result<BTreeMap<String, usi
 fn compile_miden_lib(
     source_dir: &Path,
     target_dir: &Path,
-    assembler: Assembler,
+    mut assembler: Assembler,
 ) -> Result<Library> {
     let source_dir = source_dir.join(ASM_MIDEN_DIR);
+    let shared_path = Path::new(ASM_DIR).join(SHARED_DIR);
 
-    let namespace = "miden".parse::<LibraryNamespace>().expect("invalid base namespace");
-    let miden_lib = Library::from_dir(source_dir, namespace, assembler)?;
+    let miden_namespace = "miden".parse::<LibraryNamespace>().expect("invalid base namespace");
+    // add the shared modules to the kernel lib under the miden::util namespace
+    assembler.add_modules_from_dir(miden_namespace.clone(), &shared_path)?;
+
+    let miden_lib = Library::from_dir(source_dir, miden_namespace, assembler)?;
 
     let output_file = target_dir.join("miden").with_extension(Library::LIBRARY_EXTENSION);
     miden_lib.write_to_file(output_file).into_diagnostic()?;
