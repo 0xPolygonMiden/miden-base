@@ -149,3 +149,7 @@ Description of this crate's feature:
 | Features     | Description                                                                                                 |
 | ------------ | ------------------------------------------------------------------------------------------------------------|
 | `concurrent` | Enables concurrent code to speed up runtime execution.                                                      |
+
+## License
+
+This project is [MIT licensed](../LICENSE).
