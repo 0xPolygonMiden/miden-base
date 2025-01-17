@@ -17,7 +17,6 @@ path = "src/main.rs"
 
 [features]
 default = ["concurrent"]
-testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
 concurrent = ["miden-tx/concurrent"]
 
 [dependencies]
@@ -34,14 +33,13 @@ opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
 opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
 opentelemetry-semantic-conventions = "0.27"
-opentelemetry-jaeger = "0.22"
 prometheus = "0.13"
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 pingora = { version = "0.4", features = [ "lb" ] }
 pingora-core = "0.4"
 pingora-proxy = "0.4"
 pingora-limits = "0.4"
-reqwest = { version = "0.11" }
+reqwest = { version = "0.12" }
 serde = { version = "1.0", features = ["derive"] }
 serde_qs = { version = "0.13" }
 tokio = { version = "1.38", features = ["full"] }
@@ -55,7 +53,6 @@ tracing = { version = "0.1" }
 tracing-opentelemetry = "0.28"
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
 uuid = { version = "1.11", features = ["v4"] }
-winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]
 miden-lib = { workspace = true , default-features = false, features = ["testing"]}
