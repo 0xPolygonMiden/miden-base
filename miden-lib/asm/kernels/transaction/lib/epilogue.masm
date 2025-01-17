@@ -112,7 +112,7 @@ proc.build_output_vault
         #     output_notes_end_ptr]
 
         # compute the end pointer for output note asset looping
-        dup.3 add swap
+        dup.3 mul.4 add swap
         # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
         #     output_notes_end_ptr]
 
@@ -139,7 +139,7 @@ proc.build_output_vault
             #     note_data_ptr, output_notes_end_ptr]
 
             # increment assets_start_ptr and asses if we should loop again
-            add.1 dup.1 dup.1 neq
+            add.4 dup.1 dup.1 neq
             # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
             #     note_data_ptr, output_notes_end_ptr]
         end
@@ -199,7 +199,7 @@ proc.update_account_storage_commitment
     # only loop and hash over storage if there are storage slots
     if.true
         # setup start and end ptr
-        mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
+        mul.8 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
         # => [start_ptr, end_ptr]
 
         # pad stack to read and hash from memory

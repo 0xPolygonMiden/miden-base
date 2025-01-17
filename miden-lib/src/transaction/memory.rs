@@ -257,7 +257,7 @@ pub const NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR: MemoryAddress =
 // ================================================================================================
 
 /// The size of the memory segment allocated to each note.
-pub const NOTE_MEM_SIZE: MemoryAddress = 512;
+pub const NOTE_MEM_SIZE: MemoryAddress = 2048;
 
 #[rustfmt::skip]
 // INPUT NOTES DATA
@@ -279,7 +279,7 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │   NUM  │ ASSET │ ... │ ASSET │ PADDING │
 // │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n   │         │
 // ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼───────┼─────┼───────┼─────────┤
-//    0        1       2        3        4       5       6       7      8 + n
+//    0        4       8        12       16      20     24       28    32 + 4n
 //
 // - NUM_ASSETS is encoded [num_assets, 0, 0, 0].
 // - INPUTS_HASH is the key to look up note inputs in the advice map.

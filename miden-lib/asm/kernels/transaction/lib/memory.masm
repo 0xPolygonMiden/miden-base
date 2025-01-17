@@ -1069,7 +1069,7 @@ end
 #! - idx is the index of the input note.
 #! - nullifier_ptr is the memory address of the nullifier for note idx.
 export.get_input_note_nullifier_ptr
-    push.INPUT_NOTE_SECTION_OFFSET.1 add add
+    mul.4 push.INPUT_NOTE_SECTION_OFFSET.4 add add
 end
 
 #! Returns the nullifier of an input note with `idx`.
@@ -1081,7 +1081,7 @@ end
 #! - idx is the index of the input note.
 #! - nullifier is the nullifier of the input note.
 export.get_input_note_nullifier
-    padw movup.4 push.INPUT_NOTE_SECTION_OFFSET.1 add add mem_loadw
+    padw movup.4 push.INPUT_NOTE_SECTION_OFFSET.4 add add mem_loadw
 end
 
 #! Returns a pointer to the start of the input note core data segment for the note located at the

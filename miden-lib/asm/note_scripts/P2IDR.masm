@@ -24,7 +24,7 @@ proc.add_note_assets_to_account
     # => [num_of_assets, 0 = ptr, ...]
 
     # compute the pointer at which we should stop iterating
-    dup.1 add
+    mul.4 dup.1 add
     # => [end_ptr, ptr, ...]
 
     # pad the stack and move the pointer to the top
@@ -59,7 +59,7 @@ proc.add_note_assets_to_account
         # => [0, 0, 0, 0, ptr, end_ptr, ...]
 
         # increment the pointer and compare it to the end_ptr
-        movup.4 add.1 dup dup.6 neq
+        movup.4 add.4 dup dup.6 neq
         # => [latch, ptr+1, ASSET, end_ptr, ...]
     end
 

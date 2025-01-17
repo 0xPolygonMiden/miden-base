@@ -501,13 +501,13 @@ fn test_create_note_and_add_multiple_assets() {
     );
 
     assert_eq!(
-        read_root_mem_word(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 1),
+        read_root_mem_word(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 4),
         asset_2_and_3,
         "asset_2 and asset_3 must be stored at the same correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_word(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 2),
+        read_root_mem_word(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 8),
         Word::from(non_fungible_asset_encoded),
         "non_fungible_asset must be stored at the correct memory location",
     );
@@ -1145,7 +1145,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
         assert_eq!(
             read_root_mem_word(
                 &process_state,
-                foreign_account_data_ptr + ACCT_STORAGE_SLOTS_SECTION_OFFSET + i as u32
+                foreign_account_data_ptr + ACCT_STORAGE_SLOTS_SECTION_OFFSET + (i as u32) * 4
             ),
             Word::try_from(elements).unwrap(),
         )
@@ -1170,7 +1170,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
         assert_eq!(
             read_root_mem_word(
                 &process_state,
-                foreign_account_data_ptr + ACCT_PROCEDURES_SECTION_OFFSET + i as u32
+                foreign_account_data_ptr + ACCT_PROCEDURES_SECTION_OFFSET + (i as u32) * 4
             ),
             Word::try_from(elements).unwrap(),
         );

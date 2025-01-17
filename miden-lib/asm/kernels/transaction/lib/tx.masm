@@ -164,7 +164,7 @@ proc.add_non_fungible_asset_to_note
     # => [asset_ptr, ASSET, note_ptr, num_of_assets, note_idx]
 
     # compute the pointer at which we should stop iterating
-    dup dup.7 add
+    dup dup.7 mul.4 add
     # => [end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets, note_idx]
 
     # reorganize and pad the stack, prepare for the loop
@@ -182,7 +182,7 @@ proc.add_non_fungible_asset_to_note
         # => [ASSET', ASSET, end_asset_ptr, asset_ptr, note_ptr, num_of_assets, note_idx]
 
         # drop ASSET' and increment the asset pointer
-        dropw movup.5 add.1 dup movdn.6 padw movup.4
+        dropw movup.5 add.4 dup movdn.6 padw movup.4
         # => [asset_ptr + 1, 0, 0, 0, 0, ASSET, end_asset_ptr, asset_ptr + 1, note_ptr, 
         #     num_of_assets, note_idx]
 
@@ -281,7 +281,7 @@ proc.add_fungible_asset_to_note
     # => [asset_ptr, ASSET, note_ptr, num_of_assets, note_idx]
 
     # compute the pointer at which we should stop iterating
-    dup dup.7 add
+    dup dup.7 mul.4 add
     # => [end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets, note_idx]
 
     # reorganize and pad the stack, prepare for the loop
@@ -330,8 +330,8 @@ proc.add_fungible_asset_to_note
             #     note_idx]
 
             # drop ASSETs and increment the asset pointer
-            movup.2 drop push.0.0 movup.9 add.1 dup movdn.10
-            # => [asset_ptr + 1, 0, 0, 0, 0, ASSET, end_asset_ptr, asset_ptr + 1, note_ptr, 
+            movup.2 drop push.0.0 movup.9 add.4 dup movdn.10
+            # => [asset_ptr + 1, 0, 0, 0, 0, ASSET, end_asset_ptr, asset_ptr + 4, note_ptr, 
             #     num_of_assets, note_idx]
 
             # check if we reached the end of the loop

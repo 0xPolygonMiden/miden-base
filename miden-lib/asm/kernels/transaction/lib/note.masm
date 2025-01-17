@@ -22,8 +22,8 @@ const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002F
 # =================================================================================================
 
 # The diff between the memory address after first mem_stream operation and the next target when
-# generating the output notes commitment. Must be NOTE_MEM_SIZE - 2;
-const.OUTPUT_NOTE_HASHING_MEM_DIFF=510
+# generating the output notes commitment. Must be NOTE_MEM_SIZE - 8;
+const.OUTPUT_NOTE_HASHING_MEM_DIFF=2040
 
 # INPUT NOTE PROCEDURES
 # =================================================================================================
@@ -299,11 +299,11 @@ export.compute_output_notes_commitment
 
         # permute over (note_id, note_metadata)
         mem_stream hperm
-        # => [PERM, PERM, PERM, note_ptr + 2, end_ptr, ...]
+        # => [PERM, PERM, PERM, note_ptr + 8, end_ptr, ...]
 
         # increment output note pointer
         movup.12 push.OUTPUT_NOTE_HASHING_MEM_DIFF add
-        # => [note_ptr + 512, PERM, PERM, PERM, end_ptr, ...]
+        # => [note_ptr + 2048, PERM, PERM, PERM, end_ptr, ...]
 
         # check if we should loop again
         dup movdn.13 dup.14 neq

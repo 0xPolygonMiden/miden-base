@@ -1051,7 +1051,7 @@ export.exec_kernel_proc
     # => [procedure_offset, <procedure_inputs>, <pad>]
 
     # compute the memory pointer at which desired procedure is stored
-    exec.memory::get_kernel_procedures_ptr add
+    mul.4 exec.memory::get_kernel_procedures_ptr add
     # => [procedure_pointer, <procedure_inputs>, <pad>]
 
     # execute loaded procedure

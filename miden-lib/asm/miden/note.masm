@@ -74,7 +74,7 @@ export.get_assets
     # => [even_num_assets, ASSETS_HASH, num_assets, dest_ptr]
 
     # calculate the start and end pointer for reading to memory
-    dup.6 add dup.6
+    mul.4 dup.6 add dup.6
     # => [start_ptr, end_ptr, ASSETS_HASH, num_assets, dest_ptr]
 
     # write the data from the advice stack into memory
@@ -133,7 +133,7 @@ export.get_inputs
     # => [even_num_words, INPUTS_HASH, num_inputs, dest_ptr]
 
     # calculate the start and end pointer for reading to memory
-    dup.6 add dup.6
+    mul.4 dup.6 add dup.6
     # => [start_ptr, end_ptr, INPUTS_HASH, num_inputs, dest_ptr]
 
     # check the input data matches the commitment, and write it to memory.

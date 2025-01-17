@@ -566,7 +566,7 @@ export.get_item
     # => [acct_storage_slots_section_offset, index]
 
     # get the item from storage
-    swap mul.2 add padw movup.4 mem_loadw
+    swap mul.8 add padw movup.4 mem_loadw
     # => [VALUE]
 end
 
@@ -701,7 +701,7 @@ export.get_storage_slot_type
     # => [acct_storage_slots_section_offset, index]
 
     # get storage slot type
-    swap mul.2 add add.1 mem_load
+    swap mul.8 add add.4 mem_load
     # => [slot_type]
 end
 
@@ -723,7 +723,7 @@ export.get_procedure_info
     # => [index]
 
     # get procedure pointer
-    mul.2 exec.memory::get_acct_procedures_section_ptr add dup add.1 swap
+    mul.8 exec.memory::get_acct_procedures_section_ptr add dup add.4 swap
     # => [metadata_ptr, proc_ptr]
 
     # load procedure information from memory
@@ -998,7 +998,7 @@ export.save_account_storage_data
     # AS => [[STORAGE_SLOT_DATA]]
 
     # setup acct_storage_slots_ptr and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
+    mul.8 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
     # OS => [acct_storage_slots_ptr, end_ptr, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
@@ -1067,7 +1067,7 @@ export.save_account_procedure_data
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
     # setup acct_proc_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
+    mul.8 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
     # OS => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
@@ -1139,7 +1139,7 @@ proc.set_item_raw
     # => [acct_storage_slots_section_offset, index, NEW_VALUE, OLD_VALUE]
 
     # update storage
-    swap mul.2 add mem_storew
+    swap mul.8 add mem_storew
     # => [NEW_VALUE, OLD_VALUE]
 
     # drop value
@@ -1160,7 +1160,7 @@ end
 #! - storage_size is the number of storage slots the procedure is allowed to access.
 proc.get_procedure_metadata
     # get procedure storage metadata pointer
-    mul.2 exec.memory::get_acct_procedures_section_ptr add add.1
+    mul.8 exec.memory::get_acct_procedures_section_ptr add add.4
     # => [storage_offset_ptr]
 
     # load procedure metadata from memory and keep relevant data

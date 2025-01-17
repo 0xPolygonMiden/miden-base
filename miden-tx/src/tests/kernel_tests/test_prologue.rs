@@ -296,7 +296,7 @@ fn account_data_memory_assertions(process_state: &ProcessState, inputs: &Transac
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_word(process_state, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + i as u32),
+            read_root_mem_word(process_state, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + (i as u32) * 4),
             Word::try_from(elements).unwrap(),
             "The account storage slots should be stored starting at NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR"
         )
@@ -321,7 +321,7 @@ fn account_data_memory_assertions(process_state: &ProcessState, inputs: &Transac
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_word(process_state, NATIVE_ACCT_PROCEDURES_SECTION_PTR + i as u32),
+            read_root_mem_word(process_state, NATIVE_ACCT_PROCEDURES_SECTION_PTR + (i as u32) * 4),
             Word::try_from(elements).unwrap(),
             "The account procedures and storage offsets should be stored starting at NATIVE_ACCT_PROCEDURES_SECTION_PTR"
         );
@@ -343,7 +343,7 @@ fn input_notes_memory_assertions(
         let note = input_note.note();
 
         assert_eq!(
-            read_root_mem_word(process_state, INPUT_NOTE_SECTION_OFFSET + 1 + note_idx),
+            read_root_mem_word(process_state, INPUT_NOTE_SECTION_OFFSET + (1 + note_idx) * 4),
             note.nullifier().as_elements(),
             "note nullifier should be computer and stored at the correct offset"
         );
@@ -399,9 +399,9 @@ fn input_notes_memory_assertions(
         for (asset, asset_idx) in note.assets().iter().cloned().zip(0_u32..) {
             let word: Word = asset.into();
             assert_eq!(
-                read_note_element(process_state, note_idx, INPUT_NOTE_ASSETS_OFFSET + asset_idx),
+                read_note_element(process_state, note_idx, INPUT_NOTE_ASSETS_OFFSET + asset_idx * 4),
                 word,
-                "assets should be stored at (INPUT_NOTES_OFFSET + (note_index + 1) * 1024 + 7..)"
+                "assets should be stored at (INPUT_NOTES_DATA_OFFSET + note_index * 2048 + 32 + asset_idx * 4)"
             );
         }
     }

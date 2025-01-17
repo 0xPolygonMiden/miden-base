@@ -397,7 +397,7 @@ impl TransactionContextBuilder {
                 # => [dest_ptr, pad(12)]
 
                 # add the second asset to the vault
-                push.1 add dup movdn.13
+                add.4 dup movdn.13
                 # => [dest_ptr+1, pad(12), dest_ptr+1]
 
                 # load the asset
@@ -409,7 +409,7 @@ impl TransactionContextBuilder {
                 # => [dest_ptr+1, pad(12)]
 
                 # add the third asset to the vault
-                push.1 add padw movup.4 mem_loadw
+                add.4 padw movup.4 mem_loadw
                 # => [ASSET, pad(12)]
                 
                 call.wallet::receive_asset

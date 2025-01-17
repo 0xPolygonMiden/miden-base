@@ -95,7 +95,7 @@ impl TransactionContext {
             .authenticator
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
 
-        let mut tx_executor = TransactionExecutor::new(Arc::new(self.tx_inputs), authenticator);
+        let mut tx_executor = TransactionExecutor::new(Arc::new(self.tx_inputs), authenticator).with_debug_mode();
 
         for code in self.foreign_codes {
             tx_executor.load_account_code(&code);
