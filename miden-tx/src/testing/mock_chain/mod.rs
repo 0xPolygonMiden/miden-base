@@ -384,7 +384,7 @@ impl MockChain {
         target_account_id: AccountId,
         asset: &[Asset],
         note_type: NoteType,
-        reclaim_height: Option<u32>,
+        reclaim_height: Option<BlockNumber>,
     ) -> Result<Note, NoteError> {
         let mut rng = RpoRandomCoin::new(Word::default());
 
