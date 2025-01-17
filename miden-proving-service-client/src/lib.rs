@@ -1,6 +1,6 @@
 #![no_std]
 
-#[macro_use]
+#[cfg_attr(feature = "tx-prover", macro_use)]
 extern crate alloc;
 use alloc::string::{String, ToString};
 
