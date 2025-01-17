@@ -16,12 +16,6 @@ make install-proving-service
 
 The CLI can be installed from the source code using specific git revisions with `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only.
 
-Note that for the prover worker you might need to enable the `testing` feature in case the transactions were executed with reduced proof-of-work requirements (or otherwise, the proving process will fail). This step will also generate the necessary protobuf-related files. You can achieve that by generating the binary with:
-
-```bash
-make install-proving-service-testing
-```
-
 ## Worker
 
 To start the worker service you will need to run:
@@ -154,6 +148,4 @@ Description of this crate's feature:
 
 | Features     | Description                                                                                                 |
 | ------------ | ------------------------------------------------------------------------------------------------------------|
-| `std`        | Enable usage of Rust's `std`, use `--no-default-features` for `no-std` support.                             |
 | `concurrent` | Enables concurrent code to speed up runtime execution.                                                      |
-| `testing`    | Enables testing utilities and reduces proof-of-work requirements to speed up tests' runtimes.               |

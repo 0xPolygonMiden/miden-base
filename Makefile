@@ -129,7 +129,3 @@ bench-tx: ## Run transaction benchmarks
 .PHONY: install-proving-service
 install-proving-service: ## Install proving service's CLI
 	cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent
-
-.PHONY: install-proving-service-testing
-install-proving-service-testing: ## Install proving service's CLI intended for testing purposes
-	cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent,testing
