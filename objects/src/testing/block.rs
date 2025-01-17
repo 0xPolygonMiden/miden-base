@@ -6,7 +6,7 @@ use vm_processor::Digest;
 #[cfg(not(target_family = "wasm"))]
 use winter_rand_utils::{rand_array, rand_value};
 
-use crate::{accounts::Account, BlockHeader, ACCOUNT_TREE_DEPTH};
+use crate::{accounts::Account, block::BlockNumber, BlockHeader, ACCOUNT_TREE_DEPTH};
 
 impl BlockHeader {
     /// Creates a mock block. The account tree is formed from the provided `accounts`,
@@ -16,7 +16,7 @@ impl BlockHeader {
     /// For non-WASM targets, the remaining header values are initialized randomly. For WASM
     /// targets, values are initialized to [Default::default()]
     pub fn mock(
-        block_num: u32,
+        block_num: impl Into<BlockNumber>,
         chain_root: Option<Digest>,
         note_root: Option<Digest>,
         accounts: &[Account],
@@ -67,7 +67,7 @@ impl BlockHeader {
         BlockHeader::new(
             0,
             prev_hash,
-            block_num,
+            block_num.into(),
             chain_root,
             account_root,
             nullifier_root,

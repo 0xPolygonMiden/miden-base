@@ -1,7 +1,9 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
 
-use miden_objects::{accounts::AccountId, notes::NoteId, transaction::TransactionInputs};
+use miden_objects::{
+    accounts::AccountId, block::BlockNumber, notes::NoteId, transaction::TransactionInputs,
+};
 use winter_maybe_async::*;
 
 use crate::DataStoreError;
@@ -32,7 +34,7 @@ pub trait DataStore {
     fn get_transaction_inputs(
         &self,
         account_id: AccountId,
-        block_ref: u32,
+        block_ref: BlockNumber,
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError>;
 }

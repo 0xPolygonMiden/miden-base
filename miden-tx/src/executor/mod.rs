@@ -4,6 +4,7 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{AccountCode, AccountId},
     assembly::Library,
+    block::BlockNumber,
     notes::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
@@ -128,7 +129,7 @@ impl TransactionExecutor {
     pub fn execute_transaction(
         &self,
         account_id: AccountId,
-        block_ref: u32,
+        block_ref: BlockNumber,
         notes: &[NoteId],
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {

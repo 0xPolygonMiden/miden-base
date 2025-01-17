@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use super::{Digest, Felt, Hasher, ZERO};
+use super::{BlockNumber, Digest, Felt, Hasher, ZERO};
 use crate::utils::serde::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
@@ -29,7 +29,7 @@ use crate::utils::serde::{
 pub struct BlockHeader {
     version: u32,
     prev_hash: Digest,
-    block_num: u32,
+    block_num: BlockNumber,
     chain_root: Digest,
     account_root: Digest,
     nullifier_root: Digest,
@@ -43,19 +43,12 @@ pub struct BlockHeader {
 }
 
 impl BlockHeader {
-    /// The length of an epoch expressed as a power of two. `2^(EPOCH_LENGTH_EXPONENT)` is the
-    /// number of blocks in an epoch.
-    ///
-    /// The epoch of a block can be obtained by shifting the block number to the right by this
-    /// exponent.
-    pub const EPOCH_LENGTH_EXPONENT: u8 = 16;
-
     /// Creates a new block header.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         version: u32,
         prev_hash: Digest,
-        block_num: u32,
+        block_num: BlockNumber,
         chain_root: Digest,
         account_root: Digest,
         nullifier_root: Digest,
@@ -76,7 +69,7 @@ impl BlockHeader {
             kernel_root,
             proof_hash,
             timestamp,
-            block_num,
+            block_num.as_u32(),
         );
 
         // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the
@@ -129,15 +122,15 @@ impl BlockHeader {
     }
 
     /// Returns the block number.
-    pub fn block_num(&self) -> u32 {
+    pub fn block_num(&self) -> BlockNumber {
         self.block_num
     }
 
     /// Returns the epoch to which this block belongs.
     ///
-    /// This is the block number shifted right by [`Self::EPOCH_LENGTH_EXPONENT`].
+    /// This is the block number shifted right by [`BlockNumber::EPOCH_LENGTH_EXPONENT`].
     pub fn block_epoch(&self) -> u16 {
-        block_epoch_from_number(self.block_num)
+        self.block_num.block_epoch()
     }
 
     /// Returns the chain root.
@@ -187,8 +180,8 @@ impl BlockHeader {
     }
 
     /// Returns the block number of the epoch block to which this block belongs.
-    pub fn epoch_block_num(&self) -> u32 {
-        block_num_from_epoch(self.block_epoch())
+    pub fn epoch_block_num(&self) -> BlockNumber {
+        BlockNumber::from_epoch(self.block_epoch())
     }
 
     // HELPERS
@@ -273,19 +266,6 @@ impl Deserializable for BlockHeader {
             timestamp,
         ))
     }
-}
-
-// UTILITIES
-// ================================================================================================
-
-/// Returns the block number of the epoch block for the given `epoch`.
-pub const fn block_num_from_epoch(epoch: u16) -> u32 {
-    (epoch as u32) << BlockHeader::EPOCH_LENGTH_EXPONENT
-}
-
-/// Returns the epoch of the given block number.
-pub const fn block_epoch_from_number(block_number: u32) -> u16 {
-    (block_number >> BlockHeader::EPOCH_LENGTH_EXPONENT) as u16
 }
 
 #[cfg(test)]

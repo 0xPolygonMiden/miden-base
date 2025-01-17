@@ -1,13 +1,16 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, Serializable,
 };
-use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH};
+use crate::{
+    block::BlockNumber, crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK,
+    MAX_OUTPUT_NOTES_PER_BATCH,
+};
 
 /// Contains information about the location of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoteLocation {
     /// The block number the note was created in.
-    block_num: u32,
+    block_num: BlockNumber,
 
     /// The index of the note in the note Merkle tree of the block the note was created in.
     node_index_in_block: u16,
@@ -15,7 +18,7 @@ pub struct NoteLocation {
 
 impl NoteLocation {
     /// Returns the block number the note was created in.
-    pub fn block_num(&self) -> u32 {
+    pub fn block_num(&self) -> BlockNumber {
         self.block_num
     }
 
@@ -43,7 +46,7 @@ pub struct NoteInclusionProof {
 impl NoteInclusionProof {
     /// Returns a new [NoteInclusionProof].
     pub fn new(
-        block_num: u32,
+        block_num: BlockNumber,
         node_index_in_block: u16,
         note_path: MerklePath,
     ) -> Result<Self, NoteError> {
@@ -54,6 +57,7 @@ impl NoteInclusionProof {
                 highest_index: HIGHEST_INDEX,
             });
         }
+
         let location = NoteLocation { block_num, node_index_in_block };
 
         Ok(Self { location, note_path })
@@ -79,14 +83,14 @@ impl NoteInclusionProof {
 
 impl Serializable for NoteLocation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u32(self.block_num);
+        target.write(self.block_num);
         target.write_u16(self.node_index_in_block);
     }
 }
 
 impl Deserializable for NoteLocation {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let block_num = source.read_u32()?;
+        let block_num = source.read()?;
         let node_index_in_block = source.read_u16()?;
 
         Ok(Self { block_num, node_index_in_block })
