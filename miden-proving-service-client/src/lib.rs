@@ -1,6 +1,10 @@
+#![no_std]
+use alloc::string::{String, ToString};
+
 extern crate alloc;
 
-use alloc::string::String;
+#[cfg(feature = "std")]
+extern crate std;
 
 use thiserror::Error;
 
@@ -12,8 +16,8 @@ mod prover;
 #[cfg(feature = "tx-prover")]
 pub use prover::RemoteTransactionProver;
 
-/// Contains the protobuf definitions
-pub const PROTO_MESSAGES: &str = include_str!("../../proto/api.proto");
+/// Protobuf definition for the Miden proving service
+pub const SERVICE_PROTO: &str = include_str!("../../proto/api.proto");
 
 /// ERRORS
 /// ===============================================================================================
