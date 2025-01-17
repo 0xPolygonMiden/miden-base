@@ -24,7 +24,7 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("generated");
 
-    // Construct the path to the miden-remote-provers/proto/api.proto file
+    // Construct the path to the proto/api.proto file
     let proto_dir = crate_root
         .parent() // Go up to the workspace root
         .expect("bin directory should exist")
