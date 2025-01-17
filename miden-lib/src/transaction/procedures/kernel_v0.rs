@@ -16,33 +16,33 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     // account_get_nonce
     digest!("0x7456aa74a3bddeacfbcf02eb04130b8aea0772b5b15f0aeb49f91b1269d16bf7"),
     // account_incr_nonce
-    digest!("0xfc2da7d93bd401f08dfa9dd24523db712ea17d528db992e29fd3a6504f5aafe5"),
+    digest!("0x1760c860042c6e36b6b1b1f9f177c86b113db1d7a7c6445ac5414284fcc6f311"),
     // account_get_code_commitment
-    digest!("0xc1b532722380c4235dd91f23f5733177288d8f295d8471657e37de6f9e472e08"),
+    digest!("0xa19e305766cd81293460dddada4f885edd7a1f301cdefc2d004f3fcb69fcba77"),
     // account_get_storage_commitment
-    digest!("0x69d9f332e44293e7eb5bb7e5e6abbe98f7c8abfb681ac05c8ac69cdb9ffe71b6"),
+    digest!("0x04ed2802cd12739fcb8ff83500301accbf078e8eb89807825c4c18ee5b6c00cb"),
     // account_get_item
-    digest!("0x1a73504fc477eb17c9c9fcedd97ba4f397c9827c562aff1822a2fd08f8e9da18"),
+    digest!("0x677538ad2411983435f0b942b1fc6b3e5df0cf0d10bae34d56b48c54311b773a"),
     // account_set_item
-    digest!("0x4d2ef9eac1e0560f763cc09c1d669f6f47cf4d0c3deea54e4cb77bfcda9a3602"),
+    digest!("0xebfa25d6653e1ed501d4af35a37b00071097ff9dadf10c5a7d87f3dba65d757c"),
     // account_get_map_item
-    digest!("0x2b3ad4c92f7cbce843eae3ef56e061317b41a46116cdc7bdd9da1b5318228523"),
+    digest!("0xac89c3cd71f8f96e15b8f4c83b6c5b4abd9e161d3b195ebb4e1f885d7ce94b94"),
     // account_set_map_item
-    digest!("0x02befd8e777bacc5f4c3b14267b7e5558c9557d82970e74612c5aa6d7febf9c2"),
+    digest!("0x64cf602d692a3efbd72f2b4031c0a384cbc56e5a8929b4031aeafbee6a9ff8a3"),
     // account_get_vault_commitment
     digest!("0xbfa1956f7b944f3c8e4e6fdb4e4ace50cda03f94cac33420c8b7e97a0c39981c"),
     // account_add_asset
-    digest!("0x78d6a2544fcb8d8749165ece83cd72f73ffed433f39543f87090691f5c052838"),
+    digest!("0x2dc318c6659b20f5d145fd4153fe48a14f2c8dc4573fa98bf80d2df1db0e63bc"),
     // account_remove_asset
-    digest!("0x80c0cdf81ff7f845ee45a6473627611e1b251b3c8368c3764cdc8d48f2e7b806"),
+    digest!("0xbda7b544551c540ef9e67f3b1ee00d4292c419812c035c5bf53b9de28bcdeb48"),
     // account_get_balance
     digest!("0xbe5819bf5aabf1a7c9d8ebfc330a7869f610ca4f86e3708265d8d361b5b82f14"),
     // account_has_non_fungible_asset
     digest!("0xce07ab13a9320a39642412ee6673eeee228a0173e00047c8b05bc259343b209a"),
     // faucet_mint_asset
-    digest!("0x83521ee1aec0ffb09cfc65c47bb08aa5ad3924da42ab5a4bff9152d6534d4918"),
+    digest!("0x475215f1e401eb72d4760f860fd7ac022e92472b767fd4a5e9c60e8483cb8764"),
     // faucet_burn_asset
-    digest!("0x27f721dba5a5710e295ac9404e17a9497f2052bbbb73293cd0fe0ba1ad63bad6"),
+    digest!("0x94686503a323b4fbefb758210a41c2e27d9c22f14cc07e9a28be2e564508eb20"),
     // faucet_get_total_fungible_asset_issuance
     digest!("0xe56c3538757d5e2cee385028a5ba4e78eca3982698a4e6a3d5ddb17ea59fc13a"),
     // faucet_is_non_fungible_asset_issued
@@ -50,7 +50,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     // note_get_assets_info
     digest!("0xcca266d382dfdd980ad1884bdf78525cc090fe05f4d6839d1df067382b120e2f"),
     // note_add_asset
-    digest!("0xf0ae3bde840b005661422bcf64d1700602aae19f5bcff038ed7fed95b384a42f"),
+    digest!("0x0018adf033ed13ae21864b028a959c7ca358fb5b34d305f9f1aaf96a0fded537"),
     // note_get_serial_number
     digest!("0xad91130ec219756213c6cadeaf8a38de8768e50c620cb7c347c531874c6054b6"),
     // note_get_inputs_hash
@@ -60,7 +60,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     // note_get_script_hash
     digest!("0x82a32c90566e7de09e99b2151851c77a6b4117aa05aba20fe7d8244f065d6870"),
     // tx_create_note
-    digest!("0x1f4f867434fc2704a16a15edd783f3825b1b5d932e04412b46eee3c85adcf1d2"),
+    digest!("0x1df987f8f3bb9fbfec3f3252031e146c0318772d45efcde56cc50275c766276a"),
     // tx_get_input_notes_commitment
     digest!("0x44a86433c9a03c7ee99d046b0cd16e05df275f05ebb176b60193207229eae8b5"),
     // tx_get_output_notes_commitment
@@ -70,7 +70,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     // tx_get_block_number
     digest!("0x17da2a77b878820854bfff2b5f9eb969a4e2e76a998f97f4967b2b1a7696437c"),
     // tx_start_foreign_context
-    digest!("0x8c3adb3aff1686205283a59d3908e074c1f4768ac4c7a778ef2b873693ca9101"),
+    digest!("0xa44071231dad1165c9e785a780044347da436cfd97def777d4af4771f3de8c43"),
     // tx_end_foreign_context
     digest!("0x132b50feca8ecec10937c740640c59733e643e89c1d8304cf4523120e27a0428"),
     // tx_get_expiration_delta

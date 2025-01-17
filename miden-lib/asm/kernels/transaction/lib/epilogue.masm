@@ -58,7 +58,7 @@ proc.copy_output_notes_to_advice_map
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr]
 
         # insert created data into the advice map
-        adv.insert_mem push.15511 drop          # TODO: remove line, see miden-vm/#1122
+        adv.insert_mem
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr]
 
         # drop output note pointers
@@ -274,7 +274,7 @@ export.finalize_transaction
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # insert final account data into the advice map
-    adv.insert_mem push.15619 drop              # TODO: remove line, see miden-vm/#1122
+    adv.insert_mem
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # drop account data section pointers
@@ -294,8 +294,6 @@ export.finalize_transaction
         # get current nonce from memory
         exec.memory::get_acct_nonce
         # => [current_nonce, init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
-
-        push.1005 drop                              # TODO: remove line, see miden-vm/#1122
 
         # assert that initial nonce is less than current nonce
         lt assert.err=ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE
