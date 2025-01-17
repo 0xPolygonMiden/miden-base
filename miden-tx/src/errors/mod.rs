@@ -2,8 +2,8 @@ use alloc::{boxed::Box, string::String};
 use core::error::Error;
 
 use miden_objects::{
-    accounts::AccountId, notes::NoteId, AccountError, Felt, ProvenTransactionError,
-    TransactionInputError, TransactionOutputError,
+    accounts::AccountId, block::BlockNumber, notes::NoteId, AccountError, Felt,
+    ProvenTransactionError, TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 use thiserror::Error;
@@ -115,7 +115,7 @@ pub enum DataStoreError {
     #[error("account with id {0} not found in data store")]
     AccountNotFound(AccountId),
     #[error("block with number {0} not found in data store")]
-    BlockNotFound(u32),
+    BlockNotFound(BlockNumber),
     #[error("failed to create transaction inputs")]
     InvalidTransactionInput(#[source] TransactionInputError),
     #[error("note with id {0} is already consumed")]
