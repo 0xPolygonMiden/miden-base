@@ -3,7 +3,7 @@ resolver = "2"
 members = [ 
     "miden-lib",
     "miden-tx",
-    "miden-remote-provers",
+    "miden-proving-service-client",
     "objects",
     "bin/bench-tx",
     "bin/proving-service",
