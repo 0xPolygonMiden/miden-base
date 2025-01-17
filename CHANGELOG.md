@@ -33,6 +33,7 @@
 - Made `BasicFungibleFaucet::MAX_DECIMALS` public (#1063).
 - [BREAKING] Removed `miden-tx-prover` crate and created `miden-proving-service` and `miden-remote-provers` (#1047).
 - Deduplicate `masm` procedures across kernel and miden lib to a shared `util` module (#1070).
+- Add CI check for unused dependencies (#1075).
 
 ## 0.6.2 (2024-11-20)
 
