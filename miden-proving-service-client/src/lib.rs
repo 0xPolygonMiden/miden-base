@@ -1,5 +1,7 @@
 #![no_std]
 
+// We gate this #[macro_use] behind the `tx-prover` flag because prost generates code that uses
+// non-explicitly imported macros, and this generated code is behind this feature flag
 #[cfg_attr(feature = "tx-prover", macro_use)]
 extern crate alloc;
 use alloc::string::{String, ToString};
