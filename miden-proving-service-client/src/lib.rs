@@ -1,7 +1,8 @@
 #![no_std]
-use alloc::string::{String, ToString};
 
+#[macro_use]
 extern crate alloc;
+use alloc::string::{String, ToString};
 
 #[cfg(feature = "std")]
 extern crate std;
