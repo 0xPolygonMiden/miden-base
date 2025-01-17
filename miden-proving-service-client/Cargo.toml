@@ -10,7 +10,6 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-
 [lib]
 crate-type = ["lib"]
 
