@@ -152,4 +152,4 @@ Description of this crate's feature:
 
 ## License
 
-This project is [MIT licensed](../LICENSE).
+This project is [MIT licensed](../../LICENSE).
