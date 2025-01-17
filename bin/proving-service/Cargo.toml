@@ -34,7 +34,6 @@ opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
 opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
 opentelemetry-semantic-conventions = "0.27"
-opentelemetry-jaeger = "0.22"
 prometheus = "0.13"
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 pingora = { version = "0.4", features = [ "lb" ] }
@@ -55,7 +54,6 @@ tracing = { version = "0.1" }
 tracing-opentelemetry = "0.28"
 tracing-subscriber = { version = "0.3", features = ["fmt",  "json",  "env-filter"] }
 uuid = { version = "1.11", features = ["v4"] }
-winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]
 miden-lib = { workspace = true , default-features = false, features = ["testing"]}
