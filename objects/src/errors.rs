@@ -16,14 +16,10 @@ use super::{
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-<<<<<<< HEAD
     accounts::{
         AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
         StoragePlaceholder,
     },
-=======
-    accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType, StoragePlaceholder},
->>>>>>> 33263067959a14e3c230a2de9453bcee834075ae
     block::BlockNumber,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
