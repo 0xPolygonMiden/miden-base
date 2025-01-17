@@ -92,6 +92,14 @@ impl Deserializable for AccountComponentTemplate {
 /// When the `std` feature is enabled, this struct allows for serialization and deserialization to
 /// and from a TOML file.
 ///
+/// # Guarantees
+///
+/// - The metadata's storage layout does not contain duplicate slots, and it always starts at slot
+///   index 0.
+/// - Storage slots are laid out in a contiguous manner.
+/// - Storage placeholders can appear multiple times, but only if the expected [StorageValue] is of
+///   the same type in all instances.
+///
 /// # Example
 ///
 /// ```
@@ -122,8 +130,8 @@ impl Deserializable for AccountComponentTemplate {
 /// )]);
 ///
 /// let component_template = AccountComponentMetadata::new(
-///     "test".into(),
-///     "desc".into(),
+///     "test name".into(),
+///     "description of the component".into(),
 ///     Version::parse("0.1.0")?,
 ///     BTreeSet::new(),
 ///     vec![],
@@ -183,15 +191,19 @@ impl AccountComponentMetadata {
         Ok(component)
     }
 
-    /// Retrieves the set of storage placeholder keys (identified by a string) that
-    /// require a value at the moment of component instantiation. These values will
-    /// be used for initializing storage slot values, or storage map entries.
-    /// For a full example on how a placeholder may be utilized, refer to the docs
-    /// for [AccountComponentMetadata].
-    pub fn get_storage_placeholders(&self) -> BTreeMap<StoragePlaceholder, PlaceholderType> {
+    /// Retrieves a map of unique storage placeholders mapped to their expected type that require
+    /// a value at the moment of component instantiation. These values will be used for
+    /// initializing storage slot values, or storage map entries.For a full example on how a
+    /// placeholder may be utilized, please refer to the docs for [AccountComponentMetadata].
+    ///
+    /// Types for the returned storage placeholders are inferred based on their location in the
+    /// storage layout structure.
+    pub fn get_unique_storage_placeholders(&self) -> BTreeMap<StoragePlaceholder, PlaceholderType> {
         let mut placeholder_map = BTreeMap::new();
         for storage_entry in &self.storage {
-            for (placeholder, placeholder_type) in storage_entry.placeholders() {
+            for (placeholder, placeholder_type) in storage_entry.all_placeholders_iter() {
+                // The constructors of this type guarantee each placeholder has the same type, so
+                // reinserting them multiple times is fine.
                 placeholder_map.insert(placeholder.clone(), placeholder_type);
             }
         }
@@ -228,6 +240,7 @@ impl AccountComponentMetadata {
     /// # Errors
     ///
     /// - If the specified storage slots contain duplicates.
+    /// - If the template contains multiple storage placeholders with  of different type.
     /// - If the slot numbers do not start at zero.
     /// - If the slots are not contiguous.
     fn validate(&self) -> Result<(), AccountComponentTemplateError> {
@@ -241,7 +254,9 @@ impl AccountComponentMetadata {
         all_slots.sort_unstable();
         if let Some(&first_slot) = all_slots.first() {
             if first_slot != 0 {
-                return Err(AccountComponentTemplateError::StorageSlotsMustStartAtZero);
+                return Err(AccountComponentTemplateError::StorageSlotsDoNotStartAtZero(
+                    first_slot,
+                ));
             }
         }
 
@@ -258,14 +273,16 @@ impl AccountComponentMetadata {
         // Check that placeholders do not appear more than once with a different type
         let mut placeholders = BTreeMap::new();
         for storage_entry in &self.storage {
-            for (placeholder, placeholder_type) in storage_entry.placeholders() {
+            for (placeholder, placeholder_type) in storage_entry.all_placeholders_iter() {
                 match placeholders.entry(placeholder.clone()) {
                     Entry::Occupied(entry) => {
                         // if already exists, make sure it's the same type
                         if *entry.get() != placeholder_type {
                             return Err(
-                                AccountComponentTemplateError::StoragePlaceholderDuplicate(
+                                AccountComponentTemplateError::StoragePlaceholderTypeMismatch(
                                     placeholder.clone(),
+                                    *entry.get(),
+                                    placeholder_type,
                                 ),
                             );
                         }
@@ -277,6 +294,38 @@ impl AccountComponentMetadata {
             }
         }
 
+        self.validate_map_keys()?;
+
+        Ok(())
+    }
+
+    /// Validates map keys.
+    /// Because keys can be represented in a variety of ways, the `to_string()` implementation is
+    /// used to check for duplicates.  
+    fn validate_map_keys(&self) -> Result<(), AccountComponentTemplateError> {
+        for storage_entry in self.storage_entries() {
+            match storage_entry {
+                StorageEntry::Map { map, .. } => {
+                    match map {
+                        MapRepresentation::List(map_entries) => {
+                            let mut seen_keys = BTreeSet::new();
+                            for entry in map_entries {
+                                if !seen_keys.insert(entry.key().to_string()) {
+                                    return Err(
+                                        AccountComponentTemplateError::StorageMapHasDuplicateKeys(
+                                            entry.key().to_string(),
+                                        ),
+                                    );
+                                }
+                            }
+                        },
+                        // Can't validate placeholders since we don't know the keys and values yet
+                        MapRepresentation::Template(_) => continue,
+                    }
+                },
+                _ => continue,
+            }
+        }
         Ok(())
     }
 }
@@ -316,9 +365,10 @@ mod tests {
     use assembly::Assembler;
     use assert_matches::assert_matches;
     use storage::WordRepresentation;
+    use vm_core::{Felt, FieldElement};
 
     use super::*;
-    use crate::{accounts::AccountComponent, testing::account_code::CODE};
+    use crate::{accounts::AccountComponent, testing::account_code::CODE, AccountError};
 
     #[test]
     fn test_contiguous_value_slots() {
@@ -327,7 +377,7 @@ mod tests {
                 name: "slot0".into(),
                 description: None,
                 slot: 0,
-                value: WordRepresentation::Hexadecimal(Default::default()),
+                value: WordRepresentation::Value(Default::default()),
             },
             StorageEntry::MultiSlot {
                 name: "slot1".into(),
@@ -335,7 +385,7 @@ mod tests {
                 slots: vec![1, 2],
                 values: vec![
                     WordRepresentation::Array(Default::default()),
-                    WordRepresentation::Hexadecimal(Default::default()),
+                    WordRepresentation::Value(Default::default()),
                 ],
             },
         ];
@@ -391,14 +441,14 @@ mod tests {
                 slots: vec![1, 2],
                 values: vec![
                     WordRepresentation::Array(Default::default()),
-                    WordRepresentation::Hexadecimal(Default::default()),
+                    WordRepresentation::Value(Default::default()),
                 ],
             },
             StorageEntry::Value {
                 name: "slot0".into(),
                 description: None,
                 slot: 0,
-                value: WordRepresentation::Hexadecimal(Default::default()),
+                value: WordRepresentation::Value(Default::default()),
             },
         ];
 
@@ -419,5 +469,74 @@ mod tests {
         let deserialized = AccountComponentTemplate::read_from_bytes(&serialized).unwrap();
 
         assert_eq!(deserialized, template)
+    }
+
+    #[test]
+    pub fn fail_duplicate_key() {
+        let toml_text = r#"
+            name = "Test Component"
+            description = "This is a test component"
+            version = "1.0.1"
+            targets = ["FungibleFaucet"]
+
+            [[storage]]
+            name = "map"
+            description = "A storage map entry"
+            slot = 0
+            values = [
+                { key = "0x1", value = ["{{value.test}}", "0x1", "0x2", "0x3"] },
+                { key = "0x1", value = ["0x1", "0x2", "0x3", "{{value.test}}"] },
+            ]
+        "#;
+
+        let result = AccountComponentMetadata::from_toml(toml_text);
+        assert_matches!(result, Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(_)));
+    }
+
+    #[test]
+    pub fn fail_duplicate_key_instance() {
+        let toml_text = r#"
+            name = "Test Component"
+            description = "This is a test component"
+            version = "1.0.1"
+            targets = ["FungibleFaucet"]
+
+            [[storage]]
+            name = "map"
+            description = "A storage map entry"
+            slot = 0
+            values = [
+                { key = ["0","0","0","1"], value = ["{{value.test}}", "0x1", "0x2", "0x3"] },
+                { key = "{{word.test}}", value = ["0x1", "0x2", "0x3", "{{value.test}}"] },
+            ]
+        "#;
+
+        let metadata = AccountComponentMetadata::from_toml(toml_text).unwrap();
+        let library = Assembler::default().assemble_library([CODE]).unwrap();
+        let template = AccountComponentTemplate::new(metadata, library);
+
+        let init_storage_data = InitStorageData::new([
+            (
+                StoragePlaceholder::new("word.test").unwrap(),
+                StorageValue::Word([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ONE]),
+            ),
+            (StoragePlaceholder::new("value.test").unwrap(), StorageValue::Felt(Felt::ONE)),
+        ]);
+        let account_component = AccountComponent::from_template(&template, &init_storage_data);
+        assert_matches!(
+            account_component,
+            Err(AccountError::AccountComponentTemplateInstantiationError(
+                AccountComponentTemplateError::StorageMapHasDuplicateKeys(_)
+            ))
+        );
+
+        let valid_init_storage_data = InitStorageData::new([
+            (
+                StoragePlaceholder::new("word.test").unwrap(),
+                StorageValue::Word([Felt::new(30), Felt::new(20), Felt::new(10), Felt::ZERO]),
+            ),
+            (StoragePlaceholder::new("value.test").unwrap(), StorageValue::Felt(Felt::ONE)),
+        ]);
+        AccountComponent::from_template(&template, &valid_init_storage_data).unwrap();
     }
 }

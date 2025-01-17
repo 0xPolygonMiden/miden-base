@@ -52,7 +52,7 @@ impl serde::Serialize for WordRepresentation {
     {
         use serde::ser::SerializeSeq;
         match self {
-            WordRepresentation::Hexadecimal(word) => {
+            WordRepresentation::Value(word) => {
                 // Ensure that the length of the vector is exactly 4
                 let word = Digest::from(word);
                 serializer.serialize_str(&word.to_string())
@@ -101,7 +101,7 @@ impl<'de> serde::Deserialize<'de> for WordRepresentation {
                     )
                 })?;
 
-                Ok(WordRepresentation::Hexadecimal(word))
+                Ok(WordRepresentation::Value(word))
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -266,12 +266,7 @@ impl From<StorageEntry> for RawStorageEntry {
                 value: Some(value),
                 ..Default::default()
             },
-            StorageEntry::Map {
-                name,
-                description,
-                slot,
-                map_entries: values,
-            } => RawStorageEntry {
+            StorageEntry::Map { name, description, slot, map: values } => RawStorageEntry {
                 name,
                 description,
                 slot: Some(slot),
@@ -349,7 +344,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
                     name: raw.name,
                     description: raw.description,
                     slot: raw.slot.ok_or(D::Error::missing_field("slot"))?,
-                    map_entries,
+                    map: map_entries,
                 })
             },
             (Some(slots), Some(values)) => {

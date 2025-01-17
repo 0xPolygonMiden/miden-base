@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeSet, string::ToString, vec::Vec};
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
@@ -16,7 +16,7 @@ use crate::accounts::{component::template::AccountComponentTemplateError, Storag
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WordRepresentation {
     /// A word represented by a hexadecimal string.
-    Hexadecimal([Felt; 4]),
+    Value([Felt; 4]),
     /// A word represented by its four base elements.
     Array([FeltRepresentation; 4]),
     /// A placeholder value, represented as "{{key}}".
@@ -26,17 +26,17 @@ pub enum WordRepresentation {
 impl WordRepresentation {
     /// Returns an iterator over all storage placeholder references within the [WordRepresentation]
     /// along with their expected types
-    pub fn placeholders(
+    pub fn all_placeholders_iter(
         &self,
     ) -> Box<dyn Iterator<Item = (&StoragePlaceholder, PlaceholderType)> + '_> {
         match self {
             WordRepresentation::Array(array) => {
-                Box::new(array.iter().flat_map(|felt| felt.placeholders()))
+                Box::new(array.iter().flat_map(|felt| felt.all_placeholders_iter()))
             },
             WordRepresentation::Template(storage_placeholder) => {
                 Box::new(core::iter::once((storage_placeholder, PlaceholderType::Word)))
             },
-            WordRepresentation::Hexadecimal(_) => Box::new(core::iter::empty()),
+            WordRepresentation::Value(_) => Box::new(core::iter::empty()),
         }
     }
 
@@ -50,7 +50,7 @@ impl WordRepresentation {
         init_storage_data: &InitStorageData,
     ) -> Result<Word, AccountComponentTemplateError> {
         match self {
-            WordRepresentation::Hexadecimal(word) => Ok(*word),
+            WordRepresentation::Value(word) => Ok(*word),
             WordRepresentation::Array(array) => {
                 let mut result = [Felt::ZERO; 4];
                 for (index, felt_repr) in array.iter().enumerate() {
@@ -76,14 +76,14 @@ impl WordRepresentation {
 
 impl From<Word> for WordRepresentation {
     fn from(value: Word) -> Self {
-        WordRepresentation::Hexadecimal(value)
+        WordRepresentation::Value(value)
     }
 }
 
 impl Serializable for WordRepresentation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
-            WordRepresentation::Hexadecimal(value) => {
+            WordRepresentation::Value(value) => {
                 target.write_u8(0);
                 target.write(value);
             },
@@ -107,7 +107,7 @@ impl Deserializable for WordRepresentation {
             0 => {
                 // Hexadecimal
                 let value = <[Felt; 4]>::read_from(source)?;
-                Ok(WordRepresentation::Hexadecimal(value))
+                Ok(WordRepresentation::Value(value))
             },
             1 => {
                 // Array
@@ -128,7 +128,27 @@ impl Deserializable for WordRepresentation {
 
 impl Default for WordRepresentation {
     fn default() -> Self {
-        WordRepresentation::Hexadecimal(Default::default())
+        WordRepresentation::Value(Default::default())
+    }
+}
+
+impl core::fmt::Display for WordRepresentation {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            WordRepresentation::Value(hex) => f.write_str(&Digest::from(hex).to_hex()),
+            WordRepresentation::Array(array) => {
+                f.write_str("[")?;
+                f.write_str(&format!("{}, ", array[0]))?;
+                f.write_str(&format!("{}, ", array[1]))?;
+                f.write_str(&format!("{}, ", array[2]))?;
+                f.write_str(&format!("{}, ", array[3]))?;
+
+                f.write_str("]")
+            },
+            WordRepresentation::Template(storage_placeholder) => {
+                f.write_str(&storage_placeholder.to_string())
+            },
+        }
     }
 }
 
@@ -148,7 +168,9 @@ pub enum FeltRepresentation {
 
 impl FeltRepresentation {
     /// Returns the storage placeholders within this representation, alongside their expected type.
-    pub fn placeholders(&self) -> impl Iterator<Item = (&StoragePlaceholder, PlaceholderType)> {
+    pub fn all_placeholders_iter(
+        &self,
+    ) -> impl Iterator<Item = (&StoragePlaceholder, PlaceholderType)> {
         let maybe_key = match self {
             FeltRepresentation::Template(storage_placeholder) => {
                 Some((storage_placeholder, PlaceholderType::Felt))
@@ -234,6 +256,18 @@ impl Deserializable for FeltRepresentation {
     }
 }
 
+impl core::fmt::Display for FeltRepresentation {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            FeltRepresentation::Hexadecimal(base_element) => f.write_str(&base_element.to_string()),
+            FeltRepresentation::Decimal(base_element) => f.write_str(&base_element.to_string()),
+            FeltRepresentation::Template(storage_placeholder) => {
+                f.write_str(&storage_placeholder.to_string())
+            },
+        }
+    }
+}
+
 // MAP REPRESENTATION
 // ================================================================================================
 
@@ -249,7 +283,7 @@ pub enum MapRepresentation {
 impl MapRepresentation {
     /// Returns an iterator over all of the storage entries's placeholder keys, alongside their
     /// expected type.
-    pub fn placeholders(
+    pub fn all_placeholders_iter(
         &self,
     ) -> Box<dyn Iterator<Item = (&StoragePlaceholder, PlaceholderType)> + '_> {
         match self {
@@ -257,7 +291,7 @@ impl MapRepresentation {
                 Box::new(core::iter::once((storage_placeholder, PlaceholderType::Map)))
             },
             MapRepresentation::List(entries) => {
-                Box::new(entries.iter().flat_map(|entry| entry.placeholders()))
+                Box::new(entries.iter().flat_map(|entry| entry.all_placeholders_iter()))
             },
         }
     }
@@ -268,6 +302,15 @@ impl MapRepresentation {
         match self {
             MapRepresentation::List(vec) => Some(vec.len()),
             MapRepresentation::Template(_) => None,
+        }
+    }
+
+    /// Returns `true` if the map is represented by a list of key-value entries, and the list is
+    /// empty. Returns false otherwise
+    pub fn is_empty(&self) -> bool {
+        match self {
+            MapRepresentation::List(vec) => vec.is_empty(),
+            MapRepresentation::Template(_) => false,
         }
     }
 
@@ -299,6 +342,16 @@ impl MapRepresentation {
                 .as_map()
                 .cloned()?,
         };
+
+        // validate that no key appears multiple times
+        let mut seen_keys = BTreeSet::new();
+        for (map_key, _map_value) in entries.iter() {
+            if !seen_keys.insert(map_key) {
+                return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(
+                    map_key.to_hex(),
+                ));
+            }
+        }
         Ok(StorageMap::with_entries(entries))
     }
 }
@@ -418,7 +471,7 @@ mod tests {
     #[test]
     fn test_word_representation_serde() {
         let word = Word::default();
-        let original = WordRepresentation::Hexadecimal(word);
+        let original = WordRepresentation::Value(word);
         let serialized = original.to_bytes();
         let deserialized = WordRepresentation::read_from_bytes(&serialized).unwrap();
         assert_eq!(original, deserialized);

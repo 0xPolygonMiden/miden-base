@@ -16,7 +16,10 @@ use super::{
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-    accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType, StoragePlaceholder},
+    accounts::{
+        AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
+        StoragePlaceholder,
+    },
     block::block_num_from_epoch,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     BlockHeader, ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX,
@@ -33,12 +36,6 @@ pub enum AccountComponentTemplateError {
     DeserializationError(#[source] toml::de::Error),
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
-    #[error("component storage slots have to start at 0")]
-    StorageSlotsMustStartAtZero,
-    #[error(
-        "storage placeholder `{0}` appears more than once, representing different types of values"
-    )]
-    StoragePlaceholderDuplicate(StoragePlaceholder),
     #[error("storage value was not of the expected type {0}")]
     IncorrectStorageValue(String),
     #[error("multi-slot entry should contain as many values as storage slots indices")]
@@ -49,6 +46,14 @@ pub enum AccountComponentTemplateError {
     NonContiguousSlots(u8, u8),
     #[error("storage value for placeholder `{0}` was not provided in the map")]
     PlaceholderValueNotProvided(StoragePlaceholder),
+    #[error("storage map contains duplicate key `{0}`")]
+    StorageMapHasDuplicateKeys(String),
+    #[error("component storage slots have to start at 0, but they start at {0}")]
+    StorageSlotsDoNotStartAtZero(u8),
+    #[error(
+        "storage placeholder `{0}` appears more than once representing different types `{0}` and `{1}`"
+    )]
+    StoragePlaceholderTypeMismatch(StoragePlaceholder, PlaceholderType, PlaceholderType),
 }
 
 // ACCOUNT ERROR
