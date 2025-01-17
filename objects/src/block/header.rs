@@ -69,7 +69,7 @@ impl BlockHeader {
             kernel_root,
             proof_hash,
             timestamp,
-            block_num.as_u32(),
+            block_num,
         );
 
         // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the
@@ -204,7 +204,7 @@ impl BlockHeader {
         kernel_root: Digest,
         proof_hash: Digest,
         timestamp: u32,
-        block_num: u32,
+        block_num: BlockNumber,
     ) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(32);
         elements.extend_from_slice(prev_hash.as_elements());
