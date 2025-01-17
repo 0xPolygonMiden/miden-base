@@ -22,7 +22,6 @@
 - Added tracing to the `miden-tx-prover` CLI (#1014).
 - Added metrics to the `miden-tx-prover` proxy (#1017).
 - Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
-- Add `BlockNumber` struct (#1043).
 - Introduce `AccountIdBuilder` to simplify `AccountId` generation in tests (#1045).
 - Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
 - [BREAKING] Updated the names and values of the kernel procedure offsets and corresponding kernel procedures (#1037).
@@ -33,6 +32,7 @@
 - Made `BasicFungibleFaucet::MAX_DECIMALS` public (#1063).
 - [BREAKING] Removed `miden-tx-prover` crate and created `miden-proving-service` and `miden-remote-provers` (#1047).
 - Deduplicate `masm` procedures across kernel and miden lib to a shared `util` module (#1070).
+- [BREAKING] Added `BlockNumber` struct (#1043, #1080).
 
 ## 0.6.2 (2024-11-20)
 

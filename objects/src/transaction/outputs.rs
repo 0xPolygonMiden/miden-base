@@ -6,6 +6,7 @@ use vm_processor::DeserializationError;
 
 use crate::{
     accounts::AccountHeader,
+    block::BlockNumber,
     notes::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -20,7 +21,7 @@ pub struct TransactionOutputs {
     /// Set of output notes created by the transaction.
     pub output_notes: OutputNotes,
     /// Defines up to which block the transaction is considered valid.
-    pub expiration_block_num: u32,
+    pub expiration_block_num: BlockNumber,
 }
 
 // OUTPUT NOTES

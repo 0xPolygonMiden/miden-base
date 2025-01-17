@@ -306,7 +306,7 @@ mod tests {
             NoteExecutionHint::always(),
             NoteExecutionHint::none(),
             NoteExecutionHint::on_block_slot(10, 11, 12),
-            NoteExecutionHint::after_block(u32::MAX - 1).unwrap(),
+            NoteExecutionHint::after_block((u32::MAX - 1).into()).unwrap(),
         ] {
             let metadata = NoteMetadata::new(sender, note_type, tag, execution_hint, aux).unwrap();
             NoteMetadata::read_from_bytes(&metadata.to_bytes())
