@@ -233,7 +233,7 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Transa
 
     assert_eq!(
         read_root_mem_value(process, CHAIN_MMR_NUM_LEAVES_PTR)[0],
-        Felt::new(chain_mmr.chain_length() as u64),
+        Felt::new(chain_mmr.chain_length().as_u64()),
         "The number of leaves should be stored at the CHAIN_MMR_NUM_LEAVES_PTR"
     );
 

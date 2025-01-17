@@ -1,6 +1,4 @@
-use crate::{
-    block::block_epoch_from_number, errors::AccountIdError, BlockHeader, Digest, EMPTY_WORD,
-};
+use crate::{block::BlockNumber, errors::AccountIdError, BlockHeader, Digest, EMPTY_WORD};
 
 // ACCOUNT ID ANCHOR
 // ================================================================================================
@@ -14,8 +12,8 @@ use crate::{
 /// # Constraints
 ///
 /// This type enforces the following constraints.
-/// - The `anchor_block_number` % 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`] must be zero. In other
-///   words, the block number must a multiple of 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`].
+/// - The `anchor_block_number` % 2^[`BlockNumber::EPOCH_LENGTH_EXPONENT`] must be zero. In other
+///   words, the block number must a multiple of 2^[`BlockNumber::EPOCH_LENGTH_EXPONENT`].
 /// - The epoch derived from the `anchor_block_number` must be strictly less than [`u16::MAX`].
 #[derive(Debug, Clone, Copy)]
 pub struct AccountIdAnchor {
@@ -51,14 +49,14 @@ impl AccountIdAnchor {
     /// Returns an error if any of the anchor constraints are not met. See the [type
     /// documentation](AccountIdAnchor) for details.
     pub fn new(
-        anchor_block_number: u32,
+        anchor_block_number: BlockNumber,
         anchor_block_hash: Digest,
     ) -> Result<Self, AccountIdError> {
-        if anchor_block_number & 0x0000_ffff != 0 {
+        if anchor_block_number.as_u32() & 0x0000_ffff != 0 {
             return Err(AccountIdError::AnchorBlockMustBeEpochBlock);
         }
 
-        let anchor_epoch = block_epoch_from_number(anchor_block_number);
+        let anchor_epoch = anchor_block_number.block_epoch();
 
         if anchor_epoch == u16::MAX {
             return Err(AccountIdError::AnchorEpochMustNotBeU16Max);

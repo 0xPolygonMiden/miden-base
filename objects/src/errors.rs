@@ -17,10 +17,9 @@ use super::{
 };
 use crate::{
     accounts::{AccountCode, AccountIdPrefix, AccountStorage, AccountType, StoragePlaceholder},
-    block::block_num_from_epoch,
+    block::BlockNumber,
     notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
-    BlockHeader, ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX,
-    MAX_OUTPUT_NOTES_PER_TX,
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT COMPONENT TEMPLATE ERROR
@@ -139,7 +138,7 @@ pub enum AccountIdError {
     AccountIdSuffixLeastSignificantByteMustBeZero,
     #[error(
         "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
-        BlockHeader::EPOCH_LENGTH_EXPONENT
+        BlockNumber::EPOCH_LENGTH_EXPONENT
     )]
     AnchorBlockMustBeEpochBlock,
 }
@@ -296,23 +295,26 @@ pub enum NoteError {
 #[derive(Debug, Error)]
 pub enum ChainMmrError {
     #[error("block num {block_num} exceeds chain length {chain_length} implied by the chain MMR")]
-    BlockNumTooBig { chain_length: usize, block_num: u32 },
+    BlockNumTooBig {
+        chain_length: usize,
+        block_num: BlockNumber,
+    },
     #[error("duplicate block {block_num} in chain MMR")]
-    DuplicateBlock { block_num: u32 },
+    DuplicateBlock { block_num: BlockNumber },
     #[error("chain MMR does not track authentication paths for block {block_num}")]
-    UntrackedBlock { block_num: u32 },
+    UntrackedBlock { block_num: BlockNumber },
 }
 
 impl ChainMmrError {
-    pub fn block_num_too_big(chain_length: usize, block_num: u32) -> Self {
+    pub fn block_num_too_big(chain_length: usize, block_num: BlockNumber) -> Self {
         Self::BlockNumTooBig { chain_length, block_num }
     }
 
-    pub fn duplicate_block(block_num: u32) -> Self {
+    pub fn duplicate_block(block_num: BlockNumber) -> Self {
         Self::DuplicateBlock { block_num }
     }
 
-    pub fn untracked_block(block_num: u32) -> Self {
+    pub fn untracked_block(block_num: BlockNumber) -> Self {
         Self::UntrackedBlock { block_num }
     }
 }
@@ -337,7 +339,7 @@ pub enum TransactionInputError {
     AccountSeedProvidedForExistingAccount,
     #[error(
       "anchor block header for epoch {0} (block number = {block_number}) must be provided in the chain mmr for the new account",
-      block_number = block_num_from_epoch(*.0),
+      block_number = BlockNumber::from_epoch(*.0),
     )]
     AnchorBlockHeaderNotProvidedForNewAccount(u16),
     #[error("transaction input note with nullifier {0} is a duplicate")]
@@ -345,13 +347,16 @@ pub enum TransactionInputError {
     #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
     #[error("chain mmr has length {actual} which does not match block number {expected} ")]
-    InconsistentChainLength { expected: u32, actual: u32 },
+    InconsistentChainLength {
+        expected: BlockNumber,
+        actual: BlockNumber,
+    },
     #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
     InconsistentChainRoot { expected: Digest, actual: Digest },
     #[error("block in which input note with id {0} was created is not in chain mmr")]
     InputNoteBlockNotInChainMmr(NoteId),
     #[error("input note with id {0} was not created in block {1}")]
-    InputNoteNotInBlock(NoteId, u32),
+    InputNoteNotInBlock(NoteId, BlockNumber),
     #[error("account ID computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountIdError),
     #[error(

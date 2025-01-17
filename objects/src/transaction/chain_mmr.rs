@@ -3,6 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::utils::{Deserializable, Serializable};
 
 use crate::{
+    block::BlockNumber,
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     BlockHeader, ChainMmrError,
 };
@@ -27,7 +28,7 @@ pub struct ChainMmr {
     mmr: PartialMmr,
     /// A map of block_num |-> block_header for all blocks for which the partial MMR contains
     /// authentication paths.
-    blocks: BTreeMap<u32, BlockHeader>,
+    blocks: BTreeMap<BlockNumber, BlockHeader>,
 }
 
 impl ChainMmr {
@@ -47,7 +48,7 @@ impl ChainMmr {
 
         let mut block_map = BTreeMap::new();
         for block in blocks.into_iter() {
-            if block.block_num() as usize >= chain_length {
+            if block.block_num().as_usize() >= chain_length {
                 return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
             }
 
@@ -55,7 +56,7 @@ impl ChainMmr {
                 return Err(ChainMmrError::duplicate_block(block.block_num()));
             }
 
-            if !mmr.is_tracked(block.block_num() as usize) {
+            if !mmr.is_tracked(block.block_num().as_usize()) {
                 return Err(ChainMmrError::untracked_block(block.block_num()));
             }
         }
@@ -72,18 +73,21 @@ impl ChainMmr {
     }
 
     /// Returns total number of blocks contain in the chain described by this MMR.
-    pub fn chain_length(&self) -> usize {
-        self.mmr.forest()
+    pub fn chain_length(&self) -> BlockNumber {
+        BlockNumber::from(
+            u32::try_from(self.mmr.forest())
+                .expect("chain mmr should never contain more than u32::MAX blocks"),
+        )
     }
 
     /// Returns true if the block is present in this chain MMR.
-    pub fn contains_block(&self, block_num: u32) -> bool {
+    pub fn contains_block(&self, block_num: BlockNumber) -> bool {
         self.blocks.contains_key(&block_num)
     }
 
     /// Returns the block header for the specified block, or None if the block is not present in
     /// this chain MMR.
-    pub fn get_block(&self, block_num: u32) -> Option<&BlockHeader> {
+    pub fn get_block(&self, block_num: BlockNumber) -> Option<&BlockHeader> {
         self.blocks.get(&block_num)
     }
 
@@ -100,7 +104,7 @@ impl ChainMmr {
     /// Panics if the `block_header.block_num` is not equal to the current chain length (i.e., the
     /// provided block header is not the next block in the chain).
     pub fn add_block(&mut self, block_header: BlockHeader, track: bool) {
-        assert_eq!(block_header.block_num(), self.chain_length() as u32);
+        assert_eq!(block_header.block_num(), self.chain_length());
         self.mmr.add(block_header.hash(), track);
     }
 
@@ -111,7 +115,7 @@ impl ChainMmr {
     /// MMR.
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
         self.mmr.inner_nodes(
-            self.blocks.values().map(|block| (block.block_num() as usize, block.hash())),
+            self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
         )
     }
 }
@@ -150,6 +154,7 @@ mod tests {
     use super::ChainMmr;
     use crate::{
         alloc::vec::Vec,
+        block::BlockNumber,
         crypto::merkle::{Mmr, PartialMmr},
         BlockHeader, Digest,
     };
@@ -216,11 +221,11 @@ mod tests {
         assert_eq!(chain_mmr, deserialized);
     }
 
-    fn int_to_block_header(block_num: u32) -> BlockHeader {
+    fn int_to_block_header(block_num: impl Into<BlockNumber>) -> BlockHeader {
         BlockHeader::new(
             0,
             Digest::default(),
-            block_num,
+            block_num.into(),
             Digest::default(),
             Digest::default(),
             Digest::default(),

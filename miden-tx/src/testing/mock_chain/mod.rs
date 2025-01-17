@@ -12,8 +12,8 @@ use miden_objects::{
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{
-        block_num_from_epoch, compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex,
-        BlockNoteTree, NoteBatch,
+        compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, BlockNumber,
+        NoteBatch,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -602,14 +602,14 @@ impl MockChain {
         let block = self.blocks.last().unwrap();
 
         let mut input_notes = vec![];
-        let mut block_headers_map: BTreeMap<u32, BlockHeader> = BTreeMap::new();
+        let mut block_headers_map: BTreeMap<BlockNumber, BlockHeader> = BTreeMap::new();
         for note in notes {
             let input_note = self.available_notes.get(note).expect("Note not found").clone();
             let note_block_num = input_note.location().unwrap().block_num();
             if note_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     note_block_num,
-                    self.blocks.get(note_block_num as usize).unwrap().header(),
+                    self.blocks.get(note_block_num.as_usize()).unwrap().header(),
                 );
             }
             input_notes.push(input_note);
@@ -618,13 +618,13 @@ impl MockChain {
         // If the account is new, add the anchor block's header from which the account ID is derived
         // to the MMR.
         if account.is_new() {
-            let epoch_block_num = block_num_from_epoch(account.id().anchor_epoch());
+            let epoch_block_num = BlockNumber::from_epoch(account.id().anchor_epoch());
             // The reference block of the transaction is added to the MMR in
             // prologue::process_chain_data so we can skip adding it to the block headers here.
             if epoch_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     epoch_block_num,
-                    self.blocks.get(epoch_block_num as usize).unwrap().header(),
+                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header(),
                 );
             }
         }
@@ -653,7 +653,9 @@ impl MockChain {
     /// This will also make all the objects currently pending available for use.
     /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
     pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
-        let next_block_num = self.blocks.last().map_or(0, |b| b.header().block_num() + 1);
+        let next_block_num =
+            self.blocks.last().map_or(0, |b| b.header().block_num().child().as_u32());
+
         let target_block_num = block_num.unwrap_or(next_block_num);
 
         if target_block_num < next_block_num {
@@ -711,7 +713,7 @@ impl MockChain {
             let header = BlockHeader::new(
                 version,
                 prev_hash,
-                current_block_num,
+                BlockNumber::from(current_block_num),
                 chain_root,
                 account_root,
                 nullifier_root,
