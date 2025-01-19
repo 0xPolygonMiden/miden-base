@@ -31,7 +31,7 @@ pub use outputs::{
 
 mod errors;
 pub use errors::{
-    TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
+    TransactionEventError, TransactionKernelError, TransactionTraceParsingError,
 };
 
 mod procedures;

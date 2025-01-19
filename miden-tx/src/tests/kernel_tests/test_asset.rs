@@ -41,11 +41,12 @@ fn test_create_fungible_asset_succeeds() {
         "
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     assert_eq!(
-        process.get_stack_word(0),
+        process_state.get_stack_word(0),
         Word::from([
             Felt::new(FUNGIBLE_ASSET_AMOUNT),
             Felt::new(0),
@@ -85,9 +86,10 @@ fn test_create_non_fungible_asset_succeeds() {
         non_fungible_asset_data_hash = prepare_word(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
-    assert_eq!(process.get_stack_word(0), Word::from(non_fungible_asset));
+    assert_eq!(process_state.get_stack_word(0), Word::from(non_fungible_asset));
 }
 
 #[test]
@@ -117,6 +119,8 @@ fn test_validate_non_fungible_asset() {
         asset = prepare_word(&encoded)
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
-    assert_eq!(process.get_stack_word(0), encoded);
+    let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
+
+    assert_eq!(process_state.get_stack_word(0), encoded);
 }

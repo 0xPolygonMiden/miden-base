@@ -25,10 +25,11 @@ use miden_objects::{
     },
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
     FieldElement,
+    vm::AdviceMap,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, AdviceMap, Felt, Word};
+use vm_processor::{AdviceInputs, Felt, Word};
 
 use super::TransactionContext;
 use crate::{auth::BasicAuthenticator, testing::MockChain};

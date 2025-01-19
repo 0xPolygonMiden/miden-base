@@ -1,6 +1,6 @@
 use core::fmt;
 
-use super::{TransactionEventParsingError, TransactionTraceParsingError};
+use super::{TransactionEventError, TransactionTraceParsingError};
 
 // CONSTANTS
 // ================================================================================================
@@ -75,11 +75,11 @@ impl fmt::Display for TransactionEvent {
 }
 
 impl TryFrom<u32> for TransactionEvent {
-    type Error = TransactionEventParsingError;
+    type Error = TransactionEventError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value >> 16 != EVENT_ID_PREFIX {
-            return Err(TransactionEventParsingError::NotTransactionEvent(value));
+            return Err(TransactionEventError::NotTransactionEvent(value));
         }
 
         match value {
@@ -112,7 +112,7 @@ impl TryFrom<u32> for TransactionEvent {
             NOTE_BEFORE_ADD_ASSET => Ok(TransactionEvent::NoteBeforeAddAsset),
             NOTE_AFTER_ADD_ASSET => Ok(TransactionEvent::NoteAfterAddAsset),
 
-            _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
+            _ => Err(TransactionEventError::InvalidTransactionEvent(value)),
         }
     }
 }

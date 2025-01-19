@@ -17,7 +17,7 @@ use super::{Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
-        utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+        utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder,
     },
     tests::kernel_tests::read_root_mem_value,
 };
@@ -379,7 +379,7 @@ fn test_note_script_and_note_args() {
     assert_eq!(process.stack.get_word(1), note_args[1]);
 }
 
-fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
+fn note_setup_stack_assertions(process: &Process, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
@@ -391,10 +391,10 @@ fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &Transaction
     assert_eq!(process.stack.trace_state(), expected_stack)
 }
 
-fn note_setup_memory_assertions(process: &Process<MockHost>) {
+fn note_setup_memory_assertions(process: &Process) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
-        read_root_mem_value(process, CURRENT_INPUT_NOTE_PTR)[0],
+        read_root_mem_value(&process.into(), CURRENT_INPUT_NOTE_PTR)[0],
         Felt::from(input_note_data_ptr(0))
     );
 }
@@ -470,7 +470,8 @@ fn test_get_inputs_hash() {
         end
     ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = &tx_context.execute_code(code).unwrap();
+    let process_state: ProcessState = process.into();
 
     let mut expected_5 = Hasher::hash_elements(&[
         Felt::new(1),
@@ -520,7 +521,7 @@ fn test_get_inputs_hash() {
     expected_stack.extend_from_slice(&expected_8);
     expected_stack.extend_from_slice(&expected_5);
 
-    assert_eq!(process.get_stack_state()[0..16], expected_stack);
+    assert_eq!(process_state.get_stack_state()[0..16], expected_stack);
 }
 
 #[test]

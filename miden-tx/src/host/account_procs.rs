@@ -44,7 +44,7 @@ impl AccountProcedureIndexMap {
     /// map.
     pub fn get_proc_index(
         &self,
-        process: &impl ProcessState,
+        process: &ProcessState,
     ) -> Result<u8, TransactionKernelError> {
         // get current account code commitment
         let code_commitment = {

@@ -47,10 +47,11 @@ pub fn test_get_code() {
         end
         ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = &tx_context.execute_code(code).unwrap();
+    let process_state: ProcessState = process.into();
 
     assert_eq!(
-        process.get_stack_word(0),
+        process_state.get_stack_word(0),
         tx_context.account().code().commitment().as_elements(),
         "obtained code commitment is not equal to the account code commitment",
     );
@@ -300,26 +301,28 @@ fn test_get_map_item() {
             item_index = 0,
             map_key = prepare_word(&key),
         );
-        let process = tx_context.execute_code(&code).unwrap();
+
+        let process = &tx_context.execute_code(&code).unwrap();
+        let process_state: ProcessState = process.into();
 
         assert_eq!(
             value,
-            process.get_stack_word(0),
+            process_state.get_stack_word(0),
             "get_map_item result doesn't match the expected value",
         );
         assert_eq!(
             Word::default(),
-            process.get_stack_word(1),
+            process_state.get_stack_word(1),
             "The rest of the stack must be cleared",
         );
         assert_eq!(
             Word::default(),
-            process.get_stack_word(2),
+            process_state.get_stack_word(2),
             "The rest of the stack must be cleared",
         );
         assert_eq!(
             Word::default(),
-            process.get_stack_word(3),
+            process_state.get_stack_word(3),
             "The rest of the stack must be cleared",
         );
     }
@@ -355,17 +358,18 @@ fn test_get_storage_slot_type() {
             item_index = storage_item.index,
         );
 
-        let process = tx_context.execute_code(&code).unwrap();
+        let process = &tx_context.execute_code(&code).unwrap();
+        let process_state: ProcessState = process.into();
 
         let storage_slot_type = storage_item.slot.slot_type();
 
-        assert_eq!(storage_slot_type, process.get_stack_item(0).try_into().unwrap());
-        assert_eq!(process.get_stack_item(1), ZERO, "the rest of the stack is empty");
-        assert_eq!(process.get_stack_item(2), ZERO, "the rest of the stack is empty");
-        assert_eq!(process.get_stack_item(3), ZERO, "the rest of the stack is empty");
-        assert_eq!(Word::default(), process.get_stack_word(1), "the rest of the stack is empty");
-        assert_eq!(Word::default(), process.get_stack_word(2), "the rest of the stack is empty");
-        assert_eq!(Word::default(), process.get_stack_word(3), "the rest of the stack is empty");
+        assert_eq!(storage_slot_type, process_state.get_stack_item(0).try_into().unwrap());
+        assert_eq!(process_state.get_stack_item(1), ZERO, "the rest of the stack is empty");
+        assert_eq!(process_state.get_stack_item(2), ZERO, "the rest of the stack is empty");
+        assert_eq!(process_state.get_stack_item(3), ZERO, "the rest of the stack is empty");
+        assert_eq!(Word::default(), process_state.get_stack_word(1), "the rest of the stack is empty");
+        assert_eq!(Word::default(), process_state.get_stack_word(2), "the rest of the stack is empty");
+        assert_eq!(Word::default(), process_state.get_stack_word(3), "the rest of the stack is empty");
     }
 }
 
@@ -456,19 +460,20 @@ fn test_set_map_item() {
         new_value = prepare_word(&new_value),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     let mut new_storage_map = AccountStorage::mock_map();
     new_storage_map.insert(new_key, new_value);
 
     assert_eq!(
         new_storage_map.root(),
-        Digest::from(process.get_stack_word(0)),
+        Digest::from(process_state.get_stack_word(0)),
         "get_item must return the new updated value",
     );
     assert_eq!(
         storage_item.slot.value(),
-        process.get_stack_word(1),
+        process_state.get_stack_word(1),
         "The original value stored in the map doesn't match the expected value",
     );
 }

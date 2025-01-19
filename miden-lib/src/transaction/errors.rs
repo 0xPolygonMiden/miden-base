@@ -59,11 +59,13 @@ pub enum TransactionKernelError {
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum TransactionEventParsingError {
+pub enum TransactionEventError {
     #[error("event id {0} is not a valid transaction kernel event")]
     InvalidTransactionEvent(u32),
     #[error("event id {0} is not a transaction kernel event")]
     NotTransactionEvent(u32),
+    #[error("{0} event can only be emitted from the root context")]
+    NotRootContext(u32),
 }
 
 // TRANSACTION TRACE PARSING ERROR

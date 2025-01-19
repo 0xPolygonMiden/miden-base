@@ -26,23 +26,23 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     // account_set_item
     digest!("0xebfa25d6653e1ed501d4af35a37b00071097ff9dadf10c5a7d87f3dba65d757c"),
     // account_get_map_item
-    digest!("0xac89c3cd71f8f96e15b8f4c83b6c5b4abd9e161d3b195ebb4e1f885d7ce94b94"),
+    digest!("0x88565d59a3d4d840021575d525b9a2a054a7bcef81f8d49c148d7a534488a0b5"),
     // account_set_map_item
-    digest!("0x64cf602d692a3efbd72f2b4031c0a384cbc56e5a8929b4031aeafbee6a9ff8a3"),
+    digest!("0xc389d2edcf571a3c0866811a78264c9ee2010c2ef59e28628335ed18025ddaaa"),
     // account_get_vault_commitment
     digest!("0xbfa1956f7b944f3c8e4e6fdb4e4ace50cda03f94cac33420c8b7e97a0c39981c"),
     // account_add_asset
-    digest!("0x2dc318c6659b20f5d145fd4153fe48a14f2c8dc4573fa98bf80d2df1db0e63bc"),
+    digest!("0x2ef03ad689c0dba31f0205786434acb40517a40d1160e19d9b504459044f0a12"),
     // account_remove_asset
-    digest!("0xbda7b544551c540ef9e67f3b1ee00d4292c419812c035c5bf53b9de28bcdeb48"),
+    digest!("0x97baf74a9aabe6b8ae8a76064015a374acd50beaf3bbb6d32cfa6b804b04e3b2"),
     // account_get_balance
-    digest!("0xbe5819bf5aabf1a7c9d8ebfc330a7869f610ca4f86e3708265d8d361b5b82f14"),
+    digest!("0x65a1e36c3579a7d756e2ba7b2cef1041e5c591c1e332c2d4845099de66531b68"),
     // account_has_non_fungible_asset
-    digest!("0xce07ab13a9320a39642412ee6673eeee228a0173e00047c8b05bc259343b209a"),
+    digest!("0xf29d0f7d1be6ad90c0256fe1a611e8dc885815bdbbbf438115db4740b331633b"),
     // faucet_mint_asset
-    digest!("0x475215f1e401eb72d4760f860fd7ac022e92472b767fd4a5e9c60e8483cb8764"),
+    digest!("0x77744e2c3da6d34aaeced8342190a108b03381cd1607d5a041132bdbbd284b59"),
     // faucet_burn_asset
-    digest!("0x94686503a323b4fbefb758210a41c2e27d9c22f14cc07e9a28be2e564508eb20"),
+    digest!("0x6c6c2c6a5609790f55da47afb9ae72b699a3933fd38fc65df17c90a5473fc4e7"),
     // faucet_get_total_fungible_asset_issuance
     digest!("0xe56c3538757d5e2cee385028a5ba4e78eca3982698a4e6a3d5ddb17ea59fc13a"),
     // faucet_is_non_fungible_asset_issued
@@ -70,7 +70,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     // tx_get_block_number
     digest!("0x17da2a77b878820854bfff2b5f9eb969a4e2e76a998f97f4967b2b1a7696437c"),
     // tx_start_foreign_context
-    digest!("0xa44071231dad1165c9e785a780044347da436cfd97def777d4af4771f3de8c43"),
+    digest!("0xf843170781503643071638108c85a9341beb1839dd3ed7371af99aeb20b9b14d"),
     // tx_end_foreign_context
     digest!("0x132b50feca8ecec10937c740640c59733e643e89c1d8304cf4523120e27a0428"),
     // tx_get_expiration_delta

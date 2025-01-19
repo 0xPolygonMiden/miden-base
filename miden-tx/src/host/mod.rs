@@ -3,13 +3,14 @@ use alloc::{
     string::ToString,
     sync::Arc,
     vec::Vec,
+    boxed::Box,
 };
 
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
     transaction::{
         memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
-        TransactionEvent, TransactionKernelError, TransactionTrace,
+        TransactionEvent, TransactionKernelError, TransactionTrace, TransactionEventError
     },
 };
 use miden_objects::{
@@ -21,8 +22,8 @@ use miden_objects::{
     Digest, Hasher,
 };
 use vm_processor::{
-    AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt,
-    Host, HostResponse, MastForest, MastForestStore, ProcessState,
+    AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt,
+    Host, MastForest, MastForestStore, ProcessState,
 };
 
 mod account_delta_tracker;
@@ -156,9 +157,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// `output_notes` field of this [TransactionHost].
     ///
     /// Expected stack state: `[NOTE_METADATA, RECIPIENT, ...]`
-    fn on_note_after_created<S: ProcessState>(
+    fn on_note_after_created(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
         // # => [NOTE_METADATA]
@@ -177,9 +178,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// Adds an asset at the top of the [OutputNoteBuilder] identified by the note pointer.
     ///
     /// Expected stack state: [ASSET, note_ptr, num_of_assets, note_idx]
-    fn on_note_before_add_asset<S: ProcessState>(
+    fn on_note_before_add_asset(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
         //# => [ASSET, note_ptr, num_of_assets, note_idx]
@@ -208,11 +209,11 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// Loads the index of the procedure root onto the advice stack.
     ///
     /// Expected stack state: [PROC_ROOT, ...]
-    fn on_account_push_procedure_index<S: ProcessState>(
+    fn on_account_push_procedure_index(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
-        let proc_idx = self.acct_procedure_index_map.get_proc_index(process)?;
+        let proc_idx = self.acct_procedure_index_map.get_proc_index(&process)?;
         self.adv_provider
             .push_stack(AdviceSource::Value(proc_idx.into()))
             .expect("failed to push value onto advice stack");
@@ -222,9 +223,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// Extracts the nonce increment from the process state and adds it to the nonce delta tracker.
     ///
     /// Expected stack state: [nonce_delta, ...]
-    pub fn on_account_before_increment_nonce<S: ProcessState>(
+    pub fn on_account_before_increment_nonce(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
         let value = process.get_stack_item(0);
         self.account_delta.increment_nonce(value);
@@ -238,9 +239,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// records the latest value of this storage slot.
     ///
     /// Expected stack state: [slot_index, NEW_SLOT_VALUE, CURRENT_SLOT_VALUE, ...]
-    pub fn on_account_storage_after_set_item<S: ProcessState>(
+    pub fn on_account_storage_after_set_item(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
@@ -284,9 +285,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// records the latest values of this storage map.
     ///
     /// Expected stack state: [slot_index, NEW_MAP_KEY, NEW_MAP_VALUE, ...]
-    pub fn on_account_storage_after_set_map_item<S: ProcessState>(
+    pub fn on_account_storage_after_set_map_item(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
@@ -334,9 +335,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// updates the appropriate fungible or non-fungible asset map.
     ///
     /// Expected stack state: [ASSET, ...]
-    pub fn on_account_vault_after_add_asset<S: ProcessState>(
+    pub fn on_account_vault_after_add_asset(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
         let asset: Asset = process.get_stack_word(0).try_into().map_err(|source| {
             TransactionKernelError::MalformedAssetInEventHandler {
@@ -356,9 +357,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// and updates the appropriate fungible or non-fungible asset map.
     ///
     /// Expected stack state: [ASSET, ...]
-    pub fn on_account_vault_after_remove_asset<S: ProcessState>(
+    pub fn on_account_vault_after_remove_asset(
         &mut self,
-        process: &S,
+        process: ProcessState,
     ) -> Result<(), TransactionKernelError> {
         let asset: Asset = process.get_stack_word(0).try_into().map_err(|source| {
             TransactionKernelError::MalformedAssetInEventHandler {
@@ -382,10 +383,10 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// This signature is created during transaction execution and stored for use as advice map
     /// inputs in the proving host. If not already present in the advice map, it is requested from
     /// the host's authenticator.
-    pub fn on_signature_requested<S: ProcessState>(
+    pub fn on_signature_requested(
         &mut self,
-        process: &S,
-    ) -> Result<HostResponse, ExecutionError> {
+        process: ProcessState,
+    ) -> Result<(), ExecutionError> {
         let pub_key = process.get_stack_word(0);
         let msg = process.get_stack_word(1);
         let signature_key = Hasher::merge(&[pub_key.into(), msg.into()]);
@@ -417,7 +418,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
             self.adv_provider.push_stack(AdviceSource::Value(r))?;
         }
 
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     // HELPER FUNCTIONS
@@ -429,7 +430,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// # Errors
     /// Returns an error if the address of the currently executing input note is invalid (e.g.,
     /// greater than `u32::MAX`).
-    fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
+    fn get_current_note_id(process: ProcessState) -> Result<Option<NoteId>, ExecutionError> {
         // get the word where note address is stored
         let note_address_word = process.get_mem_value(process.ctx(), CURRENT_INPUT_NOTE_PTR);
         // get the note address in `Felt` from or return `None` if the address hasn't been accessed
@@ -455,7 +456,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// # Errors
     /// Returns an error if the memory location supposed to contain the account storage slot number
     /// has not been initialized.
-    fn get_num_storage_slots<S: ProcessState>(process: &S) -> Result<u64, TransactionKernelError> {
+    fn get_num_storage_slots(process: ProcessState) -> Result<u64, TransactionKernelError> {
         let num_storage_slots_word = process
             .get_mem_value(process.ctx(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR)
             .ok_or(TransactionKernelError::AccountStorageSlotsNumMissing(
@@ -470,42 +471,31 @@ impl<A: AdviceProvider> TransactionHost<A> {
 // ================================================================================================
 
 impl<A: AdviceProvider> Host for TransactionHost<A> {
-    fn get_advice<S: ProcessState>(
-        &mut self,
-        process: &S,
-        extractor: AdviceExtractor,
-    ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.get_advice(process, &extractor)
+    type AdviceProvider = A;
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        &self.adv_provider
     }
 
-    fn set_advice<S: ProcessState>(
-        &mut self,
-        process: &S,
-        injector: AdviceInjector,
-    ) -> Result<HostResponse, ExecutionError> {
-        match injector {
-            AdviceInjector::SigToStack { .. } => self.on_signature_requested(process),
-            injector => self.adv_provider.set_advice(process, &injector),
-        }
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        &mut self.adv_provider
     }
 
     fn get_mast_forest(&self, node_digest: &Digest) -> Option<Arc<MastForest>> {
         self.mast_store.get(node_digest)
     }
 
-    fn on_event<S: ProcessState>(
+    fn on_event(
         &mut self,
-        process: &S,
+        process: ProcessState,
         event_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<(), ExecutionError> {
         let event = TransactionEvent::try_from(event_id)
-            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+            .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
-        if process.ctx() != ContextId::root() {
-            return Err(ExecutionError::EventError(format!(
-                "{event} event can only be emitted from the root context"
-            )));
-        }
+            if process.ctx() != ContextId::root() {
+                return Err(ExecutionError::EventError(Box::new(TransactionEventError::NotRootContext(event_id))));
+            }
 
         match event {
             TransactionEvent::AccountVaultBeforeAddAsset => Ok(()),
@@ -543,18 +533,18 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             TransactionEvent::NoteBeforeAddAsset => self.on_note_before_add_asset(process),
             TransactionEvent::NoteAfterAddAsset => Ok(()),
         }
-        .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+        .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
-        Ok(HostResponse::None)
+        Ok(())
     }
 
-    fn on_trace<S: ProcessState>(
+    fn on_trace(
         &mut self,
-        process: &S,
+        process: ProcessState,
         trace_id: u32,
-    ) -> Result<HostResponse, ExecutionError> {
+    ) -> Result<(), ExecutionError> {
         let event = TransactionTrace::try_from(trace_id)
-            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+            .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
         use TransactionTrace::*;
         match event {
@@ -575,10 +565,10 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
         }
 
-        Ok(HostResponse::None)
+        Ok(())
     }
 
-    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
         let err_msg = self
             .error_messages
             .get(&err_code)
