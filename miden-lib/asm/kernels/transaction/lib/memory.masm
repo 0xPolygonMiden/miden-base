@@ -1369,7 +1369,7 @@ end
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
 
-#! Sets the number of of the procedures of the selected kernel.
+#! Sets the number of the procedures of the selected kernel.
 #!
 #! Stack: [num_kernel_procedures]
 #! Output: []
