@@ -23,7 +23,7 @@ clippy: ## Runs Clippy with configs
 
 .PHONY: clippy-no-std
 clippy-no-std: ## Runs Clippy with configs
-	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --exclude miden-proving-service --features tx-prover -- -D warnings
+	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service -- -D warnings
 
 
 .PHONY: fix
@@ -105,12 +105,12 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	${BUILD_KERNEL_ERRORS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib --exclude miden-proving-service --features tx-prover
+	${BUILD_KERNEL_ERRORS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-proving-service --features testing,tx-prover
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing,tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-async
@@ -129,7 +129,3 @@ bench-tx: ## Run transaction benchmarks
 .PHONY: install-proving-service
 install-proving-service: ## Install proving service's CLI
 	cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent
-
-.PHONY: install-proving-service-testing
-install-proving-service-testing: ## Install proving service's CLI intended for testing purposes
-	cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent,testing

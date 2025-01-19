@@ -82,7 +82,7 @@ fn test_create_note() {
         ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
-        note_execution_hint = Felt::from(NoteExecutionHint::after_block(23).unwrap()),
+        note_execution_hint = Felt::from(NoteExecutionHint::after_block(23.into()).unwrap()),
         tag = tag,
     );
 
@@ -104,7 +104,7 @@ fn test_create_note() {
         account_id,
         NoteType::Public,
         tag,
-        NoteExecutionHint::after_block(23).unwrap(),
+        NoteExecutionHint::after_block(23.into()).unwrap(),
         Felt::new(27),
     )
     .unwrap()
@@ -242,7 +242,7 @@ fn test_get_output_notes_commitment() {
         tx_context.tx_inputs().account().id(),
         NoteType::Public,
         output_tag_2,
-        NoteExecutionHint::after_block(123).unwrap(),
+        NoteExecutionHint::after_block(123.into()).unwrap(),
         ZERO,
     )
     .unwrap();
@@ -631,7 +631,7 @@ fn test_build_recipient_hash() {
         output_serial_no = prepare_word(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
-        execution_hint = Felt::from(NoteExecutionHint::after_block(2).unwrap()),
+        execution_hint = Felt::from(NoteExecutionHint::after_block(2.into()).unwrap()),
         aux = aux,
     );
 

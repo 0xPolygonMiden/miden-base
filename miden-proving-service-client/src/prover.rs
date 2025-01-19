@@ -80,8 +80,9 @@ impl TransactionProver for RemoteTransactionProver {
         let mut client = self
             .client
             .write()
-            .take()
-            .ok_or_else(|| TransactionProverError::other("client should be connected"))?;
+            .as_ref()
+            .ok_or_else(|| TransactionProverError::other("client should be connected"))?
+            .clone();
 
         let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
             transaction_witness: tx_witness.to_bytes(),

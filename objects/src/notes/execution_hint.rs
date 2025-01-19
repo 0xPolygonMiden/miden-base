@@ -3,7 +3,7 @@
 
 use vm_core::Felt;
 
-use crate::NoteError;
+use crate::{block::BlockNumber, NoteError};
 
 /// Specifies the conditions under which a note is ready to be consumed.
 /// These conditions are meant to be encoded in the note script as well.
@@ -79,7 +79,7 @@ impl NoteExecutionHint {
     /// # Errors
     ///
     /// Returns an error if `block_num` is equal to [`u32::MAX`].
-    pub fn after_block(block_num: u32) -> Result<Self, NoteError> {
+    pub fn after_block(block_num: BlockNumber) -> Result<Self, NoteError> {
         AfterBlockNumber::new(block_num)
             .map(|block_number| NoteExecutionHint::AfterBlock { block_num: block_number })
     }
@@ -104,7 +104,7 @@ impl NoteExecutionHint {
                 }
                 Ok(NoteExecutionHint::Always)
             },
-            Self::AFTER_BLOCK_TAG => NoteExecutionHint::after_block(payload),
+            Self::AFTER_BLOCK_TAG => NoteExecutionHint::after_block(payload.into()),
             Self::ON_BLOCK_SLOT_TAG => {
                 let remainder = (payload >> 24 & 0xff) as u8;
                 if remainder != 0 {
@@ -128,7 +128,8 @@ impl NoteExecutionHint {
     /// - `None` if we don't know whether the note can be consumed.
     /// - `Some(true)` if the note is consumable for the given `block_num`
     /// - `Some(false)` if the note is not consumable for the given `block_num`
-    pub fn can_be_consumed(&self, block_num: u32) -> Option<bool> {
+    pub fn can_be_consumed(&self, block_num: BlockNumber) -> Option<bool> {
+        let block_num = block_num.as_u32();
         match self {
             NoteExecutionHint::None => None,
             NoteExecutionHint::Always => Some(true),
@@ -213,7 +214,7 @@ impl From<NoteExecutionHint> for u64 {
 ///
 /// Used for the [`NoteExecutionHint::AfterBlock`] variant where this constraint is needed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AfterBlockNumber(u32);
+pub struct AfterBlockNumber(BlockNumber);
 
 impl AfterBlockNumber {
     /// Creates a new [`AfterBlockNumber`] from the given `block_number`.
@@ -222,8 +223,8 @@ impl AfterBlockNumber {
     ///
     /// Returns an error if:
     /// - `block_number` is equal to `u32::MAX`.
-    pub fn new(block_number: u32) -> Result<Self, NoteError> {
-        if block_number == u32::MAX {
+    pub fn new(block_number: BlockNumber) -> Result<Self, NoteError> {
+        if block_number.as_u32() == u32::MAX {
             Err(NoteError::NoteExecutionHintAfterBlockCannotBeU32Max)
         } else {
             Ok(Self(block_number))
@@ -232,13 +233,13 @@ impl AfterBlockNumber {
 
     /// Returns the block number as a `u32`.
     pub fn as_u32(&self) -> u32 {
-        self.0
+        self.0.as_u32()
     }
 }
 
 impl From<AfterBlockNumber> for u32 {
     fn from(block_number: AfterBlockNumber) -> Self {
-        block_number.0
+        block_number.0.as_u32()
     }
 }
 
@@ -246,7 +247,7 @@ impl TryFrom<u32> for AfterBlockNumber {
     type Error = NoteError;
 
     fn try_from(block_number: u32) -> Result<Self, Self::Error> {
-        Self::new(block_number)
+        Self::new(block_number.into())
     }
 }
 
@@ -269,7 +270,7 @@ mod tests {
     fn test_serialization_round_trip() {
         assert_hint_serde(NoteExecutionHint::None);
         assert_hint_serde(NoteExecutionHint::Always);
-        assert_hint_serde(NoteExecutionHint::after_block(15).unwrap());
+        assert_hint_serde(NoteExecutionHint::after_block(15.into()).unwrap());
         assert_hint_serde(NoteExecutionHint::OnBlockSlot {
             round_len: 9,
             slot_len: 12,
@@ -279,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_encode_round_trip() {
-        let hint = NoteExecutionHint::after_block(15).unwrap();
+        let hint = NoteExecutionHint::after_block(15.into()).unwrap();
         let hint_int: u64 = hint.into();
         let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
         assert_eq!(hint, decoded_hint);
@@ -300,25 +301,25 @@ mod tests {
     #[test]
     fn test_can_be_consumed() {
         let none = NoteExecutionHint::none();
-        assert!(none.can_be_consumed(100).is_none());
+        assert!(none.can_be_consumed(100.into()).is_none());
 
         let always = NoteExecutionHint::always();
-        assert!(always.can_be_consumed(100).unwrap());
+        assert!(always.can_be_consumed(100.into()).unwrap());
 
-        let after_block = NoteExecutionHint::after_block(12345).unwrap();
-        assert!(!after_block.can_be_consumed(12344).unwrap());
-        assert!(after_block.can_be_consumed(12345).unwrap());
+        let after_block = NoteExecutionHint::after_block(12345.into()).unwrap();
+        assert!(!after_block.can_be_consumed(12344.into()).unwrap());
+        assert!(after_block.can_be_consumed(12345.into()).unwrap());
 
         let on_block_slot = NoteExecutionHint::on_block_slot(10, 7, 1);
-        assert!(!on_block_slot.can_be_consumed(127).unwrap()); // Block 127 is not in the slot 128..255
-        assert!(on_block_slot.can_be_consumed(128).unwrap()); // Block 128 is in the slot 128..255
-        assert!(on_block_slot.can_be_consumed(255).unwrap()); // Block 255 is in the slot 128..255
-        assert!(!on_block_slot.can_be_consumed(256).unwrap()); // Block 256 is not in the slot 128..255
-        assert!(on_block_slot.can_be_consumed(1152).unwrap()); // Block 1152 is in the slot 1152..1279
-        assert!(on_block_slot.can_be_consumed(1279).unwrap()); // Block 1279 is in the slot 1152..1279
-        assert!(on_block_slot.can_be_consumed(2176).unwrap()); // Block 2176 is in the slot 2176..2303
-        assert!(!on_block_slot.can_be_consumed(2175).unwrap()); // Block 1279 is in the slot
-                                                                // 2176..2303
+        assert!(!on_block_slot.can_be_consumed(127.into()).unwrap()); // Block 127 is not in the slot 128..255
+        assert!(on_block_slot.can_be_consumed(128.into()).unwrap()); // Block 128 is in the slot 128..255
+        assert!(on_block_slot.can_be_consumed(255.into()).unwrap()); // Block 255 is in the slot 128..255
+        assert!(!on_block_slot.can_be_consumed(256.into()).unwrap()); // Block 256 is not in the slot 128..255
+        assert!(on_block_slot.can_be_consumed(1152.into()).unwrap()); // Block 1152 is in the slot 1152..1279
+        assert!(on_block_slot.can_be_consumed(1279.into()).unwrap()); // Block 1279 is in the slot 1152..1279
+        assert!(on_block_slot.can_be_consumed(2176.into()).unwrap()); // Block 2176 is in the slot 2176..2303
+        assert!(!on_block_slot.can_be_consumed(2175.into()).unwrap()); // Block 1279 is in the slot
+                                                                       // 2176..2303
     }
 
     #[test]
@@ -335,7 +336,7 @@ mod tests {
     #[test]
     fn test_after_block_fails_on_u32_max() {
         assert_matches!(
-            NoteExecutionHint::after_block(u32::MAX).unwrap_err(),
+            NoteExecutionHint::after_block(u32::MAX.into()).unwrap_err(),
             NoteError::NoteExecutionHintAfterBlockCannotBeU32Max
         );
     }
