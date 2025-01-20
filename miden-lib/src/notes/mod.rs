@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use miden_objects::{
     accounts::AccountId,
     assets::Asset,
+    block::BlockNumber,
     crypto::rand::FeltRng,
     notes::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
@@ -65,7 +66,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     assets: Vec<Asset>,
     note_type: NoteType,
     aux: Felt,
-    recall_height: u32,
+    recall_height: BlockNumber,
     rng: &mut R,
 ) -> Result<Note, NoteError> {
     let note_script = scripts::p2idr();

@@ -17,7 +17,6 @@ path = "src/main.rs"
 
 [features]
 default = ["concurrent"]
-testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
 concurrent = ["miden-tx/concurrent"]
 
 [dependencies]
@@ -29,7 +28,6 @@ figment = { version = "0.10", features = ["toml", "env"] }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false, features = ["std"] }
 miden-tx = { workspace = true, default-features = false, features = ["std"] }
-once_cell = "1.19"
 opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
 opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
@@ -40,7 +38,7 @@ pingora = { version = "0.4", features = [ "lb" ] }
 pingora-core = "0.4"
 pingora-proxy = "0.4"
 pingora-limits = "0.4"
-reqwest = { version = "0.11" }
+reqwest = { version = "0.12" }
 serde = { version = "1.0", features = ["derive"] }
 serde_qs = { version = "0.13" }
 tokio = { version = "1.38", features = ["full"] }

@@ -562,7 +562,7 @@ fn test_build_note_metadata() {
         sender,
         NoteType::Private,
         NoteTag::from_account_id(receiver, NoteExecutionMode::Local).unwrap(),
-        NoteExecutionHint::after_block(500).unwrap(),
+        NoteExecutionHint::after_block(500.into()).unwrap(),
         Felt::try_from(1u64 << 63).unwrap(),
     )
     .unwrap();
