@@ -8,7 +8,7 @@ use miette::IntoDiagnostic;
 use protox::prost::Message;
 
 /// Defines whether the build script can write to /src.
-const CAN_WRITE_TO_SRC: bool = option_env!("DOCS_RS").is_none();
+const CAN_WRITE_TO_SRC: bool = option_env!("CAN_WRITE_TO_SRC").is_some();
 
 /// Generates Rust protobuf bindings from .proto files.
 fn main() -> miette::Result<()> {
