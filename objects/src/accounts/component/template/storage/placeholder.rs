@@ -161,7 +161,7 @@ impl Deserializable for StoragePlaceholder {
 /// A [StorageValue] can be one of:
 /// - `Felt(Felt)`: a single [Felt] value
 /// - `Word(Word)`: a single [Word] value
-/// - `Map(StorageMap)`: a storage map entries that maps [Digest] to [Word]
+/// - `Map(StorageMap)`: a storage map
 ///
 /// These values are used to resolve dynamic placeholders at component instantiation.
 #[derive(Clone, Debug)]
