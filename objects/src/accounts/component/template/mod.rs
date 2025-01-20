@@ -98,7 +98,10 @@ impl Deserializable for AccountComponentTemplate {
 ///   index 0.
 /// - Storage slots are laid out in a contiguous manner.
 /// - Storage placeholders can appear multiple times, but only if the expected [StorageValue] is of
-///   the same type in all instances.
+///   the same type in all instances. The expected placeholders can be retrieved with
+///   [AccountComponentMetadata::get_unique_storage_placeholders()], which returns a map from
+///   [StoragePlaceholder] to [PlaceholderType] (which, in turn, indicates the expected value type
+///   for the placeholder).
 ///
 /// # Example
 ///
@@ -193,7 +196,7 @@ impl AccountComponentMetadata {
 
     /// Retrieves a map of unique storage placeholders mapped to their expected type that require
     /// a value at the moment of component instantiation. These values will be used for
-    /// initializing storage slot values, or storage map entries.For a full example on how a
+    /// initializing storage slot values, or storage map entries. For a full example on how a
     /// placeholder may be utilized, please refer to the docs for [AccountComponentMetadata].
     ///
     /// Types for the returned storage placeholders are inferred based on their location in the
@@ -240,7 +243,7 @@ impl AccountComponentMetadata {
     /// # Errors
     ///
     /// - If the specified storage slots contain duplicates.
-    /// - If the template contains multiple storage placeholders with  of different type.
+    /// - If the template contains multiple storage placeholders of different type.
     /// - If the slot numbers do not start at zero.
     /// - If the slots are not contiguous.
     fn validate(&self) -> Result<(), AccountComponentTemplateError> {
@@ -299,7 +302,7 @@ impl AccountComponentMetadata {
         Ok(())
     }
 
-    /// Validates map keys.
+    /// Validates map keys by checking for duplicates.
     /// Because keys can be represented in a variety of ways, the `to_string()` implementation is
     /// used to check for duplicates.  
     fn validate_map_keys(&self) -> Result<(), AccountComponentTemplateError> {

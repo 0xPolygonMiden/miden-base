@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, collections::BTreeSet, string::ToString, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeSet, vec::Vec};
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
@@ -138,15 +138,15 @@ impl core::fmt::Display for WordRepresentation {
             WordRepresentation::Value(hex) => f.write_str(&Digest::from(hex).to_hex()),
             WordRepresentation::Array(array) => {
                 f.write_str("[")?;
-                f.write_str(&format!("{}, ", array[0]))?;
-                f.write_str(&format!("{}, ", array[1]))?;
-                f.write_str(&format!("{}, ", array[2]))?;
-                f.write_str(&format!("{}, ", array[3]))?;
+                f.write_fmt(format_args!("{}, ", array[0]))?;
+                f.write_fmt(format_args!("{}, ", array[1]))?;
+                f.write_fmt(format_args!("{}, ", array[2]))?;
+                f.write_fmt(format_args!("{}, ", array[3]))?;
 
                 f.write_str("]")
             },
             WordRepresentation::Template(storage_placeholder) => {
-                f.write_str(&storage_placeholder.to_string())
+                f.write_fmt(format_args!("{}", storage_placeholder))
             },
         }
     }
@@ -259,10 +259,14 @@ impl Deserializable for FeltRepresentation {
 impl core::fmt::Display for FeltRepresentation {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            FeltRepresentation::Hexadecimal(base_element) => f.write_str(&base_element.to_string()),
-            FeltRepresentation::Decimal(base_element) => f.write_str(&base_element.to_string()),
+            FeltRepresentation::Hexadecimal(base_element) => {
+                f.write_fmt(format_args!("{}", base_element))
+            },
+            FeltRepresentation::Decimal(base_element) => {
+                f.write_fmt(format_args!("{}", base_element))
+            },
             FeltRepresentation::Template(storage_placeholder) => {
-                f.write_str(&storage_placeholder.to_string())
+                f.write_fmt(format_args!("{}", storage_placeholder))
             },
         }
     }
