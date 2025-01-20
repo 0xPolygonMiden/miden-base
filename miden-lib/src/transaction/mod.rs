@@ -20,7 +20,7 @@ use super::MidenLib;
 pub mod memory;
 
 mod events;
-pub use events::{TransactionEvent, TransactionTrace};
+pub use events::{TransactionEvent, TransactionTrace, EVENT_ID_PREFIX};
 
 mod inputs;
 

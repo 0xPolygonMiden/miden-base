@@ -60,7 +60,7 @@ pub enum TransactionKernelError {
 
 #[derive(Debug, Error)]
 pub enum TransactionEventError {
-    #[error("event id {0} is not a valid transaction kernel event")]
+    #[error("event id {0} is not a valid transaction event")]
     InvalidTransactionEvent(u32),
     #[error("event id {0} is not a transaction kernel event")]
     NotTransactionEvent(u32),

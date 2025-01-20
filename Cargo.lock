@@ -504,9 +504,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.26"
+version = "4.5.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8eb5e908ef3a6efbe1ed62520fb7287959888c88485abe072543190ecc66783"
+checksum = "769b0145982b4b48713e01ec42d61614425f27b7058bda7180a3a41f30104796"
 dependencies = [
  "clap_builder",
  "clap_derive 4.5.24",
@@ -514,9 +514,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.26"
+version = "4.5.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96b01801b5fc6a0a232407abc821660c9c6d25a1cafc0d4f85f29fb8d9afc121"
+checksum = "1b26884eb4b57140e4d2d93652abfa49498b938b3c9179f9fc487b0acc3edad7"
 dependencies = [
  "anstream",
  "anstyle",
@@ -628,7 +628,7 @@ dependencies = [
  "anes",
  "cast",
  "ciborium",
- "clap 4.5.26",
+ "clap 4.5.27",
  "criterion-plot",
  "is-terminal",
  "itertools 0.10.5",
@@ -1789,7 +1789,7 @@ dependencies = [
 [[package]]
 name = "miden-air"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=8420dcd#8420dcd37078c605f90c87d233eb964ae3468fc9"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=bobbin-falcon-sig-event#3adda05f59450e35283b293d03a5f6c2a6ce947e"
 dependencies = [
  "miden-core",
  "thiserror 2.0.11",
@@ -1800,7 +1800,7 @@ dependencies = [
 [[package]]
 name = "miden-assembly"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=8420dcd#8420dcd37078c605f90c87d233eb964ae3468fc9"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=bobbin-falcon-sig-event#3adda05f59450e35283b293d03a5f6c2a6ce947e"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1831,7 +1831,7 @@ dependencies = [
 [[package]]
 name = "miden-core"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=8420dcd#8420dcd37078c605f90c87d233eb964ae3468fc9"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=bobbin-falcon-sig-event#3adda05f59450e35283b293d03a5f6c2a6ce947e"
 dependencies = [
  "lock_api",
  "loom",
@@ -1961,7 +1961,7 @@ dependencies = [
 [[package]]
 name = "miden-processor"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=8420dcd#8420dcd37078c605f90c87d233eb964ae3468fc9"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=bobbin-falcon-sig-event#3adda05f59450e35283b293d03a5f6c2a6ce947e"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1973,7 +1973,7 @@ dependencies = [
 [[package]]
 name = "miden-prover"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=8420dcd#8420dcd37078c605f90c87d233eb964ae3468fc9"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=bobbin-falcon-sig-event#3adda05f59450e35283b293d03a5f6c2a6ce947e"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -1989,7 +1989,7 @@ dependencies = [
  "async-trait",
  "axum",
  "bytes",
- "clap 4.5.26",
+ "clap 4.5.27",
  "figment",
  "miden-lib",
  "miden-objects",
@@ -2048,7 +2048,7 @@ dependencies = [
 [[package]]
 name = "miden-stdlib"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=8420dcd#8420dcd37078c605f90c87d233eb964ae3468fc9"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=bobbin-falcon-sig-event#3adda05f59450e35283b293d03a5f6c2a6ce947e"
 dependencies = [
  "miden-assembly",
 ]
@@ -2076,7 +2076,7 @@ dependencies = [
 [[package]]
 name = "miden-verifier"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=8420dcd#8420dcd37078c605f90c87d233eb964ae3468fc9"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=bobbin-falcon-sig-event#3adda05f59450e35283b293d03a5f6c2a6ce947e"
 dependencies = [
  "miden-air",
  "miden-core",

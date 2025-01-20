@@ -190,6 +190,6 @@ pub mod utils {
 
 pub mod vm {
     pub use miden_verifier::ExecutionProof;
-    pub use vm_core::{AdviceMap, Program, ProgramInfo};
+    pub use vm_core::{sys_events::SystemEvent, AdviceMap, Program, ProgramInfo};
     pub use vm_processor::{AdviceInputs, RowIndex, StackInputs, StackOutputs};
 }
