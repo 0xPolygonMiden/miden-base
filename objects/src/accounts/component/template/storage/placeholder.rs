@@ -1,16 +1,13 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::string::{String, ToString};
 
 use thiserror::Error;
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, Word,
 };
-use vm_processor::{DeserializationError, Digest};
+use vm_processor::DeserializationError;
 
-use crate::accounts::component::template::AccountComponentTemplateError;
+use crate::accounts::{component::template::AccountComponentTemplateError, StorageMap};
 
 // STORAGE PLACEHOLDER
 // ================================================================================================
@@ -164,14 +161,14 @@ impl Deserializable for StoragePlaceholder {
 /// A [StorageValue] can be one of:
 /// - `Felt(Felt)`: a single [Felt] value
 /// - `Word(Word)`: a single [Word] value
-/// - `Map(Vec<(Digest, Word)>)`: a list of storage map entries, mapping [Digest] to [Word]
+/// - `Map(StorageMap)`: a storage map entries that maps [Digest] to [Word]
 ///
 /// These values are used to resolve dynamic placeholders at component instantiation.
 #[derive(Clone, Debug)]
 pub enum StorageValue {
     Felt(Felt),
     Word(Word),
-    Map(Vec<(Digest, Word)>),
+    Map(StorageMap),
 }
 
 impl StorageValue {
@@ -193,8 +190,8 @@ impl StorageValue {
         }
     }
 
-    /// Returns `Ok(&Vec<(Digest, Word)>>` if the variant is `Map`, otherwise errors.
-    pub fn as_map(&self) -> Result<&Vec<(Digest, Word)>, AccountComponentTemplateError> {
+    /// Returns `Ok(&StorageMap>` if the variant is `Map`, otherwise errors.
+    pub fn as_map(&self) -> Result<&StorageMap, AccountComponentTemplateError> {
         if let StorageValue::Map(map) = self {
             Ok(map)
         } else {

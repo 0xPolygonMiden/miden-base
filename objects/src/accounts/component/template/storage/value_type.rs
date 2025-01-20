@@ -323,15 +323,29 @@ impl MapRepresentation {
         &self,
         init_storage_data: &InitStorageData,
     ) -> Result<StorageMap, AccountComponentTemplateError> {
-        let entries = match self {
-            MapRepresentation::List(vec) => vec
-                .iter()
-                .map(|map_entry| {
-                    let key = map_entry.key().try_build_word(init_storage_data)?;
-                    let value = map_entry.value().try_build_word(init_storage_data)?;
-                    Ok((key.into(), value))
-                })
-                .collect::<Result<Vec<(Digest, Word)>, _>>()?,
+        let map = match self {
+            MapRepresentation::List(vec) => {
+                let entries = vec
+                    .iter()
+                    .map(|map_entry| {
+                        let key = map_entry.key().try_build_word(init_storage_data)?;
+                        let value = map_entry.value().try_build_word(init_storage_data)?;
+                        Ok((key.into(), value))
+                    })
+                    .collect::<Result<Vec<(Digest, Word)>, _>>()?;
+
+                // validate that no key appears multiple times
+                let mut seen_keys = BTreeSet::new();
+                for (map_key, _map_value) in entries.iter() {
+                    if !seen_keys.insert(map_key) {
+                        return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(
+                            map_key.to_hex(),
+                        ));
+                    }
+                }
+
+                StorageMap::with_entries(entries)
+            },
             MapRepresentation::Template(storage_placeholder) => init_storage_data
                 .get(storage_placeholder)
                 .ok_or_else(|| {
@@ -343,16 +357,7 @@ impl MapRepresentation {
                 .cloned()?,
         };
 
-        // validate that no key appears multiple times
-        let mut seen_keys = BTreeSet::new();
-        for (map_key, _map_value) in entries.iter() {
-            if !seen_keys.insert(map_key) {
-                return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(
-                    map_key.to_hex(),
-                ));
-            }
-        }
-        Ok(StorageMap::with_entries(entries))
+        Ok(map)
     }
 }
 

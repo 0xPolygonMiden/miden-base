@@ -348,14 +348,13 @@ mod tests {
     use assembly::Assembler;
     use assert_matches::assert_matches;
     use semver::Version;
-    use vm_core::{Felt, FieldElement, Word};
-    use vm_processor::Digest;
+    use vm_core::{Felt, FieldElement};
 
     use super::*;
     use crate::{
         accounts::{
             component::template::{AccountComponentMetadata, AccountComponentTemplate},
-            AccountComponent, AccountType,
+            AccountComponent, AccountType, StorageMap,
         },
         digest,
         testing::account_code::CODE,
@@ -509,7 +508,7 @@ mod tests {
             ),
             (
                 StoragePlaceholder::new("map.template").unwrap(),
-                StorageValue::Map(vec![(Digest::default(), Word::default())]),
+                StorageValue::Map(StorageMap::default()),
             ),
         ]);
 
