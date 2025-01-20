@@ -1,14 +1,16 @@
-use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec, boxed::Box};
+use alloc::{boxed::Box, collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
-use miden_lib::{errors::tx_kernel_errors::TX_KERNEL_ERRORS, transaction::{TransactionEvent, TransactionEventError}};
+use miden_lib::{
+    errors::tx_kernel_errors::TX_KERNEL_ERRORS,
+    transaction::{TransactionEvent, TransactionEventError},
+};
 use miden_objects::{
     accounts::{AccountHeader, AccountVaultDelta},
     Digest,
 };
 use vm_processor::{
-    AdviceInputs, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Host, MastForest, MastForestStore, MemAdviceProvider,
-    ProcessState,
+    AdviceInputs, AdviceProvider, AdviceSource, ContextId, ExecutionError, Host, MastForest,
+    MastForestStore, MemAdviceProvider, ProcessState,
 };
 
 use crate::{host::AccountProcedureIndexMap, TransactionMastStore};
@@ -88,17 +90,15 @@ impl Host for MockHost {
         self.mast_store.get(node_digest)
     }
 
-    fn on_event(
-        &mut self,
-        process: ProcessState,
-        event_id: u32,
-    ) -> Result<(), ExecutionError> {
+    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
         let event = TransactionEvent::try_from(event_id)
             .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
-            if process.ctx() != ContextId::root() {
-                return Err(ExecutionError::EventError(Box::new(TransactionEventError::NotRootContext(event_id))));
-            }
+        if process.ctx() != ContextId::root() {
+            return Err(ExecutionError::EventError(Box::new(
+                TransactionEventError::NotRootContext(event_id),
+            )));
+        }
 
         match event {
             TransactionEvent::AccountPushProcedureIndex => {

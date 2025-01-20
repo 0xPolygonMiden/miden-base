@@ -24,8 +24,8 @@ use miden_objects::{
         storage::prepare_assets,
     },
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
-    FieldElement,
     vm::AdviceMap,
+    FieldElement,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;

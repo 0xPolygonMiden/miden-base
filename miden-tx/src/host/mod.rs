@@ -1,16 +1,16 @@
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     string::ToString,
     sync::Arc,
     vec::Vec,
-    boxed::Box,
 };
 
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
     transaction::{
         memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
-        TransactionEvent, TransactionKernelError, TransactionTrace, TransactionEventError
+        TransactionEvent, TransactionEventError, TransactionKernelError, TransactionTrace,
     },
 };
 use miden_objects::{
@@ -22,8 +22,8 @@ use miden_objects::{
     Digest, Hasher,
 };
 use vm_processor::{
-    AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt,
-    Host, MastForest, MastForestStore, ProcessState,
+    AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt, Host, MastForest,
+    MastForestStore, ProcessState,
 };
 
 mod account_delta_tracker;
@@ -383,10 +383,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// This signature is created during transaction execution and stored for use as advice map
     /// inputs in the proving host. If not already present in the advice map, it is requested from
     /// the host's authenticator.
-    pub fn on_signature_requested(
-        &mut self,
-        process: ProcessState,
-    ) -> Result<(), ExecutionError> {
+    pub fn on_signature_requested(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
         let pub_key = process.get_stack_word(0);
         let msg = process.get_stack_word(1);
         let signature_key = Hasher::merge(&[pub_key.into(), msg.into()]);
@@ -485,17 +482,15 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
         self.mast_store.get(node_digest)
     }
 
-    fn on_event(
-        &mut self,
-        process: ProcessState,
-        event_id: u32,
-    ) -> Result<(), ExecutionError> {
+    fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
         let event = TransactionEvent::try_from(event_id)
             .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
-            if process.ctx() != ContextId::root() {
-                return Err(ExecutionError::EventError(Box::new(TransactionEventError::NotRootContext(event_id))));
-            }
+        if process.ctx() != ContextId::root() {
+            return Err(ExecutionError::EventError(Box::new(
+                TransactionEventError::NotRootContext(event_id),
+            )));
+        }
 
         match event {
             TransactionEvent::AccountVaultBeforeAddAsset => Ok(()),
@@ -538,11 +533,7 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
         Ok(())
     }
 
-    fn on_trace(
-        &mut self,
-        process: ProcessState,
-        trace_id: u32,
-    ) -> Result<(), ExecutionError> {
+    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
         let event = TransactionTrace::try_from(trace_id)
             .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 

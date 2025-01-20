@@ -240,7 +240,7 @@ fn test_block_expiration_height_monotonically_decreases() {
             .replace("{value_2}", &v2.to_string())
             .replace("{min_value}", &v2.min(v1).to_string());
 
-        let process = &tx_context.execute_code(&code).unwrap();
+        let process = &tx_context.execute_code(code).unwrap();
         let process_state: ProcessState = process.into();
 
         // Expiry block should be set to transaction's block + the stored expiration delta
@@ -294,7 +294,7 @@ fn test_no_expiration_delta_set() {
     end
     ";
 
-    let process = &tx_context.execute_code(&code_template).unwrap();
+    let process = &tx_context.execute_code(code_template).unwrap();
     let process_state: ProcessState = process.into();
 
     // Default value should be equal to u32::max, set in the prologue

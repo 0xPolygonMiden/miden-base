@@ -16,9 +16,7 @@ use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 use super::{Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
-    testing::{
-        utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder,
-    },
+    testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},
     tests::kernel_tests::read_root_mem_value,
 };
 

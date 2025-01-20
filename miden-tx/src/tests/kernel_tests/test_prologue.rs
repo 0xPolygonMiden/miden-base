@@ -50,8 +50,7 @@ use super::{Felt, Process, Word, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
-        utils::input_note_data_ptr, MockChain, TransactionContext,
-        TransactionContextBuilder,
+        utils::input_note_data_ptr, MockChain, TransactionContext, TransactionContextBuilder,
     },
     tests::kernel_tests::read_root_mem_value,
 };

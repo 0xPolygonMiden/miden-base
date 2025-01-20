@@ -64,7 +64,7 @@ pub enum TransactionEventError {
     InvalidTransactionEvent(u32),
     #[error("event id {0} is not a transaction kernel event")]
     NotTransactionEvent(u32),
-    #[error("{0} event can only be emitted from the root context")]
+    #[error("event id {0} can only be emitted from the root context")]
     NotRootContext(u32),
 }
 

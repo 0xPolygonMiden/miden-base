@@ -367,9 +367,21 @@ fn test_get_storage_slot_type() {
         assert_eq!(process_state.get_stack_item(1), ZERO, "the rest of the stack is empty");
         assert_eq!(process_state.get_stack_item(2), ZERO, "the rest of the stack is empty");
         assert_eq!(process_state.get_stack_item(3), ZERO, "the rest of the stack is empty");
-        assert_eq!(Word::default(), process_state.get_stack_word(1), "the rest of the stack is empty");
-        assert_eq!(Word::default(), process_state.get_stack_word(2), "the rest of the stack is empty");
-        assert_eq!(Word::default(), process_state.get_stack_word(3), "the rest of the stack is empty");
+        assert_eq!(
+            Word::default(),
+            process_state.get_stack_word(1),
+            "the rest of the stack is empty"
+        );
+        assert_eq!(
+            Word::default(),
+            process_state.get_stack_word(2),
+            "the rest of the stack is empty"
+        );
+        assert_eq!(
+            Word::default(),
+            process_state.get_stack_word(3),
+            "the rest of the stack is empty"
+        );
     }
 }
 
