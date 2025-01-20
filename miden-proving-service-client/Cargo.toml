@@ -1,15 +1,14 @@
 [package]
-name = "miden-remote-provers"
+name = "miden-proving-service-client"
 version = "0.1.0"
 description = "client library that provides a client for the remote provers"
 readme = "README.md"
-keywords = ["miden", "miden-remote-provers"]
+keywords = ["miden", "miden-proving-service-client"]
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
-
 
 [lib]
 crate-type = ["lib"]

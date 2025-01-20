@@ -2,7 +2,7 @@ use std::{
     collections::VecDeque,
     future::Future,
     pin::Pin,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
 
@@ -13,7 +13,6 @@ use metrics::{
     REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
     WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
 };
-use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
     lb::Backend,
@@ -275,7 +274,7 @@ impl LoadBalancerState {
 }
 
 /// Rate limiter
-static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
+static RATE_LIMITER: LazyLock<Rate> = LazyLock::new(|| Rate::new(Duration::from_secs(1)));
 
 // REQUEST QUEUE
 // ================================================================================================
@@ -329,7 +328,7 @@ impl RequestQueue {
 }
 
 /// Shared state. It keeps track of the order of the requests to then assign them to the workers.
-static QUEUE: Lazy<RequestQueue> = Lazy::new(RequestQueue::new);
+static QUEUE: LazyLock<RequestQueue> = LazyLock::new(RequestQueue::new);
 
 // REQUEST CONTEXT
 // ================================================================================================

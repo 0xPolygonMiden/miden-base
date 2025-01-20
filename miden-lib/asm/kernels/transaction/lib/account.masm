@@ -566,7 +566,7 @@ end
 #! - We assume that index has been validated and is within bounds.
 #!
 #! Where:
-#! - index is the index of the storage slot that contains the the map root.
+#! - index is the index of the storage slot that contains the map root.
 #! - VALUE is the value of the map item at KEY.
 #!
 #! Panics if:

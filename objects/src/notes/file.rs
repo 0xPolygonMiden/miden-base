@@ -2,6 +2,7 @@ use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{Note, NoteDetails, NoteId, NoteInclusionProof, NoteTag};
+use crate::block::BlockNumber;
 
 // NOTE FILE
 // ================================================================================================
@@ -20,7 +21,7 @@ pub enum NoteFile {
     /// treated as a hint.
     NoteDetails {
         details: NoteDetails,
-        after_block_num: u32,
+        after_block_num: BlockNumber,
         tag: Option<NoteTag>,
     },
     /// The note has been recorded on chain.
@@ -29,7 +30,11 @@ pub enum NoteFile {
 
 impl From<NoteDetails> for NoteFile {
     fn from(details: NoteDetails) -> Self {
-        NoteFile::NoteDetails { details, after_block_num: 0, tag: None }
+        NoteFile::NoteDetails {
+            details,
+            after_block_num: 0.into(),
+            tag: None,
+        }
     }
 }
 
@@ -77,7 +82,7 @@ impl Deserializable for NoteFile {
             0 => Ok(NoteFile::NoteId(NoteId::read_from(source)?)),
             1 => {
                 let details = NoteDetails::read_from(source)?;
-                let after_block_num = u32::read_from(source)?;
+                let after_block_num = BlockNumber::read_from(source)?;
                 let tag = Option::<NoteTag>::read_from(source)?;
                 Ok(NoteFile::NoteDetails { details, after_block_num, tag })
             },
@@ -175,7 +180,7 @@ mod tests {
         let note = create_example_note();
         let file = NoteFile::NoteDetails {
             details: note.details.clone(),
-            after_block_num: 456,
+            after_block_num: 456.into(),
             tag: Some(NoteTag::from(123)),
         };
         let mut buffer = Vec::new();
@@ -186,7 +191,7 @@ mod tests {
         match file_copy {
             NoteFile::NoteDetails { details, after_block_num, tag } => {
                 assert_eq!(details, note.details);
-                assert_eq!(after_block_num, 456);
+                assert_eq!(after_block_num, 456.into());
                 assert_eq!(tag, Some(NoteTag::from(123)));
             },
             _ => panic!("Invalid note file variant"),

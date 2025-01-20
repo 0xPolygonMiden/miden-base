@@ -10,3 +10,7 @@ Description of this crate's features:
 | ------------ | ------------------------------------------------------------------------------------------------------------|
 | `std`        | Enable usage of Rust's `std`, use `--no-default-features` for `no-std` support.                             |
 | `tx-prover`  | Makes the `RemoteTransactionProver` struct public.                                                          |
+
+## License
+
+This project is [MIT licensed](../LICENSE).

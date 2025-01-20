@@ -25,8 +25,8 @@ fn p2idr_script() {
     let malicious_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
 
     // Create the reclaim block heights
-    let reclaim_block_height_in_time = 7_u32;
-    let reclaim_block_height_reclaimable = 2_u32;
+    let reclaim_block_height_in_time = 7.into();
+    let reclaim_block_height_reclaimable = 2.into();
 
     // Create the notes with the P2IDR script
     let note_in_time = mock_chain
