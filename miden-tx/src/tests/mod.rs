@@ -861,8 +861,7 @@ fn test_tx_script() {
         push.{key}
 
         # load the tx script input value from the map and read it onto the stack
-        adv.push_mapval push.16073 drop         # TODO: remove line, see miden-vm/#1122
-        adv_loadw
+        adv.push_mapval adv_loadw
 
         # assert that the value is correct
         push.{value} assert_eqw
