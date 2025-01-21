@@ -20,7 +20,7 @@ use walkdir::WalkDir;
 // ================================================================================================
 
 /// Defines whether the build script can write to /src.
-const BUILD_GENERATED_FILES: bool = option_env!("BUILD_GENERATED_FILES").is_some();
+const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
 const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
@@ -42,7 +42,7 @@ const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 fn main() -> Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed={ASM_DIR}");
-    println!("cargo::rerun-if-env-changed=BUILD_GENERATED_FILES");
+    println!("cargo::rerun-if-env-changed=BUILD_GENERATED_FILES_IN_SRC");
 
     // Copies the MASM code to the build directory
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -75,11 +75,7 @@ fn main() -> Result<()> {
     // compile account components
     compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
 
-    // Skip this build script if BUILD_GENERATED_FILES is not set.
-    if BUILD_GENERATED_FILES {
-        // Generate kernel error constants.
-        generate_kernel_error_constants(&source_dir)?;
-    }
+    generate_kernel_error_constants(&source_dir)?;
 
     Ok(())
 }
@@ -164,7 +160,7 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
     // Because the kernel Rust file will be stored under ./src, this should be a no-op if we can't
     // write there
-    if !BUILD_GENERATED_FILES {
+    if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 
@@ -446,7 +442,7 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
     // Because the error files will be written to ./src/errors, this should be a no-op if ./src is
     // read-only
-    if !BUILD_GENERATED_FILES {
+    if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 

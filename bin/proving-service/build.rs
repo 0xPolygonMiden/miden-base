@@ -7,13 +7,13 @@ use miette::IntoDiagnostic;
 use protox::prost::Message;
 
 /// Defines whether the build script can write to /src.
-const BUILD_GENERATED_FILES: bool = option_env!("BUILD_GENERATED_FILES").is_some();
+const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
 /// Generates Rust protobuf bindings from .proto files.
 fn main() -> miette::Result<()> {
     // The docs.rs build pipeline has a read-only filesystem, so we want to return early or
     // otherwise the docs will fail to build there.
-    if !BUILD_GENERATED_FILES {
+    if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 
