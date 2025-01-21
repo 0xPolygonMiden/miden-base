@@ -2,7 +2,7 @@
 
 > The snapshot of all accounts, notes, nullifiers and their statuses in Miden, reflecting the “current reality” of the protocol at any given time.
 
-## What is the purpose of state?
+## What is the purpose of the Miden state model?
 
 By employing a concurrent `State` model with local execution and proving, Miden achieves three primary properties: preserving privacy, supporting parallel transactions, and reducing state-bloat by minimizing on-chain data storage.
 
@@ -38,7 +38,7 @@ The accounts database has two main purposes:
 1. Track state commitments of all accounts
 2. Store account data for public accounts
 
-This is done using an authenticated data structure, a sparse merkle tree.
+This is done using an authenticated data structure, a sparse Merkle tree.
 
 ![Architecture core concepts](../img/architecture/state/account-db.png)
 
@@ -78,7 +78,7 @@ Both of these properties are needed for supporting local transactions using clie
 
 Each [note](notes.md) has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.
 
-To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is 0. Since nullifiers are 32 bytes each, the Sparse Merkle Tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
+To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is 0. Since nullifiers are 32 bytes each, the sparse Merkle tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
 
 > **Note**
 > - Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the [note’s nullifier](notes.md#note-nullifier-ensuring-private-consumption), one must know the note’s data.
@@ -103,7 +103,7 @@ In this diagram, multiple participants interact with a common, publicly accessib
    These transactions occur in parallel and do not rely on each other, allowing concurrent processing without contention.
 
 2. **Sequencing and Consuming Notes (tx3):**  
-   The Miden node executes tx3 against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. tx3 is a network transaction executed by the sequencer. It merges independent contributions into a unified `State` update.
+   The Miden node executes tx3 against the shared account, consuming **notes 1 & 2** and producing **notes 3 & 4**. tx3 is a network transaction executed by the Miden operator. It merges independent contributions into a unified `State` update.
 
 3. **Further Independent Transactions (tx4 & tx5):**  
    After the shared `State` is updated:

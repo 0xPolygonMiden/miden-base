@@ -48,7 +48,7 @@ A `Note` can have up to 128 input values, which adds up to a maximum of 1 KB of 
 
 > A unique and immutable identifier for the `Note`.
 
-The serial number helps prevent linkability between the `Note`’s hash and its nullifier. It should be random 32 bytes chosen by the user. If leaked, the `Note`’s nullifier can be easily computed, potentially compromising privacy.
+The serial number has two main purposes. Firstly by adding some randomness to the `Note` it ensures it's uniqueness, secondly in private `Note`s it helps prevent linkability between the `Note`'s hash and its nullifier. The serial number should be a random 32 bytes number chosen by the user. If leaked, the `Note`’s nullifier can be easily computed, potentially compromising privacy.
 
 ### Metadata
 
@@ -78,7 +78,7 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 
 #### Ephemeral note
 
-These use-case specific `Note`s can be consumed even if not yet validated by being chained together into one final proof. This can allow for example sub second communication below blocktimes by adding additional trust assumptions.
+These specific `Note`s can be consumed even if not yet registered on-chain. They can be chained together into one final proof. This can allow for example sub-second communication below blocktimes by adding additional trust assumptions.
 
 ### Note validation
 
