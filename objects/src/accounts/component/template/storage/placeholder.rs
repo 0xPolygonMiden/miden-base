@@ -1,16 +1,13 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::string::{String, ToString};
 
 use thiserror::Error;
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, Word,
 };
-use vm_processor::{DeserializationError, Digest};
+use vm_processor::DeserializationError;
 
-use crate::accounts::component::template::AccountComponentTemplateError;
+use crate::accounts::{component::template::AccountComponentTemplateError, StorageMap};
 
 // STORAGE PLACEHOLDER
 // ================================================================================================
@@ -26,6 +23,26 @@ use crate::accounts::component::template::AccountComponentTemplateError;
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StoragePlaceholder {
     key: String,
+}
+
+/// An identifier for the expected type for a storage placeholder.
+/// These indicate which variant of [StorageValue] should be provided when instantiating a
+/// component.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PlaceholderType {
+    Felt,
+    Map,
+    Word,
+}
+
+impl core::fmt::Display for PlaceholderType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            PlaceholderType::Felt => f.write_str("Felt"),
+            PlaceholderType::Map => f.write_str("Map"),
+            PlaceholderType::Word => f.write_str("Word"),
+        }
+    }
 }
 
 impl StoragePlaceholder {
@@ -144,14 +161,14 @@ impl Deserializable for StoragePlaceholder {
 /// A [StorageValue] can be one of:
 /// - `Felt(Felt)`: a single [Felt] value
 /// - `Word(Word)`: a single [Word] value
-/// - `Map(Vec<(Digest, Word)>)`: a list of storage map entries, mapping [Digest] to [Word]
+/// - `Map(StorageMap)`: a storage map
 ///
 /// These values are used to resolve dynamic placeholders at component instantiation.
 #[derive(Clone, Debug)]
 pub enum StorageValue {
     Felt(Felt),
     Word(Word),
-    Map(Vec<(Digest, Word)>),
+    Map(StorageMap),
 }
 
 impl StorageValue {
@@ -173,8 +190,8 @@ impl StorageValue {
         }
     }
 
-    /// Returns `Ok(&Vec<(Digest, Word)>>` if the variant is `Map`, otherwise errors.
-    pub fn as_map(&self) -> Result<&Vec<(Digest, Word)>, AccountComponentTemplateError> {
+    /// Returns `Ok(&StorageMap>` if the variant is `Map`, otherwise errors.
+    pub fn as_map(&self) -> Result<&StorageMap, AccountComponentTemplateError> {
         if let StorageValue::Map(map) = self {
             Ok(map)
         } else {

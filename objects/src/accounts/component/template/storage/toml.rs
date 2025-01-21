@@ -8,10 +8,11 @@ use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use vm_core::Felt;
 use vm_processor::Digest;
 
-use super::{FeltRepresentation, StorageEntry, StoragePlaceholder, WordRepresentation};
+use super::{
+    FeltRepresentation, MapRepresentation, StorageEntry, StoragePlaceholder, WordRepresentation,
+};
 use crate::{
-    accounts::{component::template::MapEntry, AccountComponentMetadata},
-    errors::AccountComponentTemplateError,
+    accounts::AccountComponentMetadata, errors::AccountComponentTemplateError,
     utils::parse_hex_string_as_word,
 };
 
@@ -40,6 +41,7 @@ impl AccountComponentMetadata {
         Ok(toml)
     }
 }
+
 // WORD REPRESENTATION SERIALIZATION
 // ================================================================================================
 
@@ -50,7 +52,7 @@ impl serde::Serialize for WordRepresentation {
     {
         use serde::ser::SerializeSeq;
         match self {
-            WordRepresentation::Hexadecimal(word) => {
+            WordRepresentation::Value(word) => {
                 // Ensure that the length of the vector is exactly 4
                 let word = Digest::from(word);
                 serializer.serialize_str(&word.to_string())
@@ -99,7 +101,7 @@ impl<'de> serde::Deserialize<'de> for WordRepresentation {
                     )
                 })?;
 
-                Ok(WordRepresentation::Hexadecimal(word))
+                Ok(WordRepresentation::Value(word))
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -207,9 +209,7 @@ enum StorageValues {
     /// List of individual words (for multi-slot entries).
     Words(Vec<WordRepresentation>),
     /// List of key-value entries (for map storage slots).
-    MapEntries(Vec<MapEntry>),
-    /// A placeholder value, represented as "{{key}}".
-    Template(StoragePlaceholder),
+    MapEntries(MapRepresentation),
 }
 
 impl StorageValues {
@@ -217,7 +217,6 @@ impl StorageValues {
         match self {
             StorageValues::Words(_) => true,
             StorageValues::MapEntries(_) => false,
-            StorageValues::Template(_) => false,
         }
     }
 
@@ -225,23 +224,20 @@ impl StorageValues {
         match self {
             StorageValues::Words(vec) => Some(vec),
             StorageValues::MapEntries(_) => None,
-            StorageValues::Template(_) => None,
         }
     }
 
-    pub fn into_map_entries(self) -> Option<Vec<MapEntry>> {
+    pub fn into_map_entries(self) -> Option<MapRepresentation> {
         match self {
             StorageValues::Words(_) => None,
-            StorageValues::MapEntries(vec) => Some(vec),
-            StorageValues::Template(_) => None,
+            StorageValues::MapEntries(map) => Some(map),
         }
     }
 
     pub fn len(&self) -> Option<usize> {
         match self {
             StorageValues::Words(vec) => Some(vec.len()),
-            StorageValues::MapEntries(vec) => Some(vec.len()),
-            StorageValues::Template(_) => None,
+            StorageValues::MapEntries(map) => map.len(),
         }
     }
 }
@@ -270,12 +266,7 @@ impl From<StorageEntry> for RawStorageEntry {
                 value: Some(value),
                 ..Default::default()
             },
-            StorageEntry::Map {
-                name,
-                description,
-                slot,
-                map_entries: values,
-            } => RawStorageEntry {
+            StorageEntry::Map { name, description, slot, map: values } => RawStorageEntry {
                 name,
                 description,
                 slot: Some(slot),
@@ -353,7 +344,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
                     name: raw.name,
                     description: raw.description,
                     slot: raw.slot.ok_or(D::Error::missing_field("slot"))?,
-                    map_entries,
+                    map: map_entries,
                 })
             },
             (Some(slots), Some(values)) => {
