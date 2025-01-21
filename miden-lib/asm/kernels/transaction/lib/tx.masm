@@ -183,7 +183,7 @@ proc.add_non_fungible_asset_to_note
 
         # drop ASSET' and increment the asset pointer
         dropw movup.5 add.4 dup movdn.6 padw movup.4
-        # => [asset_ptr + 1, 0, 0, 0, 0, ASSET, end_asset_ptr, asset_ptr + 1, note_ptr, 
+        # => [asset_ptr + 4, 0, 0, 0, 0, ASSET, end_asset_ptr, asset_ptr + 4, note_ptr, 
         #     num_of_assets, note_idx]
 
         # check if we reached the end of the loop
@@ -331,7 +331,7 @@ proc.add_fungible_asset_to_note
 
             # drop ASSETs and increment the asset pointer
             movup.2 drop push.0.0 movup.9 add.4 dup movdn.10
-            # => [asset_ptr + 1, 0, 0, 0, 0, ASSET, end_asset_ptr, asset_ptr + 4, note_ptr, 
+            # => [asset_ptr + 4, 0, 0, 0, 0, ASSET, end_asset_ptr, asset_ptr + 4, note_ptr, 
             #     num_of_assets, note_idx]
 
             # check if we reached the end of the loop

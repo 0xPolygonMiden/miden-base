@@ -8,9 +8,9 @@ use miden_objects::{
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    utils::{group_slice_elements, serde::Deserializable},
+    utils::serde::Deserializable,
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, Word, EMPTY_WORD, ZERO,
+    Digest, Felt, TransactionOutputError, EMPTY_WORD, ZERO,
 };
 use miden_stdlib::StdLibrary;
 use outputs::EXPIRATION_BLOCK_ELEMENT_IDX;
@@ -311,11 +311,9 @@ impl TransactionKernel {
             Self::parse_output_stack(stack)?;
 
         // parse final account state
-        let final_account_data: &[Word] = group_slice_elements(
-            adv_map
-                .get(&final_acct_hash)
-                .ok_or(TransactionOutputError::FinalAccountHashMissingInAdviceMap)?,
-        );
+        let final_account_data = adv_map
+            .get(&final_acct_hash)
+            .ok_or(TransactionOutputError::FinalAccountHashMissingInAdviceMap)?;
         let account = parse_final_account_header(final_account_data)
             .map_err(TransactionOutputError::FinalAccountHeaderParseFailure)?;
 

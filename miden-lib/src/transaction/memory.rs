@@ -270,7 +270,7 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 2048;
 // │   NUM   │  NOTE 0   │  NOTE 1   │ ... │  NOTE n   │ PADDING │ NOTE 0 │ NOTE 1 │  ...  │ NOTE n │
 // │  NOTES  │ NULLIFIER │ NULLIFIER │     │ NULLIFIER │         │  DATA  │  DATA  │       │  DATA  │
 // └─────────┴───────────┴───────────┴─────┴───────────┴─────────┴────────┴────────┴───────┴────────┘
-//  4_194_304  4_194_308   4_194_312        4_194_304+4n     4_259_840  +2048    +4096   +2048n
+//  4_194_304  4_194_308   4_194_312      4_194_304+4(n+1)   4_259_840  +2048    +4096  +2048(n+1)
 //
 // Each nullifier occupies a single word. A data section for each note consists of exactly 512
 // words and is laid out like so:

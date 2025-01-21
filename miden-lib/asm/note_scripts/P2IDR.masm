@@ -60,7 +60,7 @@ proc.add_note_assets_to_account
 
         # increment the pointer and compare it to the end_ptr
         movup.4 add.4 dup dup.6 neq
-        # => [latch, ptr+1, ASSET, end_ptr, ...]
+        # => [latch, ptr+4, ASSET, end_ptr, ...]
     end
 
     # clear the stack

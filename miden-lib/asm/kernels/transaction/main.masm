@@ -61,16 +61,22 @@ const.EPILOGUE_END=131081
 proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.91683607 drop
     trace.PROLOGUE_START
 
     exec.prologue::prepare_transaction
     # => []
 
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.3551582517 drop
     trace.PROLOGUE_END
 
     # Note Processing
     # ---------------------------------------------------------------------------------------------
 
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.1597639019 drop
     trace.NOTES_PROCESSING_START
 
     exec.memory::get_num_input_notes
@@ -84,6 +90,8 @@ proc.main.1
     # => [should_loop]
 
     while.true
+        # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+        push.1161965828 drop
         trace.NOTE_EXECUTION_START
         # => []
 
@@ -105,17 +113,23 @@ proc.main.1
         loc_load.0 neq
         # => [should_loop]
 
+        # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+        push.1680624729 drop
         trace.NOTE_EXECUTION_END
     end
 
     exec.note::note_processing_teardown
     # => []
 
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.920581323 drop
     trace.NOTES_PROCESSING_END
 
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
 
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.4103684209 drop
     trace.TX_SCRIPT_PROCESSING_START
 
     # get the memory address of the transaction script root and load it to the stack
@@ -140,13 +154,15 @@ proc.main.1
         # => []
     end
 
-    push.0 drop
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.1155406220 drop
     trace.TX_SCRIPT_PROCESSING_END
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
-    push.1 drop
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.1887961092 drop
     trace.EPILOGUE_START
 
     # execute the transaction epilogue
@@ -156,6 +172,8 @@ proc.main.1
     # truncate the stack
     movupw.3 dropw movupw.3 dropw movup.9 drop
 
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.3456069754 drop
     trace.EPILOGUE_END
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 end

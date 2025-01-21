@@ -51,7 +51,7 @@ impl AccountProcedureIndexMap {
                 .as_int();
             process
                 .get_mem_word(process.ctx(), curr_data_ptr as u32 + ACCT_CODE_COMMITMENT_OFFSET)
-                .unwrap()
+                .expect("failed to read a word from memory")
                 .expect("current account code commitment was not initialized")
         };
 
