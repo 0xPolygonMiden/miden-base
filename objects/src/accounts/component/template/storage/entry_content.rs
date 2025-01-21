@@ -1,4 +1,5 @@
 use alloc::{boxed::Box, collections::BTreeSet, vec::Vec};
+use std::string::ToString;
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
@@ -15,11 +16,12 @@ use crate::accounts::{component::template::AccountComponentTemplateError, Storag
 /// Supported word representations. Represents slot values and keys.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WordRepresentation {
-    /// A word represented by a hexadecimal string.
+    /// A word represented by its four felts.
     Value([Felt; 4]),
-    /// A word represented by its four base elements.
+    /// A word represented by 4 [FeltRepresentation].
     Array([FeltRepresentation; 4]),
-    /// A placeholder value, represented as "{{key}}".
+    /// A placeholder value, represented as "{{key}}", where `key` is the inner value of the
+    /// [StoragePlaceholder].
     Template(StoragePlaceholder),
 }
 
@@ -362,6 +364,27 @@ impl MapRepresentation {
         };
 
         Ok(map)
+    }
+
+    /// Validates map keys by checking for duplicates.
+    ///
+    /// Because keys can be represented in a variety of ways, the `to_string()` implementation is
+    /// used to check for duplicates.  
+    pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
+        match self {
+            MapRepresentation::List(entries) => {
+                let mut seen_keys = BTreeSet::new();
+                for entry in entries {
+                    if !seen_keys.insert(entry.key().to_string()) {
+                        return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(
+                            entry.key().to_string(),
+                        ));
+                    }
+                }
+            },
+            MapRepresentation::Template(_) => {},
+        }
+        Ok(())
     }
 }
 

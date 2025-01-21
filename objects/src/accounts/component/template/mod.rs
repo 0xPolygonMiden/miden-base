@@ -195,7 +195,9 @@ impl AccountComponentMetadata {
     }
 
     /// Retrieves a map of unique storage placeholders mapped to their expected type that require
-    /// a value at the moment of component instantiation. These values will be used for
+    /// a value at the moment of component instantiation.
+    ///
+    /// These values will be used for
     /// initializing storage slot values, or storage map entries. For a full example on how a
     /// placeholder may be utilized, please refer to the docs for [AccountComponentMetadata].
     ///
@@ -297,38 +299,10 @@ impl AccountComponentMetadata {
             }
         }
 
-        self.validate_map_keys()?;
-
-        Ok(())
-    }
-
-    /// Validates map keys by checking for duplicates.
-    /// Because keys can be represented in a variety of ways, the `to_string()` implementation is
-    /// used to check for duplicates.  
-    fn validate_map_keys(&self) -> Result<(), AccountComponentTemplateError> {
-        for storage_entry in self.storage_entries() {
-            match storage_entry {
-                StorageEntry::Map { map, .. } => {
-                    match map {
-                        MapRepresentation::List(map_entries) => {
-                            let mut seen_keys = BTreeSet::new();
-                            for entry in map_entries {
-                                if !seen_keys.insert(entry.key().to_string()) {
-                                    return Err(
-                                        AccountComponentTemplateError::StorageMapHasDuplicateKeys(
-                                            entry.key().to_string(),
-                                        ),
-                                    );
-                                }
-                            }
-                        },
-                        // Can't validate placeholders since we don't know the keys and values yet
-                        MapRepresentation::Template(_) => continue,
-                    }
-                },
-                _ => continue,
-            }
+        for entry in self.storage_entries() {
+            entry.validate()?;
         }
+
         Ok(())
     }
 }

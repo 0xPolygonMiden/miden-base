@@ -3,8 +3,8 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
-mod value_type;
-pub use value_type::*;
+mod entry_content;
+pub use entry_content::*;
 
 use super::AccountComponentTemplateError;
 use crate::accounts::StorageSlot;
@@ -89,13 +89,16 @@ impl StorageEntry {
         description: Option<impl Into<String>>,
         slot: u8,
         map_representation: MapRepresentation,
-    ) -> Self {
-        StorageEntry::Map {
+    ) -> Result<Self, AccountComponentTemplateError> {
+        let entry = StorageEntry::Map {
             name: name.into(),
             description: description.map(Into::<String>::into),
             slot,
             map: map_representation,
-        }
+        };
+
+        entry.validate()?;
+        Ok(entry)
     }
 
     /// Creates a new [`StorageEntry::MultiSlot`] variant.
@@ -105,24 +108,15 @@ impl StorageEntry {
         slots: Vec<u8>,
         values: Vec<impl Into<WordRepresentation>>,
     ) -> Result<Self, AccountComponentTemplateError> {
-        if slots.len() != values.len() {
-            return Err(AccountComponentTemplateError::MultiSlotArityMismatch);
-        }
-
-        for window in slots.windows(2) {
-            if window[1] != window[0] + 1 {
-                return Err(AccountComponentTemplateError::NonContiguousSlots(
-                    window[0], window[1],
-                ));
-            }
-        }
-
-        Ok(StorageEntry::MultiSlot {
+        let entry = StorageEntry::MultiSlot {
             name: name.into(),
             description: description.map(Into::<String>::into),
             slots,
             values: values.into_iter().map(Into::into).collect(),
-        })
+        };
+
+        entry.validate()?;
+        Ok(entry)
     }
 
     /// Returns the slot indices that the storage entry covers.
@@ -205,6 +199,34 @@ impl StorageEntry {
                     word_repr.clone().try_build_word(init_storage_data).map(StorageSlot::Value)
                 })
                 .collect::<Result<Vec<StorageSlot>, _>>()?),
+        }
+    }
+
+    /// Validates the storage entry for internal consistency.
+    pub(super) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
+        match self {
+            StorageEntry::Map { map, .. } => map.validate(),
+            StorageEntry::MultiSlot { slots, values, .. } => {
+                if slots.len() != values.len() {
+                    return Err(AccountComponentTemplateError::MultiSlotArityMismatch);
+                } else {
+                    let mut all_slots = slots.clone();
+                    all_slots.sort_unstable();
+                    for slots in all_slots.windows(2) {
+                        if slots[1] == slots[0] {
+                            return Err(AccountComponentTemplateError::DuplicateSlot(slots[0]));
+                        }
+
+                        if slots[1] != slots[0] + 1 {
+                            return Err(AccountComponentTemplateError::NonContiguousSlots(
+                                slots[0], slots[1],
+                            ));
+                        }
+                    }
+                }
+                Ok(())
+            },
+            StorageEntry::Value { .. } => Ok(()),
         }
     }
 }
