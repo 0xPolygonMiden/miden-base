@@ -40,7 +40,7 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020056
 #!   greater than 2^63.
 begin
     # make sure the number of assets is 3
-    push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
+    push.12 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
     # load the ASSET

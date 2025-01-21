@@ -1789,7 +1789,7 @@ dependencies = [
 [[package]]
 name = "miden-air"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#29ef9259dcd80e0cff9d83b1820bdfad70914e70"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
 dependencies = [
  "miden-core",
  "thiserror 2.0.11",
@@ -1800,7 +1800,7 @@ dependencies = [
 [[package]]
 name = "miden-assembly"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#29ef9259dcd80e0cff9d83b1820bdfad70914e70"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1831,7 +1831,7 @@ dependencies = [
 [[package]]
 name = "miden-core"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#29ef9259dcd80e0cff9d83b1820bdfad70914e70"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
 dependencies = [
  "lock_api",
  "loom",
@@ -1961,7 +1961,7 @@ dependencies = [
 [[package]]
 name = "miden-processor"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#29ef9259dcd80e0cff9d83b1820bdfad70914e70"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1973,7 +1973,7 @@ dependencies = [
 [[package]]
 name = "miden-prover"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#29ef9259dcd80e0cff9d83b1820bdfad70914e70"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -2048,7 +2048,7 @@ dependencies = [
 [[package]]
 name = "miden-stdlib"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#29ef9259dcd80e0cff9d83b1820bdfad70914e70"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
 dependencies = [
  "miden-assembly",
 ]
@@ -2076,7 +2076,7 @@ dependencies = [
 [[package]]
 name = "miden-verifier"
 version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#29ef9259dcd80e0cff9d83b1820bdfad70914e70"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -4560,9 +4560,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.12.0"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "744018581f9a3454a9e15beb8a33b017183f1e7c0cd170232a2d1453b23a51c4"
+checksum = "b3758f5e68192bb96cc8f9b7e2c2cfdabb435499a28499a42f8f984092adad4b"
 dependencies = [
  "getrandom",
 ]
