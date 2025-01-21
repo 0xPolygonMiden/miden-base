@@ -39,8 +39,11 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020056
 #! - adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #!   greater than 2^63.
 begin
-    # make sure the number of assets is 3
-    push.12 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
+    # store the note inputs to memory starting at address 12
+    push.12 exec.note::get_assets 
+
+    # make sure the number of inputs is 1
+    assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
     # load the ASSET
