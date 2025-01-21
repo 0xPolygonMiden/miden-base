@@ -25,9 +25,9 @@ mod errors;
 pub use block::BlockHeader;
 pub use constants::*;
 pub use errors::{
-    AccountDeltaError, AccountError, AssetError, AssetVaultError, BlockError, ChainMmrError,
-    NoteError, ProvenTransactionError, TransactionInputError, TransactionOutputError,
-    TransactionScriptError,
+    AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError, BlockError,
+    ChainMmrError, NoteError, ProvenTransactionError, TransactionInputError,
+    TransactionOutputError, TransactionScriptError,
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
@@ -190,6 +190,6 @@ pub mod utils {
 
 pub mod vm {
     pub use miden_verifier::ExecutionProof;
-    pub use vm_core::{Program, ProgramInfo, AdviceMap};
+    pub use vm_core::{sys_events::SystemEvent, AdviceMap, Program, ProgramInfo};
     pub use vm_processor::{AdviceInputs, RowIndex, StackInputs, StackOutputs};
 }

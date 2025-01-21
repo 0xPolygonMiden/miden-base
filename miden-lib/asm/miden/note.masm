@@ -55,7 +55,7 @@ export.get_assets
     padw padw padw push.0.0.0
     # => [pad(15), dest_ptr]
 
-    exec.kernel_proc_offsets::get_note_assets_info_offset
+    exec.kernel_proc_offsets::note_get_assets_info_offset
     # => [offset, pad(15), dest_ptr]
 
     syscall.exec_kernel_proc
@@ -66,7 +66,7 @@ export.get_assets
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # load the asset data from the advice map to the advice stack
-    adv.push_mapval push.15887 drop             # TODO: remove line, see miden-vm/#1122
+    adv.push_mapval
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # calculate number of assets rounded up to an even number
@@ -102,7 +102,7 @@ export.get_inputs
     padw padw padw push.0.0.0
     # => [pad(15), dest_ptr]
 
-    exec.kernel_proc_offsets::get_note_inputs_hash_offset
+    exec.kernel_proc_offsets::note_get_inputs_hash_offset
     # => [offset, pad(15), dest_ptr]
 
     syscall.exec_kernel_proc
@@ -113,7 +113,7 @@ export.get_inputs
     # => [INPUTS_HASH, dest_ptr]
 
     # load the inputs from the advice map to the advice stack
-    adv.push_mapval push.15973 drop             # TODO: remove line, see miden-vm/#1122
+    adv.push_mapval
     # => [INPUTS_HASH, dest_ptr]
 
     adv_push.1
@@ -158,7 +158,7 @@ export.get_sender
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::get_note_sender_offset
+    exec.kernel_proc_offsets::note_get_sender_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
@@ -186,7 +186,7 @@ export.get_serial_number
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::get_note_serial_number_offset
+    exec.kernel_proc_offsets::note_get_serial_number_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
@@ -242,7 +242,7 @@ export.get_script_hash
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::get_script_hash_offset
+    exec.kernel_proc_offsets::note_get_script_hash_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
@@ -265,6 +265,4 @@ const.MAX_INPUTS_PER_NOTE=128
 #! Output: [max_inputs_per_note]
 #!
 #! - max_inputs_per_note is the max inputs per note.
-export.get_max_inputs_per_note
-    push.MAX_INPUTS_PER_NOTE
-end
+export.::miden::util::note::get_max_inputs_per_note

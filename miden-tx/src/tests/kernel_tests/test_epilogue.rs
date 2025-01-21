@@ -121,12 +121,11 @@ fn test_compute_output_note_id() {
         );
 
         let process = &tx_context.execute_code(&code).unwrap();
-        let process_state: ProcessState = process.into();
 
         assert_eq!(
             note.assets().commitment().as_elements(),
             read_root_mem_word(
-                &process_state,
+                &process.into(),
                 OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + OUTPUT_NOTE_ASSET_HASH_OFFSET
             ),
             "ASSET_HASH didn't match expected value",
@@ -134,7 +133,7 @@ fn test_compute_output_note_id() {
 
         assert_eq!(
             note.id().as_elements(),
-            &read_root_mem_word(&process_state, OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
+            &read_root_mem_word(&process.into(), OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
             "NOTE_ID didn't match expected value",
         );
     }
@@ -241,12 +240,13 @@ fn test_block_expiration_height_monotonically_decreases() {
             .replace("{value_2}", &v2.to_string())
             .replace("{min_value}", &v2.min(v1).to_string());
 
-        let process = &tx_context.execute_code(&code).unwrap();
+        let process = &tx_context.execute_code(code).unwrap();
         let process_state: ProcessState = process.into();
 
         // Expiry block should be set to transaction's block + the stored expiration delta
         // (which can only decrease, not increase)
-        let expected_expiry = v1.min(v2) + tx_context.tx_inputs().block_header().block_num() as u64;
+        let expected_expiry =
+            v1.min(v2) + tx_context.tx_inputs().block_header().block_num().as_u64();
         assert_eq!(process_state.get_stack_item(8).as_int(), expected_expiry);
     }
 }
@@ -294,7 +294,7 @@ fn test_no_expiration_delta_set() {
     end
     ";
 
-    let process = &tx_context.execute_code(&code_template).unwrap();
+    let process = &tx_context.execute_code(code_template).unwrap();
     let process_state: ProcessState = process.into();
 
     // Default value should be equal to u32::max, set in the prologue

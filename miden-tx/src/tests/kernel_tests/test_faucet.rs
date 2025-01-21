@@ -83,7 +83,8 @@ fn test_mint_fungible_asset_succeeds() {
 
     let faucet_storage_amount = process_state
         .get_mem_value(process_state.ctx(), faucet_storage_amount_location)
-        .unwrap().as_int();
+        .unwrap()
+        .as_int();
 
     assert_eq!(faucet_storage_amount, expected_final_storage_amount);
 }
@@ -362,7 +363,8 @@ fn test_burn_fungible_asset_succeeds() {
 
     let faucet_storage_amount = process_state
         .get_mem_value(process_state.ctx(), faucet_storage_amount_location)
-        .unwrap().as_int();
+        .unwrap()
+        .as_int();
 
     assert_eq!(faucet_storage_amount, expected_final_storage_amount);
 }

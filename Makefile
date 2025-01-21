@@ -23,7 +23,7 @@ clippy: ## Runs Clippy with configs
 
 .PHONY: clippy-no-std
 clippy-no-std: ## Runs Clippy with configs
-	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib -- -D warnings
+	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service -- -D warnings
 
 
 .PHONY: fix
@@ -105,18 +105,17 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	${BUILD_KERNEL_ERRORS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib
+	${BUILD_KERNEL_ERRORS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing,tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)
 	${BUILD_KERNEL_ERRORS} cargo build --lib --release --features async
-
 
 # --- benchmarking --------------------------------------------------------------------------------
 
@@ -127,10 +126,6 @@ bench-tx: ## Run transaction benchmarks
 
 # --- installing ----------------------------------------------------------------------------------
 
-.PHONY: install-tx-prover
-install-tx-prover: ## Install transaction prover's CLI
-	cargo install --path bin/tx-prover --bin miden-tx-prover --locked --features concurrent
-
-.PHONY: install-tx-prover-testing
-install-tx-prover-testing: ## Install transaction prover's CLI intended for testing purposes
-	cargo install --path bin/tx-prover --bin miden-tx-prover --locked --features concurrent,testing
+.PHONY: install-proving-service
+install-proving-service: ## Install proving service's CLI
+	cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent

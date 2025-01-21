@@ -3,7 +3,7 @@ use miden_objects::{
         Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode,
         AccountType, StorageSlot,
     },
-    assets::TokenSymbol,
+    assets::{FungibleAsset, TokenSymbol},
     AccountError, Felt, FieldElement, Word,
 };
 
@@ -33,8 +33,9 @@ pub struct BasicFungibleFaucet {
 impl BasicFungibleFaucet {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
-    const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
-    const MAX_DECIMALS: u8 = 12;
+
+    /// The maximum number of decimals supported by the component.
+    pub const MAX_DECIMALS: u8 = 12;
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -47,10 +48,10 @@ impl BasicFungibleFaucet {
                 actual: decimals,
                 max: Self::MAX_DECIMALS,
             });
-        } else if max_supply.as_int() > Self::MAX_MAX_SUPPLY {
+        } else if max_supply.as_int() > FungibleAsset::MAX_AMOUNT {
             return Err(AccountError::FungibleFaucetMaxSupplyTooLarge {
                 actual: max_supply.as_int(),
-                max: Self::MAX_MAX_SUPPLY,
+                max: FungibleAsset::MAX_AMOUNT,
             });
         }
 

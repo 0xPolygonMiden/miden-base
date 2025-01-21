@@ -3,6 +3,7 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 use miden_objects::{
     accounts::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
+    block::BlockNumber,
     crypto::merkle::{MerkleError, MerklePath},
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
@@ -29,9 +30,7 @@ pub use outputs::{
 };
 
 mod errors;
-pub use errors::{
-    TransactionEventError, TransactionKernelError, TransactionTraceParsingError,
-};
+pub use errors::{TransactionEventError, TransactionKernelError, TransactionTraceParsingError};
 
 mod procedures;
 
@@ -220,7 +219,7 @@ impl TransactionKernel {
     pub fn build_output_stack(
         final_acct_hash: Digest,
         output_notes_hash: Digest,
-        expiration_block_num: u32,
+        expiration_block_num: BlockNumber,
     ) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
         outputs.push(Felt::from(expiration_block_num));
@@ -252,7 +251,7 @@ impl TransactionKernel {
     /// - Overflow addresses are not empty.
     pub fn parse_output_stack(
         stack: &StackOutputs,
-    ) -> Result<(Digest, Digest, u32), TransactionOutputError> {
+    ) -> Result<(Digest, Digest, BlockNumber), TransactionOutputError> {
         let output_notes_hash = stack
             .get_stack_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX * 4)
             .expect("first word missing")
@@ -267,11 +266,13 @@ impl TransactionKernel {
             .get_stack_item(EXPIRATION_BLOCK_ELEMENT_IDX)
             .expect("element on index 8 missing");
 
-        let expiration_block_num = u32::try_from(expiration_block_num.as_int()).map_err(|_| {
-            TransactionOutputError::OutputStackInvalid(
-                "Expiration block number should be smaller than u32::MAX".into(),
-            )
-        })?;
+        let expiration_block_num = u32::try_from(expiration_block_num.as_int())
+            .map_err(|_| {
+                TransactionOutputError::OutputStackInvalid(
+                    "Expiration block number should be smaller than u32::MAX".into(),
+                )
+            })?
+            .into();
 
         if stack.get_stack_word(12).expect("fourth word missing") != EMPTY_WORD {
             return Err(TransactionOutputError::OutputStackInvalid(

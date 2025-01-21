@@ -2,7 +2,7 @@ use std::{
     collections::VecDeque,
     future::Future,
     pin::Pin,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
 
@@ -13,7 +13,6 @@ use metrics::{
     REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
     WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
 };
-use once_cell::sync::Lazy;
 use pingora::{
     http::ResponseHeader,
     lb::Backend,
@@ -39,7 +38,7 @@ use crate::{
     error::TxProverServiceError,
     utils::{
         create_queue_full_response, create_response_with_error_message,
-        create_too_many_requests_response, create_workers_updated_response, MIDEN_TX_PROVER,
+        create_too_many_requests_response, create_workers_updated_response, MIDEN_PROVING_SERVICE,
     },
 };
 
@@ -275,7 +274,7 @@ impl LoadBalancerState {
 }
 
 /// Rate limiter
-static RATE_LIMITER: Lazy<Rate> = Lazy::new(|| Rate::new(Duration::from_secs(1)));
+static RATE_LIMITER: LazyLock<Rate> = LazyLock::new(|| Rate::new(Duration::from_secs(1)));
 
 // REQUEST QUEUE
 // ================================================================================================
@@ -329,7 +328,7 @@ impl RequestQueue {
 }
 
 /// Shared state. It keeps track of the order of the requests to then assign them to the workers.
-static QUEUE: Lazy<RequestQueue> = Lazy::new(RequestQueue::new);
+static QUEUE: LazyLock<RequestQueue> = LazyLock::new(RequestQueue::new);
 
 // REQUEST CONTEXT
 // ================================================================================================
@@ -361,7 +360,7 @@ impl RequestContext {
             tries: 0,
             request_id,
             worker: None,
-            parent_span: info_span!(target: MIDEN_TX_PROVER, "proxy:new_request", request_id = request_id.to_string()),
+            parent_span: info_span!(target: MIDEN_PROVING_SERVICE, "proxy:new_request", request_id = request_id.to_string()),
             created_at: Instant::now(),
         }
     }
@@ -378,7 +377,7 @@ impl RequestContext {
 
 /// Wrapper around the load balancer that implements the ProxyHttp trait
 ///
-/// This wrapper is used to implement the ProxyHttp trait for Arc<LoadBalancer>.
+/// This wrapper is used to implement the ProxyHttp trait for `Arc<LoadBalancer>`.
 /// This is necessary because we want to share the load balancer between the proxy server and the
 /// health check background service.
 #[derive(Debug)]

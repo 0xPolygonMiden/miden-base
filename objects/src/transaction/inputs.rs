@@ -4,7 +4,7 @@ use core::fmt::Debug;
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
     accounts::{Account, AccountId, AccountIdAnchor},
-    block::block_num_from_epoch,
+    block::BlockNumber,
     notes::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     TransactionInputError, MAX_INPUT_NOTES_PER_TX,
@@ -44,10 +44,10 @@ impl TransactionInputs {
 
         // check the block_chain and block_header are consistent
         let block_num = block_header.block_num();
-        if block_chain.chain_length() != block_header.block_num() as usize {
+        if block_chain.chain_length() != block_header.block_num() {
             return Err(TransactionInputError::InconsistentChainLength {
                 expected: block_header.block_num(),
-                actual: block_chain.chain_length() as u32,
+                actual: block_chain.chain_length(),
             });
         }
 
@@ -477,7 +477,7 @@ pub fn validate_account_seed(
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
-            let anchor_block_number = block_num_from_epoch(account.id().anchor_epoch());
+            let anchor_block_number = BlockNumber::from_epoch(account.id().anchor_epoch());
 
             let anchor_block_hash = if block_header.block_num() == anchor_block_number {
                 block_header.hash()

@@ -3,9 +3,10 @@ resolver = "2"
 members = [ 
     "miden-lib",
     "miden-tx",
+    "miden-proving-service-client",
     "objects",
     "bin/bench-tx",
-    "bin/tx-prover",
+    "bin/proving-service",
 ]
 
 [workspace.package]

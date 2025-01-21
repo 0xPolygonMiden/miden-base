@@ -6,7 +6,7 @@ use alloc::{
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
-use crate::{generated::api_client::ApiClient, RemoteTransactionProverError};
+use crate::{generated::api_client::ApiClient, RemoteProverError};
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
@@ -41,7 +41,7 @@ impl RemoteTransactionProver {
     /// Establishes a connection to the remote transaction prover server. The connection is
     /// mantained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
-    async fn connect(&self) -> Result<(), RemoteTransactionProverError> {
+    async fn connect(&self) -> Result<(), RemoteProverError> {
         let mut client = self.client.write();
         if client.is_some() {
             return Ok(());
@@ -55,9 +55,9 @@ impl RemoteTransactionProver {
 
         #[cfg(not(target_arch = "wasm32"))]
         let new_client = {
-            ApiClient::connect(self.endpoint.clone()).await.map_err(|_| {
-                RemoteTransactionProverError::ConnectionFailed(self.endpoint.to_string())
-            })?
+            ApiClient::connect(self.endpoint.clone())
+                .await
+                .map_err(|_| RemoteProverError::ConnectionFailed(self.endpoint.to_string()))?
         };
 
         *client = Some(new_client);
@@ -77,20 +77,20 @@ impl TransactionProver for RemoteTransactionProver {
             TransactionProverError::other_with_source("failed to connect to the remote prover", err)
         })?;
 
-        let mut client = self.client.write();
+        let mut client = self
+            .client
+            .write()
+            .as_ref()
+            .ok_or_else(|| TransactionProverError::other("client should be connected"))?
+            .clone();
 
         let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
             transaction_witness: tx_witness.to_bytes(),
         });
 
-        let response = client
-            .as_mut()
-            .expect("client should be connected")
-            .prove_transaction(request)
-            .await
-            .map_err(|err| {
-                TransactionProverError::other_with_source("failed to prove transaction", err)
-            })?;
+        let response = client.prove_transaction(request).await.map_err(|err| {
+            TransactionProverError::other_with_source("failed to prove transaction", err)
+        })?;
 
         // Deserialize the response bytes back into a ProvenTransaction.
         let proven_transaction =

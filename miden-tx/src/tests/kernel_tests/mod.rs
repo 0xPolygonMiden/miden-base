@@ -48,7 +48,7 @@ pub fn read_root_mem_word(process: &ProcessState, addr: u32) -> Word {
     process.get_mem_word(ContextId::root(), addr).unwrap().unwrap()
 }
 
-pub fn try_read_root_mem_value(process: &ProcessState, addr: u32) -> Option<Word> {
+pub fn try_read_root_mem_word(process: &ProcessState, addr: u32) -> Option<Word> {
     process.get_mem_word(ContextId::root(), addr).unwrap()
 }
 

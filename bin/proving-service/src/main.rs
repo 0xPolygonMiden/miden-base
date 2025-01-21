@@ -1,6 +1,7 @@
 pub mod api;
 pub mod commands;
 pub mod error;
+mod generated;
 pub mod proxy;
 mod utils;
 use commands::Cli;
@@ -40,13 +41,13 @@ mod test {
         testing::{Auth, MockChain},
         utils::Serializable,
     };
-    use miden_tx_prover::generated::{
-        api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest,
-    };
     use tokio::net::TcpListener;
     use tonic::Request;
 
-    use crate::api::ProverRpcApi;
+    use crate::{
+        api::ProverRpcApi,
+        generated::{api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest},
+    };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {

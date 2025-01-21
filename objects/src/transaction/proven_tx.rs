@@ -5,6 +5,7 @@ use miden_verifier::ExecutionProof;
 use super::{InputNote, ToInputNoteCommitments};
 use crate::{
     accounts::delta::AccountUpdateDetails,
+    block::BlockNumber,
     notes::NoteHeader,
     transaction::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
@@ -37,7 +38,7 @@ pub struct ProvenTransaction {
     block_ref: Digest,
 
     /// The block number by which the transaction will expire, as defined by the executed scripts.
-    expiration_block_num: u32,
+    expiration_block_num: BlockNumber,
 
     /// A STARK proof that attests to the correct execution of the transaction.
     proof: ExecutionProof,
@@ -85,7 +86,7 @@ impl ProvenTransaction {
     }
 
     /// Returns the block number at which the transaction will expire.
-    pub fn expiration_block_num(&self) -> u32 {
+    pub fn expiration_block_num(&self) -> BlockNumber {
         self.expiration_block_num
     }
 
@@ -166,7 +167,7 @@ impl Deserializable for ProvenTransaction {
         let output_notes = OutputNotes::read_from(source)?;
 
         let block_ref = Digest::read_from(source)?;
-        let expiration_block_num = u32::read_from(source)?;
+        let expiration_block_num = BlockNumber::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
@@ -220,7 +221,7 @@ pub struct ProvenTransactionBuilder {
     block_ref: Digest,
 
     /// The block number by which the transaction will expire, as defined by the executed scripts.
-    expiration_block_num: u32,
+    expiration_block_num: BlockNumber,
 
     /// A STARK proof that attests to the correct execution of the transaction.
     proof: ExecutionProof,
@@ -236,7 +237,7 @@ impl ProvenTransactionBuilder {
         initial_account_hash: Digest,
         final_account_hash: Digest,
         block_ref: Digest,
-        expiration_block_num: u32,
+        expiration_block_num: BlockNumber,
         proof: ExecutionProof,
     ) -> Self {
         Self {

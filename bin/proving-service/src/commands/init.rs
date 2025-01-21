@@ -1,9 +1,8 @@
 use std::{fs::File, io::Write};
 
 use clap::Parser;
-use miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME;
 
-use crate::commands::ProxyConfig;
+use crate::{commands::ProxyConfig, utils::PROVING_SERVICE_CONFIG_FILE_NAME};
 
 /// Creates a config file for the proxy.
 #[derive(Debug, Parser)]
@@ -13,16 +12,16 @@ impl Init {
     /// Creates a config file for the proxy.
     ///
     /// This method will create a new config file names
-    /// [miden_tx_prover::PROVER_SERVICE_CONFIG_FILE_NAME] in the current working directory with
+    /// [PROVING_SERVICE_CONFIG_FILE_NAME] in the current working directory with
     /// default values.
     pub fn execute(&self) -> Result<(), String> {
         let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
-        current_dir.push(PROVER_SERVICE_CONFIG_FILE_NAME);
+        current_dir.push(PROVING_SERVICE_CONFIG_FILE_NAME);
 
         if current_dir.exists() {
             return Err(format!(
                 "The file \"{}\" already exists in the working directory.",
-                PROVER_SERVICE_CONFIG_FILE_NAME
+                PROVING_SERVICE_CONFIG_FILE_NAME
             )
             .to_string());
         }

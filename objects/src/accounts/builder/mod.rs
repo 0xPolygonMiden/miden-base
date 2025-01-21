@@ -251,7 +251,7 @@ mod tests {
     use vm_core::FieldElement;
 
     use super::*;
-    use crate::accounts::StorageSlot;
+    use crate::{accounts::StorageSlot, block::BlockNumber};
 
     const CUSTOM_CODE1: &str = "
           export.foo
@@ -317,7 +317,9 @@ mod tests {
 
         let anchor_block_hash = Digest::new([Felt::new(42); 4]);
         let anchor_block_number = 1 << 16;
-        let id_anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash).unwrap();
+        let id_anchor =
+            AccountIdAnchor::new(BlockNumber::from(anchor_block_number), anchor_block_hash)
+                .unwrap();
 
         let (account, seed) = Account::builder([5; 32])
             .anchor(id_anchor)

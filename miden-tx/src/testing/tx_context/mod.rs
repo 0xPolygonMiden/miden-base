@@ -7,6 +7,7 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId},
     assembly::Assembler,
+    block::BlockNumber,
     notes::{Note, NoteId},
     transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
 };
@@ -95,7 +96,8 @@ impl TransactionContext {
             .authenticator
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
 
-        let mut tx_executor = TransactionExecutor::new(Arc::new(self.tx_inputs), authenticator).with_debug_mode();
+        let mut tx_executor =
+            TransactionExecutor::new(Arc::new(self.tx_inputs), authenticator).with_debug_mode();
 
         for code in self.foreign_codes {
             tx_executor.load_account_code(&code);
@@ -139,7 +141,7 @@ impl DataStore for TransactionInputs {
     fn get_transaction_inputs(
         &self,
         account_id: AccountId,
-        block_num: u32,
+        block_num: BlockNumber,
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError> {
         assert_eq!(account_id, self.account().id());

@@ -16,9 +16,7 @@ use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 use super::{Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
-    testing::{
-        utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder,
-    },
+    testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},
     tests::kernel_tests::read_root_mem_word,
 };
 
@@ -563,7 +561,7 @@ fn test_build_note_metadata() {
         sender,
         NoteType::Private,
         NoteTag::from_account_id(receiver, NoteExecutionMode::Local).unwrap(),
-        NoteExecutionHint::after_block(500).unwrap(),
+        NoteExecutionHint::after_block(500.into()).unwrap(),
         Felt::try_from(1u64 << 63).unwrap(),
     )
     .unwrap();

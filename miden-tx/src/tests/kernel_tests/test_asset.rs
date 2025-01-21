@@ -121,6 +121,6 @@ fn test_validate_non_fungible_asset() {
 
     let process = &tx_context.execute_code(&code).unwrap();
     let process_state: ProcessState = process.into();
-    
+
     assert_eq!(process_state.get_stack_word(0), encoded);
 }

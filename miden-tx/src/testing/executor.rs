@@ -41,10 +41,8 @@ impl<H: Host> CodeExecutor<H> {
     }
 
     pub fn execute_program(mut self, program: Program) -> Result<Process, ExecutionError> {
-        let mut process = Process::new_debug(
-            program.kernel().clone(),
-            self.stack_inputs.unwrap_or_default(),
-        );
+        let mut process =
+            Process::new_debug(program.kernel().clone(), self.stack_inputs.unwrap_or_default());
         process.execute(&program, &mut self.host)?;
 
         Ok(process)

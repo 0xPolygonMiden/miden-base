@@ -92,7 +92,7 @@ use crate::{errors::AccountIdError, AccountError, ACCOUNT_TREE_DEPTH};
 ///   as the [`NoteMetadata`](crate::notes::NoteMetadata). In such cases, it can happen that all
 ///   bits of the encoded suffix would be one, so having the epoch constraint is important.
 /// - The ID is dependent on the hash of an epoch block. This is a block whose number is a multiple
-///   of 2^[`BlockHeader::EPOCH_LENGTH_EXPONENT`][epoch_len_exp], e.g. `0`, `65536`, `131072`, ...
+///   of 2^[`BlockNumber::EPOCH_LENGTH_EXPONENT`][epoch_len_exp], e.g. `0`, `65536`, `131072`, ...
 ///   These are the first blocks of epoch 0, 1, 2, ... We call this dependence _anchoring_ because
 ///   the ID is anchored to that epoch block's hash. Anchoring makes it practically impossible for
 ///   an attacker to construct a rainbow table of account IDs whose epoch is X, if the block for
@@ -108,7 +108,7 @@ use crate::{errors::AccountIdError, AccountError, ACCOUNT_TREE_DEPTH};
 ///       hashes to the user's ID can claim the assets sent to the user's ID. Adding the anchor
 ///       block hash to ID generation process makes this attack practically impossible.
 ///
-/// [epoch_len_exp]: crate::block::BlockHeader::EPOCH_LENGTH_EXPONENT
+/// [epoch_len_exp]: crate::block::BlockNumber::EPOCH_LENGTH_EXPONENT
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountId {
     V0(AccountIdV0),

@@ -13,7 +13,7 @@ pub type StorageSlot = u8;
 // General layout
 //
 // Here the "end address" is the last memory address occupied by the current data
-// 
+//
 // | Section           | Start address | End address | Start address (words) |  End address (words) |
 // | ----------------- | :-----------: | :---------: | :--------------------:| :-------------------:|
 // | Bookkeeping       | 0             | 31          | 0                     | 7                    |

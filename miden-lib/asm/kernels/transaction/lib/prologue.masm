@@ -374,7 +374,6 @@ proc.validate_new_account
             exec.constants::get_empty_smt_root 
             assert_eqw.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT
             # => []
-            push.1001 drop                              # TODO: remove line, see miden-vm/#1122
 
             # get the faucet reserved storage data slot type
             exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type
@@ -469,7 +468,7 @@ proc.process_account_data
     # assert the account ID matches the account ID in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
-    exec.account::is_id_eq assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
+    exec.account::is_id_equal assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
     # => [ACCT_HASH]
 
     # store a copy of the initial nonce in global inputs
@@ -982,7 +981,7 @@ proc.process_input_notes_data
     dup neq.0
     if.true
         exec.memory::get_input_notes_commitment
-        adv.push_mapval push.15787 drop         # TODO: remove line, see miden-vm/#1122
+        adv.push_mapval
         dropw
     end
     # => [num_notes]
