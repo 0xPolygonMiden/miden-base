@@ -1,58 +1,68 @@
-In Miden, users can create and trade arbitrary fungible and non-fungible assets.
+# Asset
 
-We differentiate between native and non-native assets in Miden. Native assets follow the Miden asset model. Non-native assets are all other data structures of value that can be exchanged.
+> Fungible and Non-fungible assets in the Miden protocol.
 
-Native assets in Polygon Miden have four goals:
+## What is the purpose of an asset?
 
-* Asset exchange should be parallelizable.
-* Asset ownership should be self-sovereign.
-* Asset usage should be censorship resistant.
-* Fees can be paid using any asset.
+In Miden, `Asset`s serve as the primary means of expressing and transferring value between [accounts](accounts.md) through [notes](notes.md). They are designed with four key principles in mind:
 
-All native assets in Miden are stored directly in accounts, like Ether in Ethereum. Miden does not track asset ownership using global hashmaps, e.g., ERC20 contracts. Local asset storage in accounts provides privacy and the ability for client-side proofs. That is because ownership changes are reflected only on an account and not in an ERC20 account (global hashmap). Thus, these changes can happen in parallel. Additionally, asset exchange is censorship resistant at this level because there is no global contract the transfer must pass through. Finally, users can pay fees in any asset.
+1. **Parallelizable exchange:**  
+    By managing ownership and transfers directly at the account level instead of relying on global structures like ERC20 contracts, accounts can exchange `Asset`s concurrently, boosting scalability and efficiency.
 
-## Native assets
+2. **Self-sovereign ownership:**  
+   `Asset`s are stored in the accounts directly. This ensures that users retain complete control over their `Asset`s.
 
-Native assets are data structures that follow the Miden asset model (encoding, issuance, storing). All native assets are encoded using a single `word` (4 field elements). The asset encodes both the ID of the issuing account and the asset details. 
+3. **Censorship resistance:**  
+   Users can transact freely and privately with no single contract or entity controlling `Asset` transfers. This reduces the risk of censored transactions, resulting in a more open and resilient system.
 
-Having the issuer's ID encoded in the asset makes determining the type of an asset, inside and outside Miden VM, cost-efficient. And, representing the asset in a `word` means the representation is a commitment to the asset data itself. That is particularly interesting for non-fungible assets.
+4. **Flexible fee payment:**  
+   Unlike protocols that require a specific base `Asset` for fees, Miden allows users to pay fees in any supported `Asset`. This flexibility simplifies the user experience.
+
+## What is an asset?
+
+An `Asset` in Miden is a unit of value that can be transferred from one [account](accounts.md) to another using [notes](notes.md).
+
+## Native asset
+
+> All data structures following the Miden asset model that can be exchanged.
+
+Native `Asset`s adhere to the Miden `Asset` model (encoding, issuance, storage). Every native `Asset` is encoded using 32 bytes, including both the [ID](accounts.md#id) of the issuing account and the `Asset` details.
 
 ### Issuance
 
-Only specialized accounts called faucets can issue assets. As with regular accounts, anyone can create a faucet account. Faucets can issue either fungible or non-fungible assets - but not both. 
+> **Info**
+> - Only [faucet](accounts.md#account-type) accounts can issue assets.
 
-The `faucet_id` identifies the faucet and starts with a different sequence depending on the asset type, see the [account id discussion](accounts.md#account-id). The faucet's code defines rules for how assets can be minted, who can mint them etc. Conceptually, faucet accounts on Miden are similar to ERC20 contracts on Ethereum. However, there is no ownership tracking in Miden faucets.
-
-Faucets can create assets and immediately distribute them by producing notes. However, assets can also stay in the faucet after creation to be sent later, e.g., in a bundle. That way, one can mint a million NFTs locally in a single transaction and then send them out as needed in separate transactions in the future.
+Faucets can issue either fungible or non-fungible `Asset`s as defined at account creation. The faucet's code specifies the `Asset` minting conditions: i.e., how, when, and by whom these `Asset`s can be minted. Once minted, they can be transferred to other accounts using notes.
 
 ![Architecture core concepts](../img/architecture/asset/asset-issuance.png)
 
-### Fungible assets
+### Type
 
-A fungible asset is encoded using the amount and the `faucet_id` of the faucet which issued the asset. The amount is guaranteed to be  `$2^{63} - 1$ or smaller, the maximum supply for any fungible asset. Examples of fungible assets are ETH and stablecoins, e.g., DAI, USDT, and USDC.
+#### Fungible asset
 
-If the `faucet_id` of MATIC is `2`, 100 MATIC are encoded as `[100, 0, 0, 2]`; the `0`s in the middle distinguish between fungible and non-fungible assets.
+Fungible `Asset`s are encoded with the amount and the `faucet_id` of the issuing faucet. The amount is always 2^{63} - 1 or smaller, representing the maximum supply for any fungible `Asset`. Examples include ETH and various stablecoins (e.g., DAI, USDT, USDC).
 
-### Non-fungible assets
+#### Non-fungible asset
 
-A non-fungible asset is encoded by hashing the asset data into a `word` and then replacing the second element with the `faucet_id` of the issuing account: For example `[e0, faucet_id, e2, e3]`. Note that the second element is guaranteed to be non-zero. Together with the fungible asset encoding, this makes it easy to differentiate between both asset types by inspecting the second element.
-
-Examples of non-fungible assets are all NFTs, e.g., a DevCon ticket. The ticket's data might be represented in a JSON string representing which DevCon, the date, the initial price, etc. Now, users can create a faucet for non-fungible DevCon tickets. This DevCon faucet would hash the JSON string into a `word` to transform the ticket into an asset.
+Non-fungible `Asset`s are encoded by hashing the `Asset` data into 32 bytes and placing the `faucet_id` as the second element. Examples include NFTs like a DevCon ticket.
 
 ### Storage
 
-[Accounts](accounts.md) and [notes](notes.md) contain asset vaults that are used to store assets. Accounts can keep unlimited assets in a sparse Merkle tree called `account vault`. Notes can store up to `255` distinct assets.
+[Accounts](accounts.md) and [notes](notes.md) have vaults used to store `Asset`s. Accounts use a sparse Merkle tree as a vault while notes use a simple list. This enables an account to store a practically unlimited number of assets while a note can only store 255 assets.
 
 ![Architecture core concepts](../img/architecture/asset/asset-storage.png)
 
-The information on which and how many assets are owned can be private depending on the account's or note's storage mode. This is true for any native asset in Miden.
+### Burning
 
-## Non-native assets
+`Asset`s in Miden can be burned through various methods, such as rendering them unspendable by storing them in an unconsumable note, or sending them back to their original faucet for burning using it's dedicated function.
 
-Miden is flexible enough to create other types of assets as well.
+## Alternative asset models
 
-For example, developers can replicate the Ethereum ERC20 model, where ownership of fungible assets is recorded in a single account. To transact, users must send a note to that account to change the global hashmap.
+> All data structures not following the Miden asset model that can be exchanged.
 
-Furthermore, a complete account can be treated as a programmable asset because ownership of accounts is transferrable. An account could be a "crypto kitty" with specific attributes and rules, and people can trade these "crypto kitties" by transferring accounts between each other.
+Miden is flexible enough to support other `Asset` models. For example, developers can replicate Ethereum’s ERC20 pattern, where fungible `Asset` ownership is recorded in a single account. To transact, users send a note to that account, triggering updates in the global hashmap state.
 
-We can also think of an account representing a car. The owner of the car can change so the car account - granting access to the physical car - can be treated as an asset. In this car account, there could be rules defining who is allowed to drive the car and when.
+## Conclusion
+
+Miden’s `Asset` model provides a secure, flexible, scalable, and privacy-preserving framework for representing and transferring value. By embedding `Asset` information directly into accounts and supporting multiple `Asset` types, Miden fosters a decentralized ecosystem where users maintain their privacy, control, transactions can scale efficiently, and censorship is minimized.
