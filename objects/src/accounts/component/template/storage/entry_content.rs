@@ -1,5 +1,4 @@
-use alloc::{boxed::Box, collections::BTreeSet, vec::Vec};
-use std::string::ToString;
+use alloc::{boxed::Box, collections::BTreeSet, string::ToString, vec::Vec};
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
