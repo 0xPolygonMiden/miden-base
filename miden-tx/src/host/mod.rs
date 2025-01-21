@@ -483,64 +483,68 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
     }
 
     fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        // if the prefix of the event ID is not equal to 2, try to parse it as a library event
-        if event_id >> 16 != TransactionEvent::ID_PREFIX {
-            let system_event =
-                SystemEvent::from_event_id(event_id).ok_or(ExecutionError::EventError(
-                    Box::new(TransactionEventError::InvalidTransactionEvent(event_id)),
-                ))?;
-            if system_event == SystemEvent::FalconSigToStack {
-                self.on_signature_requested(process)?
-            }
-        } else {
-            // parse the transaction event if the event ID has the corresponding prefix
-            let transaction_event = TransactionEvent::try_from(event_id)
-                .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
-
-            if process.ctx() != ContextId::root() {
+        // Handle only the FalconSigToStack event here. All other SystemEvents should be handled by
+        // the VM.
+        match SystemEvent::from_event_id(event_id) {
+            Some(SystemEvent::FalconSigToStack) => {
+                return self.on_signature_requested(process);
+            },
+            Some(_) => {
                 return Err(ExecutionError::EventError(Box::new(
-                    TransactionEventError::NotRootContext(event_id),
+                    TransactionEventError::InvalidTransactionEvent(event_id),
                 )));
-            }
-
-            match transaction_event {
-                TransactionEvent::AccountVaultBeforeAddAsset => Ok(()),
-                TransactionEvent::AccountVaultAfterAddAsset => {
-                    self.on_account_vault_after_add_asset(process)
-                },
-
-                TransactionEvent::AccountVaultBeforeRemoveAsset => Ok(()),
-                TransactionEvent::AccountVaultAfterRemoveAsset => {
-                    self.on_account_vault_after_remove_asset(process)
-                },
-
-                TransactionEvent::AccountStorageBeforeSetItem => Ok(()),
-                TransactionEvent::AccountStorageAfterSetItem => {
-                    self.on_account_storage_after_set_item(process)
-                },
-
-                TransactionEvent::AccountStorageBeforeSetMapItem => Ok(()),
-                TransactionEvent::AccountStorageAfterSetMapItem => {
-                    self.on_account_storage_after_set_map_item(process)
-                },
-
-                TransactionEvent::AccountBeforeIncrementNonce => {
-                    self.on_account_before_increment_nonce(process)
-                },
-                TransactionEvent::AccountAfterIncrementNonce => Ok(()),
-
-                TransactionEvent::AccountPushProcedureIndex => {
-                    self.on_account_push_procedure_index(process)
-                },
-
-                TransactionEvent::NoteBeforeCreated => Ok(()),
-                TransactionEvent::NoteAfterCreated => self.on_note_after_created(process),
-
-                TransactionEvent::NoteBeforeAddAsset => self.on_note_before_add_asset(process),
-                TransactionEvent::NoteAfterAddAsset => Ok(()),
-            }
-            .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
+            },
+            // If the event is not a SystemEvent, continue and try parsing it as a
+            // TransactionEvent.
+            None => (),
         }
+
+        let transaction_event = TransactionEvent::try_from(event_id)
+            .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
+
+        if process.ctx() != ContextId::root() {
+            return Err(ExecutionError::EventError(Box::new(
+                TransactionEventError::NotRootContext(event_id),
+            )));
+        }
+
+        match transaction_event {
+            TransactionEvent::AccountVaultBeforeAddAsset => Ok(()),
+            TransactionEvent::AccountVaultAfterAddAsset => {
+                self.on_account_vault_after_add_asset(process)
+            },
+
+            TransactionEvent::AccountVaultBeforeRemoveAsset => Ok(()),
+            TransactionEvent::AccountVaultAfterRemoveAsset => {
+                self.on_account_vault_after_remove_asset(process)
+            },
+
+            TransactionEvent::AccountStorageBeforeSetItem => Ok(()),
+            TransactionEvent::AccountStorageAfterSetItem => {
+                self.on_account_storage_after_set_item(process)
+            },
+
+            TransactionEvent::AccountStorageBeforeSetMapItem => Ok(()),
+            TransactionEvent::AccountStorageAfterSetMapItem => {
+                self.on_account_storage_after_set_map_item(process)
+            },
+
+            TransactionEvent::AccountBeforeIncrementNonce => {
+                self.on_account_before_increment_nonce(process)
+            },
+            TransactionEvent::AccountAfterIncrementNonce => Ok(()),
+
+            TransactionEvent::AccountPushProcedureIndex => {
+                self.on_account_push_procedure_index(process)
+            },
+
+            TransactionEvent::NoteBeforeCreated => Ok(()),
+            TransactionEvent::NoteAfterCreated => self.on_note_after_created(process),
+
+            TransactionEvent::NoteBeforeAddAsset => self.on_note_before_add_asset(process),
+            TransactionEvent::NoteAfterAddAsset => Ok(()),
+        }
+        .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
         Ok(())
     }
