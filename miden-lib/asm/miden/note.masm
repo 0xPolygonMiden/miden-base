@@ -147,7 +147,8 @@ end
 #! Outputs: [sender_id_prefix, sender_id_suffix]
 #!
 #! Where:
-#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently being processed.
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently 
+#!   being processed.
 #!
 #! Panics if:
 #! - no note is being processed.

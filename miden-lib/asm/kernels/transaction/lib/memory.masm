@@ -749,7 +749,8 @@ end
 #! Outputs: [account_nonce, 0, account_id_prefix, account_id_suffix]
 #!
 #! Where:
-#! - account_id_{prefix,suffix} are the prefix and suffix felts of the id of the currently accessing account.
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the id of the currently accessing
+#!   account.
 #! - account_nonce is the nonce of the currently accessing account.
 export.set_acct_id_and_nonce
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add

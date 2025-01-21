@@ -332,7 +332,8 @@ export.::kernel::util::account_id::is_immutable_account
 #!
 #! Where:
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
-#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
+#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to 
+#!   compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
 export.::kernel::util::account_id::is_equal->is_id_equal
 
@@ -1038,8 +1039,8 @@ end
 #! Outputs: [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 #!
 #! Where: 
-#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign account
-#!   whose procedure is going to be executed.
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign 
+#!   account whose procedure is going to be executed.
 #! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the
 #!   memory.
 #! - ptr is the memory pointer to the next empty memory slot or the memory pointer to the account

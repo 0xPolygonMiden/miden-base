@@ -1822,7 +1822,6 @@ dependencies = [
  "miden-objects",
  "miden-processor",
  "miden-tx",
- "rand",
  "rand_chacha",
  "serde",
  "serde_json",

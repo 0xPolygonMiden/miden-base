@@ -71,11 +71,12 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x0002005B
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the account that the
-#!   transaction is being executed against.
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the account 
+#!   that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.
-#! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
+#! - INPUT_NOTES_COMMITMENT is the commitment to the input notes. See the 
+#!   `tx_get_input_notes_commitment` kernel procedure for details.
 proc.process_global_inputs
     exec.memory::set_block_hash dropw
     exec.memory::set_global_acct_id
@@ -438,8 +439,8 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the account that the transaction
-#!   is being executed against.
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the account that the 
+#!   transaction is being executed against.
 #! - account_nonce is the account's nonce.
 #! - ACCOUNT_VAULT_ROOT is the account's vault root.
 #! - ACCOUNT_STORAGE_COMMITMENT is the account's storage commitment.
@@ -1121,8 +1122,8 @@ end
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.
-#! - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the transaction is being
-#!   executed against.
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the transaction 
+#!   is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new 
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
