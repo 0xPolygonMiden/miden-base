@@ -140,11 +140,13 @@ proc.main.1
         # => []
     end
 
+    push.0 drop
     trace.TX_SCRIPT_PROCESSING_END
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
+    push.1 drop
     trace.EPILOGUE_START
 
     # execute the transaction epilogue
