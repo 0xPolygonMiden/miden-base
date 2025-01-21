@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_objects::{
-    accounts::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
+    account::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
     Digest,
 };
 use rand::{Rng, SeedableRng};

@@ -5,7 +5,7 @@ use miden_lib::{
     transaction::{TransactionEvent, TransactionEventError},
 };
 use miden_objects::{
-    accounts::{AccountHeader, AccountVaultDelta},
+    account::{AccountHeader, AccountVaultDelta},
     Digest,
 };
 use vm_processor::{

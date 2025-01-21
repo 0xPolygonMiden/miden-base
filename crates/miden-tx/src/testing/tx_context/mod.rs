@@ -5,10 +5,10 @@ use alloc::{rc::Rc, sync::Arc, vec::Vec};
 use builder::MockAuthenticator;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId},
+    account::{Account, AccountCode, AccountId},
     assembly::Assembler,
     block::BlockNumber,
-    notes::{Note, NoteId},
+    note::{Note, NoteId},
     transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
 };
 use vm_processor::{AdviceInputs, ExecutionError, Process};

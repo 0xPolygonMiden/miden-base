@@ -2,7 +2,7 @@
 use alloc::boxed::Box;
 
 use miden_objects::{
-    accounts::AccountId, block::BlockNumber, notes::NoteId, transaction::TransactionInputs,
+    account::AccountId, block::BlockNumber, note::NoteId, transaction::TransactionInputs,
 };
 use winter_maybe_async::*;
 

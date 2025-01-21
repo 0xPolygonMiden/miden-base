@@ -8,20 +8,20 @@ use vm_core::{mast::MastForestError, Felt, FieldElement};
 use vm_processor::DeserializationError;
 
 use super::{
-    accounts::AccountId,
-    assets::{FungibleAsset, NonFungibleAsset},
+    account::AccountId,
+    asset::{FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
-    notes::NoteId,
+    note::NoteId,
     Digest, Word, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
     MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 use crate::{
-    accounts::{
+    account::{
         AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
         StoragePlaceholder,
     },
     block::BlockNumber,
-    notes::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
+    note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 

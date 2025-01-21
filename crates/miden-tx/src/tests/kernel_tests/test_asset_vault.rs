@@ -10,8 +10,8 @@ use miden_lib::{
     transaction::memory,
 };
 use miden_objects::{
-    accounts::AccountId,
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    account::AccountId,
+    asset::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     testing::{
         account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,

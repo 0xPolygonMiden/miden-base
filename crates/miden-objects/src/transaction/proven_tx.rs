@@ -4,9 +4,9 @@ use miden_verifier::ExecutionProof;
 
 use super::{InputNote, ToInputNoteCommitments};
 use crate::{
-    accounts::delta::AccountUpdateDetails,
+    account::delta::AccountUpdateDetails,
     block::BlockNumber,
-    notes::NoteHeader,
+    note::NoteHeader,
     transaction::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
@@ -527,7 +527,7 @@ mod tests {
 
     use super::ProvenTransaction;
     use crate::{
-        accounts::{
+        account::{
             delta::AccountUpdateDetails, AccountDelta, AccountId, AccountStorageDelta,
             AccountVaultDelta, StorageMapDelta,
         },

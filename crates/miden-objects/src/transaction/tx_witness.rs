@@ -4,7 +4,7 @@ use vm_core::utils::{ByteReader, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{AdviceInputs, TransactionArgs, TransactionInputs};
-use crate::accounts::AccountCode;
+use crate::account::AccountCode;
 
 // TRANSACTION WITNESS
 // ================================================================================================

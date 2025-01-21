@@ -4,7 +4,7 @@ use alloc::{sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::delta::AccountUpdateDetails,
+    account::delta::AccountUpdateDetails,
     assembly::Library,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };

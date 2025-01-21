@@ -3,9 +3,9 @@ use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
-    accounts::{Account, AccountId, AccountIdAnchor},
+    account::{Account, AccountId, AccountIdAnchor},
     block::BlockNumber,
-    notes::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
+    note::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     TransactionInputError, MAX_INPUT_NOTES_PER_TX,
 };

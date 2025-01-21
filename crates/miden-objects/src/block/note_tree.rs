@@ -6,7 +6,7 @@ use miden_crypto::{
 };
 
 use crate::{
-    notes::{compute_note_hash, NoteId, NoteMetadata},
+    note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
     MAX_OUTPUT_NOTES_PER_BLOCK,

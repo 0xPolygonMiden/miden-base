@@ -5,8 +5,8 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
-    assets::{Asset, FungibleAsset},
-    notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
+    asset::{Asset, FungibleAsset},
+    note::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::prepare_word,
     transaction::TransactionScript,
     Felt,

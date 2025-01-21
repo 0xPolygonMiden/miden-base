@@ -13,9 +13,9 @@ mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
 use crate::{
-    accounts::{delta::AccountUpdateDetails, AccountId},
+    account::{delta::AccountUpdateDetails, AccountId},
     errors::BlockError,
-    notes::Nullifier,
+    note::Nullifier,
     transaction::{OutputNote, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };

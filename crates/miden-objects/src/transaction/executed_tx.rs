@@ -6,7 +6,7 @@ use super::{
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionWitness,
 };
-use crate::accounts::AccountCode;
+use crate::account::AccountCode;
 
 // EXECUTED TRANSACTION
 // ================================================================================================

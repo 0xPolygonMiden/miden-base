@@ -3,10 +3,10 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
-    accounts::Account,
-    assets::{Asset, AssetVault, FungibleAsset},
+    account::Account,
+    asset::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::NoteType,
+    note::NoteType,
     testing::{
         account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,

@@ -28,7 +28,7 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::{
+    account::{
         Account, AccountBuilder, AccountId, AccountIdAnchor, AccountIdVersion,
         AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
     },

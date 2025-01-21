@@ -6,11 +6,11 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-pub mod accounts;
-pub mod assets;
-pub mod batches;
+pub mod account;
+pub mod asset;
+pub mod batch;
 pub mod block;
-pub mod notes;
+pub mod note;
 pub mod transaction;
 
 #[cfg(any(feature = "testing", test))]

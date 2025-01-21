@@ -1,5 +1,5 @@
 use miden_objects::{
-    accounts::{AccountComponent, StorageSlot},
+    account::{AccountComponent, StorageSlot},
     crypto::dsa::rpo_falcon512::PublicKey,
 };
 

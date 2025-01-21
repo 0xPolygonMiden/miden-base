@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, sync::Arc};
 
 use miden_lib::{transaction::TransactionKernel, utils::sync::RwLock, MidenLib, StdLibrary};
 use miden_objects::{
-    accounts::AccountCode,
+    account::AccountCode,
     assembly::mast::MastForest,
     transaction::{TransactionArgs, TransactionInputs},
     Digest,

@@ -1,7 +1,7 @@
 use assembly::{Assembler, Library};
 
 use crate::{
-    accounts::{AccountCode, AccountComponent, AccountType},
+    account::{AccountCode, AccountComponent, AccountType},
     testing::account_component::AccountMockComponent,
 };
 

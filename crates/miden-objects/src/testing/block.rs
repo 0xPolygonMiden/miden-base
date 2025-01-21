@@ -7,7 +7,7 @@ use vm_processor::Digest;
 use winter_rand_utils::{rand_array, rand_value};
 
 use crate::{
-    accounts::Account,
+    account::Account,
     block::{BlockHeader, BlockNumber},
     ACCOUNT_TREE_DEPTH,
 };

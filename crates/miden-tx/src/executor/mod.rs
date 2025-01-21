@@ -2,10 +2,10 @@ use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{AccountCode, AccountId},
+    account::{AccountCode, AccountId},
     assembly::Library,
     block::BlockNumber,
-    notes::NoteId,
+    note::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
     MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,

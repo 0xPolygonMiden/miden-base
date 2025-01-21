@@ -1,6 +1,6 @@
 use miden_objects::{
-    accounts::AccountId,
-    assets::NonFungibleAsset,
+    account::AccountId,
+    asset::NonFungibleAsset,
     testing::{
         account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         constants::{

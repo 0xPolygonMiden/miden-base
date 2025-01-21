@@ -5,7 +5,7 @@ use miden_lib::transaction::memory::{
     OUTPUT_NOTE_NUM_ASSETS_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
 };
 use miden_objects::{
-    notes::Note,
+    note::Note,
     testing::{prepare_word, storage::prepare_assets},
     vm::StackInputs,
     Felt, Hasher, Word, ONE, ZERO,

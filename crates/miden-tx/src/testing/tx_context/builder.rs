@@ -5,10 +5,10 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId},
+    account::{Account, AccountCode, AccountId},
     assembly::Assembler,
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
-    notes::{Note, NoteExecutionHint, NoteId, NoteType},
+    asset::{Asset, FungibleAsset, NonFungibleAsset},
+    note::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
         account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
@@ -19,7 +19,7 @@ use miden_objects::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
         },
-        notes::NoteBuilder,
+        note::NoteBuilder,
         prepare_word,
         storage::prepare_assets,
     },

@@ -10,8 +10,8 @@ use miden_lib::{
     transaction::memory::NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
 };
 use miden_objects::{
-    accounts::AccountId,
-    assets::{FungibleAsset, NonFungibleAsset},
+    account::AccountId,
+    asset::{FungibleAsset, NonFungibleAsset},
     testing::{
         account_id::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,

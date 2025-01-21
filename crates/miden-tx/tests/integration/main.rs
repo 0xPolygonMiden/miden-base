@@ -5,10 +5,10 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::AccountId,
-    assets::FungibleAsset,
+    account::AccountId,
+    asset::FungibleAsset,
     crypto::utils::Serializable,
-    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
+    note::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
     testing::account_id::ACCOUNT_ID_SENDER,
     transaction::{ExecutedTransaction, ProvenTransaction},
     Felt, Word, ZERO,
@@ -69,7 +69,7 @@ pub fn get_note_with_fungible_asset_and_script(
     fungible_asset: FungibleAsset,
     note_script: &str,
 ) -> Note {
-    use miden_objects::notes::NoteExecutionHint;
+    use miden_objects::note::NoteExecutionHint;
 
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
     let note_script = NoteScript::compile(note_script, assembler).unwrap();

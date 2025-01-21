@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 
 use miden_objects::{
-    accounts::{
+    account::{
         Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode, AccountType,
     },
     AccountError, Word,

@@ -4,7 +4,7 @@ use miden_lib::transaction::{
     memory::{ACCT_CODE_COMMITMENT_OFFSET, CURRENT_ACCOUNT_DATA_PTR},
     TransactionKernelError,
 };
-use miden_objects::accounts::{AccountCode, AccountProcedureInfo};
+use miden_objects::account::{AccountCode, AccountProcedureInfo};
 
 use super::{AdviceProvider, BTreeMap, Digest, Felt, ProcessState};
 use crate::errors::TransactionHostError;

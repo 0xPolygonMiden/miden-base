@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::AccountId,
-    assets::Asset,
+    account::AccountId,
+    asset::Asset,
     block::BlockNumber,
     crypto::rand::FeltRng,
-    notes::{
+    note::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
         NoteMetadata, NoteRecipient, NoteTag, NoteType,
     },

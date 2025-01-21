@@ -1,8 +1,8 @@
 use alloc::{boxed::Box, vec::Vec};
 
 use miden_objects::{
-    assets::Asset,
-    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, PartialNote},
+    asset::Asset,
+    note::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, PartialNote},
 };
 
 use super::{AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};

@@ -11,10 +11,10 @@ use ::assembly::{
 };
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
+    account::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
     assembly::DefaultSourceManager,
-    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
-    notes::{
+    asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    note::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
@@ -25,7 +25,7 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        notes::DEFAULT_NOTE_CODE,
+        note::DEFAULT_NOTE_CODE,
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },

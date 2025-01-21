@@ -3,8 +3,8 @@ use vm_core::FieldElement;
 
 use super::constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA};
 use crate::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot},
-    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    account::{Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot},
+    asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     testing::{
         account_component::AccountMockComponent,
         account_id::{

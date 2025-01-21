@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::error::Error;
 
-use miden_objects::{notes::NoteMetadata, AccountDeltaError, AssetError, Digest, Felt, NoteError};
+use miden_objects::{note::NoteMetadata, AccountDeltaError, AssetError, Digest, Felt, NoteError};
 use thiserror::Error;
 
 // TRANSACTION KERNEL ERROR

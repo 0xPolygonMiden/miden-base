@@ -1,7 +1,7 @@
 use miden_objects::{
-    accounts::AccountId,
-    assets::Asset,
-    notes::{NoteExecutionMode, NoteInputs, NoteRecipient, NoteTag, NoteType},
+    account::AccountId,
+    asset::Asset,
+    note::{NoteExecutionMode, NoteInputs, NoteRecipient, NoteTag, NoteType},
     NoteError, Word,
 };
 
@@ -56,8 +56,8 @@ pub fn build_swap_tag(
 mod tests {
     use miden_objects::{
         self,
-        accounts::{AccountIdVersion, AccountStorageMode, AccountType},
-        assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        account::{AccountIdVersion, AccountStorageMode, AccountType},
+        asset::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     };
 
     use super::*;

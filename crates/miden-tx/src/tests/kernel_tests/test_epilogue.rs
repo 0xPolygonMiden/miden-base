@@ -11,7 +11,7 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::Account,
+    account::Account,
     transaction::{OutputNote, OutputNotes},
 };
 use vm_processor::{Felt, ProcessState, ONE};

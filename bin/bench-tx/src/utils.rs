@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
 use miden_objects::{
-    accounts::{Account, AccountBuilder, AccountStorageMode, AccountType, AuthSecretKey},
-    assets::Asset,
+    account::{Account, AccountBuilder, AccountStorageMode, AccountType, AuthSecretKey},
+    asset::Asset,
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     transaction::TransactionMeasurements,
 };

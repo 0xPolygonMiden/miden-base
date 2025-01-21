@@ -1,7 +1,7 @@
 use super::{
-    accounts::{Account, AccountDelta, AccountHeader, AccountId},
+    account::{Account, AccountDelta, AccountHeader, AccountId},
     block::BlockHeader,
-    notes::{NoteId, Nullifier},
+    note::{NoteId, Nullifier},
     vm::AdviceInputs,
     Digest, Felt, Hasher, Word, WORD_SIZE, ZERO,
 };

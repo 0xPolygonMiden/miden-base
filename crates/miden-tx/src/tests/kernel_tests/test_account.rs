@@ -7,7 +7,7 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
-    accounts::{
+    account::{
         AccountBuilder, AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
         StorageSlot,
     },

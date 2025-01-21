@@ -14,9 +14,9 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::{AccountDelta, AccountHeader},
-    assets::Asset,
-    notes::NoteId,
+    account::{AccountDelta, AccountHeader},
+    asset::Asset,
+    note::NoteId,
     transaction::{OutputNote, TransactionMeasurements},
     vm::{RowIndex, SystemEvent},
     Digest, Hasher,

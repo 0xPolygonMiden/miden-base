@@ -1,5 +1,5 @@
 use miden_objects::{
-    notes::NoteScript,
+    note::NoteScript,
     utils::{sync::LazyLock, Deserializable},
     vm::Program,
 };

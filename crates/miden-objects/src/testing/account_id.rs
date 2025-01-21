@@ -1,6 +1,6 @@
 use rand::SeedableRng;
 
-use crate::accounts::{AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType};
+use crate::account::{AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType};
 
 // CONSTANTS
 // --------------------------------------------------------------------------------------------

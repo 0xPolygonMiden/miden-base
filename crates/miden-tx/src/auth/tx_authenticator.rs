@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::utils::sync::RwLock;
-use miden_objects::accounts::{AccountDelta, AuthSecretKey};
+use miden_objects::account::{AccountDelta, AuthSecretKey};
 use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
 
@@ -123,7 +123,7 @@ impl TransactionAuthenticator for () {
 #[cfg(test)]
 mod test {
     use miden_lib::utils::{Deserializable, Serializable};
-    use miden_objects::{accounts::AuthSecretKey, crypto::dsa::rpo_falcon512::SecretKey};
+    use miden_objects::{account::AuthSecretKey, crypto::dsa::rpo_falcon512::SecretKey};
 
     #[test]
     fn serialize_auth_key() {

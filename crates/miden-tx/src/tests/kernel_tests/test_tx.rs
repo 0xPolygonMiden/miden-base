@@ -18,13 +18,13 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    accounts::{
+    account::{
         Account, AccountBuilder, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
         StorageSlot,
     },
-    assets::NonFungibleAsset,
+    asset::NonFungibleAsset,
     crypto::merkle::{LeafIndex, MerklePath},
-    notes::{
+    note::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
         NoteRecipient, NoteTag, NoteType,
     },

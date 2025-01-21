@@ -1,9 +1,9 @@
 use miden_lib::{notes::create_swap_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::AccountId,
-    assets::{Asset, NonFungibleAsset},
+    account::AccountId,
+    asset::{Asset, NonFungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::{Note, NoteDetails, NoteType},
+    note::{Note, NoteDetails, NoteType},
     testing::prepare_word,
     transaction::{OutputNote, TransactionScript},
     Felt,

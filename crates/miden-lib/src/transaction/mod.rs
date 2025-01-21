@@ -1,7 +1,7 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
-    accounts::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
+    account::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     block::BlockNumber,
     crypto::merkle::{MerkleError, MerklePath},

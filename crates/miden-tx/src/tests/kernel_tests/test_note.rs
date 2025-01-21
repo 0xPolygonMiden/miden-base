@@ -5,8 +5,8 @@ use miden_lib::{
     transaction::memory::CURRENT_INPUT_NOTE_PTR,
 };
 use miden_objects::{
-    accounts::AccountId,
-    notes::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
+    account::AccountId,
+    note::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
     testing::{account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, prepare_word},
     transaction::TransactionArgs,
     Hasher, WORD_SIZE,

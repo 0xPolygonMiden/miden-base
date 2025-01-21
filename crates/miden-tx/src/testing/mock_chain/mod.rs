@@ -6,11 +6,11 @@ use miden_lib::{
     transaction::{memory, TransactionKernel},
 };
 use miden_objects::{
-    accounts::{
+    account::{
         delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
         AccountId, AccountIdAnchor, AccountType, AuthSecretKey,
     },
-    assets::{Asset, FungibleAsset, TokenSymbol},
+    asset::{Asset, FungibleAsset, TokenSymbol},
     block::{
         compute_tx_hash, Block, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
         BlockNumber, NoteBatch,
@@ -19,7 +19,7 @@ use miden_objects::{
         dsa::rpo_falcon512::SecretKey,
         merkle::{Mmr, MmrError, PartialMmr, Smt},
     },
-    notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
+    note::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,

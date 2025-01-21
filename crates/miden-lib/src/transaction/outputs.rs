@@ -1,5 +1,5 @@
 use miden_objects::{
-    accounts::{AccountHeader, AccountId},
+    account::{AccountHeader, AccountId},
     AccountError, Felt, Word, WORD_SIZE,
 };
 

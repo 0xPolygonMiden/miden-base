@@ -1,9 +1,9 @@
 use miden_objects::{
-    accounts::{
+    account::{
         Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode,
         AccountType, StorageSlot,
     },
-    assets::{FungibleAsset, TokenSymbol},
+    asset::{FungibleAsset, TokenSymbol},
     AccountError, Felt, FieldElement, Word,
 };
 

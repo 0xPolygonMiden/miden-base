@@ -12,7 +12,7 @@ use vm_processor::{AdviceInputs, DeserializationError};
 
 use super::{Digest, Felt, Word};
 use crate::{
-    notes::{NoteDetails, NoteId},
+    note::{NoteDetails, NoteId},
     TransactionScriptError,
 };
 

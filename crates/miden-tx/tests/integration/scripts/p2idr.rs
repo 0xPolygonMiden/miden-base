@@ -2,9 +2,9 @@ use miden_lib::errors::tx_kernel_errors::{
     ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
 };
 use miden_objects::{
-    accounts::Account,
-    assets::{Asset, AssetVault, FungibleAsset},
-    notes::NoteType,
+    account::Account,
+    asset::{Asset, AssetVault, FungibleAsset},
+    note::NoteType,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};

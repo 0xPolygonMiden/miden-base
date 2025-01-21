@@ -6,8 +6,8 @@ use vm_processor::Digest;
 
 use super::prepare_word;
 use crate::{
-    accounts::{AccountStorage, AccountStorageDelta, StorageMap, StorageMapDelta, StorageSlot},
-    notes::NoteAssets,
+    account::{AccountStorage, AccountStorageDelta, StorageMap, StorageMapDelta, StorageSlot},
+    note::NoteAssets,
     AccountDeltaError,
 };
 

@@ -7,7 +7,7 @@ use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 fn wallet_creation() {
     use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
     use miden_objects::{
-        accounts::{AccountCode, AccountStorageMode, AccountType},
+        account::{AccountCode, AccountStorageMode, AccountType},
         block::BlockHeader,
         digest,
     };

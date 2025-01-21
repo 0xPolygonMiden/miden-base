@@ -2,7 +2,7 @@ use alloc::{boxed::Box, string::String};
 use core::error::Error;
 
 use miden_objects::{
-    accounts::AccountId, block::BlockNumber, notes::NoteId, AccountError, Felt,
+    account::AccountId, block::BlockNumber, note::NoteId, AccountError, Felt,
     ProvenTransactionError, TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;

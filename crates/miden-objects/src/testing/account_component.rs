@@ -3,7 +3,7 @@ use alloc::{sync::Arc, vec::Vec};
 use assembly::{ast::Module, Assembler, Library, LibraryPath};
 
 use crate::{
-    accounts::{AccountComponent, StorageSlot},
+    account::{AccountComponent, StorageSlot},
     testing::account_code::MOCK_ACCOUNT_CODE,
     AccountError,
 };
