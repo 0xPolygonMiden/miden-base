@@ -15,9 +15,9 @@ use miden_objects::{
 mod auth;
 pub use auth::AuthScheme;
 
-pub mod accounts;
+pub mod account;
 pub mod errors;
-pub mod notes;
+pub mod note;
 pub mod transaction;
 
 // RE-EXPORTS

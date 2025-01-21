@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     account::{AccountId, AccountStorageMode, AccountType},
     asset::{Asset, FungibleAsset},

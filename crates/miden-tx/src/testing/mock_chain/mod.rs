@@ -1,8 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::{
-    accounts::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
-    notes::{create_p2id_note, create_p2idr_note},
+    account::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
+    note::{create_p2id_note, create_p2idr_note},
     transaction::{memory, TransactionKernel},
 };
 use miden_objects::{

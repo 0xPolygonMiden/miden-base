@@ -1,4 +1,4 @@
-use miden_lib::{notes::create_swap_note, transaction::TransactionKernel};
+use miden_lib::{note::create_swap_note, transaction::TransactionKernel};
 use miden_objects::{
     account::AccountId,
     asset::{Asset, NonFungibleAsset},

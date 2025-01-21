@@ -5,7 +5,7 @@ use miden_objects::{
     NoteError, Word,
 };
 
-use crate::notes::scripts;
+use crate::note::scripts;
 
 /// Creates a [NoteRecipient] for the P2ID note.
 ///

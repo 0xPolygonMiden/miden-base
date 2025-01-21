@@ -2,7 +2,7 @@ extern crate alloc;
 pub use alloc::{collections::BTreeMap, string::String};
 use std::sync::Arc;
 
-use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
+use miden_lib::account::{auth::RpoFalcon512, wallets::BasicWallet};
 use miden_objects::{
     account::{Account, AccountBuilder, AccountStorageMode, AccountType, AuthSecretKey},
     asset::Asset,

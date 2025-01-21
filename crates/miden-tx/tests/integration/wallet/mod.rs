@@ -1,11 +1,11 @@
-use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
+use miden_lib::{account::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{crypto::dsa::rpo_falcon512::SecretKey, Word};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn wallet_creation() {
-    use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
+    use miden_lib::account::{auth::RpoFalcon512, wallets::BasicWallet};
     use miden_objects::{
         account::{AccountCode, AccountStorageMode, AccountType},
         block::BlockHeader,

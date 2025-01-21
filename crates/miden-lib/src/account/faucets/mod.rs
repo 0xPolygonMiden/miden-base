@@ -8,7 +8,7 @@ use miden_objects::{
 };
 
 use super::AuthScheme;
-use crate::accounts::{auth::RpoFalcon512, components::basic_fungible_faucet_library};
+use crate::account::{auth::RpoFalcon512, components::basic_fungible_faucet_library};
 
 // BASIC FUNGIBLE FAUCET ACCOUNT COMPONENT
 // ================================================================================================

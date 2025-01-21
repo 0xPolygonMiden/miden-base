@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use anyhow::Context;
 use miden_lib::{
-    accounts::wallets::BasicWallet,
+    account::wallets::BasicWallet,
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH,
         ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,

@@ -8,7 +8,7 @@ use miden_objects::{
 };
 
 use super::AuthScheme;
-use crate::accounts::{auth::RpoFalcon512, components::basic_wallet_library};
+use crate::account::{auth::RpoFalcon512, components::basic_wallet_library};
 
 // BASIC WALLET
 // ================================================================================================
