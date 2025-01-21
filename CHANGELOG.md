@@ -37,6 +37,7 @@
 - [BREAKING] Removed `GENESIS_BLOCK` public constant (#1088).
 - Add CI check for unused dependencies (#1075).
 - Added storage placeholder types and support for templated map (#1074).
+- [BREAKING] Move crates into `crates/` and rename plural modules to singular (#1091).
 
 ## 0.6.2 (2024-11-20)
 
