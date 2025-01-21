@@ -9,8 +9,7 @@ help:
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
-BUILD_KERNEL_ERRORS=BUILD_KERNEL_ERRORS=1
-BUILD_PROVING_SERVICE_PROTOS=CAN_WRITE_TO_SRC=1
+BUILD_GENERATED_FILES=BUILD_GENERATED_FILES=1
 # Enable backtraces for tests where we return an anyhow::Result. If enabled, anyhow::Error will
 # then contain a `Backtrace` and print it when a test returns an error.
 BACKTRACE=RUST_BACKTRACE=1
@@ -19,12 +18,12 @@ BACKTRACE=RUST_BACKTRACE=1
 
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
-	${BUILD_PROVING_SERVICE_PROTOS} cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
+	${BUILD_GENERATED_FILES} cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
 
 
 .PHONY: clippy-no-std
 clippy-no-std: ## Runs Clippy with configs
-	${BUILD_PROVING_SERVICE_PROTOS} cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service -- -D warnings
+	${BUILD_GENERATED_FILES} cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service -- -D warnings
 
 
 .PHONY: fix
@@ -60,7 +59,7 @@ doc-serve: ## Serves documentation site
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	${BUILD_PROVING_SERVICE_PROTOS} $(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
+	${BUILD_GENERATED_FILES} $(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
 
 
 .PHONY: test-default
@@ -90,33 +89,33 @@ test: test-default test-prove ## Run all tests
 
 .PHONY: check
 check: ## Check all targets and features for errors without code generation
-	${BUILD_KERNEL_ERRORS} cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+	${BUILD_GENERATED_FILES} cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
 
 
 .PHONY: check-no-std
 check-no-std: ## Check the no-std target without any features for errors without code generation
-	${BUILD_KERNEL_ERRORS} cargo check --no-default-features --target wasm32-unknown-unknown --workspace --lib
+	${BUILD_GENERATED_FILES} cargo check --no-default-features --target wasm32-unknown-unknown --workspace --lib
 
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
 build: ## By default we should build in release mode
-	${BUILD_KERNEL_ERRORS} ${BUILD_PROVING_SERVICE_PROTOS} cargo build --release
+	${BUILD_GENERATED_FILES} cargo build --release
 
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	${BUILD_KERNEL_ERRORS} ${BUILD_PROVING_SERVICE_PROTOS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service
+	${BUILD_GENERATED_FILES} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	${BUILD_PROVING_SERVICE_PROTOS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing,tx-prover --exclude miden-proving-service
+	${BUILD_GENERATED_FILES} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing,tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)
-	${BUILD_KERNEL_ERRORS} ${BUILD_PROVING_SERVICE_PROTOS} cargo build --lib --release --features async
+	${BUILD_GENERATED_FILES} cargo build --lib --release --features async
 
 # --- benchmarking --------------------------------------------------------------------------------
 
@@ -129,4 +128,4 @@ bench-tx: ## Run transaction benchmarks
 
 .PHONY: install-proving-service
 install-proving-service: ## Install proving service's CLI
-	${BUILD_PROVING_SERVICE_PROTOS} cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent
+	${BUILD_GENERATED_FILES} cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent

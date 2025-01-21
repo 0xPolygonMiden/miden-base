@@ -20,7 +20,7 @@ use walkdir::WalkDir;
 // ================================================================================================
 
 /// Defines whether the build script can write to /src.
-const CAN_WRITE_TO_SRC: bool = option_env!("DOCS_RS").is_none();
+const BUILD_GENERATED_FILES: bool = option_env!("BUILD_GENERATED_FILES").is_some();
 
 const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
@@ -42,7 +42,7 @@ const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 fn main() -> Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed={ASM_DIR}");
-    println!("cargo::rerun-if-env-changed=BUILD_KERNEL_ERRORS");
+    println!("cargo::rerun-if-env-changed=BUILD_GENERATED_FILES");
 
     // Copies the MASM code to the build directory
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -75,8 +75,8 @@ fn main() -> Result<()> {
     // compile account components
     compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
 
-    // Skip this build script in BUILD_KERNEL_ERRORS environment variable is not set to `1`.
-    if env::var("BUILD_KERNEL_ERRORS").unwrap_or("0".to_string()) == "1" {
+    // Skip this build script if BUILD_GENERATED_FILES is not set.
+    if BUILD_GENERATED_FILES {
         // Generate kernel error constants.
         generate_kernel_error_constants(&source_dir)?;
     }
@@ -164,7 +164,7 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
     // Because the kernel Rust file will be stored under ./src, this should be a no-op if we can't
     // write there
-    if !CAN_WRITE_TO_SRC {
+    if !BUILD_GENERATED_FILES {
         return Ok(());
     }
 
@@ -446,7 +446,7 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
     // Because the error files will be written to ./src/errors, this should be a no-op if ./src is
     // read-only
-    if !CAN_WRITE_TO_SRC {
+    if !BUILD_GENERATED_FILES {
         return Ok(());
     }
 
