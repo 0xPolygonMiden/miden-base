@@ -8,7 +8,8 @@ fn wallet_creation() {
     use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
     use miden_objects::{
         accounts::{AccountCode, AccountStorageMode, AccountType},
-        digest, BlockHeader,
+        block::BlockHeader,
+        digest,
     };
 
     // we need a Falcon Public Key to create the wallet account

@@ -32,6 +32,7 @@ use miden_objects::{
         Account, AccountBuilder, AccountId, AccountIdAnchor, AccountIdVersion,
         AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
     },
+    block::{BlockHeader, BlockNumber},
     testing::{
         account_component::AccountMockComponent,
         account_id::{
@@ -40,7 +41,6 @@ use miden_objects::{
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
     },
     transaction::{TransactionArgs, TransactionScript},
-    BlockHeader, GENESIS_BLOCK,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -486,7 +486,7 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
     // Choose epoch block 0 as the anchor block.
     // Here the transaction reference block is also the anchor block.
-    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+    let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Private)?;
 
@@ -561,7 +561,7 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
     let mut mock_chain = MockChain::new();
     mock_chain.seal_block(None);
 
-    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+    let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     let account = Account::mock_fungible_faucet(
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -585,7 +585,7 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
     let mut mock_chain = MockChain::new();
     mock_chain.seal_block(None);
 
-    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+    let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     let account = Account::mock_non_fungible_faucet(
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -611,7 +611,7 @@ pub fn create_account_invalid_seed() {
     let mut mock_chain = MockChain::new();
     mock_chain.seal_block(None);
 
-    let genesis_block_header = mock_chain.block_header(GENESIS_BLOCK as usize);
+    let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
         .anchor(AccountIdAnchor::try_from(&genesis_block_header).unwrap())
