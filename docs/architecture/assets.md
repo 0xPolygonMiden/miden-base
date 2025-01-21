@@ -49,7 +49,7 @@ Non-fungible `Asset`s are encoded by hashing the `Asset` data into 32 bytes and 
 
 ### Storage
 
-[Accounts](accounts.md) and [notes](notes.md) have vaults used to store `Asset`s. Accounts use a sparse-merkle tree as a vault while notes use a simple list. This enables an account to store a practically unlimited number of assets while a note can only store 255 assets.
+[Accounts](accounts.md) and [notes](notes.md) have vaults used to store `Asset`s. Accounts use a sparse Merkle tree as a vault while notes use a simple list. This enables an account to store a practically unlimited number of assets while a note can only store 255 assets.
 
 ![Architecture core concepts](../img/architecture/asset/asset-storage.png)
 

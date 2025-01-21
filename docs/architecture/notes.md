@@ -74,7 +74,7 @@ Accounts can create `Note`s in a transaction. The `Note` exists if it is include
 As with [accounts](accounts.md), `Note`s can be stored either publicly or privately:
 
 - **Public mode:** The `Note` data is stored in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database), making it fully visible on-chain.
-- **Private mode:** Only the `Note`’s hash is stored. The `Note`’s actual data remains off-chain, enhancing privacy.
+- **Private mode:** Only the `Note`’s hash is stored publicly. The `Note`’s actual data remains off-chain, enhancing privacy.
 
 #### Ephemeral note
 
@@ -91,7 +91,7 @@ After validation, `Note`s become “live” and eligible for discovery and event
 
 ### Note discovery
 
-Clients often need to find specific `Note`s of interest. Miden allows clients to query the `Note` database using `Note` tags. These lightweight, 32-bit tags serve as best-effort filters, enabling quick lookups for `Note`s related to particular use cases, scripts, or account prefixes.
+Clients often need to find specific `Note`s of interest. Miden allows clients to query the `Note` database using `Note` tags. These lightweight, 32-bit data fields serve as best-effort filters, enabling quick lookups for `Note`s related to particular use cases, scripts, or account prefixes.
 
 Using `Note` tags strikes a balance between privacy and efficiency. Without tags, querying a specific `Note` ID reveals a user’s interest to the operator. Conversely, downloading and filtering all registered `Note`s locally is highly inefficient. Tags allow users to adjust their level of privacy by choosing how broadly or narrowly they define their search criteria, letting them find the right balance between revealing too much information and incurring excessive computational overhead.
 
