@@ -10,7 +10,7 @@ use miden_objects::{
     vm::StackInputs,
     Felt, Hasher, Word, ONE, ZERO,
 };
-use vm_processor::{ContextId, Host, Process, ProcessState};
+use vm_processor::{ContextId, Process, ProcessState};
 
 mod test_account;
 mod test_asset;
@@ -44,11 +44,11 @@ macro_rules! assert_execution_error {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Word {
+pub fn read_root_mem_value(process: &ProcessState, addr: u32) -> Word {
     process.get_mem_value(ContextId::root(), addr).unwrap()
 }
 
-pub fn try_read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Option<Word> {
+pub fn try_read_root_mem_value(process: &ProcessState, addr: u32) -> Option<Word> {
     process.get_mem_value(ContextId::root(), addr)
 }
 

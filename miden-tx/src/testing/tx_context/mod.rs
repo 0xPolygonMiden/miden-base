@@ -52,7 +52,7 @@ impl TransactionContext {
     ///
     /// # Errors
     /// Returns an error if the assembly of execution of the provided code fails.
-    pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
+    pub fn execute_code(&self, code: &str) -> Result<Process, ExecutionError> {
         let (stack_inputs, mut advice_inputs) = TransactionKernel::prepare_inputs(
             &self.tx_inputs,
             &self.tx_args,

@@ -1,8 +1,9 @@
 use super::{
     accounts::{Account, AccountDelta, AccountHeader, AccountId},
+    block::BlockHeader,
     notes::{NoteId, Nullifier},
     vm::AdviceInputs,
-    BlockHeader, Digest, Felt, Hasher, Word, WORD_SIZE, ZERO,
+    Digest, Felt, Hasher, Word, WORD_SIZE, ZERO,
 };
 
 mod chain_mmr;

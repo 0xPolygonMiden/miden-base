@@ -126,9 +126,9 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 
     // assemble the kernel program and write it the "tx_kernel.masb" file
     let mut main_assembler = assembler.clone();
-    main_assembler.add_modules_from_dir(kernel_namespace.clone(), &source_dir.join("lib"))?;
     // add the shared modules to the kernel lib under the kernel::util namespace
-    main_assembler.add_modules_from_dir(kernel_namespace, &shared_path)?;
+    main_assembler.add_modules_from_dir(kernel_namespace.clone(), &shared_path)?;
+    main_assembler.add_modules_from_dir(kernel_namespace, &source_dir.join("lib"))?;
 
     let main_file_path = source_dir.join("main.masm").clone();
     let kernel_main = main_assembler.assemble_program(main_file_path)?;

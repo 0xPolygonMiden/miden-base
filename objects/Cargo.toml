@@ -37,7 +37,7 @@ toml = { version = "0.8", optional = true }
 thiserror = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
-winter-rand-utils = { version = "0.10", optional = true }
+winter-rand-utils = { version = "0.11", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }

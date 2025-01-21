@@ -24,11 +24,12 @@ use miden_objects::{
         storage::prepare_assets,
     },
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    vm::AdviceMap,
     FieldElement,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, AdviceMap, Felt, Word};
+use vm_processor::{AdviceInputs, Felt, Word};
 
 use super::TransactionContext;
 use crate::{auth::BasicAuthenticator, testing::MockChain};

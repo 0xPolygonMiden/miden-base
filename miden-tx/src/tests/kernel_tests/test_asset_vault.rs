@@ -147,7 +147,7 @@ fn test_add_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -155,7 +155,7 @@ fn test_add_fungible_asset_success() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -225,7 +225,7 @@ fn test_add_non_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -233,7 +233,7 @@ fn test_add_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -300,7 +300,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -308,7 +308,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -377,7 +377,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -385,7 +385,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -458,7 +458,7 @@ fn test_remove_non_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -466,7 +466,7 @@ fn test_remove_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        read_root_mem_value(&process, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }

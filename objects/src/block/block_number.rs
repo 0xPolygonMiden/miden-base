@@ -22,7 +22,7 @@ impl BlockNumber {
     /// exponent.
     pub const EPOCH_LENGTH_EXPONENT: u8 = 16;
 
-    /// Genesis BlockNumber
+    /// The block height of the genesis block.
     pub const GENESIS: Self = Self(0);
 
     /// Returns the previous block number
