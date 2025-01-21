@@ -174,7 +174,7 @@ impl OutputNote {
 
     /// Value that represents under which condition a note can be consumed.
     ///
-    /// See [crate::notes::NoteRecipient] for more details.
+    /// See [crate::note::NoteRecipient] for more details.
     pub fn recipient_digest(&self) -> Option<Digest> {
         match self {
             OutputNote::Full(note) => Some(note.recipient().digest()),

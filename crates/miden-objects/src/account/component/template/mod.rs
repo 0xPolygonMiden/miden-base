@@ -108,7 +108,7 @@ impl Deserializable for AccountComponentTemplate {
 /// ```
 /// # use semver::Version;
 /// # use std::collections::BTreeSet;
-/// # use miden_objects::{testing::account_code::CODE, accounts::{
+/// # use miden_objects::{testing::account_code::CODE, account::{
 /// #     AccountComponent, AccountComponentMetadata, InitStorageData, StorageEntry,
 /// #     StoragePlaceholder, StorageValue,
 /// #     AccountComponentTemplate, FeltRepresentation, WordRepresentation},

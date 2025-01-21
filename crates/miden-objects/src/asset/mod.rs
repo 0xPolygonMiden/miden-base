@@ -30,7 +30,7 @@ pub use vault::AssetVault;
 /// - non-ZERO for a non-fungible asset.
 ///
 /// Element 3 of both asset types is an [`AccountIdPrefix`] or equivalently, the prefix of an
-/// [`AccountId`](crate::accounts::AccountId), which can be used to distinguish assets
+/// [`AccountId`](crate::account::AccountId), which can be used to distinguish assets
 /// based on [`AccountIdPrefix::account_type`].
 ///
 /// For element 3 of the vault keys of assets, the bit at index 5 (referred to as the
@@ -120,7 +120,7 @@ impl Asset {
 
     /// Returns the prefix of the faucet ID which issued this asset.
     ///
-    /// To get the full [`AccountId`](crate::accounts::AccountId) of a fungible asset the asset
+    /// To get the full [`AccountId`](crate::account::AccountId) of a fungible asset the asset
     /// must be matched on.
     pub fn faucet_id_prefix(&self) -> AccountIdPrefix {
         match self {

@@ -27,7 +27,7 @@ use crate::{
 /// The serialization formats of [`AccountIdPrefix`] and [`AccountId`][id] are compatible. In
 /// particular, a prefix can be deserialized from the serialized bytes of a full id.
 ///
-/// [id]: crate::accounts::AccountId
+/// [id]: crate::account::AccountId
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum AccountIdPrefix {
     V0(AccountIdPrefixV0),
@@ -56,7 +56,7 @@ impl AccountIdPrefix {
     ///
     /// If debug_assertions are enabled (e.g. in debug mode), this function panics if the given
     /// felt is invalid according to the constraints in the
-    /// [`AccountId`](crate::accounts::AccountId) documentation.
+    /// [`AccountId`](crate::account::AccountId) documentation.
     pub fn new_unchecked(prefix: Felt) -> Self {
         // The prefix contains the metadata.
         // If we add more versions in the future, we may need to generalize this.

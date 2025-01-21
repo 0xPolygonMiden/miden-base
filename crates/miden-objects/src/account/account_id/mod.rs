@@ -27,7 +27,7 @@ use vm_processor::{DeserializationError, Digest};
 
 use crate::{errors::AccountIdError, AccountError, ACCOUNT_TREE_DEPTH};
 
-/// The identifier of an [`Account`](crate::accounts::Account).
+/// The identifier of an [`Account`](crate::account::Account).
 ///
 /// This enum is a wrapper around concrete versions of IDs. The following documents version 0.
 ///
@@ -89,8 +89,8 @@ use crate::{errors::AccountIdError, AccountError, ACCOUNT_TREE_DEPTH};
 ///   than [`u16::MAX`] so that at least one of the upper 16 bits is always zero. This ensures that
 ///   the entire suffix is valid even if the remaining bits of the felt are one.
 /// - The lower 8 bits of the suffix may be overwritten when the ID is encoded in other layouts such
-///   as the [`NoteMetadata`](crate::notes::NoteMetadata). In such cases, it can happen that all
-///   bits of the encoded suffix would be one, so having the epoch constraint is important.
+///   as the [`NoteMetadata`](crate::note::NoteMetadata). In such cases, it can happen that all bits
+///   of the encoded suffix would be one, so having the epoch constraint is important.
 /// - The ID is dependent on the hash of an epoch block. This is a block whose number is a multiple
 ///   of 2^[`BlockNumber::EPOCH_LENGTH_EXPONENT`][epoch_len_exp], e.g. `0`, `65536`, `131072`, ...
 ///   These are the first blocks of epoch 0, 1, 2, ... We call this dependence _anchoring_ because

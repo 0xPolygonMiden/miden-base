@@ -21,10 +21,10 @@ pub const BASIC_WALLET_CODE: &str = "
 // ================================================================================================
 
 /// Creates a mock [`Library`] which can be used to assemble programs and as a library to create a
-/// mock [`AccountCode`](crate::accounts::AccountCode) interface. Transaction and note scripts that
+/// mock [`AccountCode`](crate::account::AccountCode) interface. Transaction and note scripts that
 /// make use of this interface should be assembled with this.
 ///
-/// This component supports all [`AccountType`](crate::accounts::AccountType)s for testing purposes.
+/// This component supports all [`AccountType`](crate::account::AccountType)s for testing purposes.
 pub struct AccountMockComponent {
     library: Library,
     storage_slots: Vec<StorageSlot>,

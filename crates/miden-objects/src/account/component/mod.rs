@@ -18,8 +18,8 @@ use crate::{
 /// An [`AccountComponent`] defines a [`Library`] of code and the initial value and types of
 /// the [`StorageSlot`]s it accesses.
 ///
-/// One or more components can be used to built [`AccountCode`](crate::accounts::AccountCode) and
-/// [`AccountStorage`](crate::accounts::AccountStorage).
+/// One or more components can be used to built [`AccountCode`](crate::account::AccountCode) and
+/// [`AccountStorage`](crate::account::AccountStorage).
 ///
 /// Each component is independent of other components and can only access its own storage slots.
 /// Each component defines its own storage layout starting at index 0 up to the length of the
@@ -45,7 +45,7 @@ impl AccountComponent {
     /// `storage_slots`.
     ///
     /// All procedures exported from the provided code will become members of the account's public
-    /// interface when added to an [`AccountCode`](crate::accounts::AccountCode).
+    /// interface when added to an [`AccountCode`](crate::account::AccountCode).
     ///
     /// # Errors
     ///
@@ -71,7 +71,7 @@ impl AccountComponent {
     /// using the specified `assembler` and with the given `storage_slots`.
     ///
     /// All procedures exported from the provided code will become members of the account's public
-    /// interface when added to an [`AccountCode`](crate::accounts::AccountCode).
+    /// interface when added to an [`AccountCode`](crate::account::AccountCode).
     ///
     /// # Errors
     ///

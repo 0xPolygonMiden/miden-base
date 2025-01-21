@@ -7,7 +7,7 @@ use crate::{
 // ACCOUNT ID ANCHOR
 // ================================================================================================
 
-/// The anchor of an [`AccountId`](crate::accounts::AccountId). See the type's documentation for
+/// The anchor of an [`AccountId`](crate::account::AccountId). See the type's documentation for
 /// details on anchors.
 ///
 /// This type is recommended to be created from a reference to a [`BlockHeader`] via the `TryFrom`

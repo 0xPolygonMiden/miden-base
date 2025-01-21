@@ -160,7 +160,7 @@ impl NoteExecutionHint {
     /// significant bits set to `0`.
     ///
     /// The payload is guaranteed to contain at least one `0` bit to make encoding it into
-    /// [`NoteMetadata`](crate::notes::NoteMetadata) safely possible.
+    /// [`NoteMetadata`](crate::note::NoteMetadata) safely possible.
     pub fn into_parts(&self) -> (u8, u32) {
         match self {
             NoteExecutionHint::None => (Self::NONE_TAG, 0),

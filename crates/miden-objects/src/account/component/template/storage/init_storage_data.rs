@@ -3,8 +3,8 @@ use alloc::collections::BTreeMap;
 use super::{StoragePlaceholder, StorageValue};
 
 /// Represents the data required to initialize storage entries when instantiating an
-/// [AccountComponent](crate::accounts::AccountComponent) from a
-/// [template](crate::accounts::AccountComponentTemplate).
+/// [AccountComponent](crate::account::AccountComponent) from a
+/// [template](crate::account::AccountComponentTemplate).
 #[derive(Clone, Debug, Default)]
 pub struct InitStorageData {
     /// A mapping of storage placeholder names to their corresponding storage values.

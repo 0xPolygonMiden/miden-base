@@ -31,7 +31,7 @@ use crate::{
 // ACCOUNT ID VERSION 0
 // ================================================================================================
 
-/// Version 0 of the [`Account`](crate::accounts::Account) identifier.
+/// Version 0 of the [`Account`](crate::account::Account) identifier.
 ///
 /// See the [`AccountId`](super::AccountId) type's documentation for details.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

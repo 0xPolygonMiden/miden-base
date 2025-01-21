@@ -7,7 +7,7 @@ use assembly::Assembler;
 use rand::Rng;
 
 use crate::{
-    accounts::AccountId,
+    account::AccountId,
     assembly::ProgramAst,
     assets::Asset,
     notes::{
