@@ -7,7 +7,9 @@ use std::{
 use miette::IntoDiagnostic;
 use protox::prost::Message;
 
-/// Defines whether the build script can write to /src.
+/// Defines whether the build script should generate files in `/src`.
+/// The docs.rs build pipeline has a read-only filesystem, so we have to avoid writing to `src`,
+/// otherwise the docs will fail to build there. Note that writing to `OUT_DIR` is fine.
 const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
 /// Generates Rust protobuf bindings from .proto files.
