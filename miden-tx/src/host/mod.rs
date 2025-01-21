@@ -247,7 +247,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
         let slot_index = process.get_stack_item(0);
 
         // get number of storage slots initialized by the account
-        let num_storage_slot = Self::get_num_storage_slots(&process)?;
+        let num_storage_slot = Self::get_num_storage_slots(process)?;
 
         if slot_index.as_int() >= num_storage_slot {
             return Err(TransactionKernelError::InvalidStorageSlotIndex {
@@ -293,7 +293,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
         let slot_index = process.get_stack_item(0);
 
         // get number of storage slots initialized by the account
-        let num_storage_slot = Self::get_num_storage_slots(&process)?;
+        let num_storage_slot = Self::get_num_storage_slots(process)?;
 
         if slot_index.as_int() >= num_storage_slot {
             return Err(TransactionKernelError::InvalidStorageSlotIndex {
@@ -427,7 +427,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// # Errors
     /// Returns an error if the address of the currently executing input note is invalid (e.g.,
     /// greater than `u32::MAX`).
-    fn get_current_note_id(process: &ProcessState) -> Result<Option<NoteId>, ExecutionError> {
+    fn get_current_note_id(process: ProcessState) -> Result<Option<NoteId>, ExecutionError> {
         // get the note address in `Felt` or return `None` if the address hasn't been accessed
         // previously.
         let note_address_felt = match process.get_mem_value(process.ctx(), CURRENT_INPUT_NOTE_PTR) {
@@ -451,7 +451,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// # Errors
     /// Returns an error if the memory location supposed to contain the account storage slot number
     /// has not been initialized.
-    fn get_num_storage_slots(process: &ProcessState) -> Result<u64, TransactionKernelError> {
+    fn get_num_storage_slots(process: ProcessState) -> Result<u64, TransactionKernelError> {
         let num_storage_slots_felt = process
             .get_mem_value(process.ctx(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR)
             .ok_or(TransactionKernelError::AccountStorageSlotsNumMissing(
@@ -558,7 +558,7 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
             NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
             NoteExecutionStart => {
-                let note_id = Self::get_current_note_id(&process)?.expect(
+                let note_id = Self::get_current_note_id(process)?.expect(
                     "Note execution interval measurement is incorrect: check the placement of the start and the end of the interval",
                 );
                 self.tx_progress.start_note_execution(process.clk(), note_id);
