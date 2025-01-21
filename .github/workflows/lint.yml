@@ -102,3 +102,11 @@ jobs:
         run: BUILD_KERNEL_ERRORS=1 cargo check -p miden-lib
       - name: Diff check
         run: git diff --exit-code
+
+  unused_deps:
+    name: check for unused dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - name: machete
+        uses: bnjbvr/cargo-machete@main
