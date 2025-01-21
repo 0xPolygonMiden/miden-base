@@ -22,7 +22,6 @@ mod errors;
 // RE-EXPORTS
 // ================================================================================================
 
-pub use block::BlockHeader;
 pub use constants::*;
 pub use errors::{
     AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError, BlockError,

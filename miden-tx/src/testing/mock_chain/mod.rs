@@ -12,8 +12,8 @@ use miden_objects::{
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
     block::{
-        compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, BlockNumber,
-        NoteBatch,
+        compute_tx_hash, Block, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
+        BlockNumber, NoteBatch,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -25,7 +25,7 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
         TransactionId, TransactionInputs, TransactionScript,
     },
-    AccountError, BlockHeader, NoteError, ACCOUNT_TREE_DEPTH,
+    AccountError, NoteError, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;

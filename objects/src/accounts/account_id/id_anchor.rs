@@ -1,4 +1,8 @@
-use crate::{block::BlockNumber, errors::AccountIdError, BlockHeader, Digest, EMPTY_WORD};
+use crate::{
+    block::{BlockHeader, BlockNumber},
+    errors::AccountIdError,
+    Digest, EMPTY_WORD,
+};
 
 // ACCOUNT ID ANCHOR
 // ================================================================================================

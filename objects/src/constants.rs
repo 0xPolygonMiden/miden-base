@@ -68,6 +68,3 @@ pub const MAX_INPUT_NOTES_PER_BLOCK: usize = MAX_OUTPUT_NOTES_PER_BLOCK;
 pub const MAX_ACCOUNTS_PER_BLOCK: usize = MAX_ACCOUNTS_PER_BATCH * MAX_BATCHES_PER_BLOCK;
 const _: () = assert!(MAX_ACCOUNTS_PER_BLOCK >= MAX_ACCOUNTS_PER_BATCH);
 const _: () = assert!(MAX_ACCOUNTS_PER_BLOCK >= MAX_BATCHES_PER_BLOCK);
-
-/// The block height of the genesis block
-pub const GENESIS_BLOCK: u32 = 0;

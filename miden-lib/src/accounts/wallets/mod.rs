@@ -80,7 +80,7 @@ pub fn create_basic_wallet(
 #[cfg(test)]
 mod tests {
 
-    use miden_objects::{crypto::dsa::rpo_falcon512, digest, BlockHeader, ONE};
+    use miden_objects::{block::BlockHeader, crypto::dsa::rpo_falcon512, digest, ONE};
     use vm_processor::utils::{Deserializable, Serializable};
 
     use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
