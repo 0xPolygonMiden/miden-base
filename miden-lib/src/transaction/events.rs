@@ -5,9 +5,6 @@ use super::{TransactionEventError, TransactionTraceParsingError};
 // CONSTANTS
 // ================================================================================================
 
-/// Value of the top 16 bits of a transaction kernel event ID.
-pub const EVENT_ID_PREFIX: u32 = 2;
-
 // TRANSACTION EVENT
 // ================================================================================================
 
@@ -68,6 +65,11 @@ pub enum TransactionEvent {
     NoteAfterAddAsset = NOTE_AFTER_ADD_ASSET,
 }
 
+impl TransactionEvent {
+    /// Value of the top 16 bits of a transaction kernel event ID.
+    pub const ID_PREFIX: u32 = 2;
+}
+
 impl fmt::Display for TransactionEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
@@ -78,7 +80,7 @@ impl TryFrom<u32> for TransactionEvent {
     type Error = TransactionEventError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        if value >> 16 != EVENT_ID_PREFIX {
+        if value >> 16 != TransactionEvent::ID_PREFIX {
             return Err(TransactionEventError::NotTransactionEvent(value));
         }
 
@@ -145,7 +147,7 @@ impl TryFrom<u32> for TransactionTrace {
     type Error = TransactionTraceParsingError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        if value >> 16 != EVENT_ID_PREFIX {
+        if value >> 16 != TransactionEvent::ID_PREFIX {
             return Err(TransactionTraceParsingError::UnknownTransactionTrace(value));
         }
 

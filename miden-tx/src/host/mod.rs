@@ -11,7 +11,6 @@ use miden_lib::{
     transaction::{
         memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
         TransactionEvent, TransactionEventError, TransactionKernelError, TransactionTrace,
-        EVENT_ID_PREFIX,
     },
 };
 use miden_objects::{
@@ -485,7 +484,7 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
 
     fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
         // if the prefix of the event ID is not equal to 2, try to parse it as a library event
-        if event_id >> 16 != EVENT_ID_PREFIX {
+        if event_id >> 16 != TransactionEvent::ID_PREFIX {
             let system_event =
                 SystemEvent::from_event_id(event_id).ok_or(ExecutionError::EventError(
                     Box::new(TransactionEventError::InvalidTransactionEvent(event_id)),
