@@ -6,7 +6,11 @@ use vm_processor::Digest;
 #[cfg(not(target_family = "wasm"))]
 use winter_rand_utils::{rand_array, rand_value};
 
-use crate::{accounts::Account, block::BlockNumber, BlockHeader, ACCOUNT_TREE_DEPTH};
+use crate::{
+    accounts::Account,
+    block::{BlockHeader, BlockNumber},
+    ACCOUNT_TREE_DEPTH,
+};
 
 impl BlockHeader {
     /// Creates a mock block. The account tree is formed from the provided `accounts`,

@@ -3,9 +3,9 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::utils::{Deserializable, Serializable};
 
 use crate::{
-    block::BlockNumber,
+    block::{BlockHeader, BlockNumber},
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
-    BlockHeader, ChainMmrError,
+    ChainMmrError,
 };
 
 // CHAIN MMR
@@ -154,9 +154,9 @@ mod tests {
     use super::ChainMmr;
     use crate::{
         alloc::vec::Vec,
-        block::BlockNumber,
+        block::{BlockHeader, BlockNumber},
         crypto::merkle::{Mmr, PartialMmr},
-        BlockHeader, Digest,
+        Digest,
     };
 
     #[test]

@@ -33,6 +33,7 @@
 - [BREAKING] Removed `miden-tx-prover` crate and created `miden-proving-service` and `miden-proving-service-client` (#1047).
 - Deduplicate `masm` procedures across kernel and miden lib to a shared `util` module (#1070).
 - [BREAKING] Added `BlockNumber` struct (#1043, #1080, #1082).
+- [BREAKING] Removed `GENESIS_BLOCK` public constant (#1088).
 
 ## 0.6.2 (2024-11-20)
 
