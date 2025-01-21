@@ -641,6 +641,6 @@ mod tests {
         )
         .unwrap_err();
 
-        assert_matches!(err, AccountError::AccountComponentMergeError(_))
+        assert_matches!(err, AccountError::AccountComponentDuplicateProcedureRoot(_))
     }
 }
