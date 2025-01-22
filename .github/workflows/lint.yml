@@ -99,7 +99,7 @@ jobs:
         with:
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Rebuild generated files in src
-        run: BUILD_GENERATED_FILES_IN_SRC=1 cargo check
+        run: BUILD_GENERATED_FILES_IN_SRC=1 make check
       - name: Diff check
         run: git diff --exit-code
 
