@@ -44,12 +44,12 @@ macro_rules! assert_execution_error {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn read_root_mem_value(process: &ProcessState, addr: u32) -> Word {
-    process.get_mem_value(ContextId::root(), addr).unwrap()
+pub fn read_root_mem_word(process: &ProcessState, addr: u32) -> Word {
+    process.get_mem_word(ContextId::root(), addr).unwrap().unwrap()
 }
 
-pub fn try_read_root_mem_value(process: &ProcessState, addr: u32) -> Option<Word> {
-    process.get_mem_value(ContextId::root(), addr)
+pub fn try_read_root_mem_word(process: &ProcessState, addr: u32) -> Option<Word> {
+    process.get_mem_word(ContextId::root(), addr).unwrap()
 }
 
 pub fn output_notes_data_procedure(notes: &[Note]) -> String {

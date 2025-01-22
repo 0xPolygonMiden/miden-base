@@ -46,7 +46,7 @@ use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
     testing::{MockChain, TransactionContextBuilder},
-    tests::kernel_tests::{read_root_mem_value, try_read_root_mem_value},
+    tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
     TransactionExecutor,
 };
 
@@ -89,13 +89,13 @@ fn test_create_note() {
     let process = &tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NUM_OUTPUT_NOTES_PTR),
+        read_root_mem_word(&process.into(), NUM_OUTPUT_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
         "number of output notes must increment by 1",
     );
 
     assert_eq!(
-        read_root_mem_value(
+        read_root_mem_word(
             &process.into(),
             OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_RECIPIENT_OFFSET
         ),
@@ -114,7 +114,7 @@ fn test_create_note() {
     .into();
 
     assert_eq!(
-        read_root_mem_value(
+        read_root_mem_word(
             &process.into(),
             OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET
         ),
@@ -341,12 +341,12 @@ fn test_get_output_notes_commitment() {
     let process_state: ProcessState = process.into();
 
     assert_eq!(
-        read_root_mem_value(&process_state, NUM_OUTPUT_NOTES_PTR),
+        read_root_mem_word(&process_state, NUM_OUTPUT_NOTES_PTR),
         [Felt::new(2), ZERO, ZERO, ZERO],
         "The test creates two notes",
     );
     assert_eq!(
-        NoteMetadata::try_from(read_root_mem_value(
+        NoteMetadata::try_from(read_root_mem_word(
             &process_state,
             OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET
         ))
@@ -355,7 +355,7 @@ fn test_get_output_notes_commitment() {
         "Validate the output note 1 metadata",
     );
     assert_eq!(
-        NoteMetadata::try_from(read_root_mem_value(
+        NoteMetadata::try_from(read_root_mem_word(
             &process_state,
             OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
         ))
@@ -418,7 +418,7 @@ fn test_create_note_and_add_asset() {
     let process_state: ProcessState = process.into();
 
     assert_eq!(
-        read_root_mem_value(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
+        read_root_mem_word(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
         asset,
         "asset must be stored at the correct memory location",
     );
@@ -500,24 +500,24 @@ fn test_create_note_and_add_multiple_assets() {
     let process_state: ProcessState = process.into();
 
     assert_eq!(
-        read_root_mem_value(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
+        read_root_mem_word(&process_state, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
         asset,
         "asset must be stored at the correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(
+        read_root_mem_word(
             &process_state,
-            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 1
+            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 4
         ),
         asset_2_and_3,
         "asset_2 and asset_3 must be stored at the same correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(
+        read_root_mem_word(
             &process_state,
-            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 2
+            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 8
         ),
         Word::from(non_fungible_asset_encoded),
         "non_fungible_asset must be stored at the correct memory location",
@@ -653,7 +653,7 @@ fn test_build_recipient_hash() {
     let process = &tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NUM_OUTPUT_NOTES_PTR),
+        read_root_mem_word(&process.into(), NUM_OUTPUT_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
         "number of output notes must increment by 1",
     );
@@ -661,7 +661,7 @@ fn test_build_recipient_hash() {
     let recipient_digest: Vec<Felt> = recipient.clone().digest().to_vec();
 
     assert_eq!(
-        read_root_mem_value(
+        read_root_mem_word(
             &process.into(),
             OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_RECIPIENT_OFFSET
         ),
@@ -908,7 +908,7 @@ fn test_fpi_memory() {
     // Foreign account:   [4096; 6143] <- initialized during first FPI
     // Next account slot: [6144; 8191] <- should not be initialized
     assert_eq!(
-        try_read_root_mem_value(
+        try_read_root_mem_word(
             &process.into(),
             NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2
         ),
@@ -1116,7 +1116,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
     let foreign_account_data_ptr = NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32;
 
     assert_eq!(
-        read_root_mem_value(&process.into(), foreign_account_data_ptr + ACCT_ID_AND_NONCE_OFFSET),
+        read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_ID_AND_NONCE_OFFSET),
         [
             foreign_account.id().suffix(),
             foreign_account.id().prefix().as_felt(),
@@ -1126,12 +1126,12 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), foreign_account_data_ptr + ACCT_VAULT_ROOT_OFFSET),
+        read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_VAULT_ROOT_OFFSET),
         foreign_account.vault().commitment().as_elements(),
     );
 
     assert_eq!(
-        read_root_mem_value(
+        read_root_mem_word(
             &process.into(),
             foreign_account_data_ptr + ACCT_STORAGE_COMMITMENT_OFFSET
         ),
@@ -1139,15 +1139,12 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
     );
 
     assert_eq!(
-        read_root_mem_value(
-            &process.into(),
-            foreign_account_data_ptr + ACCT_CODE_COMMITMENT_OFFSET
-        ),
+        read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_CODE_COMMITMENT_OFFSET),
         foreign_account.code().commitment().as_elements(),
     );
 
     assert_eq!(
-        read_root_mem_value(
+        read_root_mem_word(
             &process.into(),
             foreign_account_data_ptr + NUM_ACCT_STORAGE_SLOTS_OFFSET
         ),
@@ -1166,16 +1163,16 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_value(
+            read_root_mem_word(
                 &process.into(),
-                foreign_account_data_ptr + ACCT_STORAGE_SLOTS_SECTION_OFFSET + i as u32
+                foreign_account_data_ptr + ACCT_STORAGE_SLOTS_SECTION_OFFSET + (i as u32) * 4
             ),
             Word::try_from(elements).unwrap(),
         )
     }
 
     assert_eq!(
-        read_root_mem_value(&process.into(), foreign_account_data_ptr + NUM_ACCT_PROCEDURES_OFFSET),
+        read_root_mem_word(&process.into(), foreign_account_data_ptr + NUM_ACCT_PROCEDURES_OFFSET),
         [
             u16::try_from(foreign_account.code().procedures().len()).unwrap().into(),
             ZERO,
@@ -1191,9 +1188,9 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_value(
+            read_root_mem_word(
                 &process.into(),
-                foreign_account_data_ptr + ACCT_PROCEDURES_SECTION_OFFSET + i as u32
+                foreign_account_data_ptr + ACCT_PROCEDURES_SECTION_OFFSET + (i as u32) * 4
             ),
             Word::try_from(elements).unwrap(),
         );

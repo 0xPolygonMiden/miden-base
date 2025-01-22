@@ -21,7 +21,8 @@ const.ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID=0x0002004D
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet to create the asset for.
+#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet to create the asset 
+#!   for.
 #! - amount is the amount of the asset to create.
 #! - ASSET is the built fungible asset.
 #!
@@ -67,7 +68,8 @@ end
 #! Outputs: [ASSET]
 #!
 #! Where:
-#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet to create the asset for.
+#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet to create the asset 
+#!   for.
 #! - DATA_HASH is the data hash of the non-fungible asset to build.
 #! - ASSET is the built non-fungible asset.
 #!

@@ -17,7 +17,7 @@ use super::{Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
     testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},
-    tests::kernel_tests::read_root_mem_value,
+    tests::kernel_tests::read_root_mem_word,
 };
 
 #[test]
@@ -140,7 +140,7 @@ fn test_get_assets() {
             code += &format!(
                 "
                 # assert the asset is correct
-                dup padw movup.4 mem_loadw push.{asset} assert_eqw push.1 add
+                dup padw movup.4 mem_loadw push.{asset} assert_eqw push.4 add
                 ",
                 asset = prepare_word(&<[Felt; 4]>::from(*asset))
             );
@@ -250,7 +250,7 @@ fn test_get_inputs() {
             code += &format!(
                 "
                 # assert the input is correct
-                dup padw movup.4 mem_loadw push.{input_word} assert_eqw push.1 add
+                dup padw movup.4 mem_loadw push.{input_word} assert_eqw push.4 add
                 ",
                 input_word = prepare_word(&input_word)
             );
@@ -392,7 +392,7 @@ fn note_setup_stack_assertions(process: &Process, inputs: &TransactionContext) {
 fn note_setup_memory_assertions(process: &Process) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
-        read_root_mem_value(&process.into(), CURRENT_INPUT_NOTE_PTR)[0],
+        read_root_mem_word(&process.into(), CURRENT_INPUT_NOTE_PTR)[0],
         Felt::from(input_note_data_ptr(0))
     );
 }
@@ -436,28 +436,28 @@ fn test_get_inputs_hash() {
 
         begin
             # put the values that will be hashed into the memory
-            push.1.2.3.4.1000 mem_storew dropw
-            push.5.6.7.8.1001 mem_storew dropw
-            push.9.10.11.12.1002 mem_storew dropw
-            push.13.14.15.16.1003 mem_storew dropw
+            push.1.2.3.4.4000 mem_storew dropw
+            push.5.6.7.8.4004 mem_storew dropw
+            push.9.10.11.12.4008 mem_storew dropw
+            push.13.14.15.16.4012 mem_storew dropw
 
             # push the number of values and pointer to the inputs on the stack
-            push.5.1000
+            push.5.4000
             # execute the `compute_inputs_hash` procedure for 5 values
             exec.note::compute_inputs_hash
             # => [HASH_5]
 
-            push.8.1000
+            push.8.4000
             # execute the `compute_inputs_hash` procedure for 8 values
             exec.note::compute_inputs_hash
             # => [HASH_8, HASH_5]
 
-            push.15.1000
+            push.15.4000
             # execute the `compute_inputs_hash` procedure for 15 values
             exec.note::compute_inputs_hash
             # => [HASH_15, HASH_8, HASH_5]
 
-            push.0.1000
+            push.0.4000
             # check that calling `compute_inputs_hash` procedure with 0 elements will result in an
             # empty word
             exec.note::compute_inputs_hash

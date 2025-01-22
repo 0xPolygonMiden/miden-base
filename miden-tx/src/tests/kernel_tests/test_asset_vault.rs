@@ -22,11 +22,12 @@ use miden_objects::{
     },
     AssetVaultError,
 };
+use vm_processor::ProcessState;
 
 use super::{Felt, Word, ONE, ZERO};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
-    tests::kernel_tests::read_root_mem_value,
+    tests::kernel_tests::read_root_mem_word,
 };
 
 #[test]
@@ -148,14 +149,15 @@ fn test_add_fungible_asset_success() {
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     assert_eq!(
-        process.stack.get_word(0),
+        process_state.get_stack_word(0),
         Into::<Word>::into(account_vault.add_asset(add_fungible_asset).unwrap())
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -226,14 +228,15 @@ fn test_add_non_fungible_asset_success() {
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     assert_eq!(
-        process.stack.get_word(0),
+        process_state.get_stack_word(0),
         Into::<Word>::into(account_vault.add_asset(add_non_fungible_asset).unwrap())
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -301,14 +304,15 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     assert_eq!(
-        process.stack.get_word(0),
+        process_state.get_stack_word(0),
         Into::<Word>::into(account_vault.remove_asset(remove_fungible_asset).unwrap())
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -378,14 +382,15 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     assert_eq!(
-        process.stack.get_word(0),
+        process_state.get_stack_word(0),
         Into::<Word>::into(account_vault.remove_asset(remove_fungible_asset).unwrap())
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -459,14 +464,15 @@ fn test_remove_non_fungible_asset_success() {
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
+    let process_state: ProcessState = process.into();
 
     assert_eq!(
-        process.stack.get_word(0),
+        process_state.get_stack_word(0),
         Into::<Word>::into(account_vault.remove_asset(non_fungible_asset).unwrap())
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), memory::NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }

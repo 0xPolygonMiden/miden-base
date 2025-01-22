@@ -475,7 +475,6 @@ fn test_send_note_proc() {
         let tx_script_src = format!(
             "\
             use.miden::contracts::wallets::basic->wallet
-            use.miden::tx
             use.test::account
 
             ## TRANSACTION SCRIPT
@@ -746,7 +745,7 @@ fn executed_transaction_output_notes() {
     let tx_script = TransactionScript::compile(
         tx_script_src,
         [],
-        TransactionKernel::testing_assembler_with_mock_account(),
+        TransactionKernel::testing_assembler_with_mock_account().with_debug_mode(true),
     )
     .unwrap();
     let mut tx_args = TransactionArgs::new(

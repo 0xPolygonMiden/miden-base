@@ -428,15 +428,13 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// Returns an error if the address of the currently executing input note is invalid (e.g.,
     /// greater than `u32::MAX`).
     fn get_current_note_id(process: ProcessState) -> Result<Option<NoteId>, ExecutionError> {
-        // get the word where note address is stored
-        let note_address_word = process.get_mem_value(process.ctx(), CURRENT_INPUT_NOTE_PTR);
-        // get the note address in `Felt` from or return `None` if the address hasn't been accessed
+        // get the note address in `Felt` or return `None` if the address hasn't been accessed
         // previously.
-        let note_address_felt = match note_address_word {
-            Some(w) => w[0],
+        let note_address_felt = match process.get_mem_value(process.ctx(), CURRENT_INPUT_NOTE_PTR) {
+            Some(addr) => addr,
             None => return Ok(None),
         };
-        // get the note address
+        // convert note address into u32
         let note_address: u32 = note_address_felt
             .try_into()
             .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(note_address_felt.as_int()))?;
@@ -444,7 +442,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
         if note_address == 0 {
             Ok(None)
         } else {
-            Ok(process.get_mem_value(process.ctx(), note_address).map(NoteId::from))
+            Ok(process.get_mem_word(process.ctx(), note_address)?.map(NoteId::from))
         }
     }
 
@@ -454,13 +452,13 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// Returns an error if the memory location supposed to contain the account storage slot number
     /// has not been initialized.
     fn get_num_storage_slots(process: ProcessState) -> Result<u64, TransactionKernelError> {
-        let num_storage_slots_word = process
+        let num_storage_slots_felt = process
             .get_mem_value(process.ctx(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR)
             .ok_or(TransactionKernelError::AccountStorageSlotsNumMissing(
                 NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR,
             ))?;
 
-        Ok(num_storage_slots_word[0].as_int())
+        Ok(num_storage_slots_felt.as_int())
     }
 }
 

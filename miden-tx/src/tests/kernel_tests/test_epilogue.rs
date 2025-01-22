@@ -19,7 +19,7 @@ use vm_processor::{Felt, ProcessState, ONE};
 use super::{output_notes_data_procedure, ZERO};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
-    tests::kernel_tests::read_root_mem_value,
+    tests::kernel_tests::read_root_mem_word,
 };
 
 #[test]
@@ -124,7 +124,7 @@ fn test_compute_output_note_id() {
 
         assert_eq!(
             note.assets().commitment().as_elements(),
-            read_root_mem_value(
+            read_root_mem_word(
                 &process.into(),
                 OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + OUTPUT_NOTE_ASSET_HASH_OFFSET
             ),
@@ -133,7 +133,7 @@ fn test_compute_output_note_id() {
 
         assert_eq!(
             note.id().as_elements(),
-            &read_root_mem_value(&process.into(), OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
+            &read_root_mem_word(&process.into(), OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
             "NOTE_ID didn't match expected value",
         );
     }

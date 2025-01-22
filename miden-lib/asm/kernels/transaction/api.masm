@@ -482,8 +482,8 @@ end
 #! Outputs: [balance, pad(15)]
 #!
 #! Where:
-#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible asset
-#!   of interest.
+#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible 
+#!   asset of interest.
 #! - balance is the vault balance of the fungible asset.
 #!
 #! Panics if:
@@ -743,8 +743,8 @@ end
 #! Outputs: [sender_id_prefix, sender_id_suffix, pad(14)]
 #!
 #! Where:
-#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender account ID of the note currently
-#!   being processed.
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender account ID of the note 
+#!   currently being processed.
 #!
 #! Panics if:
 #! - a note is not being processed.
@@ -911,8 +911,8 @@ end
 #!   Operand stack: [pad(16)]
 #!
 #! Where:
-#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign account
-#!   whose procedure is going to be executed.
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign 
+#!   account whose procedure is going to be executed.
 #! - FOREIGN_ACCOUNT_ID is the word constructed from the foreign_account_id as follows:
 #!   [foreign_account_id_suffix, foreign_account_id_prefix, 0, 0].
 #! - account_nonce is the nonce of the foreign account.
@@ -1070,7 +1070,7 @@ export.exec_kernel_proc
     # => [procedure_offset, <procedure_inputs>, <pad>]
 
     # compute the memory pointer at which desired procedure is stored
-    exec.memory::get_kernel_procedures_ptr add
+    mul.4 exec.memory::get_kernel_procedures_ptr add
     # => [procedure_pointer, <procedure_inputs>, <pad>]
 
     # execute loaded procedure

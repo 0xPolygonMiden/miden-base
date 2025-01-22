@@ -15,14 +15,14 @@ use miden_lib::{
             INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
             INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
             INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
-            INPUT_NOTE_NUM_ASSETS_OFFSET, INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET,
-            INPUT_NOTE_SERIAL_NUM_OFFSET, KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR,
-            NATIVE_ACCT_ID_AND_NONCE_PTR, NATIVE_ACCT_PROCEDURES_SECTION_PTR,
-            NATIVE_ACCT_STORAGE_COMMITMENT_PTR, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
-            NATIVE_ACCT_VAULT_ROOT_PTR, NATIVE_NUM_ACCT_PROCEDURES_PTR,
-            NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
-            PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR,
-            TX_SCRIPT_ROOT_PTR,
+            INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
+            INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
+            KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
+            NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
+            NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
+            NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
+            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
+            TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
         },
         TransactionKernel,
     },
@@ -44,15 +44,15 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, Digest, ExecutionError, ONE};
+use vm_processor::{AdviceInputs, Digest, ExecutionError, Process, ONE};
 
-use super::{Felt, Process, Word, ZERO};
+use super::{Felt, Word, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
         utils::input_note_data_ptr, MockChain, TransactionContext, TransactionContextBuilder,
     },
-    tests::kernel_tests::read_root_mem_value,
+    tests::kernel_tests::read_root_mem_word,
 };
 
 #[test]
@@ -99,53 +99,53 @@ fn test_transaction_prologue() {
     );
 
     tx_context.set_tx_args(tx_args);
-    let process = tx_context.execute_code(code).unwrap();
+    let process = &tx_context.execute_code(code).unwrap();
 
-    global_input_memory_assertions(&process, &tx_context);
-    block_data_memory_assertions(&process, &tx_context);
-    chain_mmr_memory_assertions(&process, &tx_context);
-    account_data_memory_assertions(&process, &tx_context);
-    input_notes_memory_assertions(&process, &tx_context, &note_args);
+    global_input_memory_assertions(process, &tx_context);
+    block_data_memory_assertions(process, &tx_context);
+    chain_mmr_memory_assertions(process, &tx_context);
+    account_data_memory_assertions(process, &tx_context);
+    input_notes_memory_assertions(process, &tx_context, &note_args);
 }
 
 fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_value(&process.into(), BLK_HASH_PTR),
+        read_root_mem_word(&process.into(), BLK_HASH_PTR),
         inputs.tx_inputs().block_header().hash().as_elements(),
         "The block hash should be stored at the BLK_HASH_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), ACCT_ID_PTR)[0],
+        read_root_mem_word(&process.into(), ACCT_ID_PTR)[0],
         inputs.account().id().suffix(),
         "The account ID prefix should be stored at the ACCT_ID_PTR[0]"
     );
     assert_eq!(
-        read_root_mem_value(&process.into(), ACCT_ID_PTR)[1],
+        read_root_mem_word(&process.into(), ACCT_ID_PTR)[1],
         inputs.account().id().prefix().as_felt(),
         "The account ID suffix should be stored at the ACCT_ID_PTR[1]"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), INIT_ACCT_HASH_PTR),
+        read_root_mem_word(&process.into(), INIT_ACCT_HASH_PTR),
         inputs.account().hash().as_elements(),
         "The account commitment should be stored at the ACCT_HASH_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), INPUT_NOTES_COMMITMENT_PTR),
+        read_root_mem_word(&process.into(), INPUT_NOTES_COMMITMENT_PTR),
         inputs.input_notes().commitment().as_elements(),
         "The nullifier commitment should be stored at the INPUT_NOTES_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), INIT_NONCE_PTR)[0],
+        read_root_mem_word(&process.into(), INIT_NONCE_PTR)[0],
         inputs.account().nonce(),
         "The initial nonce should be stored at the INIT_NONCE_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), TX_SCRIPT_ROOT_PTR),
+        read_root_mem_word(&process.into(), TX_SCRIPT_ROOT_PTR),
         *inputs.tx_args().tx_script().as_ref().unwrap().hash(),
         "The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR"
     );
@@ -153,73 +153,73 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
 
 fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_value(&process.into(), BLK_HASH_PTR),
+        read_root_mem_word(&process.into(), BLK_HASH_PTR),
         inputs.tx_inputs().block_header().hash().as_elements(),
         "The block hash should be stored at the BLK_HASH_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), PREV_BLOCK_HASH_PTR),
+        read_root_mem_word(&process.into(), PREV_BLOCK_HASH_PTR),
         inputs.tx_inputs().block_header().prev_hash().as_elements(),
         "The previous block hash should be stored at the PREV_BLK_HASH_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), CHAIN_ROOT_PTR),
+        read_root_mem_word(&process.into(), CHAIN_ROOT_PTR),
         inputs.tx_inputs().block_header().chain_root().as_elements(),
         "The chain root should be stored at the CHAIN_ROOT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), ACCT_DB_ROOT_PTR),
+        read_root_mem_word(&process.into(), ACCT_DB_ROOT_PTR),
         inputs.tx_inputs().block_header().account_root().as_elements(),
         "The account db root should be stored at the ACCT_DB_ROOT_PRT"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NULLIFIER_DB_ROOT_PTR),
+        read_root_mem_word(&process.into(), NULLIFIER_DB_ROOT_PTR),
         inputs.tx_inputs().block_header().nullifier_root().as_elements(),
         "The nullifier db root should be stored at the NULLIFIER_DB_ROOT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), TX_HASH_PTR),
+        read_root_mem_word(&process.into(), TX_HASH_PTR),
         inputs.tx_inputs().block_header().tx_hash().as_elements(),
         "The TX hash should be stored at the TX_HASH_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), KERNEL_ROOT_PTR),
+        read_root_mem_word(&process.into(), KERNEL_ROOT_PTR),
         inputs.tx_inputs().block_header().kernel_root().as_elements(),
         "The kernel root should be stored at the KERNEL_ROOT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), PROOF_HASH_PTR),
+        read_root_mem_word(&process.into(), PROOF_HASH_PTR),
         inputs.tx_inputs().block_header().proof_hash().as_elements(),
         "The proof hash should be stored at the PROOF_HASH_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), BLOCK_METADATA_PTR)[BLOCK_NUMBER_IDX],
+        read_root_mem_word(&process.into(), BLOCK_METADATA_PTR)[BLOCK_NUMBER_IDX],
         inputs.tx_inputs().block_header().block_num().into(),
         "The block number should be stored at BLOCK_METADATA_PTR[BLOCK_NUMBER_IDX]"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), BLOCK_METADATA_PTR)[PROTOCOL_VERSION_IDX],
+        read_root_mem_word(&process.into(), BLOCK_METADATA_PTR)[PROTOCOL_VERSION_IDX],
         inputs.tx_inputs().block_header().version().into(),
         "The protocol version should be stored at BLOCK_METADATA_PTR[PROTOCOL_VERSION_IDX]"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
+        read_root_mem_word(&process.into(), BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
         inputs.tx_inputs().block_header().timestamp().into(),
         "The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NOTE_ROOT_PTR),
+        read_root_mem_word(&process.into(), NOTE_ROOT_PTR),
         inputs.tx_inputs().block_header().note_root().as_elements(),
         "The note root should be stored at the NOTE_ROOT_PTR"
     );
@@ -231,7 +231,7 @@ fn chain_mmr_memory_assertions(process: &Process, prepared_tx: &TransactionConte
     chain_mmr.add_block(*prepared_tx.tx_inputs().block_header(), true);
 
     assert_eq!(
-        read_root_mem_value(&process.into(), CHAIN_MMR_NUM_LEAVES_PTR)[0],
+        read_root_mem_word(&process.into(), CHAIN_MMR_NUM_LEAVES_PTR)[0],
         Felt::new(chain_mmr.chain_length().as_u64()),
         "The number of leaves should be stored at the CHAIN_MMR_NUM_LEAVES_PTR"
     );
@@ -241,13 +241,13 @@ fn chain_mmr_memory_assertions(process: &Process, prepared_tx: &TransactionConte
         let i: u32 = i.try_into().expect(
             "Number of peaks is log2(number_of_leaves), this value won't be larger than 2**32",
         );
-        assert_eq!(read_root_mem_value(&process.into(), CHAIN_MMR_PEAKS_PTR + i), Word::from(peak));
+        assert_eq!(read_root_mem_word(&process.into(), CHAIN_MMR_PEAKS_PTR + i), Word::from(peak));
     }
 }
 
 fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_value(&process.into(), NATIVE_ACCT_ID_AND_NONCE_PTR),
+        read_root_mem_word(&process.into(), NATIVE_ACCT_ID_AND_NONCE_PTR),
         [
             inputs.account().id().suffix(),
             inputs.account().id().prefix().as_felt(),
@@ -258,25 +258,25 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NATIVE_ACCT_VAULT_ROOT_PTR),
+        read_root_mem_word(&process.into(), NATIVE_ACCT_VAULT_ROOT_PTR),
         inputs.account().vault().commitment().as_elements(),
         "The account vault root commitment should be stored at NATIVE_ACCT_VAULT_ROOT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NATIVE_ACCT_STORAGE_COMMITMENT_PTR),
+        read_root_mem_word(&process.into(), NATIVE_ACCT_STORAGE_COMMITMENT_PTR),
         Word::from(inputs.account().storage().commitment()),
         "The account storage commitment should be stored at NATIVE_ACCT_STORAGE_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NATIVE_ACCT_CODE_COMMITMENT_PTR),
+        read_root_mem_word(&process.into(), NATIVE_ACCT_CODE_COMMITMENT_PTR),
         inputs.account().code().commitment().as_elements(),
         "account code commitment should be stored at NATIVE_ACCT_CODE_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR),
+        read_root_mem_word(&process.into(), NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR),
         [
             u16::try_from(inputs.account().storage().slots().len()).unwrap().into(),
             ZERO,
@@ -294,14 +294,14 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_value(&process.into(), NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + i as u32),
+            read_root_mem_word(&process.into(), NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + (i as u32) * 4),
             Word::try_from(elements).unwrap(),
             "The account storage slots should be stored starting at NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR"
         )
     }
 
     assert_eq!(
-        read_root_mem_value(&process.into(), NATIVE_NUM_ACCT_PROCEDURES_PTR),
+        read_root_mem_word(&process.into(), NATIVE_NUM_ACCT_PROCEDURES_PTR),
         [
             u16::try_from(inputs.account().code().procedures().len()).unwrap().into(),
             ZERO,
@@ -319,7 +319,7 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_value(&process.into(), NATIVE_ACCT_PROCEDURES_SECTION_PTR + i as u32),
+            read_root_mem_word(&process.into(), NATIVE_ACCT_PROCEDURES_SECTION_PTR + (i as u32) * 4),
             Word::try_from(elements).unwrap(),
             "The account procedures and storage offsets should be stored starting at NATIVE_ACCT_PROCEDURES_SECTION_PTR"
         );
@@ -332,7 +332,7 @@ fn input_notes_memory_assertions(
     note_args: &[[Felt; 4]],
 ) {
     assert_eq!(
-        read_root_mem_value(&process.into(), INPUT_NOTE_SECTION_OFFSET),
+        read_root_mem_word(&process.into(), INPUT_NOTE_SECTION_PTR),
         [Felt::new(inputs.input_notes().num_notes() as u64), ZERO, ZERO, ZERO],
         "number of input notes should be stored at the INPUT_NOTES_OFFSET"
     );
@@ -341,7 +341,7 @@ fn input_notes_memory_assertions(
         let note = input_note.note();
 
         assert_eq!(
-            read_root_mem_value(&process.into(), INPUT_NOTE_SECTION_OFFSET + 1 + note_idx),
+            read_root_mem_word(&process.into(), INPUT_NOTE_NULLIFIER_SECTION_PTR + note_idx * 4),
             note.nullifier().as_elements(),
             "note nullifier should be computer and stored at the correct offset"
         );
@@ -397,9 +397,9 @@ fn input_notes_memory_assertions(
         for (asset, asset_idx) in note.assets().iter().cloned().zip(0_u32..) {
             let word: Word = asset.into();
             assert_eq!(
-                read_note_element(process, note_idx, INPUT_NOTE_ASSETS_OFFSET + asset_idx),
+                read_note_element(process, note_idx, INPUT_NOTE_ASSETS_OFFSET + asset_idx * 4),
                 word,
-                "assets should be stored at (INPUT_NOTES_OFFSET + (note_index + 1) * 1024 + 7..)"
+                "assets should be stored at (INPUT_NOTES_DATA_OFFSET + note_index * 2048 + 32 + asset_idx * 4)"
             );
         }
     }
@@ -692,5 +692,5 @@ fn test_get_blk_timestamp() {
 // ================================================================================================
 
 fn read_note_element(process: &Process, note_idx: u32, offset: MemoryOffset) -> Word {
-    read_root_mem_value(&process.into(), input_note_data_ptr(note_idx) + offset)
+    read_root_mem_word(&process.into(), input_note_data_ptr(note_idx) + offset)
 }

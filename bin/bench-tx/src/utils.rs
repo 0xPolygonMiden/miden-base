@@ -8,10 +8,8 @@ use miden_objects::{
     assets::Asset,
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     transaction::TransactionMeasurements,
-    Word,
 };
 use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
-use rand::rngs::StdRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use serde::Serialize;
 use serde_json::{from_str, to_string_pretty, Value};
@@ -67,7 +65,7 @@ pub fn get_account_with_basic_authenticated_wallet(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    public_key: Word,
+    public_key: PublicKey,
     assets: Option<Asset>,
 ) -> Account {
     AccountBuilder::new(init_seed)
@@ -75,20 +73,20 @@ pub fn get_account_with_basic_authenticated_wallet(
         .storage_mode(storage_mode)
         .with_assets(assets)
         .with_component(BasicWallet)
-        .with_component(RpoFalcon512::new(PublicKey::new(public_key)))
+        .with_component(RpoFalcon512::new(public_key))
         .build_existing()
         .unwrap()
 }
 
-pub fn get_new_pk_and_authenticator() -> (Word, Arc<dyn TransactionAuthenticator>) {
-    let seed = [0_u8; 32];
-    let mut rng = ChaCha20Rng::from_seed(seed);
-
+pub fn get_new_pk_and_authenticator() -> (PublicKey, Arc<dyn TransactionAuthenticator>) {
+    let mut rng = ChaCha20Rng::from_seed(Default::default());
     let sec_key = SecretKey::with_rng(&mut rng);
-    let pub_key: Word = sec_key.public_key().into();
+    let pub_key = sec_key.public_key();
 
-    let authenticator =
-        BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
+    let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
+        &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
+        rng,
+    );
 
     (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }

@@ -20,167 +20,170 @@ const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020030
 const.TX_VAULT_ROOT_PTR=0
 
 # The memory address at which a pointer to the input note being executed is stored.
-const.CURRENT_INPUT_NOTE_PTR=1
+const.CURRENT_INPUT_NOTE_PTR=4
 
 # The memory address at which the number of output notes is stored.
-const.NUM_OUTPUT_NOTES_PTR=2
+const.NUM_OUTPUT_NOTES_PTR=8
 
 # The memory address at which the input vault root is stored
-const.INPUT_VAULT_ROOT_PTR=3
+const.INPUT_VAULT_ROOT_PTR=12
 
 # The memory address at which the output vault root is stored
-const.OUTPUT_VAULT_ROOT_PTR=4
+const.OUTPUT_VAULT_ROOT_PTR=16
 
 # The memory address at which the pointer to the data of the currently accessing account is stored
-const.CURRENT_ACCOUNT_DATA_PTR=5
+const.CURRENT_ACCOUNT_DATA_PTR=20
 
 # The memory address at which the native account's new code commitment is stored.
-const.NEW_CODE_ROOT_PTR=6
+const.NEW_CODE_ROOT_PTR=24
 
 # The memory address at which the absolute expiration block number is stored.
-const.TX_EXPIRATION_BLOCK_NUM_PTR=7
+const.TX_EXPIRATION_BLOCK_NUM_PTR=28
 
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the global inputs section begins
-const.GLOBAL_INPUTS_SECTION_OFFSET=100
+const.GLOBAL_INPUTS_SECTION_OFFSET=400
 
 # The memory address at which the latest known block hash is stored
-const.BLK_HASH_PTR=100
+const.BLK_HASH_PTR=400
 
 # The memory address at which the account ID felts are stored.
-const.ACCT_ID_PTR=101
+const.ACCT_ID_PTR=404
 
 # The memory address at which the initial account hash is stored
-const.INIT_ACCT_HASH_PTR=102
+const.INIT_ACCT_HASH_PTR=408
 
 # The memory address at which the input notes commitment is stored
-const.INPUT_NOTES_COMMITMENT_PTR=103
+const.INPUT_NOTES_COMMITMENT_PTR=412
 
 # The memory address at which the initial nonce is stored
-const.INIT_NONCE_PTR=104
+const.INIT_NONCE_PTR=416
 
 # The memory address at which the transaction script mast root is stored
-const.TX_SCRIPT_ROOT_PTR=105
+const.TX_SCRIPT_ROOT_PTR=420
 
 # GLOBAL BLOCK DATA
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the block data section begins
-const.BLOCK_DATA_SECTION_OFFSET=200
+const.BLOCK_DATA_SECTION_OFFSET=800
 
 # The memory address at which the previous block hash is stored
-const.PREV_BLOCK_HASH_PTR=200
+const.PREV_BLOCK_HASH_PTR=800
 
 # The memory address at which the chain root is stored
-const.CHAIN_ROOT_PTR=201
+const.CHAIN_ROOT_PTR=804
 
 # The memory address at which the account root is stored
-const.ACCT_DB_ROOT_PTR=202
+const.ACCT_DB_ROOT_PTR=808
 
 # The memory address at which the nullifier root is stored
-const.NULLIFIER_ROOT_PTR=203
+const.NULLIFIER_ROOT_PTR=812
 
 # The memory address at which the tx hash is stored
-const.TX_HASH_PTR=204
+const.TX_HASH_PTR=816
 
 # The memory address at which the kernel root is stored
-const.KERNEL_ROOT_PTR=205
+const.KERNEL_ROOT_PTR=820
 
 # The memory address at which the proof hash is stored
-const.PROOF_HASH_PTR=206
+const.PROOF_HASH_PTR=824
 
 # The memory address at which the block metadata is stored [block_number, version, timestamp, 0]
-const.BLOCK_METADATA_PTR=207
+const.BLOCK_METADATA_PTR=828
 
 # The memory address at which the note root is stored
-const.NOTE_ROOT_PTR=208
+const.NOTE_ROOT_PTR=832
 
 # CHAIN MMR
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the chain data section begins
-const.CHAIN_MMR_PTR=300
+const.CHAIN_MMR_PTR=1200
 
 # The memory address at which the total number of leaves in the chain MMR is stored
-const.CHAIN_MMR_NUM_LEAVES_PTR=300
+const.CHAIN_MMR_NUM_LEAVES_PTR=1200
 
 # The memory address at which the chain mmr peaks are stored
-const.CHAIN_MMR_PEAKS_PTR=301
+const.CHAIN_MMR_PEAKS_PTR=1204
 
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the number of the procedures of the selected kernel is stored.
-const.NUM_KERNEL_PROCEDURES_PTR=400
+const.NUM_KERNEL_PROCEDURES_PTR=1600
 
 # The memory address at which the hashes of kernel procedures begin.
 # TODO: choose the proper memory location for the kernel procedures.
-const.KERNEL_PROCEDURES_PTR=401
+const.KERNEL_PROCEDURES_PTR=1604
 
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
 # The largest memory address which can be used to load the foreign account data.
-# It is computed as `2048 * 64` -- this is the memory address where the data block of the 64th 
+# It is computed as `2048 * 64 * 4` -- this is the memory address where the data block of the 64th 
 # account starts.
-const.MAX_FOREIGN_ACCOUNT_PTR=131072
+const.MAX_FOREIGN_ACCOUNT_PTR=524288
 
 # The memory address at which the native account data is stored.
-const.NATIVE_ACCOUNT_DATA_PTR=2048
+const.NATIVE_ACCOUNT_DATA_PTR=8192
 
 # The length of the memory interval that the account data occupies. 
-const.ACCOUNT_DATA_LENGTH=2048
+const.ACCOUNT_DATA_LENGTH=8192
 
 # The offsets at which the account data is stored relative to the start of the account data segment.
 const.ACCT_ID_AND_NONCE_OFFSET=0
-const.ACCT_VAULT_ROOT_OFFSET=1
-const.ACCT_STORAGE_COMMITMENT_OFFSET=2
-const.ACCT_CODE_COMMITMENT_OFFSET=3
-const.ACCT_CORE_DATA_SECTION_END_OFFSET=4
-const.NUM_ACCT_PROCEDURES_OFFSET=7
-const.ACCT_PROCEDURES_SECTION_OFFSET=8
-const.NUM_ACCT_STORAGE_SLOTS_OFFSET=521
-const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=522
+const.ACCT_VAULT_ROOT_OFFSET=4
+const.ACCT_STORAGE_COMMITMENT_OFFSET=8
+const.ACCT_CODE_COMMITMENT_OFFSET=12
+const.ACCT_CORE_DATA_SECTION_END_OFFSET=16
+const.NUM_ACCT_PROCEDURES_OFFSET=28
+const.ACCT_PROCEDURES_SECTION_OFFSET=32
+const.NUM_ACCT_STORAGE_SLOTS_OFFSET=2084
+const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=2088
 
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the input note section begins.
-const.INPUT_NOTE_SECTION_OFFSET=1048576
+const.INPUT_NOTE_SECTION_OFFSET=4194304
+
+# The memory address at which the nullifier section of the input notes begins.
+const.INPUT_NOTE_NULLIFIER_SECTION_PTR=4194308
 
 # The memory address at which the input note data section begins.
-const.INPUT_NOTE_DATA_SECTION_OFFSET=1064960
+const.INPUT_NOTE_DATA_SECTION_OFFSET=4259840
 
 # The memory address at which the number of input notes is stored.
-const.NUM_INPUT_NOTES_PTR=1048576
+const.NUM_INPUT_NOTES_PTR=INPUT_NOTE_SECTION_OFFSET
 
 # The offsets at which data of an input note is stored relative to the start of its data segment
 const.INPUT_NOTE_ID_OFFSET=0
-const.INPUT_NOTE_CORE_DATA_OFFSET=1
-const.INPUT_NOTE_SERIAL_NUM_OFFSET=1
-const.INPUT_NOTE_SCRIPT_ROOT_OFFSET=2
-const.INPUT_NOTE_INPUTS_HASH_OFFSET=3
-const.INPUT_NOTE_ASSETS_HASH_OFFSET=4
-const.INPUT_NOTE_METADATA_OFFSET=5
-const.INPUT_NOTE_ARGS_OFFSET=6
-const.INPUT_NOTE_NUM_ASSETS_OFFSET=7
-const.INPUT_NOTE_ASSETS_OFFSET=8
+const.INPUT_NOTE_CORE_DATA_OFFSET=4
+const.INPUT_NOTE_SERIAL_NUM_OFFSET=4
+const.INPUT_NOTE_SCRIPT_ROOT_OFFSET=8
+const.INPUT_NOTE_INPUTS_HASH_OFFSET=12
+const.INPUT_NOTE_ASSETS_HASH_OFFSET=16
+const.INPUT_NOTE_METADATA_OFFSET=20
+const.INPUT_NOTE_ARGS_OFFSET=24
+const.INPUT_NOTE_NUM_ASSETS_OFFSET=28
+const.INPUT_NOTE_ASSETS_OFFSET=32
 
 # OUTPUT NOTES
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the output notes section begins.
-const.OUTPUT_NOTE_SECTION_OFFSET=4194304
+const.OUTPUT_NOTE_SECTION_OFFSET=16777216
 
 # The offsets at which data of an output note is stored relative to the start of its data segment.
 const.OUTPUT_NOTE_ID_OFFSET=0
-const.OUTPUT_NOTE_METADATA_OFFSET=1
-const.OUTPUT_NOTE_RECIPIENT_OFFSET=2
-const.OUTPUT_NOTE_ASSETS_HASH_OFFSET=3
-const.OUTPUT_NOTE_NUM_ASSETS_OFFSET=4
-const.OUTPUT_NOTE_ASSETS_OFFSET=5
+const.OUTPUT_NOTE_METADATA_OFFSET=4
+const.OUTPUT_NOTE_RECIPIENT_OFFSET=8
+const.OUTPUT_NOTE_ASSETS_HASH_OFFSET=12
+const.OUTPUT_NOTE_NUM_ASSETS_OFFSET=16
+const.OUTPUT_NOTE_ASSETS_OFFSET=20
 
 # MEMORY PROCEDURES
 # =================================================================================================
@@ -749,7 +752,8 @@ end
 #! Outputs: [account_nonce, 0, account_id_prefix, account_id_suffix]
 #!
 #! Where:
-#! - account_id_{prefix,suffix} are the prefix and suffix felts of the id of the currently accessing account.
+#! - account_id_{prefix,suffix} are the prefix and suffix felts of the id of the currently accessing
+#!   account.
 #! - account_nonce is the nonce of the currently accessing account.
 export.set_acct_id_and_nonce
     exec.get_current_account_data_ptr push.ACCT_ID_AND_NONCE_OFFSET add
@@ -1069,7 +1073,7 @@ end
 #! - idx is the index of the input note.
 #! - nullifier_ptr is the memory address of the nullifier for note idx.
 export.get_input_note_nullifier_ptr
-    push.INPUT_NOTE_SECTION_OFFSET.1 add add
+    mul.4 push.INPUT_NOTE_NULLIFIER_SECTION_PTR add
 end
 
 #! Returns the nullifier of an input note with `idx`.
@@ -1081,7 +1085,7 @@ end
 #! - idx is the index of the input note.
 #! - nullifier is the nullifier of the input note.
 export.get_input_note_nullifier
-    padw movup.4 push.INPUT_NOTE_SECTION_OFFSET.1 add add mem_loadw
+    mul.4 padw movup.4 push.INPUT_NOTE_NULLIFIER_SECTION_PTR add mem_loadw
 end
 
 #! Returns a pointer to the start of the input note core data segment for the note located at the

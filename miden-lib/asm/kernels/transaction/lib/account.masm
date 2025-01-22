@@ -332,7 +332,8 @@ export.::kernel::util::account_id::is_immutable_account
 #!
 #! Where:
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
-#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to compare against.
+#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to 
+#!   compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
 export.::kernel::util::account_id::is_equal->is_id_equal
 
@@ -509,7 +510,7 @@ export.get_item
     # => [acct_storage_slots_section_offset, index]
 
     # get the item from storage
-    swap mul.2 add padw movup.4 mem_loadw
+    swap mul.8 add padw movup.4 mem_loadw
     # => [VALUE]
 end
 
@@ -613,7 +614,7 @@ end
 #! Panics if:
 #! - the storage slot type is not map.
 #! - no map is found for ROOT.
-export.set_map_item.3
+export.set_map_item.12
     # store index for later
     dup loc_store.0
     # => [index, KEY, NEW_VALUE, ...]
@@ -641,7 +642,7 @@ export.set_map_item.3
     # => [OLD_MAP_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
 
     # store OLD_MAP_VALUE and NEW_ROOT until the end of the procedure
-    loc_storew.1 dropw loc_storew.2 dropw
+    loc_storew.4 dropw loc_storew.8 dropw
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
@@ -650,7 +651,7 @@ export.set_map_item.3
     # => [KEY, NEW_VALUE, ...]
 
     # load OLD_MAP_VALUE and NEW_ROOT on the top of the stack
-    loc_loadw.2 swapw loc_loadw.1 swapw
+    loc_loadw.8 swapw loc_loadw.4 swapw
     # => [NEW_ROOT, OLD_MAP_VALUE, ...]
 
     # set the root of the map in the respective account storage slot
@@ -679,7 +680,7 @@ export.get_storage_slot_type
     # => [acct_storage_slots_section_offset, index]
 
     # get storage slot type
-    swap mul.2 add add.1 mem_load
+    swap mul.8 add add.4 mem_load
     # => [slot_type]
 end
 
@@ -701,7 +702,7 @@ export.get_procedure_info
     # => [index]
 
     # get procedure pointer
-    mul.2 exec.memory::get_acct_procedures_section_ptr add dup add.1 swap
+    mul.8 exec.memory::get_acct_procedures_section_ptr add dup add.4 swap
     # => [metadata_ptr, proc_ptr]
 
     # load procedure information from memory
@@ -880,7 +881,7 @@ export.save_account_storage_data
     # AS => [[STORAGE_SLOT_DATA]]
 
     # setup acct_storage_slots_ptr and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
+    mul.8 exec.memory::get_acct_storage_slots_section_ptr dup movdn.2 add swap
     # OS => [acct_storage_slots_ptr, end_ptr, STORAGE_COMMITMENT]
     # AS => [[STORAGE_SLOT_DATA]]
 
@@ -949,7 +950,7 @@ export.save_account_procedure_data
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
     # setup acct_proc_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
+    mul.8 exec.memory::get_acct_procedures_section_ptr dup movdn.2 add swap
     # OS => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
     # AS => [[ACCOUNT_PROCEDURE_DATA]]
 
@@ -1002,7 +1003,7 @@ proc.set_item_raw
     # => [acct_storage_slots_section_offset, index, NEW_VALUE, OLD_VALUE]
 
     # update storage
-    swap mul.2 add mem_storew
+    swap mul.8 add mem_storew
     # => [NEW_VALUE, OLD_VALUE]
 
     # drop value
@@ -1023,7 +1024,7 @@ end
 #! - storage_size is the number of storage slots the procedure is allowed to access.
 proc.get_procedure_metadata
     # get procedure storage metadata pointer
-    mul.2 exec.memory::get_acct_procedures_section_ptr add add.1
+    mul.8 exec.memory::get_acct_procedures_section_ptr add add.4
     # => [storage_offset_ptr]
 
     # load procedure metadata from memory and keep relevant data
@@ -1038,8 +1039,8 @@ end
 #! Outputs: [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 #!
 #! Where: 
-#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign account
-#!   whose procedure is going to be executed.
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign 
+#!   account whose procedure is going to be executed.
 #! - was_loaded is the binary flag indicating whether the foreign account was already loaded to the
 #!   memory.
 #! - ptr is the memory pointer to the next empty memory slot or the memory pointer to the account
