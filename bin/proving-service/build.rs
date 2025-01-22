@@ -12,7 +12,6 @@ use protox::prost::Message;
 const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
 /// Generates Rust protobuf bindings from .proto files.
-/// Generates Rust protobuf bindings from .proto files.
 /// Because the proto generated files will be written to ./src/generated, this should be a no-op
 /// if ./src is read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC`
 /// environment variable.
