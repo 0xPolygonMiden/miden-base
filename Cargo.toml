@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
-members = [ 
-    "crates/miden-lib",
-    "crates/miden-tx",
-    "crates/miden-proving-service-client",
-    "crates/miden-objects",
+members = [
     "bin/bench-tx",
     "bin/proving-service",
+    "crates/miden-lib",
+    "crates/miden-objects",
+    "crates/miden-proving-service-client",
+    "crates/miden-tx",
 ]
 
 [workspace.package]
