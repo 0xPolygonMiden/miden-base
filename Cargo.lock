@@ -1788,8 +1788,9 @@ dependencies = [
 
 [[package]]
 name = "miden-air"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "671c1e48a91d4652c5bd3e6a5f6147e34b5b93484421bd7d5ded8fbe22fee7ec"
 dependencies = [
  "miden-core",
  "thiserror 2.0.11",
@@ -1799,8 +1800,9 @@ dependencies = [
 
 [[package]]
 name = "miden-assembly"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7f5b09d4f5e4c6b041b8a2358ebf64fdbc0a5b6a4ddc22e48aed9bb20961811"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1829,8 +1831,9 @@ dependencies = [
 
 [[package]]
 name = "miden-core"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9326385003c062affde18cb336a3475033df0a871fb122ecaa9b48561109e40"
 dependencies = [
  "lock_api",
  "loom",
@@ -1959,8 +1962,9 @@ dependencies = [
 
 [[package]]
 name = "miden-processor"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fbc6f1d5cad60b17da51ee00c8f16e047b3deca50cc42dd18e13cc0c73ca23c"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1971,8 +1975,9 @@ dependencies = [
 
 [[package]]
 name = "miden-prover"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e11ce36f3c6e16e6df6c0ff3bbf025e155b151e430017d4ec65dd617bd691e8"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -2044,8 +2049,9 @@ dependencies = [
 
 [[package]]
 name = "miden-stdlib"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "001a8c957ea655e96c91f081cf6bf99bb35109e3a20acda1c2a87e2db53a2696"
 dependencies = [
  "miden-assembly",
 ]
@@ -2072,8 +2078,9 @@ dependencies = [
 
 [[package]]
 name = "miden-verifier"
-version = "0.11.0"
-source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=element-addressable-memory#cafbcb3f62f385a0a0b8a0b512381e3a0fd2a99d"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76105a8bc8fb948d02b114ea0540de771b34f446191a08a3393d705aafc70191"
 dependencies = [
  "miden-air",
  "miden-core",
