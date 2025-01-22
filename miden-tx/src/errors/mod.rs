@@ -14,9 +14,8 @@ use vm_processor::ExecutionError;
 
 #[derive(Debug, Error)]
 pub enum TransactionExecutorError {
-    // TODO: Turn into source error after upgrading to latest miden-vm.
-    #[error("failed to execute transaction kernel program: {0}")]
-    TransactionProgramExecutionFailed(ExecutionError),
+    #[error("failed to execute transaction kernel program")]
+    TransactionProgramExecutionFailed(#[source] ExecutionError),
     #[error("failed to fetch transaction inputs from the data store")]
     FetchTransactionInputsFailed(#[source] DataStoreError),
     #[error("input account ID {input_id} does not match output account ID {output_id}")]
@@ -46,9 +45,8 @@ pub enum TransactionProverError {
     TransactionOutputConstructionFailed(#[source] TransactionOutputError),
     #[error("failed to build proven transaction")]
     ProvenTransactionBuildFailed(#[source] ProvenTransactionError),
-    // TODO: Turn into source error after upgrading to latest miden-vm.
-    #[error("failed to execute transaction kernel program: {0}")]
-    TransactionProgramExecutionFailed(ExecutionError),
+    #[error("failed to execute transaction kernel program")]
+    TransactionProgramExecutionFailed(#[source] ExecutionError),
     #[error("failed to create transaction host")]
     TransactionHostCreationFailed(#[source] TransactionHostError),
     /// Custom error variant for errors not covered by the other variants.
@@ -87,9 +85,8 @@ impl TransactionProverError {
 
 #[derive(Debug, Error)]
 pub enum TransactionVerifierError {
-    // TODO: Turn into source error after upgrading to latest miden-vm.
-    #[error("failed to verify transaction: {0}")]
-    TransactionVerificationFailed(VerificationError),
+    #[error("failed to verify transaction")]
+    TransactionVerificationFailed(#[source] VerificationError),
     #[error(
         "transaction proof security level is {actual} but must be at least {expected_minimum}"
     )]

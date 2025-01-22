@@ -254,12 +254,6 @@ export.get_script_hash
     # => [SCRIPT_HASH]
 end
 
-# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
-# =================================================================================================
-
-# The maximum number of input values associated with a single note.
-const.MAX_INPUTS_PER_NOTE=128
-
 #! Returns the max allowed number of input values per note.
 #!
 #! Stack: []

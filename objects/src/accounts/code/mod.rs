@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use vm_core::mast::MastForest;
 
@@ -75,7 +75,7 @@ impl AccountCode {
     ) -> Result<Self, AccountError> {
         let (merged_mast_forest, _) =
             MastForest::merge(components.iter().map(|component| component.mast_forest()))
-                .map_err(|err| AccountError::AccountComponentMergeError(err.to_string()))?;
+                .map_err(AccountError::AccountComponentMastForestMergeError)?;
 
         let mut procedures = Vec::new();
         let mut proc_root_set = BTreeSet::new();
@@ -94,9 +94,9 @@ impl AccountCode {
                     // procedures where the offset has already been inserted would cause that
                     // procedure of the earlier component to write to the wrong slot.
                     if !proc_root_set.insert(proc_mast_root) {
-                        return Err(AccountError::AccountComponentMergeError(format!(
-                            "procedure with MAST root {proc_mast_root} is present in multiple account components"
-                        )));
+                        return Err(AccountError::AccountComponentDuplicateProcedureRoot(
+                            proc_mast_root,
+                        ));
                     }
 
                     // Components that do not access storage need to have offset and size set to 0.

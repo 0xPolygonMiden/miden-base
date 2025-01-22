@@ -4,7 +4,7 @@ use core::error::Error;
 use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
 use miden_crypto::utils::HexParseError;
 use thiserror::Error;
-use vm_core::{Felt, FieldElement};
+use vm_core::{mast::MastForestError, Felt, FieldElement};
 use vm_processor::DeserializationError;
 
 use super::{
@@ -74,9 +74,10 @@ pub enum AccountError {
     AccountCodeProcedureInvalidPadding(Digest),
     #[error("failed to assemble account component:\n{}", PrintDiagnostic::new(.0))]
     AccountComponentAssemblyError(Report),
-    // TODO: Use MastForestError once it implements Error in no-std.
-    #[error("failed to merge account code: {0}")]
-    AccountComponentMergeError(String),
+    #[error("failed to merge components into one account code mast forest")]
+    AccountComponentMastForestMergeError(#[source] MastForestError),
+    #[error("procedure with MAST root {0} is present in multiple account components")]
+    AccountComponentDuplicateProcedureRoot(Digest),
     #[error("failed to create account component")]
     AccountComponentTemplateInstantiationError(#[source] AccountComponentTemplateError),
     #[error("failed to update asset vault")]
@@ -135,10 +136,8 @@ pub enum AccountIdError {
     UnknownAccountStorageMode(Box<str>),
     #[error(r#"`{0}` is not a known account type, expected one of "FungibleFaucet", "NonFungibleFaucet", "RegularAccountImmutableCode" or "RegularAccountUpdatableCode""#)]
     UnknownAccountType(Box<str>),
-    // TODO: Make #[source] and remove from msg once HexParseError implements Error trait in
-    // no-std.
-    #[error("failed to parse hex string into account ID: {0}")]
-    AccountIdHexParseError(HexParseError),
+    #[error("failed to parse hex string into account ID")]
+    AccountIdHexParseError(#[source] HexParseError),
     #[error("`{0}` is not a known account ID version")]
     UnknownAccountIdVersion(u8),
     #[error("anchor epoch in account ID must not be u16::MAX ({})", u16::MAX)]
@@ -229,9 +228,8 @@ pub enum AssetError {
 pub enum AssetVaultError {
     #[error("adding fungible asset amounts would exceed maximum allowed amount")]
     AddFungibleAssetBalanceError(#[source] AssetError),
-    // TODO: Make #[source] and remove from msg once MerkleError implements Error trait in no-std.
-    #[error("provided assets contain duplicates: {0}")]
-    DuplicateAsset(MerkleError),
+    #[error("provided assets contain duplicates")]
+    DuplicateAsset(#[source] MerkleError),
     #[error("non fungible asset {0} already exists in the vault")]
     DuplicateNonFungibleAsset(NonFungibleAsset),
     #[error("fungible asset {0} does not exist in the vault")]
