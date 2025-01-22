@@ -12,9 +12,11 @@ use protox::prost::Message;
 const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
 /// Generates Rust protobuf bindings from .proto files.
+/// Generates Rust protobuf bindings from .proto files.
+/// Because the proto generated files will be written to ./src/generated, this should be a no-op
+/// if ./src is read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC`
+/// environment variable.
 fn main() -> miette::Result<()> {
-    // The docs.rs build pipeline has a read-only filesystem, so we want to return early or
-    // otherwise the docs will fail to build there.
     if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
