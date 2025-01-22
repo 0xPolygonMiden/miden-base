@@ -88,8 +88,8 @@ jobs:
       - name: check rust versions
         run: ./scripts/check-rust-version.sh
 
-  kernel_errors:
-    name: kernel errors check
+  generated-files:
+    name: generated files check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
@@ -98,8 +98,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
-      - name: Rebuild kernel errors
-        run: BUILD_GENERATED_FILES_IN_SRC=1 cargo check -p miden-lib
+      - name: Rebuild generated files in src
+        run: BUILD_GENERATED_FILES_IN_SRC=1 cargo check
       - name: Diff check
         run: git diff --exit-code
 
