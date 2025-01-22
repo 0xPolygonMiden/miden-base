@@ -14,34 +14,34 @@ pub type StorageSlot = u8;
 //
 // Here the "end address" is the last memory address occupied by the current data
 //
-// | Section           | Start address | End address | Start address (words) |  End address (words) |
-// | ----------------- | :-----------: | :---------: | :--------------------:| :-------------------:|
-// | Bookkeeping       | 0             | 31          | 0                     | 7                    |
-// | Global inputs     | 400           | 423         | 100                   | 105                  |
-// | Block header      | 800           | 835         | 200                   | 208                  |
-// | Chain MMR         | 1_200         | 1_331?      | 300                   | 332?                 |
-// | Kernel data       | 1_600         | 1_739       | 400                   | 434                  |
-// | Accounts data     | 8_192         | 532_479     | 2048                  | 133_119              | 64 foreign accounts max
-// | Input notes       | 4_194_304     | ?           | 1_048_576             | ?                    |
-// | Output notes      | 16_777_216    | ?           | 4_194_304             | ?                    |
+// | Section           | Start address, pointer (word pointer) | End address, pointer (word pointer) | Comment                                     |
+// | ----------------- | :-----------------------------------: | :---------------------------------: | ------------------------------------------- |
+// | Bookkeeping       | 0 (0)                                 | 31 (7)                              |                                             |
+// | Global inputs     | 400 (100)                             | 423 (105)                           |                                             |
+// | Block header      | 800 (200)                             | 835 (208)                           |                                             |
+// | Chain MMR         | 1_200 (300)                           | 1_331? (332?)                       |                                             |
+// | Kernel data       | 1_600 (400)                           | 1_739 (434)                         | 34 procedures in total, 4 elements each     |
+// | Accounts data     | 8_192 (2048)                          | 532_479 (133_119)                   | 64 foreign accounts max, 8192 elements each |
+// | Input notes       | 4_194_304 (1_048_576)                 | ?                                   |                                             |
+// | Output notes      | 16_777_216 (4_194_304)                | ?                                   |                                             |
 
 // Relative layout of one account
 //
 // Here the "end pointer" is the last memory pointer occupied by the current data
 //
-// | Section           | Start pointer | End pointer | Start pointer (words) |  End pointer (words) |
-// | ----------------- | :-----------: | :---------: | :--------------------:| :-------------------:|
-// | Id and nonce      | 0             | 3           | 0                     | 0                    |
-// | Vault root        | 4             | 7           | 1                     | 1                    |
-// | Storage root      | 8             | 11          | 2                     | 2                    |
-// | Code root         | 12            | 15          | 3                     | 3                    |
-// | Padding           | 16            | 27          | 4                     | 6                    |
-// | Num procedures    | 28            | 31          | 7                     | 7                    |
-// | Procedures info   | 32            | 2_079       | 8                     | 519                  |
-// | Padding           | 2_080         | 2_083       | 520                   | 520                  |
-// | Num storage slots | 2_084         | 2_087       | 521                   | 521                  |
-// | Storage slot info | 2_088         | 4_127       | 522                   | 1031                 |
-// | Padding           | 4_128         | 8_191       | 1032                  | 2047                 |
+// | Section           | Start address, pointer (word pointer) | End address, pointer (word pointer) | Comment                             |
+// | ----------------- | :-----------------------------------: | :---------------------------------: | ----------------------------------- |
+// | Id and nonce      | 0 (0)                                 | 3 (0)                               |                                     |
+// | Vault root        | 4 (1)                                 | 7 (1)                               |                                     |
+// | Storage root      | 8 (2)                                 | 11 (2)                              |                                     |
+// | Code root         | 12 (3)                                | 15 (3)                              |                                     |
+// | Padding           | 16 (4)                                | 27 (6)                              |                                     |
+// | Num procedures    | 28 (7)                                | 31 (7)                              |                                     |
+// | Procedures info   | 32 (8)                                | 2_079 (519)                         | 255 procedures max, 8 elements each |
+// | Padding           | 2_080 (520)                           | 2_083 (520)                         |                                     |
+// | Num storage slots | 2_084 (521)                           | 2_087 (521)                         |                                     |
+// | Storage slot info | 2_088 (522)                           | 4_127 (1031)                        | 255 slots max, 8 elements each      |
+// | Padding           | 4_128 (1032)                          | 8_191 (2047)                        |                                     |
 
 // RESERVED ACCOUNT STORAGE SLOTS
 // ------------------------------------------------------------------------------------------------
@@ -270,7 +270,7 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 2048;
 // │   NUM   │  NOTE 0   │  NOTE 1   │ ... │  NOTE n   │ PADDING │ NOTE 0 │ NOTE 1 │  ...  │ NOTE n │
 // │  NOTES  │ NULLIFIER │ NULLIFIER │     │ NULLIFIER │         │  DATA  │  DATA  │       │  DATA  │
 // └─────────┴───────────┴───────────┴─────┴───────────┴─────────┴────────┴────────┴───────┴────────┘
-//  4_194_304  4_194_308   4_194_312      4_194_304+4(n+1)   4_259_840  +2048    +4096  +2048(n+1)
+//  4_194_304  4_194_308  4_194_312    4_194_304+4(n+1)      4_259_840  +2048    +4096  +2048(n+1)
 //
 // Each nullifier occupies a single word. A data section for each note consists of exactly 512
 // words and is laid out like so:
@@ -279,20 +279,23 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 2048;
 // │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │   NUM  │ ASSET │ ... │ ASSET │ PADDING │
 // │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n   │         │
 // ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼───────┼─────┼───────┼─────────┤
-//    0        4       8        12       16      20     24       28    32 + 4n
+// 0      4        8        12       16       20     24      28       32 + 4n
 //
 // - NUM_ASSETS is encoded [num_assets, 0, 0, 0].
 // - INPUTS_HASH is the key to look up note inputs in the advice map.
 // - ASSETS_HASH is the key to look up note assets in the advice map.
 
 /// The memory address at which the input note section begins.
-pub const INPUT_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
+pub const INPUT_NOTE_SECTION_PTR: MemoryAddress = 4_194_304;
+
+/// The memory address at which the nullifier section of the input notes begins.
+pub const INPUT_NOTE_NULLIFIER_SECTION_PTR: MemoryAddress = 4_194_308;
 
 /// The memory address at which the input note data section begins.
 pub const INPUT_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 4_259_840;
 
 /// The memory address at which the number of input notes is stored.
-pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_OFFSET;
+pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_PTR;
 
 /// The offsets at which data of an input note is stored relative to the start of its data segment.
 pub const INPUT_NOTE_ID_OFFSET: MemoryOffset = 0;

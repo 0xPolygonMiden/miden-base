@@ -15,14 +15,14 @@ use miden_lib::{
             INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
             INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
             INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
-            INPUT_NOTE_NUM_ASSETS_OFFSET, INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET,
-            INPUT_NOTE_SERIAL_NUM_OFFSET, KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR,
-            NATIVE_ACCT_ID_AND_NONCE_PTR, NATIVE_ACCT_PROCEDURES_SECTION_PTR,
-            NATIVE_ACCT_STORAGE_COMMITMENT_PTR, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
-            NATIVE_ACCT_VAULT_ROOT_PTR, NATIVE_NUM_ACCT_PROCEDURES_PTR,
-            NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
-            PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR,
-            TX_SCRIPT_ROOT_PTR,
+            INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
+            INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
+            KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
+            NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
+            NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
+            NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
+            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
+            TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
         },
         TransactionKernel,
     },
@@ -332,7 +332,7 @@ fn input_notes_memory_assertions(
     note_args: &[[Felt; 4]],
 ) {
     assert_eq!(
-        read_root_mem_word(&process.into(), INPUT_NOTE_SECTION_OFFSET),
+        read_root_mem_word(&process.into(), INPUT_NOTE_SECTION_PTR),
         [Felt::new(inputs.input_notes().num_notes() as u64), ZERO, ZERO, ZERO],
         "number of input notes should be stored at the INPUT_NOTES_OFFSET"
     );
@@ -341,7 +341,7 @@ fn input_notes_memory_assertions(
         let note = input_note.note();
 
         assert_eq!(
-            read_root_mem_word(&process.into(), INPUT_NOTE_SECTION_OFFSET + (1 + note_idx) * 4),
+            read_root_mem_word(&process.into(), INPUT_NOTE_NULLIFIER_SECTION_PTR + note_idx * 4),
             note.nullifier().as_elements(),
             "note nullifier should be computer and stored at the correct offset"
         );

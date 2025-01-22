@@ -150,6 +150,9 @@ const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=2088
 # The memory address at which the input note section begins.
 const.INPUT_NOTE_SECTION_OFFSET=4194304
 
+# The memory address at which the nullifier section of the input notes begins.
+const.INPUT_NOTE_NULLIFIER_SECTION_PTR=4194308
+
 # The memory address at which the input note data section begins.
 const.INPUT_NOTE_DATA_SECTION_OFFSET=4259840
 
@@ -1070,7 +1073,7 @@ end
 #! - idx is the index of the input note.
 #! - nullifier_ptr is the memory address of the nullifier for note idx.
 export.get_input_note_nullifier_ptr
-    mul.4 push.INPUT_NOTE_SECTION_OFFSET.4 add add
+    mul.4 push.INPUT_NOTE_NULLIFIER_SECTION_PTR add
 end
 
 #! Returns the nullifier of an input note with `idx`.
@@ -1082,7 +1085,7 @@ end
 #! - idx is the index of the input note.
 #! - nullifier is the nullifier of the input note.
 export.get_input_note_nullifier
-    padw movup.4 push.INPUT_NOTE_SECTION_OFFSET.4 add add mem_loadw
+    mul.4 padw movup.4 push.INPUT_NOTE_NULLIFIER_SECTION_PTR add mem_loadw
 end
 
 #! Returns a pointer to the start of the input note core data segment for the note located at the
