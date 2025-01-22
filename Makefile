@@ -9,6 +9,8 @@ help:
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
+# Enable file generation in the `src` directory.
+# This is used in the build scripts of miden-lib, miden-proving-service and miden-proving-service-client.
 BUILD_GENERATED_FILES_IN_SRC=BUILD_GENERATED_FILES_IN_SRC=1
 # Enable backtraces for tests where we return an anyhow::Result. If enabled, anyhow::Error will
 # then contain a `Backtrace` and print it when a test returns an error.
