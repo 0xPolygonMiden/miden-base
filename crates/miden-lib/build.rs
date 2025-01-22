@@ -19,8 +19,10 @@ use walkdir::WalkDir;
 // CONSTANTS
 // ================================================================================================
 
-/// Defines whether the build script can write to /src.
-const CAN_WRITE_TO_SRC: bool = option_env!("DOCS_RS").is_none();
+/// Defines whether the build script should generate files in `/src`.
+/// The docs.rs build pipeline has a read-only filesystem, so we have to avoid writing to `src`,
+/// otherwise the docs will fail to build there. Note that writing to `OUT_DIR` is fine.
+const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
 const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
@@ -42,7 +44,7 @@ const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
 fn main() -> Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed={ASM_DIR}");
-    println!("cargo::rerun-if-env-changed=BUILD_KERNEL_ERRORS");
+    println!("cargo::rerun-if-env-changed=BUILD_GENERATED_FILES_IN_SRC");
 
     // Copies the MASM code to the build directory
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -75,11 +77,7 @@ fn main() -> Result<()> {
     // compile account components
     compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
 
-    // Skip this build script in BUILD_KERNEL_ERRORS environment variable is not set to `1`.
-    if env::var("BUILD_KERNEL_ERRORS").unwrap_or("0".to_string()) == "1" {
-        // Generate kernel error constants.
-        generate_kernel_error_constants(&source_dir)?;
-    }
+    generate_kernel_error_constants(&source_dir)?;
 
     Ok(())
 }
@@ -164,7 +162,7 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
     // Because the kernel Rust file will be stored under ./src, this should be a no-op if we can't
     // write there
-    if !CAN_WRITE_TO_SRC {
+    if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 
@@ -443,10 +441,11 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 ///
 /// We also ensure that a constant is not defined twice, except if their error code is the same.
 /// This can happen across multiple files.
+/// Because the error files will be written to ./src/errors, this should be a no-op if ./src is
+/// read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC` environment
+/// variable.
 fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
-    // Because the error files will be written to ./src/errors, this should be a no-op if ./src is
-    // read-only
-    if !CAN_WRITE_TO_SRC {
+    if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 
