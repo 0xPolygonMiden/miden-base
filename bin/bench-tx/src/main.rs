@@ -5,12 +5,12 @@ use std::{
     path::Path,
 };
 
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::{AccountId, AccountStorageMode, AccountType},
-    assets::{Asset, FungibleAsset},
+    account::{AccountId, AccountStorageMode, AccountType},
+    asset::{Asset, FungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::NoteType,
+    note::NoteType,
     transaction::{TransactionArgs, TransactionMeasurements, TransactionScript},
     Felt,
 };

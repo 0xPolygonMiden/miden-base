@@ -29,8 +29,8 @@ mod test {
 
     use miden_lib::transaction::TransactionKernel;
     use miden_objects::{
-        assets::{Asset, FungibleAsset},
-        notes::NoteType,
+        asset::{Asset, FungibleAsset},
+        note::NoteType,
         testing::{
             account_code::DEFAULT_AUTH_SCRIPT,
             account_id::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
