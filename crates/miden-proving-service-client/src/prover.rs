@@ -39,7 +39,7 @@ impl RemoteTransactionProver {
     }
 
     /// Establishes a connection to the remote transaction prover server. The connection is
-    /// mantained for the lifetime of the prover. If the connection is already established, this
+    /// maintained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
     async fn connect(&self) -> Result<(), RemoteProverError> {
         let mut client = self.client.write();

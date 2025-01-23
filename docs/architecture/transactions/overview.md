@@ -1,23 +1,19 @@
----
-comments: true
----
-
 # Transactions overview
 
 ## Architecture overview
 
 The Miden transaction architecture comprises a set of components that interact with each other. This section of the documentation discusses each component.
 
-The diagram shows the components responsible for Miden transactions and how they fit together. 
+The diagram shows the components responsible for Miden transactions and how they fit together.
 
-<center>
-![Transactions architecture overview](../../img/architecture/transaction/tx-overview.png)
-</center>
+<p style="text-align: center;">
+    <img src="../../img/architecture/transaction/tx-overview.png" alt="Transactions architecture overview"/>
+</p>
 
-!!! tip "Key to diagram"
-    - The [transaction executor](execution.md) prepares, executes, and proves transactions. 
-    - The executor compiles the [transaction kernel](kernel.md) plus user-defined notes and transaction scripts into a single executable program for the Miden VM.
-    - Users write scripts using [kernel procedures](procedures.md) and [contexts](contexts.md).
+> **Tip**
+> - The [transaction executor](execution.md) prepares, executes, and proves transactions. 
+> - The executor compiles the [transaction kernel](kernel.md) plus user-defined notes and transaction scripts into a single executable program for the Miden VM.
+> - Users write scripts using [kernel procedures](procedures.md) and [contexts](contexts.md).
 
 ## Miden transactions
 
@@ -27,28 +23,24 @@ A transaction takes a single account and some [notes](../notes.md) as input, and
 
 Miden aims for the following:
 
-- Parallel transaction execution: Because a transaction is always performed against a single account, Miden obtains asynchronicity. 
-- Private transaction execution: Because every transaction emits a state-change with a STARK proof, there is privacy when the transaction executes locally.
+- **Parallel transaction execution**: Because a transaction is always performed against a single account, Miden obtains asynchronicity. 
+- **Private transaction execution**: Because every transaction emits a state-change with a STARK proof, there is privacy when the transaction executes locally.
 
-There are two types of transactions in Miden: local transactions and network transactions.
+There are two types of transactions in Miden: **local transactions** and **network transactions**.
 
 ## Transaction design
 
 Transactions describe the state-transition of a single account that takes chain data and `0 to 1024` notes as input and produces a `TransactionWitness` and `0 to 1024` notes as output.
 
-<center>
 ![Transaction diagram](../../img/architecture/transaction/transaction-diagram.png){ width="75%" }
-</center>
 
-At its core, a transaction is an executable program - the transaction kernel program - that processes the provided inputs and creates the requested outputs. Because the program is executed by the Miden VM, a STARK-proof is generated for every transaction.
+At its core, a transaction is an executable program—the transaction kernel program—that processes the provided inputs and creates the requested outputs. Because the program is executed by the Miden VM, a STARK-proof is generated for every transaction.
 
 ## Asset transfer using two transactions
 
 Transferring assets between accounts requires two transactions as shown in the diagram below.
 
-<center>
 ![Transaction flow](../../img/architecture/transaction/transaction-flow.png)
-</center>
 
 The first transaction invokes some functions on `account_a` (e.g. `create_note` and `move_asset_to_note` functions) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g. a `receive_asset` function) which updates the internal state of `account_b`.
 
@@ -58,16 +50,14 @@ Both transactions can be executed asynchronously: first `transaction1` is execut
 
 This opens up a few interesting possibilities:
 
-* Owner of `account_b` may wait until they receive many notes and process them all in a single transaction.
-* A note script may include a clause which allows the source account to consume the note after some time. Thus, if `account_b` does not consume the note after the specified time, the funds can be returned. This mechanism can be used to make sure funds sent to non-existent accounts are not lost (see the [P2IDR note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/P2IDR.masm)).
-* Neither sender nor the recipient need to know who the other side is. From the sender's perspective they just need to create `note1` (and for this they need to know the assets to be transferred and the root of the note's script). They don't need any information on who will eventually consume the note. From the recipient's perspective, they just need to consume `note1`. They don't need to know who created it.
-* Both transactions can be executed "locally". For example, we could generate a zk-proof that `transaction1` was executed and submit it to the network. The network can verify the proof without the need for executing the transaction itself. The same can be done for `transaction2`. Moreover, we can mix and match. For example, `transaction1` can be executed locally, but `transaction2` can be executed on the network, or vice-versa.
+- The owner of `account_b` may wait until they receive many notes and process them all in a single transaction.
+- A note script may include a clause which allows the source account to consume the note after some time. Thus, if `account_b` does not consume the note after the specified time, the funds can be returned. This mechanism can be used to make sure funds sent to non-existent accounts are not lost (see the [P2IDR note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/P2IDR.masm)).
+- Neither the sender nor the recipient needs to know who the other side is. From the sender's perspective, they just need to create `note1` (and for this they need to know the assets to be transferred and the root of the note's script). They don't need any information on who will eventually consume the note. From the recipient's perspective, they just need to consume `note1`. They don't need to know who created it.
+- Both transactions can be executed "locally". For example, we could generate a zk-proof that `transaction1` was executed and submit it to the network. The network can verify the proof without the need for executing the transaction itself. The same can be done for `transaction2`. Moreover, we can mix and match. For example, `transaction1` can be executed locally, but `transaction2` can be executed on the network, or vice versa.
 
 ## Local and network transactions
 
-<center>
 ![Local vs network transactions](../../img/architecture/transaction/local-vs-network-transaction.png)
-</center>
 
 ### Local transactions
 
@@ -75,7 +65,7 @@ This is where clients executing the transactions also generate the proofs of the
 
 Local transactions are useful for several reasons:
 
-1. They are cheaper (i.e. lower fees) as zk-proofs are already generated by the clients.
+1. They are cheaper (i.e., lower fees) as zk-proofs are already generated by the clients.
 2. They allow fairly complex computations because the proof size doesn't grow linearly with the complexity of the computation.
 3. They enable privacy as neither the account state nor account code are needed to verify the zk-proof.
 
@@ -87,5 +77,3 @@ Network transactions are useful for two reasons:
 
 1. Clients may not have sufficient resources to generate zk-proofs.
 2. Executing many transactions against the same public account by different clients is challenging, as the account state changes after every transaction. Due to this, the Miden node/operator acts as a "synchronizer" to execute transactions sequentially by feeding the output of the previous transaction into the input of the next.
-
-</br>

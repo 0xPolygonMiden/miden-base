@@ -1,72 +1,97 @@
----
-comments: true
----
+# Note
 
-Two of Miden's key goals are parallel transaction execution and privacy.
+> The medium through which [Accounts](accounts.md) communicate in the Miden protocol.
 
-Polygon Miden implements a hybrid UTXO and account-based [state model](state.md) which enforces these goals with notes. Notes interact with, and transfer assets between, accounts. They can be consumed and produced asynchronously and privately.
+## What is the purpose of a note?
 
-The concept of notes is a key divergence from Ethereum’s account-based model.
+In Miden's hybrid UTXO and account-based model `Note`s represent UTXO's which enable parallel transaction execution and privacy through asynchronous local `Note` production and consumption. 
 
-## Note design
+## What is a note?
 
-<center>
-![Architecture core concepts](../img/architecture/note/note.png){ width="45%" }
-</center>
+A `Note` in Miden holds assets and defines how these assets can be consumed.
 
-!!! tip "Key to diagram"
-    * Assets: An [asset](assets.md) container for a note. It can contain up to `256` assets stored in an array which can be reduced to a single hash.
-    * Script: To be executed in the [transaction](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html) in which the note is consumed. The script defines the conditions for the consumption. If the script fails, the note cannot be consumed.
-    * Inputs: Used to execute the note script. They can be accessed by the note script via [transaction kernel procedures](./transactions/kernel.md). A note can be associated with up to `128` input values. Each value is represented by a single field element. Thus, note input values can contain up to `~1` KB of data.
-    * Serial number: A note's unique identifier to break link-ability between note hash and [nullifier](#note-nullifier-to-ensure-private-consumption). Should be a random `word` chosen by the user - if revealed, the nullifier might be computed easily.
-    * In addition, a note has metadata including the sender and the note tag. Those values are always public regardless of the [note storage mode](#note-storage-mode).
+## Note core components
 
-## Note lifecycle
+A `Note` is composed of several core components, illustrated below:
 
-New notes are created by executing transactions.
+<p style="text-align: center;">
+    <img src="../img/architecture/note/note.png" style="width:30%;" alt="Note diagram"/>
+</p>
 
-After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the note database.
+These components are:
 
-Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction.
+1. [Assets](#assets)  
+2. [Script](#script)  
+3. [Inputs](#inputs)  
+4. [Serial number](#serial-number)  
+5. [Metadata](#metadata)
 
-Note consumption requires the transacting party to know the note data to compute the nullifier. After successful verification, the operator sets the corresponding entry in the nullifier database to "consumed".
+### Assets
 
-<center>
+> An [asset](assets.md) container for a `Note`.
+
+A `Note` can contain up to 256 different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
+
+### Script
+
+> The code executed when the `Note` is consumed.
+
+Each `Note` has a script that defines the conditions under which it can be consumed. When accounts consume `Note`s in transactions, `Note` scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making `Note` scripts highly versatile.
+
+### Inputs
+
+> Arguments passed to the `Note` script during execution.
+
+A `Note` can have up to 128 input values, which adds up to a maximum of 1 KB of data. The `Note` script can access these inputs. They can convey arbitrary parameters for `Note` consumption. 
+
+### Serial number
+
+> A unique and immutable identifier for the `Note`.
+
+The serial number has two main purposes. Firstly by adding some randomness to the `Note` it ensures it's uniqueness, secondly in private `Note`s it helps prevent linkability between the `Note`'s hash and its nullifier. The serial number should be a random 32 bytes number chosen by the user. If leaked, the `Note`’s nullifier can be easily computed, potentially compromising privacy.
+
+### Metadata
+
+> Additional `Note` information.
+
+`Note`s include metadata such as the sender’s account ID and a [tag](#note-discovery) that aids in discovery. Regardless of [storage mode](#note-storage-mode), these metadata fields remain public.
+
+## Note Lifecycle
+
 ![Architecture core concepts](../img/architecture/note/note-life-cycle.png)
-</center>
+
+The `Note` lifecycle proceeds through four primary phases: **creation**, **validation**, **discovery**, and **consumption**. Throughout this process, `Note`s function as secure, privacy-preserving vehicles for asset transfers and logic execution.
 
 ### Note creation
 
-Notes are created as the outputs (`OutputNotes`) of Miden transactions. Operators record the notes to the [note database](state.md#note-database). After successful verification of the underlying transactions, those notes can be consumed.
+Accounts can create `Note`s in a transaction. The `Note` exists if it is included in the global `Note`s DB.
 
-### The note script
+- **Users:** Executing local or network transactions.
+- **Miden operators:** Facilitating on-chain actions, e.g. such as executing user `Note`s against a DEX or other contracts.
 
-Every note has a script which gets executed at note consumption. It is always executed in the context of a single account, and thus, may invoke zero or more of the [account's functions](accounts.md#code). The script allows for more than just asset transfers; actions which could be of arbitrary complexity thanks to the Turing completeness of the Miden VM.
+#### Note storage mode
 
-By design, every note script can be defined as a unique hash or the root of a [Miden program MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html). That also means every function is a commitment to the underlying code. That code cannot change unnoticed to the user because its hash changes. That way it is easy to recognize standardized notes and those which deviate.
+As with [accounts](accounts.md), `Note`s can be stored either publicly or privately:
 
-Note scripts are created together with their inputs, i.e., the creator of the note defines which inputs are used at note execution by the executor. However, the executor or prover can pass optional note args. Note args are data put onto the stack right before a note script is executed. These are different from note inputs, as the executing account can specify arbitrary note args.
+- **Public mode:** The `Note` data is stored in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database), making it fully visible on-chain.
+- **Private mode:** Only the `Note`’s hash is stored publicly. The `Note`’s actual data remains off-chain, enhancing privacy.
 
-There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the Miden client or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
+#### Ephemeral note
 
-* P2ID and P2IDR scripts are used to send assets to a specific account ID. The scripts check at note consumption if the executing account ID equals the account ID that was set by the note creator as note inputs. The P2IDR script is reclaimable and thus after a certain block height can also be consumed by the sender itself.
-* SWAP script is a simple way to swap assets. It adds an asset from the note into the consumer's vault and creates a new note consumable by the first note's issuer containing the requested asset.
+These specific `Note`s can be consumed even if not yet registered on-chain. They can be chained together into one final proof. This can allow for example sub-second communication below blocktimes by adding additional trust assumptions.
 
-??? note "Example note script pay to ID (P2ID)"
+### Note validation
 
-    #### Goal of the P2ID script
+Once created, a `Note` must be validated by a Miden operator. Validation involves checking the transaction proof that produced the `Note` to ensure it meets all protocol requirements.
 
-    The P2ID script defines a specific target account ID as the only account that can consume the note. Such notes ensure a targeted asset transfer.
+- **Private Notes:** Only the `Note`’s hash is recorded on-chain, keeping the data confidential.
+- **Public Notes:** The full `Note` data is stored, providing transparency for applications requiring public state visibility.
 
-    #### Imports and context
+After validation, `Note`s become “live” and eligible for discovery and eventual consumption.
 
-    The P2ID script uses procedures from the account, note and wallet API.
+### Note discovery
 
-    ```arduino
-    use.miden::account
-    use.miden::note
-    use.miden::contracts::wallets::basic->wallet
-    ```
+Clients often need to find specific `Note`s of interest. Miden allows clients to query the `Note` database using `Note` tags. These lightweight, 32-bit data fields serve as best-effort filters, enabling quick lookups for `Note`s related to particular use cases, scripts, or account prefixes.
 
     As discussed in detail in [transaction kernel procedures](transactions/procedures.md) certain procedures can only be invoked in certain contexts. The note script is being executed in the note context of the [transaction kernel](transactions/kernel.md).
 
@@ -249,27 +274,30 @@ Using note tags is a compromise between privacy and latency. If a user queries t
 
 ### Note consumption
 
-As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [nullifier database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed.
+To consume a `Note`, the consumer must know its data, including the inputs needed to compute the nullifier. Consumption occurs as part of a transaction. Upon successful consumption a nullifier is generated for the consumed `Note`s.
 
-Notes can only be consumed if the note data is known to the consumer. The note data must be provided as input to the [transaction kernel](transactions/kernel.md). That means, for privately stored notes, there must be some off-chain communication to transmit the note's data from the sender to the target.
+Upon successful verification of the transaction:
 
-### Note recipient to restrict note consumption
+1. The Miden operator records the `Note`’s nullifier as “consumed” in the nullifier database.
+2. The `Note`’s one-time claim is thus extinguished, preventing reuse.
 
-There are several ways to restrict the set of accounts that can consume a specific note. One way is to specifically define the target account ID as done in the P2ID and P2IDR note scripts. Another way is by using the concept of a `RECIPIENT`. Miden defines a `RECIPIENT` (represented as `Word`) as:
+#### Note recipient restricting consumption
+
+Consumption of a `Note` can be restricted to certain accounts or entities. For instance, the P2ID and P2IDR `Note` scripts target a specific account ID. Alternatively, Miden defines a RECIPIENT (represented as 32 bytes) computed as:
 
 ```arduino
 hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 ```
 
-This concept restricts note consumption to those users who know the pre-image data of `RECIPIENT` - which might be a bigger set than a single account.
+Only those who know the RECIPIENT’s pre-image can consume the `Note`. For private `Note`s, this ensures an additional layer of control and privacy, as only parties with the correct data can claim the `Note`.
 
-During the [transaction prologue](transactions/kernel.md) the users needs to provide all the data to compute the note hash. That means, one can create notes that can only be consumed if the `serial_num` and other data is known. This information can be passed off-chain from the sender to the consumer. This is only useful with private notes. For public notes, all note data is known, and anyone can compute the `RECIPIENT`.
+The [transaction prologue](transactions/kernel.md) requires all necessary data to compute the `Note` hash. This setup allows scenario-specific restrictions on who may consume a `Note`.
 
-You can see in the standard [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm) how `RECIPIENT` is used. Here, using a single hash, is sufficient to ensure that the swapped asset and its note can only be consumed by the defined target.
+For a practical example, refer to the [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm), where the RECIPIENT ensures that only a defined target can consume the swapped asset.
 
-### Note nullifier to ensure private consumption
+#### Note nullifier ensuring private consumption
 
-The note's nullifier is computed as:
+The `Note` nullifier, computed as:
 
 ```arduino
 hash(serial_num, script_hash, input_hash, vault_hash)
@@ -277,14 +305,14 @@ hash(serial_num, script_hash, input_hash, vault_hash)
 
 This achieves the following properties:
 
-- Every note can be reduced to a single unique nullifier.
-- One cannot derive a note's hash from its nullifier.
-- To compute the nullifier, one must know all components of the note: `serial_num`, `script_hash`, `input_hash`, and `vault_hash`.
+- Every `Note` can be reduced to a single unique nullifier.
+- One cannot derive a `Note`'s hash from its nullifier.
+- To compute the nullifier, one must know all components of the `Note`: serial_num, script_hash, input_hash, and vault_hash.
 
-That means if a note is private and the operator stores only the note's hash, only those with the note details know if this note has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
+That means if a `Note` is private and the operator stores only the `Note`'s hash, only those with the `Note` details know if this `Note` has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
 
-<center>
 ![Architecture core concepts](../img/architecture/note/nullifier.png)
-</center>
 
-<br/>
+## Conclusion
+
+Miden’s `Note` introduce a powerful mechanism for secure, flexible, and private state management. By enabling asynchronous asset transfers, parallel execution, and privacy at scale, `Note`s transcend the limitations of strictly account-based models. As a result, developers and users alike enjoy enhanced scalability, confidentiality, and control. With these capabilities, Miden is paving the way for true **programmable money** where assets, logic, and trust converge seamlessly.
