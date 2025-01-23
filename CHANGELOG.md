@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.7.0 (TBD)
+## 0.7.0 (2025-01-22)
+
+### Highlights
+
+- [BREAKING] Extend `AccountId` to two `Felt`s and require block hash in derivation (#982).
+- Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
+- Introduce `AccountIdBuilder` to simplify `AccountId` generation in tests (#1045).
+- [BREAKING] Migrate to the element-addressable memory (#1084).
 
 ### Changes
 
@@ -8,22 +15,19 @@
 - Updated Pingora crates to 0.4 and added polling time to the configuration file (#997).
 - Added support for `miden-tx-prover` proxy to update workers on a running proxy (#989).
 - Refactored `miden-tx-prover` proxy load balancing strategy (#976).
-- [BREAKING] Better error display when queues are full in the prover service (#967).
-- [BREAKING] Remove `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
-- [BREAKING] Add error messages to errors and implement `core::error::Error` (#974).
-- Implemented new `digest_from_hex!` macro (#984).
+- [BREAKING] Implemented better error display when queues are full in the prover service (#967).
+- [BREAKING] Removed `AccountBuilder::build_testing` and make `Account::initialize_from_components` private (#969).
+- [BREAKING] Added error messages to errors and implement `core::error::Error` (#974).
+- Implemented new `digest!` macro (#984).
 - Added Format Guidebook to the `miden-lib` crate (#987).
 - Added conversion from `Account` to `AccountDelta` for initial account state representation as delta (#983).
 - [BREAKING] Added `miden::note::get_script_hash` procedure (#995).
 - [BREAKING] Refactor error messages in `miden-lib` and `miden-tx` and use `thiserror` 2.0 (#1005, #1090).
 - Added health check endpoints to the prover service (#1006).
-- [BREAKING] Extend `AccountId` to two `Felt`s and require block hash in derivation (#982).
 - Removed workers list from the proxy configuration file (#1018).
 - Added tracing to the `miden-tx-prover` CLI (#1014).
 - Added metrics to the `miden-tx-prover` proxy (#1017).
 - Implemented `to_hex` for `AccountIdPrefix` and `epoch_block_num` for `BlockHeader` (#1039).
-- Introduce `AccountIdBuilder` to simplify `AccountId` generation in tests (#1045).
-- Introduced `AccountComponentTemplate` with TOML serialization and templating (#1015, #1027).
 - [BREAKING] Updated the names and values of the kernel procedure offsets and corresponding kernel procedures (#1037).
 - Introduce `AccountIdError` and make account ID byte representations (`u128`, `[u8; 15]`) consistent (#1055).
 - Refactor `AccountId` and `AccountIdPrefix` into version wrappers (#1058).
@@ -31,9 +35,8 @@
 - Made `AccountIdError` public (#1067).
 - Made `BasicFungibleFaucet::MAX_DECIMALS` public (#1063).
 - [BREAKING] Removed `miden-tx-prover` crate and created `miden-proving-service` and `miden-proving-service-client` (#1047).
-- Deduplicate `masm` procedures across kernel and miden lib to a shared `util` module (#1070).
+- Removed deduplicate `masm` procedures across kernel and miden lib to a shared `util` module (#1070).
 - [BREAKING] Added `BlockNumber` struct (#1043, #1080, #1082).
-- [BREAKING] Migrate to the element-addressable memory (#1084).
 - [BREAKING] Removed `GENESIS_BLOCK` public constant (#1088).
 - Add CI check for unused dependencies (#1075).
 - Added storage placeholder types and support for templated map (#1074).
