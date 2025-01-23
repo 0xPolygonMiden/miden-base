@@ -23,7 +23,7 @@ If you want to join the technical discussion or learn more about the project, pl
 
 ## Status and features
 
-Polygon Miden is currently on release v0.6. This is an early version of the protocol and its components. We expect to keep making changes (including breaking changes) to all components.
+Polygon Miden is currently on release v0.7. This is an early version of the protocol and its components. We expect to keep making changes (including breaking changes) to all components.
 
 ### Feature highlights
 
@@ -44,12 +44,14 @@ Polygon Miden is currently on release v0.6. This is an early version of the prot
 
 ## Project structure
 
-| Crate                  | Description                                                                     |
-| ---------------------- | ------------------------------------------------------------------------------- |
-| [objects](objects)     | Contains core components defining the Miden rollup protocol.                    |
-| [miden-lib](miden-lib) | Contains the code of the Miden rollup kernels and standardized smart contracts. |
-| [miden-tx](miden-tx)   | Contains tool for creating, executing, and proving Miden rollup transaction.    |
-| [bench-tx](bench-tx)   | Contains transaction execution and proving benchmarks.                          |
+| Crate                                   | Description                                                                         |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
+| [objects](crates/miden-objects)         | Contains core components defining the Miden rollup protocol.                        |
+| [miden-lib](crates/miden-lib)           | Contains the code of the Miden rollup kernels and standardized smart contracts.     |
+| [miden-tx](crates/miden-tx)             | Contains tool for creating, executing, and proving Miden rollup transaction.        |
+| [proving-service](bin/proving-service/) | Contains a binary with a service for generating Miden transaction proofs on-demand. |
+| [proving-service-client](crates/miden-proving-service-client/) | Contains protobuf definition for the Miden transaction proving service. |
+| [bench-tx](bin/bench-tx)                | Contains transaction execution and proving benchmarks.                              |
 
 ## Make commands
 

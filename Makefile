@@ -9,13 +9,23 @@ help:
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
-BUILD_KERNEL_ERRORS=BUILD_KERNEL_ERRORS=1
+# Enable file generation in the `src` directory.
+# This is used in the build scripts of miden-lib, miden-proving-service and miden-proving-service-client.
+BUILD_GENERATED_FILES_IN_SRC=BUILD_GENERATED_FILES_IN_SRC=1
+# Enable backtraces for tests where we return an anyhow::Result. If enabled, anyhow::Error will
+# then contain a `Backtrace` and print it when a test returns an error.
+BACKTRACE=RUST_BACKTRACE=1
 
 # -- linting --------------------------------------------------------------------------------------
 
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
 	cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
+
+
+.PHONY: clippy-no-std
+clippy-no-std: ## Runs Clippy with configs
+	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service -- -D warnings
 
 
 .PHONY: fix
@@ -34,7 +44,11 @@ format-check: ## Runs Format using nightly toolchain but only in check mode
 
 
 .PHONY: lint
-lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, formatting)
+lint: ## Runs all linting tasks at once (Clippy, fixing, formatting)
+	@$(BUILD_GENERATED_FILES_IN_SRC) $(MAKE) format
+	@$(BUILD_GENERATED_FILES_IN_SRC) $(MAKE) fix
+	@$(BUILD_GENERATED_FILES_IN_SRC) $(MAKE) clippy
+	@$(BUILD_GENERATED_FILES_IN_SRC) $(MAKE) clippy-no-std
 
 # --- docs ----------------------------------------------------------------------------------------
 
@@ -51,17 +65,27 @@ doc-serve: ## Serves documentation site
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
+	$(BUILD_GENERATED_FILES_IN_SRC) $(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
 
 
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
-	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
+
+
+.PHONY: test-dev
+test-dev: ## Run default tests excluding slow tests (prove and ID anchor block tests) in debug mode intended to be run locally
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --features concurrent,testing --filter-expr "not test(prove) & not test(create_accounts_with_non_zero_anchor_block)"
+
+
+.PHONY: test-docs
+test-docs: ## Run documentation tests
+	$(WARNINGS) $(DEBUG_ASSERTIONS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
 
 
 .PHONY: test-prove
 test-prove: ## Run `prove` tests (tests which use the Miden prover)
-	$(DEBUG_ASSERTIONS) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
 
 
 .PHONY: test
@@ -71,29 +95,33 @@ test: test-default test-prove ## Run all tests
 
 .PHONY: check
 check: ## Check all targets and features for errors without code generation
-	${BUILD_KERNEL_ERRORS} cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+
+
+.PHONY: check-no-std
+check-no-std: ## Check the no-std target without any features for errors without code generation
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo check --no-default-features --target wasm32-unknown-unknown --workspace --lib
 
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
 build: ## By default we should build in release mode
-	${BUILD_KERNEL_ERRORS} cargo build --release
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --release
 
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	${BUILD_KERNEL_ERRORS} cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-tx-prover --features testing
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing,tx-prover --exclude miden-proving-service
 
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)
-	${BUILD_KERNEL_ERRORS} cargo build --lib --release --features async
-
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --lib --release --features async
 
 # --- benchmarking --------------------------------------------------------------------------------
 
@@ -104,10 +132,6 @@ bench-tx: ## Run transaction benchmarks
 
 # --- installing ----------------------------------------------------------------------------------
 
-.PHONY: install-tx-prover
-install-tx-prover: ## Install transaction prover's CLI
-	cargo install --path bin/tx-prover --bin miden-tx-prover --locked
-
-.PHONY: install-tx-prover-testing
-install-tx-prover-testing: ## Install transaction prover's CLI intended for testing purposes
-	cargo install --path bin/tx-prover --bin miden-tx-prover --locked --features testing
+.PHONY: install-proving-service
+install-proving-service: ## Install proving service's CLI
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent

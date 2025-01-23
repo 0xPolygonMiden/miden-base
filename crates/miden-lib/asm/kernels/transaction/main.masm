@@ -1,0 +1,183 @@
+use.std::utils
+
+use.kernel::epilogue
+use.kernel::memory
+use.kernel::note
+use.kernel::prologue
+
+# TRACES
+# =================================================================================================
+
+# Trace emitted to signal that an execution of the transaction prologue has started.
+const.PROLOGUE_START=131072
+# Trace emitted to signal that an execution of the transaction prologue has ended.
+const.PROLOGUE_END=131073
+
+# Trace emitted to signal that the notes processing has started.
+const.NOTES_PROCESSING_START=131074
+# Trace emitted to signal that the notes processing has ended.
+const.NOTES_PROCESSING_END=131075
+
+# Trace emitted to signal that the note consuming has started.
+const.NOTE_EXECUTION_START=131076
+# Trace emitted to signal that the note consuming has ended.
+const.NOTE_EXECUTION_END=131077
+
+# Trace emitted to signal that the transaction script processing has started.
+const.TX_SCRIPT_PROCESSING_START=131078
+# Trace emitted to signal that the transaction script processing has ended.
+const.TX_SCRIPT_PROCESSING_END=131079
+
+# Trace emitted to signal that an execution of the transaction epilogue has started.
+const.EPILOGUE_START=131080
+# Trace emitted to signal that an execution of the transaction epilogue has ended.
+const.EPILOGUE_END=131081
+
+# MAIN
+# =================================================================================================
+
+#! Transaction kernel program.
+#!
+#! This is the entry point of the transaction kernel, the program will perform the following
+#! operations:
+#! 1. Run the prologue to prepare the transaction's root context.
+#! 2. Run all the notes' scripts.
+#! 3. Run the transaction script.
+#! 4. Run the epilogue to compute and validate the final state.
+#!
+#! See `prologue::prepare_transaction` for additional details on the VM's initial state, including 
+#! the advice provider.
+#!
+#! Inputs:  [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#!
+#! Where:
+#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - account_id is the account that the transaction is being executed against.
+#! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new accounts.
+#! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
+#! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes created by the transaction.
+#! - FINAL_ACCOUNT_HASH is the account's hash after execution the transaction.
+proc.main.1
+    # Prologue
+    # ---------------------------------------------------------------------------------------------
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.91683607 drop
+    trace.PROLOGUE_START
+
+    exec.prologue::prepare_transaction
+    # => []
+
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.3551582517 drop
+    trace.PROLOGUE_END
+
+    # Note Processing
+    # ---------------------------------------------------------------------------------------------
+
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.1597639019 drop
+    trace.NOTES_PROCESSING_START
+
+    exec.memory::get_num_input_notes
+    # => [num_input_notes]
+
+    # compute the memory location after all input notes, i.e. the exit condition
+    dup exec.memory::get_input_note_ptr loc_store.0
+    # => [num_input_notes]
+
+    eq.0 not
+    # => [should_loop]
+
+    while.true
+        # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+        push.1161965828 drop
+        trace.NOTE_EXECUTION_START
+        # => []
+
+        exec.note::prepare_note
+        # => [note_script_root_ptr, NOTE_ARGS]
+
+        # run note's script
+        dyncall
+        # => [X, X, X, X]
+
+        # Clear the stack, the note can leave up to 4 words on the stack due to the dyncall
+        dropw dropw dropw dropw
+        # => []
+
+        exec.note::increment_current_input_note_ptr
+        # => [current_input_note_ptr]
+
+        # loop condition, exit when the memory ptr is after all input notes
+        loc_load.0 neq
+        # => [should_loop]
+
+        # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+        push.1680624729 drop
+        trace.NOTE_EXECUTION_END
+    end
+
+    exec.note::note_processing_teardown
+    # => []
+
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.920581323 drop
+    trace.NOTES_PROCESSING_END
+
+    # Transaction Script Processing
+    # ---------------------------------------------------------------------------------------------
+
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.4103684209 drop
+    trace.TX_SCRIPT_PROCESSING_START
+
+    # get the memory address of the transaction script root and load it to the stack
+    exec.memory::get_tx_script_root_ptr
+    padw dup.4 mem_loadw
+    # => [TX_SCRIPT_ROOT, tx_script_root_ptr]
+
+    exec.utils::is_empty_word not movdn.4 dropw
+    # => [has_tx_script, tx_script_root_ptr]
+
+    if.true
+        # execute the transaction script
+        dyncall
+        # => [OUTPUT_3, OUTPUT_2, OUTPUT_1, OUTPUT_0]
+
+        # clean up transaction script outputs
+        dropw dropw dropw dropw
+        # => []
+    else
+        # drop the pointer to the empty transaction script root
+        drop
+        # => []
+    end
+
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.1155406220 drop
+    trace.TX_SCRIPT_PROCESSING_END
+
+    # Epilogue
+    # ---------------------------------------------------------------------------------------------
+
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.1887961092 drop
+    trace.EPILOGUE_START
+
+    # execute the transaction epilogue
+    exec.epilogue::finalize_transaction
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
+
+    # truncate the stack
+    movupw.3 dropw movupw.3 dropw movup.9 drop
+
+    # use `push.* drop` instructions before `trace` to make sure that MAST root will be unique
+    push.3456069754 drop
+    trace.EPILOGUE_END
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
+end
+
+begin
+    exec.main
+end

@@ -2,16 +2,14 @@ extern crate alloc;
 pub use alloc::{collections::BTreeMap, string::String};
 use std::sync::Arc;
 
-use miden_lib::accounts::{auth::RpoFalcon512, wallets::BasicWallet};
+use miden_lib::account::{auth::RpoFalcon512, wallets::BasicWallet};
 use miden_objects::{
-    accounts::{Account, AccountId, AuthSecretKey},
-    assets::{Asset, AssetVault},
+    account::{Account, AccountBuilder, AccountStorageMode, AccountType, AuthSecretKey},
+    asset::Asset,
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     transaction::TransactionMeasurements,
-    Felt, Word,
 };
 use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
-use rand::rngs::StdRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use serde::Serialize;
 use serde_json::{from_str, to_string_pretty, Value};
@@ -21,13 +19,15 @@ use super::{read_to_string, write, Benchmark, Path};
 // CONSTANTS
 // ================================================================================================
 
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0x200000000000001f; // 2305843009213693983
-pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001f; // 9223372036854775839
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0x900000000000003f; // 10376293541461622847
+// Copied from miden_objects::testing::account_id.
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 = 0x00aa00000000bc200000bc000000de00;
+pub const ACCOUNT_ID_SENDER: u128 = 0x00fa00000000bb800000cc000000de00;
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "
     begin
+        padw padw padw padw
         call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+        dropw dropw dropw dropw
     end
 ";
 
@@ -62,33 +62,31 @@ impl From<TransactionMeasurements> for MeasurementsPrinter {
 // ================================================================================================
 
 pub fn get_account_with_basic_authenticated_wallet(
-    account_id: AccountId,
-    public_key: Word,
+    init_seed: [u8; 32],
+    account_type: AccountType,
+    storage_mode: AccountStorageMode,
+    public_key: PublicKey,
     assets: Option<Asset>,
 ) -> Account {
-    let (account_code, account_storage) = Account::initialize_from_components(
-        account_id.account_type(),
-        &[BasicWallet.into(), RpoFalcon512::new(PublicKey::new(public_key)).into()],
-    )
-    .unwrap();
-
-    let account_vault = match assets {
-        Some(asset) => AssetVault::new(&[asset]).unwrap(),
-        None => AssetVault::new(&[]).unwrap(),
-    };
-
-    Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
+    AccountBuilder::new(init_seed)
+        .account_type(account_type)
+        .storage_mode(storage_mode)
+        .with_assets(assets)
+        .with_component(BasicWallet)
+        .with_component(RpoFalcon512::new(public_key))
+        .build_existing()
+        .unwrap()
 }
 
-pub fn get_new_pk_and_authenticator() -> (Word, Arc<dyn TransactionAuthenticator>) {
-    let seed = [0_u8; 32];
-    let mut rng = ChaCha20Rng::from_seed(seed);
-
+pub fn get_new_pk_and_authenticator() -> (PublicKey, Arc<dyn TransactionAuthenticator>) {
+    let mut rng = ChaCha20Rng::from_seed(Default::default());
     let sec_key = SecretKey::with_rng(&mut rng);
-    let pub_key: Word = sec_key.public_key().into();
+    let pub_key = sec_key.public_key();
 
-    let authenticator =
-        BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
+    let authenticator = BasicAuthenticator::<ChaCha20Rng>::new_with_rng(
+        &[(pub_key.into(), AuthSecretKey::RpoFalcon512(sec_key))],
+        rng,
+    );
 
     (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }
