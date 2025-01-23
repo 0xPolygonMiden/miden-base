@@ -21,7 +21,7 @@ mod prover;
 pub use prover::RemoteTransactionProver;
 
 /// Protobuf definition for the Miden proving service
-pub const SERVICE_PROTO: &str = include_str!("../../../proto/api.proto");
+pub const SERVICE_PROTO: &str = include_str!("../proto/api.proto");
 
 /// ERRORS
 /// ===============================================================================================
