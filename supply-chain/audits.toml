@@ -1,4 +1,14 @@
 
 # cargo-vet audits file
 
-[audits]
+[[audits.miden-proving-service]]
+who = "miden-team"
+criteria = "safe-to-deploy"
+version = "0.8.0"
+notes = "Was marked as audited while adding cargo vet. Miden developed crate"
+
+[[audits.miden-proving-service-client]]
+who = "miden-team"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "Was marked as audited while adding cargo vet. Miden developed crate"

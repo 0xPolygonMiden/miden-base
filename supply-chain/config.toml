@@ -10,6 +10,12 @@ audit-as-crates-io = true
 [policy.miden-objects]
 audit-as-crates-io = true
 
+[policy.miden-proving-service]
+audit-as-crates-io = true
+
+[policy.miden-proving-service-client]
+audit-as-crates-io = true
+
 [policy.miden-tx]
 audit-as-crates-io = true
 
