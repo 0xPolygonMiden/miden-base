@@ -441,6 +441,7 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 ///
 /// We also ensure that a constant is not defined twice, except if their error code is the same.
 /// This can happen across multiple files.
+///
 /// Because the error files will be written to ./src/errors, this should be a no-op if ./src is
 /// read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC` environment
 /// variable.
