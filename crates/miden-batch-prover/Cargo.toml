@@ -1,0 +1,36 @@
+[package]
+name = "miden-batch-prover"
+version = "0.8.0"
+description = "Miden rollup batch executor and prover"
+readme = "README.md"
+categories = ["no-std"]
+keywords = ["miden", "batch", "prover"]
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[[test]]
+name = "miden-batch-prover"
+path = "tests/integration/main.rs"
+
+[lib]
+bench = false
+
+[features]
+default = ["std"]
+std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
+testing = ["dep:rand"]
+
+[dependencies]
+assembly = { workspace = true }
+miden-crypto = { workspace = true }
+miden-verifier = { workspace = true }
+rand = { workspace = true, optional = true }
+thiserror = { workspace = true }
+vm-core = { workspace = true }
+vm-processor = { workspace = true }
+
+[dev-dependencies]
