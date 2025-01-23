@@ -110,3 +110,13 @@ jobs:
       - uses: actions/checkout@main
       - name: machete
         uses: bnjbvr/cargo-machete@main
+
+  vet:
+    name: check for vulnerabilities in dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - name: Install cargo vet
+        run: cargo install cargo-vet
+      - name: Run cargo vet
+        run: cargo vet
