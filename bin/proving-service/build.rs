@@ -12,6 +12,9 @@ use protox::prost::Message;
 /// otherwise the docs will fail to build there. Note that writing to `OUT_DIR` is fine.
 const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
+const REPO_PROTO_DIR: &str = "../../proto";
+const CRATE_PROTO_DIR: &str = "proto";
+
 /// Generates Rust protobuf bindings from .proto files.
 ///
 /// Because the proto generated files will be written to ./src/generated, this should be a no-op
@@ -23,20 +26,29 @@ fn main() -> miette::Result<()> {
         return Ok(());
     }
 
+    copy_proto_files()?;
     compile_tonic_server_proto()
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Copies all api.proto file from the root proto directory to the proto directory of this crate.
+fn copy_proto_files() -> miette::Result<()> {
+    let src_file = format!("{REPO_PROTO_DIR}/api.proto");
+    let dest_file = format!("{CRATE_PROTO_DIR}/api.proto");
+
+    fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
+    fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
+    fs::copy(src_file, dest_file).into_diagnostic()?;
+
+    Ok(())
+}
+
 fn compile_tonic_server_proto() -> miette::Result<()> {
     let crate_root =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("generated");
-
-    // Construct the path to the proto/api.proto file
-    let proto_dir = crate_root
-        .parent() // Go up to the workspace root
-        .expect("bin directory should exist")
-        .parent() // Go up to the workspace root
-        .expect("Workspace root should exist")
-        .join("proto");
 
     // Remove `api.rs` if it exists.
     fs::remove_file(dst_dir.join("api.rs")).into_diagnostic().ok();
@@ -44,6 +56,7 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
+    let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
     let protos = &[proto_dir.join("api.proto")];
     let includes = &[proto_dir];
 
