@@ -42,7 +42,7 @@ impl AccountUpdate {
     // --------------------------------------------------------------------------------------------
 
     /// The maximum allowed size of an account update. Set to 32 KiB.
-    pub const ACCOUNT_UPDATE_MAX_SIZE: u16 = 2u16.pow(15);
+    pub const MAX_SIZE: u16 = 2u16.pow(15);
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -99,7 +99,7 @@ impl AccountUpdate {
     /// - The size of the serialized account update does not exceed [`ACCOUNT_UPDATE_MAX_SIZE`].
     pub(crate) fn validate(&self) -> Result<(), ProvenTransactionError> {
         let account_update_size = self.details().get_size_hint();
-        if account_update_size > Self::ACCOUNT_UPDATE_MAX_SIZE as usize {
+        if account_update_size > Self::MAX_SIZE as usize {
             Err(ProvenTransactionError::AccountUpdateSizeLimitExceeded {
                 account_id: self.account_id(),
                 update_size: account_update_size,
@@ -122,32 +122,17 @@ impl AccountUpdate {
             });
         }
 
-        if self.final_state_commitment != tx.account_update().init_state_hash() {
+        if self.final_state_commitment != tx.account_update().initial_state_commitment() {
             return Err(AccountUpdateError::AccountUpdateInitialStateMismatch(tx.id()));
         }
 
         self.details = self.details.clone().merge(tx.account_update().details().clone()).map_err(
             |source_err| AccountUpdateError::TransactionUpdateMergeError(tx.id(), source_err),
         )?;
-        self.final_state_commitment = tx.account_update().final_state_hash();
+        self.final_state_commitment = tx.account_update().final_state_commitment();
         self.transactions.push(tx.id());
 
         Ok(())
-    }
-}
-
-// CONVERSIONS TO ACCOUNT UPDATE
-// ================================================================================================
-
-impl From<&ProvenTransaction> for AccountUpdate {
-    fn from(tx: &ProvenTransaction) -> Self {
-        Self {
-            account_id: tx.account_id(),
-            initial_state_commitment: tx.account_update().init_state_hash(),
-            final_state_commitment: tx.account_update().final_state_hash(),
-            transactions: vec![tx.id()],
-            details: tx.account_update().details().clone(),
-        }
     }
 }
 
@@ -192,7 +177,7 @@ mod tests {
         },
         testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         utils::Serializable,
-        Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
+        Digest, ProvenTransactionError, EMPTY_WORD, ONE, ZERO,
     };
 
     #[test]
@@ -223,7 +208,7 @@ mod tests {
         // The number of entries in the map required to exceed the limit.
         // We divide by each entry's size which consists of a key (digest) and a value (word), both
         // 32 bytes in size.
-        let required_entries = ACCOUNT_UPDATE_MAX_SIZE / (2 * 32);
+        let required_entries = AccountUpdate::MAX_SIZE / (2 * 32);
         for _ in 0..required_entries {
             map.insert(Digest::new(rand_array()), rand_array());
         }

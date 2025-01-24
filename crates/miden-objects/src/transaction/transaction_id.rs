@@ -76,8 +76,8 @@ impl Display for TransactionId {
 impl From<&ProvenTransaction> for TransactionId {
     fn from(tx: &ProvenTransaction) -> Self {
         Self::new(
-            tx.account_update().init_state_hash(),
-            tx.account_update().final_state_hash(),
+            tx.account_update().initial_state_commitment(),
+            tx.account_update().final_state_commitment(),
             tx.input_notes().commitment(),
             tx.output_notes().commitment(),
         )

@@ -4,14 +4,14 @@ use miden_verifier::ExecutionProof;
 
 use super::{InputNote, ToInputNoteCommitments};
 use crate::{
-    account::delta::AccountUpdateDetails,
+    account::{delta::AccountUpdateDetails, AccountUpdate},
     block::BlockNumber,
     note::NoteHeader,
     transaction::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE,
+    ProvenTransactionError,
 };
 
 // PROVEN TRANSACTION
@@ -24,8 +24,8 @@ pub struct ProvenTransaction {
     /// A unique identifier for the transaction, see [TransactionId] for additional details.
     id: TransactionId,
 
-    /// Account update data.
-    account_update: TxAccountUpdate,
+    /// The update to the account from this transaction.
+    account_update: AccountUpdate,
 
     /// Committed details of all notes consumed by the transaction.
     input_notes: InputNotes<InputNoteCommitment>,
@@ -56,7 +56,7 @@ impl ProvenTransaction {
     }
 
     /// Returns the account update details.
-    pub fn account_update(&self) -> &TxAccountUpdate {
+    pub fn account_update(&self) -> &AccountUpdate {
         &self.account_update
     }
 
@@ -104,7 +104,8 @@ impl ProvenTransaction {
         if self.account_id().is_public() {
             self.account_update.validate()?;
 
-            let is_new_account = self.account_update.init_state_hash() == Digest::default();
+            let is_new_account =
+                self.account_update.initial_state_commitment() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
                     return Err(ProvenTransactionError::OnChainAccountMissingDetails(
@@ -125,9 +126,9 @@ impl ProvenTransaction {
                             details_account_id: account.id(),
                         });
                     }
-                    if account.hash() != self.account_update.final_state_hash() {
+                    if account.hash() != self.account_update.final_state_commitment() {
                         return Err(ProvenTransactionError::AccountFinalHashMismatch {
-                            tx_final_hash: self.account_update.final_state_hash(),
+                            tx_final_hash: self.account_update.final_state_commitment(),
                             details_hash: account.hash(),
                         });
                     }
@@ -161,7 +162,7 @@ impl Serializable for ProvenTransaction {
 
 impl Deserializable for ProvenTransaction {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let account_update = TxAccountUpdate::read_from(source)?;
+        let account_update = AccountUpdate::read_from(source)?;
 
         let input_notes = <InputNotes<InputNoteCommitment>>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
@@ -171,8 +172,8 @@ impl Deserializable for ProvenTransaction {
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
-            account_update.init_state_hash(),
-            account_update.final_state_hash(),
+            account_update.initial_state_commitment(),
+            account_update.final_state_commitment(),
             input_notes.commitment(),
             output_notes.commitment(),
         );
@@ -298,11 +299,12 @@ impl ProvenTransactionBuilder {
             input_notes.commitment(),
             output_notes.commitment(),
         );
-        let account_update = TxAccountUpdate::new(
+        let account_update = AccountUpdate::new(
             self.account_id,
             self.initial_account_hash,
             self.final_account_hash,
             self.account_update_details,
+            vec![id],
         );
 
         let proven_transaction = ProvenTransaction {
@@ -316,109 +318,6 @@ impl ProvenTransactionBuilder {
         };
 
         proven_transaction.validate()
-    }
-}
-
-// TRANSACTION ACCOUNT UPDATE
-// ================================================================================================
-
-/// Describes the changes made to the account state resulting from a transaction execution.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TxAccountUpdate {
-    /// ID of the account updated by a transaction.
-    account_id: AccountId,
-
-    /// The hash of the account before a transaction was executed.
-    ///
-    /// Set to `Digest::default()` for new accounts.
-    init_state_hash: Digest,
-
-    /// The hash of the account state after a transaction was executed.
-    final_state_hash: Digest,
-
-    /// A set of changes which can be applied the account's state prior to the transaction to
-    /// get the account state after the transaction. For private accounts this is set to
-    /// [AccountUpdateDetails::Private].
-    details: AccountUpdateDetails,
-}
-
-impl TxAccountUpdate {
-    /// Returns a new [TxAccountUpdate] instantiated from the specified components.
-    pub const fn new(
-        account_id: AccountId,
-        init_state_hash: Digest,
-        final_state_hash: Digest,
-        details: AccountUpdateDetails,
-    ) -> Self {
-        Self {
-            account_id,
-            init_state_hash,
-            final_state_hash,
-            details,
-        }
-    }
-
-    /// Returns the ID of the updated account.
-    pub fn account_id(&self) -> AccountId {
-        self.account_id
-    }
-
-    /// Returns the hash of the account's initial state.
-    pub fn init_state_hash(&self) -> Digest {
-        self.init_state_hash
-    }
-
-    /// Returns the hash of the account's after a transaction was executed.
-    pub fn final_state_hash(&self) -> Digest {
-        self.final_state_hash
-    }
-
-    /// Returns the description of the updates for public accounts.
-    ///
-    /// These descriptions can be used to build the new account state from the previous account
-    /// state.
-    pub fn details(&self) -> &AccountUpdateDetails {
-        &self.details
-    }
-
-    /// Returns `true` if the account update details are for a private account.
-    pub fn is_private(&self) -> bool {
-        self.details.is_private()
-    }
-
-    /// Validates the following properties of the account update:
-    ///
-    /// - The size of the serialized account update does not exceed [`ACCOUNT_UPDATE_MAX_SIZE`].
-    pub fn validate(&self) -> Result<(), ProvenTransactionError> {
-        let account_update_size = self.details().get_size_hint();
-        if account_update_size > ACCOUNT_UPDATE_MAX_SIZE as usize {
-            Err(ProvenTransactionError::AccountUpdateSizeLimitExceeded {
-                account_id: self.account_id(),
-                update_size: account_update_size,
-            })
-        } else {
-            Ok(())
-        }
-    }
-}
-
-impl Serializable for TxAccountUpdate {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.account_id.write_into(target);
-        self.init_state_hash.write_into(target);
-        self.final_state_hash.write_into(target);
-        self.details.write_into(target);
-    }
-}
-
-impl Deserializable for TxAccountUpdate {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Ok(Self {
-            account_id: AccountId::read_from(source)?,
-            init_state_hash: Digest::read_from(source)?,
-            final_state_hash: Digest::read_from(source)?,
-            details: AccountUpdateDetails::read_from(source)?,
-        })
     }
 }
 
@@ -521,21 +420,7 @@ impl Deserializable for InputNoteCommitment {
 
 #[cfg(test)]
 mod tests {
-    use alloc::collections::BTreeMap;
-
-    use winter_rand_utils::rand_array;
-
     use super::ProvenTransaction;
-    use crate::{
-        account::{
-            delta::AccountUpdateDetails, AccountDelta, AccountId, AccountStorageDelta,
-            AccountVaultDelta, StorageMapDelta,
-        },
-        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        transaction::TxAccountUpdate,
-        utils::Serializable,
-        Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
-    };
 
     fn check_if_sync<T: Sync>() {}
     fn check_if_send<T: Send>() {}
@@ -552,59 +437,5 @@ mod tests {
     #[test]
     fn test_proven_transaction_is_send() {
         check_if_send::<ProvenTransaction>();
-    }
-
-    #[test]
-    fn account_update_size_limit_not_exceeded() {
-        // A small delta does not exceed the limit.
-        let storage_delta = AccountStorageDelta::from_iters(
-            [1, 2, 3, 4],
-            [(2, [ONE, ONE, ONE, ONE]), (3, [ONE, ONE, ZERO, ONE])],
-            [],
-        );
-        let delta =
-            AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
-        let details = AccountUpdateDetails::Delta(delta);
-        TxAccountUpdate::new(
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
-            Digest::new(EMPTY_WORD),
-            Digest::new(EMPTY_WORD),
-            details,
-        )
-        .validate()
-        .unwrap();
-    }
-
-    #[test]
-    fn account_update_size_limit_exceeded() {
-        let mut map = BTreeMap::new();
-        // The number of entries in the map required to exceed the limit.
-        // We divide by each entry's size which consists of a key (digest) and a value (word), both
-        // 32 bytes in size.
-        let required_entries = ACCOUNT_UPDATE_MAX_SIZE / (2 * 32);
-        for _ in 0..required_entries {
-            map.insert(Digest::new(rand_array()), rand_array());
-        }
-        let storage_delta = StorageMapDelta::new(map);
-
-        // A delta that exceeds the limit returns an error.
-        let storage_delta = AccountStorageDelta::from_iters([], [], [(4, storage_delta)]);
-        let delta =
-            AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
-        let details = AccountUpdateDetails::Delta(delta);
-        let details_size = details.get_size_hint();
-
-        let err = TxAccountUpdate::new(
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
-            Digest::new(EMPTY_WORD),
-            Digest::new(EMPTY_WORD),
-            details,
-        )
-        .validate()
-        .unwrap_err();
-
-        assert!(
-            matches!(err, ProvenTransactionError::AccountUpdateSizeLimitExceeded { update_size, .. } if update_size == details_size)
-        );
     }
 }

@@ -17,13 +17,13 @@ use super::{
 };
 use crate::{
     account::{
-        AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
+        AccountCode, AccountIdPrefix, AccountStorage, AccountType, AccountUpdate, PlaceholderType,
         StoragePlaceholder,
     },
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     transaction::TransactionId,
-    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
+    MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT COMPONENT TEMPLATE ERROR
@@ -439,7 +439,8 @@ pub enum ProvenTransactionError {
     #[error("failed to construct output notes for proven transaction")]
     OutputNotesError(TransactionOutputError),
     #[error(
-      "account update of size {update_size} for account {account_id} exceeds maximum update size of {ACCOUNT_UPDATE_MAX_SIZE}",
+      "account update of size {update_size} for account {account_id} exceeds maximum update size of {update_max_size}",
+      update_max_size = AccountUpdate::MAX_SIZE
     )]
     AccountUpdateSizeLimitExceeded {
         account_id: AccountId,

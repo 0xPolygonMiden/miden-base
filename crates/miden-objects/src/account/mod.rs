@@ -29,7 +29,7 @@ pub use component::{
 
 pub mod delta;
 pub use delta::{
-    AccountDelta, AccountStorageDelta, AccountVaultDelta, FungibleAssetDelta,
+    AccountDelta, AccountStorageDelta, AccountUpdate, AccountVaultDelta, FungibleAssetDelta,
     NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
 
