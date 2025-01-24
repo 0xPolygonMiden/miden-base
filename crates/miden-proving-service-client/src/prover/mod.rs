@@ -1,12 +1,15 @@
+pub mod generated;
+
 use alloc::{
     boxed::Box,
     string::{String, ToString},
 };
 
+use generated::api_client::ApiClient;
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
-use crate::{generated::api_client::ApiClient, RemoteProverError};
+use crate::RemoteProverError;
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
@@ -84,7 +87,7 @@ impl TransactionProver for RemoteTransactionProver {
             .ok_or_else(|| TransactionProverError::other("client should be connected"))?
             .clone();
 
-        let request = tonic::Request::new(crate::generated::ProveTransactionRequest {
+        let request = tonic::Request::new(generated::ProveTransactionRequest {
             transaction_witness: tx_witness.to_bytes(),
         });
 
