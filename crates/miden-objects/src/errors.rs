@@ -22,7 +22,6 @@ use crate::{
     },
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
-    transaction::TransactionId,
     MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
@@ -181,23 +180,6 @@ pub enum AccountDeltaError {
     InconsistentNonceUpdate(String),
     #[error("account ID {0} in fungible asset delta is not of type fungible faucet")]
     NotAFungibleFaucetId(AccountId),
-}
-
-// ACCOUNT UPDATE ERROR
-// ================================================================================================
-
-#[derive(Debug, Error)]
-pub enum AccountUpdateError {
-    #[error("account update for account {expected_account_id} cannot be merged with update from transaction {transaction} which was executed against account {actual_account_id}")]
-    AccountUpdateIdMismatch {
-        transaction: TransactionId,
-        expected_account_id: AccountId,
-        actual_account_id: AccountId,
-    },
-    #[error("final state commitment in account update from transaction {0} does not match initial state of current update")]
-    AccountUpdateInitialStateMismatch(TransactionId),
-    #[error("failed to merge account delta from transaction {0}")]
-    TransactionUpdateMergeError(TransactionId, #[source] AccountDeltaError),
 }
 
 // ASSET ERROR

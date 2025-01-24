@@ -5,8 +5,7 @@ use vm_processor::{DeserializationError, Digest};
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
-    errors::AccountUpdateError,
-    transaction::{ProvenTransaction, TransactionId},
+    transaction::TransactionId,
     ProvenTransactionError,
 };
 
@@ -72,12 +71,14 @@ impl AccountUpdate {
         self.account_id
     }
 
-    /// Returns the commitment to the account's initial state.
+    /// Commitment to the state of the account before this update is applied.
+    ///
+    /// This is equal to [`Digest::default()`] for new accounts.
     pub fn initial_state_commitment(&self) -> Digest {
         self.initial_state_commitment
     }
 
-    /// Returns the commitment to the account's final state.
+    /// Commitment to the state of the account after this update is applied.
     pub fn final_state_commitment(&self) -> Digest {
         self.final_state_commitment
     }
@@ -115,32 +116,6 @@ impl AccountUpdate {
         } else {
             Ok(())
         }
-    }
-
-    // MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Merges the transaction's update into this account update.
-    fn merge_proven_tx(&mut self, tx: &ProvenTransaction) -> Result<(), AccountUpdateError> {
-        if self.account_id != tx.account_id() {
-            return Err(AccountUpdateError::AccountUpdateIdMismatch {
-                transaction: tx.id(),
-                expected_account_id: self.account_id,
-                actual_account_id: tx.account_id(),
-            });
-        }
-
-        if self.final_state_commitment != tx.account_update().initial_state_commitment() {
-            return Err(AccountUpdateError::AccountUpdateInitialStateMismatch(tx.id()));
-        }
-
-        self.details = self.details.clone().merge(tx.account_update().details().clone()).map_err(
-            |source_err| AccountUpdateError::TransactionUpdateMergeError(tx.id(), source_err),
-        )?;
-        self.final_state_commitment = tx.account_update().final_state_commitment();
-        self.transactions.push(tx.id());
-
-        Ok(())
     }
 }
 
