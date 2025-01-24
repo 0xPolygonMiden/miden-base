@@ -28,20 +28,20 @@ pub struct AccountUpdate {
     /// Commitment to the state of the account after this update is applied.
     final_state_commitment: Digest,
 
+    /// IDs of all transactions that updated the account.
+    transactions: Vec<TransactionId>,
+
     /// A set of changes which can be applied to the previous account state (i.e. `initial_state`)
     /// to get the new account state. For private accounts, this is set to
     /// [`AccountUpdateDetails::Private`].
     details: AccountUpdateDetails,
-
-    /// IDs of all transactions that updated the account.
-    transactions: Vec<TransactionId>,
 }
 
 impl AccountUpdate {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
 
-    /// The maximum allowed size of an account update. Set to 32 KiB.
+    /// The maximum allowed size of an account update in bytes. Set to 32 KiB.
     pub const MAX_SIZE: u16 = 2u16.pow(15);
 
     // CONSTRUCTORS
@@ -52,15 +52,15 @@ impl AccountUpdate {
         account_id: AccountId,
         initial_state_commitment: Digest,
         final_state_commitment: Digest,
-        details: AccountUpdateDetails,
         transactions: Vec<TransactionId>,
+        details: AccountUpdateDetails,
     ) -> Self {
         Self {
             account_id,
             initial_state_commitment,
             final_state_commitment,
-            details,
             transactions,
+            details,
         }
     }
 
@@ -80,6 +80,14 @@ impl AccountUpdate {
     /// Returns the commitment to the account's final state.
     pub fn final_state_commitment(&self) -> Digest {
         self.final_state_commitment
+    }
+
+    /// Returns a slice of [`TransactionId`]s that updated this account's state.
+    ///
+    /// This slice is generally non-empty, but may be empty in the special case of an account update
+    /// representing an account created in the genesis.
+    pub fn transactions(&self) -> &[TransactionId] {
+        &self.transactions
     }
 
     /// Returns the contained [`AccountUpdateDetails`].
@@ -144,8 +152,8 @@ impl Serializable for AccountUpdate {
         self.account_id.write_into(target);
         self.initial_state_commitment.write_into(target);
         self.final_state_commitment.write_into(target);
-        self.details.write_into(target);
         self.transactions.write_into(target);
+        self.details.write_into(target);
     }
 }
 
@@ -155,8 +163,8 @@ impl Deserializable for AccountUpdate {
             account_id: AccountId::read_from(source)?,
             initial_state_commitment: Digest::read_from(source)?,
             final_state_commitment: Digest::read_from(source)?,
-            details: AccountUpdateDetails::read_from(source)?,
             transactions: <Vec<TransactionId>>::read_from(source)?,
+            details: AccountUpdateDetails::read_from(source)?,
         })
     }
 }
@@ -195,8 +203,8 @@ mod tests {
             AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
-            details,
             Vec::new(),
+            details,
         )
         .validate()
         .unwrap();
@@ -225,8 +233,8 @@ mod tests {
             AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
-            details,
             Vec::new(),
+            details,
         )
         .validate()
         .unwrap_err();

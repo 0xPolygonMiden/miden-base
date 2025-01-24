@@ -303,8 +303,8 @@ impl ProvenTransactionBuilder {
             self.account_id,
             self.initial_account_hash,
             self.final_account_hash,
-            self.account_update_details,
             vec![id],
+            self.account_update_details,
         );
 
         let proven_transaction = ProvenTransaction {

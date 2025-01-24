@@ -13,7 +13,7 @@ mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
 use crate::{
-    account::{delta::AccountUpdateDetails, AccountId},
+    account::{AccountId, AccountUpdate},
     errors::BlockError,
     note::Nullifier,
     transaction::{OutputNote, TransactionId},
@@ -47,7 +47,7 @@ pub struct Block {
     header: BlockHeader,
 
     /// Account updates for the block.
-    updated_accounts: Vec<BlockAccountUpdate>,
+    updated_accounts: Vec<AccountUpdate>,
 
     /// Note batches created by the transactions in this block.
     output_note_batches: Vec<NoteBatch>,
@@ -67,7 +67,7 @@ impl Block {
     /// Note: consistency of the provided components is not validated.
     pub fn new(
         header: BlockHeader,
-        updated_accounts: Vec<BlockAccountUpdate>,
+        updated_accounts: Vec<AccountUpdate>,
         output_note_batches: Vec<NoteBatch>,
         nullifiers: Vec<Nullifier>,
     ) -> Result<Self, BlockError> {
@@ -94,7 +94,7 @@ impl Block {
     }
 
     /// Returns a set of account update descriptions for all accounts updated in this block.
-    pub fn updated_accounts(&self) -> &[BlockAccountUpdate] {
+    pub fn updated_accounts(&self) -> &[AccountUpdate] {
         &self.updated_accounts
     }
 
@@ -139,9 +139,9 @@ impl Block {
     pub fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
         self.updated_accounts.iter().flat_map(|update| {
             update
-                .transactions
+                .transactions()
                 .iter()
-                .map(|transaction_id| (*transaction_id, update.account_id))
+                .map(|transaction_id| (*transaction_id, update.account_id()))
         })
     }
 
@@ -209,7 +209,7 @@ impl Deserializable for Block {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let block = Self {
             header: BlockHeader::read_from(source)?,
-            updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
+            updated_accounts: <Vec<AccountUpdate>>::read_from(source)?,
             output_note_batches: <Vec<NoteBatch>>::read_from(source)?,
             nullifiers: <Vec<Nullifier>>::read_from(source)?,
         };
@@ -237,91 +237,4 @@ pub fn compute_tx_hash(
     }
 
     Hasher::hash_elements(&elements)
-}
-
-// BLOCK ACCOUNT UPDATE
-// ================================================================================================
-
-/// Describes the changes made to an account state resulting from executing transactions contained
-/// in a block.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BlockAccountUpdate {
-    /// ID of the updated account.
-    account_id: AccountId,
-
-    /// Hash of the new state of the account.
-    new_state_hash: Digest,
-
-    /// A set of changes which can be applied to the previous account state (i.e., the state as of
-    /// the last block) to get the new account state. For private accounts, this is set to
-    /// [AccountUpdateDetails::Private].
-    details: AccountUpdateDetails,
-
-    /// IDs of all transactions in the block that updated the account.
-    transactions: Vec<TransactionId>,
-}
-
-impl BlockAccountUpdate {
-    /// Returns a new [BlockAccountUpdate] instantiated from the specified components.
-    pub const fn new(
-        account_id: AccountId,
-        new_state_hash: Digest,
-        details: AccountUpdateDetails,
-        transactions: Vec<TransactionId>,
-    ) -> Self {
-        Self {
-            account_id,
-            new_state_hash,
-            details,
-            transactions,
-        }
-    }
-
-    /// Returns the ID of the updated account.
-    pub fn account_id(&self) -> AccountId {
-        self.account_id
-    }
-
-    /// Returns the hash of the new account state.
-    pub fn new_state_hash(&self) -> Digest {
-        self.new_state_hash
-    }
-
-    /// Returns the description of the updates for public accounts.
-    ///
-    /// These descriptions can be used to build the new account state from the previous account
-    /// state.
-    pub fn details(&self) -> &AccountUpdateDetails {
-        &self.details
-    }
-
-    /// Returns the IDs of all transactions in the block that updated the account.
-    pub fn transactions(&self) -> &[TransactionId] {
-        &self.transactions
-    }
-
-    /// Returns `true` if the account update details are for private account.
-    pub fn is_private(&self) -> bool {
-        self.details.is_private()
-    }
-}
-
-impl Serializable for BlockAccountUpdate {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.account_id.write_into(target);
-        self.new_state_hash.write_into(target);
-        self.details.write_into(target);
-        self.transactions.write_into(target);
-    }
-}
-
-impl Deserializable for BlockAccountUpdate {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Ok(Self {
-            account_id: AccountId::read_from(source)?,
-            new_state_hash: Digest::read_from(source)?,
-            details: AccountUpdateDetails::read_from(source)?,
-            transactions: Vec::<TransactionId>::read_from(source)?,
-        })
-    }
 }

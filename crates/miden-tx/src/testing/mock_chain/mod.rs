@@ -8,12 +8,11 @@ use miden_lib::{
 use miden_objects::{
     account::{
         delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
-        AccountId, AccountIdAnchor, AccountType, AuthSecretKey,
+        AccountId, AccountIdAnchor, AccountType, AccountUpdate, AuthSecretKey,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
     block::{
-        compute_tx_hash, Block, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
-        BlockNumber, NoteBatch,
+        compute_tx_hash, Block, BlockHeader, BlockNoteIndex, BlockNoteTree, BlockNumber, NoteBatch,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -149,7 +148,7 @@ impl MockAccount {
 #[derive(Default, Debug, Clone)]
 struct PendingObjects {
     /// Account updates for the block.
-    updated_accounts: Vec<BlockAccountUpdate>,
+    updated_accounts: Vec<AccountUpdate>,
 
     /// Note batches created in transactions in the block.
     output_note_batches: Vec<NoteBatch>,
@@ -346,11 +345,12 @@ impl MockChain {
         // disregard private accounts, so it's easier to retrieve data
         let account_update_details = AccountUpdateDetails::New(account.clone());
 
-        let block_account_update = BlockAccountUpdate::new(
+        let block_account_update = AccountUpdate::new(
             transaction.account_id(),
+            transaction.initial_account().hash(),
             account.hash(),
-            account_update_details,
             vec![transaction.id()],
+            account_update_details,
         );
         self.pending_objects.updated_accounts.push(block_account_update);
 
@@ -544,11 +544,13 @@ impl MockChain {
     /// Adds a new `Account` to the list of pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_pending_account(&mut self, account: Account) {
-        self.pending_objects.updated_accounts.push(BlockAccountUpdate::new(
+        self.pending_objects.updated_accounts.push(AccountUpdate::new(
             account.id(),
+            // New accounts have the default digest as their initial state commitment.
+            Digest::default(),
             account.hash(),
-            AccountUpdateDetails::New(account),
             vec![],
+            AccountUpdateDetails::New(account),
         ));
     }
 
@@ -666,7 +668,8 @@ impl MockChain {
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
-                self.accounts.insert(update.account_id().into(), *update.new_state_hash());
+                self.accounts
+                    .insert(update.account_id().into(), *update.final_state_commitment());
 
                 if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
                     let account = match update.details() {
