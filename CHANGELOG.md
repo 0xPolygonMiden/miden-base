@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1 (2025-01-24) - `miden-objects` crate only
+
+### Fixes
+
+- Added missing doc comments (#1100).
+- Fixed setting of supporting types when instantiating `AccountComponent` from templates (#1103).
+
 ## 0.7.0 (2025-01-22)
 
 ### Highlights
