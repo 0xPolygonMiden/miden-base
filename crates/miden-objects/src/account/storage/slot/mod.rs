@@ -12,7 +12,12 @@ pub use r#type::StorageSlotType;
 // STORAGE SLOT
 // ================================================================================================
 
-/// An object that represents the type of a storage slot, alongside the data it contains.
+/// An object representing the contents of an account's storage slot.
+///
+/// An account storage slot can be of two types:
+/// - A simple value which contains a single word (4 field elements or ~32 bytes).
+/// - A key value map where both keys and values are words. The capacity of such storage slot is
+///   theoretically unlimited.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StorageSlot {
     Value(Word),
