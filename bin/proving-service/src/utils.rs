@@ -10,7 +10,7 @@ use opentelemetry_semantic_conventions::{
     resource::{SERVICE_NAME, SERVICE_VERSION},
     SCHEMA_URL,
 };
-use pingora::{http::ResponseHeader, Error, ErrorType};
+use pingora::{http::ResponseHeader, protocols::http::ServerSession, Error, ErrorType};
 use pingora_proxy::Session;
 use tonic::transport::Channel;
 use tonic_health::pb::health_client::HealthClient;
@@ -141,13 +141,13 @@ pub async fn create_too_many_requests_response(
 ///
 /// It will set the X-Worker-Count header to the number of workers.
 pub async fn create_workers_updated_response(
-    session: &mut Session,
+    session: &mut ServerSession,
     workers: usize,
 ) -> pingora_core::Result<bool> {
     let mut header = ResponseHeader::build(200, None)?;
     header.insert_header("X-Worker-Count", workers.to_string())?;
     session.set_keepalive(None);
-    session.write_response_header(Box::new(header), true).await?;
+    session.write_response_header(Box::new(header)).await?;
     Ok(true)
 }
 
@@ -155,13 +155,13 @@ pub async fn create_workers_updated_response(
 ///
 /// It will set the X-Error-Message header to the error message.
 pub async fn create_response_with_error_message(
-    session: &mut Session,
+    session: &mut ServerSession,
     error_msg: String,
 ) -> pingora_core::Result<bool> {
     let mut header = ResponseHeader::build(400, None)?;
     header.insert_header("X-Error-Message", error_msg)?;
     session.set_keepalive(None);
-    session.write_response_header(Box::new(header), true).await?;
+    session.write_response_header(Box::new(header)).await?;
     Ok(true)
 }
 

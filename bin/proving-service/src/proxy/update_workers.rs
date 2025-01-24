@@ -1,0 +1,118 @@
+use std::sync::Arc;
+
+use axum::async_trait;
+use pingora::{
+    apps::HttpServerApp,
+    protocols::{http::ServerSession, Stream},
+    server::ShutdownWatch,
+};
+use tracing::{error, info};
+
+use super::LoadBalancerState;
+use crate::{
+    commands::update_workers::UpdateWorkers,
+    utils::{
+        create_response_with_error_message, create_workers_updated_response, MIDEN_PROVING_SERVICE,
+    },
+};
+
+/// The Load Balancer Updater Service.
+///
+/// This service is responsible for updating the list of workers in the load balancer.
+#[derive(Debug)]
+pub(crate) struct LBUpdaterService {
+    lb_state: Arc<LoadBalancerState>,
+}
+
+impl LBUpdaterService {
+    pub(crate) fn new(lb_state: Arc<LoadBalancerState>) -> Self {
+        Self { lb_state }
+    }
+}
+
+#[async_trait]
+impl HttpServerApp for LBUpdaterService {
+    /// Handles the update workers request.
+    ///
+    /// # Behavior
+    /// - Reads the HTTP request from the session.
+    /// - If query parameters are present, attempts to parse them as an `UpdateWorkers` object.
+    /// - If the parsing fails, returns an error response.
+    /// - If successful, updates the list of workers by calling `update_workers`.
+    /// - If the update is successful, returns the count of available workers.
+    ///
+    /// # Errors
+    /// - If the HTTP request cannot be read.
+    /// - If the query parameters cannot be parsed.
+    /// - If the workers cannot be updated.
+    /// - If the response cannot be created.
+    #[tracing::instrument(target = MIDEN_PROVING_SERVICE, name = "lb_updater_service:process_new_http", skip(http))]
+    async fn process_new_http(
+        self: &Arc<Self>,
+        mut http: ServerSession,
+        _shutdown: &ShutdownWatch,
+    ) -> Option<Stream> {
+        match http.read_request().await {
+            Ok(res) => {
+                if !res {
+                    error!("Failed to read request header");
+                    create_response_with_error_message(
+                        &mut http,
+                        "Failed to read request header".to_string(),
+                    )
+                    .await
+                    .ok();
+                    return None;
+                }
+            },
+            Err(e) => {
+                error!("HTTP server fails to read from downstream: {e}");
+                create_response_with_error_message(
+                    &mut http,
+                    format!("HTTP server fails to read from downstream: {e}"),
+                )
+                .await
+                .ok();
+                return None;
+            },
+        }
+
+        info!("Successfully get a new request to update workers");
+
+        // Extract and parse query parameters, if there are not any, return early to continue
+        // processing the request as a regular proving request.
+        let query_params = match http.req_header().as_ref().uri.query() {
+            Some(params) => params,
+            None => {
+                return None;
+            },
+        };
+
+        let update_workers: Result<UpdateWorkers, _> = serde_qs::from_str(query_params);
+        let update_workers = match update_workers {
+            Ok(workers) => workers,
+            Err(err) => {
+                let error_message = format!("Failed to parse query parameters: {}", err);
+                error!("{}", error_message);
+                create_response_with_error_message(&mut http, error_message).await.ok();
+                return None;
+            },
+        };
+
+        // Update workers and handle potential errors
+        if let Err(err) = self.lb_state.update_workers(update_workers).await {
+            let error_message = format!("Failed to update workers: {}", err);
+            error!("{}", error_message);
+            create_response_with_error_message(&mut http, error_message).await.ok();
+            return None;
+        }
+
+        create_workers_updated_response(&mut http, self.lb_state.num_workers().await)
+            .await
+            .ok();
+
+        info!("Successfully updated workers");
+
+        None
+    }
+}

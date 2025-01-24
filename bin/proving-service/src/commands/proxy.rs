@@ -4,13 +4,14 @@ use pingora::{
     lb::Backend,
     prelude::{background_service, Opt},
     server::Server,
+    services::listening::Service,
 };
 use pingora_proxy::http_proxy_service;
 use tracing::warn;
 
 use crate::{
     error::TxProverServiceError,
-    proxy::{LoadBalancer, LoadBalancerState},
+    proxy::{update_workers::LBUpdaterService, LoadBalancer, LoadBalancerState},
     utils::MIDEN_PROVING_SERVICE,
 };
 
@@ -58,7 +59,16 @@ impl StartProxy {
         let worker_lb = LoadBalancerState::new(workers, &proxy_config).await?;
 
         let health_check_service = background_service("health_check", worker_lb);
+
         let worker_lb = health_check_service.task();
+
+        let updater_service = LBUpdaterService::new(worker_lb.clone());
+
+        let mut update_workers_service =
+            Service::new("update_workers".to_string(), updater_service);
+        update_workers_service.add_tcp(
+            format!("{}:{}", proxy_config.host, proxy_config.workers_update_port).as_str(),
+        );
 
         // Set up the load balancer
         let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb));
@@ -84,6 +94,7 @@ impl StartProxy {
 
         server.add_service(prometheus_service_http);
         server.add_service(health_check_service);
+        server.add_service(update_workers_service);
         server.add_service(lb);
         tokio::task::spawn_blocking(|| server.run_forever())
             .await

@@ -45,6 +45,8 @@ pub struct ProxyConfig {
     pub prometheus_host: String,
     /// Prometheus metrics port.
     pub prometheus_port: u16,
+    /// Worker update service port.
+    pub workers_update_port: u16,
 }
 
 impl Default for ProxyConfig {
@@ -61,6 +63,7 @@ impl Default for ProxyConfig {
             health_check_interval_secs: 1,
             prometheus_host: "127.0.0.1".into(),
             prometheus_port: 6192,
+            workers_update_port: 8083,
         }
     }
 }

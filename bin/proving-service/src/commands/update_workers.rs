@@ -68,13 +68,13 @@ impl UpdateWorkers {
         let proxy_config = ProxyConfig::load_config_from_file()?;
 
         // Create the full URL
-        let url = format!("http://{}:{}?{}", proxy_config.host, proxy_config.port, query_params);
+        let url = format!(
+            "http://{}:{}?{}",
+            proxy_config.host, proxy_config.workers_update_port, query_params
+        );
 
         // Create an HTTP/2 client
-        let client = Client::builder()
-            .http2_prior_knowledge()
-            .build()
-            .map_err(|err| err.to_string())?;
+        let client = Client::builder().http1_only().build().map_err(|err| err.to_string())?;
 
         // Make the request
         let response = client.get(url).send().await.map_err(|err| err.to_string())?;
