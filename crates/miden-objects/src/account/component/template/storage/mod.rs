@@ -462,7 +462,7 @@ mod tests {
             name = "Test Component"
             description = "This is a test component"
             version = "1.0.1"
-            targets = ["FungibleFaucet"]
+            targets = ["FungibleFaucet", "RegularAccountImmutableCode"]
 
             [[storage]]
             name = "map"
@@ -535,6 +535,13 @@ mod tests {
         ]);
 
         let component = AccountComponent::from_template(&template, &storage_placeholders).unwrap();
+
+        assert_eq!(
+            component.supported_types(),
+            &[AccountType::FungibleFaucet, AccountType::RegularAccountImmutableCode]
+                .into_iter()
+                .collect()
+        );
 
         let storage_map = component.storage_slots.first().unwrap();
         match storage_map {
