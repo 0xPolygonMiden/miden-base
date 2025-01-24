@@ -5,6 +5,7 @@
 ### Changes
 
 - [BREAKING] Incremented minimum supported Rust version to 1.84.
+- [BREAKING] Refactor `TxAccountUpdate` and `BlockAccountUpdate` into `AccountUpdate` (#1099).
 
 ## 0.7.0 (2025-01-22)
 
