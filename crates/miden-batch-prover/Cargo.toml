@@ -26,6 +26,7 @@ testing = ["dep:rand"]
 
 [dependencies]
 assembly = { workspace = true }
+miden-objects = { workspace = true }
 miden-crypto = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true, optional = true }

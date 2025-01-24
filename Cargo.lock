@@ -1823,6 +1823,7 @@ dependencies = [
  "miden-assembly",
  "miden-core",
  "miden-crypto",
+ "miden-objects",
  "miden-processor",
  "miden-verifier",
  "rand",
