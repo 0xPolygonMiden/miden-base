@@ -1,19 +1,19 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
-    account::AccountUpdate,
+    account::{AccountId, AccountUpdate},
     batch::{BatchId, BatchNoteTree},
-    transaction::{InputNoteCommitment, OutputNotes},
+    transaction::{InputNoteCommitment, OutputNote},
 };
 
 // TODO: Document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBatch {
     id: BatchId,
-    account_updates: Vec<AccountUpdate>,
+    account_updates: BTreeMap<AccountId, AccountUpdate>,
     input_notes: Vec<InputNoteCommitment>,
     output_notes_smt: BatchNoteTree,
-    output_notes: OutputNotes,
+    output_notes: Vec<OutputNote>,
 }
 
 impl ProvenBatch {
@@ -23,10 +23,10 @@ impl ProvenBatch {
     /// Creates a new [`ProvenBatch`] from the provided parts.
     pub fn new(
         id: BatchId,
-        account_updates: Vec<AccountUpdate>,
+        account_updates: BTreeMap<AccountId, AccountUpdate>,
         input_notes: Vec<InputNoteCommitment>,
         output_notes_smt: BatchNoteTree,
-        output_notes: OutputNotes,
+        output_notes: Vec<OutputNote>,
     ) -> Self {
         Self {
             id,
@@ -45,24 +45,25 @@ impl ProvenBatch {
         self.id
     }
 
-    /// Returns a slice of [`AccountUpdate`]s - exactly one for each account updated in the batch.
+    /// Returns the map of account IDs mapped to their [`AccountUpdate`]s.
     ///
-    /// If an account was updated by multiple transactions, the returned [`AccountUpdate`] is the
-    /// result of merging the individual updates.
+    /// If an account was updated by multiple transactions, the [`AccountUpdate`] is the result of
+    /// merging the individual updates.
     ///
     /// For example, suppose an account's state before this batch is `A` and the batch contains two
     /// transactions that updated it. Applying the first transaction results in intermediate state
     /// `B`, and applying the second one results in state `C`. Then the returned update represents
     /// the state transition from `A` to `C`.
-    pub fn account_updates(&self) -> &[AccountUpdate] {
+    // TODO: Check if we should return the map or an opaque iterator.
+    pub fn account_updates(&self) -> &BTreeMap<AccountId, AccountUpdate> {
         &self.account_updates
     }
 
     /// Returns the output notes of the batch.
     ///
-    /// This is the aggregation of all output notes by the contained transactions, except the ones
-    /// that were consumed within the batch itself.
-    pub fn output_notes(&self) -> &OutputNotes {
+    /// This is the aggregation of all output notes by the transactions in the batch, except the
+    /// ones that were consumed within the batch itself.
+    pub fn output_notes(&self) -> &[OutputNote] {
         &self.output_notes
     }
 
