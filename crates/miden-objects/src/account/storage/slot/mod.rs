@@ -12,7 +12,7 @@ pub use r#type::StorageSlotType;
 // STORAGE SLOT
 // ================================================================================================
 
-/// An object that represents the type of a storage slot.
+/// An object that represents the type of a storage slot, alongside the data it contains.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StorageSlot {
     Value(Word),
