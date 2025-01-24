@@ -7,10 +7,15 @@ use super::{
 
 mod header;
 pub use header::BlockHeader;
+
 mod block_number;
 pub use block_number::BlockNumber;
+
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
+
+mod inclusion_proof;
+pub use inclusion_proof::BlockInclusionProof;
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
