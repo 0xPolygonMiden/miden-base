@@ -96,6 +96,8 @@ impl AccountDelta {
     }
 }
 
+/// Describes the details of an account state transition resulting from applying a transaction to
+/// the account.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AccountUpdateDetails {
     /// Account is private (no on-chain state change).
