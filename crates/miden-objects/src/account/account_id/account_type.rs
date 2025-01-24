@@ -13,7 +13,7 @@ pub(super) const NON_FUNGIBLE_FAUCET: u8 = 0b11;
 pub(super) const REGULAR_ACCOUNT_IMMUTABLE_CODE: u8 = 0b00;
 pub(super) const REGULAR_ACCOUNT_UPDATABLE_CODE: u8 = 0b01;
 
-/// Represents the different account types recognized by the protocol. 
+/// Represents the different account types recognized by the protocol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum AccountType {
