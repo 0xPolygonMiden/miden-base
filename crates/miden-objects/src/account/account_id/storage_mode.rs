@@ -9,10 +9,13 @@ use crate::errors::AccountIdError;
 pub(super) const PUBLIC: u8 = 0b00;
 pub(super) const PRIVATE: u8 = 0b10;
 
+/// Describes where the state of the account is stored.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum AccountStorageMode {
+    /// The account's full state is stored on-chain.
     Public = PUBLIC,
+    /// The account's state is stored off-chain, and only a commitment to it is stored on-chain.
     Private = PRIVATE,
 }
 
