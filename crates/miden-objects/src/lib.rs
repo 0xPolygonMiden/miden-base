@@ -24,9 +24,9 @@ mod errors;
 
 pub use constants::*;
 pub use errors::{
-    AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError, BlockError,
-    ChainMmrError, NoteError, ProvenTransactionError, TransactionInputError,
-    TransactionOutputError, TransactionScriptError,
+    AccountDeltaError, AccountError, AccountIdError, AccountUpdateError, AssetError,
+    AssetVaultError, BlockError, ChainMmrError, NoteError, ProvenTransactionError,
+    TransactionInputError, TransactionOutputError, TransactionScriptError,
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};

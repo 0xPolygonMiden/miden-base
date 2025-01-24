@@ -14,6 +14,9 @@ pub use vault::{
     AccountVaultDelta, FungibleAssetDelta, NonFungibleAssetDelta, NonFungibleDeltaAction,
 };
 
+mod update;
+pub use update::AccountUpdate;
+
 // ACCOUNT DELTA
 // ================================================================================================
 
