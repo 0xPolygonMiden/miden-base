@@ -4,6 +4,7 @@ use std::sync::Arc;
 use axum::async_trait;
 use pingora::{
     apps::{HttpServerApp, HttpServerOptions},
+    http::ResponseHeader,
     protocols::{http::ServerSession, Stream},
     server::ShutdownWatch,
 };
@@ -12,9 +13,7 @@ use tracing::{error, info};
 use super::LoadBalancerState;
 use crate::{
     commands::update_workers::UpdateWorkers,
-    utils::{
-        create_response_with_error_message, create_workers_updated_response, MIDEN_PROVING_SERVICE,
-    },
+    utils::{create_response_with_error_message, MIDEN_PROVING_SERVICE},
 };
 
 /// The Load Balancer Updater Service.
@@ -136,4 +135,21 @@ impl HttpServerApp for LoadBalanceUpdateService {
     fn server_options(&self) -> Option<&HttpServerOptions> {
         Some(&self.server_opts)
     }
+}
+
+// HELPERS
+// ================================================================================================
+
+/// Create a 200 response for updated workers
+///
+/// It will set the X-Worker-Count header to the number of workers.
+pub async fn create_workers_updated_response(
+    session: &mut ServerSession,
+    workers: usize,
+) -> pingora_core::Result<bool> {
+    let mut header = ResponseHeader::build(200, None)?;
+    header.insert_header("X-Worker-Count", workers.to_string())?;
+    session.set_keepalive(None);
+    session.write_response_header(Box::new(header)).await?;
+    Ok(true)
 }

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use opentelemetry::{trace::TracerProvider as _, KeyValue};
 use opentelemetry_sdk::{
     runtime,
@@ -12,11 +10,9 @@ use opentelemetry_semantic_conventions::{
 };
 use pingora::{http::ResponseHeader, protocols::http::ServerSession, Error, ErrorType};
 use pingora_proxy::Session;
-use tonic::transport::Channel;
-use tonic_health::pb::health_client::HealthClient;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
 
-use crate::{error::TxProverServiceError, proxy::metrics::QUEUE_DROP_COUNT};
+use crate::proxy::metrics::QUEUE_DROP_COUNT;
 
 pub const MIDEN_PROVING_SERVICE: &str = "miden-proving-service";
 
@@ -137,20 +133,6 @@ pub async fn create_too_many_requests_response(
     Ok(true)
 }
 
-/// Create a 200 response for updated workers
-///
-/// It will set the X-Worker-Count header to the number of workers.
-pub async fn create_workers_updated_response(
-    session: &mut ServerSession,
-    workers: usize,
-) -> pingora_core::Result<bool> {
-    let mut header = ResponseHeader::build(200, None)?;
-    header.insert_header("X-Worker-Count", workers.to_string())?;
-    session.set_keepalive(None);
-    session.write_response_header(Box::new(header)).await?;
-    Ok(true)
-}
-
 /// Create a 400 response with an error message
 ///
 /// It will set the X-Error-Message header to the error message.
@@ -163,25 +145,4 @@ pub async fn create_response_with_error_message(
     session.set_keepalive(None);
     session.write_response_header(Box::new(header)).await?;
     Ok(true)
-}
-
-/// Create a gRPC [HealthClient] for the given worker address.
-///
-/// # Errors
-/// - [TxProverServiceError::InvalidURI] if the worker address is invalid.
-/// - [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
-pub async fn create_health_check_client(
-    address: String,
-    connection_timeout: Duration,
-    total_timeout: Duration,
-) -> Result<HealthClient<Channel>, TxProverServiceError> {
-    let channel = Channel::from_shared(format!("http://{}", address))
-        .map_err(|err| TxProverServiceError::InvalidURI(err, address.clone()))?
-        .connect_timeout(connection_timeout)
-        .timeout(total_timeout)
-        .connect()
-        .await
-        .map_err(|err| TxProverServiceError::ConnectionFailed(err, address))?;
-
-    Ok(HealthClient::new(channel))
 }
