@@ -92,11 +92,13 @@ impl HttpServerApp for LoadBalanceUpdateService {
 
         info!("Successfully get a new request to update workers");
 
-        // Extract and parse query parameters, if there are not any, return early to continue
-        // processing the request as a regular proving request.
+        // Extract and parse query parameters, if there are not any, return early.
         let query_params = match http.req_header().as_ref().uri.query() {
             Some(params) => params,
             None => {
+                let error_message = "No query parameters provided".to_string();
+                error!("{}", error_message);
+                create_response_with_error_message(&mut http, error_message).await.ok();
                 return None;
             },
         };
