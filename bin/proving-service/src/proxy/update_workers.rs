@@ -20,7 +20,7 @@ use crate::{
 /// The Load Balancer Updater Service.
 ///
 /// This service is responsible for updating the list of workers in the load balancer.
-pub(crate) struct LBUpdaterService {
+pub(crate) struct LoadBalanceUpdateService {
     lb_state: Arc<LoadBalancerState>,
     server_opts: HttpServerOptions,
 }
@@ -28,13 +28,13 @@ pub(crate) struct LBUpdaterService {
 /// Manually implement Debug for LBUpdaterService
 /// [HttpServerOptions] does not implement Debug, so we cannot derive Debug for [LBUpdaterService],
 /// which is needed for the tracing instrumentation.
-impl fmt::Debug for LBUpdaterService {
+impl fmt::Debug for LoadBalanceUpdateService {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LBUpdaterService").field("lb_state", &self.lb_state).finish()
     }
 }
 
-impl LBUpdaterService {
+impl LoadBalanceUpdateService {
     pub(crate) fn new(lb_state: Arc<LoadBalancerState>) -> Self {
         let mut server_opts = HttpServerOptions::default();
         server_opts.h2c = true;
@@ -44,7 +44,7 @@ impl LBUpdaterService {
 }
 
 #[async_trait]
-impl HttpServerApp for LBUpdaterService {
+impl HttpServerApp for LoadBalanceUpdateService {
     /// Handles the update workers request.
     ///
     /// # Behavior
