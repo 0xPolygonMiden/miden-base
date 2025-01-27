@@ -27,6 +27,8 @@ pub struct ProxyConfig {
     pub host: String,
     /// Port of the proxy.
     pub port: u16,
+    /// Worker update service port.
+    pub workers_update_port: u16,
     /// Maximum time in seconds to complete the entire request.
     pub timeout_secs: u64,
     /// Maximum time in seconds to establish a connection.
@@ -45,8 +47,6 @@ pub struct ProxyConfig {
     pub prometheus_host: String,
     /// Prometheus metrics port.
     pub prometheus_port: u16,
-    /// Worker update service port.
-    pub workers_update_port: u16,
 }
 
 impl Default for ProxyConfig {
