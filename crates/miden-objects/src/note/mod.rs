@@ -54,7 +54,7 @@ mod file;
 pub use file::NoteFile;
 
 mod authentication_info;
-pub use authentication_info::NoteAuthenticationInfo;
+pub use authentication_info::NoteInclusionProofs;
 
 // NOTE
 // ================================================================================================
