@@ -3,6 +3,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_objects::{
     account::{AccountId, AccountUpdate},
     batch::{BatchId, BatchNoteTree},
+    block::BlockNumber,
     transaction::{InputNoteCommitment, OutputNote},
 };
 
@@ -14,6 +15,7 @@ pub struct ProvenBatch {
     input_notes: Vec<InputNoteCommitment>,
     output_notes_smt: BatchNoteTree,
     output_notes: Vec<OutputNote>,
+    batch_expiration_block_num: BlockNumber,
 }
 
 impl ProvenBatch {
@@ -27,6 +29,7 @@ impl ProvenBatch {
         input_notes: Vec<InputNoteCommitment>,
         output_notes_smt: BatchNoteTree,
         output_notes: Vec<OutputNote>,
+        batch_expiration_block_num: BlockNumber,
     ) -> Self {
         Self {
             id,
@@ -34,6 +37,7 @@ impl ProvenBatch {
             input_notes,
             output_notes_smt,
             output_notes,
+            batch_expiration_block_num,
         }
     }
 
@@ -43,6 +47,11 @@ impl ProvenBatch {
     /// The ID of this batch. See [`BatchId`] for details on how it is computed.
     pub fn id(&self) -> BatchId {
         self.id
+    }
+
+    /// Returns the block number at which the batch will expire.
+    pub fn batch_expiration_block_num(&self) -> BlockNumber {
+        self.batch_expiration_block_num
     }
 
     /// Returns the map of account IDs mapped to their [`AccountUpdate`]s.

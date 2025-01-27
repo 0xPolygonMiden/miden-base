@@ -6,6 +6,7 @@ use alloc::{
 use miden_objects::{
     account::{AccountId, AccountUpdate},
     batch::{BatchId, BatchNoteTree},
+    block::BlockNumber,
     note::{NoteHeader, NoteId},
     transaction::{InputNoteCommitment, OutputNote, ProvenTransaction},
 };
@@ -15,14 +16,24 @@ use crate::{BatchError, ProposedBatch, ProvenBatch};
 pub struct LocalBatchProver {}
 
 impl LocalBatchProver {
+    /// Attempts to prove the [`ProposedBatch`] into a [`ProvenBatch`].
+    ///
+    /// Returns an error if:
+    ///
+    /// - The transactions in the proposed batch which update the same account are not correctly
+    ///   ordered. That is, if two transactions A and B update the same account in this order,
+    ///   meaning B's initial account state commitment matches the final account state commitment of
+    ///   A, then A must come before B in the [`ProposedBatch`].
+    /// - If any note is consumed twice.
+    /// - If any note is created more than once.
     pub fn prove(proposed_batch: ProposedBatch) -> Result<ProvenBatch, BatchError> {
         let transactions = proposed_batch.transactions();
         let id = BatchId::compute(transactions.iter().map(|tx| tx.id()));
 
         // Populate batch output notes and updated accounts.
-        let mut output_notes = OutputNoteTracker::new(transactions.iter().map(|tx| tx.as_ref()))?;
         let mut updated_accounts = BTreeMap::<AccountId, AccountUpdate>::new();
         let mut unauthenticated_input_notes = BTreeSet::new();
+        let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
         for tx in transactions {
             // Merge account updates so that state transitions A->B->C become A->C.
             match updated_accounts.entry(tx.account_id()) {
@@ -30,6 +41,8 @@ impl LocalBatchProver {
                     vacant.insert(tx.account_update().clone());
                 },
                 Entry::Occupied(occupied) => {
+                    // This returns an error if the transactions are not correctly ordered, e.g. if
+                    // B comes before A.
                     occupied.into_mut().merge_proven_tx(tx).map_err(|source| {
                         BatchError::AccountUpdateError { account_id: tx.account_id(), source }
                     })?;
@@ -43,6 +56,10 @@ impl LocalBatchProver {
                     return Err(BatchError::DuplicateUnauthenticatedNote(id));
                 }
             }
+
+            // The expiration block of the batch is the minimum of all transaction's expiration
+            // block.
+            batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
         }
 
         // Populate batch produced nullifiers and match output notes with corresponding
@@ -54,19 +71,20 @@ impl LocalBatchProver {
         // `y` and for transaction `B` to consume an unauthenticated note `y` and output
         // note `x` (i.e., have a circular dependency between transactions), but this is not
         // a problem.
+        let mut output_notes = OutputNoteTracker::new(transactions.iter().map(AsRef::as_ref))?;
         let mut input_notes = vec![];
         for tx in transactions {
             for input_note in tx.input_notes().iter() {
-                // Header is presented only for unauthenticated input notes.
+                // Header is present only for unauthenticated input notes.
                 let input_note = match input_note.header() {
                     Some(input_note_header) => {
                         if output_notes.remove_note(input_note_header)? {
                             continue;
                         }
 
-                        // If an unauthenticated note was found in the store, transform it to an
-                        // authenticated one (i.e. erase additional note details
-                        // except the nullifier)
+                        // If an inclusion proof for an unauthenticated note is provided and the
+                        // proof is valid, it means the note is part of the chain and we can mark it
+                        // as authenticated by erasing the note header.
                         if proposed_batch
                             .note_inclusion_proofs()
                             .contains_note(&input_note_header.id())
@@ -96,6 +114,7 @@ impl LocalBatchProver {
             input_notes,
             output_notes_smt,
             output_notes,
+            batch_expiration_block_num,
         ))
     }
 }
