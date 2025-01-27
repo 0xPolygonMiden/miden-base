@@ -40,19 +40,17 @@ pub struct UpdateWorkers {
 }
 
 impl UpdateWorkers {
-    /// Makes a requests to the proxy to update the workers.
+    /// Makes a requests to the update workers endpoint to update the workers.
     ///
     /// It works by sending a GET request to the proxy with the query parameters. The query
     /// parameters are serialized from the struct fields.
     ///
-    /// This method will work only if the proxy is running and the user is in the same computer as
-    /// the proxy, since the proxy checks for the source IP address and checks that the sender is
-    /// localhost.
+    /// It will use the same host as the proxy and the workers update port from the configuration
+    /// file.
     ///
     /// The request will return the new number of workers in the X-Worker-Count header.
     ///
     /// # Errors
-    /// - If a tokio runtime cannot be created.
     /// - If the query parameters cannot be serialized.
     /// - If the request fails.
     /// - If the status code is not successful.
