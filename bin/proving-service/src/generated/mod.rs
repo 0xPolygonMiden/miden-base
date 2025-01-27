@@ -2,9 +2,9 @@ use miden_objects::transaction::ProvenTransaction;
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
 
 #[rustfmt::skip]
-pub mod api;
+pub mod tx_prover;
 
-pub use api::*;
+pub use tx_prover::*;
 
 // CONVERSIONS
 // ================================================================================================
