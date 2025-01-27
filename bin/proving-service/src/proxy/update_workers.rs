@@ -1,8 +1,9 @@
+use core::fmt;
 use std::sync::Arc;
 
 use axum::async_trait;
 use pingora::{
-    apps::HttpServerApp,
+    apps::{HttpServerApp, HttpServerOptions},
     protocols::{http::ServerSession, Stream},
     server::ShutdownWatch,
 };
@@ -19,14 +20,26 @@ use crate::{
 /// The Load Balancer Updater Service.
 ///
 /// This service is responsible for updating the list of workers in the load balancer.
-#[derive(Debug)]
 pub(crate) struct LBUpdaterService {
     lb_state: Arc<LoadBalancerState>,
+    server_opts: HttpServerOptions,
+}
+
+/// Manually implement Debug for LBUpdaterService
+/// [HttpServerOptions] does not implement Debug, so we cannot derive Debug for [LBUpdaterService],
+/// which is needed for the tracing instrumentation.
+impl fmt::Debug for LBUpdaterService {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LBUpdaterService").field("lb_state", &self.lb_state).finish()
+    }
 }
 
 impl LBUpdaterService {
     pub(crate) fn new(lb_state: Arc<LoadBalancerState>) -> Self {
-        Self { lb_state }
+        let mut server_opts = HttpServerOptions::default();
+        server_opts.h2c = true;
+
+        Self { lb_state, server_opts }
     }
 }
 
@@ -114,5 +127,11 @@ impl HttpServerApp for LBUpdaterService {
         info!("Successfully updated workers");
 
         None
+    }
+
+    /// Provide HTTP server options used to override default behavior. This function will be called
+    /// every time a new connection is processed.
+    fn server_options(&self) -> Option<&HttpServerOptions> {
+        Some(&self.server_opts)
     }
 }

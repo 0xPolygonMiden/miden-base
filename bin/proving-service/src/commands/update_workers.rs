@@ -74,7 +74,10 @@ impl UpdateWorkers {
         );
 
         // Create an HTTP/2 client
-        let client = Client::builder().http1_only().build().map_err(|err| err.to_string())?;
+        let client = Client::builder()
+            .http2_prior_knowledge()
+            .build()
+            .map_err(|err| err.to_string())?;
 
         // Make the request
         let response = client.get(url).send().await.map_err(|err| err.to_string())?;
