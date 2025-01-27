@@ -11,7 +11,7 @@ use tracing::warn;
 
 use crate::{
     error::TxProverServiceError,
-    proxy::{update_workers::LoadBalanceUpdateService, LoadBalancer, LoadBalancerState},
+    proxy::{update_workers::LoadBalancerUpdateService, LoadBalancer, LoadBalancerState},
     utils::MIDEN_PROVING_SERVICE,
 };
 
@@ -62,7 +62,7 @@ impl StartProxy {
 
         let worker_lb = health_check_service.task();
 
-        let updater_service = LoadBalanceUpdateService::new(worker_lb.clone());
+        let updater_service = LoadBalancerUpdateService::new(worker_lb.clone());
 
         let mut update_workers_service =
             Service::new("update_workers".to_string(), updater_service);
