@@ -9,14 +9,13 @@ use crate::{
 };
 
 // TODO: Document.
-// TODO: Rename to `NoteInclusionProofs`?
 #[derive(Clone, Default, Debug)]
-pub struct NoteAuthenticationInfo {
+pub struct NoteInclusionProofs {
     block_proofs: Vec<BlockInclusionProof>,
     note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
 }
 
-impl NoteAuthenticationInfo {
+impl NoteInclusionProofs {
     pub fn block_proofs(&self) -> &[BlockInclusionProof] {
         &self.block_proofs
     }

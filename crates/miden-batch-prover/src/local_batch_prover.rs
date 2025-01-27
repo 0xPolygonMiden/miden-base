@@ -68,7 +68,7 @@ impl LocalBatchProver {
                         // authenticated one (i.e. erase additional note details
                         // except the nullifier)
                         if proposed_batch
-                            .stored_unauthenticated_notes()
+                            .note_inclusion_proofs()
                             .contains_note(&input_note_header.id())
                         {
                             InputNoteCommitment::from(input_note.nullifier())
