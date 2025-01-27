@@ -13,7 +13,7 @@ extern crate std;
 use thiserror::Error;
 
 #[cfg(feature = "tx-prover")]
-pub mod prover;
+pub mod tx_prover;
 
 /// Protobuf definition for the Miden proving service
 pub const SERVICE_PROTO: &str = include_str!("../proto/api.proto");
