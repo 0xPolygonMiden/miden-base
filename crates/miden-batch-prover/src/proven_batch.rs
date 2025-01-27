@@ -1,8 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
-    account::{AccountId, AccountUpdate},
-    batch::{BatchId, BatchNoteTree},
+    account::AccountId,
+    batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::BlockNumber,
     transaction::{InputNoteCommitment, OutputNote},
 };
@@ -11,7 +11,7 @@ use miden_objects::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBatch {
     id: BatchId,
-    account_updates: BTreeMap<AccountId, AccountUpdate>,
+    account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
     input_notes: Vec<InputNoteCommitment>,
     output_notes_smt: BatchNoteTree,
     output_notes: Vec<OutputNote>,
@@ -25,7 +25,7 @@ impl ProvenBatch {
     /// Creates a new [`ProvenBatch`] from the provided parts.
     pub fn new(
         id: BatchId,
-        account_updates: BTreeMap<AccountId, AccountUpdate>,
+        account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
         input_notes: Vec<InputNoteCommitment>,
         output_notes_smt: BatchNoteTree,
         output_notes: Vec<OutputNote>,
@@ -64,7 +64,7 @@ impl ProvenBatch {
     /// `B`, and applying the second one results in state `C`. Then the returned update represents
     /// the state transition from `A` to `C`.
     // TODO: Check if we should return the map or an opaque iterator.
-    pub fn account_updates(&self) -> &BTreeMap<AccountId, AccountUpdate> {
+    pub fn account_updates(&self) -> &BTreeMap<AccountId, BatchAccountUpdate> {
         &self.account_updates
     }
 

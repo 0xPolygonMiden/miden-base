@@ -1,4 +1,4 @@
-use miden_objects::{account::AccountId, note::NoteId, AccountUpdateError};
+use miden_objects::{account::AccountId, note::NoteId, BatchAccountUpdateError};
 use thiserror::Error;
 use vm_processor::Digest;
 
@@ -21,6 +21,6 @@ pub enum BatchError {
     #[error("failed to merge transaction delta into account {account_id}")]
     AccountUpdateError {
         account_id: AccountId,
-        source: AccountUpdateError,
+        source: BatchAccountUpdateError,
     },
 }

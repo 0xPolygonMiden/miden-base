@@ -183,11 +183,11 @@ pub enum AccountDeltaError {
     NotAFungibleFaucetId(AccountId),
 }
 
-// ACCOUNT UPDATE ERROR
+// BATCH ACCOUNT UPDATE ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum AccountUpdateError {
+pub enum BatchAccountUpdateError {
     #[error("account update for account {expected_account_id} cannot be merged with update from transaction {transaction} which was executed against account {actual_account_id}")]
     AccountUpdateIdMismatch {
         transaction: TransactionId,

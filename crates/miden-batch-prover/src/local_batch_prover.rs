@@ -4,8 +4,8 @@ use alloc::{
 };
 
 use miden_objects::{
-    account::{AccountId, AccountUpdate},
-    batch::{BatchId, BatchNoteTree},
+    account::AccountId,
+    batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::BlockNumber,
     note::{NoteHeader, NoteId},
     transaction::{InputNoteCommitment, OutputNote, ProvenTransaction},
@@ -31,14 +31,21 @@ impl LocalBatchProver {
         let id = BatchId::compute(transactions.iter().map(|tx| tx.id()));
 
         // Populate batch output notes and updated accounts.
-        let mut updated_accounts = BTreeMap::<AccountId, AccountUpdate>::new();
+        let mut updated_accounts = BTreeMap::<AccountId, BatchAccountUpdate>::new();
         let mut unauthenticated_input_notes = BTreeSet::new();
         let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
         for tx in transactions {
             // Merge account updates so that state transitions A->B->C become A->C.
             match updated_accounts.entry(tx.account_id()) {
                 Entry::Vacant(vacant) => {
-                    vacant.insert(tx.account_update().clone());
+                    let batch_account_update = BatchAccountUpdate::new(
+                        tx.account_id(),
+                        tx.account_update().init_state_hash(),
+                        tx.account_update().final_state_hash(),
+                        vec![tx.id()],
+                        tx.account_update().details().clone(),
+                    );
+                    vacant.insert(batch_account_update);
                 },
                 Entry::Occupied(occupied) => {
                     // This returns an error if the transactions are not correctly ordered, e.g. if
