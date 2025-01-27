@@ -22,16 +22,20 @@ bench = false
 [features]
 default = ["std"]
 std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
-testing = ["dep:rand"]
+testing = ["dep:rand", "dep:miden-lib", "dep:winterfell", "dep:anyhow"]
 
 [dependencies]
+anyhow = { version = "1.0", default-features = false, optional = true }
 assembly = { workspace = true }
-miden-objects = { workspace = true }
 miden-crypto = { workspace = true }
+miden-lib = { workspace = true, optional = true, features = ["testing"]}
+miden-objects = { workspace = true }
 miden-verifier = { workspace = true }
-rand = { workspace = true, optional = true }
+rand = { workspace = true, optional = true, features = ["small_rng"]}
 thiserror = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
+winterfell = { version = "0.11", optional = true }
 
 [dev-dependencies]
+anyhow = { version = "1.0", features = ["std", "backtrace"] }

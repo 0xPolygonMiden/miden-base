@@ -62,22 +62,22 @@ impl LocalBatchProver {
             batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
         }
 
-        // Populate batch produced nullifiers and match output notes with corresponding
-        // unauthenticated input notes in the same batch, which are removed from the unauthenticated
-        // input notes set.
+        // Remove all output notes from the batch output note set that are consumed by transactions.
         //
         // One thing to note:
         // This still allows transaction `A` to consume an unauthenticated note `x` and output note
         // `y` and for transaction `B` to consume an unauthenticated note `y` and output
         // note `x` (i.e., have a circular dependency between transactions), but this is not
         // a problem.
-        let mut output_notes = OutputNoteTracker::new(transactions.iter().map(AsRef::as_ref))?;
+        let mut output_notes = BatchOutputNoteTracker::new(transactions.iter().map(AsRef::as_ref))?;
         let mut input_notes = vec![];
         for tx in transactions {
             for input_note in tx.input_notes().iter() {
                 // Header is present only for unauthenticated input notes.
                 let input_note = match input_note.header() {
                     Some(input_note_header) => {
+                        // If a transaction consumes a note that is also created in this batch, the
+                        // note is effectively erased from the overall output note set of the batch.
                         if output_notes.remove_note(input_note_header)? {
                             continue;
                         }
@@ -106,7 +106,7 @@ impl LocalBatchProver {
         let output_notes_smt = BatchNoteTree::with_contiguous_leaves(
             output_notes.iter().map(|note| (note.id(), note.metadata())),
         )
-        .expect("Unreachable: fails only if the output note list contains duplicates");
+        .expect("output note tracker should return an error for duplicate notes");
 
         Ok(ProvenBatch::new(
             id,
@@ -120,12 +120,12 @@ impl LocalBatchProver {
 }
 
 #[derive(Debug)]
-struct OutputNoteTracker {
+struct BatchOutputNoteTracker {
     output_notes: Vec<Option<OutputNote>>,
     output_note_index: BTreeMap<NoteId, usize>,
 }
 
-impl OutputNoteTracker {
+impl BatchOutputNoteTracker {
     fn new<'a>(txs: impl Iterator<Item = &'a ProvenTransaction>) -> Result<Self, BatchError> {
         let mut output_notes = vec![];
         let mut output_note_index = BTreeMap::new();
@@ -160,5 +160,120 @@ impl OutputNoteTracker {
 
     pub fn into_notes(self) -> Vec<OutputNote> {
         self.output_notes.into_iter().flatten().collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::sync::Arc;
+
+    use miden_lib::{account::wallets::BasicWallet, transaction::TransactionKernel};
+    use miden_objects::{
+        account::{Account, AccountBuilder},
+        note::{Note, NoteInclusionProofs},
+        testing::{account_id::AccountIdBuilder, note::NoteBuilder},
+    };
+    use rand::{rngs::SmallRng, SeedableRng};
+    use vm_core::assert_matches;
+    use vm_processor::Digest;
+
+    use super::*;
+    use crate::testing::MockProvenTxBuilder;
+
+    fn mock_account_id(num: u8) -> AccountId {
+        AccountIdBuilder::new().build_with_rng(&mut SmallRng::from_seed([num; 32]))
+    }
+
+    fn mock_wallet_account(num: u8) -> Account {
+        AccountBuilder::new([num; 32])
+            .with_component(BasicWallet)
+            .build_existing()
+            .unwrap()
+    }
+
+    pub fn mock_note(num: u8) -> Note {
+        let sender = mock_account_id(num);
+        NoteBuilder::new(sender, SmallRng::from_seed([num; 32]))
+            .build(&TransactionKernel::assembler().with_debug_mode(true))
+            .unwrap()
+    }
+
+    pub fn mock_output_note(num: u8) -> OutputNote {
+        OutputNote::Full(mock_note(num))
+    }
+
+    #[test]
+    fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let note0 = mock_note(50);
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .unauthenticated_notes(vec![note0.clone()])
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .unauthenticated_notes(vec![note0.clone()])
+                .build()?;
+
+        let error = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1, tx2].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))
+        .unwrap_err();
+
+        assert_matches!(error, BatchError::DuplicateUnauthenticatedNote(id) if id == note0.id());
+
+        Ok(())
+    }
+
+    #[test]
+    fn duplicate_output_notes() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let note0 = mock_output_note(50);
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .output_notes(vec![note0.clone()])
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .output_notes(vec![note0.clone()])
+                .build()?;
+
+        let error = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1, tx2].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))
+        .unwrap_err();
+
+        assert_matches!(error, BatchError::DuplicateOutputNote(id) if id == note0.id());
+
+        Ok(())
+    }
+
+    #[test]
+    fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let note0 = mock_note(50);
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .output_notes(vec![mock_output_note(0)])
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .unauthenticated_notes(vec![note0.clone()])
+                .build()?;
+
+        LocalBatchProver::prove(ProposedBatch::new(
+            [tx1, tx2].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))?;
+
+        Ok(())
     }
 }
