@@ -276,4 +276,39 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .output_notes(vec![mock_output_note(0)])
+                .build()?;
+        // Use some other hash as the final state commitment of tx2.
+        let final_state_commitment = mock_note(10).hash();
+        let tx2 = MockProvenTxBuilder::with_account(
+            account1.id(),
+            account1.hash(),
+            final_state_commitment,
+        )
+        .build()?;
+
+        // Success: Transactions are correctly ordered.
+        LocalBatchProver::prove(ProposedBatch::new(
+            [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))?;
+
+        // Error: Transactions are incorrectly ordered.
+        let error = LocalBatchProver::prove(ProposedBatch::new(
+            [tx2, tx1].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))
+        .unwrap_err();
+
+        assert_matches!(error, BatchError::AccountUpdateError { .. });
+
+        Ok(())
+    }
 }
