@@ -8,7 +8,7 @@ use miden_objects::{
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::BlockNumber,
     note::{NoteHeader, NoteId},
-    transaction::{InputNoteCommitment, OutputNote, ProvenTransaction},
+    transaction::{InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
 };
 
 use crate::{BatchError, ProposedBatch, ProvenBatch};
@@ -29,6 +29,10 @@ impl LocalBatchProver {
     pub fn prove(proposed_batch: ProposedBatch) -> Result<ProvenBatch, BatchError> {
         let transactions = proposed_batch.transactions();
         let id = BatchId::compute(transactions.iter().map(|tx| tx.id()));
+
+        // Aggregate individual tx-level account updates into a batch-level account update - one per
+        // account.
+        // --------------------------------------------------------------------------------------------
 
         // Populate batch output notes and updated accounts.
         let mut updated_accounts = BTreeMap::<AccountId, BatchAccountUpdate>::new();
@@ -69,6 +73,9 @@ impl LocalBatchProver {
             batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
         }
 
+        // Create input and output note set of the batch.
+        // --------------------------------------------------------------------------------------------
+
         // Remove all output notes from the batch output note set that are consumed by transactions.
         //
         // One thing to note:
@@ -84,9 +91,12 @@ impl LocalBatchProver {
                 // Header is present only for unauthenticated input notes.
                 let input_note = match input_note.header() {
                     Some(input_note_header) => {
-                        // If a transaction consumes a note that is also created in this batch, the
-                        // note is effectively erased from the overall output note set of the batch.
                         if output_notes.remove_note(input_note_header)? {
+                            // If a transaction consumes a note that is also created in this batch,
+                            // it is removed from the set of output notes.
+                            // We `continue` so that the input note is not added to the set of input
+                            // notes of the batch.
+                            // That way the note appears in neither input nor output set.
                             continue;
                         }
 
@@ -127,47 +137,80 @@ impl LocalBatchProver {
     }
 }
 
+/// A helper struct to track output notes.
+/// Its main purpose is to check for duplicates and allow for removal of output notes that are
+/// consumed in the same batch, so are not output notes of the batch.
+///
+/// The approach for this is that the output note set is initialized to the union of all output
+/// notes of the transactions in the batch.
+/// Then (outside of this struct) all input notes of transactions in the batch which are also output
+/// notes can be removed, as they are considered consumed within the batch and will not be visible
+/// as created or consumed notes for the batch.
 #[derive(Debug)]
 struct BatchOutputNoteTracker {
-    output_notes: Vec<Option<OutputNote>>,
-    output_note_index: BTreeMap<NoteId, usize>,
+    /// An index from [`NoteId`]s to the transaction that creates the note and the note itself.
+    /// The transaction ID is tracked to produce better errors when a duplicate note is
+    /// encountered.
+    output_notes: BTreeMap<NoteId, (TransactionId, OutputNote)>,
 }
 
 impl BatchOutputNoteTracker {
+    /// Constructs a new output note tracker from the given transactions.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - any output note is produced more than once (by the same or different transactions).
     fn new<'a>(txs: impl Iterator<Item = &'a ProvenTransaction>) -> Result<Self, BatchError> {
-        let mut output_notes = vec![];
-        let mut output_note_index = BTreeMap::new();
+        let mut output_notes = BTreeMap::new();
         for tx in txs {
             for note in tx.output_notes().iter() {
-                if output_note_index.insert(note.id(), output_notes.len()).is_some() {
-                    return Err(BatchError::DuplicateOutputNote(note.id()));
+                if let Some((first_transaction_id, _)) =
+                    output_notes.insert(note.id(), (tx.id(), note.clone()))
+                {
+                    return Err(BatchError::DuplicateOutputNote {
+                        note_id: note.id(),
+                        first_transaction_id,
+                        second_transaction_id: tx.id(),
+                    });
                 }
-                output_notes.push(Some(note.clone()));
             }
         }
 
-        Ok(Self { output_notes, output_note_index })
+        Ok(Self { output_notes })
     }
 
+    /// Attempts to remove the given input note from the output note set.
+    ///
+    /// Returns `true` if the given note existed in the output note set and was removed from it,
+    /// `false` otherwise.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the given note has a corresponding note in the output note set with the same [`NoteId`]
+    ///   but their hashes differ (i.e. their metadata is different).
     pub fn remove_note(&mut self, input_note_header: &NoteHeader) -> Result<bool, BatchError> {
         let id = input_note_header.id();
-        if let Some(note_index) = self.output_note_index.remove(&id) {
-            if let Some(output_note) = core::mem::take(&mut self.output_notes[note_index]) {
-                let input_hash = input_note_header.hash();
-                let output_hash = output_note.hash();
-                if output_hash != input_hash {
-                    return Err(BatchError::NoteHashesMismatch { id, input_hash, output_hash });
-                }
-
-                return Ok(true);
+        if let Some((_, output_note)) = self.output_notes.remove(&id) {
+            // Check if the notes with the same ID have differing hashes.
+            // This could happen if the metadata of the notes is different, which we consider an
+            // error.
+            let input_hash = input_note_header.hash();
+            let output_hash = output_note.hash();
+            if output_hash != input_hash {
+                return Err(BatchError::NoteHashesMismatch { id, input_hash, output_hash });
             }
+
+            return Ok(true);
         }
 
         Ok(false)
     }
 
+    /// Consumes the tracker and returns a [`Vec`] of output notes.
     pub fn into_notes(self) -> Vec<OutputNote> {
-        self.output_notes.into_iter().flatten().collect()
+        self.output_notes.into_iter().map(|(_, (_, output_note))| output_note).collect()
     }
 }
 
@@ -252,12 +295,18 @@ mod tests {
                 .build()?;
 
         let error = LocalBatchProver::prove(ProposedBatch::new(
-            [tx1, tx2].into_iter().map(Arc::new).collect(),
+            [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
             NoteInclusionProofs::default(),
         ))
         .unwrap_err();
 
-        assert_matches!(error, BatchError::DuplicateOutputNote(id) if id == note0.id());
+        assert_matches!(error, BatchError::DuplicateOutputNote {
+          note_id,
+          first_transaction_id,
+          second_transaction_id
+        } if note_id == note0.id() &&
+          first_transaction_id == tx1.id() &&
+          second_transaction_id == tx2.id());
 
         Ok(())
     }
