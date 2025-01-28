@@ -24,6 +24,28 @@ pub struct TransactionOutputs {
     pub expiration_block_num: BlockNumber,
 }
 
+impl Serializable for TransactionOutputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.account.write_into(target);
+        self.output_notes.write_into(target);
+        self.expiration_block_num.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionOutputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let account = AccountHeader::read_from(source)?;
+        let output_notes = OutputNotes::read_from(source)?;
+        let expiration_block_num = BlockNumber::read_from(source)?;
+
+        Ok(Self {
+            account,
+            output_notes,
+            expiration_block_num,
+        })
+    }
+}
+
 // OUTPUT NOTES
 // ================================================================================================
 

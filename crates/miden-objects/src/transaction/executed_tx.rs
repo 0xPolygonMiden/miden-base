@@ -1,6 +1,9 @@
 use alloc::vec::Vec;
 use core::cell::OnceCell;
 
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{
     Account, AccountDelta, AccountHeader, AccountId, AdviceInputs, BlockHeader, InputNote,
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
@@ -21,7 +24,7 @@ use crate::account::AccountCode;
 ///   stateless manner. This includes all public transaction inputs, but also all nondeterministic
 ///   inputs that the host provided to Miden VM while executing the transaction (i.e., advice
 ///   witness).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExecutedTransaction {
     id: OnceCell<TransactionId>,
     tx_inputs: TransactionInputs,
@@ -161,12 +164,46 @@ impl From<ExecutedTransaction> for TransactionMeasurements {
     }
 }
 
+impl Serializable for ExecutedTransaction {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.tx_inputs.write_into(target);
+        self.tx_outputs.write_into(target);
+        self.account_codes.write_into(target);
+        self.account_delta.write_into(target);
+        self.tx_args.write_into(target);
+        self.advice_witness.write_into(target);
+        self.tx_measurements.write_into(target);
+    }
+}
+
+impl Deserializable for ExecutedTransaction {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let tx_inputs = TransactionInputs::read_from(source)?;
+        let tx_outputs = TransactionOutputs::read_from(source)?;
+        let account_codes = Vec::<AccountCode>::read_from(source)?;
+        let account_delta = AccountDelta::read_from(source)?;
+        let tx_args = TransactionArgs::read_from(source)?;
+        let advice_witness = AdviceInputs::read_from(source)?;
+        let tx_measurements = TransactionMeasurements::read_from(source)?;
+
+        Ok(Self::new(
+            tx_inputs,
+            tx_outputs,
+            account_codes,
+            account_delta,
+            tx_args,
+            advice_witness,
+            tx_measurements,
+        ))
+    }
+}
+
 // TRANSACTION MEASUREMENTS
 // ================================================================================================
 
 /// Stores the resulting number of cycles for each transaction execution stage obtained from the
 /// `TransactionProgress` struct.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransactionMeasurements {
     pub prologue: usize,
     pub notes_processing: usize,
@@ -186,5 +223,33 @@ impl TransactionMeasurements {
     pub fn trace_length(&self) -> usize {
         let total_cycles = self.total_cycles();
         total_cycles.next_power_of_two()
+    }
+}
+
+impl Serializable for TransactionMeasurements {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.prologue.write_into(target);
+        self.notes_processing.write_into(target);
+        self.note_execution.write_into(target);
+        self.tx_script_processing.write_into(target);
+        self.epilogue.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionMeasurements {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let prologue = usize::read_from(source)?;
+        let notes_processing = usize::read_from(source)?;
+        let note_execution = Vec::<(NoteId, usize)>::read_from(source)?;
+        let tx_script_processing = usize::read_from(source)?;
+        let epilogue = usize::read_from(source)?;
+
+        Ok(Self {
+            prologue,
+            notes_processing,
+            note_execution,
+            tx_script_processing,
+            epilogue,
+        })
     }
 }
