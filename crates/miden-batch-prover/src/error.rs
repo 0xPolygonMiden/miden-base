@@ -1,5 +1,6 @@
 use miden_objects::{
     account::AccountId,
+    block::BlockNumber,
     note::{NoteId, Nullifier},
     transaction::TransactionId,
     BatchAccountUpdateError,
@@ -36,4 +37,7 @@ pub enum BatchError {
         account_id: AccountId,
         source: BatchAccountUpdateError,
     },
+
+    #[error("unauthenticated input note with id {note_id} for which an inclusion proof was provided was not created in block {block_num}")]
+    UnauthenticatedNoteAuthenticationFailed { note_id: NoteId, block_num: BlockNumber },
 }

@@ -6,8 +6,8 @@ use alloc::{
 use miden_objects::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
-    block::BlockNumber,
-    note::{NoteHeader, NoteId, Nullifier},
+    block::{BlockHeader, BlockNumber},
+    note::{NoteHeader, NoteId, NoteInclusionProof},
     transaction::{InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
 };
 
@@ -118,6 +118,7 @@ impl LocalBatchProver {
                             .note_inclusion_proofs()
                             .contains_note(&input_note_header.id())
                         {
+                            // authenticate_unauthenticated_note
                             // Erase the note header from the input note.
                             InputNoteCommitment::from(input_note.nullifier())
                         } else {
@@ -226,14 +227,35 @@ impl BatchOutputNoteTracker {
     }
 }
 
+/// Validates whether the provided unauthenticated note belongs to the note tree of the specified
+/// block header.
+// TODO: Remove.
+#[allow(dead_code)]
+fn authenticate_unauthenticated_note(
+    note_header: &NoteHeader,
+    proof: &NoteInclusionProof,
+    block_header: &BlockHeader,
+) -> Result<(), BatchError> {
+    let note_index = proof.location().node_index_in_block().into();
+    let note_hash = note_header.hash();
+    proof
+        .note_path()
+        .verify(note_index, note_hash, &block_header.note_root())
+        .map_err(|_| BatchError::UnauthenticatedNoteAuthenticationFailed {
+            note_id: note_header.id(),
+            block_num: proof.location().block_num(),
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
 
+    use miden_crypto::merkle::MerklePath;
     use miden_lib::{account::wallets::BasicWallet, transaction::TransactionKernel};
     use miden_objects::{
         account::{Account, AccountBuilder},
-        note::{Note, NoteInclusionProofs},
+        note::{Note, NoteInclusionProof, NoteInclusionProofs},
         testing::{account_id::AccountIdBuilder, note::NoteBuilder},
         transaction::InputNote,
         BatchAccountUpdateError,
@@ -265,6 +287,10 @@ mod tests {
 
     pub fn mock_output_note(num: u8) -> OutputNote {
         OutputNote::Full(mock_note(num))
+    }
+
+    pub fn mock_proof(node_index: u16) -> NoteInclusionProof {
+        NoteInclusionProof::new(BlockNumber::from(0), node_index, MerklePath::new(vec![])).unwrap()
     }
 
     /// Tests that an error is returned if the same unauthenticated input note appears multiple
@@ -440,6 +466,70 @@ mod tests {
             batch.account_updates().get(&account2.id()).unwrap().final_state_commitment(),
             account2.hash()
         );
+
+        Ok(())
+    }
+
+    /// Test that an authenticated input note that is also created in the same batch does not error
+    /// and instead is marked as consumed.
+    /// - This requires a nullifier collision on the input and output note which is very unlikely in
+    ///   practice.
+    /// - This makes the created note unspendable as its nullifier is added to the nullifier tree.
+    /// - The batch kernel cannot return an error in this case as it can't detect this condition due
+    ///   to only having the nullifier for authenticated input notes _but_ not having the nullifier
+    ///   for private output notes.
+    /// - We test this to ensure the kernel does something reasonable in this case and it is not an
+    ///   attack vector.
+    #[test]
+    fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let note0 = mock_note(50);
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .output_notes(vec![OutputNote::Full(note0.clone())])
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .authenticated_notes(vec![note0.clone()])
+                .build()?;
+
+        let batch = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1, tx2].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))?;
+
+        assert_eq!(batch.input_notes().len(), 1);
+        assert_eq!(batch.output_notes().len(), 1);
+        assert_eq!(batch.output_notes_tree().num_leaves(), 1);
+
+        Ok(())
+    }
+
+    /// Test that an unauthenticated input note for which a proof exists is converted into an
+    /// authenticated one and becomes part of the batch's input note commitment.
+    #[test]
+    fn unauthenticated_note_converted_authenticated() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+
+        let note0 = mock_note(150);
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .unauthenticated_notes(vec![note0.clone()])
+                .build()?;
+
+        let mock_note_inclusion_proofs =
+            NoteInclusionProofs::new(vec![], BTreeMap::from([(note0.id(), mock_proof(0))]));
+
+        let batch = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1].into_iter().map(Arc::new).collect(),
+            mock_note_inclusion_proofs,
+        ))?;
+
+        // We expect the unauthenticated input note to have become an authenticated one,
+        // meaning it is part of the input note commitment.
+        assert_eq!(batch.input_notes().len(), 1);
 
         Ok(())
     }

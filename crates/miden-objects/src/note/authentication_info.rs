@@ -16,6 +16,13 @@ pub struct NoteInclusionProofs {
 }
 
 impl NoteInclusionProofs {
+    pub fn new(
+        block_proofs: Vec<BlockInclusionProof>,
+        note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
+    ) -> Self {
+        Self { block_proofs, note_proofs }
+    }
+
     pub fn block_proofs(&self) -> &[BlockInclusionProof] {
         &self.block_proofs
     }
