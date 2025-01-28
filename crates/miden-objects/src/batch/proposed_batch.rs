@@ -1,6 +1,6 @@
 use alloc::{sync::Arc, vec::Vec};
 
-use miden_objects::{note::NoteInclusionProofs, transaction::ProvenTransaction};
+use crate::{note::NoteInclusionProofs, transaction::ProvenTransaction};
 
 /// A proposed batch of transactions with all necessary data to validate it.
 #[derive(Debug, Clone)]

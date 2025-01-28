@@ -5,13 +5,13 @@ use alloc::{
 
 use miden_objects::{
     account::AccountId,
-    batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
+    batch::{BatchAccountUpdate, BatchId, BatchNoteTree, ProposedBatch, ProvenBatch},
     block::{BlockHeader, BlockNumber},
     note::{NoteHeader, NoteId, NoteInclusionProof},
     transaction::{InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
 };
 
-use crate::{BatchError, ProposedBatch, ProvenBatch};
+use crate::BatchError;
 
 // LOCAL BATCH PROVER
 // ================================================================================================
