@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2 (2025-01-28) - `miden-objects` crate only
+
+### Changes
+
+- Added serialization for `ExecutedTransaction` (#1113).
+
 ## 0.7.1 (2025-01-24) - `miden-objects` crate only
 
 ### Fixes
