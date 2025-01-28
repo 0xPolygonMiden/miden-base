@@ -186,8 +186,7 @@ impl Deserializable for ExecutedTransaction {
         let advice_witness = AdviceInputs::read_from(source)?;
         let tx_measurements = TransactionMeasurements::read_from(source)?;
 
-        Ok(Self {
-            id: OnceCell::new(),
+        Ok(Self::new(
             tx_inputs,
             tx_outputs,
             account_codes,
@@ -195,7 +194,7 @@ impl Deserializable for ExecutedTransaction {
             tx_args,
             advice_witness,
             tx_measurements,
-        })
+        ))
     }
 }
 
