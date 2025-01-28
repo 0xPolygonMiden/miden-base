@@ -1,2 +1,2 @@
 mod proven_tx_builder;
-pub use proven_tx_builder::MockProvenTxBuilder;
+pub(crate) use proven_tx_builder::MockProvenTxBuilder;

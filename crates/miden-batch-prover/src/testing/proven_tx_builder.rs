@@ -65,14 +65,6 @@ impl MockProvenTxBuilder {
         self
     }
 
-    /// Adds nullifiers to the transaction's input note commitment.
-    #[must_use]
-    pub fn nullifiers(mut self, nullifiers: Vec<Nullifier>) -> Self {
-        self.nullifiers = Some(nullifiers);
-
-        self
-    }
-
     /// Sets the transaction's expiration block number.
     #[must_use]
     pub fn expiration_block_num(mut self, expiration_block_num: BlockNumber) -> Self {

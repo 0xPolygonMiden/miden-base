@@ -10,8 +10,9 @@ use crate::transaction::TransactionId;
 // BATCH ID
 // ================================================================================================
 
-/// Uniquely identifies a [`TransactionBatch`].
+/// Uniquely identifies a `ProvenBatch`.
 // TODO: Document how this is computed.
+// TODO: Move ProposedBatch and ProvenBatch to objects.
 // TODO: Should this really be a Blake3 hash? We have to compute this in the block kernel
 // eventually, so we'd probably want RPO instead?
 // TODO: Compute batch ID as hash over tx ID _and_ account ID.

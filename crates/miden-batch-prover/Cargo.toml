@@ -12,10 +12,6 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-[[test]]
-name = "miden-batch-prover"
-path = "tests/integration/main.rs"
-
 [lib]
 bench = false
 

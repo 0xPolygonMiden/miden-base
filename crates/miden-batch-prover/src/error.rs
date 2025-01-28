@@ -8,7 +8,7 @@ use miden_objects::{
 use thiserror::Error;
 use vm_processor::Digest;
 
-/// Error encountered while building a batch.
+/// Errors encountered while building a transaction batch.
 #[derive(Debug, Error)]
 pub enum BatchError {
     #[error("transaction {second_transaction_id} consumes the note with nullifier {note_nullifier} that is also consumed by another transaction {first_transaction_id} in the batch")]

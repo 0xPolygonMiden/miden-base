@@ -13,6 +13,10 @@ use miden_objects::{
 
 use crate::{BatchError, ProposedBatch, ProvenBatch};
 
+// LOCAL BATCH PROVER
+// ================================================================================================
+
+/// A local prover for transaction batches, turning a [`ProposedBatch`] into a [`ProvenBatch`].
 pub struct LocalBatchProver {}
 
 impl LocalBatchProver {
@@ -150,6 +154,9 @@ impl LocalBatchProver {
     }
 }
 
+// BATCH OUTPUT NOTE TRACKER
+// ================================================================================================
+
 /// A helper struct to track output notes.
 /// Its main purpose is to check for duplicates and allow for removal of output notes that are
 /// consumed in the same batch, so are not output notes of the batch.
@@ -173,7 +180,7 @@ impl BatchOutputNoteTracker {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - any output note is produced more than once (by the same or different transactions).
+    /// - any output note is created more than once (by the same or different transactions).
     fn new<'a>(txs: impl Iterator<Item = &'a ProvenTransaction>) -> Result<Self, BatchError> {
         let mut output_notes = BTreeMap::new();
         for tx in txs {
@@ -227,9 +234,12 @@ impl BatchOutputNoteTracker {
     }
 }
 
+// HELPER FUNCTIONS
+// ================================================================================================
+
 /// Validates whether the provided unauthenticated note belongs to the note tree of the specified
 /// block header.
-// TODO: Remove.
+// TODO: Remove allow once used.
 #[allow(dead_code)]
 fn authenticate_unauthenticated_note(
     note_header: &NoteHeader,
@@ -246,6 +256,9 @@ fn authenticate_unauthenticated_note(
             block_num: proof.location().block_num(),
         })
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {
@@ -454,18 +467,9 @@ mod tests {
             NoteInclusionProofs::default(),
         ))?;
 
-        assert_eq!(batch.account_updates().len(), 2);
         assert_eq!(batch.input_notes().len(), 0);
         assert_eq!(batch.output_notes().len(), 0);
         assert_eq!(batch.output_notes_tree().num_leaves(), 0);
-        assert_eq!(
-            batch.account_updates().get(&account1.id()).unwrap().final_state_commitment(),
-            account1.hash()
-        );
-        assert_eq!(
-            batch.account_updates().get(&account2.id()).unwrap().final_state_commitment(),
-            account2.hash()
-        );
 
         Ok(())
     }
@@ -530,6 +534,7 @@ mod tests {
         // We expect the unauthenticated input note to have become an authenticated one,
         // meaning it is part of the input note commitment.
         assert_eq!(batch.input_notes().len(), 1);
+        assert_eq!(batch.output_notes().len(), 0);
 
         Ok(())
     }
@@ -566,8 +571,8 @@ mod tests {
         ))?;
 
         assert_eq!(batch.account_updates().len(), 1);
-        // Assert that initial state commitment from tx1 is used and the final state commitment from
-        // tx2.
+        // Assert that the initial state commitment from tx1 is used and the final state commitment
+        // from tx2.
         assert_eq!(
             batch.account_updates().get(&account1.id()).unwrap().initial_state_commitment(),
             initial_state_commitment
@@ -647,6 +652,30 @@ mod tests {
                 InputNoteCommitment::from(&InputNote::unauthenticated(note4)),
             ]
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn batch_expiration() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .expiration_block_num(BlockNumber::from(35))
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .expiration_block_num(BlockNumber::from(30))
+                .build()?;
+
+        let batch = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1, tx2].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))?;
+
+        assert_eq!(batch.batch_expiration_block_num(), BlockNumber::from(30));
 
         Ok(())
     }

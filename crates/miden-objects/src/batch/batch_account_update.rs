@@ -36,16 +36,10 @@ pub struct BatchAccountUpdate {
 }
 
 impl BatchAccountUpdate {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    /// The maximum allowed size of an account update in bytes. Set to 32 KiB.
-    pub const MAX_SIZE: u16 = 2u16.pow(15);
-
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [`AccountUpdate`] instantiated from the provided parts.
+    /// Returns a new [`BatchAccountUpdate`] instantiated from the provided parts.
     pub const fn new(
         account_id: AccountId,
         initial_state_commitment: Digest,
@@ -53,6 +47,7 @@ impl BatchAccountUpdate {
         transactions: Vec<TransactionId>,
         details: AccountUpdateDetails,
     ) -> Self {
+        // TODO: Consider erroring if transactions.is_empty().
         Self {
             account_id,
             initial_state_commitment,
@@ -83,9 +78,6 @@ impl BatchAccountUpdate {
     }
 
     /// Returns a slice of [`TransactionId`]s that updated this account's state.
-    ///
-    /// This slice is generally non-empty, but may be empty in the special case of an account update
-    /// representing an account created in the genesis.
     pub fn transactions(&self) -> &[TransactionId] {
         &self.transactions
     }

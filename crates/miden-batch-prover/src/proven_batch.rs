@@ -54,10 +54,10 @@ impl ProvenBatch {
         self.batch_expiration_block_num
     }
 
-    /// Returns the map of account IDs mapped to their [`AccountUpdate`]s.
+    /// Returns the map of account IDs mapped to their [`BatchAccountUpdate`]s.
     ///
-    /// If an account was updated by multiple transactions, the [`AccountUpdate`] is the result of
-    /// merging the individual updates.
+    /// If an account was updated by multiple transactions, the [`BatchAccountUpdate`] is the result
+    /// of merging the individual updates.
     ///
     /// For example, suppose an account's state before this batch is `A` and the batch contains two
     /// transactions that updated it. Applying the first transaction results in intermediate state
@@ -82,8 +82,6 @@ impl ProvenBatch {
     }
 
     /// Returns the [`BatchNoteTree`] representing the output notes of the batch.
-    ///
-    /// TODO: More docs?
     pub fn output_notes_tree(&self) -> &BatchNoteTree {
         &self.output_notes_smt
     }

@@ -18,5 +18,5 @@ pub use error::BatchError;
 mod local_batch_prover;
 pub use local_batch_prover::LocalBatchProver;
 
-#[cfg(any(feature = "testing", test))]
+#[cfg(test)]
 pub mod testing;
