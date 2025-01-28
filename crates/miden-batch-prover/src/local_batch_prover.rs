@@ -208,7 +208,7 @@ impl BatchOutputNoteTracker {
         Ok(false)
     }
 
-    /// Consumes the tracker and returns a [`Vec`] of output notes.
+    /// Consumes the tracker and returns a [`Vec`] of output notes sorted by [`NoteId`].
     pub fn into_notes(self) -> Vec<OutputNote> {
         self.output_notes.into_iter().map(|(_, (_, output_note))| output_note).collect()
     }
@@ -223,6 +223,8 @@ mod tests {
         account::{Account, AccountBuilder},
         note::{Note, NoteInclusionProofs},
         testing::{account_id::AccountIdBuilder, note::NoteBuilder},
+        transaction::InputNote,
+        BatchAccountUpdateError,
     };
     use rand::{rngs::SmallRng, SeedableRng};
     use vm_core::assert_matches;
@@ -253,6 +255,8 @@ mod tests {
         OutputNote::Full(mock_note(num))
     }
 
+    /// Tests that an error is returned if the same unauthenticated input note appears multiple
+    /// times in different transactions.
     #[test]
     fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
         let account1 = mock_wallet_account(10);
@@ -279,6 +283,8 @@ mod tests {
         Ok(())
     }
 
+    /// Tests that an error is returned if the same output note appears multiple times in different
+    /// transactions.
     #[test]
     fn duplicate_output_notes() -> anyhow::Result<()> {
         let account1 = mock_wallet_account(10);
@@ -311,6 +317,8 @@ mod tests {
         Ok(())
     }
 
+    /// Tests that a note created and consumed in the same batch are erased from the input and
+    /// output note commitments.
     #[test]
     fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
         let account1 = mock_wallet_account(10);
@@ -347,15 +355,23 @@ mod tests {
         Ok(())
     }
 
+    /// Test that multiple transactions against the same account 1) can be correctly executed and
+    /// 2) that an error is returned if they are incorrectly ordered.
     #[test]
     fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
         let account1 = mock_wallet_account(10);
 
-        let tx1 =
-            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-                .output_notes(vec![mock_output_note(0)])
-                .build()?;
-        // Use some other hash as the final state commitment of tx2.
+        // Use some random hash as the initial state commitment of tx1.
+        let initial_state_commitment = Digest::default();
+        let tx1 = MockProvenTxBuilder::with_account(
+            account1.id(),
+            initial_state_commitment,
+            account1.hash(),
+        )
+        .output_notes(vec![mock_output_note(0)])
+        .build()?;
+
+        // Use some random hash as the final state commitment of tx2.
         let final_state_commitment = mock_note(10).hash();
         let tx2 = MockProvenTxBuilder::with_account(
             account1.id(),
@@ -365,19 +381,93 @@ mod tests {
         .build()?;
 
         // Success: Transactions are correctly ordered.
-        LocalBatchProver::prove(ProposedBatch::new(
+        let batch = LocalBatchProver::prove(ProposedBatch::new(
             [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
             NoteInclusionProofs::default(),
         ))?;
 
+        assert_eq!(batch.account_updates().len(), 1);
+        // Assert that initial state commitment from tx1 is used and the final state commitment from
+        // tx2.
+        assert_eq!(
+            batch.account_updates().get(&account1.id()).unwrap().initial_state_commitment(),
+            initial_state_commitment
+        );
+        assert_eq!(
+            batch.account_updates().get(&account1.id()).unwrap().final_state_commitment(),
+            final_state_commitment
+        );
+
         // Error: Transactions are incorrectly ordered.
         let error = LocalBatchProver::prove(ProposedBatch::new(
-            [tx2, tx1].into_iter().map(Arc::new).collect(),
+            [tx2.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
             NoteInclusionProofs::default(),
         ))
         .unwrap_err();
 
-        assert_matches!(error, BatchError::AccountUpdateError { .. });
+        assert_matches!(
+            error,
+            BatchError::AccountUpdateError {
+                source: BatchAccountUpdateError::AccountUpdateInitialStateMismatch(tx_id),
+                ..
+            } if tx_id == tx1.id()
+        );
+
+        Ok(())
+    }
+
+    /// Tests that the input and outputs notes commitment is correctly computed.
+    /// - Notes created and consumed in the same batch are erased from these commitments.
+    /// - The input note commitment is sorted by the order in which the notes appeared in the batch.
+    /// - The output note commitment is sorted by [`NoteId`].
+    #[test]
+    fn input_and_output_notes_commitment() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let note0 = mock_output_note(50);
+        let note1 = mock_note(60);
+        let note2 = mock_output_note(70);
+        let note3 = mock_output_note(80);
+        let note4 = mock_note(90);
+        let note5 = mock_note(100);
+
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .unauthenticated_notes(vec![note1.clone(), note5.clone()])
+                .output_notes(vec![note0.clone()])
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .unauthenticated_notes(vec![note4.clone()])
+                .output_notes(vec![OutputNote::Full(note1.clone()), note2.clone(), note3.clone()])
+                .build()?;
+
+        let batch = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))?;
+
+        // We expecte note1 to be erased from the input/output notes as it is created and consumed
+        // in the batch.
+        let mut expected_output_notes = [note0, note2, note3];
+        // We expect a vector sorted by NoteId.
+        expected_output_notes.sort_unstable_by_key(OutputNote::id);
+
+        assert_eq!(batch.output_notes().len(), 3);
+        assert_eq!(batch.output_notes(), expected_output_notes);
+
+        assert_eq!(batch.output_notes_tree().num_leaves(), 3);
+
+        // Input notes are sorted by the order in which they appeared in the batch.
+        assert_eq!(batch.input_notes().len(), 2);
+        assert_eq!(
+            batch.input_notes(),
+            &[
+                InputNoteCommitment::from(&InputNote::unauthenticated(note5)),
+                InputNoteCommitment::from(&InputNote::unauthenticated(note4)),
+            ]
+        );
 
         Ok(())
     }
