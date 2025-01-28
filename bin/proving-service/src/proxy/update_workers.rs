@@ -143,7 +143,7 @@ impl HttpServerApp for LoadBalancerUpdateService {
 /// Create a 200 response for updated workers
 ///
 /// It will set the X-Worker-Count header to the number of workers.
-pub async fn create_workers_updated_response(
+async fn create_workers_updated_response(
     session: &mut ServerSession,
     workers: usize,
 ) -> pingora_core::Result<bool> {
