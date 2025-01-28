@@ -7,7 +7,7 @@ use miden_objects::{
     transaction::{InputNoteCommitment, OutputNote},
 };
 
-// TODO: Document.
+/// A transaction batch with an execution proof.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBatch {
     id: BatchId,
