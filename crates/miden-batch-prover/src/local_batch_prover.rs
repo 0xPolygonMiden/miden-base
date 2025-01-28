@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{btree_map::Entry, BTreeMap, BTreeSet},
+    collections::{btree_map::Entry, BTreeMap},
     vec::Vec,
 };
 
@@ -7,7 +7,7 @@ use miden_objects::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::BlockNumber,
-    note::{NoteHeader, NoteId},
+    note::{NoteHeader, NoteId, Nullifier},
     transaction::{InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
 };
 
@@ -36,7 +36,6 @@ impl LocalBatchProver {
 
         // Populate batch output notes and updated accounts.
         let mut updated_accounts = BTreeMap::<AccountId, BatchAccountUpdate>::new();
-        let mut unauthenticated_input_notes = BTreeSet::new();
         let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
         for tx in transactions {
             // Merge account updates so that state transitions A->B->C become A->C.
@@ -60,17 +59,30 @@ impl LocalBatchProver {
                 },
             };
 
-            // Check unauthenticated input notes for duplicates:
-            for note in tx.get_unauthenticated_notes() {
-                let id = note.id();
-                if !unauthenticated_input_notes.insert(id) {
-                    return Err(BatchError::DuplicateUnauthenticatedNote(id));
-                }
-            }
-
             // The expiration block of the batch is the minimum of all transaction's expiration
             // block.
             batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
+        }
+
+        // Check for duplicates in input notes.
+        // --------------------------------------------------------------------------------------------
+
+        // Check for duplicate input notes both within a transaction and across transactions.
+        // This also includes authenticated notes, as the transaction kernel doesn't check for
+        // duplicates.
+        let mut input_note_map = BTreeMap::new();
+
+        for tx in transactions.iter() {
+            for note in tx.input_notes() {
+                let nullifier = note.nullifier();
+                if let Some(first_transaction_id) = input_note_map.insert(nullifier, tx.id()) {
+                    return Err(BatchError::DuplicateInputNote {
+                        note_nullifier: nullifier,
+                        first_transaction_id,
+                        second_transaction_id: tx.id(),
+                    });
+                }
+            }
         }
 
         // Create input and output note set of the batch.
@@ -81,8 +93,7 @@ impl LocalBatchProver {
         // One thing to note:
         // This still allows transaction `A` to consume an unauthenticated note `x` and output note
         // `y` and for transaction `B` to consume an unauthenticated note `y` and output
-        // note `x` (i.e., have a circular dependency between transactions), but this is not
-        // a problem.
+        // note `x` (i.e., have a circular dependency between transactions).
         let mut output_notes = BatchOutputNoteTracker::new(transactions.iter().map(AsRef::as_ref))?;
         let mut input_notes = vec![];
 
@@ -107,6 +118,7 @@ impl LocalBatchProver {
                             .note_inclusion_proofs()
                             .contains_note(&input_note_header.id())
                         {
+                            // Erase the note header from the input note.
                             InputNoteCommitment::from(input_note.nullifier())
                         } else {
                             input_note.clone()
@@ -273,12 +285,89 @@ mod tests {
                 .build()?;
 
         let error = LocalBatchProver::prove(ProposedBatch::new(
-            [tx1, tx2].into_iter().map(Arc::new).collect(),
+            [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
             NoteInclusionProofs::default(),
         ))
         .unwrap_err();
 
-        assert_matches!(error, BatchError::DuplicateUnauthenticatedNote(id) if id == note0.id());
+        assert_matches!(error, BatchError::DuplicateInputNote {
+            note_nullifier,
+            first_transaction_id,
+            second_transaction_id
+          } if note_nullifier == note0.nullifier() &&
+            first_transaction_id == tx1.id() &&
+            second_transaction_id == tx2.id()
+        );
+
+        Ok(())
+    }
+
+    /// Tests that an error is returned if the same authenticated input note appears multiple
+    /// times in different transactions.
+    #[test]
+    fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let note0 = mock_note(50);
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .authenticated_notes(vec![note0.clone()])
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .authenticated_notes(vec![note0.clone()])
+                .build()?;
+
+        let error = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))
+        .unwrap_err();
+
+        assert_matches!(error, BatchError::DuplicateInputNote {
+            note_nullifier,
+            first_transaction_id,
+            second_transaction_id
+          } if note_nullifier == note0.nullifier() &&
+            first_transaction_id == tx1.id() &&
+            second_transaction_id == tx2.id()
+        );
+
+        Ok(())
+    }
+
+    /// Tests that an error is returned if the same input note appears multiple times in different
+    /// transactions as an unauthenticated or authenticated note.
+    #[test]
+    fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
+        let account1 = mock_wallet_account(10);
+        let account2 = mock_wallet_account(100);
+
+        let note0 = mock_note(50);
+        let tx1 =
+            MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+                .unauthenticated_notes(vec![note0.clone()])
+                .build()?;
+        let tx2 =
+            MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+                .authenticated_notes(vec![note0.clone()])
+                .build()?;
+
+        let error = LocalBatchProver::prove(ProposedBatch::new(
+            [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
+            NoteInclusionProofs::default(),
+        ))
+        .unwrap_err();
+
+        assert_matches!(error, BatchError::DuplicateInputNote {
+            note_nullifier,
+            first_transaction_id,
+            second_transaction_id
+          } if note_nullifier == note0.nullifier() &&
+            first_transaction_id == tx1.id() &&
+            second_transaction_id == tx2.id()
+        );
 
         Ok(())
     }

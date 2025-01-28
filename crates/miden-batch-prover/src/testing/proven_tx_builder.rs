@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
 use anyhow::Context;
+use miden_crypto::merkle::MerklePath;
 use miden_objects::{
     account::AccountId,
     block::BlockNumber,
-    note::{Note, Nullifier},
+    note::{Note, NoteInclusionProof, Nullifier},
     transaction::{InputNote, OutputNote, ProvenTransaction, ProvenTransactionBuilder},
     vm::ExecutionProof,
 };
@@ -39,6 +40,21 @@ impl MockProvenTxBuilder {
             input_notes: None,
             nullifiers: None,
         }
+    }
+
+    /// Adds unauthenticated notes to the transaction.
+    #[must_use]
+    pub fn authenticated_notes(mut self, notes: Vec<Note>) -> Self {
+        let mock_proof =
+            NoteInclusionProof::new(BlockNumber::from(0), 0, MerklePath::new(vec![])).unwrap();
+        self.input_notes = Some(
+            notes
+                .into_iter()
+                .map(|note| InputNote::authenticated(note, mock_proof.clone()))
+                .collect(),
+        );
+
+        self
     }
 
     /// Adds unauthenticated notes to the transaction.
