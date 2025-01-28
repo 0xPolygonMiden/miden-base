@@ -49,7 +49,7 @@ fn copy_proto_files() -> miette::Result<()> {
 fn compile_tonic_client_proto() -> miette::Result<()> {
     let crate_root =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
-    let dst_dir = crate_root.join("src").join("generated");
+    let dst_dir = crate_root.join("src").join("tx_prover").join("generated");
 
     // Remove `api.rs` if it exists.
     fs::remove_file(dst_dir.join("api.rs")).into_diagnostic().ok();

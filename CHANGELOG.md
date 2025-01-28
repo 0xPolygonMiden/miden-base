@@ -5,6 +5,7 @@
 ### Changes
 
 - [BREAKING] Incremented minimum supported Rust version to 1.84.
+- [BREAKING] Moved `generated` module from `miden-proving-service-client` crate to `tx_prover::generated` hierarchy (#1102).
 
 ## 0.7.1 (2025-01-24) - `miden-objects` crate only
 
