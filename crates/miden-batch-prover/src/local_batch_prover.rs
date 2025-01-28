@@ -78,6 +78,7 @@ impl LocalBatchProver {
         // a problem.
         let mut output_notes = BatchOutputNoteTracker::new(transactions.iter().map(AsRef::as_ref))?;
         let mut input_notes = vec![];
+
         for tx in transactions {
             for input_note in tx.input_notes().iter() {
                 // Header is present only for unauthenticated input notes.
@@ -269,17 +270,30 @@ mod tests {
         let note0 = mock_note(50);
         let tx1 =
             MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-                .output_notes(vec![mock_output_note(0)])
+                .output_notes(vec![OutputNote::Full(note0.clone())])
                 .build()?;
         let tx2 =
             MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
                 .unauthenticated_notes(vec![note0.clone()])
                 .build()?;
 
-        LocalBatchProver::prove(ProposedBatch::new(
+        let batch = LocalBatchProver::prove(ProposedBatch::new(
             [tx1, tx2].into_iter().map(Arc::new).collect(),
             NoteInclusionProofs::default(),
         ))?;
+
+        assert_eq!(batch.account_updates().len(), 2);
+        assert_eq!(batch.input_notes().len(), 0);
+        assert_eq!(batch.output_notes().len(), 0);
+        assert_eq!(batch.output_notes_tree().num_leaves(), 0);
+        assert_eq!(
+            batch.account_updates().get(&account1.id()).unwrap().final_state_commitment(),
+            account1.hash()
+        );
+        assert_eq!(
+            batch.account_updates().get(&account2.id()).unwrap().final_state_commitment(),
+            account2.hash()
+        );
 
         Ok(())
     }

@@ -68,6 +68,11 @@ impl ProvenBatch {
         &self.account_updates
     }
 
+    /// Returns the slice of [`InputNoteCommitment`]s of this batch.
+    pub fn input_notes(&self) -> &[InputNoteCommitment] {
+        &self.input_notes
+    }
+
     /// Returns the output notes of the batch.
     ///
     /// This is the aggregation of all output notes by the transactions in the batch, except the
