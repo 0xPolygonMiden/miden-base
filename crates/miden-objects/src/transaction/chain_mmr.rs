@@ -1,7 +1,6 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::utils::{Deserializable, Serializable};
-use vm_processor::Digest;
 
 use crate::{
     block::{BlockHeader, BlockNumber},

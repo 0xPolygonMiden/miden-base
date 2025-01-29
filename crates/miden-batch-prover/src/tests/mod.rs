@@ -10,7 +10,7 @@ use miden_objects::{
     note::{Note, NoteInclusionProof, NoteType},
     testing::{account_id::AccountIdBuilder, note::NoteBuilder},
     transaction::{ChainMmr, InputNote, OutputNote},
-    BatchAccountUpdateError,
+    BatchAccountUpdateError, BatchError,
 };
 use miden_tx::testing::{Auth, MockChain};
 use rand::{rngs::SmallRng, SeedableRng};
@@ -89,12 +89,13 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
         .unauthenticated_notes(vec![note.clone()])
         .build()?;
 
-    let batch = LocalBatchProver::prove(ProposedBatch::new(
+    let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block2.header(),
         chain.chain(),
         BTreeMap::default(),
-    ))?;
+    )
+    .and_then(|batch| LocalBatchProver::prove(batch))?;
 
     assert_eq!(batch.input_notes().len(), 0);
     assert_eq!(batch.output_notes().len(), 0);
@@ -120,12 +121,12 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
         .unauthenticated_notes(vec![note.clone()])
         .build()?;
 
-    let error = LocalBatchProver::prove(ProposedBatch::new(
+    let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
         chain.chain(),
         BTreeMap::default(),
-    ))
+    )
     .unwrap_err();
 
     assert_matches!(error, BatchError::DuplicateInputNote {
