@@ -18,6 +18,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ProposedBatch {
     transactions: Vec<Arc<ProvenTransaction>>,
+    /// The header is boxed as it has a large stack size.
     block_header: Box<BlockHeader>,
     /// The chain MMR used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
@@ -42,37 +43,57 @@ impl ProposedBatch {
     ///
     /// # Inputs
     ///
-    /// TODO
-    /// - Chain length <-> block header relationship
+    /// - The chain MMR should contain all block headers
+    ///   - that are referenced by note inclusion proofs in `authenticatable_unauthenticated_notes`.
+    ///   - that are referenced by a transaction in the batch.
+    /// - The `authenticatable_unauthenticated_notes` should contain [`NoteInclusionProof`]s for any
+    ///   unauthenticated note consumed by the transaction's in the batch which can be
+    ///   authenticated. This means it is not required that every unauthenticated note has an entry
+    ///   in this map for two reasons.
+    ///     - Unauthenticated note authentication can be delayed to the block kernel.
+    ///     - Another transaction in the batch produces the unauthenticated input note, in which
+    ///       case inclusion in the chain must not be proven.
+    /// - The block header's block number must be greater or equal to the highest block number
+    ///   referenced by any transaction. This is not verified explicitly, but will implicitly cause
+    ///   an error during validating that each reference block of a transaction is in the chain MMR.
     ///
     /// # Errors
     ///
     /// Returns an error if:
     ///
+    /// - The chain MMRs chain length does not match the block header's block number. This means the
+    ///   chain MMR should not contain the block header itself as it is added to the MMR in the
+    ///   batch kernel.
+    /// - The chain MMRs hashed peaks do not match the block header's chain root.
+    /// - The reference block of any transaction is not in the chain MMR.
+    /// - The note inclusion proof for an unauthenticated note fails to verify.
+    /// - The block referenced by a note inclusion proof for an unauthenticated note is missing from
+    ///   the chain MMR.
     /// - The transactions in the proposed batch which update the same account are not correctly
     ///   ordered. That is, if two transactions A and B update the same account in this order,
     ///   meaning B's initial account state commitment matches the final account state commitment of
     ///   A, then A must come before B in the [`ProposedBatch`].
-    /// - If any note is consumed twice.
-    /// - If any note is created more than once.
-    /// - TODO
+    /// - Any note is consumed twice.
+    /// - Any note is created more than once.
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         block_header: BlockHeader,
-        block_chain: ChainMmr,
+        chain_mmr: ChainMmr,
         authenticatable_unauthenticated_notes: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, BatchError> {
+        // TODO: Check max num tranactions in batch.
+
         // Verify block header and chain MMR match.
         // --------------------------------------------------------------------------------------------
 
-        if block_chain.chain_length() != block_header.block_num() {
+        if chain_mmr.chain_length() != block_header.block_num() {
             return Err(BatchError::InconsistentChainLength {
                 expected: block_header.block_num(),
-                actual: block_chain.chain_length(),
+                actual: chain_mmr.chain_length(),
             });
         }
 
-        let hashed_peaks = block_chain.peaks().hash_peaks();
+        let hashed_peaks = chain_mmr.peaks().hash_peaks();
         if hashed_peaks != block_header.chain_root() {
             return Err(BatchError::InconsistentChainRoot {
                 expected: block_header.chain_root(),
@@ -85,7 +106,7 @@ impl ProposedBatch {
 
         // Aggregate block references into a set since the chain MMR does not index by hash.
         let mut block_references =
-            BTreeSet::from_iter(block_chain.block_headers_iter().map(BlockHeader::hash));
+            BTreeSet::from_iter(chain_mmr.block_headers_iter().map(BlockHeader::hash));
         // Insert the block referenced by the batch to consider it authenticated. We can assume this
         // because the block kernel will verify the block hash as it is a public input to the batch
         // kernel.
@@ -165,7 +186,6 @@ impl ProposedBatch {
 
         // Remove all output notes from the batch output note set that are consumed by transactions.
         //
-        // One thing to note:
         // This still allows transaction `A` to consume an unauthenticated note `x` and output note
         // `y` and for transaction `B` to consume an unauthenticated note `y` and output
         // note `x` (i.e., have a circular dependency between transactions).
@@ -193,7 +213,7 @@ impl ProposedBatch {
                             authenticatable_unauthenticated_notes.get(&input_note_header.id())
                         {
                             let note_block_header =
-                                block_chain.get_block(proof.location().block_num()).ok_or_else(
+                                chain_mmr.get_block(proof.location().block_num()).ok_or_else(
                                     || BatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
                                         block_number: proof.location().block_num(),
                                         note_id: input_note_header.id(),
@@ -221,6 +241,8 @@ impl ProposedBatch {
         let output_notes = output_notes.into_notes();
 
         // Build the output notes SMT.
+        // --------------------------------------------------------------------------------------------
+
         let output_notes_tree = BatchNoteTree::with_contiguous_leaves(
             output_notes.iter().map(|note| (note.id(), note.metadata())),
         )
@@ -230,7 +252,7 @@ impl ProposedBatch {
             id,
             transactions,
             block_header: Box::new(block_header),
-            block_chain,
+            block_chain: chain_mmr,
             authenticatable_unauthenticated_notes,
             account_updates,
             batch_expiration_block_num,

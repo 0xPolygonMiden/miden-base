@@ -514,3 +514,7 @@ fn batch_expiration() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+// TODO: Add a test with a circular dependency between notes, e.g.
+// TX 1: Inputs [X] -> Outputs [Y]
+// TX 2: Inputs [Y] -> Outputs [X]
