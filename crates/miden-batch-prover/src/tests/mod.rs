@@ -74,8 +74,7 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
         block2.header(),
         chain.chain(),
         BTreeMap::default(),
-    )
-    .and_then(LocalBatchProver::prove)?;
+    )?;
 
     assert_eq!(batch.input_notes().len(), 0);
     assert_eq!(batch.output_notes().len(), 0);
@@ -317,8 +316,7 @@ fn unauthenticated_note_converted_authenticated() -> anyhow::Result<()> {
         block4.header(),
         chain_mmr,
         BTreeMap::from_iter([(input_note1.id(), note_inclusion_proof1.clone())]),
-    )
-    .and_then(LocalBatchProver::prove)?;
+    )?;
 
     // We expect the unauthenticated input note to have become an authenticated one,
     // meaning it is part of the input note commitment.
@@ -361,8 +359,7 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
         block2.header(),
         chain.chain(),
         BTreeMap::default(),
-    )
-    .and_then(LocalBatchProver::prove)?;
+    )?;
 
     assert_eq!(batch.input_notes().len(), 1);
     assert_eq!(batch.output_notes().len(), 1);
@@ -400,8 +397,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
         block1,
         chain.chain(),
         BTreeMap::default(),
-    )
-    .and_then(LocalBatchProver::prove)?;
+    )?;
 
     assert_eq!(batch.account_updates().len(), 1);
     // Assert that the initial state commitment from tx1 is used and the final state commitment
@@ -467,8 +463,7 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
         block1,
         chain.chain(),
         BTreeMap::default(),
-    )
-    .and_then(LocalBatchProver::prove)?;
+    )?;
 
     // We expecte note1 to be erased from the input/output notes as it is created and consumed
     // in the batch.
@@ -513,8 +508,7 @@ fn batch_expiration() -> anyhow::Result<()> {
         block1,
         chain.chain(),
         BTreeMap::default(),
-    )
-    .and_then(LocalBatchProver::prove)?;
+    )?;
 
     assert_eq!(batch.batch_expiration_block_num(), BlockNumber::from(30));
 

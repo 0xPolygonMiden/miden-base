@@ -61,7 +61,7 @@ pub fn prove_and_verify_transaction(
     // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(miden_objects::MIN_PROOF_SECURITY_LEVEL);
 
-    verifier.verify(proven_transaction)
+    verifier.verify(&proven_transaction)
 }
 
 #[cfg(test)]

@@ -17,7 +17,6 @@ use crate::{
 /// A proposed batch of transactions with all necessary data to validate it.
 #[derive(Debug, Clone)]
 pub struct ProposedBatch {
-    id: BatchId,
     transactions: Vec<Arc<ProvenTransaction>>,
     block_header: Box<BlockHeader>,
     /// The chain MMR used to authenticate:
@@ -27,10 +26,11 @@ pub struct ProposedBatch {
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
     authenticatable_unauthenticated_notes: BTreeMap<NoteId, NoteInclusionProof>,
-    updated_accounts: BTreeMap<AccountId, BatchAccountUpdate>,
+    id: BatchId,
+    account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
     batch_expiration_block_num: BlockNumber,
     input_notes: Vec<InputNoteCommitment>,
-    output_notes_smt: BatchNoteTree,
+    output_notes_tree: BatchNoteTree,
     output_notes: Vec<OutputNote>,
 }
 
@@ -110,11 +110,11 @@ impl ProposedBatch {
         // --------------------------------------------------------------------------------------------
 
         // Populate batch output notes and updated accounts.
-        let mut updated_accounts = BTreeMap::<AccountId, BatchAccountUpdate>::new();
+        let mut account_updates = BTreeMap::<AccountId, BatchAccountUpdate>::new();
         let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
         for tx in transactions.iter() {
             // Merge account updates so that state transitions A->B->C become A->C.
-            match updated_accounts.entry(tx.account_id()) {
+            match account_updates.entry(tx.account_id()) {
                 Entry::Vacant(vacant) => {
                     let batch_account_update = BatchAccountUpdate::new(
                         tx.account_id(),
@@ -221,7 +221,7 @@ impl ProposedBatch {
         let output_notes = output_notes.into_notes();
 
         // Build the output notes SMT.
-        let output_notes_smt = BatchNoteTree::with_contiguous_leaves(
+        let output_notes_tree = BatchNoteTree::with_contiguous_leaves(
             output_notes.iter().map(|note| (note.id(), note.metadata())),
         )
         .expect("output note tracker should return an error for duplicate notes");
@@ -232,31 +232,61 @@ impl ProposedBatch {
             block_header: Box::new(block_header),
             block_chain,
             authenticatable_unauthenticated_notes,
-            updated_accounts,
+            account_updates,
             batch_expiration_block_num,
             input_notes,
             output_notes,
-            output_notes_smt,
+            output_notes_tree,
         })
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the ID of this batch.
-    pub fn id(&self) -> BatchId {
-        self.id
-    }
-
     /// Returns a slice of the [`ProvenTransaction`]s in the batch.
     pub fn transactions(&self) -> &[Arc<ProvenTransaction>] {
         &self.transactions
     }
 
-    /// Returns the note inclusion proofs for unauthenticated notes that were consumed in the batch
-    /// which can be authenticated.
-    pub fn note_inclusion_proofs(&self) -> &BTreeMap<NoteId, NoteInclusionProof> {
-        &self.authenticatable_unauthenticated_notes
+    /// Returns the map of account IDs mapped to their [`BatchAccountUpdate`]s.
+    ///
+    /// If an account was updated by multiple transactions, the [`BatchAccountUpdate`] is the result
+    /// of merging the individual updates.
+    ///
+    /// For example, suppose an account's state before this batch is `A` and the batch contains two
+    /// transactions that updated it. Applying the first transaction results in intermediate state
+    /// `B`, and applying the second one results in state `C`. Then the returned update represents
+    /// the state transition from `A` to `C`.
+    pub fn account_updates(&self) -> &BTreeMap<AccountId, BatchAccountUpdate> {
+        &self.account_updates
+    }
+
+    /// The ID of this batch. See [`BatchId`] for details on how it is computed.
+    pub fn id(&self) -> BatchId {
+        self.id
+    }
+
+    /// Returns the block number at which the batch will expire.
+    pub fn batch_expiration_block_num(&self) -> BlockNumber {
+        self.batch_expiration_block_num
+    }
+
+    /// Returns the slice of [`InputNoteCommitment`]s of this batch.
+    pub fn input_notes(&self) -> &[InputNoteCommitment] {
+        &self.input_notes
+    }
+
+    /// Returns the output notes of the batch.
+    ///
+    /// This is the aggregation of all output notes by the transactions in the batch, except the
+    /// ones that were consumed within the batch itself.
+    pub fn output_notes(&self) -> &[OutputNote] {
+        &self.output_notes
+    }
+
+    /// Returns the [`BatchNoteTree`] representing the output notes of the batch.
+    pub fn output_notes_tree(&self) -> &BatchNoteTree {
+        &self.output_notes_tree
     }
 
     /// Consumes the proposed batch and returns its underlying parts.
@@ -281,9 +311,9 @@ impl ProposedBatch {
             self.block_chain,
             self.authenticatable_unauthenticated_notes,
             self.id,
-            self.updated_accounts,
+            self.account_updates,
             self.input_notes,
-            self.output_notes_smt,
+            self.output_notes_tree,
             self.output_notes,
             self.batch_expiration_block_num,
         )
