@@ -1,6 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use vm_core::utils::{Deserializable, Serializable};
+use vm_processor::Digest;
 
 use crate::{
     block::{BlockHeader, BlockNumber},
@@ -45,7 +46,6 @@ impl ChainMmr {
     /// - The partial MMR does not track authentication paths for any of the specified blocks.
     pub fn new(mmr: PartialMmr, blocks: Vec<BlockHeader>) -> Result<Self, ChainMmrError> {
         let chain_length = mmr.forest();
-
         let mut block_map = BTreeMap::new();
         for block in blocks.into_iter() {
             if block.block_num().as_usize() >= chain_length {
@@ -89,6 +89,11 @@ impl ChainMmr {
     /// this chain MMR.
     pub fn get_block(&self, block_num: BlockNumber) -> Option<&BlockHeader> {
         self.blocks.get(&block_num)
+    }
+
+    /// Returns an iterator over the block headers in this chain MMR.
+    pub fn block_headers_iter(&self) -> impl Iterator<Item = &BlockHeader> {
+        self.blocks.values()
     }
 
     // DATA MUTATORS

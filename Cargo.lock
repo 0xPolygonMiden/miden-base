@@ -1827,6 +1827,7 @@ dependencies = [
  "miden-lib",
  "miden-objects",
  "miden-processor",
+ "miden-tx",
  "miden-verifier",
  "rand",
  "thiserror 2.0.11",

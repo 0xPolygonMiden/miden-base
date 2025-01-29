@@ -782,7 +782,11 @@ impl MockChain {
 
     /// Gets the latest [ChainMmr].
     pub fn chain(&self) -> ChainMmr {
-        let block_headers: Vec<BlockHeader> = self.blocks.iter().map(|b| b.header()).collect();
+        // We cannot pass the latest block as that would violate the condition in the transaction
+        // inputs that the chain length of the mmr must match the number of the reference block.
+        let block_headers: Vec<BlockHeader> =
+            self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).collect();
+
         mmr_to_chain_mmr(&self.chain, &block_headers).unwrap()
     }
 

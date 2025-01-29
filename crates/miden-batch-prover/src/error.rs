@@ -40,4 +40,19 @@ pub enum BatchError {
 
     #[error("unauthenticated input note with id {note_id} for which an inclusion proof was provided was not created in block {block_num}")]
     UnauthenticatedNoteAuthenticationFailed { note_id: NoteId, block_num: BlockNumber },
+
+    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
+    InconsistentChainLength {
+        expected: BlockNumber,
+        actual: BlockNumber,
+    },
+
+    #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
+    InconsistentChainRoot { expected: Digest, actual: Digest },
+
+    #[error("block {block_reference} referenced by transaction {transaction_id} is not in the chain mmr")]
+    MissingTransactionBlockReference {
+        block_reference: Digest,
+        transaction_id: TransactionId,
+    },
 }

@@ -14,3 +14,6 @@ pub use local_batch_prover::LocalBatchProver;
 
 #[cfg(test)]
 pub mod testing;
+
+#[cfg(test)]
+mod tests;
