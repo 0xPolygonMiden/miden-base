@@ -479,8 +479,20 @@ pub enum BatchError {
         source: BatchAccountUpdateError,
     },
 
-    #[error("unauthenticated input note with id {note_id} for which an inclusion proof was provided was not created in block {block_num}")]
-    UnauthenticatedNoteAuthenticationFailed { note_id: NoteId, block_num: BlockNumber },
+    #[error("unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
+    UnauthenticatedInputNoteBlockNotInChainMmr {
+        block_number: BlockNumber,
+        note_id: NoteId,
+    },
+
+    #[error(
+        "unable to prove unauthenticated note inclusion of note {note_id} in block {block_num}"
+    )]
+    UnauthenticatedNoteAuthenticationFailed {
+        note_id: NoteId,
+        block_num: BlockNumber,
+        source: MerkleError,
+    },
 
     #[error("chain mmr has length {actual} which does not match block number {expected} ")]
     InconsistentChainLength {

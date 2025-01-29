@@ -1,13 +1,14 @@
 use alloc::sync::Arc;
 use std::collections::BTreeMap;
 
-use miden_crypto::merkle::{MerklePath, MmrPeaks, PartialMmr};
-use miden_lib::{account::wallets::BasicWallet, transaction::TransactionKernel};
+use anyhow::Context;
+use miden_crypto::merkle::MerkleError;
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    account::{Account, AccountBuilder, AccountId},
+    account::{Account, AccountId},
     batch::ProposedBatch,
-    block::{BlockHeader, BlockNumber},
-    note::{Note, NoteInclusionProof, NoteType},
+    block::BlockNumber,
+    note::{Note, NoteType},
     testing::{account_id::AccountIdBuilder, note::NoteBuilder},
     transaction::{ChainMmr, InputNote, InputNoteCommitment, OutputNote},
     BatchAccountUpdateError, BatchError,
@@ -20,24 +21,8 @@ use vm_processor::Digest;
 use super::*;
 use crate::testing::MockProvenTxBuilder;
 
-fn mock_chain_mmr() -> ChainMmr {
-    ChainMmr::new(PartialMmr::from_peaks(MmrPeaks::new(0, vec![]).unwrap()), vec![]).unwrap()
-}
-
-fn mock_block_header(block_num: u32) -> BlockHeader {
-    let chain_root = mock_chain_mmr().peaks().hash_peaks();
-    BlockHeader::mock(block_num, Some(chain_root), None, &[], Digest::default())
-}
-
 fn mock_account_id(num: u8) -> AccountId {
     AccountIdBuilder::new().build_with_rng(&mut SmallRng::from_seed([num; 32]))
-}
-
-fn mock_wallet_account(num: u8) -> Account {
-    AccountBuilder::new([num; 32])
-        .with_component(BasicWallet)
-        .build_existing()
-        .unwrap()
 }
 
 pub fn mock_note(num: u8) -> Note {
@@ -49,10 +34,6 @@ pub fn mock_note(num: u8) -> Note {
 
 pub fn mock_output_note(num: u8) -> OutputNote {
     OutputNote::Full(mock_note(num))
-}
-
-pub fn mock_proof(node_index: u16) -> NoteInclusionProof {
-    NoteInclusionProof::new(BlockNumber::from(0), node_index, MerklePath::new(vec![])).unwrap()
 }
 
 struct TestSetup {
@@ -260,7 +241,7 @@ fn unauthenticated_note_converted_authenticated() -> anyhow::Result<()> {
     let note0 = chain.add_p2id_note(account2.id(), account1.id(), &[], NoteType::Private, None)?;
     let note1 = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     // The just created note will be provable against block2.
-    let _block2 = chain.seal_block(None);
+    let block2 = chain.seal_block(None);
     let block3 = chain.seal_block(None);
     let block4 = chain.seal_block(None);
 
@@ -280,7 +261,9 @@ fn unauthenticated_note_converted_authenticated() -> anyhow::Result<()> {
     // inclusion proofs need for verification.
     let chain_mmr = chain.chain();
 
-    // Error: A wrong proof is passed.
+    // Case 1: Error: A wrong proof is passed.
+    // --------------------------------------------------------------------------------------------
+
     let error = ProposedBatch::new(
         [tx1.clone()].into_iter().map(Arc::new).collect(),
         block4.header(),
@@ -291,11 +274,44 @@ fn unauthenticated_note_converted_authenticated() -> anyhow::Result<()> {
 
     assert_matches!(error, BatchError::UnauthenticatedNoteAuthenticationFailed {
         note_id,
-        block_num
-      } if note_id == note1.id()
+        block_num,
+        source: MerkleError::ConflictingRoots { .. },
+      } if note_id == note1.id() &&
+        block_num == block2.header().block_num()
     );
 
-    // Success: The correct proof is passed.
+    // Case 2: Error: The block referenced by the (valid) note inclusion proof is missing.
+    // --------------------------------------------------------------------------------------------
+
+    // Make a clone of the chain mmr where block2 is missing.
+    let mut mmr = chain_mmr.mmr().clone();
+    mmr.untrack(block2.header().block_num().as_usize());
+    let blocks = chain_mmr
+        .block_headers_iter()
+        .filter(|header| header.block_num() != block2.header().block_num())
+        .copied()
+        .collect();
+
+    let error = ProposedBatch::new(
+        [tx1.clone()].into_iter().map(Arc::new).collect(),
+        block4.header(),
+        ChainMmr::new(mmr, blocks).context("failed to build chain mmr with missing block")?,
+        BTreeMap::from_iter([(input_note1.id(), note_inclusion_proof1.clone())]),
+    )
+    .unwrap_err();
+
+    assert_matches!(
+        error,
+        BatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
+          block_number,
+          note_id
+        } if block_number == note_inclusion_proof1.location().block_num() &&
+          note_id == input_note1.id()
+    );
+
+    // Case 3: Success: The correct proof is passed.
+    // --------------------------------------------------------------------------------------------
+
     let batch = ProposedBatch::new(
         [tx1].into_iter().map(Arc::new).collect(),
         block4.header(),

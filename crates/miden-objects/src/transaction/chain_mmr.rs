@@ -66,6 +66,11 @@ impl ChainMmr {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the underlying [`PartialMmr`].
+    pub fn mmr(&self) -> &PartialMmr {
+        &self.mmr
+    }
+
     /// Returns peaks of this MMR.
     pub fn peaks(&self) -> MmrPeaks {
         self.mmr.peaks()

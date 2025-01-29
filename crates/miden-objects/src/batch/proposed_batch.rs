@@ -189,10 +189,23 @@ impl ProposedBatch {
                         // If an inclusion proof for an unauthenticated note is provided and the
                         // proof is valid, it means the note is part of the chain and we can mark it
                         // as authenticated by erasing the note header.
-                        if authenticatable_unauthenticated_notes
-                            .contains_key(&input_note_header.id())
+                        if let Some(proof) =
+                            authenticatable_unauthenticated_notes.get(&input_note_header.id())
                         {
-                            // authenticate_unauthenticated_note
+                            let note_block_header =
+                                block_chain.get_block(proof.location().block_num()).ok_or_else(
+                                    || BatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
+                                        block_number: proof.location().block_num(),
+                                        note_id: input_note_header.id(),
+                                    },
+                                )?;
+
+                            authenticate_unauthenticated_note(
+                                input_note_header,
+                                proof,
+                                note_block_header,
+                            )?;
+
                             // Erase the note header from the input note.
                             InputNoteCommitment::from(input_note.nullifier())
                         } else {
@@ -355,4 +368,26 @@ impl BatchOutputNoteTracker {
     pub fn into_notes(self) -> Vec<OutputNote> {
         self.output_notes.into_iter().map(|(_, (_, output_note))| output_note).collect()
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Validates whether the provided unauthenticated note belongs to the note tree of the specified
+/// block header.
+fn authenticate_unauthenticated_note(
+    note_header: &NoteHeader,
+    proof: &NoteInclusionProof,
+    block_header: &BlockHeader,
+) -> Result<(), BatchError> {
+    let note_index = proof.location().node_index_in_block().into();
+    let note_hash = note_header.hash();
+    proof
+        .note_path()
+        .verify(note_index, note_hash, &block_header.note_root())
+        .map_err(|source| BatchError::UnauthenticatedNoteAuthenticationFailed {
+            note_id: note_header.id(),
+            block_num: proof.location().block_num(),
+            source,
+        })
 }
