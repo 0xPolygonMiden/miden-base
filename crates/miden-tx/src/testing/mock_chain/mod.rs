@@ -805,6 +805,11 @@ impl MockChain {
         self.available_notes.values().cloned().collect()
     }
 
+    /// Returns the map of note IDs to consumable input notes.
+    pub fn available_notes_map(&self) -> &BTreeMap<NoteId, InputNote> {
+        &self.available_notes
+    }
+
     /// Get the reference to the accounts hash tree.
     pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
         &self.accounts

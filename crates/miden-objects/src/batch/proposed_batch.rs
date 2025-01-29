@@ -14,21 +14,6 @@ use crate::{
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
 };
 
-pub type BatchInputs = (
-    Vec<Arc<ProvenTransaction>>,
-    Box<BlockHeader>,
-    ChainMmr,
-    BTreeMap<NoteId, NoteInclusionProof>,
-);
-pub type DerivedBatchInputs = (
-    BatchId,
-    BTreeMap<AccountId, BatchAccountUpdate>,
-    Vec<InputNoteCommitment>,
-    BatchNoteTree,
-    Vec<OutputNote>,
-    BlockNumber,
-);
-
 /// A proposed batch of transactions with all necessary data to validate it.
 #[derive(Debug, Clone)]
 pub struct ProposedBatch {
