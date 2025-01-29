@@ -12,6 +12,8 @@ use crate::{
     errors::BatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
+    MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_INPUT_NOTES_PER_TX,
+    MAX_OUTPUT_NOTES_PER_BATCH,
 };
 
 /// A proposed batch of transactions with all necessary data to validate it.
@@ -61,6 +63,14 @@ impl ProposedBatch {
     ///
     /// Returns an error if:
     ///
+    /// - The number of input notes exceeds [`MAX_INPUT_NOTES_PER_BATCH`].
+    ///   - Note that unauthenticated notes that are created in the same batch do not count. Any
+    ///     other notes, unauthenticated or not, do count.
+    /// - The number of output notes exceeds [`MAX_OUTPUT_NOTES_PER_BATCH`].
+    ///   - Note that notes that are consumed in the same batch as unauthenticated notes do not
+    ///     count.
+    /// - The number of account updates exceeds [`MAX_ACCOUNTS_PER_BATCH`].
+    ///   - Note that any number of transactions against the same account count as one update.
     /// - The chain MMRs chain length does not match the block header's block number. This means the
     ///   chain MMR should not contain the block header itself as it is added to the MMR in the
     ///   batch kernel.
@@ -81,8 +91,6 @@ impl ProposedBatch {
         chain_mmr: ChainMmr,
         authenticatable_unauthenticated_notes: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, BatchError> {
-        // TODO: Check max num tranactions in batch.
-
         // Verify block header and chain MMR match.
         // --------------------------------------------------------------------------------------------
 
@@ -158,6 +166,10 @@ impl ProposedBatch {
             // The expiration block of the batch is the minimum of all transaction's expiration
             // block.
             batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
+        }
+
+        if account_updates.len() > MAX_ACCOUNTS_PER_BATCH {
+            return Err(BatchError::TooManyAccountUpdates(account_updates.len()));
         }
 
         // Check for duplicates in input notes.
@@ -239,6 +251,14 @@ impl ProposedBatch {
         }
 
         let output_notes = output_notes.into_notes();
+
+        if input_notes.len() > MAX_INPUT_NOTES_PER_BATCH {
+            return Err(BatchError::TooManyInputNotes(input_notes.len()));
+        }
+
+        if output_notes.len() > MAX_OUTPUT_NOTES_PER_BATCH {
+            return Err(BatchError::TooManyOutputNotes(output_notes.len()));
+        }
 
         // Build the output notes SMT.
         // --------------------------------------------------------------------------------------------

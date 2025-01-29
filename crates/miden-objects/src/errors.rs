@@ -23,7 +23,8 @@ use crate::{
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     transaction::TransactionId,
-    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_ACCOUNTS_PER_BATCH, MAX_INPUTS_PER_NOTE,
+    MAX_INPUT_NOTES_PER_BATCH, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT COMPONENT TEMPLATE ERROR
@@ -452,6 +453,21 @@ pub enum ProvenTransactionError {
 
 #[derive(Debug, Error)]
 pub enum BatchError {
+    #[error(
+        "transaction batch has {0} input notes but at most {MAX_INPUT_NOTES_PER_BATCH} are allowed"
+    )]
+    TooManyInputNotes(usize),
+
+    #[error(
+        "transaction batch has {0} output notes but at most {MAX_OUTPUT_NOTES_PER_BATCH} are allowed"
+    )]
+    TooManyOutputNotes(usize),
+
+    #[error(
+      "transaction batch has {0} account updates but at most {MAX_ACCOUNTS_PER_BATCH} are allowed"
+  )]
+    TooManyAccountUpdates(usize),
+
     #[error("transaction {second_transaction_id} consumes the note with nullifier {note_nullifier} that is also consumed by another transaction {first_transaction_id} in the batch")]
     DuplicateInputNote {
         note_nullifier: Nullifier,
