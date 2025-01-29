@@ -40,9 +40,21 @@ proc.add_note_assets_to_account
     while.true
         ...
 
-        # load the asset and add it to the account
-        mem_loadw call.wallet::receive_asset
+        # load the asset
+        mem_loadw
         # => [ASSET, ptr, end_ptr, ...]
+        
+        # pad the stack before call
+        padw swapw padw padw swapdw
+        # => [ASSET, pad(12), ptr, end_ptr, ...]
+
+        # add asset to the account
+        call.wallet::receive_asset
+        # => [pad(16), ptr, end_ptr, ...]
+
+        # clean the stack after call
+        dropw dropw dropw
+        # => [0, 0, 0, 0, ptr, end_ptr, ...]
         ...
     end
     ...
@@ -64,7 +76,7 @@ The [account API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-l
 #! Add the specified asset to the vault.
 #! ...
 export.add_asset
-    exec.kernel_proc_offsets::account_vault_add_asset_offset
+    exec.kernel_proc_offsets::account_add_asset_offset
     syscall.exec_kernel_proc
 end
 ```

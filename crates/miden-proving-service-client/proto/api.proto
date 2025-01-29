@@ -1,0 +1,15 @@
+// Specification of the user facing gRPC API.
+syntax = "proto3";
+package api;
+
+service Api {
+    rpc ProveTransaction(ProveTransactionRequest) returns (ProveTransactionResponse) {}
+}
+
+message ProveTransactionRequest {
+    bytes transaction_witness = 1;
+}
+
+message ProveTransactionResponse {
+    bytes proven_transaction = 1;
+}

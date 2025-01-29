@@ -3,15 +3,14 @@ use std::{
     fs::{read_to_string, write, File},
     io::Write,
     path::Path,
-    sync::Arc,
 };
 
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::AccountId,
-    assets::{Asset, FungibleAsset},
+    account::{AccountId, AccountStorageMode, AccountType},
+    asset::{Asset, FungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::NoteType,
+    note::NoteType,
     transaction::{TransactionArgs, TransactionMeasurements, TransactionScript},
     Felt,
 };
@@ -21,8 +20,8 @@ use vm_processor::ONE;
 mod utils;
 use utils::{
     get_account_with_basic_authenticated_wallet, get_new_pk_and_authenticator,
-    write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+    write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER,
+    DEFAULT_AUTH_SCRIPT,
 };
 pub enum Benchmark {
     Simple,
@@ -76,7 +75,7 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
         .collect::<Vec<_>>();
 
     let executor: TransactionExecutor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), None).with_tracing();
+        TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .map_err(|e| e.to_string())?;
@@ -93,17 +92,20 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     // Create sender and target account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
-    let target_account =
-        get_account_with_basic_authenticated_wallet(target_account_id, target_pub_key, None);
+    let target_account = get_account_with_basic_authenticated_wallet(
+        [10; 32],
+        AccountType::RegularAccountUpdatableCode,
+        AccountStorageMode::Private,
+        target_pub_key,
+        None,
+    );
 
     // Create the note
     let note = create_p2id_note(
         sender_account_id,
-        target_account_id,
+        target_account.id(),
         vec![fungible_asset],
         NoteType::Public,
         Felt::new(0),
@@ -115,9 +117,8 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
         .input_notes(vec![note.clone()])
         .build();
 
-    let executor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), Some(falcon_auth.clone()))
-            .with_tracing();
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), Some(falcon_auth.clone()))
+        .with_tracing();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -134,7 +135,7 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
 
     // execute transaction
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args_target)
         .unwrap();
 
     Ok(executed_transaction.into())
