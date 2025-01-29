@@ -4,74 +4,32 @@
 
 ## What is the purpose of a transaction?
 
-To facilitate single account state transitions
+To facilitate single account state transitions.
 
 ## What is a transaction?
 
-In Miden, a `Transaction` represents the state transition of a single account 
+In Miden, a `Transaction` represents the state transition of a single account. A `Transaction` takes a single [account](accounts.md) and one or more [notes](notes.md), and none or one script (piece of code executed after all notes have been executed) as input, and outputs the same account with a potentially updated state, together with some potential newly created notes.
 
-## Architecture overview
+![Transaction diagram](../img/architecture/transaction/transaction-diagram.png)
 
-The Miden transaction architecture comprises a set of components that interact with each other. This section of the documentation discusses each component.
+## Transaction core components
 
-The diagram shows the components responsible for Miden transactions and how they fit together.
+WIP
 
-<p style="text-align: center;">
-    <img src="../../img/architecture/transaction/tx-overview.png" alt="Transactions architecture overview"/>
-</p>
+## Transaction architecture
 
-> **Tip**
-> - The [transaction executor](execution.md) prepares, executes, and proves transactions. 
-> - The executor compiles the [transaction kernel](kernel.md) plus user-defined notes and transaction scripts into a single executable program for the Miden VM.
-> - Users write scripts using [kernel procedures](procedures.md) and [contexts](contexts.md).
-
-## Miden transactions
-
-Transactions in Miden facilitate single account state changes. Miden requires two transactions to transfer assets between accounts.
-
-A transaction takes a single account and some [notes](../notes.md) as input, and outputs the same account with a new state, together with some other notes.
-
-Miden aims for the following:
+Miden aims for the following characteristics in `Transaction`s:
 
 - **Parallel transaction execution**: Because a transaction is always performed against a single account, Miden obtains asynchronicity. 
-- **Private transaction execution**: Because every transaction emits a state-change with a STARK proof, there is privacy when the transaction executes locally.
+- **Private transaction execution**: Local execution of transactions enables preservation of sensitive data.
 
 There are two types of transactions in Miden: **local transactions** and **network transactions**.
 
-## Transaction design
-
-Transactions describe the state-transition of a single account that takes chain data and `0 to 1024` notes as input and produces a `TransactionWitness` and `0 to 1024` notes as output.
-
-![Transaction diagram](../../img/architecture/transaction/transaction-diagram.png){ width="75%" }
-
-At its core, a transaction is an executable program—the transaction kernel program—that processes the provided inputs and creates the requested outputs. Because the program is executed by the Miden VM, a STARK-proof is generated for every transaction.
-
-## Asset transfer using two transactions
-
-Transferring assets between accounts requires two transactions as shown in the diagram below.
-
-![Transaction flow](../../img/architecture/transaction/transaction-flow.png)
-
-The first transaction invokes some functions on `account_a` (e.g. `create_note` and `move_asset_to_note` functions) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g. a `receive_asset` function) which updates the internal state of `account_b`.
-
-### Asynchronous execution
-
-Both transactions can be executed asynchronously: first `transaction1` is executed, and then, some time later, `transaction2` is executed. 
-
-This opens up a few interesting possibilities:
-
-- The owner of `account_b` may wait until they receive many notes and process them all in a single transaction.
-- A note script may include a clause which allows the source account to consume the note after some time. Thus, if `account_b` does not consume the note after the specified time, the funds can be returned. This mechanism can be used to make sure funds sent to non-existent accounts are not lost (see the [P2IDR note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/P2IDR.masm)).
-- Neither the sender nor the recipient needs to know who the other side is. From the sender's perspective, they just need to create `note1` (and for this they need to know the assets to be transferred and the root of the note's script). They don't need any information on who will eventually consume the note. From the recipient's perspective, they just need to consume `note1`. They don't need to know who created it.
-- Both transactions can be executed "locally". For example, we could generate a zk-proof that `transaction1` was executed and submit it to the network. The network can verify the proof without the need for executing the transaction itself. The same can be done for `transaction2`. Moreover, we can mix and match. For example, `transaction1` can be executed locally, but `transaction2` can be executed on the network, or vice versa.
-
-## Local and network transactions
-
-![Local vs network transactions](../../img/architecture/transaction/local-vs-network-transaction.png)
+![Local vs network transactions](../img/architecture/transaction/local-vs-network-transaction.png)
 
 ### Local transactions
 
-This is where clients executing the transactions also generate the proofs of their correct execution. So, no additional work needs to be performed by the network. 
+This is where clients executing the transactions also generate the proofs of their correct execution. So, no additional work needs to be performed by the network.
 
 Local transactions are useful for several reasons:
 
@@ -81,276 +39,26 @@ Local transactions are useful for several reasons:
 
 ### Network transactions
 
-This is where the operator executes the transaction and generates the proofs. 
+This is where the operator executes the transaction and generates the proofs.
 
 Network transactions are useful for two reasons:
 
 1. Clients may not have sufficient resources to generate zk-proofs.
 2. Executing many transactions against the same public account by different clients is challenging, as the account state changes after every transaction. Due to this, the Miden node/operator acts as a "synchronizer" to execute transactions sequentially by feeding the output of the previous transaction into the input of the next.
 
----
+## Transaction lifecycle
 
-# Execution
+In Miden, every `Transaction` is executed within the Miden VM. Throughout its lifetime, a `Transaction` progresses through various phases:
 
-Polygon Miden is an Ethereum Rollup. It batches transactions - or more precisely, proofs - that occur in the same time period into a block. 
+1. **Compilation:** All `Transaction` inputs (account, notes, script) are compiled into an executable Miden program.
+2. **Execution:** The `Transaction` program is executed within the Miden VM, which produces outputs (updated account, notes).
+3. **Proving:** The executed `Transaction` is proven by the Miden prover.
 
-The Miden execution model describes how state progresses on an individual level via transactions and at the global level expressed as aggregated state updates in blocks.
-
-![Architecture core concepts](../img/architecture/execution/execution.png)
-
-## Transaction execution
-
-Every transaction results in a ZK proof that attests to its correctness.
-
-There are two types of transactions: local and network. For every transaction there is a proof which is either created by the user in the Miden client or by the operator using the Miden node.
-
-## Transaction batching
-
-To reduce the required space on the Ethereum blockchain, transaction proofs are aggregated into batches. This can happen in parallel on different machines that need to verify several proofs using the Miden VM and thus creating a proof. 
-
-Verifying a STARK proof within the VM is relatively efficient but it is still costly; we aim for 2<sup>16</sup> cycles.
-
-## Block production
-
-Several batch proofs are aggregated into one block. This cannot happen in parallel and must be done by the Miden operator running the Miden node. The idea is the same, using recursive verification.
-
-## State progress
-
-Miden has a centralized operator running a Miden node. Eventually, this will be a decentralized function.
-
-Users send either transaction proofs (using local execution) or transaction data (for network execution) to the Miden node. Then, the Miden node uses recursive verification to aggregate transaction proofs into batches.
-
-Batch proofs are aggregated into blocks by the Miden node. The blocks are then sent to Ethereum, and once a block is added to the L1 chain, the rollup chain is believed to have progressed to the next state.
-
-A block produced by the Miden node looks something like this:
-
-![Architecture core concepts](../img/architecture/execution/block.png)
-
-> **Tip: Block contents**
-> - **State updates** only contain the hashes of changes. For example, for each updated account, we record a tuple `([account id], [new account hash])`.
-> - **ZK Proof** attests that, given a state commitment from the previous block, there was a sequence of valid transactions executed that resulted in the new state commitment, and the output also included state updates.
-> - The block also contains full account and note data for public accounts and notes. For example, if account `123` is an updated public account which, in the **state updates** section we'd see a records for it as `(123, 0x456..)`. The full new state of this account (which should hash to `0x456..`) would be included in a separate section.
-
-### Verifying valid block state
-
-To verify that a block describes a valid state transition, we do the following:
-
-1. Compute hashes of public account and note states.
-2. Make sure these hashes match records in the *state updates* section.
-3. Verify the included ZKP against the following public inputs:
-   - State commitment from the previous block.
-   - State commitment from the current block.
-   - State updates from the current block.
-
-The above can be performed by a verifier contract on Ethereum L1.
-
-### Syncing to current state from genesis
-
-The block structure has another nice property. It is very easy for a new node to sync up to the current state from genesis. 
-
-The new node would need to do the following:
-
-1. Download only the first part of the blocks (i.e., without full account/note states) starting at the genesis up until the latest block.
-2. Verify all ZK proofs in the downloaded blocks. This is super quick (exponentially faster than re-executing original transactions) and can also be done in parallel.
-3. Download the current states of account, note, and nullifier databases.
-4. Verify that the downloaded current state matches the state commitment in the latest block.
-
-Overall, state sync is dominated by the time needed to download the data.
-
----
-
-# Transaction Kernel Program
-
-The transaction kernel program, written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html), is responsible for executing a Miden rollup transaction within the Miden VM. It is defined as a MASM [kernel](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#kernels).
-
-The kernel provides context-sensitive security, preventing unwanted read and write access. It defines a set of procedures which can be invoked from other [contexts](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#execution-contexts); e.g., notes executed in the root context.
-
-In general, the kernel's procedures must reflect everything users might want to do while executing transactions—from transferring assets to complex smart contract interactions with custom code.
+![Transaction execution process](../img/architecture/transaction/transaction-execution-process.png)
 
 > **Info**
-> - Learn more about Miden transaction [procedures](procedures.md) and [contexts](contexts.md).
+> - One of the main reasons for separating out the execution and proving steps is to allow _stateless provers_; i.e., the executed transaction has all the data it needs to re-execute and prove a transaction without database access. This supports easier proof-generation distribution.
 
-The kernel has a well-defined structure which does the following:
+## Conclusion
 
-1. The [prologue](#prologue) prepares the transaction for processing by parsing the transaction data and setting up the root context.
-2. Note processing executes the note processing loop which consumes each `InputNote` and invokes the note script of each note.
-3. Transaction script processing executes the optional transaction script.
-4. The [epilogue](#epilogue) finalizes the transaction by computing the output notes commitment, the final account hash, asserting asset invariant conditions, and asserting the nonce rules are upheld.
-
-![Transaction program](../../img/architecture/transaction/transaction-program.png)
-
-## Input
-
-The transaction kernel program receives two types of inputs: public inputs via the `operand_stack` and private inputs via the `advice_provider`.
-
-- **Operand stack**: Holds the global inputs which serve as a commitment to the data being provided via the advice provider.
-- **Advice provider**: Holds data of the last known block, account, and input note data.
-
-## Prologue
-
-The transaction prologue executes at the beginning of a transaction. It performs the following tasks:
-
-1. _Unhashes_ the inputs and lays them out in the root context memory.
-2. Builds a single vault (transaction vault) containing assets of all inputs (input notes and initial account state).
-3. Verifies that all input notes are present in the note DB.
-
-The memory layout is illustrated below. The kernel context has access to all memory slots.
-
-![Memory layout kernel](../../img/architecture/transaction/memory-layout-kernel.png)
-
-### Bookkeeping section
-
-Tracks variables used internally by the transaction kernel.
-
-### Global inputs
-
-Stored in pre-defined memory slots. Global inputs include the block hash, account ID, initial account hash, and nullifier commitment.
-
-### Block data
-
-Block data, read from the advice provider, is stored in memory. The block hash is computed and verified against the global inputs.
-
-### Chain data
-
-Chain root is recomputed and verified against the chain root in the block data section.
-
-### Account data
-
-Reads data from the advice provider, stores it in memory, and computes the account hash. The hash is validated against global inputs. For new accounts, initial account hash and validation steps are applied.
-
-### Input note data
-
-Processes input notes by reading data from advice providers and storing it in memory. It computes the note's hash and nullifier, forming a transaction nullifier commitment.
-
-> **Info**
-> - Note data is required for computing the nullifier (e.g., the [note script](../notes.md#main-script) and serial number).
-> - Note recipients define the set of users who can consume specific notes.
-
-## Note Processing
-
-Notes are consumed in a loop, invoking their scripts in isolated contexts using `dyncall`.
-
-```arduino
-# loop while we have notes to consume
-while.true
-    exec.note::prepare_note
-    dyncall
-    dropw dropw dropw dropw
-    exec.note::increment_current_input_note_ptr
-    loc_load.0
-    neq
-end
-```
-
-When processing a note, new note creation may be triggered, and information about the new note is stored in the output note data.
-
-> **Info**
-> - Notes can only call account interfaces to trigger write operations, preventing direct access to account storage.
-
-## Transaction Script Processing
-
-If provided, the transaction script is executed after all notes are consumed. The script may authenticate the transaction by increasing the account nonce and signing the transaction.
-
-```arduino
-use.miden::contracts::auth::basic->auth_tx
-
-begin
-    call.auth_tx::auth_tx_rpo_falcon512
-end
-```
-
-> **Note**
-> - The account must expose the `auth_tx_rpo_falcon512` function for the transaction script to call it.
-
-## Epilogue
-
-Finalizes the transaction:
-
-1. Computes the final account hash.
-2. Asserts that the final account nonce is greater than the initial nonce if the account has changed.
-3. Computes the output notes commitment.
-4. Asserts that input and output vault roots are equal (except for special accounts like faucets).
-
-## Outputs
-
-The transaction kernel program outputs:
-
-1. The transaction script root.
-2. A commitment of all newly created output notes.
-3. The account hash in its new state.
-____
-
-# Contexts
-
-## Context overview
-
-Miden assembly program execution, the code the transaction kernel runs, spans multiple isolated contexts. An execution context defines its own memory space which is inaccessible from other execution contexts. Note scripts cannot directly write to account data, which should only be possible if the account exposes relevant functions.
-
-## Specific contexts
-
-The kernel program always starts executing from a root context. Thus, the prologue sets the memory for the root context. To move execution into a different context, the kernel invokes a procedure using the `call` or `dyncall` instruction. In fact, any time the kernel invokes a procedure using the `call` instruction, it executes in a new context.
-
-While executing in a note, account, or transaction (tx) script context, the kernel executes some procedures in the kernel context, where all necessary information is stored during the prologue. The kernel switches context via the `syscall` instruction. The set of procedures invoked via the `syscall` instruction is limited by the [transaction kernel API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/kernels/transaction/api.masm). When the procedure called via `syscall` returns, execution moves back to the note, account, or tx script where it was invoked.
-
-## Context switches
-
-![Transaction contexts](../../img/architecture/transaction/transaction-contexts.png)
-
-The above diagram shows different context switches in a simple transaction. In this example, an account consumes a [P2ID](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/P2ID.masm) note and receives the asset into its vault. As with any MASM program, the transaction kernel program starts in the root context. It executes the prologue and stores all necessary information into the root memory.
-
-The next step, note processing, starts with a `dyncall` which invokes the note script. This command moves execution into a different context **(1)**. In this new context, the note has no access to the kernel memory. After a successful ID check, which changes back to the kernel context twice to get the note inputs and the account ID, the script executes the `add_note_assets_to_account` procedure.
-
-```arduino
-# Pay-to-ID script: adds all assets from the note to the account, assuming ID of the account
-# matches target account ID specified by the note inputs.
-# ...
-begin
-
-    ... <check correct ID>
-
-    exec.add_note_assets_to_account
-    # => [...]
-end
-```
-
-The procedure cannot simply add assets to the account, because it is executed in a note context. Therefore, it needs to `call` the account interface. This moves execution into a second context - account context - isolated from the note context **(2)**.
-
-```arduino
-#! Helper procedure to add all assets of a note to an account.
-#! ...
-proc.add_note_assets_to_account
-    ...
-
-    while.true
-        ...
-
-        # load the asset and add it to the account
-        mem_loadw call.wallet::receive_asset
-        # => [ASSET, ptr, end_ptr, ...]
-        ...
-    end
-    ...
-end
-```
-
-The [wallet](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/contracts/wallets/basic.masm) smart contract provides an interface that accounts use to receive and send assets. In this new context, the wallet calls the `add_asset` procedure of the account API.
-
-```arduino
-export.receive_asset
-    exec.account::add_asset
-    ...
-end
-```
-
-The [account API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/account.masm#L162) exposes procedures to manage accounts. This particular procedure, called by the wallet, invokes a `syscall` to return back to the root context **(3)**, where the account vault is stored in memory (see prologue). Procedures defined in the [Kernel API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/kernels/transaction/api.masm) should be invoked with `syscall` using the corresponding [procedure offset](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/kernel_proc_offsets.masm) and the `exec_kernel_proc` kernel procedure.
-
-```arduino
-#! Add the specified asset to the vault.
-#! ...
-export.add_asset
-    exec.kernel_proc_offsets::account_vault_add_asset_offset
-    syscall.exec_kernel_proc
-end
-```
-
-Now, the asset can be safely added to the vault within the kernel context, and the note can be successfully processed.
+Miden’s `Transaction` introduces an innovative mechanism for local single-account state transitions. By enabling parallel execution and privacy at scale, `Transaction`s in Miden transcend the limitations of conventional account-based model blockchains.
