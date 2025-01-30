@@ -29,7 +29,7 @@ pub struct ProposedBatch {
     /// The chain MMR used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
     /// - all block hashes referenced by the transactions in the batch.
-    block_chain: ChainMmr,
+    chain_mmr: ChainMmr,
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
     unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
@@ -205,10 +205,6 @@ impl ProposedBatch {
 
         // Check for duplicate output notes and remove all output notes from the batch output note
         // set that are consumed by transactions.
-        //
-        // This still allows transaction `A` to consume an unauthenticated note `x` and output note
-        // `y` and for transaction `B` to consume an unauthenticated note `y` and output
-        // note `x` (i.e., have a circular dependency between transactions).
         let mut output_notes = BatchOutputNoteTracker::new(transactions.iter().map(AsRef::as_ref))?;
         let mut input_notes = vec![];
 
@@ -291,7 +287,7 @@ impl ProposedBatch {
             id,
             transactions,
             block_header,
-            block_chain: chain_mmr,
+            chain_mmr,
             unauthenticated_note_proofs,
             account_updates,
             batch_expiration_block_num,
@@ -369,7 +365,7 @@ impl ProposedBatch {
         (
             self.transactions,
             self.block_header,
-            self.block_chain,
+            self.chain_mmr,
             self.unauthenticated_note_proofs,
             self.id,
             self.account_updates,
@@ -464,8 +460,8 @@ impl BatchOutputNoteTracker {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Validates whether the provided unauthenticated note belongs to the note tree of the specified
-/// block header.
+/// Validates whether the provided header of an unauthenticated note belongs to the note tree of the
+/// specified block header.
 fn authenticate_unauthenticated_note(
     note_header: &NoteHeader,
     proof: &NoteInclusionProof,

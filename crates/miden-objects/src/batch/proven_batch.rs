@@ -63,7 +63,6 @@ impl ProvenBatch {
     /// transactions that updated it. Applying the first transaction results in intermediate state
     /// `B`, and applying the second one results in state `C`. Then the returned update represents
     /// the state transition from `A` to `C`.
-    // TODO: Check if we should return the map or an opaque iterator.
     pub fn account_updates(&self) -> &BTreeMap<AccountId, BatchAccountUpdate> {
         &self.account_updates
     }

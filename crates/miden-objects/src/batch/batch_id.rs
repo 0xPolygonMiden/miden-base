@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 
 use vm_core::{Felt, ZERO};
 use vm_processor::Digest;
@@ -32,10 +32,25 @@ impl BatchId {
 
         Self(Hasher::hash_elements(&elements))
     }
+
+    /// Returns the elements representation of this batch ID.
+    pub fn as_elements(&self) -> &[Felt] {
+        self.0.as_elements()
+    }
+
+    /// Returns the byte representation of this batch ID.
+    pub fn as_bytes(&self) -> [u8; 32] {
+        self.0.as_bytes()
+    }
+
+    /// Returns a big-endian, hex-encoded string.
+    pub fn to_hex(&self) -> String {
+        self.0.to_hex()
+    }
 }
 
 impl core::fmt::Display for BatchId {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(&miden_crypto::utils::bytes_to_hex_string(self.0.as_bytes()))
+        write!(f, "{}", self.to_hex())
     }
 }

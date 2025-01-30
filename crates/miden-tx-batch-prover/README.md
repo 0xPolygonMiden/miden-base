@@ -1,6 +1,6 @@
-# Miden Batch Prover
+# Miden Transaction Batch Prover
 
-This crate contains tools for executing and proving Miden rollup transaction batches.
+This crate contains tools for executing and proving Miden transaction batches.
 
 ## License
 

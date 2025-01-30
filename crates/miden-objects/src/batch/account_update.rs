@@ -9,7 +9,7 @@ use crate::{
     transaction::{ProvenTransaction, TransactionId},
 };
 
-// ACCOUNT UPDATE
+// BATCH ACCOUNT UPDATE
 // ================================================================================================
 
 /// Represents the changes made to an account resulting from executing a batch of transactions.
@@ -39,34 +39,16 @@ impl BatchAccountUpdate {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [`BatchAccountUpdate`] instantiated from the provided parts.
-    pub const fn new(
-        account_id: AccountId,
-        initial_state_commitment: Digest,
-        final_state_commitment: Digest,
-        transactions: Vec<TransactionId>,
-        details: AccountUpdateDetails,
-    ) -> Self {
-        // TODO: Consider erroring if transactions.is_empty().
-        Self {
-            account_id,
-            initial_state_commitment,
-            final_state_commitment,
-            transactions,
-            details,
-        }
-    }
-
     /// Creates a [`BatchAccountUpdate`] by cloning the update and other details from the provided
     /// [`ProvenTransaction`].
     pub fn from_transaction(transaction: &ProvenTransaction) -> Self {
-        Self::new(
-            transaction.account_id(),
-            transaction.account_update().init_state_hash(),
-            transaction.account_update().final_state_hash(),
-            vec![transaction.id()],
-            transaction.account_update().details().clone(),
-        )
+        Self {
+            account_id: transaction.account_id(),
+            initial_state_commitment: transaction.account_update().init_state_hash(),
+            final_state_commitment: transaction.account_update().final_state_hash(),
+            transactions: vec![transaction.id()],
+            details: transaction.account_update().details().clone(),
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -77,14 +59,14 @@ impl BatchAccountUpdate {
         self.account_id
     }
 
-    /// Commitment to the state of the account before this update is applied.
+    /// Returns a commitment to the state of the account before this update is applied.
     ///
     /// This is equal to [`Digest::default()`] for new accounts.
     pub fn initial_state_commitment(&self) -> Digest {
         self.initial_state_commitment
     }
 
-    /// Commitment to the state of the account after this update is applied.
+    /// Returns a commitment to the state of the account after this update is applied.
     pub fn final_state_commitment(&self) -> Digest {
         self.final_state_commitment
     }

@@ -25,7 +25,7 @@ testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/testing",
 
 [dependencies]
 async-trait = "0.1"
-miden-lib = { workspace = true }
+miden-lib = { workspace = true, features = ["with-debug-info"]}
 miden-objects = { workspace = true }
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
