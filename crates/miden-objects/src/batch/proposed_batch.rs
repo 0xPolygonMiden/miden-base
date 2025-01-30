@@ -12,8 +12,7 @@ use crate::{
     errors::BatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
-    MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_INPUT_NOTES_PER_TX,
-    MAX_OUTPUT_NOTES_PER_BATCH,
+    MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 
 /// A proposed batch of transactions with all necessary data to validate it.
@@ -45,6 +44,11 @@ impl ProposedBatch {
     ///
     /// # Inputs
     ///
+    /// - The given transactions must be correctly ordered. That is, if two transactions A and B
+    ///   update the same account in this order, meaning A's initial account state commitment
+    ///   matches the account state before any transactions are executed and B's initial account
+    ///   state commitment matches the final account state commitment of A, then A must come before
+    ///   B.
     /// - The chain MMR should contain all block headers
     ///   - that are referenced by note inclusion proofs in `authenticatable_unauthenticated_notes`.
     ///   - that are referenced by a transaction in the batch.
@@ -53,8 +57,8 @@ impl ProposedBatch {
     ///   authenticated. This means it is not required that every unauthenticated note has an entry
     ///   in this map for two reasons.
     ///     - Unauthenticated note authentication can be delayed to the block kernel.
-    ///     - Another transaction in the batch produces the unauthenticated input note, in which
-    ///       case inclusion in the chain must not be proven.
+    ///     - Another transaction in the batch creates an output note matching an unauthenticated
+    ///       input note, in which case inclusion in the chain does not need to be proven.
     /// - The block header's block number must be greater or equal to the highest block number
     ///   referenced by any transaction. This is not verified explicitly, but will implicitly cause
     ///   an error during validating that each reference block of a transaction is in the chain MMR.
@@ -65,10 +69,12 @@ impl ProposedBatch {
     ///
     /// - The number of input notes exceeds [`MAX_INPUT_NOTES_PER_BATCH`].
     ///   - Note that unauthenticated notes that are created in the same batch do not count. Any
-    ///     other notes, unauthenticated or not, do count.
+    ///     other input notes, unauthenticated or not, do count.
     /// - The number of output notes exceeds [`MAX_OUTPUT_NOTES_PER_BATCH`].
-    ///   - Note that notes that are consumed in the same batch as unauthenticated notes do not
-    ///     count.
+    ///   - Note that output notes that are consumed in the same batch as unauthenticated input
+    ///     notes do not count.
+    /// - Any note is consumed twice.
+    /// - Any note is created more than once.
     /// - The number of account updates exceeds [`MAX_ACCOUNTS_PER_BATCH`].
     ///   - Note that any number of transactions against the same account count as one update.
     /// - The chain MMRs chain length does not match the block header's block number. This means the
@@ -80,17 +86,24 @@ impl ProposedBatch {
     /// - The block referenced by a note inclusion proof for an unauthenticated note is missing from
     ///   the chain MMR.
     /// - The transactions in the proposed batch which update the same account are not correctly
-    ///   ordered. That is, if two transactions A and B update the same account in this order,
-    ///   meaning B's initial account state commitment matches the final account state commitment of
-    ///   A, then A must come before B in the [`ProposedBatch`].
-    /// - Any note is consumed twice.
-    /// - Any note is created more than once.
+    ///   ordered.
+    /// - There are duplicate transactions.
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         block_header: BlockHeader,
         chain_mmr: ChainMmr,
         authenticatable_unauthenticated_notes: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, BatchError> {
+        // Check for duplicate transactions.
+        // --------------------------------------------------------------------------------------------
+
+        let mut transaction_set = BTreeSet::new();
+        for tx in transactions.iter() {
+            if !transaction_set.insert(tx.id()) {
+                return Err(BatchError::DuplicateTransaction { transaction_id: tx.id() });
+            }
+        }
+
         // Verify block header and chain MMR match.
         // --------------------------------------------------------------------------------------------
 
@@ -128,11 +141,6 @@ impl ProposedBatch {
                 });
             }
         }
-
-        // Compute batch ID.
-        // --------------------------------------------------------------------------------------------
-
-        let id = BatchId::compute(transactions.iter().map(|tx| tx.id()));
 
         // Aggregate individual tx-level account updates into a batch-level account update - one per
         // account.
@@ -196,7 +204,8 @@ impl ProposedBatch {
         // Create input and output note set of the batch.
         // --------------------------------------------------------------------------------------------
 
-        // Remove all output notes from the batch output note set that are consumed by transactions.
+        // Check for duplicate output notes and remove all output notes from the batch output note
+        // set that are consumed by transactions.
         //
         // This still allows transaction `A` to consume an unauthenticated note `x` and output note
         // `y` and for transaction `B` to consume an unauthenticated note `y` and output
@@ -210,11 +219,11 @@ impl ProposedBatch {
                 let input_note = match input_note.header() {
                     Some(input_note_header) => {
                         if output_notes.remove_note(input_note_header)? {
-                            // If a transaction consumes a note that is also created in this batch,
-                            // it is removed from the set of output notes.
+                            // If a transaction consumes an unauthenticated note that is also
+                            // created in this batch, it is removed from the set of output notes.
                             // We `continue` so that the input note is not added to the set of input
-                            // notes of the batch.
-                            // That way the note appears in neither input nor output set.
+                            // notes of the batch. That way the note appears in neither input nor
+                            // output set.
                             continue;
                         }
 
@@ -263,10 +272,18 @@ impl ProposedBatch {
         // Build the output notes SMT.
         // --------------------------------------------------------------------------------------------
 
+        // SAFETY: We can `expect` here because:
+        // - the batch output note tracker already returns an error for duplicate output notes,
+        // - we have checked that the number of output notes is <= 2^BATCH_NOTE_TREE_DEPTH.
         let output_notes_tree = BatchNoteTree::with_contiguous_leaves(
             output_notes.iter().map(|note| (note.id(), note.metadata())),
         )
-        .expect("output note tracker should return an error for duplicate notes");
+        .expect("there should be no duplicate notes and there should be <= 2^BATCH_NOTE_TREE_DEPTH notes");
+
+        // Compute batch ID.
+        // --------------------------------------------------------------------------------------------
+
+        let id = BatchId::compute(transactions.iter().map(|tx| tx.id()));
 
         Ok(Self {
             id,

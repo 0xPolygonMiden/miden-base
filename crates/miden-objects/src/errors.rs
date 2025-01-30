@@ -468,6 +468,9 @@ pub enum BatchError {
   )]
     TooManyAccountUpdates(usize),
 
+    #[error("transaction {transaction_id} appears twice in the proposed batch input")]
+    DuplicateTransaction { transaction_id: TransactionId },
+
     #[error("transaction {second_transaction_id} consumes the note with nullifier {note_nullifier} that is also consumed by another transaction {first_transaction_id} in the batch")]
     DuplicateInputNote {
         note_nullifier: Nullifier,

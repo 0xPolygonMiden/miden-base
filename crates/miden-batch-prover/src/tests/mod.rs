@@ -515,6 +515,29 @@ fn batch_expiration() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn duplicate_transaction() -> anyhow::Result<()> {
+    let TestSetup { chain, account1, .. } = setup_chain();
+    let block1 = chain.block_header(1);
+
+    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+        .block_reference(block1.hash())
+        .expiration_block_num(BlockNumber::from(35))
+        .build()?;
+
+    let error = ProposedBatch::new(
+        [tx1.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
+        block1,
+        chain.chain(),
+        BTreeMap::default(),
+    )
+    .unwrap_err();
+
+    assert_matches!(error, BatchError::DuplicateTransaction { transaction_id } if transaction_id == tx1.id());
+
+    Ok(())
+}
+
 // TODO: Add a test with a circular dependency between notes, e.g.
 // TX 1: Inputs [X] -> Outputs [Y]
 // TX 2: Inputs [Y] -> Outputs [X]
