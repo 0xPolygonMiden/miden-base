@@ -1,14 +1,10 @@
 # Note
 
-> The medium through which [Accounts](accounts.md) communicate in the Miden protocol.
+A `Note` is the medium through which [Accounts](accounts.md) communicate. A `Note` holds assets and defines how they can be consumed.
 
 ## What is the purpose of a note?
 
 In Miden's hybrid UTXO and account-based model `Note`s represent UTXO's which enable parallel transaction execution and privacy through asynchronous local `Note` production and consumption. 
-
-## What is a note?
-
-A `Note` in Miden holds assets and defines how these assets can be consumed.
 
 ## Note core components
 
@@ -135,7 +131,3 @@ This achieves the following properties:
 That means if a `Note` is private and the operator stores only the `Note`'s hash, only those with the `Note` details know if this `Note` has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
 
 ![Architecture core concepts](../img/architecture/note/nullifier.png)
-
-## Conclusion
-
-Miden’s `Note` introduce a powerful mechanism for secure, flexible, and private state management. By enabling asynchronous asset transfers, parallel execution, and privacy at scale, `Note`s transcend the limitations of strictly account-based models. As a result, developers and users alike enjoy enhanced scalability, confidentiality, and control. With these capabilities, Miden is paving the way for true **programmable money** where assets, logic, and trust converge seamlessly.
