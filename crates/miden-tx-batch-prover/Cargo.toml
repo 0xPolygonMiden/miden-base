@@ -18,31 +18,25 @@ bench = false
 [features]
 default = ["std"]
 std = [
-  "assembly/std",
   "miden-objects/std",
   "miden-tx/std",
   "miden-crypto/std",
-  "miden-verifier/std",
   "vm-core/std",
   "vm-processor/std",
 ]
-# TODO: Check if we need this feature.
-testing = ["dep:rand", "dep:miden-lib", "dep:winterfell", "dep:anyhow"]
 
 [dependencies]
 anyhow = { version = "1.0", default-features = false, optional = true }
-assembly = { workspace = true }
 miden-crypto = { workspace = true }
-miden-lib = { workspace = true, optional = true, features = ["testing"] }
 miden-tx = { workspace = true }
 miden-objects = { workspace = true }
-miden-verifier = { workspace = true }
-rand = { workspace = true, optional = true, features = ["small_rng"] }
 thiserror = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
-winterfell = { version = "0.11", optional = true }
 
 [dev-dependencies]
+rand = { workspace = true, features = ["small_rng"] }
+miden-lib = { workspace = true, features = ["std", "testing"] }
+winterfell = { version = "0.11" }
 anyhow = { version = "1.0", features = ["std", "backtrace"] }
-miden-tx = { workspace = true, features = ["testing", "std"] }
+miden-tx = { workspace = true, features = ["std", "testing"] }
