@@ -16,7 +16,7 @@ use thiserror::Error;
 pub mod tx_prover;
 
 /// Protobuf definition for the Miden proving service
-pub const SERVICE_PROTO: &str = include_str!("../proto/api.proto");
+pub const TX_PROVER_PROTO: &str = include_str!("../proto/tx_prover.proto");
 
 /// ERRORS
 /// ===============================================================================================
