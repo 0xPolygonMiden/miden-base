@@ -1,34 +1,36 @@
 use alloc::vec::Vec;
-use core::borrow::Borrow;
 
-use miden_crypto::hash::Digest;
-use vm_core::crypto::hash::Blake3Digest;
-use vm_processor::crypto::Blake3_256;
+use vm_core::{Felt, ZERO};
+use vm_processor::Digest;
 
-use crate::transaction::TransactionId;
+use crate::{transaction::ProvenTransaction, Hasher};
 
 // BATCH ID
 // ================================================================================================
 
-/// Uniquely identifies a [`ProvenBatch`](crate::batch::ProvenBatch).
-// TODO: Document how this is computed.
-// TODO: Should this really be a Blake3 hash? We have to compute this in the block kernel
-// eventually, so we'd probably want RPO instead?
-// TODO: Compute batch ID as hash over tx ID _and_ account ID.
+/// Uniquely identifies a batch of transactions, i.e. both
+/// [`ProposedBatch`](crate::batch::ProposedBatch) and [`ProvenBatch`](crate::batch::ProvenBatch).
+///
+/// This is a sequential hash of the tuple `(TRANSACTION_ID || [account_id_prefix,
+/// account_id_suffix, 0, 0])` of all transactions and the accounts their executed against in the
+/// batch.
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
-pub struct BatchId(Blake3Digest<32>);
+pub struct BatchId(Digest);
 
 impl BatchId {
     /// Calculates a batch ID from the given set of transactions.
-    pub fn compute<T>(txs: impl Iterator<Item = T>) -> Self
+    pub fn compute<'tx, T>(txs: T) -> Self
     where
-        T: Borrow<TransactionId>,
+        T: Iterator<Item = &'tx ProvenTransaction>,
     {
-        let mut buf = Vec::with_capacity(32 * txs.size_hint().0);
+        let mut elements: Vec<Felt> = Vec::new();
         for tx in txs {
-            buf.extend_from_slice(&tx.borrow().as_bytes());
+            elements.extend_from_slice(tx.id().as_elements());
+            let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(tx.account_id());
+            elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
         }
-        Self(Blake3_256::hash(&buf))
+
+        Self(Hasher::hash_elements(&elements))
     }
 }
 
