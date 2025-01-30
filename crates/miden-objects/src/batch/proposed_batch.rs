@@ -1,5 +1,4 @@
 use alloc::{
-    boxed::Box,
     collections::{btree_map::Entry, BTreeMap, BTreeSet},
     sync::Arc,
     vec::Vec,
@@ -16,11 +15,15 @@ use crate::{
 };
 
 /// A proposed batch of transactions with all necessary data to validate it.
+///
+/// See [`ProposedBatch::new`] for what a proposed batch expects and guarantees.
+///
+/// This type is fairly large, so consider boxing it.
 #[derive(Debug, Clone)]
 pub struct ProposedBatch {
     transactions: Vec<Arc<ProvenTransaction>>,
     /// The header is boxed as it has a large stack size.
-    block_header: Box<BlockHeader>,
+    block_header: BlockHeader,
     /// The chain MMR used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
     /// - all block hashes referenced by the transactions in the batch.
@@ -282,7 +285,7 @@ impl ProposedBatch {
         Ok(Self {
             id,
             transactions,
-            block_header: Box::new(block_header),
+            block_header,
             block_chain: chain_mmr,
             unauthenticated_note_proofs,
             account_updates,
@@ -348,7 +351,7 @@ impl ProposedBatch {
         self,
     ) -> (
         Vec<Arc<ProvenTransaction>>,
-        Box<BlockHeader>,
+        BlockHeader,
         ChainMmr,
         BTreeMap<NoteId, NoteInclusionProof>,
         BatchId,
