@@ -54,7 +54,7 @@ impl BackgroundService for LoadBalancerState {
                 WORKER_UNHEALTHY.inc_by(unhealthy_workers as u64);
 
                 // Sleep for the defined interval before the next health check
-                sleep(self.health_check_frequency).await;
+                sleep(self.health_check_interval).await;
             }
         })
         .await;

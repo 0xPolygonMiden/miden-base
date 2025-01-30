@@ -56,7 +56,7 @@ pub struct LoadBalancerState {
     max_retries_per_request: usize,
     max_req_per_sec: isize,
     available_workers_polling_time: Duration,
-    health_check_frequency: Duration,
+    health_check_interval: Duration,
 }
 
 impl LoadBalancerState {
@@ -94,7 +94,7 @@ impl LoadBalancerState {
             available_workers_polling_time: Duration::from_millis(
                 config.available_workers_polling_time_ms,
             ),
-            health_check_frequency: Duration::from_secs(config.health_check_interval_secs),
+            health_check_interval: Duration::from_secs(config.health_check_interval_secs),
         })
     }
 
