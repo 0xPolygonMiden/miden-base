@@ -1,14 +1,15 @@
 # Transaction
 
-> Single account state transition
+`Transaction`s are a mechanism by which the state of the chain is updated. That is, all changes in account and note states result from executing `Transaction`s. In Miden, `Transaction`s can originate either from the users or from the network itself.
+
+Miden aims for the following characteristics in `Transaction`s:
+
+- **Parallel transaction execution**: Because a transaction is always performed against a single account, Miden obtains asynchronicity. 
+- **Private transaction execution**: Local execution of transactions enables preservation of sensitive data.
 
 ## What is the purpose of a transaction?
 
-To facilitate single account state transitions.
-
-## What is a transaction?
-
-In Miden, a `Transaction` represents the state transition of a single account. A `Transaction` takes a single [account](accounts.md) and one or more [notes](notes.md), and none or one script (piece of code executed after all notes have been executed) as input, and outputs the same account with a potentially updated state, together with some potential newly created notes.
+In Miden, a `Transaction` represents the state transition of a single account. A `Transaction` takes a single [account](accounts.md) and zero or more [notes](notes.md), and none or one script (piece of code executed after all notes have been executed) as input, and outputs the same account with a potentially updated state, together with some potential newly created notes.
 
 ![Transaction diagram](../img/architecture/transaction/transaction-diagram.png)
 
@@ -16,12 +17,7 @@ In Miden, a `Transaction` represents the state transition of a single account. A
 
 WIP
 
-## Transaction architecture
-
-Miden aims for the following characteristics in `Transaction`s:
-
-- **Parallel transaction execution**: Because a transaction is always performed against a single account, Miden obtains asynchronicity. 
-- **Private transaction execution**: Local execution of transactions enables preservation of sensitive data.
+## Transaction types
 
 There are two types of transactions in Miden: **local transactions** and **network transactions**.
 
@@ -58,7 +54,3 @@ In Miden, every `Transaction` is executed within the Miden VM. Throughout its li
 
 > **Info**
 > - One of the main reasons for separating out the execution and proving steps is to allow _stateless provers_; i.e., the executed transaction has all the data it needs to re-execute and prove a transaction without database access. This supports easier proof-generation distribution.
-
-## Conclusion
-
-Miden’s `Transaction` introduces an innovative mechanism for local single-account state transitions. By enabling parallel execution and privacy at scale, `Transaction`s in Miden transcend the limitations of conventional account-based model blockchains.

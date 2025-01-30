@@ -1,6 +1,6 @@
 # State
 
-> The snapshot of all accounts, notes, nullifiers and their statuses in Miden, reflecting the “current reality” of the protocol at any given time.
+The `State` describes the current condition of all accounts, notes, nullifiers and their statuses. Reflecting the “current reality” of the protocol at any given time.
 
 ## What is the purpose of the Miden state model?
 
@@ -16,10 +16,6 @@ Miden’s `State` model focuses on:
  
 - **Privacy:**  
   By using notes and nullifiers, Miden ensures that value transfers remain confidential. Zero-knowledge proofs allow users to prove correctness without revealing sensitive information.
-
-## What is state?
-
-The `State` of the Miden rollup describes the current condition of all accounts and notes in the protocol; i.e., the current reality.
 
 ## State model components
 
@@ -117,7 +113,3 @@ In this diagram, multiple participants interact with a common, publicly accessib
 Miden nodes do not need to know the entire `State` to verify or produce new blocks. Rather than storing the full `State` data with the nodes, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes `State` bloat. Furthermore the Miden rollup can discard non-required data after certain conditions have been met.
 
 This ensures that the account and note databases remain manageable, even under sustained high usage.
-
-## Conclusion
-
-Miden’s `State` model lays the foundation for a scalable, privacy-preserving, and user-centric environment. By combining parallelizable execution, flexible data storage, and Zero-knowledge proofs that ensure integrity and confidentiality, Miden addresses many of the challenges of traditional blockchains. As a result, the network can handle high throughput, maintain manageable `State` sizes, and support a wide range of applications.
