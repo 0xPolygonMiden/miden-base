@@ -4,7 +4,7 @@ use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::BlockNumber,
-    transaction::{InputNoteCommitment, OutputNote},
+    transaction::{InputNoteCommitment, InputNotes, OutputNote},
 };
 
 /// A transaction batch with an execution proof.
@@ -12,7 +12,7 @@ use crate::{
 pub struct ProvenBatch {
     id: BatchId,
     account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
-    input_notes: Vec<InputNoteCommitment>,
+    input_notes: InputNotes<InputNoteCommitment>,
     output_notes_smt: BatchNoteTree,
     output_notes: Vec<OutputNote>,
     batch_expiration_block_num: BlockNumber,
@@ -26,7 +26,7 @@ impl ProvenBatch {
     pub fn new(
         id: BatchId,
         account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
-        input_notes: Vec<InputNoteCommitment>,
+        input_notes: InputNotes<InputNoteCommitment>,
         output_notes_smt: BatchNoteTree,
         output_notes: Vec<OutputNote>,
         batch_expiration_block_num: BlockNumber,
@@ -68,8 +68,8 @@ impl ProvenBatch {
         &self.account_updates
     }
 
-    /// Returns the slice of [`InputNoteCommitment`]s of this batch.
-    pub fn input_notes(&self) -> &[InputNoteCommitment] {
+    /// Returns the [`InputNotes`] of this batch.
+    pub fn input_notes(&self) -> &InputNotes<InputNoteCommitment> {
         &self.input_notes
     }
 

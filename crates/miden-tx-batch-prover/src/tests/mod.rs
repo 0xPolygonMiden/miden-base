@@ -76,7 +76,7 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
         BTreeMap::default(),
     )?;
 
-    assert_eq!(batch.input_notes().len(), 0);
+    assert_eq!(batch.input_notes().num_notes(), 0);
     assert_eq!(batch.output_notes().len(), 0);
     assert_eq!(batch.output_notes_tree().num_leaves(), 0);
 
@@ -320,8 +320,11 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
 
     // We expect the unauthenticated input note to have become an authenticated one,
     // meaning it is part of the input note commitment.
-    assert_eq!(batch.input_notes().len(), 1);
-    assert!(batch.input_notes().contains(&input_note1.into()));
+    assert_eq!(batch.input_notes().num_notes(), 1);
+    assert!(batch
+        .input_notes()
+        .iter()
+        .any(|commitment| commitment == &InputNoteCommitment::from(input_note1)));
     assert_eq!(batch.output_notes().len(), 0);
 
     Ok(())
@@ -361,7 +364,7 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
         BTreeMap::default(),
     )?;
 
-    assert_eq!(batch.input_notes().len(), 1);
+    assert_eq!(batch.input_notes().num_notes(), 1);
     assert_eq!(batch.output_notes().len(), 1);
     assert_eq!(batch.output_notes_tree().num_leaves(), 1);
 
@@ -477,9 +480,9 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
     assert_eq!(batch.output_notes_tree().num_leaves(), 3);
 
     // Input notes are sorted by the order in which they appeared in the batch.
-    assert_eq!(batch.input_notes().len(), 2);
+    assert_eq!(batch.input_notes().num_notes(), 2);
     assert_eq!(
-        batch.input_notes(),
+        batch.input_notes().clone().into_vec(),
         &[
             InputNoteCommitment::from(&InputNote::unauthenticated(note5)),
             InputNoteCommitment::from(&InputNote::unauthenticated(note4)),
@@ -569,7 +572,7 @@ fn circular_note_dependency() -> anyhow::Result<()> {
         BTreeMap::default(),
     )?;
 
-    assert_eq!(batch.input_notes().len(), 0);
+    assert_eq!(batch.input_notes().num_notes(), 0);
     assert_eq!(batch.output_notes().len(), 0);
 
     Ok(())

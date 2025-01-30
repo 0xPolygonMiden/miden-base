@@ -10,7 +10,9 @@ use crate::{
     block::{BlockHeader, BlockNumber},
     errors::BatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof},
-    transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
+    transaction::{
+        ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction, TransactionId,
+    },
     MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 
@@ -34,7 +36,7 @@ pub struct ProposedBatch {
     id: BatchId,
     account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
     batch_expiration_block_num: BlockNumber,
-    input_notes: Vec<InputNoteCommitment>,
+    input_notes: InputNotes<InputNoteCommitment>,
     output_notes_tree: BatchNoteTree,
     output_notes: Vec<OutputNote>,
 }
@@ -261,6 +263,9 @@ impl ProposedBatch {
         if input_notes.len() > MAX_INPUT_NOTES_PER_BATCH {
             return Err(BatchError::TooManyInputNotes(input_notes.len()));
         }
+        // SAFETY: This is safe as we have checked for duplicates and the max number of input notes
+        // in a batch.
+        let input_notes = InputNotes::new_unchecked(input_notes);
 
         if output_notes.len() > MAX_OUTPUT_NOTES_PER_BATCH {
             return Err(BatchError::TooManyOutputNotes(output_notes.len()));
@@ -327,8 +332,8 @@ impl ProposedBatch {
         self.batch_expiration_block_num
     }
 
-    /// Returns the slice of [`InputNoteCommitment`]s of this batch.
-    pub fn input_notes(&self) -> &[InputNoteCommitment] {
+    /// Returns the [`InputNotes`] of this batch.
+    pub fn input_notes(&self) -> &InputNotes<InputNoteCommitment> {
         &self.input_notes
     }
 
@@ -356,7 +361,7 @@ impl ProposedBatch {
         BTreeMap<NoteId, NoteInclusionProof>,
         BatchId,
         BTreeMap<AccountId, BatchAccountUpdate>,
-        Vec<InputNoteCommitment>,
+        InputNotes<InputNoteCommitment>,
         BatchNoteTree,
         Vec<OutputNote>,
         BlockNumber,
