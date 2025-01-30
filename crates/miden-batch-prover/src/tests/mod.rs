@@ -235,7 +235,7 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
 /// Test that an unauthenticated input note for which a proof exists is converted into an
 /// authenticated one and becomes part of the batch's input note commitment.
 #[test]
-fn unauthenticated_note_converted_authenticated() -> anyhow::Result<()> {
+fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
     let note0 = chain.add_p2id_note(account2.id(), account1.id(), &[], NoteType::Private, None)?;
     let note1 = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
@@ -489,6 +489,7 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that the expiration block number of a batch is the minimum of all contained transactions.
 #[test]
 fn batch_expiration() -> anyhow::Result<()> {
     let TestSetup { chain, account1, account2 } = setup_chain();
@@ -515,6 +516,7 @@ fn batch_expiration() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that passing duplicate transactions in a batch returns an error.
 #[test]
 fn duplicate_transaction() -> anyhow::Result<()> {
     let TestSetup { chain, account1, .. } = setup_chain();
@@ -538,6 +540,37 @@ fn duplicate_transaction() -> anyhow::Result<()> {
     Ok(())
 }
 
-// TODO: Add a test with a circular dependency between notes, e.g.
-// TX 1: Inputs [X] -> Outputs [Y]
-// TX 2: Inputs [Y] -> Outputs [X]
+/// Tests that transactions with a circular dependency between notes are accepted:
+/// TX 1: Inputs [X] -> Outputs [Y]
+/// TX 2: Inputs [Y] -> Outputs [X]
+#[test]
+fn circular_note_dependency() -> anyhow::Result<()> {
+    let TestSetup { chain, account1, account2 } = setup_chain();
+    let block1 = chain.block_header(1);
+
+    let note_x = mock_note(20);
+    let note_y = mock_note(30);
+
+    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+        .block_reference(block1.hash())
+        .unauthenticated_notes(vec![note_x.clone()])
+        .output_notes(vec![OutputNote::Full(note_y.clone())])
+        .build()?;
+    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+        .block_reference(block1.hash())
+        .unauthenticated_notes(vec![note_y.clone()])
+        .output_notes(vec![OutputNote::Full(note_x.clone())])
+        .build()?;
+
+    let batch = ProposedBatch::new(
+        [tx1, tx2].into_iter().map(Arc::new).collect(),
+        block1,
+        chain.chain(),
+        BTreeMap::default(),
+    )?;
+
+    assert_eq!(batch.input_notes().len(), 0);
+    assert_eq!(batch.output_notes().len(), 0);
+
+    Ok(())
+}
