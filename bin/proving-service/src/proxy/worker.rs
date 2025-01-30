@@ -7,7 +7,8 @@ use tonic_health::pb::{
 };
 use tracing::error;
 
-use crate::{error::TxProverServiceError, utils::create_health_check_client};
+use super::health_check::create_health_check_client;
+use crate::error::TxProverServiceError;
 
 // WORKER
 // ================================================================================================
