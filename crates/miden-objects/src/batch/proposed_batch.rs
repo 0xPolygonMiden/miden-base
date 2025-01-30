@@ -27,7 +27,7 @@ pub struct ProposedBatch {
     block_chain: ChainMmr,
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
-    authenticatable_unauthenticated_notes: BTreeMap<NoteId, NoteInclusionProof>,
+    unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     id: BatchId,
     account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
     batch_expiration_block_num: BlockNumber,
@@ -50,9 +50,9 @@ impl ProposedBatch {
     ///   state commitment matches the final account state commitment of A, then A must come before
     ///   B.
     /// - The chain MMR should contain all block headers
-    ///   - that are referenced by note inclusion proofs in `authenticatable_unauthenticated_notes`.
+    ///   - that are referenced by note inclusion proofs in `unauthenticated_note_proofs`.
     ///   - that are referenced by a transaction in the batch.
-    /// - The `authenticatable_unauthenticated_notes` should contain [`NoteInclusionProof`]s for any
+    /// - The `unauthenticated_note_proofs` should contain [`NoteInclusionProof`]s for any
     ///   unauthenticated note consumed by the transaction's in the batch which can be
     ///   authenticated. This means it is not required that every unauthenticated note has an entry
     ///   in this map for two reasons.
@@ -92,7 +92,7 @@ impl ProposedBatch {
         transactions: Vec<Arc<ProvenTransaction>>,
         block_header: BlockHeader,
         chain_mmr: ChainMmr,
-        authenticatable_unauthenticated_notes: BTreeMap<NoteId, NoteInclusionProof>,
+        unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, BatchError> {
         // Check for duplicate transactions.
         // --------------------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ impl ProposedBatch {
 
         // Aggregate block references into a set since the chain MMR does not index by hash.
         let mut block_references =
-            BTreeSet::from_iter(chain_mmr.block_headers_iter().map(BlockHeader::hash));
+            BTreeSet::from_iter(chain_mmr.block_headers().map(BlockHeader::hash));
         // Insert the block referenced by the batch to consider it authenticated. We can assume this
         // because the block kernel will verify the block hash as it is a public input to the batch
         // kernel.
@@ -153,13 +153,7 @@ impl ProposedBatch {
             // Merge account updates so that state transitions A->B->C become A->C.
             match account_updates.entry(tx.account_id()) {
                 Entry::Vacant(vacant) => {
-                    let batch_account_update = BatchAccountUpdate::new(
-                        tx.account_id(),
-                        tx.account_update().init_state_hash(),
-                        tx.account_update().final_state_hash(),
-                        vec![tx.id()],
-                        tx.account_update().details().clone(),
-                    );
+                    let batch_account_update = BatchAccountUpdate::from_transaction(tx);
                     vacant.insert(batch_account_update);
                 },
                 Entry::Occupied(occupied) => {
@@ -231,7 +225,7 @@ impl ProposedBatch {
                         // proof is valid, it means the note is part of the chain and we can mark it
                         // as authenticated by erasing the note header.
                         if let Some(proof) =
-                            authenticatable_unauthenticated_notes.get(&input_note_header.id())
+                            unauthenticated_note_proofs.get(&input_note_header.id())
                         {
                             let note_block_header =
                                 chain_mmr.get_block(proof.location().block_num()).ok_or_else(
@@ -290,7 +284,7 @@ impl ProposedBatch {
             transactions,
             block_header: Box::new(block_header),
             block_chain: chain_mmr,
-            authenticatable_unauthenticated_notes,
+            unauthenticated_note_proofs,
             account_updates,
             batch_expiration_block_num,
             input_notes,
@@ -368,7 +362,7 @@ impl ProposedBatch {
             self.transactions,
             self.block_header,
             self.block_chain,
-            self.authenticatable_unauthenticated_notes,
+            self.unauthenticated_note_proofs,
             self.id,
             self.account_updates,
             self.input_notes,

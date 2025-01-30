@@ -57,6 +57,18 @@ impl BatchAccountUpdate {
         }
     }
 
+    /// Creates a [`BatchAccountUpdate`] by cloning the update and other details from the provided
+    /// [`ProvenTransaction`].
+    pub fn from_transaction(transaction: &ProvenTransaction) -> Self {
+        Self::new(
+            transaction.account_id(),
+            transaction.account_update().init_state_hash(),
+            transaction.account_update().final_state_hash(),
+            vec![transaction.id()],
+            transaction.account_update().details().clone(),
+        )
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 

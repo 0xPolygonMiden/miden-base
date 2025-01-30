@@ -286,7 +286,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let mut mmr = chain_mmr.mmr().clone();
     mmr.untrack(block2.header().block_num().as_usize());
     let blocks = chain_mmr
-        .block_headers_iter()
+        .block_headers()
         .filter(|header| header.block_num() != block2.header().block_num())
         .copied()
         .collect();

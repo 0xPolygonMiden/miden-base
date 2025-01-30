@@ -96,7 +96,7 @@ impl ChainMmr {
     }
 
     /// Returns an iterator over the block headers in this chain MMR.
-    pub fn block_headers_iter(&self) -> impl Iterator<Item = &BlockHeader> {
+    pub fn block_headers(&self) -> impl Iterator<Item = &BlockHeader> {
         self.blocks.values()
     }
 
