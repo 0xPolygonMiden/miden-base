@@ -116,6 +116,14 @@ impl BatchAccountUpdate {
 
         Ok(())
     }
+
+    // CONVERSIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes the update and returns the non-[`Copy`] parts.
+    pub fn into_parts(self) -> (Vec<TransactionId>, AccountUpdateDetails) {
+        (self.transactions, self.details)
+    }
 }
 
 // SERIALIZATION
