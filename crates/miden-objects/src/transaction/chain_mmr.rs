@@ -1,5 +1,6 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::collections::BTreeMap;
 
+use miden_crypto::merkle::Mmr;
 use vm_core::utils::{Deserializable, Serializable};
 
 use crate::{
@@ -43,10 +44,13 @@ impl ChainMmr {
     ///   partial MMR.
     /// - The same block appears more than once in the provided list of block headers.
     /// - The partial MMR does not track authentication paths for any of the specified blocks.
-    pub fn new(mmr: PartialMmr, blocks: Vec<BlockHeader>) -> Result<Self, ChainMmrError> {
+    pub fn new(
+        mmr: PartialMmr,
+        blocks: impl IntoIterator<Item = BlockHeader>,
+    ) -> Result<Self, ChainMmrError> {
         let chain_length = mmr.forest();
         let mut block_map = BTreeMap::new();
-        for block in blocks.into_iter() {
+        for block in blocks {
             if block.block_num().as_usize() >= chain_length {
                 return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
             }
@@ -61,6 +65,38 @@ impl ChainMmr {
         }
 
         Ok(Self { mmr, blocks: block_map })
+    }
+
+    /// Converts the [`Mmr`] into a [`ChainMmr`] by selectively copying all leaves that are in the
+    /// given `blocks` iterator.
+    ///
+    /// This tracks all blocks in the given iterator in the [`ChainMmr`] except for the block whose
+    /// block number equals [`Mmr::forest`], which is the current chain length.
+    pub fn from_mmr<I>(
+        mmr: &Mmr,
+        blocks: impl IntoIterator<Item = BlockHeader, IntoIter = I> + Clone,
+    ) -> Result<ChainMmr, ChainMmrError>
+    where
+        I: Iterator<Item = BlockHeader>,
+    {
+        // We do not include the latest block as it is used as the reference block and is added to
+        // the MMR by the transaction or batch kernel.
+        let target_forest = mmr.forest() - 1;
+        let peaks = mmr.peaks_at(target_forest).expect("TODO: Error");
+        let mut partial_mmr = PartialMmr::from_peaks(peaks);
+
+        for block_num in blocks
+            .clone()
+            .into_iter()
+            .map(|header| header.block_num().as_usize())
+            .filter(|block_num| *block_num < target_forest)
+        {
+            let leaf = mmr.get(block_num).expect("TODO: Error");
+            let path = mmr.open_at(block_num, target_forest).expect("TODO: Error").merkle_path;
+            partial_mmr.track(block_num, leaf, &path).expect("TODO: Error");
+        }
+
+        Ok(ChainMmr::new(partial_mmr, blocks).unwrap())
     }
 
     // PUBLIC ACCESSORS
