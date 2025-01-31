@@ -97,6 +97,7 @@ impl MockProvenTxBuilder {
             self.account_id,
             self.initial_account_commitment,
             self.final_account_commitment,
+            BlockNumber::from(0),
             self.block_reference.unwrap_or_default(),
             self.expiration_block_num,
             ExecutionProof::new(Proof::new_dummy(), Default::default()),
