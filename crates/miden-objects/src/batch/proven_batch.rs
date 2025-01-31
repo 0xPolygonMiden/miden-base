@@ -4,6 +4,7 @@ use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::BlockNumber,
+    note::Nullifier,
     transaction::{InputNoteCommitment, InputNotes, OutputNote},
 };
 
@@ -70,6 +71,11 @@ impl ProvenBatch {
     /// Returns the [`InputNotes`] of this batch.
     pub fn input_notes(&self) -> &InputNotes<InputNoteCommitment> {
         &self.input_notes
+    }
+
+    /// Returns an iterator over the nullifiers produced in this batch.
+    pub fn produced_nullifiers(&self) -> impl Iterator<Item = Nullifier> + use<'_> {
+        self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 
     /// Returns the output notes of the batch.
