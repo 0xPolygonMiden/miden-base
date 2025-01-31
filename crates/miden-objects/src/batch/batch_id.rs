@@ -3,7 +3,11 @@ use alloc::{string::String, vec::Vec};
 use vm_core::{Felt, ZERO};
 use vm_processor::Digest;
 
-use crate::{transaction::ProvenTransaction, Hasher};
+use crate::{
+    account::AccountId,
+    transaction::{ProvenTransaction, TransactionId},
+    Hasher,
+};
 
 // BATCH ID
 // ================================================================================================
@@ -19,14 +23,19 @@ pub struct BatchId(Digest);
 
 impl BatchId {
     /// Calculates a batch ID from the given set of transactions.
-    pub fn compute<'tx, T>(txs: T) -> Self
+    pub fn compute_from_transactions<'tx, T>(txs: T) -> Self
     where
         T: Iterator<Item = &'tx ProvenTransaction>,
     {
+        Self::compute_from_ids(txs.map(|tx| (tx.id(), tx.account_id())))
+    }
+
+    /// Calculates a batch ID from the given transaction ID and account ID tuple.
+    pub fn compute_from_ids(iter: impl Iterator<Item = (TransactionId, AccountId)>) -> Self {
         let mut elements: Vec<Felt> = Vec::new();
-        for tx in txs {
-            elements.extend_from_slice(tx.id().as_elements());
-            let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(tx.account_id());
+        for (tx_id, account_id) in iter {
+            elements.extend_from_slice(tx_id.as_elements());
+            let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(account_id);
             elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
         }
 
