@@ -39,14 +39,14 @@ impl AccountFile {
         }
     }
 
-    #[cfg(feature = "std")]
     /// Serialises and writes binary [AccountFile] to specified file
+    #[cfg(feature = "std")]
     pub fn write(&self, filepath: impl AsRef<Path>) -> io::Result<()> {
         fs::write(filepath, self.to_bytes())
     }
 
-    #[cfg(feature = "std")]
     /// Reads from file and tries to deserialise an [AccountFile]
+    #[cfg(feature = "std")]
     pub fn read(filepath: impl AsRef<Path>) -> io::Result<Self> {
         let mut file = File::open(filepath)?;
         let mut buffer = Vec::new();

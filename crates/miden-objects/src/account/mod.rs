@@ -39,8 +39,8 @@ pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot,
 mod header;
 pub use header::AccountHeader;
 
-mod data;
-pub use data::AccountFile;
+mod file;
+pub use file::AccountFile;
 
 // ACCOUNT
 // ================================================================================================
