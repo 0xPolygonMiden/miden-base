@@ -8,6 +8,7 @@
 - [BREAKING] Moved `generated` module from `miden-proving-service-client` crate to `tx_prover::generated` hierarchy (#1102).
 - Added an endpoint to the `miden-proving-service` to update the workers (#1107).
 - Renamed the protobuf file of the transaction prover to `tx_prover.proto` (#1110).
+- [BREAKING] Renamed `AccountData` to `AccountFile` (#1116).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 
@@ -21,7 +22,6 @@
 
 - Added missing doc comments (#1100).
 - Fixed setting of supporting types when instantiating `AccountComponent` from templates (#1103).
-
 
 ## 0.7.0 (2025-01-22)
 
