@@ -75,7 +75,11 @@ fn main() -> Result<()> {
     )?;
 
     // compile account components
-    compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
+    compile_account_components(
+        &source_dir.join(ASM_ACCOUNT_COMPONENTS_DIR),
+        &target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR),
+        assembler,
+    )?;
 
     generate_kernel_error_constants(&source_dir)?;
 
@@ -233,7 +237,7 @@ fn parse_proc_offsets(filename: impl AsRef<Path>) -> Result<BTreeMap<String, usi
 // ================================================================================================
 
 /// Reads the MASM files from "{source_dir}/miden" directory, compiles them into a Miden assembly
-/// library, saves the library into "{target_dir}/miden.masl", and returns the complied library.
+/// library, saves the library into "{target_dir}/miden.masl", and returns the compiled library.
 fn compile_miden_lib(
     source_dir: &Path,
     target_dir: &Path,
@@ -258,7 +262,7 @@ fn compile_miden_lib(
 // ================================================================================================
 
 /// Reads all MASM files from the "{source_dir}", complies each file individually into a MASB
-/// file, and stores the complied files into the "{target_dir}".
+/// file, and stores the compiled files into the "{target_dir}".
 ///
 /// The source files are expected to contain executable programs.
 fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembler) -> Result<()> {
@@ -283,33 +287,37 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
     Ok(())
 }
 
-// COMPILE DEFAULT ACCOUNT COMPONENTS
+// COMPILE ACCOUNT COMPONENTS
 // ================================================================================================
 
-const BASIC_WALLET_CODE: &str = "
-    export.::miden::contracts::wallets::basic::receive_asset
-    export.::miden::contracts::wallets::basic::create_note
-    export.::miden::contracts::wallets::basic::move_asset_to_note
-";
+/// Compiles the account components in `source_dir` into MASL libraries and stores the compiled
+/// files in `target_dir`.
+fn compile_account_components(
+    source_dir: &Path,
+    target_dir: &Path,
+    assembler: Assembler,
+) -> Result<()> {
+    if !target_dir.exists() {
+        fs::create_dir_all(target_dir).unwrap();
+    }
 
-const RPO_FALCON_AUTH_CODE: &str = "
-    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-";
+    for masm_file_path in get_masm_files(source_dir).unwrap() {
+        let component_name = masm_file_path
+            .file_stem()
+            .expect("masm file should have a file stem")
+            .to_str()
+            .expect("file stem should be valid UTF-8")
+            .to_owned();
 
-const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
-    export.::miden::contracts::faucets::basic_fungible::distribute
-    export.::miden::contracts::faucets::basic_fungible::burn
-";
+        // Read the source code to string instead of passing it to assemble_library directly since
+        // that would attempt to interpret the path as a LibraryPath which would fail.
+        let component_source_code = fs::read_to_string(masm_file_path)
+            .expect("reading the component's MASM source code should succeed");
 
-/// Compiles the default account components into a MASL library and stores the complied files in
-/// `target_dir`.
-fn compile_account_components(target_dir: &Path, assembler: Assembler) -> Result<()> {
-    for (component_name, component_code) in [
-        ("basic_wallet", BASIC_WALLET_CODE),
-        ("rpo_falcon_512", RPO_FALCON_AUTH_CODE),
-        ("basic_fungible_faucet", BASIC_FUNGIBLE_FAUCET_CODE),
-    ] {
-        let component_library = assembler.clone().assemble_library([component_code])?;
+        let component_library = assembler
+            .clone()
+            .assemble_library([component_source_code])
+            .expect("library assembly should succeed");
         let component_file_path =
             target_dir.join(component_name).with_extension(Library::LIBRARY_EXTENSION);
         component_library.write_to_file(component_file_path).into_diagnostic()?;

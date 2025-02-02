@@ -13,15 +13,10 @@ extern crate std;
 use thiserror::Error;
 
 #[cfg(feature = "tx-prover")]
-pub mod generated;
-
-#[cfg(feature = "tx-prover")]
-mod prover;
-#[cfg(feature = "tx-prover")]
-pub use prover::RemoteTransactionProver;
+pub mod tx_prover;
 
 /// Protobuf definition for the Miden proving service
-pub const SERVICE_PROTO: &str = include_str!("../proto/api.proto");
+pub const TX_PROVER_PROTO: &str = include_str!("../proto/tx_prover.proto");
 
 /// ERRORS
 /// ===============================================================================================

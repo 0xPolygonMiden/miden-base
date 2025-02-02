@@ -15,7 +15,10 @@ use crate::account::{auth::RpoFalcon512, components::basic_fungible_faucet_libra
 
 /// An [`AccountComponent`] implementing a basic fungible faucet.
 ///
-/// Its exported procedures are:
+/// It reexports the procedures from `miden::contracts::faucets::basic_fungible`. When linking
+/// against this component, the `miden` library (i.e. [`MidenLib`](crate::MidenLib)) must be
+/// available to the assembler which is the case when using
+/// [`TransactionKernel::assembler()`][kasm]. The procedures of this component are:
 /// - `distribute`, which mints an assets and create a note for the provided recipient.
 /// - `burn`, which burns the provided asset.
 ///
@@ -24,6 +27,8 @@ use crate::account::{auth::RpoFalcon512, components::basic_fungible_faucet_libra
 /// authentication.
 ///
 /// This component supports accounts of type [`AccountType::FungibleFaucet`].
+///
+/// [kasm]: crate::transaction::TransactionKernel::assembler
 pub struct BasicFungibleFaucet {
     symbol: TokenSymbol,
     decimals: u8,

@@ -116,9 +116,12 @@ pub mod api_client {
                     )
                 })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/api.Api/ProveTransaction");
+            let path = http::uri::PathAndQuery::from_static(
+                "/tx_prover.Api/ProveTransaction",
+            );
             let mut req = request.into_request();
-            req.extensions_mut().insert(GrpcMethod::new("api.Api", "ProveTransaction"));
+            req.extensions_mut()
+                .insert(GrpcMethod::new("tx_prover.Api", "ProveTransaction"));
             self.inner.unary(req, path, codec).await
         }
     }
@@ -220,7 +223,7 @@ pub mod api_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
-                "/api.Api/ProveTransaction" => {
+                "/tx_prover.Api/ProveTransaction" => {
                     #[allow(non_camel_case_types)]
                     struct ProveTransactionSvc<T: Api>(pub Arc<T>);
                     impl<
@@ -298,7 +301,7 @@ pub mod api_server {
         }
     }
     /// Generated gRPC service name
-    pub const SERVICE_NAME: &str = "api.Api";
+    pub const SERVICE_NAME: &str = "tx_prover.Api";
     impl<T> tonic::server::NamedService for ApiServer<T> {
         const NAME: &'static str = SERVICE_NAME;
     }

@@ -27,6 +27,8 @@ pub struct ProxyConfig {
     pub host: String,
     /// Port of the proxy.
     pub port: u16,
+    /// Worker update service port.
+    pub workers_update_port: u16,
     /// Maximum time in seconds to complete the entire request.
     pub timeout_secs: u64,
     /// Maximum time in seconds to establish a connection.
@@ -61,6 +63,7 @@ impl Default for ProxyConfig {
             health_check_interval_secs: 1,
             prometheus_host: "127.0.0.1".into(),
             prometheus_port: 6192,
+            workers_update_port: 8083,
         }
     }
 }
