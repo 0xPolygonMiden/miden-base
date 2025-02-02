@@ -40,7 +40,7 @@ mod header;
 pub use header::AccountHeader;
 
 mod data;
-pub use data::AccountData;
+pub use data::AccountFile;
 
 // ACCOUNT
 // ================================================================================================
