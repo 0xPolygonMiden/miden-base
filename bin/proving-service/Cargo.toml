@@ -23,7 +23,7 @@ concurrent = ["miden-tx/concurrent"]
 async-trait = "0.1"
 axum = { version = "0.7" }
 bytes = "1.0"
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 figment = { version = "0.10", features = ["toml", "env"] }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false, features = ["std"] }

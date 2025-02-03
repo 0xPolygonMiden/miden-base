@@ -23,7 +23,7 @@ pub struct StartProxy {
     /// List of workers as host:port strings.
     ///
     /// Example: `127.0.0.1:8080 192.168.1.1:9090`
-    #[clap(value_name = "WORKERS")]
+    #[clap(value_name = "WORKERS", env = "WORKERS")]
     workers: Vec<String>,
 }
 
@@ -44,7 +44,7 @@ impl StartProxy {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
         server.bootstrap();
 
-        let proxy_config = super::ProxyConfig::load_config_from_file()?;
+        let proxy_config = super::ProxyConfig::load()?;
 
         let workers = self
             .workers

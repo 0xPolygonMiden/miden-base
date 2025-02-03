@@ -1,6 +1,6 @@
 use clap::Parser;
 use figment::{
-    providers::{Format, Toml},
+    providers::{Env, Format, Serialized, Toml},
     Figment,
 };
 use init::Init;
@@ -17,11 +17,14 @@ pub mod proxy;
 pub mod update_workers;
 pub mod worker;
 
+const ENV_PREFIX: &str = "PROXY_";
+
 /// Configuration of the proxy.
 ///
 /// It is stored in a TOML file, which will be created by the `init` command.
 /// It allows manual modification of the configuration file.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct ProxyConfig {
     /// Host of the proxy.
     pub host: String,
@@ -69,18 +72,25 @@ impl Default for ProxyConfig {
 }
 
 impl ProxyConfig {
-    /// Loads config file from current directory and default filename and returns it
+    /// Load config with TOML file as base and environment variables as overrides.
     ///
     /// This function will look for the configuration file with the name defined at the
-    /// [PROVING_SERVICE_CONFIG_FILE_NAME] constant in the current directory.
-    pub(crate) fn load_config_from_file() -> Result<ProxyConfig, String> {
-        let mut current_dir = std::env::current_dir().map_err(|err| err.to_string())?;
-        current_dir.push(PROVING_SERVICE_CONFIG_FILE_NAME);
-        let config_path = current_dir.as_path();
+    /// [PROVING_SERVICE_CONFIG_FILE_NAME] constant in the current directory. It will then merge
+    /// the TOML file with the environment variables with the `PROXY_` prefix.
+    pub(crate) fn load() -> Result<ProxyConfig, String> {
+        let config_path = std::env::current_dir()
+            .map_err(|e| e.to_string())?
+            .join(PROVING_SERVICE_CONFIG_FILE_NAME);
 
-        Figment::from(Toml::file(config_path))
+        Figment::new()
+            // Start with default values
+            .merge(Serialized::defaults(ProxyConfig::default()))
+            // Add TOML config file
+            .merge(Toml::file(config_path))
+            // Add environment variables with PROXY_ prefix
+            .merge(Env::prefixed(ENV_PREFIX).split("_"))
             .extract()
-            .map_err(|err| format!("Failed to load {} config file: {err}", config_path.display()))
+            .map_err(|e| e.to_string())
     }
 }
 

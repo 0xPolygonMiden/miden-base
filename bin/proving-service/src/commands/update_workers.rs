@@ -63,7 +63,7 @@ impl UpdateWorkers {
         println!("Action: {:?}, with workers: {:?}", self.action, self.workers);
 
         // Get the proxy url from the configuration file.
-        let proxy_config = ProxyConfig::load_config_from_file()?;
+        let proxy_config = ProxyConfig::load()?;
 
         // Create the full URL
         let url = format!(
