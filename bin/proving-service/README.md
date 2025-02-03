@@ -61,6 +61,8 @@ prometheus_host = "127.0.0.1"
 prometheus_port = 6192
 ```
 
+The proving service can also use environment variables to set the configuration. The environment variables should have the same name as the configuration file but in uppercase and with the prefix `PROXY_`. For example, the `host` value in the configuration file can be set using the `PROXY_HOST` environment variable.
+
 Then, to start the proxy service, you will need to run:
 
 ```bash
