@@ -34,6 +34,12 @@ pub struct ProvenTransaction {
     /// while for public notes this will also contain full note details.
     output_notes: OutputNotes,
 
+    /// [`BlockNumber`] of the transaction's reference block.
+    ///
+    /// This is not needed for proving the transaction, but it is useful for the node to lookup the
+    /// block.
+    block_num: BlockNumber,
+
     /// The block hash of the last known block at the time the transaction was executed.
     block_ref: Digest,
 
@@ -73,6 +79,11 @@ impl ProvenTransaction {
     /// Returns the proof of the transaction.
     pub fn proof(&self) -> &ExecutionProof {
         &self.proof
+    }
+
+    /// Returns the number of the reference block the transaction was executed against.
+    pub fn block_num(&self) -> BlockNumber {
+        self.block_num
     }
 
     /// Returns the block reference the transaction was executed against.
@@ -153,6 +164,7 @@ impl Serializable for ProvenTransaction {
         self.account_update.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
+        self.block_num.write_into(target);
         self.block_ref.write_into(target);
         self.expiration_block_num.write_into(target);
         self.proof.write_into(target);
@@ -166,6 +178,7 @@ impl Deserializable for ProvenTransaction {
         let input_notes = <InputNotes<InputNoteCommitment>>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
 
+        let block_num = BlockNumber::read_from(source)?;
         let block_ref = Digest::read_from(source)?;
         let expiration_block_num = BlockNumber::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
@@ -182,6 +195,7 @@ impl Deserializable for ProvenTransaction {
             account_update,
             input_notes,
             output_notes,
+            block_num,
             block_ref,
             expiration_block_num,
             proof,
@@ -217,6 +231,9 @@ pub struct ProvenTransactionBuilder {
     /// List of [OutputNote]s of all notes created by the transaction.
     output_notes: Vec<OutputNote>,
 
+    /// [`BlockNumber`] of the transaction's reference block.
+    block_num: BlockNumber,
+
     /// Block [Digest] of the transaction's reference block.
     block_ref: Digest,
 
@@ -236,6 +253,7 @@ impl ProvenTransactionBuilder {
         account_id: AccountId,
         initial_account_hash: Digest,
         final_account_hash: Digest,
+        block_num: BlockNumber,
         block_ref: Digest,
         expiration_block_num: BlockNumber,
         proof: ExecutionProof,
@@ -247,6 +265,7 @@ impl ProvenTransactionBuilder {
             account_update_details: AccountUpdateDetails::Private,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
+            block_num,
             block_ref,
             expiration_block_num,
             proof,
@@ -310,6 +329,7 @@ impl ProvenTransactionBuilder {
             account_update,
             input_notes,
             output_notes,
+            block_num: self.block_num,
             block_ref: self.block_ref,
             expiration_block_num: self.expiration_block_num,
             proof: self.proof,
