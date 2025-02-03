@@ -1,2 +1,2 @@
 #[rustfmt::skip]
-pub mod api;
+pub mod tx_prover;

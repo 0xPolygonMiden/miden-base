@@ -7,12 +7,12 @@ compile_error!("The `std` feature cannot be used when targeting `wasm32`.");
 #[cfg(feature = "std")]
 mod std;
 #[cfg(feature = "std")]
-pub use std::api::*;
+pub use std::tx_prover::*;
 
 #[cfg(not(feature = "std"))]
 mod nostd;
 #[cfg(not(feature = "std"))]
-pub use nostd::api::*;
+pub use nostd::tx_prover::*;
 
 // CONVERSIONS
 // ================================================================================================

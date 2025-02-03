@@ -34,10 +34,11 @@ fn main() -> miette::Result<()> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Copies all api.proto file from the root proto directory to the proto directory of this crate.
+/// Copies the tx_prover.proto file from the root proto directory to the proto directory of this
+/// crate.
 fn copy_proto_files() -> miette::Result<()> {
-    let src_file = format!("{REPO_PROTO_DIR}/api.proto");
-    let dest_file = format!("{CRATE_PROTO_DIR}/api.proto");
+    let src_file = format!("{REPO_PROTO_DIR}/tx_prover.proto");
+    let dest_file = format!("{CRATE_PROTO_DIR}/tx_prover.proto");
 
     fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
     fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
@@ -51,14 +52,14 @@ fn compile_tonic_client_proto() -> miette::Result<()> {
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("tx_prover").join("generated");
 
-    // Remove `api.rs` if it exists.
-    fs::remove_file(dst_dir.join("api.rs")).into_diagnostic().ok();
+    // Remove `tx_prover.rs` if it exists.
+    fs::remove_file(dst_dir.join("tx_prover.rs")).into_diagnostic().ok();
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
     let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
-    let protos = &[proto_dir.join("api.proto")];
+    let protos = &[proto_dir.join("tx_prover.proto")];
     let includes = &[proto_dir];
 
     let file_descriptors = protox::compile(protos, includes)?;
@@ -70,9 +71,9 @@ fn compile_tonic_client_proto() -> miette::Result<()> {
     build_tonic_client(&file_descriptor_path, &std_path, protos, includes, false)?;
     build_tonic_client(&file_descriptor_path, &nostd_path, protos, includes, true)?;
 
-    // Replace `std` references with `core` and `alloc` in `api.rs`.
+    // Replace `std` references with `core` and `alloc` in `tx_prover.rs`.
     // (Only for nostd version)
-    let nostd_file_path = nostd_path.join("api.rs");
+    let nostd_file_path = nostd_path.join("tx_prover.rs");
     let file_content = fs::read_to_string(&nostd_file_path).into_diagnostic()?;
     let updated_content = file_content
         .replace("std::result", "core::result")
