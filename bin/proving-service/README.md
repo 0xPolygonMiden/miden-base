@@ -24,54 +24,58 @@ To start the worker service you will need to run:
 miden-proving-service start-worker --host 0.0.0.0 --port 8082
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. The host and port can also be set using the `WORKER_HOST` and `WORKER_PORT` environment variables.
 
 ## Proxy
 
-First, you need to create a configuration file for the proxy with:
+To use the proxy service, you will need an `.env` file with the following configuration, if any of the values are not present, it will be completed with the default ones:
 
-```bash
-miden-proving-service init
-```
-
-This will create the `miden-proving-service.toml` file in your current directory. This file will hold the configuration for the proxy. You can modify the configuration by changing the host and ports of the services, the maximum size of the queue, among other options. An example configuration is:
-
-```toml
+```env
 # Host of the proxy server
-host = "0.0.0.0"
+PROXY_HOST="0.0.0.0"
 # Port of the proxy server
-port = 8082
+PROXY_PORT="8082"
+# Host of the workers update endpoint
+PROXY_WORKERS_UPDATE_PORT="8083"
 # Timeout for a new request to be completed
-timeout_secs = 100
+PROXY_TIMEOUT_SECS="100"
 # Timeout for establishing a connection to the worker
-connection_timeout_secs = 10
+PROXY_CONNECTION_TIMEOUT_SECS="10"
 # Maximum amount of items that a queue can handle
-max_queue_items = 10
+PROXY_MAX_QUEUE_ITEMS="10"
 # Maximum amount of retries that a request can take
-max_retries_per_request = 1
+PROXY_MAX_RETRIES_PER_REQUEST="1"
 # Maximum amount of requests that a given IP address can make per second
-max_req_per_sec = 5
+PROXY_MAX_REQ_PER_SEC="5"
 # Time to wait before checking the availability of workers
-available_workers_polling_time_ms = 20
+PROXY_AVAILABLE_WORKERS_POLLING_TIME_MS="20"
 # Interval to check the health of the workers
-health_check_interval_secs = 1
+PROXY_HEALTH_CHECK_INTERVAL_SECS="1"
 # Host of the metrics server
-prometheus_host = "127.0.0.1"
+PROXY_PROMETHEUS_HOST="127.0.0.1"
 # Port of the metrics server
-prometheus_port = 6192
+PROXY_PROMETHEUS_PORT="6192"
+# Log level
+RUST_LOG="info"
 ```
 
-The proving service can also use environment variables to set the configuration. The environment variables should have the same name as the configuration file but in uppercase and with the prefix `PROXY_`. For example, the `host` value in the configuration file can be set using the `PROXY_HOST` environment variable.
+An example `.env` file is provided in the crate's root directory.
 
 Then, to start the proxy service, you will need to run:
 
 ```bash
-miden-proving-service start-proxy [worker1] [worker2] ... [workerN]
+miden-proving-service start-proxy [worker1],[worker2],...,[workerN]
 ```
 
 This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
 
-At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `max_retries_per_request` value in the configuration file.
+The proxy service can also be started using the `PROXY_WORKERS` environment variable, which should contain a comma-separated list of workers.
+
+```bash
+WORKERS="0.0.0.0:8084,0.0.0.0:8085" miden-proving-service start-proxy
+```
+
+At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `PROXY_MAX_RETRIES_PER_REQUEST` environmental variable.
 
 ## Updating workers on a running proxy
 
@@ -122,7 +126,7 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 ## Metrics
 
-The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `miden-proving-service.toml` file.
+The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `.env` file through the `PROXY_PROMETHEUS_HOST` and `PROXY_PROMETHEUS_PORT` variables.
 
 The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
 

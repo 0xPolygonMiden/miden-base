@@ -23,7 +23,7 @@ pub struct StartProxy {
     /// List of workers as host:port strings.
     ///
     /// Example: `127.0.0.1:8080 192.168.1.1:9090`
-    #[clap(value_name = "WORKERS", env = "WORKERS")]
+    #[clap(value_name = "WORKERS", env = "WORKERS", value_delimiter = ',')]
     workers: Vec<String>,
 }
 

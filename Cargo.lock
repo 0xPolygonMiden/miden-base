@@ -799,6 +799,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59f8e79d1fbf76bdfbde321e902714bf6c49df88a7dda6fc682fc2979226962d"
 
 [[package]]
+name = "dotenvy"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
+
+[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -873,7 +879,6 @@ dependencies = [
  "atomic",
  "pear",
  "serde",
- "toml",
  "uncased",
  "version_check",
 ]
@@ -1994,6 +1999,7 @@ dependencies = [
  "axum",
  "bytes",
  "clap 4.5.27",
+ "dotenvy",
  "figment",
  "miden-lib",
  "miden-objects",

@@ -1,18 +1,16 @@
 use clap::Parser;
 use figment::{
-    providers::{Env, Format, Serialized, Toml},
+    providers::{Env, Serialized},
     Figment,
 };
-use init::Init;
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
 
-use crate::utils::{MIDEN_PROVING_SERVICE, PROVING_SERVICE_CONFIG_FILE_NAME};
+use crate::utils::MIDEN_PROVING_SERVICE;
 
-pub mod init;
 pub mod proxy;
 pub mod update_workers;
 pub mod worker;
@@ -78,15 +76,9 @@ impl ProxyConfig {
     /// [PROVING_SERVICE_CONFIG_FILE_NAME] constant in the current directory. It will then merge
     /// the TOML file with the environment variables with the `PROXY_` prefix.
     pub(crate) fn load() -> Result<ProxyConfig, String> {
-        let config_path = std::env::current_dir()
-            .map_err(|e| e.to_string())?
-            .join(PROVING_SERVICE_CONFIG_FILE_NAME);
-
         Figment::new()
             // Start with default values
             .merge(Serialized::defaults(ProxyConfig::default()))
-            // Add TOML config file
-            .merge(Toml::file(config_path))
             // Add environment variables with PROXY_ prefix
             .merge(Env::prefixed(ENV_PREFIX).split("_"))
             .extract()
@@ -110,23 +102,17 @@ pub struct Cli {
 /// CLI actions
 #[derive(Debug, Parser)]
 pub enum Command {
-    /// Creates a config file for the proxy.
-    ///
-    /// This method will create a new config file in the current working directory with default
-    /// values. The file will be named as defined in the
-    /// [PROVING_SERVICE_CONFIG_FILE_NAME] constant.
-    Init(Init),
     /// Starts the workers with the configuration defined in the command.
     StartWorker(StartWorker),
-    /// Starts the proxy defined in the config file.
+    /// Starts the proxy.
     StartProxy(StartProxy),
     /// Adds workers to the proxy.
     ///
-    /// This method will make a request to the proxy defined in the config file to add workers.
+    /// This method will make a request to the proxy adding workers.
     AddWorkers(AddWorkers),
     /// Removes workers from the proxy.
     ///
-    /// This method will make a request to the proxy defined in the config file to remove workers.
+    /// This method will make a request to the proxy removing workers.
     RemoveWorkers(RemoveWorkers),
 }
 
@@ -138,10 +124,6 @@ impl Cli {
             // For the `StartWorker` command, we need to create a new runtime and run the worker
             Command::StartWorker(worker_init) => worker_init.execute().await,
             Command::StartProxy(proxy_init) => proxy_init.execute().await,
-            Command::Init(init) => {
-                // Init does not require async, so run directly
-                init.execute()
-            },
             Command::AddWorkers(update_workers) => {
                 let update_workers: UpdateWorkers = update_workers.clone().into();
                 update_workers.execute().await
