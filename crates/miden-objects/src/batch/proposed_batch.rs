@@ -23,6 +23,7 @@ use crate::{
 /// This type is fairly large, so consider boxing it.
 #[derive(Debug, Clone)]
 pub struct ProposedBatch {
+    /// The transactions of this batch.
     transactions: Vec<Arc<ProvenTransaction>>,
     /// The header is boxed as it has a large stack size.
     block_header: BlockHeader,
@@ -33,11 +34,22 @@ pub struct ProposedBatch {
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
     unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
+    /// The ID of the batch.
     id: BatchId,
+    /// A map from account ID's updated in this batch to the aggregated update from all
+    /// transaction's that touched the account.
     account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
+    /// The block number at which the batch will expire. This is the minimum of all transaction's
+    /// expiration block number.
     batch_expiration_block_num: BlockNumber,
+    /// The input note commitment of the transaction batch. This consists of all authenticated
+    /// notes that transactions in the batch consume as well as unauthenticated notes whose
+    /// authentication is delayed to the block kernel.
     input_notes: InputNotes<InputNoteCommitment>,
+    /// The SMT over the output notes of this batch.
     output_notes_tree: BatchNoteTree,
+    /// The output notes of this batch. This consists of all notes created by transactions in the
+    /// batch that are not consumed within the same batch.
     output_notes: Vec<OutputNote>,
 }
 

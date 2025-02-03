@@ -92,6 +92,15 @@ impl BatchAccountUpdate {
     // --------------------------------------------------------------------------------------------
 
     /// Merges the transaction's update into this account update.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The account ID of the merging transaction does not match the account ID of the existing
+    ///   update.
+    /// - The merging transaction's initial state commitment does not match the final state
+    ///   commitment of the current update.
+    /// - If the underlying [`AccountUpdateDetails::merge`] fails.
     pub fn merge_proven_tx(
         &mut self,
         tx: &ProvenTransaction,
