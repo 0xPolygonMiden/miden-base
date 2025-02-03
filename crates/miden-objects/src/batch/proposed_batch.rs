@@ -90,7 +90,7 @@ impl ProposedBatch {
     /// - The number of output notes exceeds [`MAX_OUTPUT_NOTES_PER_BATCH`].
     ///   - Note that output notes that are consumed in the same batch as unauthenticated input
     ///     notes do not count.
-    /// - Any note is consumed twice.
+    /// - Any note is consumed more than once.
     /// - Any note is created more than once.
     /// - The number of account updates exceeds [`MAX_ACCOUNTS_PER_BATCH`].
     ///   - Note that any number of transactions against the same account count as one update.
@@ -104,6 +104,9 @@ impl ProposedBatch {
     ///   the chain MMR.
     /// - The transactions in the proposed batch which update the same account are not correctly
     ///   ordered.
+    /// - The provided list of transactions is empty. An empty batch is pointless and would
+    ///   potentially result in the same [`BatchId`] for two empty batches which would mean batch
+    ///   IDs are no longer unique.
     /// - There are duplicate transactions.
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
@@ -111,8 +114,12 @@ impl ProposedBatch {
         chain_mmr: ChainMmr,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, BatchProposeError> {
-        // Check for duplicate transactions.
+        // Check for empty or duplicate transactions.
         // --------------------------------------------------------------------------------------------
+
+        if transactions.is_empty() {
+            return Err(BatchProposeError::EmptyTransactionBatch);
+        }
 
         let mut transaction_set = BTreeSet::new();
         for tx in transactions.iter() {

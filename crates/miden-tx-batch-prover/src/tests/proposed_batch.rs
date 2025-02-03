@@ -53,6 +53,20 @@ fn setup_chain() -> TestSetup {
 /// Tests that a note created and consumed in the same batch are erased from the input and
 /// output note commitments.
 #[test]
+fn empty_transaction_batch() -> anyhow::Result<()> {
+    let TestSetup { chain, .. } = setup_chain();
+    let block1 = chain.block_header(1);
+
+    let error = ProposedBatch::new(vec![], block1, chain.chain(), BTreeMap::default()).unwrap_err();
+
+    assert_matches!(error, BatchProposeError::EmptyTransactionBatch);
+
+    Ok(())
+}
+
+/// Tests that a note created and consumed in the same batch are erased from the input and
+/// output note commitments.
+#[test]
 fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
     let block1 = chain.block_header(1);

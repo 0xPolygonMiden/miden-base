@@ -468,6 +468,9 @@ pub enum BatchProposeError {
   )]
     TooManyAccountUpdates(usize),
 
+    #[error("transaction batch must contain at least one transaction")]
+    EmptyTransactionBatch,
+
     #[error("transaction {transaction_id} appears twice in the proposed batch input")]
     DuplicateTransaction { transaction_id: TransactionId },
 
