@@ -8,7 +8,7 @@ use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::{BlockHeader, BlockNumber},
-    errors::BatchError,
+    errors::BatchProposeError,
     note::{NoteHeader, NoteId, NoteInclusionProof},
     transaction::{
         ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction, TransactionId,
@@ -98,14 +98,14 @@ impl ProposedBatch {
         block_header: BlockHeader,
         chain_mmr: ChainMmr,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
-    ) -> Result<Self, BatchError> {
+    ) -> Result<Self, BatchProposeError> {
         // Check for duplicate transactions.
         // --------------------------------------------------------------------------------------------
 
         let mut transaction_set = BTreeSet::new();
         for tx in transactions.iter() {
             if !transaction_set.insert(tx.id()) {
-                return Err(BatchError::DuplicateTransaction { transaction_id: tx.id() });
+                return Err(BatchProposeError::DuplicateTransaction { transaction_id: tx.id() });
             }
         }
 
@@ -113,7 +113,7 @@ impl ProposedBatch {
         // --------------------------------------------------------------------------------------------
 
         if chain_mmr.chain_length() != block_header.block_num() {
-            return Err(BatchError::InconsistentChainLength {
+            return Err(BatchProposeError::InconsistentChainLength {
                 expected: block_header.block_num(),
                 actual: chain_mmr.chain_length(),
             });
@@ -121,7 +121,7 @@ impl ProposedBatch {
 
         let hashed_peaks = chain_mmr.peaks().hash_peaks();
         if hashed_peaks != block_header.chain_root() {
-            return Err(BatchError::InconsistentChainRoot {
+            return Err(BatchProposeError::InconsistentChainRoot {
                 expected: block_header.chain_root(),
                 actual: hashed_peaks,
             });
@@ -140,7 +140,7 @@ impl ProposedBatch {
 
         for tx in transactions.iter() {
             if !block_references.contains(&tx.block_ref()) {
-                return Err(BatchError::MissingTransactionBlockReference {
+                return Err(BatchProposeError::MissingTransactionBlockReference {
                     block_reference: tx.block_ref(),
                     transaction_id: tx.id(),
                 });
@@ -165,7 +165,10 @@ impl ProposedBatch {
                     // This returns an error if the transactions are not correctly ordered, e.g. if
                     // B comes before A.
                     occupied.into_mut().merge_proven_tx(tx).map_err(|source| {
-                        BatchError::AccountUpdateError { account_id: tx.account_id(), source }
+                        BatchProposeError::AccountUpdateError {
+                            account_id: tx.account_id(),
+                            source,
+                        }
                     })?;
                 },
             };
@@ -176,7 +179,7 @@ impl ProposedBatch {
         }
 
         if account_updates.len() > MAX_ACCOUNTS_PER_BATCH {
-            return Err(BatchError::TooManyAccountUpdates(account_updates.len()));
+            return Err(BatchProposeError::TooManyAccountUpdates(account_updates.len()));
         }
 
         // Check for duplicates in input notes.
@@ -191,7 +194,7 @@ impl ProposedBatch {
             for note in tx.input_notes() {
                 let nullifier = note.nullifier();
                 if let Some(first_transaction_id) = input_note_map.insert(nullifier, tx.id()) {
-                    return Err(BatchError::DuplicateInputNote {
+                    return Err(BatchProposeError::DuplicateInputNote {
                         note_nullifier: nullifier,
                         first_transaction_id,
                         second_transaction_id: tx.id(),
@@ -228,13 +231,14 @@ impl ProposedBatch {
                         if let Some(proof) =
                             unauthenticated_note_proofs.get(&input_note_header.id())
                         {
-                            let note_block_header =
-                                chain_mmr.get_block(proof.location().block_num()).ok_or_else(
-                                    || BatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
+                            let note_block_header = chain_mmr
+                                .get_block(proof.location().block_num())
+                                .ok_or_else(|| {
+                                    BatchProposeError::UnauthenticatedInputNoteBlockNotInChainMmr {
                                         block_number: proof.location().block_num(),
                                         note_id: input_note_header.id(),
-                                    },
-                                )?;
+                                    }
+                                })?;
 
                             authenticate_unauthenticated_note(
                                 input_note_header,
@@ -257,14 +261,14 @@ impl ProposedBatch {
         let output_notes = output_notes.into_notes();
 
         if input_notes.len() > MAX_INPUT_NOTES_PER_BATCH {
-            return Err(BatchError::TooManyInputNotes(input_notes.len()));
+            return Err(BatchProposeError::TooManyInputNotes(input_notes.len()));
         }
         // SAFETY: This is safe as we have checked for duplicates and the max number of input notes
         // in a batch.
         let input_notes = InputNotes::new_unchecked(input_notes);
 
         if output_notes.len() > MAX_OUTPUT_NOTES_PER_BATCH {
-            return Err(BatchError::TooManyOutputNotes(output_notes.len()));
+            return Err(BatchProposeError::TooManyOutputNotes(output_notes.len()));
         }
 
         // Build the output notes SMT.
@@ -404,14 +408,16 @@ impl BatchOutputNoteTracker {
     ///
     /// Returns an error if:
     /// - any output note is created more than once (by the same or different transactions).
-    fn new<'a>(txs: impl Iterator<Item = &'a ProvenTransaction>) -> Result<Self, BatchError> {
+    fn new<'a>(
+        txs: impl Iterator<Item = &'a ProvenTransaction>,
+    ) -> Result<Self, BatchProposeError> {
         let mut output_notes = BTreeMap::new();
         for tx in txs {
             for note in tx.output_notes().iter() {
                 if let Some((first_transaction_id, _)) =
                     output_notes.insert(note.id(), (tx.id(), note.clone()))
                 {
-                    return Err(BatchError::DuplicateOutputNote {
+                    return Err(BatchProposeError::DuplicateOutputNote {
                         note_id: note.id(),
                         first_transaction_id,
                         second_transaction_id: tx.id(),
@@ -433,7 +439,10 @@ impl BatchOutputNoteTracker {
     /// Returns an error if:
     /// - the given note has a corresponding note in the output note set with the same [`NoteId`]
     ///   but their hashes differ (i.e. their metadata is different).
-    pub fn remove_note(&mut self, input_note_header: &NoteHeader) -> Result<bool, BatchError> {
+    pub fn remove_note(
+        &mut self,
+        input_note_header: &NoteHeader,
+    ) -> Result<bool, BatchProposeError> {
         let id = input_note_header.id();
         if let Some((_, output_note)) = self.output_notes.remove(&id) {
             // Check if the notes with the same ID have differing hashes.
@@ -442,7 +451,7 @@ impl BatchOutputNoteTracker {
             let input_hash = input_note_header.hash();
             let output_hash = output_note.hash();
             if output_hash != input_hash {
-                return Err(BatchError::NoteHashesMismatch { id, input_hash, output_hash });
+                return Err(BatchProposeError::NoteHashesMismatch { id, input_hash, output_hash });
             }
 
             return Ok(true);
@@ -466,13 +475,13 @@ fn authenticate_unauthenticated_note(
     note_header: &NoteHeader,
     proof: &NoteInclusionProof,
     block_header: &BlockHeader,
-) -> Result<(), BatchError> {
+) -> Result<(), BatchProposeError> {
     let note_index = proof.location().node_index_in_block().into();
     let note_hash = note_header.hash();
     proof
         .note_path()
         .verify(note_index, note_hash, &block_header.note_root())
-        .map_err(|source| BatchError::UnauthenticatedNoteAuthenticationFailed {
+        .map_err(|source| BatchProposeError::UnauthenticatedNoteAuthenticationFailed {
             note_id: note_header.id(),
             block_num: proof.location().block_num(),
             source,

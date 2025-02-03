@@ -452,7 +452,7 @@ pub enum ProvenTransactionError {
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum BatchError {
+pub enum BatchProposeError {
     #[error(
         "transaction batch has {0} input notes but at most {MAX_INPUT_NOTES_PER_BATCH} are allowed"
     )]
