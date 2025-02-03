@@ -23,15 +23,15 @@ pub struct BatchId(Digest);
 
 impl BatchId {
     /// Calculates a batch ID from the given set of transactions.
-    pub fn compute_from_transactions<'tx, T>(txs: T) -> Self
+    pub fn from_transactions<'tx, T>(txs: T) -> Self
     where
         T: Iterator<Item = &'tx ProvenTransaction>,
     {
-        Self::compute_from_ids(txs.map(|tx| (tx.id(), tx.account_id())))
+        Self::from_ids(txs.map(|tx| (tx.id(), tx.account_id())))
     }
 
     /// Calculates a batch ID from the given transaction ID and account ID tuple.
-    pub fn compute_from_ids(iter: impl Iterator<Item = (TransactionId, AccountId)>) -> Self {
+    pub fn from_ids(iter: impl Iterator<Item = (TransactionId, AccountId)>) -> Self {
         let mut elements: Vec<Felt> = Vec::new();
         for (tx_id, account_id) in iter {
             elements.extend_from_slice(tx_id.as_elements());

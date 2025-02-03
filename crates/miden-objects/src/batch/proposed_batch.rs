@@ -285,7 +285,7 @@ impl ProposedBatch {
         // Compute batch ID.
         // --------------------------------------------------------------------------------------------
 
-        let id = BatchId::compute_from_transactions(transactions.iter().map(AsRef::as_ref));
+        let id = BatchId::from_transactions(transactions.iter().map(AsRef::as_ref));
 
         Ok(Self {
             id,
