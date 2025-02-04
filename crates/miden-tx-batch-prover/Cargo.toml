@@ -26,7 +26,6 @@ std = [
 ]
 
 [dependencies]
-anyhow = { version = "1.0", default-features = false, optional = true }
 miden-crypto = { workspace = true }
 miden-tx = { workspace = true }
 miden-objects = { workspace = true }
@@ -35,8 +34,8 @@ vm-core = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
-rand = { workspace = true, features = ["small_rng"] }
-miden-lib = { workspace = true, features = ["std", "testing"] }
-winterfell = { version = "0.11" }
 anyhow = { version = "1.0", features = ["std", "backtrace"] }
+miden-lib = { workspace = true, features = ["std", "testing"] }
 miden-tx = { workspace = true, features = ["std", "testing"] }
+rand = { workspace = true, features = ["small_rng"] }
+winterfell = { version = "0.11" }

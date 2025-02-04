@@ -11,7 +11,7 @@ use miden_objects::{
     note::{Note, NoteType},
     testing::{account_id::AccountIdBuilder, note::NoteBuilder},
     transaction::{ChainMmr, InputNote, InputNoteCommitment, OutputNote},
-    BatchAccountUpdateError, BatchProposeError,
+    BatchAccountUpdateError, ProposedBatchError,
 };
 use miden_tx::testing::{Auth, MockChain};
 use rand::{rngs::SmallRng, SeedableRng};
@@ -59,7 +59,7 @@ fn empty_transaction_batch() -> anyhow::Result<()> {
 
     let error = ProposedBatch::new(vec![], block1, chain.chain(), BTreeMap::default()).unwrap_err();
 
-    assert_matches!(error, BatchProposeError::EmptyTransactionBatch);
+    assert_matches!(error, ProposedBatchError::EmptyTransactionBatch);
 
     Ok(())
 }
@@ -121,7 +121,7 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
     )
     .unwrap_err();
 
-    assert_matches!(error, BatchProposeError::DuplicateInputNote {
+    assert_matches!(error, ProposedBatchError::DuplicateInputNote {
         note_nullifier,
         first_transaction_id,
         second_transaction_id
@@ -159,7 +159,7 @@ fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
     )
     .unwrap_err();
 
-    assert_matches!(error, BatchProposeError::DuplicateInputNote {
+    assert_matches!(error, ProposedBatchError::DuplicateInputNote {
         note_nullifier,
         first_transaction_id,
         second_transaction_id
@@ -197,7 +197,7 @@ fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
     )
     .unwrap_err();
 
-    assert_matches!(error, BatchProposeError::DuplicateInputNote {
+    assert_matches!(error, ProposedBatchError::DuplicateInputNote {
         note_nullifier,
         first_transaction_id,
         second_transaction_id
@@ -234,7 +234,7 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
     )
     .unwrap_err();
 
-    assert_matches!(error, BatchProposeError::DuplicateOutputNote {
+    assert_matches!(error, ProposedBatchError::DuplicateOutputNote {
              note_id,
              first_transaction_id,
              second_transaction_id
@@ -284,7 +284,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     )
     .unwrap_err();
 
-    assert_matches!(error, BatchProposeError::UnauthenticatedNoteAuthenticationFailed {
+    assert_matches!(error, ProposedBatchError::UnauthenticatedNoteAuthenticationFailed {
         note_id,
         block_num,
         source: MerkleError::ConflictingRoots { .. },
@@ -313,7 +313,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
 
     assert_matches!(
         error,
-        BatchProposeError::UnauthenticatedInputNoteBlockNotInChainMmr {
+        ProposedBatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
           block_number,
           note_id
         } if block_number == note_inclusion_proof1.location().block_num() &&
@@ -437,7 +437,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
 
     assert_matches!(
         error,
-        BatchProposeError::AccountUpdateError {
+        ProposedBatchError::AccountUpdateError {
             source: BatchAccountUpdateError::AccountUpdateInitialStateMismatch(tx_id),
             ..
         } if tx_id == tx1.id()
@@ -550,7 +550,7 @@ fn duplicate_transaction() -> anyhow::Result<()> {
     )
     .unwrap_err();
 
-    assert_matches!(error, BatchProposeError::DuplicateTransaction { transaction_id } if transaction_id == tx1.id());
+    assert_matches!(error, ProposedBatchError::DuplicateTransaction { transaction_id } if transaction_id == tx1.id());
 
     Ok(())
 }
