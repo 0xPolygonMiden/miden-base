@@ -67,8 +67,8 @@ impl BackgroundService for LoadBalancerState {
 /// Create a gRPC [HealthClient] for the given worker address.
 ///
 /// # Errors
-/// - [TxProverServiceError::InvalidURI] if the worker address is invalid.
-/// - [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
+/// - [ProvingServiceError::InvalidURI] if the worker address is invalid.
+/// - [ProvingServiceError::ConnectionFailed] if the connection to the worker fails.
 pub async fn create_health_check_client(
     address: String,
     connection_timeout: Duration,

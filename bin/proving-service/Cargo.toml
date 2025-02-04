@@ -42,7 +42,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_qs = { version = "0.13" }
 tokio = { version = "1.38", features = ["full"] }
 tokio-stream = { version = "0.1", features = [ "net" ]}
-toml = { version = "0.8" }
 thiserror = { workspace = true }
 tonic = { version = "0.12", default-features = false, features = ["codegen", "prost", "transport"] }
 tonic-health = { version = "0.12" }
