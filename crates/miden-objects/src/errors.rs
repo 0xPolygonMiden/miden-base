@@ -22,7 +22,9 @@ use crate::{
     },
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
-    ACCOUNT_UPDATE_MAX_SIZE, MAX_INPUTS_PER_NOTE, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
+    transaction::TransactionId,
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_ACCOUNTS_PER_BATCH, MAX_INPUTS_PER_NOTE,
+    MAX_INPUT_NOTES_PER_BATCH, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT COMPONENT TEMPLATE ERROR
@@ -180,6 +182,23 @@ pub enum AccountDeltaError {
     InconsistentNonceUpdate(String),
     #[error("account ID {0} in fungible asset delta is not of type fungible faucet")]
     NotAFungibleFaucetId(AccountId),
+}
+
+// BATCH ACCOUNT UPDATE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum BatchAccountUpdateError {
+    #[error("account update for account {expected_account_id} cannot be merged with update from transaction {transaction} which was executed against account {actual_account_id}")]
+    AccountUpdateIdMismatch {
+        transaction: TransactionId,
+        expected_account_id: AccountId,
+        actual_account_id: AccountId,
+    },
+    #[error("final state commitment in account update from transaction {0} does not match initial state of current update")]
+    AccountUpdateInitialStateMismatch(TransactionId),
+    #[error("failed to merge account delta from transaction {0}")]
+    TransactionUpdateMergeError(TransactionId, #[source] AccountDeltaError),
 }
 
 // ASSET ERROR
@@ -426,6 +445,90 @@ pub enum ProvenTransactionError {
     AccountUpdateSizeLimitExceeded {
         account_id: AccountId,
         update_size: usize,
+    },
+}
+
+// BATCH ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum ProposedBatchError {
+    #[error(
+        "transaction batch has {0} input notes but at most {MAX_INPUT_NOTES_PER_BATCH} are allowed"
+    )]
+    TooManyInputNotes(usize),
+
+    #[error(
+        "transaction batch has {0} output notes but at most {MAX_OUTPUT_NOTES_PER_BATCH} are allowed"
+    )]
+    TooManyOutputNotes(usize),
+
+    #[error(
+      "transaction batch has {0} account updates but at most {MAX_ACCOUNTS_PER_BATCH} are allowed"
+  )]
+    TooManyAccountUpdates(usize),
+
+    #[error("transaction batch must contain at least one transaction")]
+    EmptyTransactionBatch,
+
+    #[error("transaction {transaction_id} appears twice in the proposed batch input")]
+    DuplicateTransaction { transaction_id: TransactionId },
+
+    #[error("transaction {second_transaction_id} consumes the note with nullifier {note_nullifier} that is also consumed by another transaction {first_transaction_id} in the batch")]
+    DuplicateInputNote {
+        note_nullifier: Nullifier,
+        first_transaction_id: TransactionId,
+        second_transaction_id: TransactionId,
+    },
+
+    #[error("transaction {second_transaction_id} creates the note with id {note_id} that is also created by another transaction {first_transaction_id} in the batch")]
+    DuplicateOutputNote {
+        note_id: NoteId,
+        first_transaction_id: TransactionId,
+        second_transaction_id: TransactionId,
+    },
+
+    #[error("note hashes mismatch for note {id}: (input: {input_hash}, output: {output_hash})")]
+    NoteHashesMismatch {
+        id: NoteId,
+        input_hash: Digest,
+        output_hash: Digest,
+    },
+
+    #[error("failed to merge transaction delta into account {account_id}")]
+    AccountUpdateError {
+        account_id: AccountId,
+        source: BatchAccountUpdateError,
+    },
+
+    #[error("unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
+    UnauthenticatedInputNoteBlockNotInChainMmr {
+        block_number: BlockNumber,
+        note_id: NoteId,
+    },
+
+    #[error(
+        "unable to prove unauthenticated note inclusion of note {note_id} in block {block_num}"
+    )]
+    UnauthenticatedNoteAuthenticationFailed {
+        note_id: NoteId,
+        block_num: BlockNumber,
+        source: MerkleError,
+    },
+
+    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
+    InconsistentChainLength {
+        expected: BlockNumber,
+        actual: BlockNumber,
+    },
+
+    #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
+    InconsistentChainRoot { expected: Digest, actual: Digest },
+
+    #[error("block {block_reference} referenced by transaction {transaction_id} is not in the chain mmr")]
+    MissingTransactionBlockReference {
+        block_reference: Digest,
+        transaction_id: TransactionId,
     },
 }
 

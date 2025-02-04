@@ -17,7 +17,7 @@ use miden_objects::{
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{Mmr, MmrError, PartialMmr, Smt},
+        merkle::{Mmr, Smt},
     },
     note::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
@@ -633,8 +633,8 @@ impl MockChain {
             input_notes.push(InputNote::Unauthenticated { note: note.clone() })
         }
 
-        let block_headers: Vec<BlockHeader> = block_headers_map.values().cloned().collect();
-        let mmr = mmr_to_chain_mmr(&self.chain, &block_headers).unwrap();
+        let block_headers = block_headers_map.values().cloned();
+        let mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();
 
         TransactionInputs::new(
             account,
@@ -782,8 +782,11 @@ impl MockChain {
 
     /// Gets the latest [ChainMmr].
     pub fn chain(&self) -> ChainMmr {
-        let block_headers: Vec<BlockHeader> = self.blocks.iter().map(|b| b.header()).collect();
-        mmr_to_chain_mmr(&self.chain, &block_headers).unwrap()
+        // We cannot pass the latest block as that would violate the condition in the transaction
+        // inputs that the chain length of the mmr must match the number of the reference block.
+        let block_headers = self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1);
+
+        ChainMmr::from_mmr(&self.chain, block_headers).unwrap()
     }
 
     /// Gets a reference to [BlockHeader] with `block_number`.
@@ -801,6 +804,11 @@ impl MockChain {
         self.available_notes.values().cloned().collect()
     }
 
+    /// Returns the map of note IDs to consumable input notes.
+    pub fn available_notes_map(&self) -> &BTreeMap<NoteId, InputNote> {
+        &self.available_notes
+    }
+
     /// Get the reference to the accounts hash tree.
     pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
         &self.accounts
@@ -815,21 +823,4 @@ impl MockChain {
 enum AccountState {
     New,
     Exists,
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Converts the MMR into partial MMR by copying all leaves from MMR to partial MMR.
-fn mmr_to_chain_mmr(mmr: &Mmr, blocks: &[BlockHeader]) -> Result<ChainMmr, MmrError> {
-    let target_forest = mmr.forest() - 1;
-    let mut partial_mmr = PartialMmr::from_peaks(mmr.peaks_at(target_forest)?);
-
-    for i in 0..target_forest {
-        let node = mmr.get(i)?;
-        let path = mmr.open_at(i, target_forest)?.merkle_path;
-        partial_mmr.track(i, node, &path)?;
-    }
-
-    Ok(ChainMmr::new(partial_mmr, blocks.to_vec()).unwrap())
 }

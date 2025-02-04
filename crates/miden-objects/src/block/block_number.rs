@@ -40,11 +40,6 @@ impl BlockNumber {
         BlockNumber((epoch as u32) << BlockNumber::EPOCH_LENGTH_EXPONENT)
     }
 
-    /// Creates a `BlockNumber` from a `usize`.
-    pub fn from_usize(value: usize) -> Self {
-        BlockNumber(value as u32)
-    }
-
     /// Returns the epoch to which this block number belongs.
     pub const fn block_epoch(&self) -> u16 {
         (self.0 >> BlockNumber::EPOCH_LENGTH_EXPONENT) as u16

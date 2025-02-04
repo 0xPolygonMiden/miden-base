@@ -7,8 +7,10 @@ use super::{
 
 mod header;
 pub use header::BlockHeader;
+
 mod block_number;
 pub use block_number::BlockNumber;
+
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
@@ -231,8 +233,8 @@ pub fn compute_tx_hash(
 ) -> Digest {
     let mut elements = vec![];
     for (transaction_id, account_id) in updated_accounts {
-        let account_id_felts: [Felt; 2] = account_id.into();
-        elements.extend_from_slice(&[account_id_felts[0], account_id_felts[1], ZERO, ZERO]);
+        let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(account_id);
+        elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
         elements.extend_from_slice(transaction_id.as_elements());
     }
 
