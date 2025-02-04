@@ -10,7 +10,7 @@ use pingora_proxy::http_proxy_service;
 use tracing::warn;
 
 use crate::{
-    error::TxProverServiceError,
+    error::ProvingServiceError,
     proxy::{update_workers::LoadBalancerUpdateService, LoadBalancer, LoadBalancerState},
     utils::MIDEN_PROVING_SERVICE,
 };
@@ -49,8 +49,8 @@ impl StartProxy {
         let workers = self
             .workers
             .iter()
-            .map(|worker| Backend::new(worker).map_err(TxProverServiceError::BackendCreationFailed))
-            .collect::<Result<Vec<Backend>, TxProverServiceError>>()?;
+            .map(|worker| Backend::new(worker).map_err(ProvingServiceError::BackendCreationFailed))
+            .collect::<Result<Vec<Backend>, ProvingServiceError>>()?;
 
         if workers.is_empty() {
             warn!("Starting the proxy without any workers");
@@ -78,7 +78,7 @@ impl StartProxy {
         lb.add_tcp(format!("{}:{}", proxy_host, proxy_port).as_str());
         let logic = lb
             .app_logic_mut()
-            .ok_or(TxProverServiceError::PingoraConfigFailed("app logic not found".to_string()))?;
+            .ok_or(ProvingServiceError::PingoraConfigFailed("app logic not found".to_string()))?;
         let mut http_server_options = HttpServerOptions::default();
 
         // Enable HTTP/2 for plaintext

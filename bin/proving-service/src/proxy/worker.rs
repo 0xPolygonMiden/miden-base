@@ -8,7 +8,7 @@ use tonic_health::pb::{
 use tracing::error;
 
 use super::health_check::create_health_check_client;
-use crate::error::TxProverServiceError;
+use crate::error::ProvingServiceError;
 
 // WORKER
 // ================================================================================================
@@ -34,7 +34,7 @@ impl Worker {
         worker: Backend,
         connection_timeout: Duration,
         total_timeout: Duration,
-    ) -> Result<Self, TxProverServiceError> {
+    ) -> Result<Self, ProvingServiceError> {
         let health_check_client =
             create_health_check_client(worker.addr.to_string(), connection_timeout, total_timeout)
                 .await?;

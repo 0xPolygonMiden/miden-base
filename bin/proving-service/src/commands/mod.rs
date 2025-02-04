@@ -1,15 +1,11 @@
 use clap::Parser;
-use figment::{
-    providers::{Env, Serialized},
-    Figment,
-};
 use proxy::StartProxy;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
 use worker::StartWorker;
 
-use crate::utils::MIDEN_PROVING_SERVICE;
+use crate::{error::ProvingServiceError, utils::MIDEN_PROVING_SERVICE};
 
 pub mod proxy;
 pub mod update_workers;
@@ -70,19 +66,51 @@ impl Default for ProxyConfig {
 }
 
 impl ProxyConfig {
-    /// Load config with TOML file as base and environment variables as overrides.
+    /// Load config from environment variables using defaults in case of missing values.
     ///
-    /// This function will look for the configuration file with the name defined at the
-    /// [PROVING_SERVICE_CONFIG_FILE_NAME] constant in the current directory. It will then merge
-    /// the TOML file with the environment variables with the `PROXY_` prefix.
-    pub(crate) fn load() -> Result<ProxyConfig, String> {
-        Figment::new()
-            // Start with default values
-            .merge(Serialized::defaults(ProxyConfig::default()))
-            // Add environment variables with PROXY_ prefix
-            .merge(Env::prefixed(ENV_PREFIX).split("_"))
-            .extract()
-            .map_err(|e| e.to_string())
+    /// The environment variables must be prefixed with [`ENV_PREFIX`].
+    pub(crate) fn load() -> Result<ProxyConfig, ProvingServiceError> {
+        let mut config = ProxyConfig::default();
+
+        config.host = std::env::var(format!("{}HOST", ENV_PREFIX)).unwrap_or(config.host);
+        config.port = std::env::var(format!("{}PORT", ENV_PREFIX))
+            .unwrap_or(config.port.to_string())
+            .parse()?;
+        config.timeout_secs = std::env::var(format!("{}TIMEOUT_SECS", ENV_PREFIX))
+            .unwrap_or(config.timeout_secs.to_string())
+            .parse()?;
+        config.connection_timeout_secs =
+            std::env::var(format!("{}CONNECTION_TIMEOUT_SECS", ENV_PREFIX))
+                .unwrap_or(config.connection_timeout_secs.to_string())
+                .parse()?;
+        config.max_queue_items = std::env::var(format!("{}MAX_QUEUE_ITEMS", ENV_PREFIX))
+            .unwrap_or(config.max_queue_items.to_string())
+            .parse()?;
+        config.max_retries_per_request =
+            std::env::var(format!("{}MAX_RETRIES_PER_REQUEST", ENV_PREFIX))
+                .unwrap_or(config.max_retries_per_request.to_string())
+                .parse()?;
+        config.max_req_per_sec = std::env::var(format!("{}MAX_REQ_PER_SEC", ENV_PREFIX))
+            .unwrap_or(config.max_req_per_sec.to_string())
+            .parse()?;
+        config.available_workers_polling_time_ms =
+            std::env::var(format!("{}AVAILABLE_WORKERS_POLLING_TIME_MS", ENV_PREFIX))
+                .unwrap_or(config.available_workers_polling_time_ms.to_string())
+                .parse()?;
+        config.health_check_interval_secs =
+            std::env::var(format!("{}HEALTH_CHECK_INTERVAL_SECS", ENV_PREFIX))
+                .unwrap_or(config.health_check_interval_secs.to_string())
+                .parse()?;
+        config.prometheus_host = std::env::var(format!("{}PROMETHEUS_HOST", ENV_PREFIX))
+            .unwrap_or(config.prometheus_host);
+        config.prometheus_port = std::env::var(format!("{}PROMETHEUS_PORT", ENV_PREFIX))
+            .unwrap_or(config.prometheus_port.to_string())
+            .parse()?;
+        config.workers_update_port = std::env::var(format!("{}WORKERS_UPDATE_PORT", ENV_PREFIX))
+            .unwrap_or(config.workers_update_port.to_string())
+            .parse()?;
+
+        Ok(config)
     }
 }
 

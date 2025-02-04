@@ -11,8 +11,6 @@ use utils::setup_tracing;
 async fn main() -> Result<(), String> {
     use clap::Parser;
 
-    dotenvy::dotenv().map_err(|e| format!("Failed to load .env file: {}", e))?;
-
     setup_tracing()?;
 
     // read command-line args
