@@ -11,7 +11,8 @@ pub mod proxy;
 pub mod update_workers;
 pub mod worker;
 
-const ENV_PREFIX: &str = "PROXY_";
+/// Prefix for environment variables.
+const ENV_PREFIX: &str = "MPS_";
 
 /// Configuration of the proxy.
 ///
