@@ -24,58 +24,53 @@ To start the worker service you will need to run:
 miden-proving-service start-worker --host 0.0.0.0 --port 8082
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. The host and port can also be set using the `WORKER_HOST` and `WORKER_PORT` environment variables.
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
 
 ## Proxy
 
-To use the proxy service, you will need an `.env` file with the following configuration, if any of the values are not present, it will be completed with the default ones:
+To start the proxy service, you will need to run:
 
-```env
+```bash
+miden-proving-service start-proxy [worker1],[worker2],...,[workerN]
+miden-proving-service start-proxy 0.0.0.0:8084 0.0.0.0:8085
+```
+
+This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
+
+You can customize the proxy service by setting the following environment variables:
+
+```bash
 # Host of the proxy server
-PROXY_HOST="0.0.0.0"
+MPS_HOST="0.0.0.0"
 # Port of the proxy server
-PROXY_PORT="8082"
+MPS_PORT="8082"
 # Host of the workers update endpoint
-PROXY_WORKERS_UPDATE_PORT="8083"
+MPS_WORKERS_UPDATE_PORT="8083"
 # Timeout for a new request to be completed
-PROXY_TIMEOUT_SECS="100"
+MPS_TIMEOUT_SECS="100"
 # Timeout for establishing a connection to the worker
-PROXY_CONNECTION_TIMEOUT_SECS="10"
+MPS_CONNECTION_TIMEOUT_SECS="10"
 # Maximum amount of items that a queue can handle
-PROXY_MAX_QUEUE_ITEMS="10"
+MPS_MAX_QUEUE_ITEMS="10"
 # Maximum amount of retries that a request can take
-PROXY_MAX_RETRIES_PER_REQUEST="1"
+MPS_MAX_RETRIES_PER_REQUEST="1"
 # Maximum amount of requests that a given IP address can make per second
-PROXY_MAX_REQ_PER_SEC="5"
+MPS_MAX_REQ_PER_SEC="5"
 # Time to wait before checking the availability of workers
-PROXY_AVAILABLE_WORKERS_POLLING_TIME_MS="20"
+MPS_AVAILABLE_WORKERS_POLLING_TIME_MS="20"
 # Interval to check the health of the workers
-PROXY_HEALTH_CHECK_INTERVAL_SECS="1"
+MPS_HEALTH_CHECK_INTERVAL_SECS="1"
 # Host of the metrics server
-PROXY_PROMETHEUS_HOST="127.0.0.1"
+MPS_PROMETHEUS_HOST="127.0.0.1"
 # Port of the metrics server
-PROXY_PROMETHEUS_PORT="6192"
+MPS_PROMETHEUS_PORT="6192"
 # Log level
 RUST_LOG="info"
 ```
 
 An example `.env` file is provided in the crate's root directory.
 
-Then, to start the proxy service, you will need to run:
-
-```bash
-miden-proving-service start-proxy [worker1],[worker2],...,[workerN]
-```
-
-This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
-
-The proxy service can also be started using the `PROXY_WORKERS` environment variable, which should contain a comma-separated list of workers.
-
-```bash
-WORKERS="0.0.0.0:8084,0.0.0.0:8085" miden-proving-service start-proxy
-```
-
-At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `PROXY_MAX_RETRIES_PER_REQUEST` environmental variable.
+At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `MPS_MAX_RETRIES_PER_REQUEST` environmental variable.
 
 ## Updating workers on a running proxy
 
@@ -126,7 +121,7 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 ## Metrics
 
-The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `.env` file through the `PROXY_PROMETHEUS_HOST` and `PROXY_PROMETHEUS_PORT` variables.
+The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `.env` file through the `MPS_PROMETHEUS_HOST` and `MPS_PROMETHEUS_PORT` variables.
 
 The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
 
