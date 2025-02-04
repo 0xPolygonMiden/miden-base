@@ -30,7 +30,7 @@ impl TransactionVerifier {
     /// Returns an error if:
     /// - Transaction verification fails.
     /// - The security level of the verified proof is insufficient.
-    pub fn verify(&self, transaction: ProvenTransaction) -> Result<(), TransactionVerifierError> {
+    pub fn verify(&self, transaction: &ProvenTransaction) -> Result<(), TransactionVerifierError> {
         // build stack inputs and outputs
         let stack_inputs = TransactionKernel::build_input_stack(
             transaction.account_id(),

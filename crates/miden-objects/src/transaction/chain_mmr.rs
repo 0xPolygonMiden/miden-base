@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::collections::BTreeMap;
 
 use vm_core::utils::{Deserializable, Serializable};
 
@@ -43,11 +43,13 @@ impl ChainMmr {
     ///   partial MMR.
     /// - The same block appears more than once in the provided list of block headers.
     /// - The partial MMR does not track authentication paths for any of the specified blocks.
-    pub fn new(mmr: PartialMmr, blocks: Vec<BlockHeader>) -> Result<Self, ChainMmrError> {
+    pub fn new(
+        mmr: PartialMmr,
+        blocks: impl IntoIterator<Item = BlockHeader>,
+    ) -> Result<Self, ChainMmrError> {
         let chain_length = mmr.forest();
-
         let mut block_map = BTreeMap::new();
-        for block in blocks.into_iter() {
+        for block in blocks {
             if block.block_num().as_usize() >= chain_length {
                 return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
             }
@@ -66,6 +68,11 @@ impl ChainMmr {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the underlying [`PartialMmr`].
+    pub fn mmr(&self) -> &PartialMmr {
+        &self.mmr
+    }
 
     /// Returns peaks of this MMR.
     pub fn peaks(&self) -> MmrPeaks {
@@ -89,6 +96,11 @@ impl ChainMmr {
     /// this chain MMR.
     pub fn get_block(&self, block_num: BlockNumber) -> Option<&BlockHeader> {
         self.blocks.get(&block_num)
+    }
+
+    /// Returns an iterator over the block headers in this chain MMR.
+    pub fn block_headers(&self) -> impl Iterator<Item = &BlockHeader> {
+        self.blocks.values()
     }
 
     // DATA MUTATORS

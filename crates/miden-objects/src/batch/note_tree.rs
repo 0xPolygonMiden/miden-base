@@ -35,4 +35,9 @@ impl BatchNoteTree {
     pub fn root(&self) -> RpoDigest {
         self.0.root()
     }
+
+    /// Returns the number of non-empty leaves in this tree.
+    pub fn num_leaves(&self) -> usize {
+        self.0.num_leaves()
+    }
 }

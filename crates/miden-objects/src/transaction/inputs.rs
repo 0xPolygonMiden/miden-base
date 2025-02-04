@@ -206,6 +206,19 @@ impl<T: ToInputNoteCommitments> InputNotes<T> {
         Ok(Self { notes, commitment })
     }
 
+    /// Returns new [`InputNotes`] instantiated from the provided vector of notes without checking
+    /// their validity.
+    ///
+    /// This is exposed for use in transaction batches, but should generally not be used.
+    ///
+    /// # Warning
+    ///
+    /// This does not run the checks from [`InputNotes::new`], so the latter should be preferred.
+    pub fn new_unchecked(notes: Vec<T>) -> Self {
+        let commitment = build_input_note_commitment(&notes);
+        Self { notes, commitment }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 

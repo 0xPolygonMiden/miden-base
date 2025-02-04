@@ -2047,6 +2047,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-tx-batch-prover"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "miden-core",
+ "miden-crypto",
+ "miden-lib",
+ "miden-objects",
+ "miden-processor",
+ "miden-tx",
+ "rand",
+ "thiserror 2.0.11",
+ "winterfell",
+]
+
+[[package]]
 name = "miden-verifier"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5015,6 +5031,17 @@ dependencies = [
  "winter-fri",
  "winter-math",
  "winter-utils",
+]
+
+[[package]]
+name = "winterfell"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6bdcd01333bbf4a349d8d13f269281524bd6d1a36ae3a853187f0665bf1cfd4"
+dependencies = [
+ "winter-air",
+ "winter-prover",
+ "winter-verifier",
 ]
 
 [[package]]
