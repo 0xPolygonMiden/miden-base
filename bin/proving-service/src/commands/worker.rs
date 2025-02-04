@@ -10,10 +10,10 @@ use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PRO
 #[derive(Debug, Parser)]
 pub struct StartWorker {
     /// The host of the worker
-    #[clap(short, long, default_value = "0.0.0.0", env = "WORKER_HOST")]
+    #[clap(short, long, default_value = "0.0.0.0")]
     host: String,
     /// The port of the worker
-    #[clap(short, long, default_value = "50051", env = "WORKER_PORT")]
+    #[clap(short, long, default_value = "50051")]
     port: u16,
 }
 
