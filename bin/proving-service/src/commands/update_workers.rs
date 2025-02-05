@@ -2,8 +2,6 @@ use clap::Parser;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::commands::ProxyConfig;
-
 // ADD WORKERS
 // ================================================================================================
 
@@ -11,6 +9,8 @@ use crate::commands::ProxyConfig;
 #[derive(Debug, Parser, Clone, Serialize, Deserialize)]
 pub struct AddWorkers {
     workers: Vec<String>,
+    proxy_host: String,
+    proxy_update_workers_port: u64,
 }
 
 // REMOVE WORKERS
@@ -20,6 +20,8 @@ pub struct AddWorkers {
 #[derive(Debug, Parser, Clone, Serialize, Deserialize)]
 pub struct RemoveWorkers {
     workers: Vec<String>,
+    proxy_host: String,
+    proxy_update_workers_port: u64,
 }
 
 // UPDATE WORKERS
@@ -37,6 +39,8 @@ pub enum Action {
 pub struct UpdateWorkers {
     pub action: Action,
     pub workers: Vec<String>,
+    pub proxy_host: String,
+    pub proxy_update_workers_port: u64,
 }
 
 impl UpdateWorkers {
@@ -45,8 +49,7 @@ impl UpdateWorkers {
     /// It works by sending a GET request to the proxy with the query parameters. The query
     /// parameters are serialized from the struct fields.
     ///
-    /// It will use the same host as the proxy and the workers update port from the configuration
-    /// file.
+    /// It uses the host and port defined in the env vars or passed as parameter for the proxy.
     ///
     /// The request will return the new number of workers in the X-Worker-Count header.
     ///
@@ -62,13 +65,10 @@ impl UpdateWorkers {
 
         println!("Action: {:?}, with workers: {:?}", self.action, self.workers);
 
-        // Get the proxy url from the configuration file.
-        let proxy_config = ProxyConfig::load()?;
-
         // Create the full URL
         let url = format!(
             "http://{}:{}?{}",
-            proxy_config.host, proxy_config.workers_update_port, query_params
+            self.proxy_host, self.proxy_update_workers_port, query_params
         );
 
         // Create an HTTP/2 client
@@ -107,6 +107,8 @@ impl From<RemoveWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Remove,
             workers: remove_workers.workers,
+            proxy_host: remove_workers.proxy_host,
+            proxy_update_workers_port: remove_workers.proxy_update_workers_port,
         }
     }
 }
@@ -116,6 +118,8 @@ impl From<AddWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Add,
             workers: add_workers.workers,
+            proxy_host: add_workers.proxy_host,
+            proxy_update_workers_port: add_workers.proxy_update_workers_port,
         }
     }
 }

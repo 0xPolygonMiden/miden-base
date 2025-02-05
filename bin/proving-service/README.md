@@ -31,44 +31,20 @@ This will spawn a worker using the hosts and ports defined in the command option
 To start the proxy service, you will need to run:
 
 ```bash
-miden-proving-service start-proxy [worker1],[worker2],...,[workerN]
+miden-proving-service start-proxy [worker1] [worker2] ... [workerN]
+```
+
+For example:
+
+```bash
 miden-proving-service start-proxy 0.0.0.0:8084 0.0.0.0:8085
 ```
 
 This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
 
-You can customize the proxy service by setting the following environment variables:
+You can customize the proxy service by setting environment variables. Possible customizations can be found by running `miden-proving-service start-proxy --help`.
 
-```bash
-# Host of the proxy server
-MPS_HOST="0.0.0.0"
-# Port of the proxy server
-MPS_PORT="8082"
-# Host of the workers update endpoint
-MPS_WORKERS_UPDATE_PORT="8083"
-# Timeout for a new request to be completed
-MPS_TIMEOUT_SECS="100"
-# Timeout for establishing a connection to the worker
-MPS_CONNECTION_TIMEOUT_SECS="10"
-# Maximum amount of items that a queue can handle
-MPS_MAX_QUEUE_ITEMS="10"
-# Maximum amount of retries that a request can take
-MPS_MAX_RETRIES_PER_REQUEST="1"
-# Maximum amount of requests that a given IP address can make per second
-MPS_MAX_REQ_PER_SEC="5"
-# Time to wait before checking the availability of workers
-MPS_AVAILABLE_WORKERS_POLLING_TIME_MS="20"
-# Interval to check the health of the workers
-MPS_HEALTH_CHECK_INTERVAL_SECS="1"
-# Host of the metrics server
-MPS_PROMETHEUS_HOST="127.0.0.1"
-# Port of the metrics server
-MPS_PROMETHEUS_PORT="6192"
-# Log level
-RUST_LOG="info"
-```
-
-An example `.env` file is provided in the crate's root directory.
+An example `.env` file is provided in the crate's root directory. To use the variables from a file, in any `Unix-like` operating systems, you can run `source <your-file>`
 
 At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `MPS_MAX_RETRIES_PER_REQUEST` environmental variable.
 
