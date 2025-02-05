@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use core::error::Error;
 
 use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
@@ -20,6 +20,7 @@ use crate::{
         AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
         StoragePlaceholder,
     },
+    batch::BatchId,
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     transaction::TransactionId,
@@ -448,7 +449,7 @@ pub enum ProvenTransactionError {
     },
 }
 
-// BATCH ERROR
+// PROPOSED BATCH ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
@@ -532,6 +533,60 @@ pub enum ProposedBatchError {
     },
 }
 
+// PROPOSED BLOCK ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum ProposedBlockError {
+    #[error("block must contain at least one transaction batch")]
+    EmptyBlock,
+
+    #[error("batch {batch_id} appears twice in the block inputs")]
+    DuplicateBatch { batch_id: BatchId },
+
+    #[error("batch {second_batch_id} consumes the note with nullifier {note_nullifier} that is also consumed by another batch {first_batch_id} in the block")]
+    DuplicateInputNote {
+        note_nullifier: Nullifier,
+        first_batch_id: BatchId,
+        second_batch_id: BatchId,
+    },
+
+    #[error("batch {second_batch_id} creates the note with ID {note_id} that is also created by another batch {first_batch_id} in the block")]
+    DuplicateOutputNote {
+        note_id: NoteId,
+        first_batch_id: BatchId,
+        second_batch_id: BatchId,
+    },
+
+    #[error("account {account_id} is updated from the same initial state commitment {initial_state_commitment} by multiple conflicting batches with IDs {first_batch_id} and {second_batch_id}")]
+    ConflictingBatchesUpdateSameAccount {
+        account_id: AccountId,
+        initial_state_commitment: Digest,
+        first_batch_id: BatchId,
+        second_batch_id: BatchId,
+    },
+
+    #[error("block inputs do not contain data for account {0}")]
+    MissingAccountInput(AccountId),
+
+    #[error("account {0} with state {1} cannot transition to any of the remaining states {2:?}")]
+    InconsistentAccountStateTransition(AccountId, Digest, Vec<Digest>),
+
+    #[error("no proof for nullifier {0} was provided")]
+    NullifierProofMissing(Nullifier),
+
+    #[error("note with nullifier {0} is already spent")]
+    NullifierSpent(Nullifier),
+
+    #[error("unauthenticated transaction notes not found in the store or in outputs of other transactions in the block: {0:?}")]
+    UnauthenticatedNotesNotFound(Vec<NoteId>),
+    #[error("failed to merge transaction delta into account {account_id}")]
+    AccountUpdateError {
+        account_id: AccountId,
+        source: AccountDeltaError,
+    },
+}
+
 // BLOCK VALIDATION ERROR
 // ================================================================================================
 
@@ -551,4 +606,16 @@ pub enum BlockError {
         "too many transaction batches in the block (max: {MAX_BATCHES_PER_BLOCK}, actual: {0})"
     )]
     TooManyTransactionBatches(usize),
+}
+
+// NULLIFIER TREE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum NullifierTreeError {
+    #[error("failed to create nullifier tree")]
+    CreationFailed(#[source] MerkleError),
+
+    #[error("failed to mutate nullifier tree")]
+    MutationFailed(#[source] MerkleError),
 }

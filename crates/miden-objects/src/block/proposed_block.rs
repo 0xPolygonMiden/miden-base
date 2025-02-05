@@ -1,0 +1,311 @@
+use alloc::vec::Vec;
+use std::collections::{BTreeMap, BTreeSet};
+
+use vm_core::{Felt, EMPTY_WORD};
+use vm_processor::Digest;
+
+use crate::{
+    account::{delta::AccountUpdateDetails, AccountId},
+    batch::{BatchAccountUpdate, BatchId, ProvenBatch},
+    block::{block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, PartialNullifierTree},
+    crypto::merkle::{MerklePath, MmrPeaks, SmtProof},
+    errors::ProposedBlockError,
+    note::Nullifier,
+    transaction::{ChainMmr, TransactionId},
+    MAX_BATCHES_PER_BLOCK, ZERO,
+};
+
+// BLOCK WITNESS
+// =================================================================================================
+
+/// Provides inputs to the `BlockKernel` so that it can generate the new header.
+#[derive(Debug, PartialEq)]
+pub struct ProposedBlock {
+    batches: Vec<ProvenBatch>,
+    updated_accounts: Vec<(AccountId, AccountUpdateWitness)>,
+    /// Map from batch index to its output notes SMT root.
+    ///
+    /// There may be no entry for a given batch index if that batch did not create output notes.
+    batch_created_notes_roots: BTreeMap<usize, Digest>,
+    created_nullifiers: BTreeMap<Nullifier, SmtProof>,
+    chain_mmr: ChainMmr,
+    prev_block_header: BlockHeader,
+}
+
+impl ProposedBlock {
+    pub fn new(
+        mut block_inputs: BlockInputs,
+        mut batches: Vec<ProvenBatch>,
+    ) -> Result<(Self, Vec<BlockAccountUpdate>), ProposedBlockError> {
+        // This limit should be enforced by the mempool.
+        assert!(batches.len() <= MAX_BATCHES_PER_BLOCK);
+
+        // Check for empty or duplicate batches.
+        // --------------------------------------------------------------------------------------------
+
+        if batches.is_empty() {
+            return Err(ProposedBlockError::EmptyBlock);
+        }
+
+        Self::check_duplicate_batches(&batches)?;
+
+        // Check for duplicate input notes in batches.
+        // --------------------------------------------------------------------------------------------
+
+        Self::check_duplicate_input_notes(&batches)?;
+
+        // Check for duplicate output notes in batches.
+        // --------------------------------------------------------------------------------------------
+
+        Self::check_duplicate_output_notes(&batches)?;
+
+        // Check for nullifiers proofs and unspent nullifiers.
+        // --------------------------------------------------------------------------------------------
+
+        Self::check_nullifiers(&block_inputs, &batches)?;
+
+        // Collect output note SMT roots from batches.
+        // --------------------------------------------------------------------------------------------
+
+        let batch_created_notes_roots = batches
+            .iter()
+            .enumerate()
+            .filter(|(_, batch)| !batch.output_notes().is_empty())
+            .map(|(batch_index, batch)| (batch_index, batch.output_notes_tree().root()))
+            .collect();
+
+        // Aggregate account updates across batches.
+        // --------------------------------------------------------------------------------------------
+
+        let (account_witnesses, block_updates) =
+            Self::aggregate_account_updates(&mut block_inputs, &mut batches)?;
+
+        // Build proposed blocks from parts.
+        // --------------------------------------------------------------------------------------------
+        let (prev_block_header, chain_mmr, _, nullifiers, unauthenticated_note_proofs) =
+            block_inputs.into_parts();
+
+        Ok((
+            Self {
+                batches,
+                updated_accounts: account_witnesses,
+                batch_created_notes_roots,
+                created_nullifiers: nullifiers,
+                chain_mmr,
+                prev_block_header,
+            },
+            block_updates,
+        ))
+    }
+
+    /// Returns an iterator over all transactions which affected accounts in the block with
+    /// corresponding account IDs.
+    pub(super) fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
+        self.updated_accounts.iter().flat_map(|(account_id, update)| {
+            update.transactions.iter().map(move |tx_id| (*tx_id, *account_id))
+        })
+    }
+
+    // HELPERS
+    // ---------------------------------------------------------------------------------------------
+
+    fn check_duplicate_batches(batches: &[ProvenBatch]) -> Result<(), ProposedBlockError> {
+        let mut input_note_set = BTreeSet::new();
+
+        for batch in batches {
+            if !input_note_set.insert(batch.id()) {
+                return Err(ProposedBlockError::DuplicateBatch { batch_id: batch.id() });
+            }
+        }
+
+        Ok(())
+    }
+
+    fn check_duplicate_input_notes(batches: &[ProvenBatch]) -> Result<(), ProposedBlockError> {
+        let mut input_note_set = BTreeMap::new();
+
+        for batch in batches {
+            for input_note in batch.input_notes().iter() {
+                if let Some(first_batch_id) =
+                    input_note_set.insert(input_note.nullifier(), batch.id())
+                {
+                    return Err(ProposedBlockError::DuplicateInputNote {
+                        note_nullifier: input_note.nullifier(),
+                        first_batch_id,
+                        second_batch_id: batch.id(),
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn check_duplicate_output_notes(batches: &[ProvenBatch]) -> Result<(), ProposedBlockError> {
+        let mut input_note_set = BTreeMap::new();
+
+        for batch in batches {
+            for output_note in batch.output_notes().iter() {
+                if let Some(first_batch_id) = input_note_set.insert(output_note.id(), batch.id()) {
+                    return Err(ProposedBlockError::DuplicateOutputNote {
+                        note_id: output_note.id(),
+                        first_batch_id,
+                        second_batch_id: batch.id(),
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Check that each nullifier in the block has a proof provided and that the nullifier is
+    /// unspent. The proofs are required to update the nullifier tree.
+    fn check_nullifiers(
+        block_inputs: &BlockInputs,
+        batches: &[ProvenBatch],
+    ) -> Result<(), ProposedBlockError> {
+        for nullifier in batches.iter().flat_map(ProvenBatch::produced_nullifiers) {
+            match block_inputs.nullifiers().get(&nullifier) {
+                Some(proof) => {
+                    let (_, nullifier_value) = proof
+                        .leaf()
+                        .entries()
+                        .iter()
+                        .find(|(key, _)| *key == nullifier.inner())
+                        .ok_or(ProposedBlockError::NullifierProofMissing(nullifier))?;
+
+                    if *nullifier_value != PartialNullifierTree::UNSPENT_NULLIFIER_VALUE {
+                        return Err(ProposedBlockError::NullifierSpent(nullifier));
+                    }
+                },
+                None => return Err(ProposedBlockError::NullifierProofMissing(nullifier)),
+            }
+        }
+
+        Ok(())
+    }
+
+    fn aggregate_account_updates(
+        block_inputs: &mut BlockInputs,
+        batches: &mut [ProvenBatch],
+    ) -> Result<(Vec<(AccountId, AccountUpdateWitness)>, Vec<BlockAccountUpdate>), ProposedBlockError>
+    {
+        // TODO: A HashMap would be much more efficient here as we don't need the order. We also
+        // rebalance the tree when removing the updates which is also unnecessary.
+
+        // Aggregate all updates for the same account and store each update indexed by its initial
+        // state commitment so we can easily retrieve them later.
+        // This let's us chronologically order the updates per account across batches.
+        let mut updated_accounts =
+            BTreeMap::<AccountId, BTreeMap<Digest, (BatchAccountUpdate, BatchId)>>::new();
+
+        for batch in batches {
+            for (account_id, update) in batch.take_account_updates() {
+                if let Some((conflicting_update, conflicting_batch_id)) = updated_accounts
+                    .entry(account_id)
+                    .or_default()
+                    .insert(update.initial_state_commitment(), (update, batch.id()))
+                {
+                    return Err(ProposedBlockError::ConflictingBatchesUpdateSameAccount {
+                        account_id,
+                        initial_state_commitment: conflicting_update.initial_state_commitment(),
+                        first_batch_id: conflicting_batch_id,
+                        second_batch_id: batch.id(),
+                    });
+                }
+            }
+        }
+
+        // Build account witnesses.
+        let mut account_witnesses = Vec::with_capacity(updated_accounts.len());
+        let mut block_updates = Vec::with_capacity(updated_accounts.len());
+
+        for (account_id, mut updates) in updated_accounts {
+            let (initial_state_commitment, proof) = block_inputs
+                .accounts_mut()
+                .remove(&account_id)
+                .map(|witness| witness.into_parts())
+                .ok_or(ProposedBlockError::MissingAccountInput(account_id))?;
+
+            let mut details: Option<AccountUpdateDetails> = None;
+
+            // Chronologically chain updates for this account together using the state hashes to
+            // link them.
+            let mut transactions = Vec::new();
+            let mut current_commitment = initial_state_commitment;
+            while !updates.is_empty() {
+                let (update, _) = updates.remove(&current_commitment).ok_or_else(|| {
+                    ProposedBlockError::InconsistentAccountStateTransition(
+                        account_id,
+                        current_commitment,
+                        updates.keys().copied().collect(),
+                    )
+                })?;
+
+                current_commitment = update.final_state_commitment();
+                let (update_transactions, update_details) = update.into_parts();
+                transactions.extend(update_transactions);
+
+                details = Some(match details {
+                    None => update_details,
+                    Some(details) => details.merge(update_details).map_err(|source| {
+                        ProposedBlockError::AccountUpdateError { account_id, source }
+                    })?,
+                });
+            }
+
+            account_witnesses.push((
+                account_id,
+                AccountUpdateWitness {
+                    initial_state_commitment,
+                    final_state_commitment: current_commitment,
+                    proof,
+                    transactions: core::mem::take(&mut transactions),
+                },
+            ));
+
+            block_updates.push(BlockAccountUpdate::new(
+                account_id,
+                current_commitment,
+                details.expect("Must be some by now"),
+                transactions,
+            ));
+        }
+
+        Ok((account_witnesses, block_updates))
+    }
+
+    pub fn batches(&self) -> &[ProvenBatch] {
+        &self.batches
+    }
+
+    pub fn batches_mut(&mut self) -> &mut [ProvenBatch] {
+        &mut self.batches
+    }
+
+    /// Takes the map of nullifiers to their proofs from the proposed block.
+    ///
+    /// This has the semantics of [`core::mem::take`], i.e. the nullifiers are set to an empty
+    /// `BTreeMap` after this operation.
+    pub fn take_nullifiers(&mut self) -> BTreeMap<Nullifier, SmtProof> {
+        core::mem::take(&mut self.created_nullifiers)
+    }
+
+    pub fn prev_block_header(&self) -> &BlockHeader {
+        &self.prev_block_header
+    }
+
+    pub fn chain_mmr(&self) -> &ChainMmr {
+        &self.chain_mmr
+    }
+}
+
+/// TODO
+#[derive(Debug, PartialEq, Eq)]
+pub struct AccountUpdateWitness {
+    initial_state_commitment: Digest,
+    final_state_commitment: Digest,
+    proof: MerklePath,
+    transactions: Vec<TransactionId>,
+}
