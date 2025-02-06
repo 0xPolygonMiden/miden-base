@@ -132,7 +132,7 @@ impl TransactionKernel {
     /// ```text
     /// [
     ///     BLOCK_HASH,
-    ///     acct_id,
+    ///     block_num, 0, acct_id,
     ///     INITIAL_ACCOUNT_HASH,
     ///     INPUT_NOTES_COMMITMENT,
     /// ]
@@ -140,6 +140,7 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - BLOCK_HASH, reference block for the transaction execution.
+    /// - block_num, number of the reference block.
     /// - acct_id, the account that the transaction is being executed against.
     /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
@@ -156,8 +157,9 @@ impl TransactionKernel {
         inputs.extend_from_slice(init_acct_hash.as_elements());
         inputs.push(account_id.suffix());
         inputs.push(account_id.prefix().as_felt());
-        inputs.extend_from_slice(block_hash.as_elements());
+        inputs.push(Felt::new(0));
         inputs.push(Felt::from(block_num));
+        inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())
             .expect("Invalid stack input")
