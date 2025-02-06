@@ -99,6 +99,7 @@ impl TransactionKernel {
             account.init_hash(),
             tx_inputs.input_notes().commitment(),
             tx_inputs.block_header().hash(),
+            tx_inputs.block_header().block_num(),
         );
 
         let mut advice_inputs = init_advice_inputs.unwrap_or_default();
@@ -147,6 +148,7 @@ impl TransactionKernel {
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
+        block_num: BlockNumber,
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
         let mut inputs: Vec<Felt> = Vec::with_capacity(14);
@@ -155,6 +157,7 @@ impl TransactionKernel {
         inputs.push(account_id.suffix());
         inputs.push(account_id.prefix().as_felt());
         inputs.extend_from_slice(block_hash.as_elements());
+        inputs.push(Felt::from(block_num));
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())
             .expect("Invalid stack input")
