@@ -123,4 +123,16 @@ impl Host for MockHost {
             err_msg: Some(err_msg),
         }
     }
+
+    fn on_debug(
+        &mut self,
+        _process: ProcessState,
+        _options: &vm_core::DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        Ok(())
+    }
+
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
+        Ok(())
+    }
 }

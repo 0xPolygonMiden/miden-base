@@ -18,9 +18,10 @@ use miden_objects::{
     asset::Asset,
     note::NoteId,
     transaction::{OutputNote, TransactionMeasurements},
-    vm::{RowIndex, SystemEvent},
-    Digest, Hasher,
+    vm::RowIndex,
+    Digest,
 };
+use vm_core::DebugOptions;
 use vm_processor::{
     AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt, Host, MastForest,
     MastForestStore, ProcessState,
@@ -375,49 +376,6 @@ impl<A: AdviceProvider> TransactionHost<A> {
         Ok(())
     }
 
-    // ADVICE INJECTOR HANDLERS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a signature as a response to the `SigToStack` injector.
-    ///
-    /// This signature is created during transaction execution and stored for use as advice map
-    /// inputs in the proving host. If not already present in the advice map, it is requested from
-    /// the host's authenticator.
-    pub fn on_signature_requested(&mut self, process: ProcessState) -> Result<(), ExecutionError> {
-        let pub_key = process.get_stack_word(0);
-        let msg = process.get_stack_word(1);
-        let signature_key = Hasher::merge(&[pub_key.into(), msg.into()]);
-
-        let signature = if let Some(signature) = self.adv_provider.get_mapped_values(&signature_key)
-        {
-            signature.to_vec()
-        } else {
-            let account_delta = self.account_delta.clone().into_delta();
-
-            let signature: Vec<Felt> = match &self.authenticator {
-                None => {
-                    return Err(ExecutionError::FailedSignatureGeneration(
-                        "No authenticator assigned to transaction host",
-                    ))
-                },
-                Some(authenticator) => {
-                    authenticator.get_signature(pub_key, msg, &account_delta).map_err(|_| {
-                        ExecutionError::FailedSignatureGeneration("Error generating signature")
-                    })
-                },
-            }?;
-
-            self.generated_signatures.insert(signature_key, signature.clone());
-            signature
-        };
-
-        for r in signature {
-            self.adv_provider.push_stack(AdviceSource::Value(r))?;
-        }
-
-        Ok(())
-    }
-
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
@@ -481,22 +439,6 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
     }
 
     fn on_event(&mut self, process: ProcessState, event_id: u32) -> Result<(), ExecutionError> {
-        // Handle only the FalconSigToStack event here. All other SystemEvents should be handled by
-        // the VM.
-        match SystemEvent::from_event_id(event_id) {
-            Some(SystemEvent::FalconSigToStack) => {
-                return self.on_signature_requested(process);
-            },
-            Some(_) => {
-                return Err(ExecutionError::EventError(Box::new(
-                    TransactionEventError::InvalidTransactionEvent(event_id),
-                )));
-            },
-            // If the event is not a SystemEvent, continue and try parsing it as a
-            // TransactionEvent.
-            None => (),
-        }
-
         let transaction_event = TransactionEvent::try_from(event_id)
             .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
@@ -583,5 +525,13 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             err_code,
             err_msg: Some(err_msg),
         }
+    }
+
+    fn on_debug(
+        &mut self,
+        _process: ProcessState,
+        _options: &DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        Ok(())
     }
 }

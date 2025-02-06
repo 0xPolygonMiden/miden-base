@@ -1,16 +1,20 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{
+    transaction::TransactionKernel, AccountDeltaTracker, FalconSigToStackEventHandler,
+    MidenFalconSigner, StdLibrary,
+};
 use miden_objects::{
-    account::{AccountCode, AccountId},
+    account::{AccountCode, AccountHeader, AccountId},
     assembly::Library,
     block::BlockNumber,
     note::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
+    utils::sync::RwLock,
     vm::StackOutputs,
     MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
-use vm_processor::{ExecutionOptions, RecAdviceProvider};
+use vm_processor::{DefaultHost, ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
@@ -146,12 +150,28 @@ impl TransactionExecutor {
 
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
-            advice_recorder,
+            advice_recorder.clone(),
             self.mast_store.clone(),
             self.authenticator.clone(),
             self.account_codes.iter().map(|code| code.commitment()).collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        // TODO(plafer): this replaces the `TransactionHost`
+        {
+            let account_header: AccountHeader = tx_inputs.account().into();
+            let account_delta = Arc::new(RwLock::new(AccountDeltaTracker::new(&account_header)));
+            let mut host = DefaultHost::new_with_advice_provider(advice_recorder);
+
+            // load the standard library with our custom Falcon event handler
+            // TODO(plafer): fix `StdLibrary` constructors to fix this
+            host.load_library(
+                &StdLibrary::default().with_falcon_sig_handler(FalconSigToStackEventHandler::new(
+                    MidenFalconSigner::new(account_delta.clone(), self.authenticator.clone()),
+                )),
+                (),
+            );
+        }
 
         // execute the transaction kernel
         let result = vm_processor::execute(

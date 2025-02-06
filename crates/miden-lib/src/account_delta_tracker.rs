@@ -5,7 +5,6 @@ use miden_objects::{
 // ACCOUNT DELTA TRACKER
 // ================================================================================================
 
-// TODO(plafer): Remove this module
 /// Keeps track of changes made to the account during transaction execution.
 ///
 /// Currently, this tracks:
