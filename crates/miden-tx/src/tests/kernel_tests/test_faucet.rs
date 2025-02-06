@@ -189,7 +189,6 @@ fn test_mint_non_fungible_asset_succeeds() {
     let code = format!(
         "
         use.std::collections::smt
-        use.std::sys
 
         use.kernel::account
         use.kernel::asset_vault
@@ -536,11 +535,6 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 
     let code = format!(
         "
-        use.std::collections::smt
-
-        #use.kernel::account
-        use.kernel::asset_vault
-        use.kernel::memory
         use.kernel::prologue
         use.test::account
 
@@ -567,10 +561,6 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
 
     let code = format!(
         "
-        use.std::collections::smt
-
-        use.kernel::asset_vault
-        use.kernel::memory
         use.kernel::prologue
         use.test::account
 
@@ -606,10 +596,6 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.std::collections::smt
-
-        use.kernel::asset_vault
-        use.kernel::memory
         use.kernel::prologue
         use.test::account
 
@@ -647,7 +633,6 @@ fn test_is_non_fungible_asset_issued_succeeds() {
         "
         use.kernel::prologue
         use.miden::faucet
-        use.test::account
 
         begin
             exec.prologue::prepare_transaction

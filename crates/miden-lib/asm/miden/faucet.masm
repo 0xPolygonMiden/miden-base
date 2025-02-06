@@ -98,17 +98,19 @@ export.get_total_issuance
     # => [total_issuance]
 end
 
-#! Returns a boolean indicating whether the non-fungible asset is issued.
+#! Returns a boolean indicating whether the provided non-fungible asset has been already issued by 
+#! this faucet.
 #!
 #! Inputs:  [ASSET]
 #! Outputs: [is_issued]
 #!
 #! Where:
-#! - ASSET is the non-fungible asset of interest.
+#! - ASSET is the non-fungible asset that is being checked.
 #! - is_issued is a boolean indicating whether the non-fungible asset has been issued.
 #!
 #! Panics if:
 #! - the ASSET is a fungible asset.
+#! - the ASSET is not associated with the faucet the transaction is being executed against.
 #!
 #! Invocation: exec
 export.is_non_fungible_asset_issued

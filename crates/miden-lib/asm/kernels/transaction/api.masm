@@ -625,17 +625,19 @@ export.faucet_get_total_fungible_asset_issuance
     # => [total_issuance, pad(15)]
 end
 
-#! Returns a boolean indicating whether the non-fungible asset is issued.
+#! Returns a boolean indicating whether the provided non-fungible asset has been already issued by 
+#! this faucet.
 #!
 #! Inputs:  [ASSET, pad(12)]
 #! Outputs: [is_issued, pad(15)]
 #!
 #! Where:
-#! - ASSET is the non-fungible asset of interest.
+#! - ASSET is the non-fungible asset that is being checked.
 #! - is_issued is a boolean indicating whether the non-fungible asset has been issued.
 #!
 #! Panics if:
 #! - the ASSET is a fungible asset.
+#! - the ASSET is not associated with the faucet the transaction is being executed against.
 #!
 #! Invocation: dynexec
 export.faucet_is_non_fungible_asset_issued
