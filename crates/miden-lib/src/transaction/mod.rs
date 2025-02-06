@@ -17,12 +17,24 @@ use outputs::EXPIRATION_BLOCK_ELEMENT_IDX;
 
 use super::MidenLib;
 
+mod account_procedures;
+pub use account_procedures::{AccountProcedureIndexMap, AccountProcedureIndexMapError};
+
 pub mod memory;
 
 mod events;
+pub(crate) use events::{
+    AccountBeforeIncrementNonceHandler, AccountPushProcedureIndexHandler,
+    AccountStorageAfterSetItemHandler, AccountStorageAfterSetMapItemHandler,
+    AccountVaultAfterAddAssetHandler, AccountVaultAfterRemoveAssetHandler, NoteAfterCreatedHandler,
+    NoteBeforeAddAssetHandler,
+};
 pub use events::{TransactionEvent, TransactionTrace};
 
 mod inputs;
+
+mod note_builder;
+pub use note_builder::OutputNoteBuilder;
 
 mod outputs;
 pub use outputs::{

@@ -278,11 +278,8 @@ fn executed_transaction_account_delta_new() {
     )
     .unwrap();
 
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+    let (_, advice_map, _) = tx_context.tx_args().advice_inputs().clone().into_parts();
+    let tx_args = TransactionArgs::new(Some(tx_script), None, advice_map);
 
     tx_context.set_tx_args(tx_args);
 
@@ -381,11 +378,9 @@ fn test_empty_delta_nonce_update() {
         TransactionKernel::testing_assembler_with_mock_account(),
     )
     .unwrap();
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+
+    let (_, advice_map, _) = tx_context.tx_args().advice_inputs().clone().into_parts();
+    let tx_args = TransactionArgs::new(Some(tx_script), None, advice_map);
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -517,11 +512,9 @@ fn test_send_note_proc() {
             TransactionKernel::testing_assembler_with_mock_account(),
         )
         .unwrap();
-        let tx_args = TransactionArgs::new(
-            Some(tx_script),
-            None,
-            tx_context.tx_args().advice_inputs().clone().map,
-        );
+
+        let (_, advice_map, _) = tx_context.tx_args().advice_inputs().clone().into_parts();
+        let tx_args = TransactionArgs::new(Some(tx_script), None, advice_map);
 
         let block_ref = tx_context.tx_inputs().block_header().block_num();
         let note_ids = tx_context
@@ -685,7 +678,7 @@ fn executed_transaction_output_notes() {
             push.{tag1}                         # tag
             exec.create_note
             # => [note_idx]
-            
+
             push.{REMOVED_ASSET_1}              # asset_1
             # => [ASSET, note_idx]
 
@@ -748,11 +741,9 @@ fn executed_transaction_output_notes() {
         TransactionKernel::testing_assembler_with_mock_account().with_debug_mode(true),
     )
     .unwrap();
-    let mut tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+
+    let (_, advice_map, _) = tx_context.tx_args().advice_inputs().clone().into_parts();
+    let mut tx_args = TransactionArgs::new(Some(tx_script), None, advice_map);
 
     tx_args.add_expected_output_note(&expected_output_note_2);
     tx_args.add_expected_output_note(&expected_output_note_3);
@@ -877,11 +868,9 @@ fn test_tx_script() {
         TransactionKernel::testing_assembler(),
     )
     .unwrap();
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+
+    let (_, advice_map, _) = tx_context.tx_args().advice_inputs().clone().into_parts();
+    let tx_args = TransactionArgs::new(Some(tx_script), None, advice_map);
 
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
@@ -969,11 +958,8 @@ fn transaction_executor_account_code_using_custom_library() {
     )
     .unwrap();
 
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+    let (_, advice_map, _) = tx_context.tx_args().advice_inputs().clone().into_parts();
+    let tx_args = TransactionArgs::new(Some(tx_script), None, advice_map);
 
     let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None);
     // Load the external library into the executor to make it available during transaction

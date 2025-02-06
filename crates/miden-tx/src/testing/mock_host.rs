@@ -2,7 +2,7 @@ use alloc::{boxed::Box, collections::BTreeMap, rc::Rc, string::ToString, sync::A
 
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
-    transaction::{TransactionEvent, TransactionEventError},
+    transaction::{AccountProcedureIndexMap, TransactionEvent, TransactionEventError},
 };
 use miden_objects::{
     account::{AccountHeader, AccountVaultDelta},
@@ -13,7 +13,7 @@ use vm_processor::{
     MastForestStore, MemAdviceProvider, ProcessState,
 };
 
-use crate::{host::AccountProcedureIndexMap, TransactionMastStore};
+use crate::TransactionMastStore;
 
 // MOCK HOST
 // ================================================================================================
@@ -122,5 +122,17 @@ impl Host for MockHost {
             err_code,
             err_msg: Some(err_msg),
         }
+    }
+
+    fn on_debug(
+        &mut self,
+        _process: ProcessState,
+        _options: &vm_core::DebugOptions,
+    ) -> Result<(), ExecutionError> {
+        Ok(())
+    }
+
+    fn on_trace(&mut self, _process: ProcessState, _trace_id: u32) -> Result<(), ExecutionError> {
+        Ok(())
     }
 }

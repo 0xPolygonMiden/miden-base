@@ -1,42 +1,11 @@
-use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
-use miden_lib::utils::sync::RwLock;
+use miden_lib::{utils::sync::RwLock, AuthenticationError, TransactionAuthenticator};
 use miden_objects::account::{AccountDelta, AuthSecretKey};
 use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
 
 use super::signatures::get_falcon_signature;
-use crate::errors::AuthenticationError;
-
-// TRANSACTION AUTHENTICATOR
-// ================================================================================================
-
-/// Defines an authenticator for transactions.
-///
-/// The main purpose of the authenticator is to generate signatures for a given message against
-/// a key managed by the authenticator. That is, the authenticator maintains a set of public-
-/// private key pairs, and can be requested to generate signatures against any of the managed keys.
-///
-/// The public keys are defined by [Digest]'s which are the hashes of the actual public keys.
-pub trait TransactionAuthenticator {
-    /// Retrieves a signature for a specific message as a list of [Felt].
-    ///
-    /// The request is initiated by the VM as a consequence of the SigToStack advice
-    /// injector.
-    ///
-    /// - `pub_key`: The public key used for signature generation.
-    /// - `message`: The message to sign, usually a commitment to the transaction data.
-    /// - `account_delta`: An informational parameter describing the changes made to the account up
-    ///   to the point of calling `get_signature()`. This allows the authenticator to review any
-    ///   alterations to the account prior to signing. It should not be directly used in the
-    ///   signature computation.
-    fn get_signature(
-        &self,
-        pub_key: Word,
-        message: Word,
-        account_delta: &AccountDelta,
-    ) -> Result<Vec<Felt>, AuthenticationError>;
-}
 
 // BASIC AUTHENTICATOR
 // ================================================================================================
@@ -71,7 +40,7 @@ impl<R: Rng> BasicAuthenticator<R> {
     }
 }
 
-impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
+impl<R: Rng + Send + Sync> TransactionAuthenticator for BasicAuthenticator<R> {
     /// Gets a signature over a message, given a public key.
     /// The key should be included in the `keys` map and should be a variant of [AuthSecretKey].
     ///
@@ -101,22 +70,6 @@ impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
                 Digest::from(pub_key)
             ))),
         }
-    }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-impl TransactionAuthenticator for () {
-    fn get_signature(
-        &self,
-        _pub_key: Word,
-        _message: Word,
-        _account_delta: &AccountDelta,
-    ) -> Result<Vec<Felt>, AuthenticationError> {
-        Err(AuthenticationError::RejectedSignature(
-            "default authenticator cannot provide signatures".to_string(),
-        ))
     }
 }
 

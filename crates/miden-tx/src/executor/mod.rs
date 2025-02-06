@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{transaction::TransactionKernel, TransactionAuthenticator};
 use miden_objects::{
     account::{AccountCode, AccountId},
     assembly::Library,
@@ -14,7 +14,6 @@ use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
-use crate::auth::TransactionAuthenticator;
 
 mod data_store;
 pub use data_store::DataStore;
@@ -146,7 +145,7 @@ impl TransactionExecutor {
 
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
-            advice_recorder,
+            advice_recorder.clone(),
             self.mast_store.clone(),
             self.authenticator.clone(),
             self.account_codes.iter().map(|code| code.commitment()).collect(),

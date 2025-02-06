@@ -1,19 +1,33 @@
-use alloc::string::ToString;
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+};
 
-use miden_lib::transaction::{
+use miden_objects::{
+    account::{AccountCode, AccountProcedureInfo},
+    AccountError,
+};
+use vm_processor::{AdviceProvider, Digest, Felt, ProcessState};
+
+use crate::transaction::{
     memory::{ACCT_CODE_COMMITMENT_OFFSET, CURRENT_ACCOUNT_DATA_PTR},
     TransactionKernelError,
 };
-use miden_objects::account::{AccountCode, AccountProcedureInfo};
 
-use super::{AdviceProvider, BTreeMap, Digest, Felt, ProcessState};
-use crate::errors::TransactionHostError;
+#[derive(Debug, thiserror::Error)]
+pub enum AccountProcedureIndexMapError {
+    #[error("{0}")]
+    AccountProcedureIndexMapError(String),
+    #[error("failed to create account procedure info")]
+    AccountProcedureInfoCreationFailed(#[source] AccountError),
+}
 
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
 
 /// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known procedures
 /// of account interfaces for all accounts expected to be invoked during transaction execution.
+#[derive(Debug, Clone)]
 pub struct AccountProcedureIndexMap(BTreeMap<Digest, BTreeMap<Digest, u8>>);
 
 impl AccountProcedureIndexMap {
@@ -25,7 +39,7 @@ impl AccountProcedureIndexMap {
     pub fn new(
         account_code_commitments: impl IntoIterator<Item = Digest>,
         adv_provider: &impl AdviceProvider,
-    ) -> Result<Self, TransactionHostError> {
+    ) -> Result<Self, AccountProcedureIndexMapError> {
         let mut result = BTreeMap::new();
 
         for code_commitment in account_code_commitments {
@@ -72,10 +86,10 @@ impl AccountProcedureIndexMap {
 fn build_account_procedure_map(
     code_commitment: Digest,
     adv_provider: &impl AdviceProvider,
-) -> Result<BTreeMap<Digest, u8>, TransactionHostError> {
+) -> Result<BTreeMap<Digest, u8>, AccountProcedureIndexMapError> {
     // get the account procedures from the advice_map
     let proc_data = adv_provider.get_mapped_values(&code_commitment).ok_or_else(|| {
-        TransactionHostError::AccountProcedureIndexMapError(
+        AccountProcedureIndexMapError::AccountProcedureIndexMapError(
             "failed to read account procedure data from the advice provider".to_string(),
         )
     })?;
@@ -86,14 +100,14 @@ fn build_account_procedure_map(
 
     // check that there are procedures in the account code
     if proc_data.is_empty() {
-        return Err(TransactionHostError::AccountProcedureIndexMapError(
+        return Err(AccountProcedureIndexMapError::AccountProcedureIndexMapError(
             "account code does not contain any procedures.".to_string(),
         ));
     }
 
     // check that procedure data have a correct length
     if proc_data.len() % AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != 0 {
-        return Err(TransactionHostError::AccountProcedureIndexMapError(
+        return Err(AccountProcedureIndexMapError::AccountProcedureIndexMapError(
             "account procedure data has invalid length.".to_string(),
         ));
     }
@@ -103,7 +117,7 @@ fn build_account_procedure_map(
 
     // check that the account code does not contain too many procedures
     if num_procs > AccountCode::MAX_NUM_PROCEDURES {
-        return Err(TransactionHostError::AccountProcedureIndexMapError(
+        return Err(AccountProcedureIndexMapError::AccountProcedureIndexMapError(
             "account code contains too many procedures.".to_string(),
         ));
     }
@@ -115,7 +129,7 @@ fn build_account_procedure_map(
             proc_info.try_into().expect("Failed conversion into procedure info array.");
 
         let procedure = AccountProcedureInfo::try_from(proc_info_array)
-            .map_err(TransactionHostError::AccountProcedureInfoCreationFailed)?;
+            .map_err(AccountProcedureIndexMapError::AccountProcedureInfoCreationFailed)?;
 
         let proc_idx = u8::try_from(proc_idx).expect("Invalid procedure index.");
 

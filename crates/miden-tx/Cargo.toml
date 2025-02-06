@@ -32,6 +32,7 @@ miden-verifier = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { version = "0.3", default-features = false, optional = true }
 thiserror = { workspace = true }
+vm-core = { workspace = true }
 vm-processor = { workspace = true }
 winter-maybe-async = { version = "0.11" }
 

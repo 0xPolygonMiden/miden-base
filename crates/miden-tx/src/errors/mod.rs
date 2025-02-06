@@ -1,12 +1,14 @@
 use alloc::{boxed::Box, string::String};
 use core::error::Error;
 
+use miden_lib::transaction::AccountProcedureIndexMapError;
 use miden_objects::{
-    account::AccountId, block::BlockNumber, note::NoteId, AccountError, Felt,
-    ProvenTransactionError, TransactionInputError, TransactionOutputError,
+    account::AccountId, block::BlockNumber, note::NoteId, AccountError, ProvenTransactionError,
+    TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 use thiserror::Error;
+use vm_core::Felt;
 use vm_processor::ExecutionError;
 
 // TRANSACTION EXECUTOR ERROR
@@ -99,7 +101,7 @@ pub enum TransactionVerifierError {
 #[derive(Debug, Error)]
 pub enum TransactionHostError {
     #[error("{0}")]
-    AccountProcedureIndexMapError(String),
+    AccountProcedureIndexMapError(AccountProcedureIndexMapError),
     #[error("failed to create account procedure info")]
     AccountProcedureInfoCreationFailed(#[source] AccountError),
 }
@@ -150,47 +152,6 @@ impl DataStoreError {
     }
 }
 
-// AUTHENTICATION ERROR
-// ================================================================================================
-
-#[derive(Debug, Error)]
-pub enum AuthenticationError {
-    #[error("signature rejected: {0}")]
-    RejectedSignature(String),
-    #[error("unknown public key: {0}")]
-    UnknownPublicKey(String),
-    /// Custom error variant for implementors of the
-    /// [`TransactionAuthenticatior`](crate::auth::TransactionAuthenticator) trait.
-    #[error("{error_msg}")]
-    Other {
-        error_msg: Box<str>,
-        // thiserror will return this when calling Error::source on DataStoreError.
-        source: Option<Box<dyn Error + Send + Sync + 'static>>,
-    },
-}
-
-impl AuthenticationError {
-    /// Creates a custom error using the [`AuthenticationError::Other`] variant from an error
-    /// message.
-    pub fn other(message: impl Into<String>) -> Self {
-        let message: String = message.into();
-        Self::Other { error_msg: message.into(), source: None }
-    }
-
-    /// Creates a custom error using the [`AuthenticationError::Other`] variant from an error
-    /// message and a source error.
-    pub fn other_with_source(
-        message: impl Into<String>,
-        source: impl Error + Send + Sync + 'static,
-    ) -> Self {
-        let message: String = message.into();
-        Self::Other {
-            error_msg: message.into(),
-            source: Some(Box::new(source)),
-        }
-    }
-}
-
 #[cfg(test)]
 mod error_assertions {
     use super::*;
@@ -199,10 +160,6 @@ mod error_assertions {
     fn _assert_error_is_send_sync_static<E: core::error::Error + Send + Sync + 'static>(_: E) {}
 
     fn _assert_data_store_error_bounds(err: DataStoreError) {
-        _assert_error_is_send_sync_static(err);
-    }
-
-    fn _assert_authentication_error_bounds(err: AuthenticationError) {
         _assert_error_is_send_sync_static(err);
     }
 }

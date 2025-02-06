@@ -22,9 +22,9 @@ pub use verifier::TransactionVerifier;
 
 mod errors;
 pub use errors::{
-    AuthenticationError, DataStoreError, TransactionExecutorError, TransactionProverError,
-    TransactionVerifierError,
+    DataStoreError, TransactionExecutorError, TransactionProverError, TransactionVerifierError,
 };
+pub use miden_lib::AuthenticationError;
 
 pub mod auth;
 

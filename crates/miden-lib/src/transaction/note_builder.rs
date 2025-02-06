@@ -4,13 +4,15 @@ use miden_objects::{
     asset::Asset,
     note::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, PartialNote},
 };
+use vm_processor::AdviceProvider;
 
-use super::{AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
+use super::{Digest, Felt, OutputNote, TransactionKernelError};
 
 // OUTPUT NOTE BUILDER
 // ================================================================================================
 
 /// Builder of an output note, provided primarily to enable adding assets to a note incrementally.
+#[derive(Debug, Clone)]
 pub struct OutputNoteBuilder {
     metadata: NoteMetadata,
     assets: NoteAssets,

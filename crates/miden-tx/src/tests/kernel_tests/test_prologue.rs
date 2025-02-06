@@ -92,11 +92,8 @@ fn test_transaction_prologue() {
         (tx_context.input_notes().get_note(1).note().id(), note_args[1]),
     ]);
 
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        Some(note_args_map),
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+    let (_, advice_map, _) = tx_context.tx_args().advice_inputs().clone().into_parts();
+    let tx_args = TransactionArgs::new(Some(tx_script), Some(note_args_map), advice_map);
 
     tx_context.set_tx_args(tx_args);
     let process = &tx_context.execute_code(code).unwrap();
@@ -657,7 +654,7 @@ fn test_get_blk_version() {
         exec.prologue::prepare_transaction
         exec.memory::get_blk_version
 
-        # truncate the stack 
+        # truncate the stack
         swap drop
     end
     ";
@@ -678,7 +675,7 @@ fn test_get_blk_timestamp() {
         exec.prologue::prepare_transaction
         exec.memory::get_blk_timestamp
 
-        # truncate the stack 
+        # truncate the stack
         swap drop
     end
     ";
