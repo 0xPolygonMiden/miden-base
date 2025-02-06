@@ -55,7 +55,7 @@ pub struct LoadBalancerState {
     max_queue_items: usize,
     max_retries_per_request: usize,
     max_req_per_sec: isize,
-    available_workers_polling_time: Duration,
+    available_workers_polling_interval: Duration,
     health_check_interval: Duration,
 }
 
@@ -91,8 +91,8 @@ impl LoadBalancerState {
             max_queue_items: config.max_queue_items,
             max_retries_per_request: config.max_retries_per_request,
             max_req_per_sec: config.max_req_per_sec,
-            available_workers_polling_time: Duration::from_millis(
-                config.available_workers_polling_time_ms,
+            available_workers_polling_interval: Duration::from_millis(
+                config.available_workers_polling_interval_ms,
             ),
             health_check_interval: Duration::from_secs(config.health_check_interval_secs),
         })
@@ -435,7 +435,7 @@ impl ProxyHttp for LoadBalancer {
                 break;
             }
             info!("All workers are busy");
-            tokio::time::sleep(self.0.available_workers_polling_time).await;
+            tokio::time::sleep(self.0.available_workers_polling_interval).await;
         }
 
         // Remove the request from the queue

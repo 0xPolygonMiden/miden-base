@@ -13,8 +13,8 @@ pub mod worker;
 #[derive(Debug, Parser)]
 pub(crate) struct ProxyConfig {
     /// Time in milliseconds to poll available workers.
-    #[clap(long, default_value = "20", env = "MPS_AVAILABLE_WORKERS_POLLING_TIME_MS")]
-    pub(crate) available_workers_polling_time_ms: u64,
+    #[clap(long, default_value = "20", env = "MPS_AVAILABLE_WORKERS_POLLING_INTERVAL_MS")]
+    pub(crate) available_workers_polling_interval_ms: u64,
     /// Maximum time in seconds to establish a connection.
     #[clap(long, default_value = "10", env = "MPS_CONNECTION_TIMEOUT_SECS")]
     pub(crate) connection_timeout_secs: u64,
