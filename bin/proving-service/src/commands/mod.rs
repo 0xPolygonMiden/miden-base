@@ -12,7 +12,8 @@ pub mod worker;
 
 #[derive(Debug, Parser)]
 pub(crate) struct ProxyConfig {
-    /// Interval in milliseconds at which the system polls for available workers to assign new tasks.
+    /// Interval in milliseconds at which the system polls for available workers to assign new
+    /// tasks.
     #[clap(long, default_value = "20", env = "MPS_AVAILABLE_WORKERS_POLLING_INTERVAL_MS")]
     pub(crate) available_workers_polling_interval_ms: u64,
     /// Maximum time in seconds to establish a connection.
@@ -39,7 +40,8 @@ pub(crate) struct ProxyConfig {
     /// Port of the proxy.
     #[clap(long, default_value = "8082", env = "MPS_PORT")]
     pub(crate) port: u16,
-    /// Maximum time in seconds to complete the entire request.
+    /// Maximum time in seconds allowed for a request to complete. Once exceeded, the request is
+    /// aborted.
     #[clap(long, default_value = "100", env = "MPS_TIMEOUT_SECS")]
     pub(crate) timeout_secs: u64,
     /// Worker update service port.
