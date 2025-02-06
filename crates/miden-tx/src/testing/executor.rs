@@ -51,10 +51,10 @@ impl<H: Host> CodeExecutor<H> {
 
 impl<A> CodeExecutor<DefaultHost<A>>
 where
-    A: AdviceProvider,
+    A: AdviceProvider + Default + 'static,
 {
     pub fn with_advice_provider(adv_provider: A) -> Self {
-        let mut host = DefaultHost::new(adv_provider);
+        let mut host = DefaultHost::new_with_advice_provider(adv_provider);
 
         let test_lib = TransactionKernel::kernel_as_library();
         host.load_mast_forest(test_lib.mast_forest().clone()).unwrap();
