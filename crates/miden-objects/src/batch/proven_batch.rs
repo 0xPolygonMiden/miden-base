@@ -73,6 +73,11 @@ impl ProvenBatch {
         self.batch_expiration_block_num
     }
 
+    /// Returns an iterator over the IDs of all accounts updated in this batch.
+    pub fn updated_accounts(&self) -> impl Iterator<Item = AccountId> + use<'_> {
+        self.account_updates.keys().copied()
+    }
+
     /// Returns the map of account IDs mapped to their [`BatchAccountUpdate`]s.
     ///
     /// If an account was updated by multiple transactions, the [`BatchAccountUpdate`] is the result

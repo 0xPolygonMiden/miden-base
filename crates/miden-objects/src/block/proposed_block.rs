@@ -1,18 +1,20 @@
 use alloc::vec::Vec;
 use std::collections::{BTreeMap, BTreeSet};
 
-use vm_core::{Felt, EMPTY_WORD};
 use vm_processor::Digest;
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
     batch::{BatchAccountUpdate, BatchId, ProvenBatch},
-    block::{block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, PartialNullifierTree},
-    crypto::merkle::{MerklePath, MmrPeaks, SmtProof},
+    block::{
+        block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, BlockNumber,
+        PartialNullifierTree,
+    },
+    crypto::merkle::{MerklePath, SmtProof},
     errors::ProposedBlockError,
     note::Nullifier,
     transaction::{ChainMmr, TransactionId},
-    MAX_BATCHES_PER_BLOCK, ZERO,
+    MAX_BATCHES_PER_BLOCK,
 };
 
 // BLOCK WITNESS
@@ -59,6 +61,23 @@ impl ProposedBlock {
 
         Self::check_duplicate_output_notes(&batches)?;
 
+        // Check for consistency in chain MMR and referenced prev block.
+        // --------------------------------------------------------------------------------------------
+
+        Self::check_reference_block_chain_mmr_consistency(
+            block_inputs.chain_mmr(),
+            block_inputs.prev_block_header(),
+        )?;
+
+        // Check every block referenced by a batch is in the chain MMR.
+        // --------------------------------------------------------------------------------------------
+
+        Self::check_batch_reference_blocks(
+            block_inputs.chain_mmr(),
+            block_inputs.prev_block_header(),
+            &batches,
+        )?;
+
         // Check for nullifiers proofs and unspent nullifiers.
         // --------------------------------------------------------------------------------------------
 
@@ -82,8 +101,7 @@ impl ProposedBlock {
 
         // Build proposed blocks from parts.
         // --------------------------------------------------------------------------------------------
-        let (prev_block_header, chain_mmr, _, nullifiers, unauthenticated_note_proofs) =
-            block_inputs.into_parts();
+        let (prev_block_header, chain_mmr, _, nullifiers, _) = block_inputs.into_parts();
 
         Ok((
             Self {
@@ -186,6 +204,53 @@ impl ProposedBlock {
         Ok(())
     }
 
+    fn check_reference_block_chain_mmr_consistency(
+        chain_mmr: &ChainMmr,
+        prev_block_header: &BlockHeader,
+    ) -> Result<(), ProposedBlockError> {
+        // Make sure that the current chain MMR has blocks up to prev_block_header - 1, i.e. its
+        // chain length is equal to the block number of the previous block header.
+        if chain_mmr.chain_length() != prev_block_header.block_num() {
+            return Err(ProposedBlockError::ChainLengthNotEqualToPreviousBlockNumber {
+                chain_length: chain_mmr.chain_length(),
+                prev_block_num: prev_block_header.block_num(),
+            });
+        }
+
+        let chain_root = chain_mmr.peaks().hash_peaks();
+        if chain_root != prev_block_header.chain_root() {
+            return Err(ProposedBlockError::ChainRootNotEqualToPreviousBlockChainRoot {
+                chain_root,
+                prev_block_chain_root: prev_block_header.chain_root(),
+                prev_block_num: prev_block_header.block_num(),
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Check that each block referenced by a batch in the block has an entry in the chain MMR,
+    /// except if the referenced block is the same as the previous block, referenced by the block.
+    fn check_batch_reference_blocks(
+        chain_mmr: &ChainMmr,
+        prev_block_header: &BlockHeader,
+        batches: &[ProvenBatch],
+    ) -> Result<(), ProposedBlockError> {
+        for batch in batches {
+            let batch_reference_block_num = batch.reference_block_num();
+            if batch_reference_block_num != prev_block_header.block_num()
+                && !chain_mmr.contains_block(batch.reference_block_num())
+            {
+                return Err(ProposedBlockError::BatchRefernceBlockMissingFromChain {
+                    reference_block_num: batch.reference_block_num(),
+                    batch_id: batch.id(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+
     fn aggregate_account_updates(
         block_inputs: &mut BlockInputs,
         batches: &mut [ProvenBatch],
@@ -276,6 +341,11 @@ impl ProposedBlock {
         Ok((account_witnesses, block_updates))
     }
 
+    /// Returns the block number of this proposed block.
+    pub fn block_num(&self) -> BlockNumber {
+        self.chain_mmr().chain_length()
+    }
+
     pub fn batches(&self) -> &[ProvenBatch] {
         &self.batches
     }
@@ -284,12 +354,9 @@ impl ProposedBlock {
         &mut self.batches
     }
 
-    /// Takes the map of nullifiers to their proofs from the proposed block.
-    ///
-    /// This has the semantics of [`core::mem::take`], i.e. the nullifiers are set to an empty
-    /// `BTreeMap` after this operation.
-    pub fn take_nullifiers(&mut self) -> BTreeMap<Nullifier, SmtProof> {
-        core::mem::take(&mut self.created_nullifiers)
+    /// Returns the map of nullifiers to their proofs from the proposed block.
+    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, SmtProof> {
+        &self.created_nullifiers
     }
 
     pub fn prev_block_header(&self) -> &BlockHeader {
@@ -298,6 +365,26 @@ impl ProposedBlock {
 
     pub fn chain_mmr(&self) -> &ChainMmr {
         &self.chain_mmr
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        Vec<ProvenBatch>,
+        Vec<(AccountId, AccountUpdateWitness)>,
+        BTreeMap<usize, Digest>,
+        BTreeMap<Nullifier, SmtProof>,
+        ChainMmr,
+        BlockHeader,
+    ) {
+        (
+            self.batches,
+            self.updated_accounts,
+            self.batch_created_notes_roots,
+            self.created_nullifiers,
+            self.chain_mmr,
+            self.prev_block_header,
+        )
     }
 }
 

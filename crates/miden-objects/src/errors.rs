@@ -373,7 +373,7 @@ pub enum TransactionInputError {
     DuplicateInputNote(Nullifier),
     #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
-    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
+    #[error("chain mmr has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
@@ -517,7 +517,7 @@ pub enum ProposedBatchError {
         source: MerkleError,
     },
 
-    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
+    #[error("chain mmr has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
@@ -564,6 +564,25 @@ pub enum ProposedBlockError {
         initial_state_commitment: Digest,
         first_batch_id: BatchId,
         second_batch_id: BatchId,
+    },
+
+    #[error("chain mmr has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block")]
+    ChainLengthNotEqualToPreviousBlockNumber {
+        chain_length: BlockNumber,
+        prev_block_num: BlockNumber,
+    },
+
+    #[error("chain mmr has root {chain_root} which does not match the chain root {prev_block_chain_root} of the previous block {prev_block_num}")]
+    ChainRootNotEqualToPreviousBlockChainRoot {
+        chain_root: Digest,
+        prev_block_chain_root: Digest,
+        prev_block_num: BlockNumber,
+    },
+
+    #[error("chain mmr is missing block {reference_block_num} referenced by batch {batch_id} in the block")]
+    BatchRefernceBlockMissingFromChain {
+        reference_block_num: BlockNumber,
+        batch_id: BatchId,
     },
 
     #[error("block inputs do not contain data for account {0}")]
