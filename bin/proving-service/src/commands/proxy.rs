@@ -48,6 +48,8 @@ impl StartProxy {
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
         server.bootstrap();
 
+        println!("Starting proxy with workers: {:?}", self.workers);
+
         let workers = self
             .workers
             .iter()

@@ -8,8 +8,16 @@ use serde::{Deserialize, Serialize};
 /// Add workers to the proxy
 #[derive(Debug, Parser, Clone, Serialize, Deserialize)]
 pub struct AddWorkers {
+    /// Workers to be added to the proxy.
+    ///
+    /// The workers are passed as host:port strings.
+    #[clap(value_name = "WORKERS")]
     workers: Vec<String>,
+    /// Host of the proxy.
+    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
     proxy_host: String,
+    /// Port of the proxy endpoint to update workers.
+    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
     proxy_update_workers_port: u64,
 }
 
@@ -19,8 +27,15 @@ pub struct AddWorkers {
 /// Remove workers from the proxy
 #[derive(Debug, Parser, Clone, Serialize, Deserialize)]
 pub struct RemoveWorkers {
+    /// Workers to be removed from the proxy.
+    ///
+    /// The workers are passed as host:port strings.
     workers: Vec<String>,
+    /// Host of the proxy.
+    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
     proxy_host: String,
+    /// Port of the proxy endpoint to update workers.
+    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
     proxy_update_workers_port: u64,
 }
 

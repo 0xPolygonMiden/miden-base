@@ -79,11 +79,11 @@ pub enum Command {
     StartProxy(StartProxy),
     /// Adds workers to the proxy.
     ///
-    /// This method will make a request to the proxy adding workers.
+    /// This command will make a request to the proxy to add the specified workers.
     AddWorkers(AddWorkers),
     /// Removes workers from the proxy.
     ///
-    /// This method will make a request to the proxy removing workers.
+    /// This command will make a request to the proxy to remove the specified workers.
     RemoveWorkers(RemoveWorkers),
 }
 
