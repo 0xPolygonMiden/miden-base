@@ -726,7 +726,7 @@ fn test_fpi_memory() {
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
     mock_chain.seal_block(None);
-    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
+    let advice_inputs = get_mock_fpi_adv_inputs(vec![&foreign_account], &mock_chain);
 
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
@@ -749,7 +749,7 @@ fn test_fpi_memory() {
         begin
             exec.prologue::prepare_transaction
 
-            # pad the stack for the `execute_foreign_procedure`execution
+            # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0
             # => [pad(14)]
 
@@ -856,7 +856,7 @@ fn test_fpi_memory() {
             exec.prologue::prepare_transaction
 
             ### Get the storage item at index 0 #####################
-            # pad the stack for the `execute_foreign_procedure`execution
+            # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0
             # => [pad(14)]
 
@@ -874,7 +874,7 @@ fn test_fpi_memory() {
             # => []
 
             ### Get the storage item at index 0 again ###############
-            # pad the stack for the `execute_foreign_procedure`execution
+            # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0
             # => [pad(14)]
 
@@ -904,16 +904,230 @@ fn test_fpi_memory() {
     // Check that the second invocation of the foreign procedure from the same account does not load
     // the account data again: already loaded data should be reused.
     //
-    // Native account:    [2048; 4095] <- initialized during prologue
-    // Foreign account:   [4096; 6143] <- initialized during first FPI
-    // Next account slot: [6144; 8191] <- should not be initialized
+    // Native account:    [8192; 16383]  <- initialized during prologue
+    // Foreign account:   [16384; 24575] <- initialized during first FPI
+    // Next account slot: [24576; 32767] <- should not be initialized
     assert_eq!(
         try_read_root_mem_word(
             &process.into(),
             NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2
         ),
         None,
-        "Memory starting from 6144 should stay uninitialized"
+        "Memory starting from 24576 should stay uninitialized"
+    );
+}
+
+#[test]
+fn test_fpi_memory_two_accounts() {
+    // Prepare the test data
+    let storage_slots_1 = vec![AccountStorage::mock_item_0().slot];
+    let storage_slots_2 = vec![AccountStorage::mock_item_1().slot];
+
+    let foreign_account_code_source_1 = "
+        use.miden::account
+
+        export.get_item_foreign_1
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.1 drop
+            exec.account::get_item
+
+            # truncate the stack
+            movup.6 movup.6 movup.6 drop drop drop
+        end
+    ";
+    let foreign_account_code_source_2 = "
+        use.miden::account
+
+        export.get_item_foreign_2
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.2 drop
+            exec.account::get_item
+
+            # truncate the stack
+            movup.6 movup.6 movup.6 drop drop drop
+        end
+    ";
+
+    let foreign_account_component_1 = AccountComponent::compile(
+        foreign_account_code_source_1,
+        TransactionKernel::testing_assembler(),
+        storage_slots_1.clone(),
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let foreign_account_component_2 = AccountComponent::compile(
+        foreign_account_code_source_2,
+        TransactionKernel::testing_assembler(),
+        storage_slots_2.clone(),
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        .with_component(foreign_account_component_1)
+        .build_existing()
+        .unwrap();
+
+    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        .with_component(foreign_account_component_2)
+        .build_existing()
+        .unwrap();
+
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        .with_component(
+            AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
+                .unwrap(),
+        )
+        .build_existing()
+        .unwrap();
+
+    let mut mock_chain = MockChain::with_accounts(&[
+        native_account.clone(),
+        foreign_account_1.clone(),
+        foreign_account_2.clone(),
+    ]);
+    mock_chain.seal_block(None);
+    let advice_inputs =
+        get_mock_fpi_adv_inputs(vec![&foreign_account_1, &foreign_account_2], &mock_chain);
+
+    let tx_context = mock_chain
+        .build_tx_context(native_account.id(), &[], &[])
+        .foreign_account_codes(vec![
+            foreign_account_1.code().clone(),
+            foreign_account_2.code().clone(),
+        ])
+        .advice_inputs(advice_inputs.clone())
+        .build();
+
+    // GET ITEM TWICE WITH TWO ACCOUNTS
+    // --------------------------------------------------------------------------------------------
+    // Check the correctness of the memory layout after two invocations of the `get_item` account
+    // procedures separated by the call of this procedure against another foreign account. Invoking
+    // two foreign procedures from the same account should result in reuse of the loaded account.
+
+    let code = format!(
+        "
+        use.std::sys
+
+        use.kernel::prologue
+        use.miden::tx
+
+        begin
+            exec.prologue::prepare_transaction
+
+            ### Get the storage item at index 0 from the first account 
+            # pad the stack for the `execute_foreign_procedure` execution
+            padw padw padw push.0.0
+            # => [pad(14)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item_foreign_1` procedure of the foreign account 1
+            push.{get_item_foreign_1_hash}
+
+            # push the foreign account ID
+            push.{foreign_1_suffix}.{foreign_1_prefix}
+            # => [foreign_account_1_id_prefix, foreign_account_1_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+            exec.tx::execute_foreign_procedure dropw
+            # => []
+
+            ### Get the storage item at index 0 from the second account 
+            # pad the stack for the `execute_foreign_procedure` execution
+            padw padw padw push.0.0
+            # => [pad(14)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item_foreign_1` procedure of the foreign account 1
+            push.{get_item_foreign_2_hash}
+
+            # push the foreign account ID
+            push.{foreign_2_suffix}.{foreign_2_prefix}
+            # => [foreign_account_2_id_prefix, foreign_account_2_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+            exec.tx::execute_foreign_procedure dropw
+            # => []
+
+            ### Get the storage item at index 0 from the first account again
+            # pad the stack for the `execute_foreign_procedure` execution
+            padw padw padw push.0.0
+            # => [pad(14)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item_foreign` procedure of the foreign account 
+            push.{get_item_foreign_1_hash}
+
+            # push the foreign account ID
+            push.{foreign_1_suffix}.{foreign_1_prefix}
+            # => [foreign_account_1_id_prefix, foreign_account_1_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+            exec.tx::execute_foreign_procedure
+
+            # truncate the stack
+            exec.sys::truncate_stack
+        end
+        ",
+        get_item_foreign_1_hash = foreign_account_1.code().procedures()[0].mast_root(),
+        get_item_foreign_2_hash = foreign_account_2.code().procedures()[0].mast_root(),
+
+        foreign_1_prefix = foreign_account_1.id().prefix().as_felt(),
+        foreign_1_suffix = foreign_account_1.id().suffix(),
+
+        foreign_2_prefix = foreign_account_2.id().prefix().as_felt(),
+        foreign_2_suffix = foreign_account_2.id().suffix(),
+    );
+
+    let process = &tx_context.execute_code(&code).unwrap();
+
+    // Check the correctness of the memory layout after multiple foreign procedure invocations from
+    // different foreign accounts
+    //
+    // Native account:    [8192; 16383]  <- initialized during prologue
+    // Foreign account 1: [16384; 24575] <- initialized during first FPI
+    // Foreign account 2: [24576; 32767] <- initialized during second FPI
+    // Next account slot: [32768; 40959] <- should not be initialized
+
+    // check that the first word of the first foreign account slot is correct
+    assert_eq!(
+        read_root_mem_word(&process.into(), NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32),
+        [
+            foreign_account_1.id().suffix(),
+            foreign_account_1.id().prefix().as_felt(),
+            ZERO,
+            foreign_account_1.nonce()
+        ]
+    );
+
+    // check that the first word of the second foreign account slot is correct
+    assert_eq!(
+        read_root_mem_word(
+            &process.into(),
+            NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2
+        ),
+        [
+            foreign_account_2.id().suffix(),
+            foreign_account_2.id().prefix().as_felt(),
+            ZERO,
+            foreign_account_2.nonce()
+        ]
+    );
+
+    // check that the first word of the third foreign account slot was not initialized
+    assert_eq!(
+        try_read_root_mem_word(
+            &process.into(),
+            NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 3
+        ),
+        None,
+        "Memory starting from 32768 should stay uninitialized"
     );
 }
 
@@ -972,7 +1186,7 @@ fn test_fpi_execute_foreign_procedure() {
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
     mock_chain.seal_block(None);
-    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
+    let advice_inputs = get_mock_fpi_adv_inputs(vec![&foreign_account], &mock_chain);
 
     let code = format!(
         "
@@ -982,7 +1196,7 @@ fn test_fpi_execute_foreign_procedure() {
 
         begin
             # get the storage item at index 0
-            # pad the stack for the `execute_foreign_procedure`execution
+            # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0
             # => [pad(14)]
 
@@ -1077,35 +1291,41 @@ fn test_fpi_execute_foreign_procedure() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
+fn get_mock_fpi_adv_inputs(
+    foreign_accounts: Vec<&Account>,
+    mock_chain: &MockChain,
+) -> AdviceInputs {
     let mut advice_inputs = AdviceInputs::default();
-    TransactionKernel::extend_advice_inputs_for_account(
-        &mut advice_inputs,
-        &foreign_account.clone().into(),
-        foreign_account.code(),
-        &foreign_account.storage().get_header(),
-        // Provide the merkle path of the foreign account to be able to verify that the account
-        // database has the hash of this foreign account. Verification is done during the
-        // execution of the `kernel::account::validate_current_foreign_account` procedure.
-        &MerklePath::new(
-            mock_chain
-                .accounts()
-                  // TODO: Update.
-                .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().prefix().as_felt().as_int()).unwrap())
-                .path
-                .into(),
-        ),
-    )
-    .unwrap();
 
-    for slot in foreign_account.storage().slots() {
-        // if there are storage maps, we populate the merkle store and advice map
-        if let StorageSlot::Map(map) = slot {
-            // extend the merkle store and map with the storage maps
-            advice_inputs.extend_merkle_store(map.inner_nodes());
-            // populate advice map with Sparse Merkle Tree leaf nodes
-            advice_inputs
-                .extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+    for foreign_account in foreign_accounts {
+        TransactionKernel::extend_advice_inputs_for_account(
+            &mut advice_inputs,
+            &foreign_account.into(),
+            foreign_account.code(),
+            &foreign_account.storage().get_header(),
+            // Provide the merkle path of the foreign account to be able to verify that the account
+            // database has the hash of this foreign account. Verification is done during the
+            // execution of the `kernel::account::validate_current_foreign_account` procedure.
+            &MerklePath::new(
+                mock_chain
+                    .accounts()
+                      // TODO: Update.
+                    .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().prefix().as_felt().as_int()).unwrap())
+                    .path
+                    .into(),
+            ),
+        )
+        .unwrap();
+
+        for slot in foreign_account.storage().slots() {
+            // if there are storage maps, we populate the merkle store and advice map
+            if let StorageSlot::Map(map) = slot {
+                // extend the merkle store and map with the storage maps
+                advice_inputs.extend_merkle_store(map.inner_nodes());
+                // populate advice map with Sparse Merkle Tree leaf nodes
+                advice_inputs
+                    .extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+            }
         }
     }
 
