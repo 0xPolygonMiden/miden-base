@@ -44,7 +44,7 @@ This command will start the proxy using the workers passed as arguments. The wor
 
 You can customize the proxy service by setting environment variables. Possible customizations can be found by running `miden-proving-service start-proxy --help`.
 
-An example `.env` file is provided in the crate's root directory. To use the variables from a file, in any `Unix-like` operating systems, you can run `source <your-file>`
+An example `.env` file is provided in the crate's root directory. To use the variables from a file in any Unix-like operating system, you can run source <your-file>.
 
 At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `MPS_MAX_RETRIES_PER_REQUEST` environmental variable.
 
