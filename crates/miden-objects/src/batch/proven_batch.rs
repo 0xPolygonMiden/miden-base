@@ -1,5 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
+use vm_processor::Digest;
+
 use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
@@ -12,6 +14,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBatch {
     id: BatchId,
+    reference_block_commitment: Digest,
+    reference_block_num: BlockNumber,
     account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
     input_notes: InputNotes<InputNoteCommitment>,
     output_notes_smt: BatchNoteTree,
@@ -26,6 +30,8 @@ impl ProvenBatch {
     /// Creates a new [`ProvenBatch`] from the provided parts.
     pub fn new(
         id: BatchId,
+        reference_block_commitment: Digest,
+        reference_block_num: BlockNumber,
         account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
         input_notes: InputNotes<InputNoteCommitment>,
         output_notes_smt: BatchNoteTree,
@@ -34,6 +40,8 @@ impl ProvenBatch {
     ) -> Self {
         Self {
             id,
+            reference_block_commitment,
+            reference_block_num,
             account_updates,
             input_notes,
             output_notes_smt,
@@ -48,6 +56,16 @@ impl ProvenBatch {
     /// The ID of this batch. See [`BatchId`] for details on how it is computed.
     pub fn id(&self) -> BatchId {
         self.id
+    }
+
+    /// Returns the commitment to the reference block of the batch.
+    pub fn reference_block_commitment(&self) -> Digest {
+        self.reference_block_commitment
+    }
+
+    /// Returns the number of the reference block of the batch.
+    pub fn reference_block_num(&self) -> BlockNumber {
+        self.reference_block_num
     }
 
     /// Returns the block number at which the batch will expire.
