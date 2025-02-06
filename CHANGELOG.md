@@ -10,6 +10,7 @@
 - Renamed the protobuf file of the transaction prover to `tx_prover.proto` (#1110).
 - [BREAKING] Renamed `AccountData` to `AccountFile` (#1116).
 - Implement transaction batch prover in Rust (#1112).
+- Added the `is_non_fungible_asset_issued` procedure to the `miden` library (#1125).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

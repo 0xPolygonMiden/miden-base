@@ -145,8 +145,7 @@ end
 proc.mint_non_fungible_asset
     # assert that the asset is associated with the faucet the transaction is being executed against
     # and that the asset is valid
-    exec.account::get_id swap drop
-    exec.asset::validate_non_fungible_asset_origin
+    exec.account::get_id swap drop exec.asset::validate_non_fungible_asset_origin
     # => [ASSET]
 
     # fetch the root of the SMT containing the non-fungible assets
@@ -154,20 +153,20 @@ proc.mint_non_fungible_asset
     # => [SMT_ROOT, ASSET, ASSET]
 
     # prepare stack for insert of non-fungible asset into tracking SMT
-    swapw dupw
-    # => [ASSET, ASSET, SMT_ROOT, ASSET]
+    swapw exec.asset_vault::build_non_fungible_asset_vault_key dupw.2
+    # => [ASSET, ASSET_KEY, SMT_ROOT, ASSET]
 
     # insert the non-fungible asset into the tracking SMT
     exec.smt::set
     # => [OLD_VAL, SMT_ROOT', ASSET]
 
     # assert the `OLD_VAL` is EMPTY_WORD, indicating that the non-fungible asset did not already 
-    # exist we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
-    drop drop eq.0 assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED drop
+    # exist we only need to check OLD_VAL[3] as this is always set to the faucet_id and can not be 0.
+    eq.0 assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED drop drop drop
     # => [SMT_ROOT', ASSET]
 
     # update the root of the SMT containing the non-fungible assets
-    exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
+    exec.account::get_faucet_storage_data_slot exec.account::set_item_raw dropw
     # => [ASSET]
 
     # add the non-fungible asset to the input vault for asset preservation checks
@@ -192,7 +191,7 @@ end
 #!   transaction via a note or the accounts vault.
 proc.burn_non_fungible_asset
     # assert that we are executing a transaction against the non-fungible faucet (access checks)
-    exec.account::get_id exec.account::is_non_fungible_faucet 
+    exec.account::get_id swap drop exec.account::is_non_fungible_faucet 
     assert.err=ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
     # => [ASSET]
 
@@ -205,25 +204,63 @@ proc.burn_non_fungible_asset
     # => [SMT_ROOT, ASSET, ASSET]
 
     # prepare stack for removal of non-fungible asset from tracking SMT
-    swapw padw
-    # => [EMPTY_WORD, ASSET, SMT_ROOT, ASSET]
+    swapw exec.asset_vault::build_non_fungible_asset_vault_key padw
+    # => [EMPTY_WORD, ASSET_KEY, SMT_ROOT, ASSET]
 
     # remove the non-fungible asset from the tracking SMT
     exec.smt::set
     # => [OLD_VAL, SMT_ROOT', ASSET]
 
     # assert the `OLD_VAL` is not EMPTY_WORD, indicating that the non-fungible asset exists.
-    # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
-    drop drop eq.0 not assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND drop
+    # we only need to check OLD_VAL[3] as this is always set to the faucet_id and can not be 0.
+    eq.0 not assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND drop drop drop
     # => [SMT_ROOT', ASSET]
 
     # update the root of the SMT containing the non-fungible assets
-    exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
+    exec.account::get_faucet_storage_data_slot exec.account::set_item_raw dropw
     # => [ASSET]
 
     # remove the non-fungible asset from the input vault for asset preservation checks
     exec.memory::get_input_vault_root_ptr movdn.4 exec.asset_vault::remove_non_fungible_asset
     # => [ASSET]
+end
+
+#! Checks whether the provided non-fungible asset has been already issued by this faucet.
+#!
+#! Inputs:  [ASSET]
+#! Outputs: [is_issued]
+#!
+#! Where:
+#! - ASSET is the asset that is being checked.
+#! - is_issued is a boolean indicating whether the non-fungible asset has been issued.
+#!
+#! Panics if:
+#! - the non-fungible asset being minted is not associated with the faucet the transaction is being 
+#!   executed against.
+export.is_non_fungible_asset_issued
+    # assert that the asset is associated with the faucet the transaction is being executed against
+    # and that the asset is valid
+    exec.account::get_id swap drop exec.asset::validate_non_fungible_asset_origin
+    # => [ASSET]
+
+    # fetch the root of the SMT containing the non-fungible assets
+    exec.account::get_faucet_storage_data_slot exec.account::get_item
+    # => [SMT_ROOT, ASSET]
+
+    # prepare stack for obtaining the non-fungible asset from the tracking SMT
+    swapw exec.asset_vault::build_non_fungible_asset_vault_key
+    # => [ASSET_KEY, SMT_ROOT]
+
+    # get the non-fungible asset from the tracking SMT
+    exec.smt::get
+    # => [VALUE, SMT_ROOT]
+
+    # Assert the `VALUE` is EMPTY_WORD, indicating that the non-fungible asset has not been issued 
+    # yet.
+    # To do so we only need to check VALUE[3] as this is always set to the faucet_id and can not be 
+    # 0 (in reversed stack order it will be top stack element)
+    swapw dropw neq.0 movdn.3 drop drop drop  
+    # => [is_issued]
 end
 
 # PUBLIC INTERFACE

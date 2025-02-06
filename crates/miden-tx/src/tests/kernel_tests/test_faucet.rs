@@ -174,8 +174,6 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 // NON-FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
 
-// TODO: reenable once storage map support is implemented
-#[ignore]
 #[test]
 fn test_mint_non_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
@@ -186,22 +184,24 @@ fn test_mint_non_fungible_asset_succeeds() {
     .build();
 
     let non_fungible_asset = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
+    let asset_vault_key = non_fungible_asset.vault_key();
 
     let code = format!(
         "
         use.std::collections::smt
+        use.std::sys
 
         use.kernel::account
         use.kernel::asset_vault
         use.kernel::memory
         use.kernel::prologue
-        use.miden::faucet
+        use.test::account->test_account
 
         begin
             # mint asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
-            exec.faucet::mint
+            call.test_account::mint
 
             # assert the correct asset is returned
             push.{non_fungible_asset}
@@ -216,13 +216,15 @@ fn test_mint_non_fungible_asset_succeeds() {
             # assert the non-fungible asset has been added to the faucet smt
             push.{FAUCET_STORAGE_DATA_SLOT}
             exec.account::get_item
-            push.{non_fungible_asset}
+            push.{asset_vault_key}
             exec.smt::get
             push.{non_fungible_asset}
             assert_eqw
+            dropw
         end
         ",
-        non_fungible_asset = prepare_word(&non_fungible_asset.into())
+        non_fungible_asset = prepare_word(&non_fungible_asset.into()),
+        asset_vault_key = prepare_word(&asset_vault_key),
     );
 
     tx_context.execute_code(&code).unwrap();
@@ -461,8 +463,6 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 // NON-FUNGIBLE FAUCET BURN TESTS
 // ================================================================================================
 
-// TODO: reenable once storage map support is implemented
-#[ignore]
 #[test]
 fn test_burn_non_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
@@ -472,7 +472,8 @@ fn test_burn_non_fungible_asset_succeeds() {
     )
     .build();
 
-    let non_fungible_asset_burnt = NonFungibleAsset::mock(&[1, 2, 3]);
+    let non_fungible_asset_burnt = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA_2);
+    let burnt_asset_vault_key = non_fungible_asset_burnt.vault_key();
 
     let code = format!(
         "
@@ -482,13 +483,18 @@ fn test_burn_non_fungible_asset_succeeds() {
         use.kernel::asset_vault
         use.kernel::memory
         use.kernel::prologue
-        use.miden::faucet
+        use.test::account->test_account
 
         begin
-            # burn asset
             exec.prologue::prepare_transaction
+
+            # add existing non-fungible asset to the vault
+            exec.memory::get_input_vault_root_ptr push.{non_fungible_asset}
+            exec.asset_vault::add_non_fungible_asset dropw
+
+            # burn asset
             push.{non_fungible_asset}
-            exec.faucet::burn
+            call.test_account::burn
 
             # assert the correct asset is returned
             push.{non_fungible_asset}
@@ -503,13 +509,15 @@ fn test_burn_non_fungible_asset_succeeds() {
             # assert the non-fungible asset has been removed from the faucet smt
             push.{FAUCET_STORAGE_DATA_SLOT}
             exec.account::get_item
-            push.{non_fungible_asset}
+            push.{burnt_asset_vault_key}
             exec.smt::get
             padw
             assert_eqw
+            dropw
         end
         ",
-        non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
+        non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into()),
+        burnt_asset_vault_key = prepare_word(&burnt_asset_vault_key),
     );
 
     tx_context.execute_code(&code).unwrap();
@@ -618,6 +626,48 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
     let process = tx_context.execute_code(&code);
 
     assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND);
+}
+
+// IS NON FUNGIBLE ASSET ISSUED TESTS
+// ================================================================================================
+
+#[test]
+fn test_is_non_fungible_asset_issued_succeeds() {
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        NonFungibleAsset::mock_issuer().into(),
+        ONE,
+        false,
+    )
+    .build();
+
+    let non_fungible_asset_1 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
+    let non_fungible_asset_2 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA_2);
+
+    let code = format!(
+        "
+        use.kernel::prologue
+        use.miden::faucet
+        use.test::account
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # check that NON_FUNGIBLE_ASSET_DATA_2 is already issued
+            push.{non_fungible_asset_2}
+            exec.faucet::is_non_fungible_asset_issued
+            eq.1 assert
+
+            # check that NON_FUNGIBLE_ASSET_DATA was not issued yet
+            push.{non_fungible_asset_1}
+            exec.faucet::is_non_fungible_asset_issued
+            eq.0 assert
+        end
+        ",
+        non_fungible_asset_1 = prepare_word(&non_fungible_asset_1.into()),
+        non_fungible_asset_2 = prepare_word(&non_fungible_asset_2.into()),
+    );
+
+    tx_context.execute_code(&code).unwrap();
 }
 
 // GET TOTAL ISSUANCE TESTS

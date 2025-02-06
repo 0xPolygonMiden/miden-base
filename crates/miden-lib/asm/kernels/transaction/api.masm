@@ -23,8 +23,11 @@ use.kernel::tx
 # For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item
 const.ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED=0x00020000
 
-# The get_fungible_faucet_total_issuance procedure can only be called on a fungible faucet
-const.ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET=0x00020001
+# The faucet_get_total_fungible_asset_issuance procedure can only be called on a fungible faucet
+const.ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET=0x00020001
+
+# The faucet_is_non_fungible_asset_issued procedure can only be called on a non-fungible faucet
+const.ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET=0x0002005C
 
 # Provided kernel procedure offset is out of bounds
 const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020003
@@ -610,7 +613,7 @@ end
 export.faucet_get_total_fungible_asset_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
     exec.account::get_id swap drop exec.account::is_fungible_faucet 
-    assert.err=ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
+    assert.err=ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [pad(16)]
 
     # get the total issuance
@@ -636,8 +639,18 @@ end
 #!
 #! Invocation: dynexec
 export.faucet_is_non_fungible_asset_issued
-    # TODO: implement this procedure
-    push.0 drop
+    # assert that we are executing a transaction against a non-fungible faucet (access checks)
+    exec.account::get_id swap drop exec.account::is_non_fungible_faucet 
+    assert.err=ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
+    # => [ASSET, pad(12)]
+
+    # get the issuance flag
+    exec.faucet::is_non_fungible_asset_issued
+    # => [is_issued, pad(16)]
+
+    # truncate the stack
+    swap drop
+    # => [is_issued, pad(15)]
 end
 
 ### NOTE ########################################

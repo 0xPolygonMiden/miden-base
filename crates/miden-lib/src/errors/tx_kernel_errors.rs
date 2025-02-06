@@ -30,17 +30,18 @@ pub const ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT: u32 = 0x00020009;
 pub const ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH: u32 = 0x00020012;
 pub const ERR_ACCOUNT_TOO_MANY_PROCEDURES: u32 = 0x00020010;
 pub const ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS: u32 = 0x00020011;
-pub const ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET: u32 = 0x00020001;
 
 pub const ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME: u32 = 0x00020029;
 
 pub const ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY: u32 = 0x0002002B;
 pub const ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x0002002D;
 pub const ERR_FAUCET_INVALID_STORAGE_OFFSET: u32 = 0x0002000E;
+pub const ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x0002005C;
 pub const ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT: u32 = 0x0002002A;
 pub const ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED: u32 = 0x0002002C;
 pub const ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND: u32 = 0x0002002E;
 pub const ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED: u32 = 0x00020000;
+pub const ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET: u32 = 0x00020001;
 
 pub const ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID: u32 = 0x00020016;
 pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 0x00020014;
@@ -115,7 +116,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002001C;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x0002001F;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x0002001E;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
     (ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY, "Anchor block hash must not be empty"),
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
@@ -136,17 +137,18 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH, "Computed account storage commitment does not match recorded account storage commitment"),
     (ERR_ACCOUNT_TOO_MANY_PROCEDURES, "Number of account procedures exceeds the maximum limit of 256"),
     (ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeds the maximum limit of 255"),
-    (ERR_ACCOUNT_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET, "The get_fungible_faucet_total_issuance procedure can only be called on a fungible faucet"),
 
     (ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, "Total number of assets in the account and all involved notes must stay the same"),
 
     (ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY, "Asset amount to burn can not exceed the existing total supply"),
     (ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET, "The burn_non_fungible_asset procedure can only be called on a non-fungible faucet"),
     (ERR_FAUCET_INVALID_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)"),
+    (ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET, "The faucet_is_non_fungible_asset_issued procedure can only be called on a non-fungible faucet"),
     (ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT, "Asset mint operation would cause the new total supply to exceed the maximum allowed asset amount"),
     (ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED, "Failed to mint new non-fungible asset because it was already issued"),
     (ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND, "Failed to burn non-existent non-fungible asset in the vault"),
     (ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED, "For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item"),
+    (ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET, "The faucet_get_total_fungible_asset_issuance procedure can only be called on a fungible faucet"),
 
     (ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID, "Provided foreign account ID is equal to the native account ID."),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "ID of the provided foreign account equals zero."),
