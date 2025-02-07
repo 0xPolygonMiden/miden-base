@@ -132,9 +132,9 @@ impl TransactionKernel {
     /// ```text
     /// [
     ///     BLOCK_HASH,
-    ///     block_num, 0, acct_id,
     ///     INITIAL_ACCOUNT_HASH,
     ///     INPUT_NOTES_COMMITMENT,
+    ///     acct_id, block_num
     /// ]
     /// ```
     ///
@@ -153,12 +153,11 @@ impl TransactionKernel {
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
         let mut inputs: Vec<Felt> = Vec::with_capacity(14);
-        inputs.extend(input_notes_hash);
-        inputs.extend_from_slice(init_acct_hash.as_elements());
+        inputs.push(Felt::from(block_num));
         inputs.push(account_id.suffix());
         inputs.push(account_id.prefix().as_felt());
-        inputs.push(Felt::new(0));
-        inputs.push(Felt::from(block_num));
+        inputs.extend(input_notes_hash);
+        inputs.extend_from_slice(init_acct_hash.as_elements());
         inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())

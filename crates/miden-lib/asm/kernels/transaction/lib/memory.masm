@@ -49,9 +49,6 @@ const.GLOBAL_INPUTS_SECTION_OFFSET=400
 # The memory address at which the latest known block hash is stored.
 const.BLK_HASH_PTR=400
 
-# The memory address at which the latest known block number is stored.
-const.BLK_NUM_PTR=404
-
 # The memory address at which the account ID felts are stored.
 const.ACCT_ID_PTR=404
 
@@ -334,29 +331,19 @@ export.get_block_hash
     padw push.BLK_HASH_PTR mem_loadw
 end
 
-#! Returns the block number of the reference block.
-#!
-#! Inputs:  []
-#! Outputs: [block_num]
-#!
-#! Where:
-#! - block_num is the number of the reference block for the transaction execution.
-export.get_global_blk_num
-    push.BLK_NUM_PTR mem_load
-end
-
 #! Sets the account ID.
 #!
-#! Inputs:  [block_num, 0, acct_id_prefix, acct_id_suffix]
-#! Outputs: []
+#! Inputs:  [acct_id_prefix, acct_id_suffix, block_num]
+#! Outputs: [block_num]
 #!
 #! Where:
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID.
 export.set_global_acct_id
-    # => [block_num, 0, acct_id_prefix, acct_id_suffix]
+    push.0.0
+    # => [0, 0, acct_id_prefix, acct_id_suffix, block_num]
     mem_storew.ACCT_ID_PTR
     dropw
-    # => []
+    # => [block_num]
 end
 
 #! Returns the global account ID.
@@ -368,7 +355,7 @@ end
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID.
 export.get_global_acct_id
     padw mem_loadw.ACCT_ID_PTR
-    # => [block_num, 0, acct_id_prefix, acct_id_suffix]
+    # => [0, 0, acct_id_prefix, acct_id_suffix]
     drop drop
 end
 

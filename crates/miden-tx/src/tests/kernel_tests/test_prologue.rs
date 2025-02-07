@@ -10,11 +10,11 @@ use miden_lib::{
     },
     transaction::{
         memory::{
-            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLK_NUM_PTR,
-            BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
-            CHAIN_ROOT_PTR, INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR,
-            INPUT_NOTE_ARGS_OFFSET, INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET,
-            INPUT_NOTE_ID_OFFSET, INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
+            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
+            BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+            INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
+            INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
+            INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
             INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
             KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
@@ -113,11 +113,6 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
         read_root_mem_word(&process.into(), BLK_HASH_PTR),
         inputs.tx_inputs().block_header().hash().as_elements(),
         "The block hash should be stored at the BLK_HASH_PTR"
-    );
-    assert_eq!(
-        read_root_mem_word(&process.into(), BLK_NUM_PTR)[3],
-        inputs.tx_inputs().block_header().block_num().into(),
-        "The block number should be stored at the BLK_NUM_PTR[3]"
     );
 
     assert_eq!(
