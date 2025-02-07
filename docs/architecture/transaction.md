@@ -29,7 +29,7 @@ They are useful, because:
 
 ### Network transaction
 
-In **network transactions**, the Miden operator executes the `Transaction` and generates the proof. Miden uses network `Transaction`s for smart contracts with public shared state. This type of `Transaction` is quite similar to the ones in traditional blockchains (e.g., Ethereum).
+The Miden operator executes the `Transaction` and generates the proof. Miden uses network `Transaction`s for smart contracts with public shared state. This type of `Transaction` is quite similar to the ones in traditional blockchains (e.g., Ethereum).
 
 They are useful, because:
 
