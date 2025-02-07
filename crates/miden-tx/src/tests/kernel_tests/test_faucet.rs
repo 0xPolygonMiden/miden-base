@@ -60,13 +60,13 @@ fn test_mint_fungible_asset_succeeds() {
 
             # assert the correct asset is returned
             push.{FUNGIBLE_ASSET_AMOUNT}.0.{suffix}.{prefix}
-            assert_eqw
+            assert_eqw.err=9998
 
             # assert the input vault has been updated
             exec.memory::get_input_vault_root_ptr
             push.{suffix}.{prefix}
             exec.asset_vault::get_balance
-            push.{FUNGIBLE_ASSET_AMOUNT} assert_eq
+            push.{FUNGIBLE_ASSET_AMOUNT} assert_eq.err=9999
         end
         ",
         prefix = faucet_id.prefix().as_felt(),
@@ -204,13 +204,13 @@ fn test_mint_non_fungible_asset_succeeds() {
 
             # assert the correct asset is returned
             push.{non_fungible_asset}
-            assert_eqw
+            assert_eqw.err=9997
 
             # assert the input vault has been updated.
             exec.memory::get_input_vault_root_ptr
             push.{non_fungible_asset}
             exec.asset_vault::has_non_fungible_asset
-            assert
+            assert.err=9998
 
             # assert the non-fungible asset has been added to the faucet smt
             push.{FAUCET_STORAGE_DATA_SLOT}
@@ -218,7 +218,7 @@ fn test_mint_non_fungible_asset_succeeds() {
             push.{asset_vault_key}
             exec.smt::get
             push.{non_fungible_asset}
-            assert_eqw
+            assert_eqw.err=9999
             dropw
         end
         ",
@@ -336,9 +336,9 @@ fn test_burn_fungible_asset_succeeds() {
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET_AMOUNT}.0.{suffix}.{prefix}
             call.account::burn
-            # assert the correct asset is returned
+            # assert the correct asset is returned
             push.{FUNGIBLE_ASSET_AMOUNT}.0.{suffix}.{prefix}
-            assert_eqw
+            assert_eqw.err=9998
 
             # assert the input vault has been updated
             exec.memory::get_input_vault_root_ptr
@@ -346,7 +346,7 @@ fn test_burn_fungible_asset_succeeds() {
             push.{suffix}.{prefix}
             exec.asset_vault::get_balance
             
-            push.{final_input_vault_asset_amount} assert_eq
+            push.{final_input_vault_asset_amount} assert_eq.err=9999
         end
         ",
         prefix = faucet_id.prefix().as_felt(),
@@ -497,13 +497,13 @@ fn test_burn_non_fungible_asset_succeeds() {
 
             # assert the correct asset is returned
             push.{non_fungible_asset}
-            assert_eqw
+            assert_eqw.err=9997
 
             # assert the input vault has been updated.
             exec.memory::get_input_vault_root_ptr
             push.{non_fungible_asset}
             exec.asset_vault::has_non_fungible_asset
-            not assert
+            not assert.err=9998
 
             # assert the non-fungible asset has been removed from the faucet smt
             push.{FAUCET_STORAGE_DATA_SLOT}
@@ -511,7 +511,7 @@ fn test_burn_non_fungible_asset_succeeds() {
             push.{burnt_asset_vault_key}
             exec.smt::get
             padw
-            assert_eqw
+            assert_eqw.err=9999
             dropw
         end
         ",
@@ -640,12 +640,16 @@ fn test_is_non_fungible_asset_issued_succeeds() {
             # check that NON_FUNGIBLE_ASSET_DATA_2 is already issued
             push.{non_fungible_asset_2}
             exec.faucet::is_non_fungible_asset_issued
-            eq.1 assert
+
+            # use error code 9998 to assert that asset is issued
+            eq.1 assert.err=9998
 
             # check that NON_FUNGIBLE_ASSET_DATA was not issued yet
             push.{non_fungible_asset_1}
             exec.faucet::is_non_fungible_asset_issued
-            eq.0 assert
+
+            # use error code 9999 to assert that asset is not issued
+            eq.0 assert.err=9999
         end
         ",
         non_fungible_asset_1 = prepare_word(&non_fungible_asset_1.into()),
@@ -680,7 +684,7 @@ fn test_get_total_issuance_succeeds() {
             # => [total_issuance]
 
             # assert the correct balance is returned
-            push.{FUNGIBLE_FAUCET_INITIAL_BALANCE} assert_eq
+            push.{FUNGIBLE_FAUCET_INITIAL_BALANCE} assert_eq.err=9999
             # => []
         end
         ",

@@ -249,9 +249,10 @@ export.is_non_fungible_asset_issued
     exec.smt::get
     # => [ASSET, SMT_ROOT]
 
-    # Assert the `ASSET` is an EMPTY_WORD, indicating that the non-fungible asset has not been 
+    # Check whether the `ASSET` is an EMPTY_WORD, indicating that the non-fungible asset has not been 
     # issued yet. We only need to check ASSET[3] as this is always set to the faucet_id_prefix
-    # and can not be 0 (in reversed stack order it will be top stack element).
+    # and can not be 0 (in reversed stack order it will be top stack element). Equality of the 
+    # ASSET[3] to zero will become a flag that this asset is not issued.
     swapw dropw neq.0 movdn.3 drop drop drop  
     # => [is_issued]
 end
