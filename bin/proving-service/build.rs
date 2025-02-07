@@ -14,6 +14,7 @@ const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN
 
 const REPO_PROTO_DIR: &str = "../../proto";
 const CRATE_PROTO_DIR: &str = "proto";
+const PROTO_FILES: [&str; 2] = ["tx_prover.proto", "batch_prover.proto"];
 
 /// Generates Rust protobuf bindings from .proto files.
 ///
@@ -21,7 +22,7 @@ const CRATE_PROTO_DIR: &str = "proto";
 /// if ./src is read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC`
 /// environment variable.
 fn main() -> miette::Result<()> {
-    println!("cargo::rerun-if-env-changed=BUILD_GENERATED_FILES_IN_SRC");
+    println!("cargo:rerun-if-env-changed=BUILD_GENERATED_FILES_IN_SRC");
     if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
@@ -33,15 +34,18 @@ fn main() -> miette::Result<()> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Copies the tx_prover.proto file from the root proto directory to the proto directory of this
+/// Copies the proto files from the root proto directory to the proto directory of this
 /// crate.
 fn copy_proto_files() -> miette::Result<()> {
-    let src_file = format!("{REPO_PROTO_DIR}/tx_prover.proto");
-    let dest_file = format!("{CRATE_PROTO_DIR}/tx_prover.proto");
-
-    fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
+    fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic().ok();
     fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
-    fs::copy(src_file, dest_file).into_diagnostic()?;
+
+    for proto_file in PROTO_FILES {
+        let src_file = format!("{REPO_PROTO_DIR}/{proto_file}");
+        let dest_file = format!("{CRATE_PROTO_DIR}/{proto_file}");
+
+        fs::copy(&src_file, &dest_file).into_diagnostic()?;
+    }
 
     Ok(())
 }
@@ -53,13 +57,15 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
 
     // Remove `tx_prover.rs` if it exists.
     fs::remove_file(dst_dir.join("tx_prover.rs")).into_diagnostic().ok();
+    // Remove `batch_prover.rs` if it exists.
+    fs::remove_file(dst_dir.join("batch_prover.rs")).into_diagnostic().ok();
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
     let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
-    let protos = &[proto_dir.join("tx_prover.proto")];
-    let includes = &[proto_dir];
+    let protos = &[proto_dir.join("tx_prover.proto"), proto_dir.join("batch_prover.proto")];
+    let includes = &[proto_dir.clone(), proto_dir];
 
     let file_descriptors = protox::compile(protos, includes)?;
     fs::write(&file_descriptor_path, file_descriptors.encode_to_vec()).into_diagnostic()?;

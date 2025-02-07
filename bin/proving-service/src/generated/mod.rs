@@ -1,10 +1,12 @@
 use miden_objects::transaction::ProvenTransaction;
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
+use tx_prover::ProveTransactionResponse;
 
 #[rustfmt::skip]
 pub mod tx_prover;
 
-pub use tx_prover::*;
+#[rustfmt::skip]
+pub mod batch_prover;
 
 // CONVERSIONS
 // ================================================================================================

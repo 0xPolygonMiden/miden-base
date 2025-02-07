@@ -11,6 +11,9 @@ use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
 use crate::RemoteProverError;
 
+/// Protobuf definition for the Miden proving service
+pub const TX_PROVER_PROTO: &str = include_str!("../../proto/tx_prover.proto");
+
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
 

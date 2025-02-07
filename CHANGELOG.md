@@ -11,6 +11,8 @@
 - [BREAKING] Renamed `AccountData` to `AccountFile` (#1116).
 - Implement transaction batch prover in Rust (#1112).
 - [BREAKING] Refactored config file for `miden-proving-service` to be based on environment variables (#1120).
+- Added a `RemoteBatchProver` struct to the `miden-proving-service-client` crate (#1131).
+- Added a remote batch prover to the `miden-proving-service` (#1131).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

@@ -1,0 +1,15 @@
+// Specification of the user facing gRPC API.
+syntax = "proto3";
+package batch_prover;
+
+service Api {
+    rpc ProveBatch(ProveBatchRequest) returns (ProveBatchResponse) {}
+}
+
+message ProveBatchRequest {
+    bytes proposed_batch = 1;
+}
+
+message ProveBatchResponse {
+    bytes proven_batch = 1;
+}

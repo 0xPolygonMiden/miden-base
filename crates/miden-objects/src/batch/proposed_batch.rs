@@ -4,6 +4,9 @@ use alloc::{
     vec::Vec,
 };
 
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
@@ -397,6 +400,101 @@ impl ProposedBatch {
             self.output_notes,
             self.batch_expiration_block_num,
         )
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProposedBatch {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u32(self.transactions.len() as u32);
+        for tx in self.transactions.iter() {
+            tx.write_into(target);
+        }
+
+        self.block_header.write_into(target);
+        self.chain_mmr.write_into(target);
+
+        target.write_u32(self.unauthenticated_note_proofs.len() as u32);
+        for (note_id, proof) in self.unauthenticated_note_proofs.iter() {
+            note_id.write_into(target);
+            proof.write_into(target);
+        }
+
+        self.id.write_into(target);
+
+        target.write_u32(self.account_updates.len() as u32);
+        for (account_id, update) in self.account_updates.iter() {
+            account_id.write_into(target);
+            update.write_into(target);
+        }
+
+        self.batch_expiration_block_num.write_into(target);
+
+        self.input_notes.write_into(target);
+        self.output_notes_tree.write_into(target);
+
+        target.write_u32(self.output_notes.len() as u32);
+        for note in self.output_notes.iter() {
+            note.write_into(target);
+        }
+    }
+}
+
+impl Deserializable for ProposedBatch {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let transactions_len = source.read_u32()? as usize;
+        let transactions = (0..transactions_len)
+            .map(|_| ProvenTransaction::read_from(source))
+            .collect::<Result<Vec<ProvenTransaction>, _>>()?
+            .into_iter()
+            .map(Arc::new)
+            .collect();
+
+        let block_header = BlockHeader::read_from(source)?;
+        let chain_mmr = ChainMmr::read_from(source)?;
+
+        let unauthenticated_note_proofs_len = source.read_u32()? as usize;
+        let mut unauthenticated_note_proofs = BTreeMap::new();
+        for _ in 0..unauthenticated_note_proofs_len {
+            let note_id = NoteId::read_from(source)?;
+            let proof = NoteInclusionProof::read_from(source)?;
+            unauthenticated_note_proofs.insert(note_id, proof);
+        }
+
+        let id = BatchId::read_from(source)?;
+
+        let account_updates_len = source.read_u32()? as usize;
+        let mut account_updates = BTreeMap::new();
+        for _ in 0..account_updates_len {
+            let account_id = AccountId::read_from(source)?;
+            let update = BatchAccountUpdate::read_from(source)?;
+            account_updates.insert(account_id, update);
+        }
+
+        let batch_expiration_block_num = BlockNumber::read_from(source)?;
+
+        let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
+        let output_notes_tree = BatchNoteTree::read_from(source)?;
+
+        let output_notes_len = source.read_u32()? as usize;
+        let output_notes = (0..output_notes_len)
+            .map(|_| OutputNote::read_from(source))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self {
+            transactions,
+            block_header,
+            chain_mmr,
+            unauthenticated_note_proofs,
+            id,
+            account_updates,
+            batch_expiration_block_num,
+            input_notes,
+            output_notes,
+            output_notes_tree,
+        })
     }
 }
 

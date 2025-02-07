@@ -15,6 +15,7 @@ const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN
 
 const REPO_PROTO_DIR: &str = "../../proto";
 const CRATE_PROTO_DIR: &str = "proto";
+const PROVER_TYPES: [&str; 2] = ["tx_prover", "batch_prover"];
 
 /// Generates Rust protobuf bindings from .proto files.
 ///
@@ -22,44 +23,55 @@ const CRATE_PROTO_DIR: &str = "proto";
 /// if ./src is read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC`
 /// environment variable.
 fn main() -> miette::Result<()> {
-    println!("cargo::rerun-if-env-changed=BUILD_GENERATED_FILES_IN_SRC");
+    println!("cargo:rerun-if-env-changed=BUILD_GENERATED_FILES_IN_SRC");
     if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 
-    copy_proto_files()?;
-    compile_tonic_client_proto()
+    // Ensure the proto directory is created once
+    fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic().ok();
+    fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
+
+    for prover_type in PROVER_TYPES {
+        println!("Generating files for {}", prover_type);
+        copy_proto_files(prover_type)?;
+        compile_tonic_client_proto(prover_type)?;
+    }
+
+    Ok(())
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Copies the tx_prover.proto file from the root proto directory to the proto directory of this
+/// Copies the proto files from the root proto directory to the proto directory of this
 /// crate.
-fn copy_proto_files() -> miette::Result<()> {
-    let src_file = format!("{REPO_PROTO_DIR}/tx_prover.proto");
-    let dest_file = format!("{CRATE_PROTO_DIR}/tx_prover.proto");
+fn copy_proto_files(prover_type: &str) -> miette::Result<()> {
+    println!("Copying proto files for {}", prover_type);
+    let src_file = format!("{REPO_PROTO_DIR}/{prover_type}.proto");
+    let dest_file = format!("{CRATE_PROTO_DIR}/{prover_type}.proto");
 
-    fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
-    fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
     fs::copy(src_file, dest_file).into_diagnostic()?;
 
     Ok(())
 }
 
-fn compile_tonic_client_proto() -> miette::Result<()> {
+fn compile_tonic_client_proto(prover_type: &str) -> miette::Result<()> {
+    println!("Compiling tonic client proto for {}", prover_type);
     let crate_root =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
-    let dst_dir = crate_root.join("src").join("tx_prover").join("generated");
+    let dst_dir = crate_root.join("src").join(prover_type).join("generated");
 
-    // Remove `tx_prover.rs` if it exists.
-    fs::remove_file(dst_dir.join("tx_prover.rs")).into_diagnostic().ok();
+    // Remove the generated rust file if it exists.
+    fs::remove_file(dst_dir.join(format!("{prover_type}.rs")))
+        .into_diagnostic()
+        .ok();
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
     let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
-    let protos = &[proto_dir.join("tx_prover.proto")];
+    let protos = &[proto_dir.join(format!("{prover_type}.proto"))];
     let includes = &[proto_dir];
 
     let file_descriptors = protox::compile(protos, includes)?;
@@ -71,9 +83,15 @@ fn compile_tonic_client_proto() -> miette::Result<()> {
     build_tonic_client(&file_descriptor_path, &std_path, protos, includes, false)?;
     build_tonic_client(&file_descriptor_path, &nostd_path, protos, includes, true)?;
 
-    // Replace `std` references with `core` and `alloc` in `tx_prover.rs`.
-    // (Only for nostd version)
-    let nostd_file_path = nostd_path.join("tx_prover.rs");
+    replace_std_references(&nostd_path, &format!("{prover_type}.rs"))?;
+
+    Ok(())
+}
+
+/// Replace `std` references with `core` and `alloc` in the generated files.
+/// (Only for nostd version)
+fn replace_std_references(nostd_path: &Path, file_name: &str) -> Result<(), miette::Error> {
+    let nostd_file_path = nostd_path.join(file_name);
     let file_content = fs::read_to_string(&nostd_file_path).into_diagnostic()?;
     let updated_content = file_content
         .replace("std::result", "core::result")
@@ -98,6 +116,7 @@ fn build_tonic_client(
     includes: &[PathBuf],
     for_no_std: bool,
 ) -> miette::Result<()> {
+    println!("Building tonic client for {}", if for_no_std { "no_std" } else { "std" });
     tonic_build::configure()
         .file_descriptor_set_path(file_descriptor_path)
         .skip_protoc_run()

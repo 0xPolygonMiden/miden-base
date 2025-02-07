@@ -4,6 +4,7 @@ pub mod error;
 mod generated;
 pub mod proxy;
 mod utils;
+pub mod worker;
 use commands::Cli;
 use utils::setup_tracing;
 
@@ -45,15 +46,17 @@ mod test {
     use tonic::Request;
 
     use crate::{
-        api::ProverRpcApi,
-        generated::{api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest},
+        api::tx_prover_api::TxProverRpcApi,
+        generated::tx_prover::{
+            api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest,
+        },
     };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
-        let api_service = ApiServer::new(ProverRpcApi::default());
+        let api_service = ApiServer::new(TxProverRpcApi::default());
 
         // Spawn the server as a background task
         tokio::spawn(async move {
