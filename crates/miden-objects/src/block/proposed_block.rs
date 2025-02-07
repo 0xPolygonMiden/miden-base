@@ -7,8 +7,8 @@ use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
-        block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, BlockNumber,
-        PartialNullifierTree,
+        block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
+        BlockNumber, PartialNullifierTree,
     },
     crypto::merkle::{MerklePath, SmtProof},
     errors::ProposedBlockError,
@@ -27,10 +27,7 @@ type UpdatedAccounts = Vec<(AccountId, AccountUpdateWitness)>;
 pub struct ProposedBlock {
     batches: Vec<ProvenBatch>,
     updated_accounts: Vec<(AccountId, AccountUpdateWitness)>,
-    /// Map from batch index to its output notes SMT root.
-    ///
-    /// There may be no entry for a given batch index if that batch did not create output notes.
-    batch_created_notes_roots: BTreeMap<usize, Digest>,
+    block_note_tree: BlockNoteTree,
     created_nullifiers: BTreeMap<Nullifier, SmtProof>,
     chain_mmr: ChainMmr,
     prev_block_header: BlockHeader,
@@ -41,14 +38,15 @@ impl ProposedBlock {
         mut block_inputs: BlockInputs,
         mut batches: Vec<ProvenBatch>,
     ) -> Result<(Self, Vec<BlockAccountUpdate>), ProposedBlockError> {
-        // This limit should be enforced by the mempool.
-        assert!(batches.len() <= MAX_BATCHES_PER_BLOCK);
-
         // Check for empty or duplicate batches.
         // --------------------------------------------------------------------------------------------
 
         if batches.is_empty() {
             return Err(ProposedBlockError::EmptyBlock);
+        }
+
+        if batches.len() > MAX_BATCHES_PER_BLOCK {
+            return Err(ProposedBlockError::TooManyBatches);
         }
 
         check_duplicate_batches(&batches)?;
@@ -75,7 +73,7 @@ impl ProposedBlock {
         // making sure that authenticating unauthenticated notes.
         // --------------------------------------------------------------------------------------------
 
-        let block_input_notes = InputOutputNoteTracker::from_batches(
+        let (block_input_notes, mut block_output_notes) = InputOutputNoteTracker::from_batches(
             batches.iter(),
             block_inputs.unauthenticated_note_proofs(),
             block_inputs.chain_mmr(),
@@ -89,6 +87,31 @@ impl ProposedBlock {
             return Err(ProposedBlockError::UnauthenticatedNoteConsumed { nullifier });
         }
 
+        // Create the BlockNoteTree from the block output notes, where created unauthenticated notes
+        // that are consumed by another batch are erased.
+        // This ensures that the batch index in the block note tree matches the index of the batch
+        // in batches.
+        let batch_output_notes_iterator = batches
+        .iter()
+        .enumerate()
+        // Filter out batches that do not have an entry in block output notes, which could happen for
+        // batches that don't produce output notes.
+        .filter_map(|(batch_idx, batch)| {
+            block_output_notes.remove(&batch.id()).map(|output_notes| (batch_idx, output_notes))
+        })
+        .flat_map(|(batch_idx, output_notes)| {
+            output_notes.into_iter().enumerate().map(move |(note_idx_in_batch, note)| {
+                // SAFETY: This is fine because:
+                // - we check for MAX_BATCHES_PER_BLOCK in this function,
+                // - and max output notes per batch is enforced by the `ProposedBatch`.
+                let block_note_idx = BlockNoteIndex::new(batch_idx, note_idx_in_batch).expect("we should not exceed the max output notes per batch or the number of batches per block");
+                (block_note_idx, note.id(), *note.metadata())
+            })
+        });
+
+        let block_note_tree =
+            BlockNoteTree::with_entries(batch_output_notes_iterator).expect("TODO: error");
+
         // Check for nullifiers proofs and unspent nullifiers.
         // --------------------------------------------------------------------------------------------
 
@@ -98,16 +121,6 @@ impl ProposedBlock {
             &block_inputs,
             block_input_notes.iter().map(InputNoteCommitment::nullifier),
         )?;
-
-        // Collect output note SMT roots from batches.
-        // --------------------------------------------------------------------------------------------
-
-        let batch_created_notes_roots = batches
-            .iter()
-            .enumerate()
-            .filter(|(_, batch)| !batch.output_notes().is_empty())
-            .map(|(batch_index, batch)| (batch_index, batch.output_notes_tree().root()))
-            .collect();
 
         // Aggregate account updates across batches.
         // --------------------------------------------------------------------------------------------
@@ -123,7 +136,7 @@ impl ProposedBlock {
             Self {
                 batches,
                 updated_accounts: account_witnesses,
-                batch_created_notes_roots,
+                block_note_tree,
                 created_nullifiers: nullifiers,
                 chain_mmr,
                 prev_block_header,
@@ -176,7 +189,7 @@ impl ProposedBlock {
     ) -> (
         Vec<ProvenBatch>,
         Vec<(AccountId, AccountUpdateWitness)>,
-        BTreeMap<usize, Digest>,
+        BlockNoteTree,
         BTreeMap<Nullifier, SmtProof>,
         ChainMmr,
         BlockHeader,
@@ -184,7 +197,7 @@ impl ProposedBlock {
         (
             self.batches,
             self.updated_accounts,
-            self.batch_created_notes_roots,
+            self.block_note_tree,
             self.created_nullifiers,
             self.chain_mmr,
             self.prev_block_header,

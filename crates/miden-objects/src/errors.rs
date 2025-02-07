@@ -541,6 +541,9 @@ pub enum ProposedBlockError {
     #[error("block must contain at least one transaction batch")]
     EmptyBlock,
 
+    #[error("block must contain at most {MAX_BATCHES_PER_BLOCK} transaction batches")]
+    TooManyBatches,
+
     #[error("batch {batch_id} appears twice in the block inputs")]
     DuplicateBatch { batch_id: BatchId },
 
