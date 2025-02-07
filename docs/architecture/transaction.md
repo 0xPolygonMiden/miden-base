@@ -53,7 +53,7 @@ To execute a `Transaction`, the executor must have complete knowledge of the acc
 
 - Notes: A `Transaction` can only consume notes if the full note data is known. For private notes, the data can not be fetched from the blockchain and must be received otherwise.
 - Foreign account data: Any foreign account data accessed during a `Transaction`, whether private or public, must be available beforehand. There is no need to know the full account storage, but the data necessary for the `Transaction`, e.g., the key/value pair that is read and the corresponding storage state root.
-- Blockchain state: The current `BlockHeader` and `ChainMMR` used to authenticate input notes must be retrieved from the Miden operator before execution.
+- Blockchain state: The current Block and a information about the Notes DB used to authenticate input notes must be retrieved from the Miden operator before execution.
 
 > **Info**
 > - Usually, notes that are consumed in a `Transaction` must be recorded on-chain in order for the `Transaction` to succeed. However, in Miden there is the concept of ephemeral notes that can be consumed in a `Transaction` before registered on-chain. This allows for the executor to consume notes before they reach the blockchain which is useful for sub-second orders.
@@ -66,13 +66,18 @@ To execute a `Transaction`, the executor must have complete knowledge of the acc
 1. **Prologue**: On-chain commitments are validated against provided data.
 2. **Note processing**: Input notes are executed sequentially against the account, following a selected order.
     - Notes must be consumed fully (all assets must be transferred to the account or to another note).
-    - The note script must be executed in full with the provided note inputs and `TransactionArguments`. `TransactionArguments` can be injected by the executor for each note at runtime.
+    - The note script must be executed in full with the provided note inputs and transaction arguments. Transaction arguments can be injected by the executor for each note at runtime.
 3. **Transaction script execution (optional)**: A `Transaction` script, if present, is executed.
     - This script can sign the `Transaction` or directly interact with the account without using notes.
 4. **Epilogue**:
     - The account state is updated.
     - New notes are created (optional), transferring assets from the account to the newly created notes.
     - Execution completes, resulting in an updated account state and a generated zk-proof.
+
+If the `Transaction` succeeds, a proof is generated of the correct `Transaction` execution. This proof together with the corresponding data needed for verification and updates on the global state can then be submitted and processed by the network.
+
+> **More info**
+> - One of the main reasons for separating execution and proving steps is to allow _stateless provers_; i.e., the executed `Transaction` has all the data it needs to re-execute and prove a `Transaction` without database access. This supports easier proof-generation distribution.
 
 ## Example of consuming a note in a transaction
 
@@ -85,7 +90,7 @@ Note creators can impose conditions on who can consume a note. These restriction
 - A **P2ID** note verifies that the executing account's ID matches the expected account ID from the note inputs.
 - A **Swap** note allows asset exchange based on predefined conditions. Example:
     - The note's consumption condition is defined as "anyone can consume this note to take X units of asset A if they simultaneously create a note sending Y units of asset B back to the creator."
-    - If an executor wants to buy only a fraction `(X-m)` of asset A, they provide this amount via `TransactionArguments`.
+    - If an executor wants to buy only a fraction `(X-m)` of asset A, they provide this amount via transaction arguments. The executor would provide the value `m`.
     - The note script then enforces the correct transfer:
         - A new note is created returning `Y-((m*Y)/X)` of asset B to the sender.
         - A second note is created, holding the remaining `(X-m)` of asset A for future consumption.
@@ -94,9 +99,7 @@ Note creators can impose conditions on who can consume a note. These restriction
 
 Not all `Transaction`s require notes. For example, the owner of a faucet can mint new tokens using only a `Transaction` script, without interacting with external notes.
 
-If the `Transaction` succeeds, a proof is generated of the correct `Transaction` execution. This proof together with the corresponding data needed for verification and updates on the global state can then be submitted and processed by the network.
 
-> **More info**
-> - One of the main reasons for separating execution and proving steps is to allow _stateless provers_; i.e., the executed `Transaction` has all the data it needs to re-execute and prove a `Transaction` without database access. This supports easier proof-generation distribution.
+## Additional features of a transaction
 > - It is possible to set `Transaction` expiration heights and in doing so, to define a block height until a `Transaction` should be included into a block. If the `Transaction` is expired, the resulting account state change is not valid and the `Transaction` can not be verified anymore.
 > - Note and `Transaction` scripts can read the state of foreign accounts during execution. This is called foreign procedure invocation. For example the price of an asset for the SWAP script might depend on a certain value stored in the oracle account.
