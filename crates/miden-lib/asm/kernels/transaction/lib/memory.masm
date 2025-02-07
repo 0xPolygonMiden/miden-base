@@ -341,7 +341,7 @@ end
 #!
 #! Where:
 #! - block_num is the number of the reference block for the transaction execution.
-export.get_block_num
+export.get_global_blk_num
     push.BLK_NUM_PTR mem_load
 end
 
