@@ -17,6 +17,8 @@ use crate::{
     MAX_BATCHES_PER_BLOCK,
 };
 
+type UpdatedAccounts = Vec<(AccountId, AccountUpdateWitness)>;
+
 // BLOCK WITNESS
 // =================================================================================================
 
@@ -118,7 +120,7 @@ impl ProposedBlock {
 
     /// Returns an iterator over all transactions which affected accounts in the block with
     /// corresponding account IDs.
-    pub(super) fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
+    pub fn affected_accounts(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
         self.updated_accounts.iter().flat_map(|(account_id, update)| {
             update.transactions.iter().map(move |tx_id| (*tx_id, *account_id))
         })
@@ -150,6 +152,11 @@ impl ProposedBlock {
         &self.chain_mmr
     }
 
+    pub fn updated_accounts(&self) -> &[(AccountId, AccountUpdateWitness)] {
+        &self.updated_accounts
+    }
+
+    #[allow(clippy::type_complexity)]
     pub fn into_parts(
         self,
     ) -> (
@@ -287,7 +294,7 @@ fn check_batch_reference_blocks(
         if batch_reference_block_num != prev_block_header.block_num()
             && !chain_mmr.contains_block(batch.reference_block_num())
         {
-            return Err(ProposedBlockError::BatchRefernceBlockMissingFromChain {
+            return Err(ProposedBlockError::BatchReferenceBlockMissingFromChain {
                 reference_block_num: batch.reference_block_num(),
                 batch_id: batch.id(),
             });
@@ -300,13 +307,13 @@ fn check_batch_reference_blocks(
 fn aggregate_account_updates(
     block_inputs: &mut BlockInputs,
     batches: &mut [ProvenBatch],
-) -> Result<(Vec<(AccountId, AccountUpdateWitness)>, Vec<BlockAccountUpdate>), ProposedBlockError> {
+) -> Result<(UpdatedAccounts, Vec<BlockAccountUpdate>), ProposedBlockError> {
     // TODO: A HashMap would be much more efficient here as we don't need the order. We also
     // rebalance the tree when removing the updates which is also unnecessary.
 
     // Aggregate all updates for the same account and store each update indexed by its initial
     // state commitment so we can easily retrieve them later.
-    // This let's us chronologically order the updates per account across batches.
+    // This lets us chronologically order the updates per account across batches.
     let mut updated_accounts =
         BTreeMap::<AccountId, BTreeMap<Digest, (BatchAccountUpdate, BatchId)>>::new();
 
@@ -336,7 +343,7 @@ fn aggregate_account_updates(
             .accounts_mut()
             .remove(&account_id)
             .map(|witness| witness.into_parts())
-            .ok_or(ProposedBlockError::MissingAccountInput(account_id))?;
+            .ok_or(ProposedBlockError::MissingAccountWitness(account_id))?;
 
         let mut details: Option<AccountUpdateDetails> = None;
 
@@ -370,7 +377,7 @@ fn aggregate_account_updates(
             AccountUpdateWitness {
                 initial_state_commitment,
                 final_state_commitment: current_commitment,
-                proof,
+                initial_state_proof: proof,
                 transactions: core::mem::take(&mut transactions),
             },
         ));
@@ -391,6 +398,58 @@ fn aggregate_account_updates(
 pub struct AccountUpdateWitness {
     initial_state_commitment: Digest,
     final_state_commitment: Digest,
-    proof: MerklePath,
+    initial_state_proof: MerklePath,
     transactions: Vec<TransactionId>,
+}
+
+impl AccountUpdateWitness {
+    /// Constructs a new [`AccountUpdateWitness`] from the provided parts.
+    pub fn new(
+        initial_state_commitment: Digest,
+        final_state_commitment: Digest,
+        initial_state_proof: MerklePath,
+        transactions: Vec<TransactionId>,
+    ) -> Self {
+        Self {
+            initial_state_commitment,
+            final_state_commitment,
+            initial_state_proof,
+            transactions,
+        }
+    }
+
+    /// Returns the initial state commitment of the account.
+    pub fn initial_state_commitment(&self) -> Digest {
+        self.initial_state_commitment
+    }
+
+    /// Returns the final state commitment of the account.
+    pub fn final_state_commitment(&self) -> Digest {
+        self.final_state_commitment
+    }
+
+    /// Returns a reference to the initial state proof of the account.
+    pub fn initial_state_proof(&self) -> &MerklePath {
+        &self.initial_state_proof
+    }
+
+    /// Returns a mutable reference to the initial state proof of the account.
+    pub fn initial_state_proof_mut(&mut self) -> &mut MerklePath {
+        &mut self.initial_state_proof
+    }
+
+    /// Returns the transactions that affected the account.
+    pub fn transactions(&self) -> &[TransactionId] {
+        &self.transactions
+    }
+
+    /// Consumes self and returns its parts.
+    pub fn into_parts(self) -> (Digest, Digest, MerklePath, Vec<TransactionId>) {
+        (
+            self.initial_state_commitment,
+            self.final_state_commitment,
+            self.initial_state_proof,
+            self.transactions,
+        )
+    }
 }

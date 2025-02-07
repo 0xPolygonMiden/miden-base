@@ -28,6 +28,7 @@ impl ProvenBatch {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [`ProvenBatch`] from the provided parts.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: BatchId,
         reference_block_commitment: Digest,

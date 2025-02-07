@@ -68,18 +68,11 @@ impl BlockInputs {
         &self.nullifiers
     }
 
-    /// Takes the map of nullifiers to their proofs from the block inputs.
-    ///
-    /// This has the semantics of [`core::mem::take`], i.e. the nullifiers are set to an empty
-    /// `BTreeMap` after this operation.
-    pub fn take_nullifiers(&mut self) -> BTreeMap<Nullifier, SmtProof> {
-        core::mem::take(&mut self.nullifiers)
-    }
-
     pub fn unauthenticated_note_proofs(&self) -> &BTreeMap<NoteId, NoteInclusionProof> {
         &self.unauthenticated_note_proofs
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn into_parts(
         self,
     ) -> (

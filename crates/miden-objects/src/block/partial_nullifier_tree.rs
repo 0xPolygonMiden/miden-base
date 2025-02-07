@@ -7,6 +7,7 @@ use crate::{
     note::Nullifier,
 };
 
+/// TODO
 pub struct PartialNullifierTree(PartialSmt);
 
 impl PartialNullifierTree {
@@ -19,23 +20,32 @@ impl PartialNullifierTree {
     pub fn add_nullifier_path(&mut self, nullifier: Nullifier, proof: SmtProof) {
         let (path, leaf) = proof.into_parts();
 
-        for (key, value) in leaf.into_entries() {
-            // We only need to check that the nullifier is unspent, the other key-value pairs of the
-            // leaf entries are unimportant here but still need to be added to the SMT to produce
-            // the correct nullifier tree root.
-            if key == nullifier.inner() && value != Self::UNSPENT_NULLIFIER_VALUE {
-                todo!("error: nullifier is already spent")
-            }
+        let current_nullifier_value = leaf
+            .entries()
+            .iter()
+            .find_map(|(key, value)| (*key == nullifier.inner()).then_some(value))
+            .expect("TODO: error");
 
-            self.0.add_path(key, value, path.clone()).expect("TODO: Error");
+        if *current_nullifier_value != Self::UNSPENT_NULLIFIER_VALUE {
+            todo!("error: nullifier is already spent")
         }
+
+        self.0.add_path(leaf, path).expect("TODO: error");
     }
 
     pub fn mark_spent(&mut self, nullifier: Nullifier, block_num: BlockNumber) {
-        self.0.insert(nullifier.inner(), block_num_to_leaf_value(block_num));
+        self.0
+            .insert(nullifier.inner(), block_num_to_leaf_value(block_num))
+            .expect("TODO: error");
     }
 
     pub fn root(&self) -> Digest {
         self.0.root()
+    }
+}
+
+impl Default for PartialNullifierTree {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -580,13 +580,13 @@ pub enum ProposedBlockError {
     },
 
     #[error("chain mmr is missing block {reference_block_num} referenced by batch {batch_id} in the block")]
-    BatchRefernceBlockMissingFromChain {
+    BatchReferenceBlockMissingFromChain {
         reference_block_num: BlockNumber,
         batch_id: BatchId,
     },
 
-    #[error("block inputs do not contain data for account {0}")]
-    MissingAccountInput(AccountId),
+    #[error("block inputs do not contain a proof of inclusion for account {0}")]
+    MissingAccountWitness(AccountId),
 
     #[error("account {0} with state {1} cannot transition to any of the remaining states {2:?}")]
     InconsistentAccountStateTransition(AccountId, Digest, Vec<Digest>),
@@ -597,8 +597,6 @@ pub enum ProposedBlockError {
     #[error("note with nullifier {0} is already spent")]
     NullifierSpent(Nullifier),
 
-    #[error("unauthenticated transaction notes not found in the store or in outputs of other transactions in the block: {0:?}")]
-    UnauthenticatedNotesNotFound(Vec<NoteId>),
     #[error("failed to merge transaction delta into account {account_id}")]
     AccountUpdateError {
         account_id: AccountId,
