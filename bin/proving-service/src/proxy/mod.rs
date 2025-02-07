@@ -31,7 +31,7 @@ use crate::{
         update_workers::{Action, UpdateWorkers},
         ProxyConfig,
     },
-    error::TxProverServiceError,
+    error::ProvingServiceError,
     utils::{
         create_queue_full_response, create_response_with_error_message,
         create_too_many_requests_response, MIDEN_PROVING_SERVICE,
@@ -55,7 +55,7 @@ pub struct LoadBalancerState {
     max_queue_items: usize,
     max_retries_per_request: usize,
     max_req_per_sec: isize,
-    available_workers_polling_time: Duration,
+    available_workers_polling_interval: Duration,
     health_check_interval: Duration,
 }
 
@@ -69,7 +69,7 @@ impl LoadBalancerState {
     pub async fn new(
         initial_workers: Vec<Backend>,
         config: &ProxyConfig,
-    ) -> core::result::Result<Self, TxProverServiceError> {
+    ) -> core::result::Result<Self, ProvingServiceError> {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
 
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
@@ -91,8 +91,8 @@ impl LoadBalancerState {
             max_queue_items: config.max_queue_items,
             max_retries_per_request: config.max_retries_per_request,
             max_req_per_sec: config.max_req_per_sec,
-            available_workers_polling_time: Duration::from_millis(
-                config.available_workers_polling_time_ms,
+            available_workers_polling_interval: Duration::from_millis(
+                config.available_workers_polling_interval_ms,
             ),
             health_check_interval: Duration::from_secs(config.health_check_interval_secs),
         })
@@ -137,7 +137,7 @@ impl LoadBalancerState {
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
-    ) -> std::result::Result<(), TxProverServiceError> {
+    ) -> std::result::Result<(), ProvingServiceError> {
         let mut workers = self.workers.write().await;
         info!("Current workers: {:?}", workers);
 
@@ -146,7 +146,7 @@ impl LoadBalancerState {
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<Vec<Backend>, _>>()
-            .map_err(TxProverServiceError::BackendCreationFailed)?;
+            .map_err(ProvingServiceError::BackendCreationFailed)?;
 
         let mut native_workers = Vec::new();
 
@@ -435,7 +435,7 @@ impl ProxyHttp for LoadBalancer {
                 break;
             }
             info!("All workers are busy");
-            tokio::time::sleep(self.0.available_workers_polling_time).await;
+            tokio::time::sleep(self.0.available_workers_polling_interval).await;
         }
 
         // Remove the request from the queue

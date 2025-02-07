@@ -10,6 +10,7 @@
 - Renamed the protobuf file of the transaction prover to `tx_prover.proto` (#1110).
 - [BREAKING] Renamed `AccountData` to `AccountFile` (#1116).
 - Implement transaction batch prover in Rust (#1112).
+- [BREAKING] Refactored config file for `miden-proving-service` to be based on environment variables (#1120).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 
