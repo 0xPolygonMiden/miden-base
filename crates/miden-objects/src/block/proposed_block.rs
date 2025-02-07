@@ -5,7 +5,7 @@ use vm_processor::Digest;
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
-    batch::{BatchAccountUpdate, BatchId, ProvenBatch},
+    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
         block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, BlockNumber,
         PartialNullifierTree,
@@ -13,7 +13,7 @@ use crate::{
     crypto::merkle::{MerklePath, SmtProof},
     errors::ProposedBlockError,
     note::Nullifier,
-    transaction::{ChainMmr, TransactionId},
+    transaction::{ChainMmr, InputNoteCommitment, TransactionId},
     MAX_BATCHES_PER_BLOCK,
 };
 
@@ -53,16 +53,6 @@ impl ProposedBlock {
 
         check_duplicate_batches(&batches)?;
 
-        // Check for duplicate input notes in batches.
-        // --------------------------------------------------------------------------------------------
-
-        check_duplicate_input_notes(&batches)?;
-
-        // Check for duplicate output notes in batches.
-        // --------------------------------------------------------------------------------------------
-
-        check_duplicate_output_notes(&batches)?;
-
         // Check for consistency in chain MMR and referenced prev block.
         // --------------------------------------------------------------------------------------------
 
@@ -80,10 +70,34 @@ impl ProposedBlock {
             &batches,
         )?;
 
+        // Check for duplicates in the input and output notes and compute the input and output notes
+        // of the block by erasing notes that are created and consumed within this block as well as
+        // making sure that authenticating unauthenticated notes.
+        // --------------------------------------------------------------------------------------------
+
+        let block_input_notes = InputOutputNoteTracker::from_batches(
+            batches.iter(),
+            block_inputs.unauthenticated_note_proofs(),
+            block_inputs.chain_mmr(),
+        )?;
+
+        // All unauthenticated notes must be erased or authenticated by now.
+        if let Some(nullifier) = block_input_notes
+            .iter()
+            .find_map(|note| (!note.is_authenticated()).then_some(note.nullifier()))
+        {
+            return Err(ProposedBlockError::UnauthenticatedNoteConsumed { nullifier });
+        }
+
         // Check for nullifiers proofs and unspent nullifiers.
         // --------------------------------------------------------------------------------------------
 
-        check_nullifiers(&block_inputs, &batches)?;
+        // Check against computed block_input_notes which also contain unauthenticated notes that
+        // have been authenticated.
+        check_nullifiers(
+            &block_inputs,
+            block_input_notes.iter().map(InputNoteCommitment::nullifier),
+        )?;
 
         // Collect output note SMT roots from batches.
         // --------------------------------------------------------------------------------------------
@@ -193,64 +207,27 @@ fn check_duplicate_batches(batches: &[ProvenBatch]) -> Result<(), ProposedBlockE
     Ok(())
 }
 
-fn check_duplicate_input_notes(batches: &[ProvenBatch]) -> Result<(), ProposedBlockError> {
-    let mut input_note_set = BTreeMap::new();
-
-    for batch in batches {
-        for input_note in batch.input_notes().iter() {
-            if let Some(first_batch_id) = input_note_set.insert(input_note.nullifier(), batch.id())
-            {
-                return Err(ProposedBlockError::DuplicateInputNote {
-                    note_nullifier: input_note.nullifier(),
-                    first_batch_id,
-                    second_batch_id: batch.id(),
-                });
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn check_duplicate_output_notes(batches: &[ProvenBatch]) -> Result<(), ProposedBlockError> {
-    let mut input_note_set = BTreeMap::new();
-
-    for batch in batches {
-        for output_note in batch.output_notes().iter() {
-            if let Some(first_batch_id) = input_note_set.insert(output_note.id(), batch.id()) {
-                return Err(ProposedBlockError::DuplicateOutputNote {
-                    note_id: output_note.id(),
-                    first_batch_id,
-                    second_batch_id: batch.id(),
-                });
-            }
-        }
-    }
-
-    Ok(())
-}
-
 /// Check that each nullifier in the block has a proof provided and that the nullifier is
 /// unspent. The proofs are required to update the nullifier tree.
 fn check_nullifiers(
     block_inputs: &BlockInputs,
-    batches: &[ProvenBatch],
+    batch_nullifiers: impl Iterator<Item = Nullifier>,
 ) -> Result<(), ProposedBlockError> {
-    for nullifier in batches.iter().flat_map(ProvenBatch::produced_nullifiers) {
-        match block_inputs.nullifiers().get(&nullifier) {
+    for batch_nullifier in batch_nullifiers {
+        match block_inputs.nullifiers().get(&batch_nullifier) {
             Some(proof) => {
                 let (_, nullifier_value) = proof
                     .leaf()
                     .entries()
                     .iter()
-                    .find(|(key, _)| *key == nullifier.inner())
-                    .ok_or(ProposedBlockError::NullifierProofMissing(nullifier))?;
+                    .find(|(key, _)| *key == batch_nullifier.inner())
+                    .ok_or(ProposedBlockError::NullifierProofMissing(batch_nullifier))?;
 
                 if *nullifier_value != PartialNullifierTree::UNSPENT_NULLIFIER_VALUE {
-                    return Err(ProposedBlockError::NullifierSpent(nullifier));
+                    return Err(ProposedBlockError::NullifierSpent(batch_nullifier));
                 }
             },
-            None => return Err(ProposedBlockError::NullifierProofMissing(nullifier)),
+            None => return Err(ProposedBlockError::NullifierProofMissing(batch_nullifier)),
         }
     }
 

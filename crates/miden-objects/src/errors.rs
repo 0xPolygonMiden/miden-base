@@ -585,6 +585,31 @@ pub enum ProposedBlockError {
         batch_id: BatchId,
     },
 
+    #[error("note hashes mismatch for note {id}: (input: {input_hash}, output: {output_hash})")]
+    NoteHashesMismatch {
+        id: NoteId,
+        input_hash: Digest,
+        output_hash: Digest,
+    },
+
+    #[error("unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
+    UnauthenticatedInputNoteBlockNotInChainMmr {
+        block_number: BlockNumber,
+        note_id: NoteId,
+    },
+
+    #[error(
+        "unable to prove unauthenticated note inclusion of note {note_id} in block {block_num}"
+    )]
+    UnauthenticatedNoteAuthenticationFailed {
+        note_id: NoteId,
+        block_num: BlockNumber,
+        source: MerkleError,
+    },
+
+    #[error("unauthenticated note with nullifier {nullifier} was not created in the same block and no inclusion proof to authenticate it was provided")]
+    UnauthenticatedNoteConsumed { nullifier: Nullifier },
+
     #[error("block inputs do not contain a proof of inclusion for account {0}")]
     MissingAccountWitness(AccountId),
 

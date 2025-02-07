@@ -4,10 +4,12 @@ use miden_crypto::merkle::MerkleError;
 use vm_processor::Digest;
 
 use crate::{
+    batch::{BatchId, ProvenBatch},
     block::BlockNumber,
     errors::ProposedBatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
+    ProposedBlockError,
 };
 
 // NOTE ERASER
@@ -36,12 +38,7 @@ pub(crate) struct InputOutputNoteTracker<ContainerId> {
 }
 
 impl InputOutputNoteTracker<TransactionId> {
-    /// Constructs a new output note tracker from the given transactions.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - any output note is created more than once (by the same or different transactions).
+    /// TODO
     pub fn from_transactions<'a>(
         txs: impl Iterator<Item = &'a ProvenTransaction> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
@@ -56,7 +53,7 @@ impl InputOutputNoteTracker<TransactionId> {
             tx.output_notes().iter().map(|output_note| (output_note.clone(), tx.id()))
         });
 
-        let eraser = Self::from_iter(
+        let mut tracker = Self::from_iter(
             input_notes_iter,
             output_notes_iter,
             unauthenticated_note_proofs,
@@ -64,7 +61,39 @@ impl InputOutputNoteTracker<TransactionId> {
         )
         .map_err(ProposedBatchError::from)?;
 
-        eraser.erase_notes().map_err(ProposedBatchError::from)
+        let batch_input_notes = tracker.erase_notes().map_err(ProposedBatchError::from)?;
+
+        Ok((batch_input_notes, tracker.into_final_output_notes()))
+    }
+}
+
+impl InputOutputNoteTracker<BatchId> {
+    /// TODO
+    pub fn from_batches<'a>(
+        batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
+        unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
+        chain_mmr: &ChainMmr,
+    ) -> Result<Vec<InputNoteCommitment>, ProposedBlockError> {
+        let input_notes_iter = batches.clone().flat_map(|batch| {
+            batch
+                .input_notes()
+                .iter()
+                .map(|input_note_commitment| (input_note_commitment.clone(), batch.id()))
+        });
+
+        let output_notes_iter = batches.flat_map(|batch| {
+            batch.output_notes().iter().map(|output_note| (output_note.clone(), batch.id()))
+        });
+
+        let mut tracker = Self::from_iter(
+            input_notes_iter,
+            output_notes_iter,
+            unauthenticated_note_proofs,
+            chain_mmr,
+        )
+        .map_err(ProposedBlockError::from)?;
+
+        tracker.erase_notes().map_err(ProposedBlockError::from)
     }
 }
 
@@ -123,33 +152,31 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         Ok(Self { input_notes, output_notes })
     }
 
-    fn erase_notes(
-        self,
-    ) -> Result<(Vec<InputNoteCommitment>, Vec<OutputNote>), NoteEraserError<ContainerId>> {
-        let input_notes = self.input_notes;
-        let mut output_notes = self.output_notes;
+    fn erase_notes(&mut self) -> Result<Vec<InputNoteCommitment>, NoteEraserError<ContainerId>> {
         let mut final_input_notes = Vec::new();
 
-        for (_, (_, input_note_commitment)) in input_notes {
+        for (_, input_note_commitment) in self.input_notes.values() {
             match input_note_commitment.header() {
                 Some(input_note_header) => {
                     // If the unauthenticated note is created as an output note we erase it by not
                     // adding it to the final_input_notes.
-                    if !Self::remove_note(input_note_header, &mut output_notes)? {
-                        final_input_notes.push(input_note_commitment);
+                    if !Self::remove_note(input_note_header, &mut self.output_notes)? {
+                        final_input_notes.push(input_note_commitment.clone());
                     }
                 },
                 None => {
-                    final_input_notes.push(input_note_commitment);
+                    final_input_notes.push(input_note_commitment.clone());
                 },
             }
         }
 
-        // Collect the remaining (non-erased) output notes into the set of output notes.
-        let final_output_notes =
-            output_notes.into_iter().map(|(_, (_, output_note))| output_note).collect();
+        Ok(final_input_notes)
+    }
 
-        Ok((final_input_notes, final_output_notes))
+    /// Should be called after [`Self::erase_notes`] to collect the remaining (non-erased) output
+    /// notes into the final set of output notes.
+    fn into_final_output_notes(self) -> Vec<OutputNote> {
+        self.output_notes.into_iter().map(|(_, (_, output_note))| output_note).collect()
     }
 
     /// Attempts to remove the given input note from the output note set.
@@ -243,6 +270,50 @@ enum NoteEraserError<ContainerId: Copy> {
         block_num: BlockNumber,
         source: MerkleError,
     },
+}
+
+impl From<NoteEraserError<BatchId>> for ProposedBlockError {
+    fn from(error: NoteEraserError<BatchId>) -> Self {
+        match error {
+            NoteEraserError::DuplicateInputNote {
+                note_nullifier,
+                first_container_id,
+                second_container_id,
+            } => ProposedBlockError::DuplicateInputNote {
+                note_nullifier,
+                first_batch_id: first_container_id,
+                second_batch_id: second_container_id,
+            },
+            NoteEraserError::DuplicateOutputNote {
+                note_id,
+                first_container_id,
+                second_container_id,
+            } => ProposedBlockError::DuplicateOutputNote {
+                note_id,
+                first_batch_id: first_container_id,
+                second_batch_id: second_container_id,
+            },
+            NoteEraserError::NoteHashesMismatch { id, input_hash, output_hash } => {
+                ProposedBlockError::NoteHashesMismatch { id, input_hash, output_hash }
+            },
+            NoteEraserError::UnauthenticatedInputNoteBlockNotInChainMmr {
+                block_number,
+                note_id,
+            } => ProposedBlockError::UnauthenticatedInputNoteBlockNotInChainMmr {
+                block_number,
+                note_id,
+            },
+            NoteEraserError::UnauthenticatedNoteAuthenticationFailed {
+                note_id,
+                block_num,
+                source,
+            } => ProposedBlockError::UnauthenticatedNoteAuthenticationFailed {
+                note_id,
+                block_num,
+                source,
+            },
+        }
+    }
 }
 
 impl From<NoteEraserError<TransactionId>> for ProposedBatchError {
