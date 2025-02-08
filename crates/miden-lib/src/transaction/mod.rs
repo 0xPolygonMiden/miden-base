@@ -134,7 +134,7 @@ impl TransactionKernel {
     ///     BLOCK_HASH,
     ///     INITIAL_ACCOUNT_HASH,
     ///     INPUT_NOTES_COMMITMENT,
-    ///     acct_id, block_num
+    ///     acct_id_prefix, acct_id_suffix, block_num
     /// ]
     /// ```
     ///

@@ -333,17 +333,17 @@ end
 
 #! Sets the account ID.
 #!
-#! Inputs:  [acct_id_prefix, acct_id_suffix, block_num]
-#! Outputs: [block_num]
+#! Inputs:  [acct_id_prefix, acct_id_suffix]
+#! Outputs: []
 #!
 #! Where:
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID.
 export.set_global_acct_id
     push.0.0
-    # => [0, 0, acct_id_prefix, acct_id_suffix, block_num]
+    # => [0, 0, acct_id_prefix, acct_id_suffix]
     mem_storew.ACCT_ID_PTR
     dropw
-    # => [block_num]
+    # => []
 end
 
 #! Returns the global account ID.

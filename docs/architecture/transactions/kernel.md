@@ -44,7 +44,7 @@ Tracks variables used internally by the transaction kernel.
 
 ### Global inputs
 
-Stored in pre-defined memory slots. Global inputs include the block hash, block number, account ID, initial account hash, and nullifier commitment.
+Stored in pre-defined memory slots. Global inputs include the block hash, account ID, initial account hash, and nullifier commitment.
 
 ### Block data
 

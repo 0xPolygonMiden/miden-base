@@ -266,9 +266,6 @@ proc.process_block_data
 
     exec.memory::get_blk_num
     assert_eq.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT # TODO error
-
-    drop
-    # => []
 end
 
 # CHAIN DATA
@@ -1093,9 +1090,9 @@ end
 #! Inputs:
 #!   Operand stack: [
 #!     BLOCK_HASH,
-#!     block_num, 0, account_id_prefix, account_id_suffix,
 #!     INITIAL_ACCOUNT_HASH,
 #!     INPUT_NOTES_COMMITMENT,
+#!     account_id_prefix, account_id_suffix, block_num,
 #!   ]
 #!   Advice stack: [
 #!     PREVIOUS_BLOCK_HASH,
