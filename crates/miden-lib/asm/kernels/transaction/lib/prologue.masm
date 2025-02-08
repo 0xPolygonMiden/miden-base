@@ -19,6 +19,9 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # The provided global inputs do not match the block hash commitment
 const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x00020034
 
+# The provided global inputs do not match the block number commitment
+const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT=0x00020134
+
 # New account must have an empty vault
 const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020035
 
@@ -265,7 +268,7 @@ proc.process_block_data
     # => [block_num]
 
     exec.memory::get_blk_num
-    assert_eq.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT # TODO error
+    assert_eq.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT
 end
 
 # CHAIN DATA
