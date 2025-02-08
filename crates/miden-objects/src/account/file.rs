@@ -15,6 +15,7 @@ use super::{
     Account, AuthSecretKey, Word,
 };
 
+const MAGIC: &str = "acct";
 // ACCOUNT FILE
 // ================================================================================================
 
@@ -63,6 +64,7 @@ impl AccountFile {
 
 impl Serializable for AccountFile {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_bytes(MAGIC.as_bytes());
         let AccountFile {
             account,
             account_seed,
@@ -77,6 +79,12 @@ impl Serializable for AccountFile {
 
 impl Deserializable for AccountFile {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let magic_value = source.read_string(4)?;
+        if magic_value != MAGIC {
+            return Err(DeserializationError::InvalidValue(format!(
+                "invalid account file marker: {magic_value}"
+            )));
+        }
         let account = Account::read_from(source)?;
         let account_seed = <Option<Word>>::read_from(source)?;
         let auth_secret_key = AuthSecretKey::read_from(source)?;
