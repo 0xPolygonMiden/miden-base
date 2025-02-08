@@ -97,14 +97,14 @@ It is strongly not recommended to use a single-letter names for variables, with 
 
 ### Inputs
 
-Inputs block could contain three components: operand stack, advice stack and advice map. Description of the each container should be offseted with two spaces relative to the start of the `Inputs` word. Each name of the container should be separated from its value by the colon (e.g. `Operand stack: [value_1]`).
+Inputs block could contain three components: operand stack, advice stack and advice map. Description of the each container should be offsetted with two spaces relative to the start of the `Inputs` word. Each name of the container should be separated from its value by the colon (e.g. `Operand stack: [value_1]`).
 
 Operand stack and advice stack should be presented as an array containing some data.
 
 The lines which exceed 100 symbols should be formatted differently, it could be done in two different ways:
 
 1. The line should be broken, and the end of the line should be moved to the new line with an offset such that the first symbol of the first element on the second line should be directly above the first symbol of the first element on the first line (see the value of the `FOREIGN_ACCOUNT_ID` in the example in `Formats` section).
-2. The exceeded array should be formatted in a column, forming a Word or some other number of related elements on each line. Each new line should be offseted with two spaces relative to the name of the container (see example below).
+2. The exceeded array should be formatted in a column, forming a Word or some other number of related elements on each line. Each new line should be offsetted with two spaces relative to the name of the container (see example below).
 
 Example:
 
@@ -121,7 +121,7 @@ Example:
 
 To show that some internal value array could have dynamic length, additional brackets should be used (see the `[VALUE_B]` in the advice stack in the example in `Formats` section).
 
-In case some inputs are presented on the stack only if some condition is satisfied, such inputs should be placed in the "optional" box: inside the parentheses with a question mark at the end. Opening and closing brackets should be placed on a new line with the same offset as the other inputs, and values inside the brackets should be offseted by two spaces.
+In case some inputs are presented on the stack only if some condition is satisfied, such inputs should be placed in the "optional" box: inside the parentheses with a question mark at the end. Opening and closing brackets should be placed on a new line with the same offset as the other inputs, and values inside the brackets should be offsetted by two spaces.
 
 Example:
 
@@ -194,7 +194,7 @@ Example:
 
 In case the values are provided only through the operand stack, a short version of the inputs and outputs should be used. In that case only `Inputs` and `Outputs` components are used, representing the values on the operand stack.
 
-Input values array should be offseted by one space to be inline with the output values array (see the example).
+Input values array should be offsetted by one space to be inline with the output values array (see the example).
 
 Example:
 
