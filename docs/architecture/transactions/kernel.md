@@ -7,7 +7,6 @@ The kernel provides context-sensitive security, preventing unwanted read and wri
 In general, the kernel's procedures must reflect everything users might want to do while executing transactions—from transferring assets to complex smart contract interactions with custom code.
 
 > **Info**
->
 > - Learn more about Miden transaction [procedures](procedures.md) and [contexts](contexts.md).
 
 The kernel has a well-defined structure which does the following:
@@ -63,7 +62,6 @@ Reads data from the advice provider, stores it in memory, and computes the accou
 Processes input notes by reading data from advice providers and storing it in memory. It computes the note's hash and nullifier, forming a transaction nullifier commitment.
 
 > **Info**
->
 > - Note data is required for computing the nullifier (e.g., the [note script](../notes.md#main-script) and serial number).
 > - Note recipients define the set of users who can consume specific notes.
 
@@ -86,7 +84,6 @@ end
 When processing a note, new note creation may be triggered, and information about the new note is stored in the output note data.
 
 > **Info**
->
 > - Notes can only call account interfaces to trigger write operations, preventing direct access to account storage.
 
 ## Transaction Script Processing
@@ -104,7 +101,6 @@ end
 ```
 
 > **Note**
->
 > - The account must expose the `auth_tx_rpo_falcon512` function for the transaction script to call it.
 
 ## Epilogue
