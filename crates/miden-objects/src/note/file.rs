@@ -40,15 +40,14 @@ pub enum NoteFile {
     NoteWithProof(Note, NoteInclusionProof),
 }
 
+#[cfg(feature = "std")]
 impl NoteFile {
-    /// Serialises and writes binary [NoteFile] to specified file
-    #[cfg(feature = "std")]
+    /// Serializes and writes binary [NoteFile] to specified file
     pub fn write(&self, filepath: impl AsRef<Path>) -> io::Result<()> {
         fs::write(filepath, self.to_bytes())
     }
 
-    /// Reads from file and tries to deserialise an [NoteFile]
-    #[cfg(feature = "std")]
+    /// Reads from file and tries to deserialize an [NoteFile]
     pub fn read(filepath: impl AsRef<Path>) -> io::Result<Self> {
         let mut file = File::open(filepath)?;
         let mut buffer = Vec::new();
