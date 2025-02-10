@@ -47,6 +47,3 @@ rand = { version = "0.8", default-features = false }
 thiserror = { version = "2.0", default-features = false }
 vm-core = { package = "miden-core", version = "0.12", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.12", default-features = false }
-
-[patch.crates-io]
-miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto.git", branch = "pgackst-partial-smt" }
