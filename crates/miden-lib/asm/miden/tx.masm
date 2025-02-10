@@ -27,7 +27,7 @@ end
 
 #! Returns the block hash of the reference block.
 #!
-#! Inputs:  [EMPTY_WORD]
+#! Inputs:  []
 #! Outputs: [BLOCK_HASH]
 #!
 #! Where:
@@ -48,6 +48,32 @@ export.get_block_hash
     # clean the stack
     swapdw dropw dropw swapw dropw
     # => [BLOCK_HASH]
+end
+
+#! Returns the block timestamp of the last known block.
+#! 
+#! WARNING: the returned timestamp is not precise, potentially it may be off by more that a couple
+#! of seconds. 
+#!
+#! Inputs:  []
+#! Outputs: [timestamp]
+#!
+#! Where:
+#! - timestamp is the block timestamp of the last known block.
+export.get_block_timestamp
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [pad(15)]
+
+    exec.kernel_proc_offsets::tx_get_block_timestamp_offset
+    # => [offset, pad(15)]
+
+    syscall.exec_kernel_proc
+    # => [timestamp, pad(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
+    # => [timestamp]
 end
 
 #! Returns the input notes commitment hash.

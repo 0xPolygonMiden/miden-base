@@ -894,6 +894,23 @@ export.tx_get_block_number
     # => [num, pad(15)]
 end
 
+#! Returns the block timestamp of the last known block.
+#!
+#! Inputs:  [pad(16)]
+#! Outputs: [timestamp, pad(15)]
+#!
+#! Where:
+#! - timestamp is the block timestamp of the last known block.
+export.tx_get_block_timestamp
+    # get the last known block timestamp
+    exec.tx::get_block_timestamp
+    # => [timestamp, pad(16)]
+
+    # truncate the stack
+    swap drop
+    # => [timestamp, pad(15)]
+end
+
 #! Tells the transaction kernel that we are about to execute a procedure on a foreign account.
 #!
 #! Checks whether the current foreign account was already loaded to the memory, and loads it if not.
