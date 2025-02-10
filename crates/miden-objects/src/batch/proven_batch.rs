@@ -92,14 +92,6 @@ impl ProvenBatch {
         &self.account_updates
     }
 
-    /// Takes the map of account IDs mapped to their [`BatchAccountUpdate`]s from the proven batch.
-    ///
-    /// This has the semantics of [`core::mem::take`], i.e. the account updates are set to an empty
-    /// `BTreeMap` after this operation.
-    pub fn take_account_updates(&mut self) -> BTreeMap<AccountId, BatchAccountUpdate> {
-        core::mem::take(&mut self.account_updates)
-    }
-
     /// Returns the [`InputNotes`] of this batch.
     pub fn input_notes(&self) -> &InputNotes<InputNoteCommitment> {
         &self.input_notes

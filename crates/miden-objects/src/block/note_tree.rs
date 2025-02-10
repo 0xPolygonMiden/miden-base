@@ -22,7 +22,7 @@ use crate::{
 pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTE_TREE_DEPTH>);
 
 impl BlockNoteTree {
-    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided
+    /// Returns a new [`BlockNoteTree`] instantiated with entries set as specified by the provided
     /// entries.
     ///
     /// Entry format: (note_index, note_id, note_metadata).
@@ -44,6 +44,7 @@ impl BlockNoteTree {
         SimpleSmt::with_leaves(leaves).map(Self)
     }
 
+    /// Returns a new, empty [`BlockNoteTree`].
     pub fn empty() -> Self {
         Self(SimpleSmt::new().expect("depth should be 16 and thus > 0 and <= 64"))
     }
@@ -54,7 +55,7 @@ impl BlockNoteTree {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - the given index is greater or equal to [`MAX_BATCHES_PER_BLOCK`]
+    /// - the given batch index is greater or equal to [`MAX_BATCHES_PER_BLOCK`]
     pub fn insert_batch_note_subtree(
         &mut self,
         batch_idx: u64,

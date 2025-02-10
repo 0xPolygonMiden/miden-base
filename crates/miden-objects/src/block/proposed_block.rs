@@ -24,7 +24,7 @@ type UpdatedAccounts = Vec<(AccountId, AccountUpdateWitness)>;
 /// A proposed block with many, but not all constraints of a full [`Block`](crate::block::Block)
 /// enforced.
 ///
-/// See [`ProposedBlock::new`] for details on the checks.
+/// See [`ProposedBlock::new_at`] for details on the checks.
 #[derive(Debug, Clone)]
 pub struct ProposedBlock {
     batches: Vec<ProvenBatch>,
@@ -40,7 +40,8 @@ impl ProposedBlock {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new proposed block from the provided [`BlockInputs`] and transaction batches.
+    /// Creates a new proposed block from the provided [`BlockInputs`], transaction batches and
+    /// timestamp.
     ///
     /// This checks most of the constraints of a block and computes most of the data structure
     /// updates except for the more expensive tree updates (nullifier, account and chain root).
@@ -49,10 +50,13 @@ impl ProposedBlock {
     ///
     /// Returns an error if any of the following conditions are met.
     ///
-    /// ## Block
+    /// ## Batches
     ///
     /// - The number of batches is zero or exceeds [`MAX_BATCHES_PER_BLOCK`].
-    /// - The batches contain duplicates.
+    /// - There are duplicate batches, i.e. they have the same [`BatchId`].
+    ///
+    /// ## Chain
+    ///
     /// - The length of the [`ChainMmr`] in the block inputs is not equal to the previous block
     ///   header in the block inputs.
     /// - The [`ChainMmr`]'s chain root is not equal to the [`BlockHeader::chain_root`] of the
@@ -94,9 +98,9 @@ impl ProposedBlock {
     ///
     /// - The given `timestamp` does not increase monotonically compared to the previous block
     ///   header' timestamp.
-    pub fn new(
-        mut block_inputs: BlockInputs,
-        mut batches: Vec<ProvenBatch>,
+    pub fn new_at(
+        block_inputs: BlockInputs,
+        batches: Vec<ProvenBatch>,
         timestamp: u32,
     ) -> Result<Self, ProposedBlockError> {
         // Check for empty or duplicate batches.
@@ -166,7 +170,10 @@ impl ProposedBlock {
         // Aggregate account updates across batches.
         // --------------------------------------------------------------------------------------------
 
-        let account_witnesses = aggregate_account_updates(&mut block_inputs, &mut batches)?;
+        let (prev_block_header, chain_mmr, account_updates, nullifiers, _) =
+            block_inputs.into_parts();
+
+        let account_witnesses = aggregate_account_updates(account_updates, &batches)?;
 
         // Compute the block note tree from the individual batch note trees.
         // --------------------------------------------------------------------------------------------
@@ -175,8 +182,6 @@ impl ProposedBlock {
 
         // Build proposed blocks from parts.
         // --------------------------------------------------------------------------------------------
-
-        let (prev_block_header, chain_mmr, _, nullifiers, _) = block_inputs.into_parts();
 
         Ok(Self {
             batches,
@@ -191,13 +196,13 @@ impl ProposedBlock {
 
     /// Creates a new proposed block from the provided [`BlockInputs`] and transaction batches.
     ///
-    /// Equivalent to [`ProposedBlock::new`] except that the timestamp of the proposed block is set
-    /// to the current system time or the previous block header's timestamp + 1, whichever is
-    /// greater. This guarantees that the timestamp increases monotonically.
+    /// Equivalent to [`ProposedBlock::new_at`] except that the timestamp of the proposed block is
+    /// set to the current system time or the previous block header's timestamp + 1, whichever
+    /// is greater. This guarantees that the timestamp increases monotonically.
     ///
-    /// See the [`ProposedBlock::new`] for details on errors and other constraints.
+    /// See the [`ProposedBlock::new_at`] for details on errors and other constraints.
     #[cfg(feature = "std")]
-    pub fn with_timestamp_now(
+    pub fn new(
         block_inputs: BlockInputs,
         batches: Vec<ProvenBatch>,
     ) -> Result<Self, ProposedBlockError> {
@@ -210,7 +215,7 @@ impl ProposedBlock {
 
         let timestamp = timestamp_now.max(block_inputs.prev_block_header().timestamp() + 1);
 
-        Self::new(block_inputs, batches, timestamp)
+        Self::new_at(block_inputs, batches, timestamp)
     }
 
     // ACCESSORS
@@ -434,18 +439,18 @@ fn compute_block_note_tree(
 /// state commitment so we can easily retrieve them later.
 /// This lets us chronologically order the updates per account across batches.
 fn aggregate_account_updates(
-    block_inputs: &mut BlockInputs,
-    batches: &mut [ProvenBatch],
+    account_updates: BTreeMap<AccountId, AccountWitness>,
+    batches: &[ProvenBatch],
 ) -> Result<UpdatedAccounts, ProposedBlockError> {
     let mut update_aggregator = AccountUpdateAggregator::new();
 
     for batch in batches {
-        for (account_id, update) in batch.take_account_updates() {
-            update_aggregator.insert_update(account_id, batch.id(), update)?;
+        for (account_id, update) in batch.account_updates() {
+            update_aggregator.insert_update(*account_id, batch.id(), update.clone())?;
         }
     }
 
-    update_aggregator.aggregate_all(block_inputs)
+    update_aggregator.aggregate_all(account_updates)
 }
 
 struct AccountUpdateAggregator {
@@ -488,13 +493,12 @@ impl AccountUpdateAggregator {
     /// Consumes self and aggregates the account updates from all contained accounts.
     fn aggregate_all(
         self,
-        block_inputs: &mut BlockInputs,
+        mut account_updates: BTreeMap<AccountId, AccountWitness>,
     ) -> Result<UpdatedAccounts, ProposedBlockError> {
         let mut account_witnesses = Vec::with_capacity(self.updates.len());
 
         for (account_id, updates_map) in self.updates {
-            let witness = block_inputs
-                .accounts_mut()
+            let witness = account_updates
                 .remove(&account_id)
                 .ok_or(ProposedBlockError::MissingAccountWitness(account_id))?;
 

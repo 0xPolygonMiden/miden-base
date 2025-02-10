@@ -42,7 +42,7 @@ impl BatchNoteTree {
         self.0.num_leaves()
     }
 
-    /// Removes the entry at the given index form the tree by inserting [`EMPTY_WORD`].
+    /// Removes the note at the given `index` form the tree by inserting [`EMPTY_WORD`].
     ///
     /// # Errors
     ///
@@ -56,6 +56,7 @@ impl BatchNoteTree {
         Ok(())
     }
 
+    /// Consumes the batch note tree and returns the underlying [`SimpleSmt`].
     pub fn into_smt(self) -> SimpleSmt<BATCH_NOTE_TREE_DEPTH> {
         self.0
     }

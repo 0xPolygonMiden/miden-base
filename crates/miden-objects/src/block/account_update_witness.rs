@@ -5,16 +5,23 @@ use vm_processor::Digest;
 
 use crate::{account::delta::AccountUpdateDetails, transaction::TransactionId};
 
-/// TODO
+/// This type encapsulates a proof that a certain account with a certain state commitment is in the
+/// account tree. Additionally, it contains the account delta representing the state transition from
+/// this account within a block and all transaction IDs that contributed to this update.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUpdateWitness {
+    /// The state commitment before the update.
     initial_state_commitment: Digest,
+    /// The state commitment after the update.
     final_state_commitment: Digest,
+    /// The merkle path for the account tree proving that the initial state commitment is the
+    /// current state.
     initial_state_proof: MerklePath,
     /// A set of changes which can be applied to the previous account state (i.e., the state as of
-    /// the last block) to get the new account state. For private accounts, this is set to
-    /// [AccountUpdateDetails::Private].
+    /// the last block, equivalent to `initial_state_commitment`) to get the new account state. For
+    /// private accounts, this is set to [`AccountUpdateDetails::Private`].
     details: AccountUpdateDetails,
+    /// All transaction IDs that contributed to this account update.
     transactions: Vec<TransactionId>,
 }
 
