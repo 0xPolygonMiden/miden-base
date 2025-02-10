@@ -74,8 +74,10 @@ impl InputOutputNoteTracker<BatchId> {
         batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
-    ) -> Result<(Vec<InputNoteCommitment>, BTreeMap<BatchId, Vec<OutputNote>>), ProposedBlockError>
-    {
+    ) -> Result<
+        (Vec<InputNoteCommitment>, BTreeMap<NoteId, (BatchId, OutputNote)>),
+        ProposedBlockError,
+    > {
         let input_notes_iter = batches.clone().flat_map(|batch| {
             batch
                 .input_notes()
@@ -97,13 +99,7 @@ impl InputOutputNoteTracker<BatchId> {
 
         let block_input_notes = tracker.erase_notes().map_err(ProposedBlockError::from)?;
 
-        // Aggregate into output notes per batch to help with building the block note tree.
-        let mut block_output_notes: BTreeMap<BatchId, Vec<OutputNote>> = BTreeMap::new();
-        for (batch_id, output_note) in tracker.output_notes.into_values() {
-            block_output_notes.entry(batch_id).or_default().push(output_note);
-        }
-
-        Ok((block_input_notes, block_output_notes))
+        Ok((block_input_notes, tracker.output_notes))
     }
 }
 

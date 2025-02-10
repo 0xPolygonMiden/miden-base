@@ -8,11 +8,11 @@ use crate::{
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
         block_inputs::BlockInputs, AccountUpdateWitness, AccountWitness, BlockHeader,
-        BlockNoteIndex, BlockNoteTree, BlockNumber, NullifierWitness, PartialNullifierTree,
+        BlockNoteTree, BlockNumber, NullifierWitness, PartialNullifierTree,
     },
     errors::ProposedBlockError,
-    note::Nullifier,
-    transaction::{ChainMmr, InputNoteCommitment, TransactionId},
+    note::{NoteId, Nullifier},
+    transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
     MAX_BATCHES_PER_BLOCK,
 };
 
@@ -93,7 +93,7 @@ impl ProposedBlock {
         // authenticating unauthenticated notes.
         // --------------------------------------------------------------------------------------------
 
-        let (block_input_notes, mut block_output_notes) = InputOutputNoteTracker::from_batches(
+        let (block_input_notes, block_output_notes) = InputOutputNoteTracker::from_batches(
             batches.iter(),
             block_inputs.unauthenticated_note_proofs(),
             block_inputs.chain_mmr(),
@@ -106,31 +106,6 @@ impl ProposedBlock {
         {
             return Err(ProposedBlockError::UnauthenticatedNoteConsumed { nullifier });
         }
-
-        // Create the BlockNoteTree from the block output notes, where created unauthenticated notes
-        // that are consumed by another batch are erased.
-        // This ensures that the batch index in the block note tree matches the index of the batch
-        // in batches.
-        let batch_output_notes_iterator = batches
-        .iter()
-        .enumerate()
-        // Filter out batches that do not have an entry in block output notes, which could happen for
-        // batches that don't produce output notes.
-        .filter_map(|(batch_idx, batch)| {
-            block_output_notes.remove(&batch.id()).map(|output_notes| (batch_idx, output_notes))
-        })
-        .flat_map(|(batch_idx, output_notes)| {
-            output_notes.into_iter().enumerate().map(move |(note_idx_in_batch, note)| {
-                // SAFETY: This is fine because:
-                // - we check for MAX_BATCHES_PER_BLOCK in this function,
-                // - and max output notes per batch is enforced by the `ProposedBatch`.
-                let block_note_idx = BlockNoteIndex::new(batch_idx, note_idx_in_batch).expect("we should not exceed the max output notes per batch or the number of batches per block");
-                (block_note_idx, note.id(), *note.metadata())
-            })
-        });
-
-        let block_note_tree =
-            BlockNoteTree::with_entries(batch_output_notes_iterator).expect("TODO: error");
 
         // Check for nullifiers proofs and unspent nullifiers.
         // --------------------------------------------------------------------------------------------
@@ -146,6 +121,11 @@ impl ProposedBlock {
         // --------------------------------------------------------------------------------------------
 
         let account_witnesses = aggregate_account_updates(&mut block_inputs, &mut batches)?;
+
+        // Compute the block note tree from the individual batch note trees.
+        // --------------------------------------------------------------------------------------------
+
+        let block_note_tree = compute_block_note_tree(&batches, &block_output_notes);
 
         // Build proposed blocks from parts.
         // --------------------------------------------------------------------------------------------
@@ -309,6 +289,44 @@ fn check_batch_reference_blocks(
     }
 
     Ok(())
+}
+
+/// Computes the [`BlockNoteTree`] from the note trees of the batches in the block.
+///
+/// This takes the batch note tree of a batch and removes any note that was erased (i.e. consumed by
+/// another batch in the block), as dictated by the `block_output_notes` map.
+///
+/// Then inserts the batch note tree as a subtree into the larger block note tree.
+fn compute_block_note_tree(
+    batches: &[ProvenBatch],
+    block_output_notes: &BTreeMap<NoteId, (BatchId, OutputNote)>,
+) -> BlockNoteTree {
+    let mut block_note_tree = BlockNoteTree::empty();
+
+    for (batch_idx, batch) in batches.iter().enumerate() {
+        let mut batch_output_notes_tree = batch.output_notes_tree().clone();
+
+        for (note_tree_idx, original_output_note) in batch.output_notes().iter().enumerate() {
+            // Note that because we disallow duplicate output notes, if this map contains a note id,
+            // then we can be certain it was created by this batch and should stay in the tree.
+            if !block_output_notes.contains_key(&original_output_note.id()) {
+                let index = u64::try_from(note_tree_idx).expect(
+                  "the number of output notes should be less than MAX_OUTPUT_NOTES_PER_BATCH and thus fit into a u64",
+              );
+                batch_output_notes_tree
+                    .remove(index)
+                    .expect("the index should be less than MAX_OUTPUT_NOTES_PER_BATCH");
+            }
+        }
+
+        let batch_idx = u64::try_from(batch_idx)
+            .expect("the index should be less than MAX_BATCHES_PER_BLOCK and thus fit into a u64");
+        block_note_tree
+            .insert_batch_note_subtree(batch_idx, batch_output_notes_tree)
+            .expect("the batch note tree depth should not exceed the block note tree depth and the index should be less than MAX_BATCHES_PER_BLOCK");
+    }
+
+    block_note_tree
 }
 
 /// Aggregate all updates for the same account and store each update indexed by its initial
