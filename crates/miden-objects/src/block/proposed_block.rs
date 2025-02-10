@@ -8,9 +8,9 @@ use crate::{
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
         block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
-        BlockNumber, PartialNullifierTree,
+        BlockNumber, NullifierWitness, PartialNullifierTree,
     },
-    crypto::merkle::{MerklePath, SmtProof},
+    crypto::merkle::MerklePath,
     errors::ProposedBlockError,
     note::Nullifier,
     transaction::{ChainMmr, InputNoteCommitment, TransactionId},
@@ -23,12 +23,12 @@ type UpdatedAccounts = Vec<(AccountId, AccountUpdateWitness)>;
 // =================================================================================================
 
 /// Provides inputs to the `BlockKernel` so that it can generate the new header.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ProposedBlock {
     batches: Vec<ProvenBatch>,
     updated_accounts: Vec<(AccountId, AccountUpdateWitness)>,
     block_note_tree: BlockNoteTree,
-    created_nullifiers: BTreeMap<Nullifier, SmtProof>,
+    created_nullifiers: BTreeMap<Nullifier, NullifierWitness>,
     chain_mmr: ChainMmr,
     prev_block_header: BlockHeader,
 }
@@ -167,7 +167,7 @@ impl ProposedBlock {
     }
 
     /// Returns the map of nullifiers to their proofs from the proposed block.
-    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, SmtProof> {
+    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
         &self.created_nullifiers
     }
 
@@ -190,7 +190,7 @@ impl ProposedBlock {
         Vec<ProvenBatch>,
         Vec<(AccountId, AccountUpdateWitness)>,
         BlockNoteTree,
-        BTreeMap<Nullifier, SmtProof>,
+        BTreeMap<Nullifier, NullifierWitness>,
         ChainMmr,
         BlockHeader,
     ) {
@@ -228,8 +228,9 @@ fn check_nullifiers(
 ) -> Result<(), ProposedBlockError> {
     for batch_nullifier in batch_nullifiers {
         match block_inputs.nullifiers().get(&batch_nullifier) {
-            Some(proof) => {
-                let (_, nullifier_value) = proof
+            Some(witness) => {
+                let (_, nullifier_value) = witness
+                    .proof()
                     .leaf()
                     .entries()
                     .iter()
@@ -384,7 +385,7 @@ fn aggregate_account_updates(
 }
 
 /// TODO
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUpdateWitness {
     initial_state_commitment: Digest,
     final_state_commitment: Digest,

@@ -14,8 +14,14 @@ pub use block_number::BlockNumber;
 mod proposed_block;
 pub use proposed_block::{AccountUpdateWitness, ProposedBlock};
 
+mod nullifier_witness;
+pub use nullifier_witness::NullifierWitness;
+
+mod account_witness;
+pub use account_witness::AccountWitness;
+
 mod block_inputs;
-pub use block_inputs::{AccountWitness, BlockInputs};
+pub use block_inputs::BlockInputs;
 
 mod nullifier_tree;
 pub use nullifier_tree::NullifierTree;

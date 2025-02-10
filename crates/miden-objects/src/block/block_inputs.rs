@@ -2,11 +2,9 @@ use std::collections::BTreeMap;
 
 use crate::{
     account::AccountId,
-    block::BlockHeader,
-    crypto::merkle::{MerklePath, SmtProof},
+    block::{AccountWitness, BlockHeader, NullifierWitness},
     note::{NoteId, NoteInclusionProof, Nullifier},
     transaction::ChainMmr,
-    Digest,
 };
 
 // BLOCK INPUTS
@@ -18,14 +16,16 @@ pub struct BlockInputs {
     /// Previous block header
     prev_block_header: BlockHeader,
 
-    /// MMR peaks for the current chain state
+    /// The chain state at the previous block with authentication paths for:
+    /// - each block referenced by a batch in the block,
+    /// - each block referenced by a note inclusion proof for an unauthenticated note.
     chain_mmr: ChainMmr,
 
     /// The hashes of the requested accounts and their authentication paths
     accounts: BTreeMap<AccountId, AccountWitness>,
 
-    /// The requested nullifiers and their authentication paths
-    nullifiers: BTreeMap<Nullifier, SmtProof>,
+    /// The requested nullifiers and their authentication paths.
+    nullifiers: BTreeMap<Nullifier, NullifierWitness>,
 
     /// List of unauthenticated notes found in the store
     unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
@@ -36,7 +36,7 @@ impl BlockInputs {
         prev_block_header: BlockHeader,
         chain_mmr: ChainMmr,
         accounts: BTreeMap<AccountId, AccountWitness>,
-        nullifiers: BTreeMap<Nullifier, SmtProof>,
+        nullifiers: BTreeMap<Nullifier, NullifierWitness>,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Self {
         Self {
@@ -64,7 +64,7 @@ impl BlockInputs {
         &mut self.accounts
     }
 
-    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, SmtProof> {
+    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
         &self.nullifiers
     }
 
@@ -79,7 +79,7 @@ impl BlockInputs {
         BlockHeader,
         ChainMmr,
         BTreeMap<AccountId, AccountWitness>,
-        BTreeMap<Nullifier, SmtProof>,
+        BTreeMap<Nullifier, NullifierWitness>,
         BTreeMap<NoteId, NoteInclusionProof>,
     ) {
         (
@@ -89,32 +89,5 @@ impl BlockInputs {
             self.nullifiers,
             self.unauthenticated_note_proofs,
         )
-    }
-}
-
-// ACCOUNT WITNESS
-// ================================================================================================
-
-#[derive(Clone, Debug, Default)]
-pub struct AccountWitness {
-    initial_state_commitment: Digest,
-    proof: MerklePath,
-}
-
-impl AccountWitness {
-    pub fn new(initial_state_commitment: Digest, proof: MerklePath) -> Self {
-        Self { initial_state_commitment, proof }
-    }
-
-    pub fn initial_state_commitment(&self) -> Digest {
-        self.initial_state_commitment
-    }
-
-    pub fn proof(&self) -> &MerklePath {
-        &self.proof
-    }
-
-    pub fn into_parts(self) -> (Digest, MerklePath) {
-        (self.initial_state_commitment, self.proof)
     }
 }
