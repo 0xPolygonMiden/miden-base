@@ -508,10 +508,6 @@ impl AccountUpdateAggregator {
 
             let account_update_witness = Self::aggregate_account(account_id, witness, updates_map)?;
 
-            // TODO: After account tree refactor from SimpleSmt -> Smt refactor, add check if
-            // account is new, smt leaf from SmtProof must be SmtLeaf::Empty to ensure account id
-            // prefix uniqueness.
-
             account_witnesses.push((account_id, account_update_witness));
         }
 
