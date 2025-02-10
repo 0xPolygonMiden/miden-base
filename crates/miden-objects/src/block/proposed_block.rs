@@ -1,5 +1,7 @@
-use alloc::vec::Vec;
-use std::collections::{BTreeMap, BTreeSet};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
 
 use vm_core::EMPTY_WORD;
 use vm_processor::Digest;
