@@ -17,8 +17,8 @@ use super::{
 };
 use crate::{
     account::{
-        AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
-        StoragePlaceholder,
+        AccountCode, AccountIdPrefix, AccountStorage, AccountType, StorageValueError,
+        StorageValueName, StorageValueNameError,
     },
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
@@ -37,24 +37,25 @@ pub enum AccountComponentTemplateError {
     DeserializationError(#[source] toml::de::Error),
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
-    #[error("storage value was not of the expected type {0}")]
-    IncorrectStorageValue(String),
+    #[error("storage value name is incorrect: {0}")]
+    IncorrectStorageValueName(#[source] StorageValueNameError),
     #[error("multi-slot entry should contain as many values as storage slots indices")]
     MultiSlotArityMismatch,
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
     #[error("component storage slots are not contiguous ({0} is followed by {1})")]
     NonContiguousSlots(u8, u8),
-    #[error("storage value for placeholder `{0}` was not provided in the map")]
-    PlaceholderValueNotProvided(StoragePlaceholder),
+    #[error("storage value for placeholder `{0}` was not provided in the init storage data")]
+    PlaceholderValueNotProvided(StorageValueName),
+    #[cfg(feature = "std")]
+    #[error("error trying to deserialize from toml")]
+    SerializationError(#[source] toml::ser::Error),
+    #[error("error converting value into expected type: ")]
+    StorageValueParsingError(#[source] StorageValueError),
     #[error("storage map contains duplicate key `{0}`")]
-    StorageMapHasDuplicateKeys(String),
+    StorageMapHasDuplicateKeys(Digest),
     #[error("component storage slots have to start at 0, but they start at {0}")]
     StorageSlotsDoNotStartAtZero(u8),
-    #[error(
-        "storage placeholder `{0}` appears more than once representing different types `{0}` and `{1}`"
-    )]
-    StoragePlaceholderTypeMismatch(StoragePlaceholder, PlaceholderType, PlaceholderType),
 }
 
 // ACCOUNT ERROR
