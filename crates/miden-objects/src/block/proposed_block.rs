@@ -7,10 +7,9 @@ use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
-        block_inputs::BlockInputs, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
-        BlockNumber, NullifierWitness, PartialNullifierTree,
+        block_inputs::BlockInputs, AccountUpdateWitness, AccountWitness, BlockHeader,
+        BlockNoteIndex, BlockNoteTree, BlockNumber, NullifierWitness, PartialNullifierTree,
     },
-    crypto::merkle::MerklePath,
     errors::ProposedBlockError,
     note::Nullifier,
     transaction::{ChainMmr, InputNoteCommitment, TransactionId},
@@ -34,10 +33,31 @@ pub struct ProposedBlock {
 }
 
 impl ProposedBlock {
+    /// # Errors
+    ///
+    /// Returns an error if:
+    ///
+    /// ## Block
+    ///
+    /// - TODO
+    ///
+    /// ## Accounts
+    /// - an [`AccountWitness`] is missing for an account updated by a batch.
+    /// - any two batches update the same account from the same state. For example, if batch 1
+    ///   updates some account from state A to B and batch 2 updates it from A to F, then those
+    ///   batches conflict as they both start from the same initial state but produce a fork in the
+    ///   account's state.
+    /// - account updates from different batches cannot be brought in a contiguous order. For
+    ///   example, if a batch 1 updates an account from state A to C, and a batch 2 updates it from
+    ///   D to F, then the state transition from C to D is missing. Note that this does not mean,
+    ///   that batches must be provided in an order where account updates chain together in the
+    ///   order of the batches, which would generally be an impossible requirement to fulfill.
+    /// - account updates cannot be merged, i.e. if [`AccountUpdateDetails::merge`] fails on the
+    ///   updates from two batches.
     pub fn new(
         mut block_inputs: BlockInputs,
         mut batches: Vec<ProvenBatch>,
-    ) -> Result<(Self, Vec<BlockAccountUpdate>), ProposedBlockError> {
+    ) -> Result<Self, ProposedBlockError> {
         // Check for empty or duplicate batches.
         // --------------------------------------------------------------------------------------------
 
@@ -51,7 +71,7 @@ impl ProposedBlock {
 
         check_duplicate_batches(&batches)?;
 
-        // Check for consistency in chain MMR and referenced prev block.
+        // Check for consistency between the chain MMR and the referenced previous block.
         // --------------------------------------------------------------------------------------------
 
         check_reference_block_chain_mmr_consistency(
@@ -70,7 +90,7 @@ impl ProposedBlock {
 
         // Check for duplicates in the input and output notes and compute the input and output notes
         // of the block by erasing notes that are created and consumed within this block as well as
-        // making sure that authenticating unauthenticated notes.
+        // authenticating unauthenticated notes.
         // --------------------------------------------------------------------------------------------
 
         let (block_input_notes, mut block_output_notes) = InputOutputNoteTracker::from_batches(
@@ -125,31 +145,27 @@ impl ProposedBlock {
         // Aggregate account updates across batches.
         // --------------------------------------------------------------------------------------------
 
-        let (account_witnesses, block_updates) =
-            aggregate_account_updates(&mut block_inputs, &mut batches)?;
+        let account_witnesses = aggregate_account_updates(&mut block_inputs, &mut batches)?;
 
         // Build proposed blocks from parts.
         // --------------------------------------------------------------------------------------------
         let (prev_block_header, chain_mmr, _, nullifiers, _) = block_inputs.into_parts();
 
-        Ok((
-            Self {
-                batches,
-                updated_accounts: account_witnesses,
-                block_note_tree,
-                created_nullifiers: nullifiers,
-                chain_mmr,
-                prev_block_header,
-            },
-            block_updates,
-        ))
+        Ok(Self {
+            batches,
+            updated_accounts: account_witnesses,
+            block_note_tree,
+            created_nullifiers: nullifiers,
+            chain_mmr,
+            prev_block_header,
+        })
     }
 
     /// Returns an iterator over all transactions which affected accounts in the block with
     /// corresponding account IDs.
     pub fn affected_accounts(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
         self.updated_accounts.iter().flat_map(|(account_id, update)| {
-            update.transactions.iter().map(move |tx_id| (*tx_id, *account_id))
+            update.transactions().iter().map(move |tx_id| (*tx_id, *account_id))
         })
     }
 
@@ -295,51 +311,93 @@ fn check_batch_reference_blocks(
     Ok(())
 }
 
+/// Aggregate all updates for the same account and store each update indexed by its initial
+/// state commitment so we can easily retrieve them later.
+/// This lets us chronologically order the updates per account across batches.
 fn aggregate_account_updates(
     block_inputs: &mut BlockInputs,
     batches: &mut [ProvenBatch],
-) -> Result<(UpdatedAccounts, Vec<BlockAccountUpdate>), ProposedBlockError> {
-    // TODO: A HashMap would be much more efficient here as we don't need the order. We also
-    // rebalance the tree when removing the updates which is also unnecessary.
-
-    // Aggregate all updates for the same account and store each update indexed by its initial
-    // state commitment so we can easily retrieve them later.
-    // This lets us chronologically order the updates per account across batches.
-    let mut updated_accounts =
-        BTreeMap::<AccountId, BTreeMap<Digest, (BatchAccountUpdate, BatchId)>>::new();
+) -> Result<UpdatedAccounts, ProposedBlockError> {
+    let mut update_aggregator = AccountUpdateAggregator::new();
 
     for batch in batches {
         for (account_id, update) in batch.take_account_updates() {
-            if let Some((conflicting_update, conflicting_batch_id)) = updated_accounts
-                .entry(account_id)
-                .or_default()
-                .insert(update.initial_state_commitment(), (update, batch.id()))
-            {
-                return Err(ProposedBlockError::ConflictingBatchesUpdateSameAccount {
-                    account_id,
-                    initial_state_commitment: conflicting_update.initial_state_commitment(),
-                    first_batch_id: conflicting_batch_id,
-                    second_batch_id: batch.id(),
-                });
-            }
+            update_aggregator.insert_update(account_id, batch.id(), update)?;
         }
     }
 
-    // Build account witnesses.
-    let mut account_witnesses = Vec::with_capacity(updated_accounts.len());
-    let mut block_updates = Vec::with_capacity(updated_accounts.len());
+    update_aggregator.aggregate_all(block_inputs)
+}
 
-    for (account_id, mut updates) in updated_accounts {
-        let (initial_state_commitment, proof) = block_inputs
-            .accounts_mut()
-            .remove(&account_id)
-            .map(|witness| witness.into_parts())
-            .ok_or(ProposedBlockError::MissingAccountWitness(account_id))?;
+struct AccountUpdateAggregator {
+    /// The map from each account to the map of each of its updates, where the digest is the state
+    /// commitment from which the contained update starts.
+    /// An invariant of this field is that if the outer map has an entry for some account, the
+    /// inner update map is guaranteed to not be empty as well.
+    updates: BTreeMap<AccountId, BTreeMap<Digest, (BatchAccountUpdate, BatchId)>>,
+}
 
+impl AccountUpdateAggregator {
+    fn new() -> Self {
+        Self { updates: BTreeMap::new() }
+    }
+
+    /// Inserts the update from one batch for a specific account into the map of updates.
+    fn insert_update(
+        &mut self,
+        account_id: AccountId,
+        batch_id: BatchId,
+        update: BatchAccountUpdate,
+    ) -> Result<(), ProposedBlockError> {
+        if let Some((conflicting_update, conflicting_batch_id)) = self
+            .updates
+            .entry(account_id)
+            .or_default()
+            .insert(update.initial_state_commitment(), (update, batch_id))
+        {
+            return Err(ProposedBlockError::ConflictingBatchesUpdateSameAccount {
+                account_id,
+                initial_state_commitment: conflicting_update.initial_state_commitment(),
+                first_batch_id: conflicting_batch_id,
+                second_batch_id: batch_id,
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Consumes self and aggregates the account updates from all contained accounts.
+    fn aggregate_all(
+        self,
+        block_inputs: &mut BlockInputs,
+    ) -> Result<UpdatedAccounts, ProposedBlockError> {
+        let mut account_witnesses = Vec::with_capacity(self.updates.len());
+
+        for (account_id, updates_map) in self.updates {
+            let witness = block_inputs
+                .accounts_mut()
+                .remove(&account_id)
+                .ok_or(ProposedBlockError::MissingAccountWitness(account_id))?;
+
+            let account_update_witness = Self::aggregate_account(account_id, witness, updates_map)?;
+
+            account_witnesses.push((account_id, account_update_witness));
+        }
+
+        Ok(account_witnesses)
+    }
+
+    /// Build the update for a single account from the provided map of updates, where each entry is
+    /// the state from which the update starts. This chains updates for this account together in a
+    /// chronological order using the state commitments to link them.
+    fn aggregate_account(
+        account_id: AccountId,
+        witness: AccountWitness,
+        mut updates: BTreeMap<Digest, (BatchAccountUpdate, BatchId)>,
+    ) -> Result<AccountUpdateWitness, ProposedBlockError> {
+        let (initial_state_commitment, initial_state_proof) = witness.into_parts();
         let mut details: Option<AccountUpdateDetails> = None;
 
-        // Chronologically chain updates for this account together using the state hashes to
-        // link them.
         let mut transactions = Vec::new();
         let mut current_commitment = initial_state_commitment;
         while !updates.is_empty() {
@@ -363,84 +421,12 @@ fn aggregate_account_updates(
             });
         }
 
-        account_witnesses.push((
-            account_id,
-            AccountUpdateWitness {
-                initial_state_commitment,
-                final_state_commitment: current_commitment,
-                initial_state_proof: proof,
-                transactions: core::mem::take(&mut transactions),
-            },
-        ));
-
-        block_updates.push(BlockAccountUpdate::new(
-            account_id,
-            current_commitment,
-            details.expect("Must be some by now"),
-            transactions,
-        ));
-    }
-
-    Ok((account_witnesses, block_updates))
-}
-
-/// TODO
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AccountUpdateWitness {
-    initial_state_commitment: Digest,
-    final_state_commitment: Digest,
-    initial_state_proof: MerklePath,
-    transactions: Vec<TransactionId>,
-}
-
-impl AccountUpdateWitness {
-    /// Constructs a new [`AccountUpdateWitness`] from the provided parts.
-    pub fn new(
-        initial_state_commitment: Digest,
-        final_state_commitment: Digest,
-        initial_state_proof: MerklePath,
-        transactions: Vec<TransactionId>,
-    ) -> Self {
-        Self {
+        Ok(AccountUpdateWitness::new(
             initial_state_commitment,
-            final_state_commitment,
+            current_commitment,
             initial_state_proof,
+            details.expect("details should be Some as updates is guaranteed to not be empty"),
             transactions,
-        }
-    }
-
-    /// Returns the initial state commitment of the account.
-    pub fn initial_state_commitment(&self) -> Digest {
-        self.initial_state_commitment
-    }
-
-    /// Returns the final state commitment of the account.
-    pub fn final_state_commitment(&self) -> Digest {
-        self.final_state_commitment
-    }
-
-    /// Returns a reference to the initial state proof of the account.
-    pub fn initial_state_proof(&self) -> &MerklePath {
-        &self.initial_state_proof
-    }
-
-    /// Returns a mutable reference to the initial state proof of the account.
-    pub fn initial_state_proof_mut(&mut self) -> &mut MerklePath {
-        &mut self.initial_state_proof
-    }
-
-    /// Returns the transactions that affected the account.
-    pub fn transactions(&self) -> &[TransactionId] {
-        &self.transactions
-    }
-
-    /// Consumes self and returns its parts.
-    pub fn into_parts(self) -> (Digest, Digest, MerklePath, Vec<TransactionId>) {
-        (
-            self.initial_state_commitment,
-            self.final_state_commitment,
-            self.initial_state_proof,
-            self.transactions,
-        )
+        ))
     }
 }

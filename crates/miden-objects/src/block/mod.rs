@@ -12,13 +12,16 @@ mod block_number;
 pub use block_number::BlockNumber;
 
 mod proposed_block;
-pub use proposed_block::{AccountUpdateWitness, ProposedBlock};
+pub use proposed_block::ProposedBlock;
 
 mod nullifier_witness;
 pub use nullifier_witness::NullifierWitness;
 
 mod account_witness;
 pub use account_witness::AccountWitness;
+
+mod account_update_witness;
+pub use account_update_witness::AccountUpdateWitness;
 
 mod block_inputs;
 pub use block_inputs::BlockInputs;
