@@ -601,14 +601,14 @@ pub enum ProposedBlockError {
         output_hash: Digest,
     },
 
-    #[error("unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
+    #[error("failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
     UnauthenticatedInputNoteBlockNotInChainMmr {
         block_number: BlockNumber,
         note_id: NoteId,
     },
 
     #[error(
-        "unable to prove unauthenticated note inclusion of note {note_id} in block {block_num}"
+        "failed to prove unauthenticated note inclusion of note {note_id} in block {block_num}"
     )]
     UnauthenticatedNoteAuthenticationFailed {
         note_id: NoteId,
