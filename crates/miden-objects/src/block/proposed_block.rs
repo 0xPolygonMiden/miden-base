@@ -18,10 +18,13 @@ use crate::{
 
 type UpdatedAccounts = Vec<(AccountId, AccountUpdateWitness)>;
 
-// BLOCK WITNESS
+// PROPOSED BLOCK
 // =================================================================================================
 
-/// Provides inputs to the `BlockKernel` so that it can generate the new header.
+/// A proposed block with many constraints of a full [`Block`](crate::block::Block) checked, but not
+/// all of them.
+///
+/// See [`ProposedBlock::new`] for details on the checks.
 #[derive(Debug, Clone)]
 pub struct ProposedBlock {
     batches: Vec<ProvenBatch>,
@@ -33,26 +36,54 @@ pub struct ProposedBlock {
 }
 
 impl ProposedBlock {
+    /// Creates a new proposed block from the provided [`BlockInputs`] and transaction batches.
+    ///
+    /// This checks most of the constraints of a block and computes most of the data structure
+    /// updates except for the more expensive tree updates (nullifier, account and chain root).
+    ///
     /// # Errors
     ///
-    /// Returns an error if:
+    /// Returns an error if any of the following conditions are met.
     ///
     /// ## Block
     ///
-    /// - TODO
+    /// - The number of batches is zero or exceeds [`MAX_BATCHES_PER_BLOCK`].
+    /// - The batches contain duplicates.
+    /// - The length of the [`ChainMmr`] in the block inputs is not equal to the previous block
+    ///   header in the block inputs.
+    /// - The [`ChainMmr`]'s chain root is not equal to the [`BlockHeader::chain_root`] of the
+    ///   previous block header.
+    ///
+    /// ## Notes
+    ///
+    /// Note that, in the following, the set of authenticated notes includes unauthenticated notes
+    /// that have been authenticated.
+    ///
+    /// - The union of all input notes across all batches contain duplicates.
+    /// - The union of all output notes across all batches contain duplicates.
+    /// - There is an unauthenticated input note and an output note with the same note ID but their
+    ///   note hashes are different (i.e. their metadata is different).
+    /// - There is a note inclusion proof for an unauthenticated note whose referenced block is not
+    ///   in the [`ChainMmr`].
+    /// - The note inclusion proof for an unauthenticated is invalid.
+    /// - There are any unauthenticated notes for which no note inclusion proof is provided.
+    /// - A [`NullifierWitness`] is missing for an authenticated note.
+    /// - If the [`NullifierWitness`] for an authenticated note proves that the note was already
+    ///   consumed.
     ///
     /// ## Accounts
-    /// - an [`AccountWitness`] is missing for an account updated by a batch.
-    /// - any two batches update the same account from the same state. For example, if batch 1
+    ///
+    /// - An [`AccountWitness`] is missing for an account updated by a batch.
+    /// - Any two batches update the same account from the same state. For example, if batch 1
     ///   updates some account from state A to B and batch 2 updates it from A to F, then those
     ///   batches conflict as they both start from the same initial state but produce a fork in the
     ///   account's state.
-    /// - account updates from different batches cannot be brought in a contiguous order. For
+    /// - Account updates from different batches cannot be brought in a contiguous order. For
     ///   example, if a batch 1 updates an account from state A to C, and a batch 2 updates it from
     ///   D to F, then the state transition from C to D is missing. Note that this does not mean,
     ///   that batches must be provided in an order where account updates chain together in the
     ///   order of the batches, which would generally be an impossible requirement to fulfill.
-    /// - account updates cannot be merged, i.e. if [`AccountUpdateDetails::merge`] fails on the
+    /// - Account updates cannot be merged, i.e. if [`AccountUpdateDetails::merge`] fails on the
     ///   updates from two batches.
     pub fn new(
         mut block_inputs: BlockInputs,
@@ -328,6 +359,9 @@ fn compute_block_note_tree(
 
     block_note_tree
 }
+
+// ACCOUNT UPDATE AGGREGATOR
+// ================================================================================================
 
 /// Aggregate all updates for the same account and store each update indexed by its initial
 /// state commitment so we can easily retrieve them later.
