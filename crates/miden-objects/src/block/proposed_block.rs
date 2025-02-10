@@ -19,8 +19,6 @@ use crate::{
     MAX_BATCHES_PER_BLOCK,
 };
 
-type UpdatedAccounts = Vec<(AccountId, AccountUpdateWitness)>;
-
 // PROPOSED BLOCK
 // =================================================================================================
 
@@ -445,7 +443,7 @@ fn compute_block_note_tree(
 fn aggregate_account_updates(
     account_updates: BTreeMap<AccountId, AccountWitness>,
     batches: &[ProvenBatch],
-) -> Result<UpdatedAccounts, ProposedBlockError> {
+) -> Result<Vec<(AccountId, AccountUpdateWitness)>, ProposedBlockError> {
     let mut update_aggregator = AccountUpdateAggregator::new();
 
     for batch in batches {
@@ -498,7 +496,7 @@ impl AccountUpdateAggregator {
     fn aggregate_all(
         self,
         mut account_updates: BTreeMap<AccountId, AccountWitness>,
-    ) -> Result<UpdatedAccounts, ProposedBlockError> {
+    ) -> Result<Vec<(AccountId, AccountUpdateWitness)>, ProposedBlockError> {
         let mut account_witnesses = Vec::with_capacity(self.updates.len());
 
         for (account_id, updates_map) in self.updates {
