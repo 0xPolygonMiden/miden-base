@@ -23,8 +23,7 @@ concurrent = ["miden-tx/concurrent"]
 async-trait = "0.1"
 axum = { version = "0.7" }
 bytes = "1.0"
-clap = { version = "4.5", features = ["derive"] }
-figment = { version = "0.10", features = ["toml", "env"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false, features = ["std"] }
 miden-tx = { workspace = true, default-features = false, features = ["std"] }
@@ -43,7 +42,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_qs = { version = "0.13" }
 tokio = { version = "1.38", features = ["full"] }
 tokio-stream = { version = "0.1", features = [ "net" ]}
-toml = { version = "0.8" }
 thiserror = { workspace = true }
 tonic = { version = "0.12", default-features = false, features = ["codegen", "prost", "transport"] }
 tonic-health = { version = "0.12" }

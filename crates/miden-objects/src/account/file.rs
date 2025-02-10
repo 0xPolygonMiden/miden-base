@@ -15,6 +15,8 @@ use super::{
     Account, AuthSecretKey, Word,
 };
 
+const MAGIC: &str = "acct";
+
 // ACCOUNT FILE
 // ================================================================================================
 
@@ -38,15 +40,16 @@ impl AccountFile {
             auth_secret_key: auth,
         }
     }
+}
 
-    /// Serialises and writes binary [AccountFile] to specified file
-    #[cfg(feature = "std")]
+#[cfg(feature = "std")]
+impl AccountFile {
+    /// Serializes and writes binary [AccountFile] to specified file
     pub fn write(&self, filepath: impl AsRef<Path>) -> io::Result<()> {
         fs::write(filepath, self.to_bytes())
     }
 
-    /// Reads from file and tries to deserialise an [AccountFile]
-    #[cfg(feature = "std")]
+    /// Reads from file and tries to deserialize an [AccountFile]
     pub fn read(filepath: impl AsRef<Path>) -> io::Result<Self> {
         let mut file = File::open(filepath)?;
         let mut buffer = Vec::new();
@@ -63,6 +66,7 @@ impl AccountFile {
 
 impl Serializable for AccountFile {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_bytes(MAGIC.as_bytes());
         let AccountFile {
             account,
             account_seed,
@@ -77,6 +81,12 @@ impl Serializable for AccountFile {
 
 impl Deserializable for AccountFile {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let magic_value = source.read_string(4)?;
+        if magic_value != MAGIC {
+            return Err(DeserializationError::InvalidValue(format!(
+                "invalid account file marker: {magic_value}"
+            )));
+        }
         let account = Account::read_from(source)?;
         let account_seed = <Option<Word>>::read_from(source)?;
         let auth_secret_key = AuthSecretKey::read_from(source)?;

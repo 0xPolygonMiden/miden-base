@@ -10,7 +10,7 @@ use super::{
     metrics::{WORKER_COUNT, WORKER_UNHEALTHY},
     LoadBalancerState,
 };
-use crate::error::TxProverServiceError;
+use crate::error::ProvingServiceError;
 
 /// Implement the BackgroundService trait for the LoadBalancer
 ///
@@ -67,20 +67,20 @@ impl BackgroundService for LoadBalancerState {
 /// Create a gRPC [HealthClient] for the given worker address.
 ///
 /// # Errors
-/// - [TxProverServiceError::InvalidURI] if the worker address is invalid.
-/// - [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
+/// - [ProvingServiceError::InvalidURI] if the worker address is invalid.
+/// - [ProvingServiceError::ConnectionFailed] if the connection to the worker fails.
 pub async fn create_health_check_client(
     address: String,
     connection_timeout: Duration,
     total_timeout: Duration,
-) -> Result<HealthClient<Channel>, TxProverServiceError> {
+) -> Result<HealthClient<Channel>, ProvingServiceError> {
     let channel = Channel::from_shared(format!("http://{}", address))
-        .map_err(|err| TxProverServiceError::InvalidURI(err, address.clone()))?
+        .map_err(|err| ProvingServiceError::InvalidURI(err, address.clone()))?
         .connect_timeout(connection_timeout)
         .timeout(total_timeout)
         .connect()
         .await
-        .map_err(|err| TxProverServiceError::ConnectionFailed(err, address))?;
+        .map_err(|err| ProvingServiceError::ConnectionFailed(err, address))?;
 
     Ok(HealthClient::new(channel))
 }
