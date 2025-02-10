@@ -84,6 +84,7 @@ pub const ERR_P2ID_WRONG_NUMBER_OF_INPUTS: u32 = 0x00020050;
 
 pub const ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE: u32 = 0x0002003B;
 pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT: u32 = 0x00020034;
+pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT: u32 = 0x00020134;
 pub const ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH: u32 = 0x00020041;
 pub const ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER: u32 = 0x0002003C;
 pub const ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR: u32 = 0x0002003D;
@@ -116,7 +117,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x0002001C;
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x0002001F;
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x0002001E;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 92] = [
     (ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY, "Anchor block hash must not be empty"),
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
@@ -191,6 +192,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
     (ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT, "The provided global inputs do not match the block hash commitment"),
+    (ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT, "The provided global inputs do not match the block number commitment"),
     (ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH, "Note commitment computed from the input note data does not match given note commitment"),
     (ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER, "Account IDs provided via global inputs and advice provider do not match"),
     (ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR, "Reference block MMR and note's authentication MMR must match"),
