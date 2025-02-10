@@ -12,7 +12,7 @@ use crate::{
     ProposedBlockError,
 };
 
-// NOTE ERASER
+// INPUT OUTPUT NOTE TRACKER
 // ================================================================================================
 
 /// A helper struct to track input and output notes and erase those that are created and consumed
@@ -38,7 +38,8 @@ pub(crate) struct InputOutputNoteTracker<ContainerId> {
 }
 
 impl InputOutputNoteTracker<TransactionId> {
-    /// TODO
+    /// Computes the input and output notes for a transaction batch from the provided iterator over
+    /// transactions. Implements batch-specific logic.
     pub fn from_transactions<'a>(
         txs: impl Iterator<Item = &'a ProvenTransaction> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
@@ -68,7 +69,8 @@ impl InputOutputNoteTracker<TransactionId> {
 }
 
 impl InputOutputNoteTracker<BatchId> {
-    /// TODO
+    /// Computes the input and output notes for a block from the provided iterator over batches.
+    /// Implements block-specific logic.
     #[allow(clippy::type_complexity)]
     pub fn from_batches<'a>(
         batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
@@ -103,39 +105,38 @@ impl InputOutputNoteTracker<BatchId> {
     }
 }
 
+// GENERIC CODE FOR BATCHES AND BLOCKS
+// ================================================================================================
+
 impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
     fn from_iter(
         input_notes_iter: impl Iterator<Item = (InputNoteCommitment, ContainerId)>,
         output_notes_iter: impl Iterator<Item = (OutputNote, ContainerId)>,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
-    ) -> Result<Self, NoteEraserError<ContainerId>> {
+    ) -> Result<Self, InputOutputNoteTrackerError<ContainerId>> {
         let mut input_notes = BTreeMap::new();
         let mut output_notes = BTreeMap::new();
 
-        for (input_note_commitment, container_id) in input_notes_iter {
-            let input_note_commitment = if let Some(note_header) = input_note_commitment.header() {
+        for (mut input_note_commitment, container_id) in input_notes_iter {
+            if let Some(note_header) = input_note_commitment.header() {
                 if let Some(proof) = unauthenticated_note_proofs.get(&note_header.id()) {
                     // Transform unauthenticated notes into authenticated ones if the provided proof
                     // is valid.
-                    Self::authenticate_unauthenticated_note(
+                    input_note_commitment = Self::authenticate_unauthenticated_note(
                         input_note_commitment.nullifier(),
                         note_header,
                         proof,
                         chain_mmr,
-                    )?
-                } else {
-                    input_note_commitment
+                    )?;
                 }
-            } else {
-                input_note_commitment
-            };
+            }
 
             let nullifier = input_note_commitment.nullifier();
             if let Some((first_container_id, _)) =
                 input_notes.insert(nullifier, (container_id, input_note_commitment))
             {
-                return Err(NoteEraserError::DuplicateInputNote {
+                return Err(InputOutputNoteTrackerError::DuplicateInputNote {
                     note_nullifier: nullifier,
                     first_container_id,
                     second_container_id: container_id,
@@ -147,7 +148,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
             if let Some((first_container_id, _)) =
                 output_notes.insert(note.id(), (container_id, note.clone()))
             {
-                return Err(NoteEraserError::DuplicateOutputNote {
+                return Err(InputOutputNoteTrackerError::DuplicateOutputNote {
                     note_id: note.id(),
                     first_container_id,
                     second_container_id: container_id,
@@ -158,7 +159,9 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         Ok(Self { input_notes, output_notes })
     }
 
-    fn erase_notes(&mut self) -> Result<Vec<InputNoteCommitment>, NoteEraserError<ContainerId>> {
+    fn erase_notes(
+        &mut self,
+    ) -> Result<Vec<InputNoteCommitment>, InputOutputNoteTrackerError<ContainerId>> {
         let mut final_input_notes = Vec::new();
 
         for (_, input_note_commitment) in self.input_notes.values() {
@@ -198,7 +201,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
     fn remove_note(
         input_note_header: &NoteHeader,
         output_notes: &mut BTreeMap<NoteId, (ContainerId, OutputNote)>, // output
-    ) -> Result<bool, NoteEraserError<ContainerId>> {
+    ) -> Result<bool, InputOutputNoteTrackerError<ContainerId>> {
         let id = input_note_header.id();
         if let Some((_, output_note)) = output_notes.remove(&id) {
             // Check if the notes with the same ID have differing hashes.
@@ -207,7 +210,11 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
             let input_hash = input_note_header.hash();
             let output_hash = output_note.hash();
             if output_hash != input_hash {
-                return Err(NoteEraserError::NoteHashesMismatch { id, input_hash, output_hash });
+                return Err(InputOutputNoteTrackerError::NoteHashesMismatch {
+                    id,
+                    input_hash,
+                    output_hash,
+                });
             }
 
             return Ok(true);
@@ -226,10 +233,10 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         note_header: &NoteHeader,
         proof: &NoteInclusionProof,
         chain_mmr: &ChainMmr,
-    ) -> Result<InputNoteCommitment, NoteEraserError<ContainerId>> {
+    ) -> Result<InputNoteCommitment, InputOutputNoteTrackerError<ContainerId>> {
         let note_block_header =
             chain_mmr.get_block(proof.location().block_num()).ok_or_else(|| {
-                NoteEraserError::UnauthenticatedInputNoteBlockNotInChainMmr {
+                InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
                     block_number: proof.location().block_num(),
                     note_id: note_header.id(),
                 }
@@ -240,10 +247,12 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         proof
             .note_path()
             .verify(note_index, note_hash, &note_block_header.note_root())
-            .map_err(|source| NoteEraserError::UnauthenticatedNoteAuthenticationFailed {
-                note_id: note_header.id(),
-                block_num: proof.location().block_num(),
-                source,
+            .map_err(|source| {
+                InputOutputNoteTrackerError::UnauthenticatedNoteAuthenticationFailed {
+                    note_id: note_header.id(),
+                    block_num: proof.location().block_num(),
+                    source,
+                }
             })?;
 
         // Erase the note header from the input note.
@@ -251,7 +260,12 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
     }
 }
 
-enum NoteEraserError<ContainerId: Copy> {
+// INPUT OUTPUT NOTE TRACKER ERROR
+// ================================================================================================
+
+// An error generic over the ContainerId. It is only used to abstract over the concrete errors, so
+// it does not implement any traits, Error or otherwise.
+enum InputOutputNoteTrackerError<ContainerId: Copy> {
     DuplicateInputNote {
         note_nullifier: Nullifier,
         first_container_id: ContainerId,
@@ -278,10 +292,10 @@ enum NoteEraserError<ContainerId: Copy> {
     },
 }
 
-impl From<NoteEraserError<BatchId>> for ProposedBlockError {
-    fn from(error: NoteEraserError<BatchId>) -> Self {
+impl From<InputOutputNoteTrackerError<BatchId>> for ProposedBlockError {
+    fn from(error: InputOutputNoteTrackerError<BatchId>) -> Self {
         match error {
-            NoteEraserError::DuplicateInputNote {
+            InputOutputNoteTrackerError::DuplicateInputNote {
                 note_nullifier,
                 first_container_id,
                 second_container_id,
@@ -290,7 +304,7 @@ impl From<NoteEraserError<BatchId>> for ProposedBlockError {
                 first_batch_id: first_container_id,
                 second_batch_id: second_container_id,
             },
-            NoteEraserError::DuplicateOutputNote {
+            InputOutputNoteTrackerError::DuplicateOutputNote {
                 note_id,
                 first_container_id,
                 second_container_id,
@@ -299,17 +313,17 @@ impl From<NoteEraserError<BatchId>> for ProposedBlockError {
                 first_batch_id: first_container_id,
                 second_batch_id: second_container_id,
             },
-            NoteEraserError::NoteHashesMismatch { id, input_hash, output_hash } => {
+            InputOutputNoteTrackerError::NoteHashesMismatch { id, input_hash, output_hash } => {
                 ProposedBlockError::NoteHashesMismatch { id, input_hash, output_hash }
             },
-            NoteEraserError::UnauthenticatedInputNoteBlockNotInChainMmr {
+            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
                 block_number,
                 note_id,
             } => ProposedBlockError::UnauthenticatedInputNoteBlockNotInChainMmr {
                 block_number,
                 note_id,
             },
-            NoteEraserError::UnauthenticatedNoteAuthenticationFailed {
+            InputOutputNoteTrackerError::UnauthenticatedNoteAuthenticationFailed {
                 note_id,
                 block_num,
                 source,
@@ -322,10 +336,10 @@ impl From<NoteEraserError<BatchId>> for ProposedBlockError {
     }
 }
 
-impl From<NoteEraserError<TransactionId>> for ProposedBatchError {
-    fn from(error: NoteEraserError<TransactionId>) -> Self {
+impl From<InputOutputNoteTrackerError<TransactionId>> for ProposedBatchError {
+    fn from(error: InputOutputNoteTrackerError<TransactionId>) -> Self {
         match error {
-            NoteEraserError::DuplicateInputNote {
+            InputOutputNoteTrackerError::DuplicateInputNote {
                 note_nullifier,
                 first_container_id,
                 second_container_id,
@@ -334,7 +348,7 @@ impl From<NoteEraserError<TransactionId>> for ProposedBatchError {
                 first_transaction_id: first_container_id,
                 second_transaction_id: second_container_id,
             },
-            NoteEraserError::DuplicateOutputNote {
+            InputOutputNoteTrackerError::DuplicateOutputNote {
                 note_id,
                 first_container_id,
                 second_container_id,
@@ -343,17 +357,17 @@ impl From<NoteEraserError<TransactionId>> for ProposedBatchError {
                 first_transaction_id: first_container_id,
                 second_transaction_id: second_container_id,
             },
-            NoteEraserError::NoteHashesMismatch { id, input_hash, output_hash } => {
+            InputOutputNoteTrackerError::NoteHashesMismatch { id, input_hash, output_hash } => {
                 ProposedBatchError::NoteHashesMismatch { id, input_hash, output_hash }
             },
-            NoteEraserError::UnauthenticatedInputNoteBlockNotInChainMmr {
+            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
                 block_number,
                 note_id,
             } => ProposedBatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
                 block_number,
                 note_id,
             },
-            NoteEraserError::UnauthenticatedNoteAuthenticationFailed {
+            InputOutputNoteTrackerError::UnauthenticatedNoteAuthenticationFailed {
                 note_id,
                 block_num,
                 source,
