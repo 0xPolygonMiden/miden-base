@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 use std::collections::{BTreeMap, BTreeSet};
 
+use vm_core::EMPTY_WORD;
 use vm_processor::Digest;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
         block_inputs::BlockInputs, AccountUpdateWitness, AccountWitness, BlockHeader,
-        BlockNoteTree, BlockNumber, NullifierWitness, PartialNullifierTree,
+        BlockNoteTree, BlockNumber, NullifierWitness,
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
@@ -336,7 +337,8 @@ fn check_nullifiers(
                     .find(|(key, _)| *key == batch_nullifier.inner())
                     .ok_or(ProposedBlockError::NullifierProofMissing(batch_nullifier))?;
 
-                if *nullifier_value != PartialNullifierTree::UNSPENT_NULLIFIER_VALUE {
+                // Check if the nullifier is spent by comparing with EMPTY_WORD.
+                if *nullifier_value != EMPTY_WORD {
                     return Err(ProposedBlockError::NullifierSpent(batch_nullifier));
                 }
             },

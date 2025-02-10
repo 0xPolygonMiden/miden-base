@@ -658,15 +658,3 @@ pub enum BlockError {
     )]
     TooManyTransactionBatches(usize),
 }
-
-// NULLIFIER TREE ERROR
-// ================================================================================================
-
-#[derive(Debug, Error)]
-pub enum NullifierTreeError {
-    #[error("failed to create nullifier tree")]
-    CreationFailed(#[source] MerkleError),
-
-    #[error("failed to mutate nullifier tree")]
-    MutationFailed(#[source] MerkleError),
-}

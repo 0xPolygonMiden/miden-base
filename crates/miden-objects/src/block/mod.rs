@@ -26,12 +26,6 @@ pub use account_update_witness::AccountUpdateWitness;
 mod block_inputs;
 pub use block_inputs::BlockInputs;
 
-mod nullifier_tree;
-pub use nullifier_tree::NullifierTree;
-
-mod partial_nullifier_tree;
-pub use partial_nullifier_tree::PartialNullifierTree;
-
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
