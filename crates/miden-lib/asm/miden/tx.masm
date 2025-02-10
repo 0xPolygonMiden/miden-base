@@ -50,7 +50,7 @@ export.get_block_hash
     # => [BLOCK_HASH]
 end
 
-#! Returns the block timestamp of the last known block.
+#! Returns the block timestamp of the reference block for this transaction.
 #! 
 #! WARNING: the returned timestamp is not precise, potentially it may be off by more that a couple
 #! of seconds. 
@@ -59,7 +59,7 @@ end
 #! Outputs: [timestamp]
 #!
 #! Where:
-#! - timestamp is the block timestamp of the last known block.
+#! - timestamp is the timestamp of the reference block for this transaction.
 export.get_block_timestamp
     # pad the stack
     padw padw padw push.0.0.0

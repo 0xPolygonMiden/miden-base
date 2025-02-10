@@ -894,13 +894,13 @@ export.tx_get_block_number
     # => [num, pad(15)]
 end
 
-#! Returns the block timestamp of the last known block.
+#! Returns the block timestamp of the reference block for this transaction.
 #!
 #! Inputs:  [pad(16)]
 #! Outputs: [timestamp, pad(15)]
 #!
 #! Where:
-#! - timestamp is the block timestamp of the last known block.
+#! - timestamp is the timestamp of the reference block for this transaction.
 export.tx_get_block_timestamp
     # get the last known block timestamp
     exec.tx::get_block_timestamp
