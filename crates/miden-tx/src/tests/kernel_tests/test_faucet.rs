@@ -619,6 +619,8 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 
 #[test]
 fn test_is_non_fungible_asset_issued_succeeds() {
+    // NON_FUNGIBLE_ASSET_DATA_2 is "issued" during the mock faucet creation, so it is already in
+    // the map of issued assets.
     let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
         NonFungibleAsset::mock_issuer().into(),
         ONE,
@@ -641,14 +643,14 @@ fn test_is_non_fungible_asset_issued_succeeds() {
             push.{non_fungible_asset_2}
             exec.faucet::is_non_fungible_asset_issued
 
-            # use error code 9998 to assert that asset is issued
+            # use error code 9998 to assert that NON_FUNGIBLE_ASSET_DATA_2 is issued
             eq.1 assert.err=9998
 
             # check that NON_FUNGIBLE_ASSET_DATA was not issued yet
             push.{non_fungible_asset_1}
             exec.faucet::is_non_fungible_asset_issued
 
-            # use error code 9999 to assert that asset is not issued
+            # use error code 9999 to assert that NON_FUNGIBLE_ASSET_DATA is not issued
             eq.0 assert.err=9999
         end
         ",

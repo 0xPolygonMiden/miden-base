@@ -237,23 +237,23 @@ export.is_non_fungible_asset_issued
     exec.account::get_id swap drop exec.asset::validate_non_fungible_asset_origin
     # => [ASSET]
 
-    # fetch the root of the SMT containing the non-fungible assets
-    exec.account::get_faucet_storage_data_slot exec.account::get_item
-    # => [SMT_ROOT, ASSET]
+    # get the asset vault key from the asset
+    exec.asset_vault::build_non_fungible_asset_vault_key
+    # => [ASSET_KEY]
 
-    # prepare stack for obtaining the non-fungible asset from the tracking SMT
-    swapw exec.asset_vault::build_non_fungible_asset_vault_key
-    # => [ASSET_KEY, SMT_ROOT]
+    # get the storage index where faucet's assets map is stored
+    exec.account::get_faucet_storage_data_slot
+    # => [map_slot_index, ASSET_KEY]
 
-    # get the non-fungible asset from the tracking SMT
-    exec.smt::get
-    # => [ASSET, SMT_ROOT]
+    # get the non-fungible asset stored by the computed account key
+    exec.account::get_map_item
+    # => [STORED_ASSET]
 
-    # Check whether the `ASSET` is an EMPTY_WORD, indicating that the non-fungible asset has not been 
-    # issued yet. We only need to check ASSET[3] as this is always set to the faucet_id_prefix
-    # and can not be 0 (in reversed stack order it will be top stack element). Equality of the 
-    # ASSET[3] to zero will become a flag that this asset is not issued.
-    swapw dropw neq.0 movdn.3 drop drop drop  
+    # Check whether the `STORED_ASSET` is an EMPTY_WORD, indicating that the non-fungible asset has 
+    # not been issued yet. We only need to check STORED_ASSET[3] as this is always set to the 
+    # faucet_id_prefix and can not be 0 (in reversed stack order it will be top stack element). 
+    # Equality of the STORED_ASSET[3] to zero will become a flag that this asset is not issued.
+    neq.0 movdn.3 drop drop drop  
     # => [is_issued]
 end
 
