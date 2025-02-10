@@ -57,6 +57,11 @@ impl AccountUpdateWitness {
         &self.initial_state_proof
     }
 
+    /// Returns a reference to the underlying [`AccountUpdateDetails`] of this update.
+    pub fn details(&self) -> &AccountUpdateDetails {
+        &self.details
+    }
+
     /// Returns the transactions that affected the account.
     pub fn transactions(&self) -> &[TransactionId] {
         &self.transactions

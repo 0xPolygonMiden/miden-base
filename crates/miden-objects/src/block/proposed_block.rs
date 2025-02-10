@@ -21,13 +21,14 @@ type UpdatedAccounts = Vec<(AccountId, AccountUpdateWitness)>;
 // PROPOSED BLOCK
 // =================================================================================================
 
-/// A proposed block with many constraints of a full [`Block`](crate::block::Block) checked, but not
-/// all of them.
+/// A proposed block with many, but not all constraints of a full [`Block`](crate::block::Block)
+/// enforced.
 ///
 /// See [`ProposedBlock::new`] for details on the checks.
 #[derive(Debug, Clone)]
 pub struct ProposedBlock {
     batches: Vec<ProvenBatch>,
+    timestamp: u32,
     updated_accounts: Vec<(AccountId, AccountUpdateWitness)>,
     block_note_tree: BlockNoteTree,
     created_nullifiers: BTreeMap<Nullifier, NullifierWitness>,
@@ -36,6 +37,9 @@ pub struct ProposedBlock {
 }
 
 impl ProposedBlock {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
     /// Creates a new proposed block from the provided [`BlockInputs`] and transaction batches.
     ///
     /// This checks most of the constraints of a block and computes most of the data structure
@@ -85,9 +89,15 @@ impl ProposedBlock {
     ///   order of the batches, which would generally be an impossible requirement to fulfill.
     /// - Account updates cannot be merged, i.e. if [`AccountUpdateDetails::merge`] fails on the
     ///   updates from two batches.
+    ///
+    /// ## Time
+    ///
+    /// - The given `timestamp` does not increase monotonically compared to the previous block
+    ///   header' timestamp.
     pub fn new(
         mut block_inputs: BlockInputs,
         mut batches: Vec<ProvenBatch>,
+        timestamp: u32,
     ) -> Result<Self, ProposedBlockError> {
         // Check for empty or duplicate batches.
         // --------------------------------------------------------------------------------------------
@@ -101,6 +111,11 @@ impl ProposedBlock {
         }
 
         check_duplicate_batches(&batches)?;
+
+        // Check timestamp increases monotonically.
+        // --------------------------------------------------------------------------------------------
+
+        check_timestamp_increases_monotonically(timestamp, block_inputs.prev_block_header())?;
 
         // Check for consistency between the chain MMR and the referenced previous block.
         // --------------------------------------------------------------------------------------------
@@ -160,10 +175,12 @@ impl ProposedBlock {
 
         // Build proposed blocks from parts.
         // --------------------------------------------------------------------------------------------
+
         let (prev_block_header, chain_mmr, _, nullifiers, _) = block_inputs.into_parts();
 
         Ok(Self {
             batches,
+            timestamp,
             updated_accounts: account_witnesses,
             block_note_tree,
             created_nullifiers: nullifiers,
@@ -171,6 +188,33 @@ impl ProposedBlock {
             prev_block_header,
         })
     }
+
+    /// Creates a new proposed block from the provided [`BlockInputs`] and transaction batches.
+    ///
+    /// Equivalent to [`ProposedBlock::new`] except that the timestamp of the proposed block is set
+    /// to the current system time or the previous block header's timestamp + 1, whichever is
+    /// greater. This guarantees that the timestamp increases monotonically.
+    ///
+    /// See the [`ProposedBlock::new`] for details on errors and other constraints.
+    #[cfg(feature = "std")]
+    pub fn with_timestamp_now(
+        block_inputs: BlockInputs,
+        batches: Vec<ProvenBatch>,
+    ) -> Result<Self, ProposedBlockError> {
+        let timestamp_now: u32 = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("now should be after 1970")
+            .as_secs()
+            .try_into()
+            .expect("timestamp should fit in a u32 before the year 2106");
+
+        let timestamp = timestamp_now.max(block_inputs.prev_block_header().timestamp() + 1);
+
+        Self::new(block_inputs, batches, timestamp)
+    }
+
+    // ACCESSORS
+    // --------------------------------------------------------------------------------------------
 
     /// Returns an iterator over all transactions which affected accounts in the block with
     /// corresponding account IDs.
@@ -185,12 +229,9 @@ impl ProposedBlock {
         self.chain_mmr().chain_length()
     }
 
+    /// Returns a reference to the slice of batches in this block.
     pub fn batches(&self) -> &[ProvenBatch] {
         &self.batches
-    }
-
-    pub fn batches_mut(&mut self) -> &mut [ProvenBatch] {
-        &mut self.batches
     }
 
     /// Returns the map of nullifiers to their proofs from the proposed block.
@@ -198,18 +239,30 @@ impl ProposedBlock {
         &self.created_nullifiers
     }
 
+    /// Returns a reference to the previous block header that this block builds on top of.
     pub fn prev_block_header(&self) -> &BlockHeader {
         &self.prev_block_header
     }
 
+    /// Returns the [`ChainMmr`] that this block contains.
     pub fn chain_mmr(&self) -> &ChainMmr {
         &self.chain_mmr
     }
 
+    /// Returns a reference to the slice of accounts updated in this block.
     pub fn updated_accounts(&self) -> &[(AccountId, AccountUpdateWitness)] {
         &self.updated_accounts
     }
 
+    /// Returns the timestamp of this block.
+    pub fn timestamp(&self) -> u32 {
+        self.timestamp
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes self and returns the non-[`Copy`] parts of the block.
     #[allow(clippy::type_complexity)]
     pub fn into_parts(
         self,
@@ -245,6 +298,20 @@ fn check_duplicate_batches(batches: &[ProvenBatch]) -> Result<(), ProposedBlockE
     }
 
     Ok(())
+}
+
+fn check_timestamp_increases_monotonically(
+    provided_timestamp: u32,
+    prev_block_header: &BlockHeader,
+) -> Result<(), ProposedBlockError> {
+    if provided_timestamp <= prev_block_header.timestamp() {
+        Err(ProposedBlockError::TimestampDoesNotIncreaseMonotonically {
+            provided_timestamp,
+            previous_timestamp: prev_block_header.timestamp(),
+        })
+    } else {
+        Ok(())
+    }
 }
 
 /// Check that each nullifier in the block has a proof provided and that the nullifier is
@@ -432,6 +499,10 @@ impl AccountUpdateAggregator {
                 .ok_or(ProposedBlockError::MissingAccountWitness(account_id))?;
 
             let account_update_witness = Self::aggregate_account(account_id, witness, updates_map)?;
+
+            // TODO: After account tree refactor from SimpleSmt -> Smt refactor, add check if
+            // account is new, smt leaf from SmtProof must be SmtLeaf::Empty to ensure account id
+            // prefix uniqueness.
 
             account_witnesses.push((account_id, account_update_witness));
         }

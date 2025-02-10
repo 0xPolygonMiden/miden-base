@@ -561,6 +561,12 @@ pub enum ProposedBlockError {
         second_batch_id: BatchId,
     },
 
+    #[error("timestamp {provided_timestamp} does not increase monotonically compared to timestamp {previous_timestamp} from the previous block header")]
+    TimestampDoesNotIncreaseMonotonically {
+        provided_timestamp: u32,
+        previous_timestamp: u32,
+    },
+
     #[error("account {account_id} is updated from the same initial state commitment {initial_state_commitment} by multiple conflicting batches with IDs {first_batch_id} and {second_batch_id}")]
     ConflictingBatchesUpdateSameAccount {
         account_id: AccountId,
