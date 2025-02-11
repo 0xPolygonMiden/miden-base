@@ -130,6 +130,17 @@ impl ChainMmr {
             self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
         )
     }
+
+    // TESTING
+    // --------------------------------------------------------------------------------------------
+
+    // Must be defined here rather than in the testing module, otherwise the mmr field must be at
+    // least pub(crate).
+    /// Allows mutating the inner [`PartialMmr`] for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn partial_mmr_mut(&mut self) -> &mut PartialMmr {
+        &mut self.mmr
+    }
 }
 
 impl Serializable for ChainMmr {

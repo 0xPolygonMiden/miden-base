@@ -1807,6 +1807,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-block-prover"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "miden-core",
+ "miden-crypto",
+ "miden-lib",
+ "miden-objects",
+ "miden-processor",
+ "miden-tx",
+ "rand 0.8.5",
+ "thiserror 2.0.11",
+ "winterfell",
+]
+
+[[package]]
 name = "miden-core"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
