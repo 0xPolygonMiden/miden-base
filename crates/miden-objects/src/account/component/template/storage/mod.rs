@@ -479,7 +479,7 @@ mod tests {
         "#;
 
         let component_metadata = AccountComponentMetadata::from_toml(toml_text).unwrap();
-        let requirements = component_metadata.get_template_requirements();
+        let requirements = component_metadata.get_placeholder_requirements();
 
         assert_eq!(requirements.len(), 4);
 

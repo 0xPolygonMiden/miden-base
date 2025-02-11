@@ -86,8 +86,8 @@ impl Deserializable for AccountComponentTemplate {
 /// Represents the full component template configuration.
 ///
 /// An account component metadata describes the component alongside its storage layout.
-/// On the storage layout, [placeholders](StoragePlaceholder) can be utilized to identify
-/// [values](StorageValue) that should be provided at the moment of instantiation.
+/// On the storage layout, placeholders can be utilized to identify values that should be provided
+/// at the moment of instantiation.
 ///
 /// When the `std` feature is enabled, this struct allows for serialization and deserialization to
 /// and from a TOML file.
@@ -97,11 +97,10 @@ impl Deserializable for AccountComponentTemplate {
 /// - The metadata's storage layout does not contain duplicate slots, and it always starts at slot
 ///   index 0.
 /// - Storage slots are laid out in a contiguous manner.
-/// - Storage placeholders can appear multiple times, but only if the expected [StorageValue] is of
-///   the same type in all instances. The expected placeholders can be retrieved with
-///   [AccountComponentMetadata::get_unique_storage_placeholders()], which returns a map from
-///   [StoragePlaceholder] to [PlaceholderType] (which, in turn, indicates the expected value type
-///   for the placeholder).
+/// - Each placeholder represents a single value. The expected placeholders can be retrieved with
+///   [AccountComponentMetadata::get_placeholder_requirements()], which returns a map from keys to
+///   [PlaceholderTypeRequirement] (which, in turn, indicates the expected value type for the
+///   placeholder).
 ///
 /// # Example
 ///
@@ -196,8 +195,8 @@ impl AccountComponentMetadata {
         Ok(component)
     }
 
-    /// Retrieves a map of unique storage placeholders mapped to their expected type that require
-    /// a value at the moment of component instantiation.
+    /// Retrieves a map of unique storage placeholder names mapped to their expected type that
+    /// require a value at the moment of component instantiation.
     ///
     /// These values will be used for initializing storage slot values, or storage map entries.
     /// For a full example on how a placeholder may be utilized, please refer to the docs for
@@ -205,7 +204,7 @@ impl AccountComponentMetadata {
     ///
     /// Types for the returned storage placeholders are inferred based on their location in the
     /// storage layout structure.
-    pub fn get_template_requirements(&self) -> BTreeMap<String, PlaceholderTypeRequirement> {
+    pub fn get_placeholder_requirements(&self) -> BTreeMap<String, PlaceholderTypeRequirement> {
         let mut templates = BTreeMap::new();
         for entry in self.storage_entries() {
             for (name, requirement) in entry.template_requirements() {

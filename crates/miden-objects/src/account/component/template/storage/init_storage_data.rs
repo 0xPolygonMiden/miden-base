@@ -28,7 +28,7 @@ impl InitStorageData {
         &self.storage_placeholders
     }
 
-    /// Returns a reference to the [StorageValue] corresponding to the placeholder, or
+    /// Returns a reference to the name corresponding to the placeholder, or
     /// [`Option::None`] if the placeholder is not present.
     pub fn get(&self, key: &StorageValueName) -> Option<&String> {
         self.storage_placeholders.get(key)

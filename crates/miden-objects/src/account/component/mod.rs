@@ -4,11 +4,7 @@ use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
 mod template;
-pub use template::{
-    AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation, FeltType,
-    InitStorageData, MapEntry, StorageEntry, StorageValueName, StorageValueNameError,
-    TemplateTypeError, WordRepresentation, WordType,
-};
+pub use template::*;
 
 use crate::{
     account::{AccountType, StorageSlot},
@@ -92,9 +88,8 @@ impl AccountComponent {
 
     /// Instantiates an [AccountComponent] from the [AccountComponentTemplate].
     ///
-    /// The template's component metadata might contain templated values, which can be input by
-    /// mapping [storage placeholders](StoragePlaceholder) to [values](StorageValue) through the
-    /// `init_storage_data` parameter.
+    /// The template's component metadata might contain placeholders, which can be replaced by
+    /// mapping storage placeholders to values through the `init_storage_data` parameter.
     ///
     /// # Errors
     ///
