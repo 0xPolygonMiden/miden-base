@@ -11,48 +11,38 @@ Miden's `Transaction` model aims for the following:
 
 Compared to most blockchains, where a `Transaction` typically involves more than one account (e.g., sender and receiver), a `Transaction` in Miden involves a single account. To illustrate, Alice sends 5 ETH to Bob. In Miden, sending 5 ETH from Alice to Bob takes two `Transaction`s, one in which Alice creates a note containing 5 ETH and one in which Bob consumes that note and receives the 5 ETH. This model removes the need for a global lock on the blockchain's state, enabling Miden to process `Transaction`s in parallel.
 
-## Transaction lifecycle
-
-Every `Transaction` describes the process of an account changing its state. This process is described as a Miden VM program, resulting in the generation of a zero-knowledge proof.
-
-![Transaction execution process](../img/architecture/transaction/transaction-execution-process.png)
-
-### Transaction execution flow
-
-`Transaction`s are being executed in a well-defined sequence, in which several note and transaction scripts can call the account interface to interact with it.
+## Transaction execution
+Every `Transaction` describes the process of an account changing its state. This process is described as a Miden VM program, resulting in the generation of a zero-knowledge proof. `Transaction`s are being executed in a well-defined sequence, in which several note and transaction scripts can call the account interface to interact with it.
 
 ![Transaction execution flow](../img/architecture/transaction/transaction-program.png)
 
-1. **Prologue**: On-chain commitments are validated against provided data.
-2. **Note processing**: Input notes are executed sequentially against the account, following a  sequence defined by the executor.
-    - Notes must be consumed fully (all assets must be transferred to the account or to another note).
-    - The note script must be executed in full with the provided note inputs and transaction arguments. Transaction arguments can be injected by the executor for each note at runtime.
-3. **Transaction script execution (optional)**: A `Transaction` script, if present, is executed.
-    - This script can sign the `Transaction` or directly interact with the account without using notes.
-4. **Epilogue**: Execution completes, resulting in an updated account state and a generated zero-knowledge proof. The validity of the state change is being checked
-    - The account state is updated.
-    - New notes are created (optional), transferring assets from the account to the newly created notes.
-    - The `Nonce` must be incremented, to allow transaction authentication. Also the net sum of all involved assets mus be 0 - if the account is no faucet.
+### Transaction inputs
+A `Transaction` requires several inputs:
+
+- **Account**: `Transaction` are always executed against a single account. The executor must have complete knowledge of the account's state including its code, nonce, vault and storage. Private account data must be known at runtime.
+- **Notes**: A `Transaction` can consume up to `1K` notes. The executor must have complete knowledge of the note data, including note inputs, before consumption. The note script must be known for the parts that are being executed. For private notes, the data cannot be fetched from the blockchain and must be received otherwise, e.g., via P2P file transfer.
+- **Blockchain state**: The current reference block and information about the notes database used to authenticate input notes must be retrieved from the Miden operator before execution. Usually, notes to be consumed in a `Transaction` must have been created before the reference block.
+- **Transaction script (optional)**: `Transaction` scripts are defined by the executor. And like note scripts, they can invoke account methods, e.g., sign a transaction.
+- **Transaction arguments (optional)**: For every note, the executor can inject transaction arguments that are present at runtime. If the note script - and therefore the note creator - allows, the note script can read those arguments to allow dynamic execution. See below for an example.
+- **Foreign account data (optional)**: Any foreign account data accessed during a `Transaction`, whether private or public, must be available beforehand. There is no need to know the full account storage, but the data necessary for the `Transaction`, e.g., the key/value pair that is read and the corresponding storage root.
+
+> **Info**
+> - Usually, notes that are consumed in a `Transaction` must be recorded on-chain in order for the `Transaction` to succeed. However, in Miden there is the concept of **ephemeral notes** that can be consumed in a `Transaction` before being registered on-chain. This allows the executor to consume notes before they reach the blockchain. One can build a sub-second order book by allowing its traders to build faster transactions that depend on each other and are being validated or nullified in batches.
+> - There is no nullifier check during a `Transaction`. Nullifiers are checked by the Miden operator during `Transaction` verification. So at the `Transaction` level, there is "double spending." If a note was already spent, i.e. there exists a nullifier for that note, the whole `Transaction` will fail when submitted to the network.
+
+### Transaction flow
+
+The transaction **prologue** executes at the beginning of a transaction. It validates on-chain commitments against the provided data. This is to ensure that the transaction executes against a valid on-chain account and note state. Notes to be consumed must be registered on-chain - except for [ephemeral notes](note.md) which can be consumed without block inclusion.
+
+After the prologue, **note processing** starts. Notes are executed sequentially against the account, following a sequence defined by the executor. To execute a note means processing the note script that calls methods exposed on the account interface. Notes must be consumed fully, which means all assets must be transferred into the account or onto other notes.
+
+After all notes are being consumed, the **`Transaction` script processing** starts. `Transaction` scripts are optional code to interact with account methods without the need of notes. `Transaction` scripts are used to sign the `Transaction` or to mint tokens from a faucet.
+
+Finally, the **Epilogue** completes the execution, resulting in an updated account state and a generated zero-knowledge proof. The validity of the resulting state change is being checked. The account's `Nonce` must have been incremented, to allow transaction authentication. Also the net sum of all involved assets mus be `0` - if the account is not a faucet.
 
 The proof together with the corresponding data needed for verification and updates on the global state can then be submitted and processed by the network.
 
-### Transaction inputs
-
-A `Transaction` is restricted to only one native account. The state of the native account can be updated. However, also account states of other, foreign accounts can be read during the transaction and the information can be processed. For example, a note script can read the state of an oracle account, e.g., the price of an asset, to dynamically adjust the note's spent conditions.
-
-To execute a `Transaction`, the executor must have complete knowledge of the native account state, the authenticated data of the foreign accounts to be read, and the notes used as `Transaction` inputs.
-
-- **Notes**: A `Transaction` can only consume notes if the full note data is known. For private notes, the data cannot be fetched from the blockchain and must be received otherwise.
-- **Transaction arguments**: For every note, the executor can inject transaction arguments that are present at runtime. If the note script - and therefore the note creator - allows, the note script can read those arguments.
-- **Foreign account data**: Any foreign account data accessed during a `Transaction`, whether private or public, must be available beforehand. There is no need to know the full account storage, but the data necessary for the `Transaction`, e.g., the key/value pair that is read and the corresponding storage root.
-- **Blockchain state**: The current reference block and information about the notes database used to authenticate input notes must be retrieved from the Miden operator before execution. Usually, notes to be consumed in a `Transaction` must have been created before the reference block.
-
-
-> **Info**
-> - Usually, notes that are consumed in a `Transaction` must be recorded on-chain in order for the `Transaction` to succeed. However, in Miden there is the concept of ephemeral notes that can be consumed in a `Transaction` before being registered on-chain. This allows the executor to consume notes before they reach the blockchain which is useful for example to achieve sub-second orders in DEXs.
-> - There is no nullifier check during a `Transaction`. Nullifiers are checked by the Miden operator during `Transaction` verification. So at the `Transaction` level, there is "double spending." If a note was already spent, i.e. there exists a nullifier for that note, the whole `Transaction` will fail when submitted to the network.
-
-### Notes and transaction scripts
+### Difference between note and transaction scripts
 
 [Note scripts](note.md/script) can invoke the account interface during execution. They can push assets into the account's vault, create new notes, set a transaction expiration, and read from or write to the account’s storage. Any method they call must be explicitly exposed by the account interface. Note scripts can also invoke methods of foreign accounts to read their state.
 
@@ -64,28 +54,25 @@ To illustrate the `Transaction` protocol, we provide two examples for a basic `T
 
 ### Creating a P2ID note
 
-Let's assume an account A that wants to consume a P2ID note to receive the assets contained in that note.
-
-Account A has two methods explicitly exposed - `receive_asset` and the authentication method `auth_tx_rpo_falcon512`. For illustrative purposes, we use the standard P2ID note as defined in the `miden-lib`. Some account methods like `account::get_id` are always exposed.
-
-The executor starts with fetching and preparing all the input data to the `Transaction`. First, it retrieves the global inputs and block data of the last recent block. Global inputs include the block hash, account ID, initial account hash, and nullifier commitment. The block data includes the chain root and data to verify the block hash. This information is needed to authenticate the native account's state and that the P2ID exists on-chain.
-
-Together with the full account and note data, the executor prepares a data store to start the `Transaction` execution.
-
-In the prologue of the transaction the data is being authenticated and the account and notes are being loaded into the kernels memory.
-
-After the prologue the note script of the P2ID note is being loaded and executed. The script starts by reading the note inputs `note::get_inputs` - in our case the account Id of the intended target account. Then it checks if the account Id provided by the note inputs equal the account Id of the executing account. This is the first time, the note invokes a method exposed by the account `account::get_id`.
-
-If the check passes, the note script pushes the assets it holds into the account's vault. For every asset the note contains, the script calls the `receive_asset` method exposed but the account's wallet component. For security reasons, `receive_asset` calls `account::add_asset`, which can not be called within the note context itself.
-
-After the assets are stored in the account's vault, the transaction script is being executed. The script calls `auth_tx_rpo_falcon512` which is explicitly exposed in the account interface. The method is used to verify a provided signature against a public key stored in the account's storage and a commitment to this specific transaction. If the signature can be verified, the method increments the nonce. 
-
-The epilogue finalized the transaction by computing the final account hash, asserts the nonce increment and checks that no assets were created or destroyed in the transaction - that means the net sum of all assets must stay the same.
-
+<Paul Henry, can you try to give an example of how to create a P2ID note?>
 
 ### Consuming a P2ID note
 
-<Paul Henry, can you try to give an example of how to create a P2ID note?>
+Let's assume account A wants to consume a P2ID note to receive the assets contained in that note. P2ID notes are pay-to-id notes that can only consumed by a specified target account Id. Note creators can provide the target account Id using the [note inputs](note.md).
+
+In this example, account A uses the basic wallet and the authentication component provided by `miden-lib`. The basic wallet component defines methods to send `wallets::basic::create_note` and `wallets::basic::move_asset_to_note` and to receive assets - `wallets::basic::receive_asset`. The authentication component provides the ability to sign a transaction exposing `auth::basic::auth_tx_rpo_falcon512`. Some account methods like `account::get_id` are always exposed.
+
+To start the transaction process, the executor fetches and prepares all the input data to the `Transaction`. First, it retrieves blockchain data, like global inputs and block data of the last recent block. This information is needed to authenticate the native account's state and that the P2ID note exists on-chain. Then it loads the full account and note data, to start the `Transaction` execution.
+
+In the transaction's prologue the data is being authenticated by re-hashing the provided values and comparing them to the blockchain's data.
+
+Then the P2ID note script is being executed. The script starts by reading the note inputs `note::get_inputs` - in our case the account Id of the intended target account. It checks if the provided target account Id equals to the account Id of the executing account. This is the first time, the note invokes a method exposed by the account `account::get_id`.
+
+If the check passes, the note script pushes the assets it holds into the account's vault. For every asset the note contains, the script calls the `wallets::basic::receive_asset` method exposed but the account's wallet component. For security reasons, `wallets::basic::receive_asset` calls `account::add_asset`, which can not be called within the note context itself.
+
+After the assets are stored in the account's vault, the transaction script is being executed. The script calls `auth::basic::auth_tx_rpo_falcon512` which is explicitly exposed in the account interface. The method is used to verify a provided signature against a public key stored in the account's storage and a commitment to this specific transaction. If the signature can be verified, the method increments the nonce.
+
+The epilogue finalizes the transaction by computing the final account hash, asserting the nonce increment and checking that no assets were created or destroyed in the transaction - that means the net sum of all assets must stay the same.
 
 ## Transaction types
 
