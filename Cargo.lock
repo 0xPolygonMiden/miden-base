@@ -1919,6 +1919,7 @@ dependencies = [
  "criterion",
  "getrandom 0.2.15",
  "log",
+ "miden-air",
  "miden-assembly",
  "miden-core",
  "miden-crypto",
@@ -1934,6 +1935,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.11",
  "toml",
+ "winter-air",
  "winter-rand-utils",
 ]
 

@@ -4,6 +4,9 @@ use alloc::{
     vec::Vec,
 };
 
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
@@ -400,6 +403,97 @@ impl ProposedBatch {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProposedBatch {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u32(self.transactions.len() as u32);
+        for tx in self.transactions.iter() {
+            tx.as_ref().write_into(target);
+        }
+
+        self.block_header.write_into(target);
+        self.chain_mmr.write_into(target);
+
+        target.write_u32(self.unauthenticated_note_proofs.len() as u32);
+        for (note_id, proof) in self.unauthenticated_note_proofs.iter() {
+            note_id.write_into(target);
+            proof.write_into(target);
+        }
+
+        self.id.write_into(target);
+
+        target.write_u32(self.account_updates.len() as u32);
+        for (account_id, update) in self.account_updates.iter() {
+            account_id.write_into(target);
+            update.write_into(target);
+        }
+
+        self.batch_expiration_block_num.write_into(target);
+
+        self.input_notes.write_into(target);
+        self.output_notes_tree.write_into(target);
+
+        target.write_u32(self.output_notes.len() as u32);
+        for note in self.output_notes.iter() {
+            note.write_into(target);
+        }
+    }
+}
+
+impl Deserializable for ProposedBatch {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let transactions_len = source.read_u32()? as usize;
+        let transactions = (0..transactions_len)
+            .map(|_| ProvenTransaction::read_from(source).map(Arc::new))
+            .collect::<Result<Vec<Arc<ProvenTransaction>>, _>>()?;
+
+        let block_header = BlockHeader::read_from(source)?;
+        let chain_mmr = ChainMmr::read_from(source)?;
+        let unauthenticated_note_proofs_len = source.read_u32()? as usize;
+
+        let mut unauthenticated_note_proofs = BTreeMap::new();
+        for _ in 0..unauthenticated_note_proofs_len {
+            let note_id = NoteId::read_from(source)?;
+            let proof = NoteInclusionProof::read_from(source)?;
+            unauthenticated_note_proofs.insert(note_id, proof);
+        }
+
+        let id = BatchId::read_from(source)?;
+
+        let account_updates_len = source.read_u32()? as usize;
+        let mut account_updates = BTreeMap::new();
+        for _ in 0..account_updates_len {
+            let account_id = AccountId::read_from(source)?;
+            let update = BatchAccountUpdate::read_from(source)?;
+            account_updates.insert(account_id, update);
+        }
+
+        let batch_expiration_block_num = BlockNumber::read_from(source)?;
+
+        let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
+        let output_notes_tree = BatchNoteTree::read_from(source)?;
+        let output_notes_len = source.read_u32()? as usize;
+        let output_notes = (0..output_notes_len)
+            .map(|_| OutputNote::read_from(source))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self {
+            transactions,
+            block_header,
+            chain_mmr,
+            unauthenticated_note_proofs,
+            id,
+            account_updates,
+            batch_expiration_block_num,
+            input_notes,
+            output_notes,
+            output_notes_tree,
+        })
+    }
+}
+
 // BATCH OUTPUT NOTE TRACKER
 // ================================================================================================
 
@@ -505,4 +599,95 @@ fn authenticate_unauthenticated_note(
             block_num: proof.location().block_num(),
             source,
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use miden_air::HashFunction;
+    use miden_crypto::merkle::{Mmr, PartialMmr};
+    use miden_verifier::ExecutionProof;
+    use vm_core::Word;
+    use vm_processor::Digest;
+    use winter_air::proof::Proof;
+    use winter_rand_utils::rand_array;
+
+    use super::*;
+    use crate::{
+        account::{AccountIdVersion, AccountStorageMode, AccountType},
+        transaction::ProvenTransactionBuilder,
+    };
+
+    #[test]
+    fn proposed_batch_serialization() {
+        // create chain MMR with 3 blocks - i.e., 2 peaks
+        let mut mmr = Mmr::default();
+        for i in 0..3 {
+            let block_header = BlockHeader::new(
+                0,
+                Digest::default(),
+                i.into(),
+                Digest::default(),
+                Digest::default(),
+                Digest::default(),
+                Digest::default(),
+                Digest::default(),
+                Digest::default(),
+                Digest::default(),
+                0,
+            );
+            mmr.add(block_header.hash());
+        }
+        let partial_mmr: PartialMmr = mmr.peaks().into();
+        let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
+
+        let chain_root = chain_mmr.peaks().hash_peaks();
+        let note_root: Word = rand_array();
+        let kernel_root: Word = rand_array();
+        let header =
+            BlockHeader::mock(3, Some(chain_root), Some(note_root.into()), &[], kernel_root.into());
+
+        let account_id = AccountId::dummy(
+            [1; 15],
+            AccountIdVersion::Version0,
+            AccountType::FungibleFaucet,
+            AccountStorageMode::Private,
+        );
+        let initial_account_hash =
+            [2; 32].try_into().expect("failed to create initial account hash");
+        let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
+        let block_num = BlockNumber::from(1);
+        let block_ref = header.hash();
+        let expiration_block_num = BlockNumber::from(2);
+        let proof = ExecutionProof::new(Proof::new_dummy(), HashFunction::Rpo256);
+
+        let tx = ProvenTransactionBuilder::new(
+            account_id,
+            initial_account_hash,
+            final_account_hash,
+            block_num,
+            block_ref,
+            expiration_block_num,
+            proof,
+        )
+        .build()
+        .expect("failed to build proven transaction");
+
+        let batch =
+            ProposedBatch::new(vec![Arc::new(tx)], header, chain_mmr, BTreeMap::new()).unwrap();
+
+        let encoded_batch = batch.to_bytes();
+
+        let batch2 = ProposedBatch::read_from_bytes(&encoded_batch).unwrap();
+
+        assert_eq!(batch.transactions(), batch2.transactions());
+        assert_eq!(batch.block_header, batch2.block_header);
+        assert_eq!(batch.chain_mmr, batch2.chain_mmr);
+        assert_eq!(batch.unauthenticated_note_proofs, batch2.unauthenticated_note_proofs);
+        assert_eq!(batch.id, batch2.id);
+        assert_eq!(batch.account_updates, batch2.account_updates);
+        assert_eq!(batch.batch_expiration_block_num, batch2.batch_expiration_block_num);
+        assert_eq!(batch.input_notes, batch2.input_notes);
+        assert_eq!(batch.output_notes, batch2.output_notes);
+        assert_eq!(batch.output_notes_tree, batch2.output_notes_tree);
+    }
 }

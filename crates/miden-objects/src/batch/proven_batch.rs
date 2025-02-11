@@ -1,5 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
@@ -89,5 +92,39 @@ impl ProvenBatch {
     /// Returns the [`BatchNoteTree`] representing the output notes of the batch.
     pub fn output_notes_tree(&self) -> &BatchNoteTree {
         &self.output_notes_smt
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProvenBatch {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.id.write_into(target);
+        self.account_updates.write_into(target);
+        self.input_notes.write_into(target);
+        self.output_notes_smt.write_into(target);
+        self.output_notes.write_into(target);
+        self.batch_expiration_block_num.write_into(target);
+    }
+}
+
+impl Deserializable for ProvenBatch {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let id = BatchId::read_from(source)?;
+        let account_updates = BTreeMap::read_from(source)?;
+        let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
+        let output_notes_smt = BatchNoteTree::read_from(source)?;
+        let output_notes = Vec::<OutputNote>::read_from(source)?;
+        let batch_expiration_block_num = BlockNumber::read_from(source)?;
+
+        Ok(Self::new(
+            id,
+            account_updates,
+            input_notes,
+            output_notes_smt,
+            output_notes,
+            batch_expiration_block_num,
+        ))
     }
 }

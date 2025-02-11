@@ -1,7 +1,11 @@
+use alloc::vec::Vec;
+
 use miden_crypto::{
     hash::rpo::RpoDigest,
     merkle::{MerkleError, SimpleSmt},
 };
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
 
 use crate::{
     note::{compute_note_hash, NoteId, NoteMetadata},
@@ -39,5 +43,26 @@ impl BatchNoteTree {
     /// Returns the number of non-empty leaves in this tree.
     pub fn num_leaves(&self) -> usize {
         self.0.num_leaves()
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for BatchNoteTree {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.leaves().collect::<Vec<_>>().write_into(target);
+    }
+}
+
+impl Deserializable for BatchNoteTree {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let leaves = Vec::read_from(source)?;
+        let smt = SimpleSmt::with_contiguous_leaves(leaves.into_iter()).map_err(|err| {
+            DeserializationError::UnknownError(format!(
+                "failed to deserialize BatchNoteTree: {err}"
+            ))
+        })?;
+        Ok(Self(smt))
     }
 }
