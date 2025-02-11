@@ -246,7 +246,7 @@ impl ProposedBatch {
         // --------------------------------------------------------------------------------------------
 
         // SAFETY: We can `expect` here because:
-        // - the batch output note tracker already returns an error for duplicate output notes,
+        // - the input output note tracker already returns an error for duplicate output notes,
         // - we have checked that the number of output notes is <= 2^BATCH_NOTE_TREE_DEPTH.
         let output_notes_tree = BatchNoteTree::with_contiguous_leaves(
             output_notes.iter().map(|note| (note.id(), note.metadata())),

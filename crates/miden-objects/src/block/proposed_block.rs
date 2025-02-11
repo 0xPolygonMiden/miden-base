@@ -30,7 +30,7 @@ use crate::{
 pub struct ProposedBlock {
     batches: Vec<ProvenBatch>,
     timestamp: u32,
-    updated_accounts: Vec<(AccountId, AccountUpdateWitness)>,
+    account_updated_witnesses: Vec<(AccountId, AccountUpdateWitness)>,
     block_note_tree: BlockNoteTree,
     created_nullifiers: BTreeMap<Nullifier, NullifierWitness>,
     chain_mmr: ChainMmr,
@@ -171,10 +171,11 @@ impl ProposedBlock {
         // Aggregate account updates across batches.
         // --------------------------------------------------------------------------------------------
 
-        let (prev_block_header, chain_mmr, account_updates, nullifiers, _) =
+        let (prev_block_header, chain_mmr, account_witnesses, nullifiers, _) =
             block_inputs.into_parts();
 
-        let account_witnesses = aggregate_account_updates(account_updates, &batches)?;
+        let aggregator = AccountUpdateAggregator::from_batches(&batches)?;
+        let account_updated_witnesses = aggregator.into_update_witnesses(account_witnesses)?;
 
         // Compute the block note tree from the individual batch note trees.
         // --------------------------------------------------------------------------------------------
@@ -187,7 +188,7 @@ impl ProposedBlock {
         Ok(Self {
             batches,
             timestamp,
-            updated_accounts: account_witnesses,
+            account_updated_witnesses,
             block_note_tree,
             created_nullifiers: nullifiers,
             chain_mmr,
@@ -225,7 +226,7 @@ impl ProposedBlock {
     /// Returns an iterator over all transactions which affected accounts in the block with
     /// corresponding account IDs.
     pub fn affected_accounts(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
-        self.updated_accounts.iter().flat_map(|(account_id, update)| {
+        self.account_updated_witnesses.iter().flat_map(|(account_id, update)| {
             update.transactions().iter().map(move |tx_id| (*tx_id, *account_id))
         })
     }
@@ -257,7 +258,7 @@ impl ProposedBlock {
 
     /// Returns a reference to the slice of accounts updated in this block.
     pub fn updated_accounts(&self) -> &[(AccountId, AccountUpdateWitness)] {
-        &self.updated_accounts
+        &self.account_updated_witnesses
     }
 
     /// Returns the timestamp of this block.
@@ -282,7 +283,7 @@ impl ProposedBlock {
     ) {
         (
             self.batches,
-            self.updated_accounts,
+            self.account_updated_witnesses,
             self.block_note_tree,
             self.created_nullifiers,
             self.chain_mmr,
@@ -327,7 +328,7 @@ fn check_nullifiers(
     batch_nullifiers: impl Iterator<Item = Nullifier>,
 ) -> Result<(), ProposedBlockError> {
     for batch_nullifier in batch_nullifiers {
-        match block_inputs.nullifiers().get(&batch_nullifier) {
+        match block_inputs.nullifier_witnesses().get(&batch_nullifier) {
             Some(witness) => {
                 let (_, nullifier_value) = witness
                     .proof()
@@ -349,6 +350,13 @@ fn check_nullifiers(
     Ok(())
 }
 
+/// Checks consistency between the previous block header and the provided chain MMR.
+///
+/// This checks that:
+/// - the chain length of the chain MMR is equal to the block number of the previous block header,
+///   i.e. the chain MMR's latest block is the previous' blocks reference block. The previous block
+///   header will be added to the chain MMR as part of constructing the current block.
+/// - the root of the chain MMR is equivalent to the chain root of the previous block header.
 fn check_reference_block_chain_mmr_consistency(
     chain_mmr: &ChainMmr,
     prev_block_header: &BlockHeader,
@@ -398,10 +406,16 @@ fn check_batch_reference_blocks(
 
 /// Computes the [`BlockNoteTree`] from the note trees of the batches in the block.
 ///
-/// This takes the batch note tree of a batch and removes any note that was erased (i.e. consumed by
-/// another batch in the block), as dictated by the `block_output_notes` map.
+/// We pass in `block_output_notes` which are the output notes of the block, with output notes
+/// erased that are consumed by another batch in the block.
+/// The batch note tree of each proven batch however contains all the notes that it creates,
+/// including ones that were potentially erased in `block_output_notes`. This means we have to
+/// make the batch note tree consistent with `block_output_notes` by removing the erased notes from
+/// the batch note tree. Then it accurately represents what output notes the batch actually creates
+/// as part of the block.
 ///
-/// Then inserts the batch note tree as a subtree into the larger block note tree.
+/// After the batch note tree was made consistent, we insert it as a subtree into the larger block
+/// note tree.
 fn compute_block_note_tree(
     batches: &[ProvenBatch],
     block_output_notes: &BTreeMap<NoteId, (BatchId, OutputNote)>,
@@ -412,20 +426,27 @@ fn compute_block_note_tree(
         let mut batch_output_notes_tree = batch.output_notes_tree().clone();
 
         for (note_tree_idx, original_output_note) in batch.output_notes().iter().enumerate() {
-            // Note that because we disallow duplicate output notes, if this map contains a note id,
-            // then we can be certain it was created by this batch and should stay in the tree.
+            // If block_output_notes no longer contains a note it means it was erased and so we
+            // remove it from the batch note tree.
+            //
+            // Note that because we disallow duplicate output notes, if this map contains the
+            // original note id, then we can be certain it was created by this batch and should stay
+            // in the tree. In other words, there is no ambiguity where a note originated from.
             if !block_output_notes.contains_key(&original_output_note.id()) {
-                let index = u64::try_from(note_tree_idx).expect(
+                // By construction of the batch note tree, the index of the note in the tree is the
+                // index of the note in the output notes of the batch.
+                let note_tree_idx = u64::try_from(note_tree_idx).expect(
                   "the number of output notes should be less than MAX_OUTPUT_NOTES_PER_BATCH and thus fit into a u64",
               );
                 batch_output_notes_tree
-                    .remove(index)
-                    .expect("the index should be less than MAX_OUTPUT_NOTES_PER_BATCH");
+                    .remove(note_tree_idx)
+                    .expect("the note_tree_idx should be less than MAX_OUTPUT_NOTES_PER_BATCH");
             }
         }
 
-        let batch_idx = u64::try_from(batch_idx)
-            .expect("the index should be less than MAX_BATCHES_PER_BLOCK and thus fit into a u64");
+        let batch_idx = u64::try_from(batch_idx).expect(
+            "the batch index should be less than MAX_BATCHES_PER_BLOCK and thus fit into a u64",
+        );
         block_note_tree
             .insert_batch_note_subtree(batch_idx, batch_output_notes_tree)
             .expect("the batch note tree depth should not exceed the block note tree depth and the index should be less than MAX_BATCHES_PER_BLOCK");
@@ -436,24 +457,6 @@ fn compute_block_note_tree(
 
 // ACCOUNT UPDATE AGGREGATOR
 // ================================================================================================
-
-/// Aggregate all updates for the same account and store each update indexed by its initial
-/// state commitment so we can easily retrieve them later.
-/// This lets us chronologically order the updates per account across batches.
-fn aggregate_account_updates(
-    account_updates: BTreeMap<AccountId, AccountWitness>,
-    batches: &[ProvenBatch],
-) -> Result<Vec<(AccountId, AccountUpdateWitness)>, ProposedBlockError> {
-    let mut update_aggregator = AccountUpdateAggregator::new();
-
-    for batch in batches {
-        for (account_id, update) in batch.account_updates() {
-            update_aggregator.insert_update(*account_id, batch.id(), update.clone())?;
-        }
-    }
-
-    update_aggregator.aggregate_all(account_updates)
-}
 
 struct AccountUpdateAggregator {
     /// The map from each account to the map of each of its updates, where the digest is the state
@@ -466,6 +469,21 @@ struct AccountUpdateAggregator {
 impl AccountUpdateAggregator {
     fn new() -> Self {
         Self { updates: BTreeMap::new() }
+    }
+
+    /// Aggregates all updates for the same account and stores each update indexed by its initial
+    /// state commitment so we can easily retrieve them in the next step. This lets us
+    /// chronologically order the updates per account across batches.
+    fn from_batches(batches: &[ProvenBatch]) -> Result<Self, ProposedBlockError> {
+        let mut update_aggregator = AccountUpdateAggregator::new();
+
+        for batch in batches {
+            for (account_id, update) in batch.account_updates() {
+                update_aggregator.insert_update(*account_id, batch.id(), update.clone())?;
+            }
+        }
+
+        Ok(update_aggregator)
     }
 
     /// Inserts the update from one batch for a specific account into the map of updates.
@@ -493,23 +511,24 @@ impl AccountUpdateAggregator {
     }
 
     /// Consumes self and aggregates the account updates from all contained accounts.
-    fn aggregate_all(
+    /// For each updated account an entry in `account_witnesses` must be present.
+    fn into_update_witnesses(
         self,
-        mut account_updates: BTreeMap<AccountId, AccountWitness>,
+        mut account_witnesses: BTreeMap<AccountId, AccountWitness>,
     ) -> Result<Vec<(AccountId, AccountUpdateWitness)>, ProposedBlockError> {
-        let mut account_witnesses = Vec::with_capacity(self.updates.len());
+        let mut account_update_witnesses = Vec::with_capacity(self.updates.len());
 
         for (account_id, updates_map) in self.updates {
-            let witness = account_updates
+            let witness = account_witnesses
                 .remove(&account_id)
                 .ok_or(ProposedBlockError::MissingAccountWitness(account_id))?;
 
             let account_update_witness = Self::aggregate_account(account_id, witness, updates_map)?;
 
-            account_witnesses.push((account_id, account_update_witness));
+            account_update_witnesses.push((account_id, account_update_witness));
         }
 
-        Ok(account_witnesses)
+        Ok(account_update_witnesses)
     }
 
     /// Build the update for a single account from the provided map of updates, where each entry is

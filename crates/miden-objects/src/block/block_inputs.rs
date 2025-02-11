@@ -25,7 +25,7 @@ pub struct BlockInputs {
     account_witnesses: BTreeMap<AccountId, AccountWitness>,
 
     /// The nullifiers of the notes consumed in the block and their authentication paths.
-    nullifiers: BTreeMap<Nullifier, NullifierWitness>,
+    nullifier_witnesses: BTreeMap<Nullifier, NullifierWitness>,
 
     /// Note inclusion proofs for all unauthenticated notes in the block that are not erased (i.e.
     /// created and consumed within the block).
@@ -38,14 +38,14 @@ impl BlockInputs {
         prev_block_header: BlockHeader,
         chain_mmr: ChainMmr,
         account_witnesses: BTreeMap<AccountId, AccountWitness>,
-        nullifiers: BTreeMap<Nullifier, NullifierWitness>,
+        nullifier_witnesses: BTreeMap<Nullifier, NullifierWitness>,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Self {
         Self {
             prev_block_header,
             chain_mmr,
             account_witnesses,
-            nullifiers,
+            nullifier_witnesses,
             unauthenticated_note_proofs,
         }
     }
@@ -66,8 +66,8 @@ impl BlockInputs {
     }
 
     /// Returns a reference to the nullifier witnesses.
-    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
-        &self.nullifiers
+    pub fn nullifier_witnesses(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
+        &self.nullifier_witnesses
     }
 
     /// Returns a reference to the note inclusion proofs.
@@ -90,7 +90,7 @@ impl BlockInputs {
             self.prev_block_header,
             self.chain_mmr,
             self.account_witnesses,
-            self.nullifiers,
+            self.nullifier_witnesses,
             self.unauthenticated_note_proofs,
         )
     }
