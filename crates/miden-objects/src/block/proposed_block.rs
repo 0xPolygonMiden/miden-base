@@ -3,6 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
+use miden_crypto::merkle::SmtLeaf;
 use vm_core::EMPTY_WORD;
 use vm_processor::Digest;
 
@@ -233,7 +234,9 @@ impl ProposedBlock {
 
     /// Returns the block number of this proposed block.
     pub fn block_num(&self) -> BlockNumber {
-        self.chain_mmr().chain_length()
+        // The chain length is the length at the state of the previous block header, so we have to
+        // add one.
+        self.chain_mmr().chain_length() + 1
     }
 
     /// Returns a reference to the slice of batches in this block.
@@ -330,17 +333,24 @@ fn check_nullifiers(
     for batch_nullifier in batch_nullifiers {
         match block_inputs.nullifier_witnesses().get(&batch_nullifier) {
             Some(witness) => {
-                let (_, nullifier_value) = witness
-                    .proof()
-                    .leaf()
-                    .entries()
-                    .iter()
-                    .find(|(key, _)| *key == batch_nullifier.inner())
-                    .ok_or(ProposedBlockError::NullifierProofMissing(batch_nullifier))?;
+                match witness.proof().leaf() {
+                    // If the leaf is of variant Empty, the nullifier is unspent.
+                    SmtLeaf::Empty(_) => (),
+                    // If the leaf is of variant Single or Multiple, we have to check the value of
+                    // the entry.
+                    _ => {
+                        let (_, nullifier_value) = witness
+                            .proof()
+                            .leaf()
+                            .entries()
+                            .iter()
+                            .find(|(key, _)| *key == batch_nullifier.inner())
+                            .ok_or(ProposedBlockError::NullifierProofMissing(batch_nullifier))?;
 
-                // Check if the nullifier is spent by comparing with EMPTY_WORD.
-                if *nullifier_value != EMPTY_WORD {
-                    return Err(ProposedBlockError::NullifierSpent(batch_nullifier));
+                        if *nullifier_value != EMPTY_WORD {
+                            return Err(ProposedBlockError::NullifierSpent(batch_nullifier));
+                        }
+                    },
                 }
             },
             None => return Err(ProposedBlockError::NullifierProofMissing(batch_nullifier)),
