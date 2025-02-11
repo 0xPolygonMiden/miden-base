@@ -17,8 +17,8 @@ use super::{
 };
 use crate::{
     account::{
-        AccountCode, AccountIdPrefix, AccountStorage, AccountType, StorageValueError,
-        StorageValueName, StorageValueNameError,
+        AccountCode, AccountIdPrefix, AccountStorage, AccountType, StorageValueName,
+        StorageValueNameError, TemplateTypeError,
     },
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
@@ -51,7 +51,7 @@ pub enum AccountComponentTemplateError {
     #[error("error trying to deserialize from toml")]
     SerializationError(#[source] toml::ser::Error),
     #[error("error converting value into expected type: ")]
-    StorageValueParsingError(#[source] StorageValueError),
+    StorageValueParsingError(#[source] TemplateTypeError),
     #[error("storage map contains duplicate key `{0}`")]
     StorageMapHasDuplicateKeys(Digest),
     #[error("component storage slots have to start at 0, but they start at {0}")]

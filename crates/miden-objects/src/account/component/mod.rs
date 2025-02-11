@@ -6,8 +6,8 @@ use vm_processor::MastForest;
 mod template;
 pub use template::{
     AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation, FeltType,
-    InitStorageData, MapEntry, StorageEntry, StorageValueError, StorageValueName,
-    StorageValueNameError, WordRepresentation, WordType,
+    InitStorageData, MapEntry, StorageEntry, StorageValueName, StorageValueNameError,
+    TemplateTypeError, WordRepresentation, WordType,
 };
 
 use crate::{

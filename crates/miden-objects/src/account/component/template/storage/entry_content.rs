@@ -72,8 +72,7 @@ impl WordRepresentation {
 
     /// Returns the name associated with the word representation.
     /// - For the `Template` variant, it always returns a reference to the name.
-    /// - For the `Value` variant, it returns `Some(&str)` if a name is present, or `None`
-    ///   otherwise.
+    /// - For the `Value` variant, it returns `Some` if a name is present, or `None` otherwise.
     pub fn name(&self) -> Option<&StorageValueName> {
         match self {
             WordRepresentation::Template { name, .. } => Some(name),
@@ -98,7 +97,7 @@ impl WordRepresentation {
         }
     }
 
-    /// Returns the default value (an array of 4 `FeltRepresentation`s) if this is a `Value`
+    /// Returns the value (an array of 4 `FeltRepresentation`s) if this is a `Value`
     /// variant; otherwise, returns `None`.
     pub fn value(&self) -> Option<&[FeltRepresentation; 4]> {
         match self {
@@ -152,7 +151,10 @@ impl WordRepresentation {
                 let placeholder_prefix = placeholder_prefix.with_suffix(placeholder_key);
                 let value = init_storage_data.get(&placeholder_prefix);
                 if let Some(v) = value {
-                    let parsed_value = r#type.try_parse_word(v).unwrap();
+                    let parsed_value = r#type
+                        .try_parse_word(v)
+                        .map_err(AccountComponentTemplateError::StorageValueParsingError)?;
+
                     Ok(parsed_value)
                 } else {
                     Err(AccountComponentTemplateError::PlaceholderValueNotProvided(

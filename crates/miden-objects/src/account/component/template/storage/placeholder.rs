@@ -77,17 +77,17 @@ impl StorageValueName {
     #[must_use]
     pub fn with_suffix(self, suffix: &StorageValueName) -> StorageValueName {
         let mut key = self;
-        if !suffix.inner().is_empty() {
-            if !key.inner().is_empty() {
+        if !suffix.as_str().is_empty() {
+            if !key.as_str().is_empty() {
                 key.fully_qualified_name.push('.');
             }
-            key.fully_qualified_name.push_str(&suffix.to_string());
+            key.fully_qualified_name.push_str(suffix.as_str());
         }
 
         key
     }
 
-    pub fn inner(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.fully_qualified_name
     }
 
@@ -95,22 +95,22 @@ impl StorageValueName {
         if segment.is_empty() {
             return Err(StorageValueNameError::EmptySegment);
         }
-        if !segment.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+        if let Some(offending_char) =
+            segment.chars().find(|&c| !(c.is_ascii_alphanumeric() || c == '_' || c == '-'))
+        {
             return Err(StorageValueNameError::InvalidCharacter {
                 part: segment.to_string(),
-                character: segment
-                    .chars()
-                    .find(|c| !(c.is_ascii_alphanumeric() || *c == '_' || *c == '-'))
-                    .unwrap(),
+                character: offending_char,
             });
         }
+
         Ok(())
     }
 }
 
 impl Display for StorageValueName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.inner())
+        f.write_str(self.as_str())
     }
 }
 
@@ -163,7 +163,7 @@ pub trait TemplateType: alloc::fmt::Debug + ToString {
     /// # Errors
     ///
     /// Returns a [`StorageValueError`] if the string cannot be parsed into a [`Felt`].
-    fn try_parse_felt(&self, value: &str) -> Result<Felt, StorageValueError>;
+    fn try_parse_felt(&self, value: &str) -> Result<Felt, TemplateTypeError>;
 
     /// Attempts to parse the given string into a vector of [`Word`]s.
     ///
@@ -171,7 +171,7 @@ pub trait TemplateType: alloc::fmt::Debug + ToString {
     ///
     /// Returns a [`StorageValueError`] if the string cannot be parsed into the expected vector
     /// of [`Word`]s.
-    fn try_parse_words(&self, value: &str) -> Result<Vec<Word>, StorageValueError>;
+    fn try_parse_words(&self, value: &str) -> Result<Vec<Word>, TemplateTypeError>;
 
     /// Attempts to parse the given string into a single [`Word`].
     ///
@@ -182,35 +182,35 @@ pub trait TemplateType: alloc::fmt::Debug + ToString {
     ///
     /// Returns a [`StorageValueError::TypeArityMismatch`] if the parsed result does not have
     /// exactly one element.
-    fn try_parse_word(&self, value: &str) -> Result<Word, StorageValueError> {
+    fn try_parse_word(&self, value: &str) -> Result<Word, TemplateTypeError> {
         let mut words = self.try_parse_words(value)?;
         if words.len() != 1 {
-            return Err(StorageValueError::TypeArityMismatch);
+            return Err(TemplateTypeError::TypeArityMismatch);
         }
         Ok(words.pop().expect("checked that there's one value"))
     }
 }
 
 impl TemplateType for FeltType {
-    fn try_parse_felt(&self, value: &str) -> Result<Felt, StorageValueError> {
+    fn try_parse_felt(&self, value: &str) -> Result<Felt, TemplateTypeError> {
         self.parse_value(value)
     }
 
-    fn try_parse_words(&self, value: &str) -> Result<Vec<Word>, StorageValueError> {
+    fn try_parse_words(&self, value: &str) -> Result<Vec<Word>, TemplateTypeError> {
         let felt = self.parse_value(value)?;
         Ok(vec![[Felt::ZERO, Felt::ZERO, Felt::ZERO, felt]])
     }
 }
 
 impl TemplateType for WordType {
-    fn try_parse_felt(&self, value: &str) -> Result<Felt, StorageValueError> {
+    fn try_parse_felt(&self, value: &str) -> Result<Felt, TemplateTypeError> {
         match self {
             WordType::FeltType(ft) => ft.try_parse_felt(value),
-            _ => Err(StorageValueError::TypeArityMismatch),
+            _ => Err(TemplateTypeError::TypeArityMismatch),
         }
     }
 
-    fn try_parse_words(&self, value: &str) -> Result<Vec<Word>, StorageValueError> {
+    fn try_parse_words(&self, value: &str) -> Result<Vec<Word>, TemplateTypeError> {
         match self {
             WordType::FeltType(ft) => {
                 let felt = ft.parse_value(value)?;
@@ -218,7 +218,7 @@ impl TemplateType for WordType {
             },
             WordType::Words(1) => {
                 let word = parse_hex_string_as_word(value).map_err(|e| {
-                    StorageValueError::ParseError(WordType::Words(1).to_string(), e.to_string())
+                    TemplateTypeError::ParseError(WordType::Words(1).to_string(), e.to_string())
                 })?;
                 Ok(vec![word])
             },
@@ -245,25 +245,25 @@ pub enum FeltType {
 }
 
 impl FeltType {
-    pub fn parse_value(&self, value_str: &str) -> Result<Felt, StorageValueError> {
+    pub fn parse_value(&self, value_str: &str) -> Result<Felt, TemplateTypeError> {
         let felt = match self {
             FeltType::U8 => Felt::from(value_str.parse::<u8>().map_err(|_| {
-                StorageValueError::ParseError(value_str.to_string(), self.to_string())
+                TemplateTypeError::ParseError(value_str.to_string(), self.to_string())
             })?),
             FeltType::U16 => Felt::from(value_str.parse::<u16>().map_err(|_| {
-                StorageValueError::ParseError(value_str.to_string(), self.to_string())
+                TemplateTypeError::ParseError(value_str.to_string(), self.to_string())
             })?),
             FeltType::U32 => Felt::from(value_str.parse::<u32>().map_err(|_| {
-                StorageValueError::ParseError(value_str.to_string(), self.to_string())
+                TemplateTypeError::ParseError(value_str.to_string(), self.to_string())
             })?),
             FeltType::Felt => parse_felt_from_str(value_str).map_err(|_| {
-                StorageValueError::ParseError(
+                TemplateTypeError::ParseError(
                     FeltType::TokenSymbol.to_string(),
                     value_str.to_string(),
                 )
             })?,
             FeltType::TokenSymbol => Felt::from(TokenSymbol::new(value_str).map_err(|_| {
-                StorageValueError::ParseError(FeltType::TokenSymbol.to_string(), self.to_string())
+                TemplateTypeError::ParseError(FeltType::TokenSymbol.to_string(), self.to_string())
             })?),
         };
         Ok(felt)
@@ -444,7 +444,7 @@ impl From<WordType> for String {
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum StorageValueError {
+pub enum TemplateTypeError {
     #[error("failed to convert type into felt: {0}")]
     ConversionError(String),
     #[error("failed to parse string `{0}` as `{1}`")]

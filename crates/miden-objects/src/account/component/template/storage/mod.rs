@@ -14,8 +14,8 @@ use crate::account::StorageSlot;
 
 mod placeholder;
 pub use placeholder::{
-    FeltType, PlaceholderTypeRequirement, StorageValueError, StorageValueName,
-    StorageValueNameError, WordType,
+    FeltType, PlaceholderTypeRequirement, StorageValueName, StorageValueNameError,
+    TemplateTypeError, WordType,
 };
 
 mod init_storage_data;
@@ -333,7 +333,7 @@ mod tests {
                 StorageValueName,
             },
             AccountComponent, AccountComponentTemplate, AccountType, FeltRepresentation,
-            StorageEntry, StorageSlot, StorageValueError, WordRepresentation,
+            StorageEntry, StorageSlot, TemplateTypeError, WordRepresentation,
         },
         digest,
         errors::AccountComponentTemplateError,
@@ -435,7 +435,7 @@ mod tests {
             name: "Test Component".into(),
             description: "This is a test component".into(),
             version: Version::parse("1.0.0").unwrap(),
-            targets: std::collections::BTreeSet::from([AccountType::FungibleFaucet]),
+            supported_types: std::collections::BTreeSet::from([AccountType::FungibleFaucet]),
             storage,
         };
         let toml = config.as_toml().unwrap();
@@ -450,7 +450,7 @@ mod tests {
         name = "Test Component"
         description = "This is a test component"
         version = "1.0.1"
-        targets = ["FungibleFaucet", "RegularAccountImmutableCode"]
+        supported-types = ["FungibleFaucet", "RegularAccountImmutableCode"]
 
         [[storage]]
         name = "map_entry"
@@ -479,15 +479,21 @@ mod tests {
         "#;
 
         let component_metadata = AccountComponentMetadata::from_toml(toml_text).unwrap();
-        for (key, requirement) in component_metadata.get_template_requirements().iter() {
-            match key.as_str() {
-                "token_metadata.max_supply"
-                | "token_metadata.decimals"
-                | "default_recallable_height" => continue,
-                "map_entry.map_key_template" => assert!(requirement.r#type.to_string() == "word"),
-                _ => panic!("all cases should have been covered"),
-            }
-        }
+        let requirements = component_metadata.get_template_requirements();
+
+        assert_eq!(requirements.len(), 4);
+
+        let supply = requirements.get("token_metadata.max_supply").unwrap();
+        assert_eq!(supply.r#type.to_string(), "felt");
+
+        let decimals = requirements.get("token_metadata.decimals").unwrap();
+        assert_eq!(decimals.r#type.to_string(), "u8");
+
+        let default_recallable_height = requirements.get("default_recallable_height").unwrap();
+        assert_eq!(default_recallable_height.r#type.to_string(), "u32");
+
+        let map_key_template = requirements.get("map_entry.map_key_template").unwrap();
+        assert_eq!(map_key_template.r#type.to_string(), "word");
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
         let template = AccountComponentTemplate::new(component_metadata, library);
@@ -517,7 +523,7 @@ mod tests {
             component,
             Err(AccountError::AccountComponentTemplateInstantiationError(
                 AccountComponentTemplateError::StorageValueParsingError(
-                    StorageValueError::ParseError(_, _)
+                    TemplateTypeError::ParseError(_, _)
                 )
             ))
         );

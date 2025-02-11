@@ -138,7 +138,7 @@ impl Deserializable for AccountComponentTemplate {
 ///     "description of the component".into(),
 ///     Version::parse("0.1.0")?,
 ///     BTreeSet::new(),
-///     vec![],
+///     vec![storage_entry],
 /// )?;
 ///
 /// let library = Assembler::default().assemble_library([CODE]).unwrap();
@@ -150,6 +150,7 @@ impl Deserializable for AccountComponentTemplate {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "std", serde(rename_all = "kebab-case"))]
 pub struct AccountComponentMetadata {
     /// The human-readable name of the component.
     name: String,
@@ -162,7 +163,7 @@ pub struct AccountComponentMetadata {
     version: Version,
 
     /// A set of supported target account types for this component.
-    targets: BTreeSet<AccountType>,
+    supported_types: BTreeSet<AccountType>,
 
     /// A list of storage entries defining the component's storage layout and initialization
     /// values.
@@ -188,7 +189,7 @@ impl AccountComponentMetadata {
             name,
             description,
             version,
-            targets,
+            supported_types: targets,
             storage,
         };
         component.validate()?;
@@ -232,7 +233,7 @@ impl AccountComponentMetadata {
 
     /// Returns the account types supported by the component.
     pub fn targets(&self) -> &BTreeSet<AccountType> {
-        &self.targets
+        &self.supported_types
     }
 
     /// Returns the list of storage entries of the component.
@@ -291,7 +292,7 @@ impl Serializable for AccountComponentMetadata {
         self.name.write_into(target);
         self.description.write_into(target);
         self.version.to_string().write_into(target);
-        self.targets.write_into(target);
+        self.supported_types.write_into(target);
         self.storage.write_into(target);
     }
 }
@@ -304,7 +305,7 @@ impl Deserializable for AccountComponentMetadata {
             version: semver::Version::from_str(&String::read_from(source)?).map_err(
                 |err: semver::Error| DeserializationError::InvalidValue(err.to_string()),
             )?,
-            targets: BTreeSet::<AccountType>::read_from(source)?,
+            supported_types: BTreeSet::<AccountType>::read_from(source)?,
             storage: Vec::<StorageEntry>::read_from(source)?,
         })
     }
@@ -367,7 +368,7 @@ mod tests {
             name: "test".into(),
             description: "desc".into(),
             version: Version::parse("0.1.0").unwrap(),
-            targets: BTreeSet::new(),
+            supported_types: BTreeSet::new(),
             storage,
         };
 
@@ -409,7 +410,7 @@ mod tests {
             name: "test".into(),
             description: "desc".into(),
             version: Version::parse("0.1.0").unwrap(),
-            targets: BTreeSet::new(),
+            supported_types: BTreeSet::new(),
             storage,
         };
 
@@ -429,7 +430,7 @@ mod tests {
             name = "Test Component"
             description = "This is a test component"
             version = "1.0.1"
-            targets = ["FungibleFaucet"]
+            supported-types = ["FungibleFaucet"]
 
             [[storage]]
             name = "map"
@@ -451,7 +452,7 @@ mod tests {
             name = "Test Component"
             description = "This is a test component"
             version = "1.0.1"
-            targets = ["FungibleFaucet"]
+            supported-types = ["FungibleFaucet"]
 
             [[storage]]
             name = "map"
