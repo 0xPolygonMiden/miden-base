@@ -622,8 +622,12 @@ pub enum ProposedBlockError {
     #[error("block inputs do not contain a proof of inclusion for account {0}")]
     MissingAccountWitness(AccountId),
 
-    #[error("account {0} with state {1} cannot transition to any of the remaining states {2:?}")]
-    InconsistentAccountStateTransition(AccountId, Digest, Vec<Digest>),
+    #[error("account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}")]
+    InconsistentAccountStateTransition {
+        account_id: AccountId,
+        state_commitment: Digest,
+        remaining_state_commitments: Vec<Digest>,
+    },
 
     #[error("no proof for nullifier {0} was provided")]
     NullifierProofMissing(Nullifier),

@@ -547,11 +547,11 @@ impl AccountUpdateAggregator {
         let mut current_commitment = initial_state_commitment;
         while !updates.is_empty() {
             let (update, _) = updates.remove(&current_commitment).ok_or_else(|| {
-                ProposedBlockError::InconsistentAccountStateTransition(
+                ProposedBlockError::InconsistentAccountStateTransition {
                     account_id,
-                    current_commitment,
-                    updates.keys().copied().collect(),
-                )
+                    state_commitment: current_commitment,
+                    remaining_state_commitments: updates.keys().copied().collect(),
+                }
             })?;
 
             current_commitment = update.final_state_commitment();

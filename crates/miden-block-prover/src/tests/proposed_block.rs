@@ -7,6 +7,7 @@ use miden_objects::{
     block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
     note::{NoteExecutionHint, NoteInclusionProof, NoteTag, NoteType},
     testing::{account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, note::NoteBuilder, prepare_word},
+    transaction::ProvenTransaction,
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
 use miden_tx::testing::Auth;
@@ -16,7 +17,7 @@ use vm_core::{assert_matches, Felt};
 use crate::tests::utils::{
     generate_account, generate_batch, generate_executed_tx, generate_fungible_asset, generate_note,
     generate_note_with_asset, generate_tx, generate_tx_with_unauthenticated_notes,
-    generate_untracked_note, setup_chain, setup_chain_with_auth, TestSetup,
+    generate_untracked_note, setup_chain, setup_chain_with_auth, ProvenTransactionExt, TestSetup,
 };
 
 #[test]
@@ -599,6 +600,74 @@ fn proposed_block_fails_on_missing_account_witness() -> anyhow::Result<()> {
 
     let error = ProposedBlock::new(block_inputs, batches.clone()).unwrap_err();
     assert_matches!(error, ProposedBlockError::MissingAccountWitness(account_id) if account_id == account0.id());
+
+    Ok(())
+}
+
+#[test]
+fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Result<()> {
+    // We need authentication because we're modifying accounts with the input notes.
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_with_auth(2);
+    let asset = generate_fungible_asset(
+        100,
+        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+    );
+
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    let note0 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
+    let note1 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
+    let note2 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
+
+    // Add notes to the chain.
+    chain.seal_block(None);
+
+    // Create three transactions on the same account that build on top of each other.
+    // The MockChain only updates the account state when sealing a block, but we don't want the
+    // transactions to actually be added to the chain because of unintended side effects like spent
+    // nullifiers. So we create an alternative chain on which we generate the transactions, but
+    // then actually use the transactions on the original chain.
+    let mut alternative_chain = chain.clone();
+    let executed_tx0 = generate_executed_tx(&mut alternative_chain, account1.id(), &[note0.id()]);
+    alternative_chain.apply_executed_transaction(&executed_tx0);
+    alternative_chain.seal_block(None);
+
+    let executed_tx1 = generate_executed_tx(&mut alternative_chain, account1.id(), &[note1.id()]);
+    alternative_chain.apply_executed_transaction(&executed_tx1);
+    alternative_chain.seal_block(None);
+
+    let executed_tx2 = generate_executed_tx(&mut alternative_chain, account1.id(), &[note2.id()]);
+    alternative_chain.apply_executed_transaction(&executed_tx2);
+
+    // We will only include tx0 and tx2 and leave out tx1, which will trigger the error condition
+    // that there is no transition from tx0 -> tx2.
+    let tx0 = ProvenTransaction::from_executed_transaction_mocked(
+        &account1,
+        executed_tx0.clone(),
+        &chain.latest_block_header(),
+    );
+    let tx2 = ProvenTransaction::from_executed_transaction_mocked(
+        &account1,
+        executed_tx2.clone(),
+        &chain.latest_block_header(),
+    );
+
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+    let batch1 = generate_batch(&mut chain, vec![tx2]);
+
+    let batches = vec![batch0.clone(), batch1.clone()];
+    let block_inputs = chain.get_block_inputs(&batches);
+
+    let error = ProposedBlock::new(block_inputs, batches).unwrap_err();
+    assert_matches!(error, ProposedBlockError::InconsistentAccountStateTransition {
+      account_id,
+      state_commitment,
+      remaining_state_commitments
+    } if account_id == account1.id() &&
+      state_commitment == executed_tx0.final_account().hash() &&
+      remaining_state_commitments == [executed_tx2.initial_account().hash()]
+    );
 
     Ok(())
 }
