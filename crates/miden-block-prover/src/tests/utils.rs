@@ -5,7 +5,7 @@ use miden_crypto::rand::RpoRandomCoin;
 use miden_lib::note::create_p2id_note;
 use miden_objects::{
     self,
-    account::{Account, AccountId},
+    account::{delta::AccountUpdateDetails, Account, AccountDelta, AccountId},
     asset::Asset,
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
@@ -59,21 +59,31 @@ pub fn generate_executed_tx(
 
 pub fn generate_tx(
     chain: &mut MockChain,
-    account: AccountId,
+    account_id: AccountId,
     notes: &[NoteId],
 ) -> ProvenTransaction {
-    let executed_tx1 = generate_executed_tx(chain, account, notes);
-    ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
+    let executed_tx1 = generate_executed_tx(chain, account_id, notes);
+    let account = chain.available_account(account_id);
+    ProvenTransaction::from_executed_transaction_mocked(
+        account,
+        executed_tx1,
+        &chain.latest_block_header(),
+    )
 }
 
 pub fn generate_tx_with_unauthenticated_notes(
     chain: &mut MockChain,
-    account: AccountId,
+    account_id: AccountId,
     notes: &[Note],
 ) -> ProvenTransaction {
-    let tx1_context = chain.build_tx_context(account, &[], notes).build();
+    let tx1_context = chain.build_tx_context(account_id, &[], notes).build();
     let executed_tx1 = tx1_context.execute().unwrap();
-    ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
+    let account = chain.available_account(account_id);
+    ProvenTransaction::from_executed_transaction_mocked(
+        account,
+        executed_tx1,
+        &chain.latest_block_header(),
+    )
 }
 
 pub fn generate_batch(chain: &mut MockChain, txs: Vec<ProvenTransaction>) -> ProvenBatch {
@@ -109,6 +119,7 @@ pub fn setup_chain(num_accounts: usize) -> TestSetup {
 
 pub trait ProvenTransactionExt {
     fn from_executed_transaction_mocked(
+        account: &Account,
         executed_tx: ExecutedTransaction,
         block_reference: &BlockHeader,
     ) -> ProvenTransaction;
@@ -116,9 +127,24 @@ pub trait ProvenTransactionExt {
 
 impl ProvenTransactionExt for ProvenTransaction {
     fn from_executed_transaction_mocked(
+        account: &Account,
         executed_tx: ExecutedTransaction,
         block_reference: &BlockHeader,
     ) -> ProvenTransaction {
+        let account_delta = executed_tx.account_delta().clone();
+        let account_update_details = if account.is_public() {
+            if account.is_new() {
+                let mut account = account.clone();
+                account.apply_delta(&account_delta).expect("account delta should be applyable");
+
+                AccountUpdateDetails::New(account)
+            } else {
+                AccountUpdateDetails::Delta(account_delta)
+            }
+        } else {
+            AccountUpdateDetails::Private
+        };
+
         ProvenTransactionBuilder::new(
             executed_tx.account_id(),
             executed_tx.initial_account().init_hash(),
@@ -130,6 +156,7 @@ impl ProvenTransactionExt for ProvenTransaction {
         )
         .add_input_notes(executed_tx.input_notes())
         .add_output_notes(executed_tx.output_notes().iter().cloned())
+        .account_update_details(account_update_details)
         .build()
         .unwrap()
     }

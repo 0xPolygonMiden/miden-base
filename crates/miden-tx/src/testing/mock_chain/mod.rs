@@ -1029,6 +1029,14 @@ impl MockChain {
         &self.available_notes
     }
 
+    /// Returns a reference to the map of account IDs to the accounts.
+    pub fn available_account(&self, account_id: AccountId) -> &Account {
+        self.available_accounts
+            .get(&account_id)
+            .expect("account should be available")
+            .account()
+    }
+
     /// Get the reference to the accounts hash tree.
     pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
         &self.accounts
