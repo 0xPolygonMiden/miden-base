@@ -3,7 +3,6 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_crypto::merkle::SmtLeaf;
 use vm_core::EMPTY_WORD;
 use vm_processor::Digest;
 
