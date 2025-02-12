@@ -4,12 +4,11 @@ use miden_crypto::{
     hash::rpo::RpoDigest,
     merkle::{LeafIndex, MerkleError, SimpleSmt},
 };
-use vm_core::EMPTY_WORD;
 
 use crate::{
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BATCH_NOTE_TREE_DEPTH,
+    BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
 };
 
 /// Wrapper over [SimpleSmt<BATCH_NOTE_TREE_DEPTH>] for batch note tree.

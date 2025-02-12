@@ -1,15 +1,10 @@
 use alloc::{string::String, vec::Vec};
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    Felt, ZERO,
-};
-
 use crate::{
     account::AccountId,
     transaction::{ProvenTransaction, TransactionId},
-    utils::DeserializationError,
-    Digest, Hasher,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest, Felt, Hasher, ZERO,
 };
 
 // BATCH ID
