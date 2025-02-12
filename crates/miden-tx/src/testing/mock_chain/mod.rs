@@ -500,8 +500,9 @@ impl MockChain {
     {
         let batches: Vec<_> = batches.into_iter().collect();
         let block_inputs = self.get_block_inputs(batches.iter());
+        let timestamp = block_inputs.prev_block_header().timestamp() + 1;
 
-        let proposed_block = ProposedBlock::new(block_inputs, batches)?;
+        let proposed_block = ProposedBlock::new_at(block_inputs, batches, timestamp)?;
 
         Ok(proposed_block)
     }

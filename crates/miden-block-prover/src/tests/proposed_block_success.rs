@@ -1,9 +1,8 @@
 use std::collections::BTreeMap;
 
-use anyhow::Context;
 use miden_objects::block::ProposedBlock;
 
-use crate::tests::utils::{setup_chain_without_auth, TestSetup};
+use crate::tests::utils::{generate_batch, setup_chain_without_auth, TestSetup};
 
 #[test]
 fn proposed_block_basic_success() -> anyhow::Result<()> {
@@ -13,15 +12,8 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
     let proven_tx0 = txs.remove(&0).unwrap();
     let proven_tx1 = txs.remove(&1).unwrap();
 
-    let batch0 = chain
-        .propose_transaction_batch([proven_tx0.clone()])
-        .map(|batch| chain.prove_transaction_batch(batch))
-        .context("failed to propose transaction batch")?;
-
-    let batch1 = chain
-        .propose_transaction_batch([proven_tx1.clone()])
-        .map(|batch| chain.prove_transaction_batch(batch))
-        .context("failed to propose transaction batch")?;
+    let batch0 = generate_batch(&mut chain, vec![proven_tx0.clone()]);
+    let batch1 = generate_batch(&mut chain, vec![proven_tx1.clone()]);
 
     let batches = [batch0, batch1];
     let block_inputs = chain.get_block_inputs(&batches);
