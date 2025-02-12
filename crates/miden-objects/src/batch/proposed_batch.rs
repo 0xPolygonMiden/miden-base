@@ -367,12 +367,6 @@ impl Serializable for ProposedBatch {
         self.block_header.write_into(target);
         self.chain_mmr.write_into(target);
         self.unauthenticated_note_proofs.write_into(target);
-        self.id.write_into(target);
-        self.account_updates.write_into(target);
-        self.batch_expiration_block_num.write_into(target);
-        self.input_notes.write_into(target);
-        self.output_notes_tree.write_into(target);
-        self.output_notes.write_into(target);
     }
 }
 
@@ -387,25 +381,13 @@ impl Deserializable for ProposedBatch {
         let chain_mmr = ChainMmr::read_from(source)?;
         let unauthenticated_note_proofs =
             BTreeMap::<NoteId, NoteInclusionProof>::read_from(source)?;
-        let id = BatchId::read_from(source)?;
-        let account_updates = BTreeMap::<AccountId, BatchAccountUpdate>::read_from(source)?;
-        let batch_expiration_block_num = BlockNumber::read_from(source)?;
-        let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
-        let output_notes_tree = BatchNoteTree::read_from(source)?;
-        let output_notes = Vec::<OutputNote>::read_from(source)?;
 
-        Ok(Self {
-            transactions,
-            block_header,
-            chain_mmr,
-            unauthenticated_note_proofs,
-            id,
-            account_updates,
-            batch_expiration_block_num,
-            input_notes,
-            output_notes,
-            output_notes_tree,
-        })
+        ProposedBatch::new(transactions, block_header, chain_mmr, unauthenticated_note_proofs)
+            .map_err(|source| {
+                DeserializationError::UnknownError(format!(
+                    "failed to create proposed batch: {source}"
+                ))
+            })
     }
 }
 
