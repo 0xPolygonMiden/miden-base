@@ -20,6 +20,7 @@ use crate::tests::utils::{
     setup_chain_without_auth, ProvenTransactionExt, TestSetup,
 };
 
+/// Tests that empty batches produce an error.
 #[test]
 fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
     let TestSetup { chain, .. } = setup_chain_without_auth(2);
@@ -38,6 +39,7 @@ fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that too many batches produce an error.
 #[test]
 fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
     let count = MAX_BATCHES_PER_BLOCK;
@@ -72,6 +74,7 @@ fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that duplicate batches produce an error.
 #[test]
 fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
@@ -95,6 +98,7 @@ fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that a timestamp at or before the previous block header produces an error.
 #[test]
 fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
@@ -123,6 +127,7 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
     Ok(())
 }
 
+/// Tests that a chain MMR that is not at the state of the previous block header produces an error.
 #[test]
 fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
@@ -171,6 +176,8 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
     Ok(())
 }
 
+/// Tests that a chain MMR that does not contain all reference blocks of the batches produces an
+/// error.
 #[test]
 fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
@@ -207,6 +214,7 @@ fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()>
     Ok(())
 }
 
+/// Tests that duplicate input notes across batches produce an error.
 #[test]
 fn proposed_block_fails_on_duplicate_input_note() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
@@ -240,6 +248,7 @@ fn proposed_block_fails_on_duplicate_input_note() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that duplicate output notes across batches produce an error.
 #[test]
 fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(1);
@@ -252,6 +261,7 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
         .build(&TransactionKernel::assembler())
         .unwrap();
 
+    // A note script that always creates the same note.
     let code = format!(
         "
       use.test::account
@@ -295,6 +305,9 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
     chain.seal_block(None);
 
     // Create two different transactions against the same account creating the same note.
+    // We use the same account because the sender of the created output note is set to the account
+    // of the transaction, so it is essential we use the same account to produce a duplicate output
+    // note.
     let tx0 = generate_tx_with_authenticated_notes(&mut chain, account.id(), &[note0.id()]);
     let tx1 = generate_tx_with_authenticated_notes(&mut chain, account.id(), &[note1.id()]);
 
@@ -311,6 +324,9 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that a missing note inclusion proof produces an error.
+/// Also tests that an error is produced if the block that the note inclusion proof references is
+/// not in the chain MMR.
 #[test]
 fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_block(
 ) -> anyhow::Result<()> {
@@ -386,6 +402,7 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
     Ok(())
 }
 
+/// Tests that a missing note inclusion proof produces an error.
 #[test]
 fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
@@ -411,6 +428,7 @@ fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> 
     Ok(())
 }
 
+/// Tests that a missing nullifier witness produces an error.
 #[test]
 fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
@@ -449,6 +467,7 @@ fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that a nullifier witness pointing to a spent nullifier produces an error.
 #[test]
 fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
@@ -490,6 +509,8 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that multiple transactions against the same account that start from the same initial state
+/// commitment but produce different final state commitments produce an error.
 #[test]
 fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> anyhow::Result<()> {
     // We need authentication because we're modifying accounts with the input notes.
@@ -538,6 +559,7 @@ fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> a
     Ok(())
 }
 
+/// Tests that a missing account witness produces an error.
 #[test]
 fn proposed_block_fails_on_missing_account_witness() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain_without_auth(2);
@@ -562,6 +584,8 @@ fn proposed_block_fails_on_missing_account_witness() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Tests that, given three transactions 0 -> 1 -> 2 which are executed against the same account and
+/// build on top of each other produce an error when tx 1 is missing from the block.
 #[test]
 fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Result<()> {
     // We need authentication because we're modifying accounts with the input notes.
