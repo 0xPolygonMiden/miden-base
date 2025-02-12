@@ -670,6 +670,52 @@ fn test_build_recipient_hash() {
     );
 }
 
+// BLOCK TESTS
+// ================================================================================================
+
+#[test]
+fn test_block_procedures() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    let code = "
+        use.miden::tx
+        use.kernel::prologue
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # get the block data
+            exec.tx::get_block_number
+            exec.tx::get_block_timestamp
+            exec.tx::get_block_hash
+            # => [BLOCK_HASH, block_timestamp, block_number]
+
+            # truncate the stack
+            swapdw dropw dropw
+        end
+        ";
+
+    let process = &tx_context.execute_code(code).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        tx_context.tx_inputs().block_header().hash().as_elements(),
+        "top word on the stack should be equal to the block header commitment"
+    );
+
+    assert_eq!(
+        process.stack.get(4).as_int(),
+        tx_context.tx_inputs().block_header().timestamp() as u64,
+        "fifth element on the stack should be equal to the timestamp of the last block creation"
+    );
+
+    assert_eq!(
+        process.stack.get(5).as_int(),
+        tx_context.tx_inputs().block_header().block_num().as_u64(),
+        "sixth element on the stack should be equal to the block number"
+    );
+}
+
 // FOREIGN PROCEDURE INVOCATION TESTS
 // ================================================================================================
 

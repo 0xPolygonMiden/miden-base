@@ -2,9 +2,12 @@ use alloc::vec::Vec;
 
 use miden_crypto::{
     hash::rpo::RpoDigest,
-    merkle::{MerkleError, SimpleSmt},
+    merkle::{LeafIndex, MerkleError, SimpleSmt},
 };
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    EMPTY_WORD,
+};
 use vm_processor::DeserializationError;
 
 use crate::{
@@ -43,6 +46,25 @@ impl BatchNoteTree {
     /// Returns the number of non-empty leaves in this tree.
     pub fn num_leaves(&self) -> usize {
         self.0.num_leaves()
+    }
+
+    /// Removes the note at the given `index` form the tree by inserting [`EMPTY_WORD`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the `index` is equal to or exceeds
+    ///   [`MAX_OUTPUT_NOTES_PER_BATCH`](crate::constants::MAX_OUTPUT_NOTES_PER_BATCH).
+    pub fn remove(&mut self, index: u64) -> Result<(), MerkleError> {
+        let key = LeafIndex::new(index)?;
+        self.0.insert(key, EMPTY_WORD);
+
+        Ok(())
+    }
+
+    /// Consumes the batch note tree and returns the underlying [`SimpleSmt`].
+    pub fn into_smt(self) -> SimpleSmt<BATCH_NOTE_TREE_DEPTH> {
+        self.0
     }
 }
 

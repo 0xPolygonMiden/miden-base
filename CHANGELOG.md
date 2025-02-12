@@ -10,9 +10,12 @@
 - Renamed the protobuf file of the transaction prover to `tx_prover.proto` (#1110).
 - [BREAKING] Renamed `AccountData` to `AccountFile` (#1116).
 - Implement transaction batch prover in Rust (#1112).
+- Added the `is_non_fungible_asset_issued` procedure to the `miden` library (#1125).
 - [BREAKING] Refactored config file for `miden-proving-service` to be based on environment variables (#1120).
 - Added block number as a public input to the transaction kernel. Updated prologue logic to validate the global input block number is consistent with the commitment block number (#1126).
 - Made NoteFile and AccountFile more consistent (#1133).
+- [BREAKING] Implement most block constraints in `ProposedBlock` (#1123).
+- [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
 - Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only

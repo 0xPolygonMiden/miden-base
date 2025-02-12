@@ -9,13 +9,11 @@ use vm_processor::DeserializationError;
 
 use crate::{
     account::AccountId,
-    batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
+    batch::{BatchAccountUpdate, BatchId, BatchNoteTree, InputOutputNoteTracker},
     block::{BlockHeader, BlockNumber},
     errors::ProposedBatchError,
-    note::{NoteHeader, NoteId, NoteInclusionProof},
-    transaction::{
-        ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction, TransactionId,
-    },
+    note::{NoteId, NoteInclusionProof},
+    transaction::{ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction},
     MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 
@@ -230,57 +228,11 @@ impl ProposedBatch {
 
         // Check for duplicate output notes and remove all output notes from the batch output note
         // set that are consumed by transactions.
-        let mut output_notes = BatchOutputNoteTracker::new(transactions.iter().map(AsRef::as_ref))?;
-        let mut input_notes = vec![];
-
-        for tx in transactions.iter() {
-            for input_note in tx.input_notes().iter() {
-                // Header is present only for unauthenticated input notes.
-                let input_note = match input_note.header() {
-                    Some(input_note_header) => {
-                        if output_notes.remove_note(input_note_header)? {
-                            // If a transaction consumes an unauthenticated note that is also
-                            // created in this batch, it is removed from the set of output notes.
-                            // We `continue` so that the input note is not added to the set of input
-                            // notes of the batch. That way the note appears in neither input nor
-                            // output set.
-                            continue;
-                        }
-
-                        // If an inclusion proof for an unauthenticated note is provided and the
-                        // proof is valid, it means the note is part of the chain and we can mark it
-                        // as authenticated by erasing the note header.
-                        if let Some(proof) =
-                            unauthenticated_note_proofs.get(&input_note_header.id())
-                        {
-                            let note_block_header = chain_mmr
-                                .get_block(proof.location().block_num())
-                                .ok_or_else(|| {
-                                    ProposedBatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
-                                        block_number: proof.location().block_num(),
-                                        note_id: input_note_header.id(),
-                                    }
-                                })?;
-
-                            authenticate_unauthenticated_note(
-                                input_note_header,
-                                proof,
-                                note_block_header,
-                            )?;
-
-                            // Erase the note header from the input note.
-                            InputNoteCommitment::from(input_note.nullifier())
-                        } else {
-                            input_note.clone()
-                        }
-                    },
-                    None => input_note.clone(),
-                };
-                input_notes.push(input_note);
-            }
-        }
-
-        let output_notes = output_notes.into_notes();
+        let (input_notes, output_notes) = InputOutputNoteTracker::from_transactions(
+            transactions.iter().map(AsRef::as_ref),
+            &unauthenticated_note_proofs,
+            &chain_mmr,
+        )?;
 
         if input_notes.len() > MAX_INPUT_NOTES_PER_BATCH {
             return Err(ProposedBatchError::TooManyInputNotes(input_notes.len()));
@@ -297,7 +249,7 @@ impl ProposedBatch {
         // --------------------------------------------------------------------------------------------
 
         // SAFETY: We can `expect` here because:
-        // - the batch output note tracker already returns an error for duplicate output notes,
+        // - the input output note tracker already returns an error for duplicate output notes,
         // - we have checked that the number of output notes is <= 2^BATCH_NOTE_TREE_DEPTH.
         let output_notes_tree = BatchNoteTree::with_contiguous_leaves(
             output_notes.iter().map(|note| (note.id(), note.metadata())),
@@ -457,113 +409,6 @@ impl Deserializable for ProposedBatch {
             output_notes_tree,
         })
     }
-}
-
-// BATCH OUTPUT NOTE TRACKER
-// ================================================================================================
-
-/// A helper struct to track output notes.
-/// Its main purpose is to check for duplicates and allow for removal of output notes that are
-/// consumed in the same batch, so are not output notes of the batch.
-///
-/// The approach for this is that the output note set is initialized to the union of all output
-/// notes of the transactions in the batch.
-/// Then (outside of this struct) all input notes of transactions in the batch which are also output
-/// notes can be removed, as they are considered consumed within the batch and will not be visible
-/// as created or consumed notes for the batch.
-#[derive(Debug)]
-struct BatchOutputNoteTracker {
-    /// An index from [`NoteId`]s to the transaction that creates the note and the note itself.
-    /// The transaction ID is tracked to produce better errors when a duplicate note is
-    /// encountered.
-    output_notes: BTreeMap<NoteId, (TransactionId, OutputNote)>,
-}
-
-impl BatchOutputNoteTracker {
-    /// Constructs a new output note tracker from the given transactions.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - any output note is created more than once (by the same or different transactions).
-    fn new<'a>(
-        txs: impl Iterator<Item = &'a ProvenTransaction>,
-    ) -> Result<Self, ProposedBatchError> {
-        let mut output_notes = BTreeMap::new();
-        for tx in txs {
-            for note in tx.output_notes().iter() {
-                if let Some((first_transaction_id, _)) =
-                    output_notes.insert(note.id(), (tx.id(), note.clone()))
-                {
-                    return Err(ProposedBatchError::DuplicateOutputNote {
-                        note_id: note.id(),
-                        first_transaction_id,
-                        second_transaction_id: tx.id(),
-                    });
-                }
-            }
-        }
-
-        Ok(Self { output_notes })
-    }
-
-    /// Attempts to remove the given input note from the output note set.
-    ///
-    /// Returns `true` if the given note existed in the output note set and was removed from it,
-    /// `false` otherwise.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - the given note has a corresponding note in the output note set with the same [`NoteId`]
-    ///   but their hashes differ (i.e. their metadata is different).
-    pub fn remove_note(
-        &mut self,
-        input_note_header: &NoteHeader,
-    ) -> Result<bool, ProposedBatchError> {
-        let id = input_note_header.id();
-        if let Some((_, output_note)) = self.output_notes.remove(&id) {
-            // Check if the notes with the same ID have differing hashes.
-            // This could happen if the metadata of the notes is different, which we consider an
-            // error.
-            let input_hash = input_note_header.hash();
-            let output_hash = output_note.hash();
-            if output_hash != input_hash {
-                return Err(ProposedBatchError::NoteHashesMismatch { id, input_hash, output_hash });
-            }
-
-            return Ok(true);
-        }
-
-        Ok(false)
-    }
-
-    /// Consumes the tracker and returns a [`Vec`] of output notes sorted by [`NoteId`].
-    pub fn into_notes(self) -> Vec<OutputNote> {
-        self.output_notes.into_iter().map(|(_, (_, output_note))| output_note).collect()
-    }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Validates whether the provided header of an unauthenticated note belongs to the note tree of the
-/// specified block header.
-fn authenticate_unauthenticated_note(
-    note_header: &NoteHeader,
-    proof: &NoteInclusionProof,
-    block_header: &BlockHeader,
-) -> Result<(), ProposedBatchError> {
-    let note_index = proof.location().node_index_in_block().into();
-    let note_hash = note_header.hash();
-    proof
-        .note_path()
-        .verify(note_index, note_hash, &block_header.note_root())
-        .map_err(|source| ProposedBatchError::UnauthenticatedNoteAuthenticationFailed {
-            note_id: note_header.id(),
-            block_num: proof.location().block_num(),
-            source,
-        })
 }
 
 #[cfg(test)]

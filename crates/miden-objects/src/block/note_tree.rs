@@ -6,6 +6,7 @@ use miden_crypto::{
 };
 
 use crate::{
+    batch::BatchNoteTree,
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
@@ -21,7 +22,7 @@ use crate::{
 pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTE_TREE_DEPTH>);
 
 impl BlockNoteTree {
-    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided
+    /// Returns a new [`BlockNoteTree`] instantiated with entries set as specified by the provided
     /// entries.
     ///
     /// Entry format: (note_index, note_id, note_metadata).
@@ -41,6 +42,29 @@ impl BlockNoteTree {
         });
 
         SimpleSmt::with_leaves(leaves).map(Self)
+    }
+
+    /// Returns a new, empty [`BlockNoteTree`].
+    pub fn empty() -> Self {
+        Self(SimpleSmt::new().expect("depth should be 16 and thus > 0 and <= 64"))
+    }
+
+    /// Inserts the given [`BatchNoteTree`] as a subtree into the block note tree at the specified
+    /// index.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the given batch index is greater or equal to [`MAX_BATCHES_PER_BLOCK`]
+    pub fn insert_batch_note_subtree(
+        &mut self,
+        batch_idx: u64,
+        batch_note_tree: BatchNoteTree,
+    ) -> Result<(), MerkleError> {
+        // Note that the subtree depth > depth error cannot occur, as the batch note tree's depth is
+        // smaller than the block note tree's depth.
+        // This is guaranteed through the definition of MAX_BATCHES_PER_BLOCK.
+        self.0.set_subtree(batch_idx, batch_note_tree.into_smt()).map(|_| ())
     }
 
     /// Returns the root of the tree

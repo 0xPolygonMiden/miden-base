@@ -11,6 +11,21 @@ pub use header::BlockHeader;
 mod block_number;
 pub use block_number::BlockNumber;
 
+mod proposed_block;
+pub use proposed_block::ProposedBlock;
+
+mod nullifier_witness;
+pub use nullifier_witness::NullifierWitness;
+
+mod account_witness;
+pub use account_witness::AccountWitness;
+
+mod account_update_witness;
+pub use account_update_witness::AccountUpdateWitness;
+
+mod block_inputs;
+pub use block_inputs::BlockInputs;
+
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
@@ -251,8 +266,8 @@ pub struct BlockAccountUpdate {
     /// ID of the updated account.
     account_id: AccountId,
 
-    /// Hash of the new state of the account.
-    new_state_hash: Digest,
+    /// Final commitment to the new state of the account after this update.
+    final_state_commitment: Digest,
 
     /// A set of changes which can be applied to the previous account state (i.e., the state as of
     /// the last block) to get the new account state. For private accounts, this is set to
@@ -267,13 +282,13 @@ impl BlockAccountUpdate {
     /// Returns a new [BlockAccountUpdate] instantiated from the specified components.
     pub const fn new(
         account_id: AccountId,
-        new_state_hash: Digest,
+        final_state_commitment: Digest,
         details: AccountUpdateDetails,
         transactions: Vec<TransactionId>,
     ) -> Self {
         Self {
             account_id,
-            new_state_hash,
+            final_state_commitment,
             details,
             transactions,
         }
@@ -284,9 +299,9 @@ impl BlockAccountUpdate {
         self.account_id
     }
 
-    /// Returns the hash of the new account state.
-    pub fn new_state_hash(&self) -> Digest {
-        self.new_state_hash
+    /// Returns the state commitment of the account after this update.
+    pub fn final_state_commitment(&self) -> Digest {
+        self.final_state_commitment
     }
 
     /// Returns the description of the updates for public accounts.
@@ -311,7 +326,7 @@ impl BlockAccountUpdate {
 impl Serializable for BlockAccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.account_id.write_into(target);
-        self.new_state_hash.write_into(target);
+        self.final_state_commitment.write_into(target);
         self.details.write_into(target);
         self.transactions.write_into(target);
     }
@@ -321,7 +336,7 @@ impl Deserializable for BlockAccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
             account_id: AccountId::read_from(source)?,
-            new_state_hash: Digest::read_from(source)?,
+            final_state_commitment: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
             transactions: Vec::<TransactionId>::read_from(source)?,
         })

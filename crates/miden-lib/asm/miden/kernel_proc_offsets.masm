@@ -61,14 +61,15 @@ const.TX_GET_OUTPUT_NOTES_COMMITMENT_OFFSET=28
 # block info
 const.TX_GET_BLOCK_HASH_OFFSET=29
 const.TX_GET_BLOCK_NUMBER_OFFSET=30
+const.TX_GET_BLOCK_TIMESTAMP_OFFSET=31
 
 # foreign context
-const.TX_START_FOREIGN_CONTEXT_OFFSET=31
-const.TX_END_FOREIGN_CONTEXT_OFFSET=32
+const.TX_START_FOREIGN_CONTEXT_OFFSET=32
+const.TX_END_FOREIGN_CONTEXT_OFFSET=33
 
 # expiration data
-const.TX_GET_EXPIRATION_DELTA_OFFSET=33          # accessor
-const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=34   # mutator
+const.TX_GET_EXPIRATION_DELTA_OFFSET=34          # accessor
+const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 
 
 # ACCESSORS
@@ -454,6 +455,18 @@ end
 #!   address where this procedure is stored.
 export.tx_get_block_number_offset
     push.TX_GET_BLOCK_NUMBER_OFFSET
+end
+
+#! Returns the offset of the `tx_get_block_timestamp` kernel procedure.
+#!
+#! Inputs:  []
+#! Outputs: [proc_offset]
+#!
+#! Where:
+#! - proc_offset is the offset of the `tx_get_block_timestamp` kernel procedure required to get the
+#!   address where this procedure is stored.
+export.tx_get_block_timestamp_offset
+    push.TX_GET_BLOCK_TIMESTAMP_OFFSET
 end
 
 #! Returns the offset of the `tx_start_foreign_context` kernel procedure.

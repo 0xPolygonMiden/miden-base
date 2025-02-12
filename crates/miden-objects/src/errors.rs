@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use core::error::Error;
 
 use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
@@ -20,6 +20,7 @@ use crate::{
         AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
         StoragePlaceholder,
     },
+    batch::BatchId,
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     transaction::TransactionId,
@@ -372,7 +373,7 @@ pub enum TransactionInputError {
     DuplicateInputNote(Nullifier),
     #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
-    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
+    #[error("chain mmr has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
@@ -448,7 +449,7 @@ pub enum ProvenTransactionError {
     },
 }
 
-// BATCH ERROR
+// PROPOSED BATCH ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
@@ -516,7 +517,7 @@ pub enum ProposedBatchError {
         source: MerkleError,
     },
 
-    #[error("chain mmr has length {actual} which does not match block number {expected} ")]
+    #[error("chain mmr has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
@@ -529,6 +530,111 @@ pub enum ProposedBatchError {
     MissingTransactionBlockReference {
         block_reference: Digest,
         transaction_id: TransactionId,
+    },
+}
+
+// PROPOSED BLOCK ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum ProposedBlockError {
+    #[error("block must contain at least one transaction batch")]
+    EmptyBlock,
+
+    #[error("block must contain at most {MAX_BATCHES_PER_BLOCK} transaction batches")]
+    TooManyBatches,
+
+    #[error("batch {batch_id} appears twice in the block inputs")]
+    DuplicateBatch { batch_id: BatchId },
+
+    #[error("batch {second_batch_id} consumes the note with nullifier {note_nullifier} that is also consumed by another batch {first_batch_id} in the block")]
+    DuplicateInputNote {
+        note_nullifier: Nullifier,
+        first_batch_id: BatchId,
+        second_batch_id: BatchId,
+    },
+
+    #[error("batch {second_batch_id} creates the note with ID {note_id} that is also created by another batch {first_batch_id} in the block")]
+    DuplicateOutputNote {
+        note_id: NoteId,
+        first_batch_id: BatchId,
+        second_batch_id: BatchId,
+    },
+
+    #[error("timestamp {provided_timestamp} does not increase monotonically compared to timestamp {previous_timestamp} from the previous block header")]
+    TimestampDoesNotIncreaseMonotonically {
+        provided_timestamp: u32,
+        previous_timestamp: u32,
+    },
+
+    #[error("account {account_id} is updated from the same initial state commitment {initial_state_commitment} by multiple conflicting batches with IDs {first_batch_id} and {second_batch_id}")]
+    ConflictingBatchesUpdateSameAccount {
+        account_id: AccountId,
+        initial_state_commitment: Digest,
+        first_batch_id: BatchId,
+        second_batch_id: BatchId,
+    },
+
+    #[error("chain mmr has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block")]
+    ChainLengthNotEqualToPreviousBlockNumber {
+        chain_length: BlockNumber,
+        prev_block_num: BlockNumber,
+    },
+
+    #[error("chain mmr has root {chain_root} which does not match the chain root {prev_block_chain_root} of the previous block {prev_block_num}")]
+    ChainRootNotEqualToPreviousBlockChainRoot {
+        chain_root: Digest,
+        prev_block_chain_root: Digest,
+        prev_block_num: BlockNumber,
+    },
+
+    #[error("chain mmr is missing block {reference_block_num} referenced by batch {batch_id} in the block")]
+    BatchReferenceBlockMissingFromChain {
+        reference_block_num: BlockNumber,
+        batch_id: BatchId,
+    },
+
+    #[error("note hashes mismatch for note {id}: (input: {input_hash}, output: {output_hash})")]
+    NoteHashesMismatch {
+        id: NoteId,
+        input_hash: Digest,
+        output_hash: Digest,
+    },
+
+    #[error("failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
+    UnauthenticatedInputNoteBlockNotInChainMmr {
+        block_number: BlockNumber,
+        note_id: NoteId,
+    },
+
+    #[error(
+        "failed to prove unauthenticated note inclusion of note {note_id} in block {block_num}"
+    )]
+    UnauthenticatedNoteAuthenticationFailed {
+        note_id: NoteId,
+        block_num: BlockNumber,
+        source: MerkleError,
+    },
+
+    #[error("unauthenticated note with nullifier {nullifier} was not created in the same block and no inclusion proof to authenticate it was provided")]
+    UnauthenticatedNoteConsumed { nullifier: Nullifier },
+
+    #[error("block inputs do not contain a proof of inclusion for account {0}")]
+    MissingAccountWitness(AccountId),
+
+    #[error("account {0} with state {1} cannot transition to any of the remaining states {2:?}")]
+    InconsistentAccountStateTransition(AccountId, Digest, Vec<Digest>),
+
+    #[error("no proof for nullifier {0} was provided")]
+    NullifierProofMissing(Nullifier),
+
+    #[error("note with nullifier {0} is already spent")]
+    NullifierSpent(Nullifier),
+
+    #[error("failed to merge transaction delta into account {account_id}")]
+    AccountUpdateError {
+        account_id: AccountId,
+        source: AccountDeltaError,
     },
 }
 
