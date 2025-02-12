@@ -94,4 +94,18 @@ impl BlockInputs {
             self.unauthenticated_note_proofs,
         )
     }
+
+    // TESTING
+
+    /// Returns a mutable reference to the [`ChainMmr`].
+    #[cfg(any(feature = "testing", test))]
+    pub fn chain_mmr_mut(&mut self) -> &mut ChainMmr {
+        &mut self.chain_mmr
+    }
+
+    /// Returns a mutable reference to the note inclusion proofs.
+    #[cfg(any(feature = "testing", test))]
+    pub fn unauthenticated_note_proofs_mut(&mut self) -> &mut BTreeMap<NoteId, NoteInclusionProof> {
+        &mut self.unauthenticated_note_proofs
+    }
 }

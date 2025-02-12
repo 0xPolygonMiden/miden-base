@@ -134,6 +134,14 @@ impl ChainMmr {
     // TESTING
     // --------------------------------------------------------------------------------------------
 
+    /// Returns an mutable reference to the map of block numbers to block headers in this chain MMR.
+    ///
+    /// Allows mutating the inner map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn block_headers_mut(&mut self) -> &mut BTreeMap<BlockNumber, BlockHeader> {
+        &mut self.blocks
+    }
+
     // Must be defined here rather than in the testing module, otherwise the mmr field must be at
     // least pub(crate).
     /// Allows mutating the inner [`PartialMmr`] for testing purposes.

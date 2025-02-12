@@ -21,7 +21,7 @@ use miden_objects::{
         merkle::{LeafIndex, Mmr, Smt},
         rand::FeltRng,
     },
-    note::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
+    note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
@@ -758,23 +758,29 @@ impl MockChain {
     {
         let batch_iterator = batch_reference_blocks.into_iter();
 
+        let unauthenticated_note_proofs =
+            self.unauthenticated_note_proofs(batch_iterator.clone().flat_map(|batch| {
+                batch.input_notes().iter().filter_map(|note| note.header().map(NoteHeader::id))
+            }));
+
         let (block_reference_block, chain_mmr) = self.chain_from_referenced_blocks(
-            batch_iterator.clone().map(ProvenBatch::reference_block_num),
+            batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
+                unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
+            ),
         );
 
         let account_witnesses =
             self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
 
-        let nullifier_proofs = self
-            .nullifier_proofs(batch_iterator.clone().flat_map(ProvenBatch::produced_nullifiers));
+        let nullifier_proofs =
+            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::produced_nullifiers));
 
-        // For now we don't care about unauthenticated notes, but we'll have to add this eventually.
         BlockInputs::new(
             block_reference_block,
             chain_mmr,
             account_witnesses,
             nullifier_proofs,
-            BTreeMap::default(),
+            unauthenticated_note_proofs,
         )
     }
 
@@ -964,7 +970,7 @@ impl MockChain {
         account_witnesses
     }
 
-    pub fn nullifier_proofs(
+    pub fn nullifier_witnesses(
         &self,
         nullifiers: impl IntoIterator<Item = Nullifier>,
     ) -> BTreeMap<Nullifier, NullifierWitness> {
@@ -976,6 +982,26 @@ impl MockChain {
         }
 
         nullifier_proofs
+    }
+
+    pub fn unauthenticated_note_proofs(
+        &self,
+        notes: impl IntoIterator<Item = NoteId>,
+    ) -> BTreeMap<NoteId, NoteInclusionProof> {
+        let mut proofs = BTreeMap::default();
+        for note in notes {
+            if let Some(input_note) = self.available_notes.get(&note) {
+                proofs.insert(
+                    note,
+                    input_note
+                        .proof()
+                        .cloned()
+                        .expect("all notes tracked by the chain are authenticated"),
+                );
+            }
+        }
+
+        proofs
     }
 
     /// Returns a reference to the latest [`BlockHeader`].

@@ -12,7 +12,8 @@ use rand::{rngs::SmallRng, SeedableRng};
 use vm_core::{assert_matches, Felt};
 
 use crate::tests::utils::{
-    generate_account, generate_batch, generate_note, generate_tx, setup_chain, TestSetup,
+    generate_account, generate_batch, generate_note, generate_tx,
+    generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain, TestSetup,
 };
 
 #[test]
@@ -344,6 +345,73 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
 
     let error = ProposedBlock::new(block_inputs.clone(), batches.clone()).unwrap_err();
     assert_matches!(error, ProposedBlockError::DuplicateOutputNote { .. });
+
+    Ok(())
+}
+
+#[test]
+fn proposed_block_fails_on_missing_note_inclusion_reference_block() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    let note0 = generate_untracked_note(account0.id(), account1.id());
+
+    // This tx will use block1 as the reference block.
+    let tx0 = generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[note0.clone()]);
+
+    // This batch will use block1 as the reference block.
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+
+    chain.add_pending_note(note0.clone());
+    let block2 = chain.seal_block(None);
+    // Seal another block so that the next block will use this one as the reference block and block2
+    // is only needed for the note inclusion proof so we can safely remove it to only trigger the
+    // error condition we want to trigger.
+    let _block3 = chain.seal_block(None);
+
+    let batches = vec![batch0.clone()];
+
+    let mut block_inputs = chain.get_block_inputs(&batches);
+    // For completeness, we should also untrack it, but this currently panics.
+    // block_inputs
+    //     .chain_mmr_mut()
+    //     .partial_mmr_mut()
+    //     .untrack(block2.header().block_num().as_usize());
+    block_inputs
+        .chain_mmr_mut()
+        .block_headers_mut()
+        .remove(&block2.header().block_num())
+        .expect("block2 should have been fetched");
+
+    let error = ProposedBlock::new(block_inputs, batches.clone()).unwrap_err();
+    assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInChainMmr { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
+
+    Ok(())
+}
+
+#[test]
+fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    let note0 = generate_note(&mut chain, account0.id(), account1.id());
+
+    let tx0 = generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[note0.clone()]);
+
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+
+    let batches = vec![batch0.clone()];
+
+    // This will not include the note inclusion proof for note0, because it has not been added to
+    // the chain.
+    let block_inputs = chain.get_block_inputs(&batches);
+
+    let error = ProposedBlock::new(block_inputs, batches.clone()).unwrap_err();
+    assert_matches!(error, ProposedBlockError::UnauthenticatedNoteConsumed { nullifier } if nullifier == note0.nullifier());
 
     Ok(())
 }

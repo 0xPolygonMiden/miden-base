@@ -1,6 +1,8 @@
 use alloc::vec::Vec;
 use std::{collections::BTreeMap, vec};
 
+use miden_crypto::rand::RpoRandomCoin;
+use miden_lib::note::create_p2id_note;
 use miden_objects::{
     self,
     account::{Account, AccountId},
@@ -12,6 +14,8 @@ use miden_objects::{
     vm::ExecutionProof,
 };
 use miden_tx::testing::{Auth, MockChain};
+use rand::Rng;
+use vm_core::Felt;
 use winterfell::Proof;
 
 pub struct TestSetup {
@@ -28,6 +32,18 @@ pub fn generate_note(chain: &mut MockChain, sender: AccountId, reciver: AccountI
     chain.add_p2id_note(sender, reciver, &[], NoteType::Public, None).unwrap()
 }
 
+pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
+    // Use OS-randomness so that notes with the same sender and target have different note IDs.
+    let mut rng = RpoRandomCoin::new([
+        Felt::new(rand::thread_rng().gen()),
+        Felt::new(rand::thread_rng().gen()),
+        Felt::new(rand::thread_rng().gen()),
+        Felt::new(rand::thread_rng().gen()),
+    ]);
+    create_p2id_note(sender, reciver, vec![], NoteType::Public, Default::default(), &mut rng)
+        .unwrap()
+}
+
 // pub fn generate_fungible_asset(faucet_id: AccountId) -> Asset {
 //     FungibleAsset::new(faucet_id, 100).unwrap().into()
 // }
@@ -38,6 +54,16 @@ pub fn generate_tx(
     notes: &[NoteId],
 ) -> ProvenTransaction {
     let tx1_context = chain.build_tx_context(account, notes, &[]).build();
+    let executed_tx1 = tx1_context.execute().unwrap();
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
+}
+
+pub fn generate_tx_with_unauthenticated_notes(
+    chain: &mut MockChain,
+    account: AccountId,
+    notes: &[Note],
+) -> ProvenTransaction {
+    let tx1_context = chain.build_tx_context(account, &[], notes).build();
     let executed_tx1 = tx1_context.execute().unwrap();
     ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
 }
