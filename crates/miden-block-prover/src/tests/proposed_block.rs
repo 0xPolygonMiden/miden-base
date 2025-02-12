@@ -578,3 +578,27 @@ fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> a
 
     Ok(())
 }
+
+#[test]
+fn proposed_block_fails_on_missing_account_witness() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain(2);
+    let account0 = accounts.remove(&0).unwrap();
+    let tx0 = txs.remove(&0).unwrap();
+
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+
+    let batches = vec![batch0.clone()];
+
+    // This will not include the note inclusion proof for note0, because the note has not been added
+    // to the chain.
+    let mut block_inputs = chain.get_block_inputs(&batches);
+    block_inputs
+        .account_witnesses_mut()
+        .remove(&account0.id())
+        .expect("account witness should have been fetched");
+
+    let error = ProposedBlock::new(block_inputs, batches.clone()).unwrap_err();
+    assert_matches!(error, ProposedBlockError::MissingAccountWitness(account_id) if account_id == account0.id());
+
+    Ok(())
+}

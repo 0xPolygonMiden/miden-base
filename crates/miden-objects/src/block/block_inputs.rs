@@ -114,4 +114,10 @@ impl BlockInputs {
     pub fn nullifier_witnesses_mut(&mut self) -> &mut BTreeMap<Nullifier, NullifierWitness> {
         &mut self.nullifier_witnesses
     }
+
+    /// Returns a mutable reference to the account witnesses.
+    #[cfg(any(feature = "testing", test))]
+    pub fn account_witnesses_mut(&mut self) -> &mut BTreeMap<AccountId, AccountWitness> {
+        &mut self.account_witnesses
+    }
 }
