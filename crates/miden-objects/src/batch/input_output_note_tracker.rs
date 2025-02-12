@@ -12,6 +12,9 @@ use crate::{
     ProposedBlockError,
 };
 
+type BlockInputNotes = Vec<InputNoteCommitment>;
+type BlockOutputNotes = BTreeMap<NoteId, (BatchId, OutputNote)>;
+
 // INPUT OUTPUT NOTE TRACKER
 // ================================================================================================
 
@@ -80,9 +83,6 @@ impl InputOutputNoteTracker<TransactionId> {
         Ok((batch_input_notes, final_output_notes))
     }
 }
-
-type BlockInputNotes = Vec<InputNoteCommitment>;
-type BlockOutputNotes = BTreeMap<NoteId, (BatchId, OutputNote)>;
 
 impl InputOutputNoteTracker<BatchId> {
     /// Computes the input and output notes for a block from the provided iterator over batches.

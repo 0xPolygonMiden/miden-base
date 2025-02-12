@@ -408,6 +408,7 @@ fn check_batch_reference_blocks(
 ///
 /// We pass in `block_output_notes` which are the output notes of the block, with output notes
 /// erased that are consumed by another batch in the block.
+///
 /// The batch note tree of each proven batch however contains all the notes that it creates,
 /// including ones that were potentially erased in `block_output_notes`. This means we have to
 /// make the batch note tree consistent with `block_output_notes` by removing the erased notes from
