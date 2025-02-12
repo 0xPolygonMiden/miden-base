@@ -72,12 +72,7 @@ pub fn generate_tx(
     notes: &[NoteId],
 ) -> ProvenTransaction {
     let executed_tx1 = generate_executed_tx(chain, account_id, notes);
-    let account = chain.available_account(account_id);
-    ProvenTransaction::from_executed_transaction_mocked(
-        account,
-        executed_tx1,
-        &chain.latest_block_header(),
-    )
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
 }
 
 pub fn generate_tx_with_unauthenticated_notes(
@@ -87,12 +82,7 @@ pub fn generate_tx_with_unauthenticated_notes(
 ) -> ProvenTransaction {
     let tx1_context = chain.build_tx_context(account_id, &[], notes).build();
     let executed_tx1 = tx1_context.execute().unwrap();
-    let account = chain.available_account(account_id);
-    ProvenTransaction::from_executed_transaction_mocked(
-        account,
-        executed_tx1,
-        &chain.latest_block_header(),
-    )
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
 }
 
 pub fn generate_batch(chain: &mut MockChain, txs: Vec<ProvenTransaction>) -> ProvenBatch {
@@ -136,7 +126,6 @@ pub fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
 
 pub trait ProvenTransactionExt {
     fn from_executed_transaction_mocked(
-        account: &Account,
         executed_tx: ExecutedTransaction,
         block_reference: &BlockHeader,
     ) -> ProvenTransaction;
@@ -144,14 +133,14 @@ pub trait ProvenTransactionExt {
 
 impl ProvenTransactionExt for ProvenTransaction {
     fn from_executed_transaction_mocked(
-        account: &Account,
         executed_tx: ExecutedTransaction,
         block_reference: &BlockHeader,
     ) -> ProvenTransaction {
         let account_delta = executed_tx.account_delta().clone();
-        let account_update_details = if account.is_public() {
-            if account.is_new() {
-                let mut account = account.clone();
+        let initial_account = executed_tx.initial_account().clone();
+        let account_update_details = if initial_account.is_public() {
+            if initial_account.is_new() {
+                let mut account = initial_account;
                 account.apply_delta(&account_delta).expect("account delta should be applyable");
 
                 AccountUpdateDetails::New(account)

@@ -599,12 +599,10 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
     // We will only include tx0 and tx2 and leave out tx1, which will trigger the error condition
     // that there is no transition from tx0 -> tx2.
     let tx0 = ProvenTransaction::from_executed_transaction_mocked(
-        &account1,
         executed_tx0.clone(),
         &chain.latest_block_header(),
     );
     let tx2 = ProvenTransaction::from_executed_transaction_mocked(
-        &account1,
         executed_tx2.clone(),
         &chain.latest_block_header(),
     );
