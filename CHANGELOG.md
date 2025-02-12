@@ -14,6 +14,7 @@
 - [BREAKING] Refactored config file for `miden-proving-service` to be based on environment variables (#1120).
 - Added block number as a public input to the transaction kernel. Updated prologue logic to validate the global input block number is consistent with the commitment block number (#1126).
 - Made NoteFile and AccountFile more consistent (#1133).
+- [BREAKING] Implement most block constraints in `ProposedBlock` (#1123).
 - [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only

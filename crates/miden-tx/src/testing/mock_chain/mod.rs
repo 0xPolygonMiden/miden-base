@@ -666,7 +666,8 @@ impl MockChain {
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
-                self.accounts.insert(update.account_id().into(), *update.new_state_hash());
+                self.accounts
+                    .insert(update.account_id().into(), *update.final_state_commitment());
 
                 if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
                     let account = match update.details() {

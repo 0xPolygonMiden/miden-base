@@ -27,7 +27,7 @@ impl LocalBatchProver {
     pub fn prove(&self, proposed_batch: ProposedBatch) -> Result<ProvenBatch, BatchProveError> {
         let (
             transactions,
-            _block_header,
+            block_header,
             _block_chain,
             _authenticatable_unauthenticated_notes,
             id,
@@ -48,6 +48,8 @@ impl LocalBatchProver {
 
         Ok(ProvenBatch::new(
             id,
+            block_header.hash(),
+            block_header.block_num(),
             updated_accounts,
             input_notes,
             output_notes_smt,
