@@ -5,7 +5,7 @@ use vm_processor::Digest;
 
 use crate::{
     batch::{BatchId, ProvenBatch},
-    block::BlockNumber,
+    block::{BlockHeader, BlockNumber},
     errors::ProposedBatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
@@ -53,6 +53,7 @@ impl InputOutputNoteTracker<TransactionId> {
         txs: impl Iterator<Item = &'a ProvenTransaction> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
+        batch_reference_block: &BlockHeader,
     ) -> Result<(Vec<InputNoteCommitment>, Vec<OutputNote>), ProposedBatchError> {
         let input_notes_iter = txs.clone().flat_map(|tx| {
             tx.input_notes()
@@ -68,6 +69,7 @@ impl InputOutputNoteTracker<TransactionId> {
             output_notes_iter,
             unauthenticated_note_proofs,
             chain_mmr,
+            batch_reference_block,
         )
         .map_err(ProposedBatchError::from)?;
 
@@ -91,6 +93,7 @@ impl InputOutputNoteTracker<BatchId> {
         batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
+        prev_block: &BlockHeader,
     ) -> Result<(BlockInputNotes, BlockOutputNotes), ProposedBlockError> {
         let input_notes_iter = batches.clone().flat_map(|batch| {
             batch
@@ -108,6 +111,7 @@ impl InputOutputNoteTracker<BatchId> {
             output_notes_iter,
             unauthenticated_note_proofs,
             chain_mmr,
+            prev_block,
         )
         .map_err(ProposedBlockError::from)?;
 
@@ -129,6 +133,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         output_notes_iter: impl Iterator<Item = (OutputNote, ContainerId)>,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
+        reference_block: &BlockHeader,
     ) -> Result<Self, InputOutputNoteTrackerError<ContainerId>> {
         let mut input_notes = BTreeMap::new();
         let mut output_notes = BTreeMap::new();
@@ -143,6 +148,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
                         note_header,
                         proof,
                         chain_mmr,
+                        reference_block,
                     )?;
                 }
             }
@@ -251,14 +257,19 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         note_header: &NoteHeader,
         proof: &NoteInclusionProof,
         chain_mmr: &ChainMmr,
+        reference_block: &BlockHeader,
     ) -> Result<InputNoteCommitment, InputOutputNoteTrackerError<ContainerId>> {
-        let note_block_header =
+        let proof_reference_block = proof.location().block_num();
+        let note_block_header = if reference_block.block_num() == proof_reference_block {
+            reference_block
+        } else {
             chain_mmr.get_block(proof.location().block_num()).ok_or_else(|| {
                 InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
                     block_number: proof.location().block_num(),
                     note_id: note_header.id(),
                 }
-            })?;
+            })?
+        };
 
         let note_index = proof.location().node_index_in_block().into();
         let note_hash = note_header.hash();

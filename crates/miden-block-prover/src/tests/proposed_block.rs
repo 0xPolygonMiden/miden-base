@@ -365,8 +365,10 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
     // This batch will use block1 as the reference block.
     let batch0 = generate_batch(&mut chain, vec![tx0]);
 
+    // Add the note to the chain so we can retrieve an inclusion proof for it.
     chain.add_pending_note(note0.clone());
     let block2 = chain.seal_block(None);
+
     // Seal another block so that the next block will use this one as the reference block and block2
     // is only needed for the note inclusion proof so we can safely remove it to only trigger the
     // error condition we want to trigger.
@@ -437,12 +439,50 @@ fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> 
 
     let batches = vec![batch0.clone()];
 
-    // This will not include the note inclusion proof for note0, because it has not been added to
-    // the chain.
+    // This will not include the note inclusion proof for note0, because the note has not been added
+    // to the chain.
     let block_inputs = chain.get_block_inputs(&batches);
 
     let error = ProposedBlock::new(block_inputs, batches.clone()).unwrap_err();
     assert_matches!(error, ProposedBlockError::UnauthenticatedNoteConsumed { nullifier } if nullifier == note0.nullifier());
+
+    Ok(())
+}
+
+#[test]
+fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    let note0 = generate_untracked_note(account0.id(), account1.id());
+
+    // This tx will use block1 as the reference block.
+    let tx0 = generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[note0.clone()]);
+
+    // This batch will use block1 as the reference block.
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+
+    // Add the note to the chain so we can retrieve an inclusion proof for it.
+    chain.add_pending_note(note0.clone());
+    let _block2 = chain.seal_block(None);
+
+    let batches = vec![batch0.clone()];
+
+    let block_inputs = chain.get_block_inputs(&batches);
+
+    // Error: Missing nullifier witness.
+    // --------------------------------------------------------------------------------------------
+
+    let mut invalid_block_inputs = block_inputs.clone();
+    invalid_block_inputs
+        .nullifier_witnesses_mut()
+        .remove(&note0.nullifier())
+        .expect("nullifier should have been fetched");
+
+    let error = ProposedBlock::new(invalid_block_inputs, batches.clone()).unwrap_err();
+    assert_matches!(error, ProposedBlockError::NullifierProofMissing(nullifier) if nullifier == note0.nullifier());
 
     Ok(())
 }

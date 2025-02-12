@@ -229,6 +229,7 @@ impl ProposedBatch {
             transactions.iter().map(AsRef::as_ref),
             &unauthenticated_note_proofs,
             &chain_mmr,
+            &block_header,
         )?;
 
         if input_notes.len() > MAX_INPUT_NOTES_PER_BATCH {

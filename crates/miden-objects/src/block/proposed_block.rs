@@ -148,6 +148,7 @@ impl ProposedBlock {
             batches.iter(),
             block_inputs.unauthenticated_note_proofs(),
             block_inputs.chain_mmr(),
+            block_inputs.prev_block_header(),
         )?;
 
         // All unauthenticated notes must be erased or authenticated by now.

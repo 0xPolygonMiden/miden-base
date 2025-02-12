@@ -108,4 +108,10 @@ impl BlockInputs {
     pub fn unauthenticated_note_proofs_mut(&mut self) -> &mut BTreeMap<NoteId, NoteInclusionProof> {
         &mut self.unauthenticated_note_proofs
     }
+
+    /// Returns a mutable reference to the nullifier witnesses.
+    #[cfg(any(feature = "testing", test))]
+    pub fn nullifier_witnesses_mut(&mut self) -> &mut BTreeMap<Nullifier, NullifierWitness> {
+        &mut self.nullifier_witnesses
+    }
 }
