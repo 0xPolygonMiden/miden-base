@@ -48,13 +48,21 @@ pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
 //     FungibleAsset::new(faucet_id, 100).unwrap().into()
 // }
 
+pub fn generate_executed_tx(
+    chain: &mut MockChain,
+    account: AccountId,
+    notes: &[NoteId],
+) -> ExecutedTransaction {
+    let tx_context = chain.build_tx_context(account, notes, &[]).build();
+    tx_context.execute().unwrap()
+}
+
 pub fn generate_tx(
     chain: &mut MockChain,
     account: AccountId,
     notes: &[NoteId],
 ) -> ProvenTransaction {
-    let tx1_context = chain.build_tx_context(account, notes, &[]).build();
-    let executed_tx1 = tx1_context.execute().unwrap();
+    let executed_tx1 = generate_executed_tx(chain, account, notes);
     ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
 }
 

@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, vec::Vec};
 use anyhow::Context;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    block::{BlockInputs, BlockNumber, ProposedBlock},
+    block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
     note::{NoteExecutionHint, NoteInclusionProof, NoteTag, NoteType},
     testing::{note::NoteBuilder, prepare_word},
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
@@ -12,7 +12,7 @@ use rand::{rngs::SmallRng, SeedableRng};
 use vm_core::{assert_matches, Felt};
 
 use crate::tests::utils::{
-    generate_account, generate_batch, generate_note, generate_tx,
+    generate_account, generate_batch, generate_executed_tx, generate_note, generate_tx,
     generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain, TestSetup,
 };
 
@@ -483,6 +483,47 @@ fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
 
     let error = ProposedBlock::new(invalid_block_inputs, batches.clone()).unwrap_err();
     assert_matches!(error, ProposedBlockError::NullifierProofMissing(nullifier) if nullifier == note0.nullifier());
+
+    Ok(())
+}
+
+#[test]
+fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    let note0 = generate_untracked_note(account0.id(), account1.id());
+
+    // This tx will use block1 as the reference block.
+    let tx0 = generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[note0.clone()]);
+
+    // This batch will use block1 as the reference block.
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+
+    // Add the note to the chain so we can consume it in the next step.
+    chain.add_pending_note(note0.clone());
+    let _block2 = chain.seal_block(None);
+
+    // Create an alternative chain where we consume the note so it is marked as spent in the
+    // nullifier tree.
+    let mut alternative_chain = chain.clone();
+    let transaction = generate_executed_tx(&mut alternative_chain, account1.id(), &[note0.id()]);
+    alternative_chain.apply_executed_transaction(&transaction);
+    alternative_chain.seal_block(None);
+    let spent_proof = alternative_chain.nullifiers().open(&note0.nullifier().inner());
+
+    let batches = vec![batch0.clone()];
+    let mut block_inputs = chain.get_block_inputs(&batches);
+
+    // Insert the spent nullifier proof from the alternative chain into the block inputs from the
+    // actual chain.
+    block_inputs
+        .nullifier_witnesses_mut()
+        .insert(note0.nullifier(), NullifierWitness::new(spent_proof));
+
+    let error = ProposedBlock::new(block_inputs, batches).unwrap_err();
+    assert_matches!(error, ProposedBlockError::NullifierSpent(nullifier) if nullifier == note0.nullifier());
 
     Ok(())
 }
