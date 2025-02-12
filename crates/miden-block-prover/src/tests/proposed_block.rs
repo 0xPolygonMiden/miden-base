@@ -4,7 +4,7 @@ use anyhow::Context;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     block::{BlockInputs, BlockNumber, ProposedBlock},
-    note::{NoteExecutionHint, NoteTag, NoteType},
+    note::{NoteExecutionHint, NoteInclusionProof, NoteTag, NoteType},
     testing::{note::NoteBuilder, prepare_word},
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
@@ -350,7 +350,8 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
 }
 
 #[test]
-fn proposed_block_fails_on_missing_note_inclusion_reference_block() -> anyhow::Result<()> {
+fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_block(
+) -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
 
     let account0 = accounts.remove(&0).unwrap();
@@ -373,20 +374,50 @@ fn proposed_block_fails_on_missing_note_inclusion_reference_block() -> anyhow::R
 
     let batches = vec![batch0.clone()];
 
-    let mut block_inputs = chain.get_block_inputs(&batches);
+    let original_block_inputs = chain.get_block_inputs(&batches);
+
+    // Error: Block referenced by note inclusion proof is not in chain MMR.
+    // --------------------------------------------------------------------------------------------
+
+    let mut invalid_block_inputs = original_block_inputs.clone();
     // For completeness, we should also untrack it, but this currently panics.
-    // block_inputs
+    // invalid_block_inputs
     //     .chain_mmr_mut()
     //     .partial_mmr_mut()
     //     .untrack(block2.header().block_num().as_usize());
-    block_inputs
+    invalid_block_inputs
         .chain_mmr_mut()
         .block_headers_mut()
         .remove(&block2.header().block_num())
         .expect("block2 should have been fetched");
 
-    let error = ProposedBlock::new(block_inputs, batches.clone()).unwrap_err();
+    let error = ProposedBlock::new(invalid_block_inputs, batches.clone()).unwrap_err();
     assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInChainMmr { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
+
+    // Error: Invalid note inclusion proof.
+    // --------------------------------------------------------------------------------------------
+
+    let original_note_proof = original_block_inputs
+        .unauthenticated_note_proofs()
+        .get(&note0.id())
+        .expect("note proof should have beeen fetched")
+        .clone();
+    let mut invalid_note_path = original_note_proof.note_path().clone();
+    // Add a random hash to the path to make it invalid.
+    invalid_note_path.push(block2.hash());
+    let invalid_note_proof = NoteInclusionProof::new(
+        original_note_proof.location().block_num(),
+        original_note_proof.location().node_index_in_block(),
+        invalid_note_path,
+    )
+    .unwrap();
+    let mut invalid_block_inputs = original_block_inputs.clone();
+    invalid_block_inputs
+        .unauthenticated_note_proofs_mut()
+        .insert(note0.id(), invalid_note_proof);
+
+    let error = ProposedBlock::new(invalid_block_inputs, batches.clone()).unwrap_err();
+    assert_matches!(error, ProposedBlockError::UnauthenticatedNoteAuthenticationFailed { block_num, note_id, .. } if block_num == block2.header().block_num() && note_id == note0.id());
 
     Ok(())
 }
