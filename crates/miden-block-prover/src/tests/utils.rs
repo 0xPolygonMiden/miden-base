@@ -2,14 +2,12 @@ use alloc::vec::Vec;
 use std::{collections::BTreeMap, vec};
 
 use miden_objects::{
+    self,
     account::{Account, AccountId},
-    asset::{Asset, FungibleAsset},
+    asset::Asset,
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
     note::{Note, NoteId, NoteType},
-    testing::account_id::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-    },
     transaction::{ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder},
     vm::ExecutionProof,
 };
@@ -19,10 +17,7 @@ use winterfell::Proof;
 pub struct TestSetup {
     pub chain: MockChain,
     pub accounts: BTreeMap<usize, Account>,
-    pub notes: BTreeMap<usize, Note>,
     pub txs: BTreeMap<usize, ProvenTransaction>,
-    pub asset0: Asset,
-    pub asset1: Asset,
 }
 
 pub fn generate_account(chain: &mut MockChain, assets: Vec<Asset>) -> Account {
@@ -33,20 +28,9 @@ pub fn generate_note(chain: &mut MockChain, sender: AccountId, reciver: AccountI
     chain.add_p2id_note(sender, reciver, &[], NoteType::Public, None).unwrap()
 }
 
-pub fn generate_fungible_asset(faucet_id: AccountId) -> Asset {
-    FungibleAsset::new(faucet_id, 100).unwrap().into()
-}
-
-pub fn generate_swap_note(
-    chain: &mut MockChain,
-    sender: AccountId,
-    offered_asset: Asset,
-    requested_asset: Asset,
-) -> Note {
-    chain
-        .add_swap_note(sender, offered_asset, requested_asset, NoteType::Public)
-        .unwrap()
-}
+// pub fn generate_fungible_asset(faucet_id: AccountId) -> Asset {
+//     FungibleAsset::new(faucet_id, 100).unwrap().into()
+// }
 
 pub fn generate_tx(
     chain: &mut MockChain,
@@ -72,15 +56,8 @@ pub fn setup_chain(num_accounts: usize) -> TestSetup {
     let mut notes = BTreeMap::new();
     let mut txs = BTreeMap::new();
 
-    let asset0 =
-        generate_fungible_asset(AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap());
-    let asset1 = generate_fungible_asset(
-        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap(),
-    );
-
     for i in 0..num_accounts {
-        let asset = if i % 2 == 0 { asset0.clone() } else { asset1.clone() };
-        let account = generate_account(&mut chain, vec![asset]);
+        let account = generate_account(&mut chain, vec![]);
         let note = generate_note(&mut chain, sender_account.id(), account.id());
         accounts.insert(i, account);
         notes.insert(i, note);
@@ -93,14 +70,7 @@ pub fn setup_chain(num_accounts: usize) -> TestSetup {
         txs.insert(i, tx);
     }
 
-    TestSetup {
-        chain,
-        accounts,
-        notes,
-        txs,
-        asset0,
-        asset1,
-    }
+    TestSetup { chain, accounts, txs }
 }
 
 pub trait ProvenTransactionExt {

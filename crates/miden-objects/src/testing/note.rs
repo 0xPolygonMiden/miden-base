@@ -83,6 +83,11 @@ impl NoteBuilder {
         self
     }
 
+    pub fn note_type(mut self, note_type: NoteType) -> Self {
+        self.note_type = note_type;
+        self
+    }
+
     pub fn code<S: AsRef<str>>(mut self, code: S) -> Self {
         self.code = code.as_ref().to_string();
         self
