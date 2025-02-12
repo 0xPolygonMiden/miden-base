@@ -4,14 +4,11 @@ use miden_crypto::{
     hash::rpo::RpoDigest,
     merkle::{LeafIndex, MerkleError, SimpleSmt},
 };
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    EMPTY_WORD,
-};
-use vm_processor::DeserializationError;
+use vm_core::EMPTY_WORD;
 
 use crate::{
     note::{compute_note_hash, NoteId, NoteMetadata},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BATCH_NOTE_TREE_DEPTH,
 };
 

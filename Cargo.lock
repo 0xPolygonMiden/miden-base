@@ -1919,7 +1919,6 @@ dependencies = [
  "criterion",
  "getrandom 0.2.15",
  "log",
- "miden-air",
  "miden-assembly",
  "miden-core",
  "miden-crypto",

@@ -4,12 +4,12 @@ use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, ZERO,
 };
-use vm_processor::{DeserializationError, Digest};
 
 use crate::{
     account::AccountId,
     transaction::{ProvenTransaction, TransactionId},
-    Hasher,
+    utils::DeserializationError,
+    Digest, Hasher,
 };
 
 // BATCH ID

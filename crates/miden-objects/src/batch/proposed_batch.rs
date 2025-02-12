@@ -4,9 +4,6 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
 use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree, InputOutputNoteTracker},
@@ -14,6 +11,7 @@ use crate::{
     errors::ProposedBatchError,
     note::{NoteId, NoteInclusionProof},
     transaction::{ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 
@@ -413,11 +411,8 @@ impl Deserializable for ProposedBatch {
 
 #[cfg(test)]
 mod tests {
-    use miden_air::HashFunction;
     use miden_crypto::merkle::{Mmr, PartialMmr};
     use miden_verifier::ExecutionProof;
-    use vm_core::Word;
-    use vm_processor::Digest;
     use winter_air::proof::Proof;
     use winter_rand_utils::rand_array;
 
@@ -425,6 +420,7 @@ mod tests {
     use crate::{
         account::{AccountIdVersion, AccountStorageMode, AccountType},
         transaction::ProvenTransactionBuilder,
+        Digest, Word,
     };
 
     #[test]
@@ -468,7 +464,7 @@ mod tests {
         let block_num = BlockNumber::from(1);
         let block_ref = header.hash();
         let expiration_block_num = BlockNumber::from(2);
-        let proof = ExecutionProof::new(Proof::new_dummy(), HashFunction::Rpo256);
+        let proof = ExecutionProof::new(Proof::new_dummy(), Default::default());
 
         let tx = ProvenTransactionBuilder::new(
             account_id,

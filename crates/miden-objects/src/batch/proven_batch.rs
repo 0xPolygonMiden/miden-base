@@ -1,14 +1,13 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::{DeserializationError, Digest};
-
 use crate::{
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
     block::BlockNumber,
     note::Nullifier,
     transaction::{InputNoteCommitment, InputNotes, OutputNote},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest,
 };
 
 /// A transaction batch with an execution proof.
