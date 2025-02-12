@@ -204,11 +204,13 @@ impl AccountComponentMetadata {
     ///
     /// Types for the returned storage placeholders are inferred based on their location in the
     /// storage layout structure.
-    pub fn get_placeholder_requirements(&self) -> BTreeMap<String, PlaceholderTypeRequirement> {
+    pub fn get_placeholder_requirements(
+        &self,
+    ) -> BTreeMap<StorageValueName, PlaceholderTypeRequirement> {
         let mut templates = BTreeMap::new();
         for entry in self.storage_entries() {
             for (name, requirement) in entry.template_requirements() {
-                templates.insert(name.to_string(), requirement);
+                templates.insert(name, requirement);
             }
         }
 

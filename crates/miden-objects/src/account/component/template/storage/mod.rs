@@ -483,16 +483,24 @@ mod tests {
 
         assert_eq!(requirements.len(), 4);
 
-        let supply = requirements.get("token_metadata.max_supply").unwrap();
+        let supply = requirements
+            .get(&StorageValueName::new("token_metadata.max_supply").unwrap())
+            .unwrap();
         assert_eq!(supply.r#type.to_string(), "felt");
 
-        let decimals = requirements.get("token_metadata.decimals").unwrap();
+        let decimals = requirements
+            .get(&StorageValueName::new("token_metadata.decimals").unwrap())
+            .unwrap();
         assert_eq!(decimals.r#type.to_string(), "u8");
 
-        let default_recallable_height = requirements.get("default_recallable_height").unwrap();
+        let default_recallable_height = requirements
+            .get(&StorageValueName::new("default_recallable_height").unwrap())
+            .unwrap();
         assert_eq!(default_recallable_height.r#type.to_string(), "u32");
 
-        let map_key_template = requirements.get("map_entry.map_key_template").unwrap();
+        let map_key_template = requirements
+            .get(&StorageValueName::new("map_entry.map_key_template").unwrap())
+            .unwrap();
         assert_eq!(map_key_template.r#type.to_string(), "word");
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();

@@ -244,6 +244,7 @@ pub enum FeltType {
     TokenSymbol,
 }
 
+// TODO: Refactor/remove this. We also want to make parsing consistent (ie, hex vs decimal)
 impl FeltType {
     pub fn parse_value(&self, value_str: &str) -> Result<Felt, TemplateTypeError> {
         let felt = match self {
@@ -257,13 +258,10 @@ impl FeltType {
                 TemplateTypeError::ParseError(value_str.to_string(), self.to_string())
             })?),
             FeltType::Felt => parse_felt_from_str(value_str).map_err(|_| {
-                TemplateTypeError::ParseError(
-                    FeltType::TokenSymbol.to_string(),
-                    value_str.to_string(),
-                )
+                TemplateTypeError::ParseError(value_str.to_string(), self.to_string())
             })?,
             FeltType::TokenSymbol => Felt::from(TokenSymbol::new(value_str).map_err(|_| {
-                TemplateTypeError::ParseError(FeltType::TokenSymbol.to_string(), self.to_string())
+                TemplateTypeError::ParseError(value_str.to_string(), self.to_string())
             })?),
         };
         Ok(felt)
@@ -447,7 +445,7 @@ impl From<WordType> for String {
 pub enum TemplateTypeError {
     #[error("failed to convert type into felt: {0}")]
     ConversionError(String),
-    #[error("failed to parse string `{0}` as `{1}`")]
+    #[error("failed to parse input `{0}` as `{1}`")]
     ParseError(String, String),
     #[error("parsed value does not fit into expected slot")]
     TypeArityMismatch,
