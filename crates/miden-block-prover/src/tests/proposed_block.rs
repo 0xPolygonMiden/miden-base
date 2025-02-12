@@ -3,17 +3,20 @@ use std::{collections::BTreeMap, vec::Vec};
 use anyhow::Context;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    account::AccountId,
     block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
     note::{NoteExecutionHint, NoteInclusionProof, NoteTag, NoteType},
-    testing::{note::NoteBuilder, prepare_word},
+    testing::{account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, note::NoteBuilder, prepare_word},
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
+use miden_tx::testing::Auth;
 use rand::{rngs::SmallRng, SeedableRng};
 use vm_core::{assert_matches, Felt};
 
 use crate::tests::utils::{
-    generate_account, generate_batch, generate_executed_tx, generate_note, generate_tx,
-    generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain, TestSetup,
+    generate_account, generate_batch, generate_executed_tx, generate_fungible_asset, generate_note,
+    generate_note_with_asset, generate_tx, generate_tx_with_unauthenticated_notes,
+    generate_untracked_note, setup_chain, setup_chain_with_auth, TestSetup,
 };
 
 #[test]
@@ -85,7 +88,7 @@ fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
     // At this time, MockChain won't let us build more than 64 transactions before sealing a block,
     // so we add one more tx manually.
     let account0 = accounts.get(&0).unwrap();
-    let accountx = generate_account(&mut chain, vec![]);
+    let accountx = generate_account(&mut chain, Auth::NoAuth);
     let notex = generate_note(&mut chain, account0.id(), accountx.id());
     chain.seal_block(None);
     let tx = generate_tx(&mut chain, accountx.id(), &[notex.id()]);
@@ -524,6 +527,54 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
 
     let error = ProposedBlock::new(block_inputs, batches).unwrap_err();
     assert_matches!(error, ProposedBlockError::NullifierSpent(nullifier) if nullifier == note0.nullifier());
+
+    Ok(())
+}
+
+#[test]
+fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> anyhow::Result<()> {
+    // We need authentication because we're modifying accounts with the input notes.
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_with_auth(2);
+    let asset0 = generate_fungible_asset(
+        100,
+        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+    );
+    let asset1 = generate_fungible_asset(
+        50,
+        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+    );
+
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    let note0 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset0);
+    let note1 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset1);
+
+    // Add notes to the chain.
+    chain.seal_block(None);
+
+    // Two transactions against the same account with input notes that will modify the account in
+    // different ways so they will produce a conflict.
+    let tx0 = generate_tx(&mut chain, account1.id(), &[note0.id()]);
+    let tx1 = generate_tx(&mut chain, account1.id(), &[note1.id()]);
+
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+    let batch1 = generate_batch(&mut chain, vec![tx1]);
+
+    let batches = vec![batch0.clone(), batch1.clone()];
+    let block_inputs = chain.get_block_inputs(&batches);
+
+    let error = ProposedBlock::new(block_inputs, batches).unwrap_err();
+    assert_matches!(error, ProposedBlockError::ConflictingBatchesUpdateSameAccount {
+      account_id,
+      initial_state_commitment,
+      first_batch_id,
+      second_batch_id
+    } if account_id == account1.id() &&
+      initial_state_commitment == account1.init_hash() &&
+      first_batch_id == batch0.id() &&
+      second_batch_id == batch1.id()
+    );
 
     Ok(())
 }

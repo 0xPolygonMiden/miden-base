@@ -51,6 +51,7 @@ const TIMESTAMP_STEP_SECS: u32 = 10;
 // ================================================================================================
 
 /// Specifies which authentication mechanism is desired for accounts
+#[derive(Debug, Clone, Copy)]
 pub enum Auth {
     /// Creates a [SecretKey] for the account and creates a [BasicAuthenticator] that gets used for
     /// authenticating the account.

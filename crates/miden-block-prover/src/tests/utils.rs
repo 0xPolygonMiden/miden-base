@@ -5,8 +5,8 @@ use miden_crypto::rand::RpoRandomCoin;
 use miden_lib::note::create_p2id_note;
 use miden_objects::{
     self,
-    account::{delta::AccountUpdateDetails, Account, AccountDelta, AccountId},
-    asset::Asset,
+    account::{delta::AccountUpdateDetails, Account, AccountId},
+    asset::{Asset, FungibleAsset},
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
     note::{Note, NoteId, NoteType},
@@ -24,12 +24,21 @@ pub struct TestSetup {
     pub txs: BTreeMap<usize, ProvenTransaction>,
 }
 
-pub fn generate_account(chain: &mut MockChain, assets: Vec<Asset>) -> Account {
-    chain.add_existing_wallet(Auth::NoAuth, assets)
+pub fn generate_account(chain: &mut MockChain, auth: Auth) -> Account {
+    chain.add_existing_wallet(auth, vec![])
 }
 
 pub fn generate_note(chain: &mut MockChain, sender: AccountId, reciver: AccountId) -> Note {
     chain.add_p2id_note(sender, reciver, &[], NoteType::Public, None).unwrap()
+}
+
+pub fn generate_note_with_asset(
+    chain: &mut MockChain,
+    sender: AccountId,
+    reciver: AccountId,
+    asset: Asset,
+) -> Note {
+    chain.add_p2id_note(sender, reciver, &[asset], NoteType::Public, None).unwrap()
 }
 
 pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
@@ -44,9 +53,9 @@ pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
         .unwrap()
 }
 
-// pub fn generate_fungible_asset(faucet_id: AccountId) -> Asset {
-//     FungibleAsset::new(faucet_id, 100).unwrap().into()
-// }
+pub fn generate_fungible_asset(amount: u64, faucet_id: AccountId) -> Asset {
+    FungibleAsset::new(faucet_id, amount).unwrap().into()
+}
 
 pub fn generate_executed_tx(
     chain: &mut MockChain,
@@ -93,15 +102,23 @@ pub fn generate_batch(chain: &mut MockChain, txs: Vec<ProvenTransaction>) -> Pro
         .unwrap()
 }
 
+pub fn setup_chain_with_auth(num_accounts: usize) -> TestSetup {
+    setup_test_chain(num_accounts, Auth::BasicAuth)
+}
+
 pub fn setup_chain(num_accounts: usize) -> TestSetup {
+    setup_test_chain(num_accounts, Auth::NoAuth)
+}
+
+pub fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
     let mut chain = MockChain::new();
-    let sender_account = generate_account(&mut chain, vec![]);
+    let sender_account = generate_account(&mut chain, Auth::NoAuth);
     let mut accounts = BTreeMap::new();
     let mut notes = BTreeMap::new();
     let mut txs = BTreeMap::new();
 
     for i in 0..num_accounts {
-        let account = generate_account(&mut chain, vec![]);
+        let account = generate_account(&mut chain, auth);
         let note = generate_note(&mut chain, sender_account.id(), account.id());
         accounts.insert(i, account);
         notes.insert(i, note);
