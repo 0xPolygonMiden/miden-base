@@ -4979,9 +4979,9 @@ dependencies = [
 
 [[package]]
 name = "winter-air"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a8fdb702503625f54dcaf9222aa2c7a0b2e868b3eb84b90d1837d68034bf999"
+checksum = "827ef2aa5a5ab663936e0a6326286e0fc83321771df0d9ea20c46c72c8baa90d"
 dependencies = [
  "libm",
  "winter-crypto",
