@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 35] = [
+pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     // account_get_initial_hash
     digest!("0x920898348bacd6d98a399301eb308478fd32b32eab019a5a6ef7a6b44abb61f6"),
     // account_get_current_hash
@@ -40,13 +40,13 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     // account_has_non_fungible_asset
     digest!("0x653ab7a20e5af62c0022850726fef4f5fd6468f9de4cfc43b8fb6b9ff12e6b32"),
     // faucet_mint_asset
-    digest!("0x499a9fa3f670529c79c0eaafb07170ce13e003c2b08dda2dc4c2c12b3d96b9af"),
+    digest!("0x2b755f5f43f1f8957225c7d4c2130a37a4ba15c1323703efe82d3ed676051535"),
     // faucet_burn_asset
-    digest!("0xa56c96b989d852fffad0b4ca17de4e15e5865b0e76ea0a40f03959c175bde175"),
+    digest!("0xdfa2005118b0bcefe94082b25b09bb3b47f525a026dffad60664d9bb679ca140"),
     // faucet_get_total_fungible_asset_issuance
     digest!("0x7c46ed8cc84a0c5439285f715d1c867eb71131e9f0b1bbd65acea9dddc35bd96"),
     // faucet_is_non_fungible_asset_issued
-    digest!("0x2ebb03e088454d8da766957f00c81c2a4c31b74e3f20285716b3f505c7394bc4"),
+    digest!("0xab87249b2584dc957876f0f2bfc697ad6a9a4d6710e751dc51272f1fbecce5b4"),
     // note_get_assets_info
     digest!("0x34e4f1ea83eb4342ab8f5acec89962b2ab4b56d9c631e807d8e4dc8efd270bf2"),
     // note_add_asset
@@ -69,6 +69,8 @@ pub const KERNEL0_PROCEDURES: [Digest; 35] = [
     digest!("0xe474b491a64d222397fcf83ee5db7b048061988e5e83ce99b91bae6fd75a3522"),
     // tx_get_block_number
     digest!("0x297797dff54b8108dd2df254b95d43895d3f917ab10399efc62adaf861c905ae"),
+    // tx_get_block_timestamp
+    digest!("0x786863e6dbcd5026619afd3831b7dcbf824cda54950b0e0724ebf9d9370ec723"),
     // tx_start_foreign_context
     digest!("0xdaf9052e4c583124c5b56703d6b726ddce7a8b69333262d4570991df10b34ad2"),
     // tx_end_foreign_context
