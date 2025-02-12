@@ -119,8 +119,6 @@ They are useful, because:
 2. Smart contracts should be able to be executed autonomously, ensuring liveness. Local `Transaction`s require a user to execute and prove, but in some cases a smart contract should be able to execute when certain conditions are met.
 3. Clients may not have sufficient resources to generate zero-knowledge proofs.
 
-![Local vs network transactions](../img/architecture/transaction/local-vs-network-transaction.png)
-
 The ability to facilitate both, local and network `Transaction`s, **is one of the differentiating factors of Miden** compared to other blockchains. Local `Transaction` execution and proving can happen in parallel as for most `Transaction`s there is no need for public state changes. This increases the network's throughput tremendously and provides privacy. Network `Transaction`s on the other hand enable autonomous smart contracts and public shared state.
 
 ---
