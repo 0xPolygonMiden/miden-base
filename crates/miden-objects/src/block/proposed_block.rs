@@ -331,28 +331,18 @@ fn check_nullifiers(
     batch_nullifiers: impl Iterator<Item = Nullifier>,
 ) -> Result<(), ProposedBlockError> {
     for batch_nullifier in batch_nullifiers {
-        match block_inputs.nullifier_witnesses().get(&batch_nullifier) {
-            Some(witness) => {
-                match witness.proof().leaf() {
-                    // If the leaf is of variant Empty, the nullifier is unspent.
-                    SmtLeaf::Empty(_) => (),
-                    // If the leaf is of variant Single or Multiple, we have to check the value of
-                    // the entry.
-                    _ => {
-                        let (_, nullifier_value) = witness
-                            .proof()
-                            .leaf()
-                            .entries()
-                            .iter()
-                            .find(|(key, _)| *key == batch_nullifier.inner())
-                            .ok_or(ProposedBlockError::NullifierProofMissing(batch_nullifier))?;
-
-                        if *nullifier_value != EMPTY_WORD {
-                            return Err(ProposedBlockError::NullifierSpent(batch_nullifier));
-                        }
-                    },
+        match block_inputs
+            .nullifier_witnesses()
+            .get(&batch_nullifier)
+            .and_then(|x| x.proof().get(&batch_nullifier.inner()))
+        {
+            Some(nullifier_value) => {
+                if nullifier_value != EMPTY_WORD {
+                    return Err(ProposedBlockError::NullifierSpent(batch_nullifier));
                 }
             },
+            // If the nullifier witnesses did not contain a proof for this nullifier or the provided
+            // proof was not for this nullifier, then it's an error.
             None => return Err(ProposedBlockError::NullifierProofMissing(batch_nullifier)),
         }
     }
