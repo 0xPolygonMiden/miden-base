@@ -499,13 +499,13 @@ export.get_blk_version
     padw push.BLOCK_METADATA_PTR mem_loadw drop drop swap drop
 end
 
-#! Returns the block timestamp of the last known block.
+#! Returns the block timestamp of the reference block for this transaction.
 #!
 #! Inputs:  []
 #! Outputs: [timestamp]
 #!
 #! Where:
-#! - timestamp is the block timestamp of the last known block.
+#! - timestamp is the timestamp of the reference block for this transaction.
 export.get_blk_timestamp
     padw push.BLOCK_METADATA_PTR mem_loadw drop movdn.2 drop drop
 end
