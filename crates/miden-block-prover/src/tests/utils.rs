@@ -28,20 +28,32 @@ pub fn generate_account(chain: &mut MockChain, auth: Auth) -> Account {
     chain.add_existing_wallet(auth, vec![])
 }
 
-pub fn generate_note(chain: &mut MockChain, sender: AccountId, reciver: AccountId) -> Note {
-    chain.add_p2id_note(sender, reciver, &[], NoteType::Public, None).unwrap()
+pub fn generate_tracked_note(chain: &mut MockChain, sender: AccountId, reciver: AccountId) -> Note {
+    let note = generate_untracked_note_internal(sender, reciver, vec![]);
+    chain.add_pending_note(note.clone());
+    note
 }
 
-pub fn generate_note_with_asset(
+pub fn generate_tracked_note_with_asset(
     chain: &mut MockChain,
     sender: AccountId,
     reciver: AccountId,
     asset: Asset,
 ) -> Note {
-    chain.add_p2id_note(sender, reciver, &[asset], NoteType::Public, None).unwrap()
+    let note = generate_untracked_note_internal(sender, reciver, vec![asset]);
+    chain.add_pending_note(note.clone());
+    note
 }
 
 pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
+    generate_untracked_note_internal(sender, reciver, vec![])
+}
+
+fn generate_untracked_note_internal(
+    sender: AccountId,
+    reciver: AccountId,
+    asset: Vec<Asset>,
+) -> Note {
     // Use OS-randomness so that notes with the same sender and target have different note IDs.
     let mut rng = RpoRandomCoin::new([
         Felt::new(rand::thread_rng().gen()),
@@ -49,7 +61,7 @@ pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
         Felt::new(rand::thread_rng().gen()),
         Felt::new(rand::thread_rng().gen()),
     ]);
-    create_p2id_note(sender, reciver, vec![], NoteType::Public, Default::default(), &mut rng)
+    create_p2id_note(sender, reciver, asset, NoteType::Public, Default::default(), &mut rng)
         .unwrap()
 }
 
@@ -66,7 +78,7 @@ pub fn generate_executed_tx(
     tx_context.execute().unwrap()
 }
 
-pub fn generate_tx(
+pub fn generate_tx_with_authenticated_notes(
     chain: &mut MockChain,
     account_id: AccountId,
     notes: &[NoteId],
@@ -96,11 +108,11 @@ pub fn setup_chain_with_auth(num_accounts: usize) -> TestSetup {
     setup_test_chain(num_accounts, Auth::BasicAuth)
 }
 
-pub fn setup_chain(num_accounts: usize) -> TestSetup {
+pub fn setup_chain_without_auth(num_accounts: usize) -> TestSetup {
     setup_test_chain(num_accounts, Auth::NoAuth)
 }
 
-pub fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
+fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
     let mut chain = MockChain::new();
     let sender_account = generate_account(&mut chain, Auth::NoAuth);
     let mut accounts = BTreeMap::new();
@@ -109,7 +121,7 @@ pub fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
 
     for i in 0..num_accounts {
         let account = generate_account(&mut chain, auth);
-        let note = generate_note(&mut chain, sender_account.id(), account.id());
+        let note = generate_tracked_note(&mut chain, sender_account.id(), account.id());
         accounts.insert(i, account);
         notes.insert(i, note);
     }
@@ -117,7 +129,8 @@ pub fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
     chain.seal_block(None);
 
     for i in 0..num_accounts {
-        let tx = generate_tx(&mut chain, accounts[&i].id(), &[notes[&i].id()]);
+        let tx =
+            generate_tx_with_authenticated_notes(&mut chain, accounts[&i].id(), &[notes[&i].id()]);
         txs.insert(i, tx);
     }
 

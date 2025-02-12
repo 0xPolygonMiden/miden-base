@@ -3,11 +3,11 @@ use std::collections::BTreeMap;
 use anyhow::Context;
 use miden_objects::block::ProposedBlock;
 
-use crate::tests::utils::{setup_chain, TestSetup};
+use crate::tests::utils::{setup_chain_without_auth, TestSetup};
 
 #[test]
 fn proposed_block_basic_success() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain(2);
+    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain_without_auth(2);
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
     let proven_tx0 = txs.remove(&0).unwrap();

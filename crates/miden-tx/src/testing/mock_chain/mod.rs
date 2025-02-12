@@ -390,13 +390,7 @@ impl MockChain {
         note_type: NoteType,
         reclaim_height: Option<BlockNumber>,
     ) -> Result<Note, NoteError> {
-        // Use OS-randomness so that notes with the same sender and target have different note IDs.
-        let mut rng = RpoRandomCoin::new([
-            Felt::new(rand::thread_rng().gen()),
-            Felt::new(rand::thread_rng().gen()),
-            Felt::new(rand::thread_rng().gen()),
-            Felt::new(rand::thread_rng().gen()),
-        ]);
+        let mut rng = RpoRandomCoin::new(Word::default());
 
         let note = if let Some(height) = reclaim_height {
             create_p2idr_note(

@@ -14,14 +14,15 @@ use rand::{rngs::SmallRng, SeedableRng};
 use vm_core::{assert_matches, Felt};
 
 use crate::tests::utils::{
-    generate_account, generate_batch, generate_executed_tx, generate_fungible_asset, generate_note,
-    generate_note_with_asset, generate_tx, generate_tx_with_unauthenticated_notes,
-    generate_untracked_note, setup_chain, setup_chain_with_auth, ProvenTransactionExt, TestSetup,
+    generate_account, generate_batch, generate_executed_tx, generate_fungible_asset,
+    generate_tracked_note, generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
+    generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain_with_auth,
+    setup_chain_without_auth, ProvenTransactionExt, TestSetup,
 };
 
 #[test]
 fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
-    let TestSetup { chain, .. } = setup_chain(2);
+    let TestSetup { chain, .. } = setup_chain_without_auth(2);
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
@@ -40,15 +41,15 @@ fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
 #[test]
 fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
     let count = MAX_BATCHES_PER_BLOCK;
-    let TestSetup { mut chain, accounts, mut txs, .. } = setup_chain(count);
+    let TestSetup { mut chain, accounts, mut txs, .. } = setup_chain_without_auth(count);
 
     // At this time, MockChain won't let us build more than 64 transactions before sealing a block,
     // so we add one more tx manually.
     let account0 = accounts.get(&0).unwrap();
     let accountx = generate_account(&mut chain, Auth::NoAuth);
-    let notex = generate_note(&mut chain, account0.id(), accountx.id());
+    let notex = generate_tracked_note(&mut chain, account0.id(), accountx.id());
     chain.seal_block(None);
-    let tx = generate_tx(&mut chain, accountx.id(), &[notex.id()]);
+    let tx = generate_tx_with_authenticated_notes(&mut chain, accountx.id(), &[notex.id()]);
     txs.insert(count, tx);
 
     let mut batches = Vec::with_capacity(count);
@@ -73,7 +74,7 @@ fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
 
 #[test]
 fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
 
@@ -96,7 +97,7 @@ fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
 
 #[test]
 fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
     let batches = vec![batch0];
@@ -124,7 +125,7 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
 
 #[test]
 fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
     let batches = vec![batch0];
@@ -172,7 +173,7 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
 
 #[test]
 fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
     let proven_tx0 = txs.remove(&0).unwrap();
 
     // This batch will reference the latest block with number 1.
@@ -208,13 +209,13 @@ fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()>
 
 #[test]
 fn proposed_block_fails_on_duplicate_input_note() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 
-    let note0 = generate_note(&mut chain, account0.id(), account1.id());
-    let note1 = generate_note(&mut chain, account0.id(), account1.id());
+    let note0 = generate_tracked_note(&mut chain, account0.id(), account1.id());
+    let note1 = generate_tracked_note(&mut chain, account0.id(), account1.id());
     // These notes should have different IDs.
     assert_ne!(note0.id(), note1.id());
 
@@ -222,8 +223,9 @@ fn proposed_block_fails_on_duplicate_input_note() -> anyhow::Result<()> {
     chain.seal_block(None);
 
     // Create two different transactions against the same account consuming the same note.
-    let tx0 = generate_tx(&mut chain, account1.id(), &[note0.id(), note1.id()]);
-    let tx1 = generate_tx(&mut chain, account1.id(), &[note0.id()]);
+    let tx0 =
+        generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[note0.id(), note1.id()]);
+    let tx1 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[note0.id()]);
 
     let batch0 = generate_batch(&mut chain, vec![tx0]);
     let batch1 = generate_batch(&mut chain, vec![tx1]);
@@ -240,7 +242,7 @@ fn proposed_block_fails_on_duplicate_input_note() -> anyhow::Result<()> {
 
 #[test]
 fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(1);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(1);
     let account = accounts.remove(&0).unwrap();
 
     let mut rng = SmallRng::from_entropy();
@@ -293,8 +295,8 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
     chain.seal_block(None);
 
     // Create two different transactions against the same account creating the same note.
-    let tx0 = generate_tx(&mut chain, account.id(), &[note0.id()]);
-    let tx1 = generate_tx(&mut chain, account.id(), &[note1.id()]);
+    let tx0 = generate_tx_with_authenticated_notes(&mut chain, account.id(), &[note0.id()]);
+    let tx1 = generate_tx_with_authenticated_notes(&mut chain, account.id(), &[note1.id()]);
 
     let batch0 = generate_batch(&mut chain, vec![tx0]);
     let batch1 = generate_batch(&mut chain, vec![tx1]);
@@ -312,7 +314,7 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
 #[test]
 fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_block(
 ) -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
@@ -386,12 +388,12 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
 
 #[test]
 fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 
-    let note0 = generate_note(&mut chain, account0.id(), account1.id());
+    let note0 = generate_tracked_note(&mut chain, account0.id(), account1.id());
 
     let tx0 = generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[note0.clone()]);
 
@@ -411,7 +413,7 @@ fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> 
 
 #[test]
 fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
@@ -449,7 +451,7 @@ fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
 
 #[test]
 fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 
@@ -504,16 +506,16 @@ fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> a
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 
-    let note0 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset0);
-    let note1 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset1);
+    let note0 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset0);
+    let note1 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset1);
 
     // Add notes to the chain.
     chain.seal_block(None);
 
     // Two transactions against the same account with input notes that will modify the account in
     // different ways so they will produce a conflict.
-    let tx0 = generate_tx(&mut chain, account1.id(), &[note0.id()]);
-    let tx1 = generate_tx(&mut chain, account1.id(), &[note1.id()]);
+    let tx0 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[note0.id()]);
+    let tx1 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[note1.id()]);
 
     let batch0 = generate_batch(&mut chain, vec![tx0]);
     let batch1 = generate_batch(&mut chain, vec![tx1]);
@@ -538,7 +540,7 @@ fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> a
 
 #[test]
 fn proposed_block_fails_on_missing_account_witness() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain(2);
+    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain_without_auth(2);
     let account0 = accounts.remove(&0).unwrap();
     let tx0 = txs.remove(&0).unwrap();
 
@@ -572,9 +574,9 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 
-    let note0 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
-    let note1 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
-    let note2 = generate_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
+    let note0 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
+    let note1 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
+    let note2 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
 
     // Add notes to the chain.
     chain.seal_block(None);
