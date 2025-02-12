@@ -22,7 +22,6 @@ std = [
   "miden-tx/std",
   "miden-crypto/std",
   "vm-core/std",
-  "vm-processor/std",
 ]
 
 [dependencies]
@@ -30,9 +29,7 @@ anyhow = { version = "1.0", default-features = false, optional = true }
 miden-crypto = { workspace = true }
 miden-tx = { workspace = true }
 miden-objects = { workspace = true }
-thiserror = { workspace = true }
 vm-core = { workspace = true }
-vm-processor = { workspace = true }
 
 [dev-dependencies]
 rand = { workspace = true, features = ["small_rng"] }

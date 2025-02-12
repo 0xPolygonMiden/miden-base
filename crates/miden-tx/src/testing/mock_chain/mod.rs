@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::{
     account::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
-    note::{create_p2id_note, create_p2idr_note, create_swap_note},
+    note::{create_p2id_note, create_p2idr_note},
     transaction::{memory, TransactionKernel},
 };
 use miden_objects::{
@@ -19,7 +19,6 @@ use miden_objects::{
     crypto::{
         dsa::rpo_falcon512::SecretKey,
         merkle::{LeafIndex, Mmr, Smt},
-        rand::FeltRng,
     },
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
@@ -67,7 +66,6 @@ impl Auth {
     fn build_component(&self) -> Option<(AccountComponent, BasicAuthenticator<ChaCha20Rng>)> {
         match self {
             Auth::BasicAuth => {
-                // let mut rng = ChaCha20Rng::from_seed(Default::default());
                 let mut rng = ChaCha20Rng::from_seed(Default::default());
                 let sec_key = SecretKey::with_rng(&mut rng);
                 let pub_key = sec_key.public_key();
@@ -418,38 +416,13 @@ impl MockChain {
         Ok(note)
     }
 
-    /// Adds a SWAP [`Note`] to the pending objects and returns it.
-    /// A block has to be created to finalize the new entity.
-    pub fn add_swap_note(
-        &mut self,
-        sender_account_id: AccountId,
-        offered_asset: Asset,
-        requested_asset: Asset,
-        note_type: NoteType,
-    ) -> Result<Note, NoteError> {
-        let mut rng = RpoRandomCoin::new(Word::default());
-        let aux = rng.draw_element();
-
-        let (note, _) = create_swap_note(
-            sender_account_id,
-            offered_asset,
-            requested_asset,
-            note_type,
-            aux,
-            &mut rng,
-        )?;
-
-        self.add_pending_note(note.clone());
-
-        Ok(note)
-    }
-
     /// Marks a [Note] as consumed by inserting its nullifier into the block.
     /// A block has to be created to finalize the new entity.
     pub fn add_nullifier(&mut self, nullifier: Nullifier) {
         self.pending_objects.created_nullifiers.push(nullifier);
     }
 
+    /// TODO
     pub fn propose_transaction_batch<I>(
         &mut self,
         txs: impl IntoIterator<Item = ProvenTransaction, IntoIter = I>,
@@ -465,6 +438,7 @@ impl MockChain {
         ProposedBatch::new(transactions, batch_reference_block, chain_mmr, BTreeMap::default())
     }
 
+    /// TODO
     pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
         let (
             _transactions,
@@ -745,6 +719,7 @@ impl MockChain {
         (batch_reference_block, chain_mmr)
     }
 
+    /// TODO
     pub fn get_block_inputs<'batch, I>(
         &self,
         batch_reference_blocks: impl IntoIterator<Item = &'batch ProvenBatch, IntoIter = I>,
@@ -952,6 +927,7 @@ impl MockChain {
         (latest_block_header, chain_mmr)
     }
 
+    /// TODO
     pub fn account_witnesses(
         &self,
         account_ids: impl IntoIterator<Item = AccountId>,
@@ -966,6 +942,7 @@ impl MockChain {
         account_witnesses
     }
 
+    /// TODO
     pub fn nullifier_witnesses(
         &self,
         nullifiers: impl IntoIterator<Item = Nullifier>,
@@ -980,6 +957,7 @@ impl MockChain {
         nullifier_proofs
     }
 
+    /// TODO
     pub fn unauthenticated_note_proofs(
         &self,
         notes: impl IntoIterator<Item = NoteId>,

@@ -1815,10 +1815,8 @@ dependencies = [
  "miden-crypto",
  "miden-lib",
  "miden-objects",
- "miden-processor",
  "miden-tx",
  "rand 0.8.5",
- "thiserror 2.0.11",
  "winterfell",
 ]
 
