@@ -13,6 +13,7 @@ use crate::{
 };
 
 type BlockInputNotes = Vec<InputNoteCommitment>;
+type BlockErasedNotes = Vec<Nullifier>;
 type BlockOutputNotes = BTreeMap<NoteId, (BatchId, OutputNote)>;
 
 // INPUT OUTPUT NOTE TRACKER
@@ -73,7 +74,7 @@ impl InputOutputNoteTracker<TransactionId> {
         )
         .map_err(ProposedBatchError::from)?;
 
-        let (batch_input_notes, batch_output_notes) =
+        let (batch_input_notes, _erased_notes, batch_output_notes) =
             tracker.erase_notes().map_err(ProposedBatchError::from)?;
 
         // Collect the remaining (non-erased) output notes into the final set of output notes.
@@ -94,7 +95,7 @@ impl InputOutputNoteTracker<BatchId> {
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
         prev_block: &BlockHeader,
-    ) -> Result<(BlockInputNotes, BlockOutputNotes), ProposedBlockError> {
+    ) -> Result<(BlockInputNotes, BlockErasedNotes, BlockOutputNotes), ProposedBlockError> {
         let input_notes_iter = batches.clone().flat_map(|batch| {
             batch
                 .input_notes()
@@ -115,10 +116,10 @@ impl InputOutputNoteTracker<BatchId> {
         )
         .map_err(ProposedBlockError::from)?;
 
-        let (block_input_notes, block_output_notes) =
+        let (block_input_notes, erased_notes, block_output_notes) =
             tracker.erase_notes().map_err(ProposedBlockError::from)?;
 
-        Ok((block_input_notes, block_output_notes))
+        Ok((block_input_notes, erased_notes, block_output_notes))
     }
 }
 
@@ -187,9 +188,14 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
     fn erase_notes(
         mut self,
     ) -> Result<
-        (Vec<InputNoteCommitment>, BTreeMap<NoteId, (ContainerId, OutputNote)>),
+        (
+            Vec<InputNoteCommitment>,
+            Vec<Nullifier>,
+            BTreeMap<NoteId, (ContainerId, OutputNote)>,
+        ),
         InputOutputNoteTrackerError<ContainerId>,
     > {
+        let mut erased_notes = Vec::new();
         let mut final_input_notes = Vec::new();
 
         for (_, input_note_commitment) in self.input_notes.values() {
@@ -199,8 +205,12 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
                     // not adding it to the final_input_notes.
                     let was_output_note =
                         Self::remove_output_note(input_note_header, &mut self.output_notes)?;
+
+                    // TODO: Swap for better readability?
                     if !was_output_note {
                         final_input_notes.push(input_note_commitment.clone());
+                    } else {
+                        erased_notes.push(input_note_commitment.nullifier());
                     }
                 },
                 None => {
@@ -209,7 +219,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
             }
         }
 
-        Ok((final_input_notes, self.output_notes))
+        Ok((final_input_notes, erased_notes, self.output_notes))
     }
 
     /// Attempts to remove the given input note from the output note set.
