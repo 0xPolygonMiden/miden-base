@@ -201,16 +201,16 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         for (_, input_note_commitment) in self.input_notes.values() {
             match input_note_commitment.header() {
                 Some(input_note_header) => {
-                    // If the unauthenticated note is also created as an output note we erase it by
-                    // not adding it to the final_input_notes.
-                    let was_output_note =
+                    let is_output_note =
                         Self::remove_output_note(input_note_header, &mut self.output_notes)?;
 
-                    // TODO: Swap for better readability?
-                    if !was_output_note {
-                        final_input_notes.push(input_note_commitment.clone());
-                    } else {
+                    // If the unauthenticated note is also created as an output note we erase it by
+                    // adding it to the erased notes and, crucially, not adding it to the
+                    // final_input_notes.
+                    if is_output_note {
                         erased_notes.push(input_note_commitment.nullifier());
+                    } else {
+                        final_input_notes.push(input_note_commitment.clone());
                     }
                 },
                 None => {
