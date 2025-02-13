@@ -410,13 +410,7 @@ mod tests {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
-            let block_header = BlockHeader::mock(
-                i,
-                None,
-                None,
-                &[],
-                Digest::default(),
-            );
+            let block_header = BlockHeader::mock(i, None, None, &[], Digest::default());
             mmr.add(block_header.hash());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
