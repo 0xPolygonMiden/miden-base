@@ -1,14 +1,10 @@
 # Account
 
-> The primary entity of the Miden protocol
+An `Account` represents the primary entity of the protocol. Capable of holding assets, storing data, and executing custom code. Each `Account` is a specialized smart contract providing a programmable interface for interacting with its state and assets.
 
 ## What is the purpose of an account?
 
 In Miden's hybrid UTXO and account-based model `Account`s enable the creation of expressive smart contracts via a Turing-complete language.
-
-## What is an account?
-
-In Miden, an `Account` represents an entity capable of holding assets, storing data, and executing custom code. Each `Account` is a specialized smart contract providing a programmable interface for interacting with its state and managed assets.
 
 ## Account core components
 
@@ -117,7 +113,3 @@ Users can choose whether their `Account`s are stored publicly or privately. The 
   Only a commitment (hash) to the `Account`’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
 
 The storage mode is chosen during `Account` creation, it cannot be changed later.
-
-## Conclusion
-
-You are now better equipped to understand how a Miden `Account` operates, how it manages data and assets, and how its programmable interface enables secure and flexible interactions within the Miden protocol.
