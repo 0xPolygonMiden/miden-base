@@ -395,13 +395,12 @@ impl Deserializable for ProposedBatch {
 mod tests {
     use miden_crypto::merkle::{Mmr, PartialMmr};
     use miden_verifier::ExecutionProof;
-    use vm_core::Felt;
     use winter_air::proof::Proof;
     use winter_rand_utils::rand_array;
 
     use super::*;
     use crate::{
-        account::{Account, AccountComponent, AccountIdVersion, AccountStorageMode, AccountType},
+        account::{AccountIdVersion, AccountStorageMode, AccountType},
         transaction::ProvenTransactionBuilder,
         Digest, Word,
     };
