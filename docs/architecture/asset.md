@@ -1,6 +1,6 @@
 # Asset
 
-> Fungible and Non-fungible assets in the Miden protocol.
+An `Asset` is a unit of value that can be transferred from one [account](accounts.md) to another using [notes](notes.md).
 
 ## What is the purpose of an asset?
 
@@ -17,10 +17,6 @@ In Miden, `Asset`s serve as the primary means of expressing and transferring val
 
 4. **Flexible fee payment:**  
    Unlike protocols that require a specific base `Asset` for fees, Miden allows users to pay fees in any supported `Asset`. This flexibility simplifies the user experience.
-
-## What is an asset?
-
-An `Asset` in Miden is a unit of value that can be transferred from one [account](accounts.md) to another using [notes](notes.md).
 
 ## Native asset
 
@@ -62,7 +58,3 @@ Non-fungible `Asset`s are encoded by hashing the `Asset` data into 32 bytes and 
 > All data structures not following the Miden asset model that can be exchanged.
 
 Miden is flexible enough to support other `Asset` models. For example, developers can replicate Ethereum’s ERC20 pattern, where fungible `Asset` ownership is recorded in a single account. To transact, users send a note to that account, triggering updates in the global hashmap state.
-
-## Conclusion
-
-Miden’s `Asset` model provides a secure, flexible, scalable, and privacy-preserving framework for representing and transferring value. By embedding `Asset` information directly into accounts and supporting multiple `Asset` types, Miden fosters a decentralized ecosystem where users maintain their privacy, control, transactions can scale efficiently, and censorship is minimized.
