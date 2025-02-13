@@ -2,19 +2,20 @@ use alloc::vec::Vec;
 use std::{collections::BTreeMap, vec};
 
 use miden_crypto::rand::RpoRandomCoin;
-use miden_lib::note::create_p2id_note;
+use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     self,
     account::{delta::AccountUpdateDetails, Account, AccountId},
     asset::{Asset, FungibleAsset},
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
-    note::{Note, NoteId, NoteType},
+    note::{Note, NoteExecutionHint, NoteId, NoteTag, NoteType},
+    testing::{note::NoteBuilder, prepare_word},
     transaction::{ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder},
     vm::ExecutionProof,
 };
 use miden_tx::testing::{Auth, MockChain};
-use rand::Rng;
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use vm_core::Felt;
 use winterfell::Proof;
 
@@ -47,6 +48,50 @@ pub fn generate_tracked_note_with_asset(
 
 pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
     generate_untracked_note_internal(sender, reciver, vec![])
+}
+
+pub fn generate_output_note(sender: AccountId, seed: [u8; 32]) -> Note {
+    let mut rng = SmallRng::from_seed(seed);
+    NoteBuilder::new(sender, &mut rng)
+        .note_type(NoteType::Private)
+        .tag(NoteTag::for_local_use_case(0, 0).unwrap().into())
+        .build(&TransactionKernel::assembler())
+        .unwrap()
+}
+
+pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: Note) -> Note {
+    // A note script that always creates the same note.
+    let code = format!(
+        "
+    use.test::account
+
+    begin
+        padw padw
+        push.{recipient}
+        push.{execution_hint_always}
+        push.{PUBLIC_NOTE}
+        push.{aux0}
+        push.{tag0}
+        # => [tag_0, aux_0, note_type, execution_hint, RECIPIENT_0, pad(8)]
+
+        call.account::create_note drop
+        # => [pad(16)]
+
+        dropw dropw dropw dropw dropw dropw
+    end
+    ",
+        recipient = prepare_word(&output_note.recipient().digest()),
+        PUBLIC_NOTE = output_note.header().metadata().note_type() as u8,
+        aux0 = output_note.metadata().aux(),
+        tag0 = output_note.metadata().tag(),
+        execution_hint_always = Felt::from(NoteExecutionHint::always())
+    );
+
+    // Create a note that will create the above output note.
+    NoteBuilder::new(sender, &mut SmallRng::from_entropy())
+        .code(code.clone())
+        .build(&TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap()
 }
 
 fn generate_untracked_note_internal(

@@ -1,22 +1,21 @@
 use std::{collections::BTreeMap, vec::Vec};
 
-use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::AccountId,
     block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
-    note::{NoteExecutionHint, NoteInclusionProof, NoteTag, NoteType},
-    testing::{account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, note::NoteBuilder, prepare_word},
+    note::NoteInclusionProof,
+    testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     transaction::ProvenTransaction,
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
 use miden_tx::testing::Auth;
-use rand::{rngs::SmallRng, SeedableRng};
-use vm_core::{assert_matches, Felt};
+use vm_core::assert_matches;
 
 use crate::tests::utils::{
     generate_account, generate_batch, generate_executed_tx, generate_fungible_asset,
-    generate_tracked_note, generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
-    generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain_with_auth,
+    generate_output_note, generate_tracked_note, generate_tracked_note_with_asset,
+    generate_tx_with_authenticated_notes, generate_tx_with_unauthenticated_notes,
+    generate_untracked_note, generate_untracked_note_with_output_note, setup_chain_with_auth,
     setup_chain_without_auth, ProvenTransactionExt, TestSetup,
 };
 
@@ -254,50 +253,12 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(1);
     let account = accounts.remove(&0).unwrap();
 
-    let mut rng = SmallRng::from_entropy();
-    let output_note = NoteBuilder::new(account.id(), &mut rng)
-        .note_type(NoteType::Private)
-        .tag(NoteTag::for_local_use_case(0, 0).unwrap().into())
-        .build(&TransactionKernel::assembler())
-        .unwrap();
-
-    // A note script that always creates the same note.
-    let code = format!(
-        "
-      use.test::account
-
-      begin
-          padw padw
-          push.{recipient}
-          push.{execution_hint_always}
-          push.{PUBLIC_NOTE}
-          push.{aux0}
-          push.{tag0}
-          # => [tag_0, aux_0, note_type, execution_hint, RECIPIENT_0, pad(8)]
-
-          call.account::create_note drop
-          # => [pad(16)]
-
-          dropw dropw dropw dropw dropw dropw
-      end
-      ",
-        recipient = prepare_word(&output_note.recipient().digest()),
-        PUBLIC_NOTE = output_note.header().metadata().note_type() as u8,
-        aux0 = output_note.metadata().aux(),
-        tag0 = output_note.metadata().tag(),
-        execution_hint_always = Felt::from(NoteExecutionHint::always())
-    );
+    let output_note = generate_output_note(account.id(), [10; 32]);
 
     // Create two different notes that will create the same output note. Their IDs will be different
-    // due to having a different serial number generated from the provided RNG.
-    let note0 = NoteBuilder::new(account.id(), &mut rng)
-        .code(code.clone())
-        .build(&TransactionKernel::testing_assembler_with_mock_account())
-        .unwrap();
-    let note1 = NoteBuilder::new(account.id(), &mut rng)
-        .code(code)
-        .build(&TransactionKernel::testing_assembler_with_mock_account())
-        .unwrap();
+    // due to having a different serial number generated from contained RNG.
+    let note0 = generate_untracked_note_with_output_note(account.id(), output_note.clone());
+    let note1 = generate_untracked_note_with_output_note(account.id(), output_note);
 
     chain.add_pending_note(note0.clone());
     chain.add_pending_note(note1.clone());
