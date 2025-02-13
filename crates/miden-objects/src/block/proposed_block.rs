@@ -269,6 +269,11 @@ impl ProposedBlock {
         self.timestamp
     }
 
+    /// Returns a reference to the [`BlockNoteTree`] of the proposed block.
+    pub fn block_note_tree(&self) -> &BlockNoteTree {
+        &self.block_note_tree
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 

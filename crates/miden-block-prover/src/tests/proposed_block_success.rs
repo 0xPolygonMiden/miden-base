@@ -8,8 +8,9 @@ use miden_objects::{
 
 use crate::tests::utils::{
     generate_batch, generate_executed_tx, generate_fungible_asset,
-    generate_tracked_note_with_asset, setup_chain_with_auth, setup_chain_without_auth,
-    ProvenTransactionExt, TestSetup,
+    generate_tracked_note_with_asset, generate_tx_with_unauthenticated_notes,
+    generate_untracked_note, setup_chain_with_auth, setup_chain_without_auth, ProvenTransactionExt,
+    TestSetup,
 };
 
 /// Tests that a proposed block from two batches with one transaction each can be successfully
@@ -46,6 +47,17 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
         updated_accounts[&account1.id()].final_state_commitment(),
         proven_tx1.account_update().final_state_hash()
     );
+    // Each tx consumes one note.
+    assert_eq!(proposed_block.nullifiers().len(), 2);
+    assert!(proposed_block
+        .nullifiers()
+        .contains_key(&proven_tx0.input_notes().get_note(0).nullifier()));
+    assert!(proposed_block
+        .nullifiers()
+        .contains_key(&proven_tx1.input_notes().get_note(0).nullifier()));
+
+    // No notes were created.
+    assert!(proposed_block.block_note_tree().is_empty());
 
     Ok(())
 }
@@ -116,6 +128,50 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
     // The transactions that affected the account are in chronological order.
     assert_eq!(account_update.transactions(), [tx0.id(), tx1.id(), tx2.id()]);
     assert!(account_update.details().is_private());
+
+    Ok(())
+}
+
+/// Tests that unauthenticated notes can be authenticated when inclusion proofs are provided.
+#[test]
+fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(3);
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+    let account2 = accounts.remove(&2).unwrap();
+
+    let note0 = generate_untracked_note(account0.id(), account1.id());
+    let note1 = generate_untracked_note(account0.id(), account2.id());
+
+    // These txs will use block1 as the reference block.
+    let tx0 = generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[note0.clone()]);
+    let tx1 = generate_tx_with_unauthenticated_notes(&mut chain, account2.id(), &[note1.clone()]);
+
+    // These batches will use block1 as the reference block.
+    let batch0 = generate_batch(&mut chain, vec![tx0.clone()]);
+    let batch1 = generate_batch(&mut chain, vec![tx1.clone()]);
+
+    chain.add_pending_note(note0.clone());
+    chain.add_pending_note(note1.clone());
+    chain.seal_block(None);
+
+    let batches = [batch0, batch1];
+    // This block will use block2 as the reference block.
+    let block_inputs = chain.get_block_inputs(&batches);
+
+    // Sanity check: Block inputs should contain nullifiers for the unauthenticated notes since they
+    // are part of the chain.
+    assert!(block_inputs.nullifier_witnesses().contains_key(&note0.nullifier()));
+    assert!(block_inputs.nullifier_witnesses().contains_key(&note1.nullifier()));
+
+    let proposed_block = ProposedBlock::new(block_inputs.clone(), batches.to_vec())
+        .context("failed to build proposed block")?;
+
+    // We expect both notes to have been authenticated and therefore should be part of the
+    // nullifiers of this block.
+    assert_eq!(proposed_block.nullifiers().len(), 2);
+    assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
+    assert!(proposed_block.nullifiers().contains_key(&note1.nullifier()));
 
     Ok(())
 }

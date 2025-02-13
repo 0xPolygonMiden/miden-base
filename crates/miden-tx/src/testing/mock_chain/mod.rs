@@ -916,11 +916,13 @@ impl MockChain {
     ) -> (BlockHeader, ChainMmr) {
         let latest_block_header = self.latest_block_header();
         // Include all block headers of the reference blocks except the latest block.
-        let block_headers: Vec<_> = reference_blocks
+        let mut block_headers: Vec<_> = reference_blocks
             .into_iter()
             .map(|block_ref_num| self.block_header(block_ref_num.as_usize()))
             .filter(|block_header| block_header.hash() != latest_block_header.hash())
             .collect();
+        // Deduplicate block headers.
+        block_headers.dedup();
 
         let chain_mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();
 
