@@ -134,7 +134,7 @@ impl ChainMmr {
     // TESTING
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an mutable reference to the map of block numbers to block headers in this chain MMR.
+    /// Returns a mutable reference to the map of block numbers to block headers in this chain MMR.
     ///
     /// Allows mutating the inner map for testing purposes.
     #[cfg(any(feature = "testing", test))]
@@ -142,9 +142,9 @@ impl ChainMmr {
         &mut self.blocks
     }
 
-    // Must be defined here rather than in the testing module, otherwise the mmr field must be at
-    // least pub(crate).
-    /// Allows mutating the inner [`PartialMmr`] for testing purposes.
+    /// Returns a mutable reference to the partial MMR of this chain MMR.
+    ///
+    /// Allows mutating the inner partial MMR for testing purposes.
     #[cfg(any(feature = "testing", test))]
     pub fn partial_mmr_mut(&mut self) -> &mut PartialMmr {
         &mut self.mmr
