@@ -422,9 +422,11 @@ impl MockChain {
         self.pending_objects.created_nullifiers.push(nullifier);
     }
 
-    /// TODO
+    /// Proposes a new transaction batch from the provided transactions and returns it.
+    ///
+    /// This method does not modify the chain state.
     pub fn propose_transaction_batch<I>(
-        &mut self,
+        &self,
         txs: impl IntoIterator<Item = ProvenTransaction, IntoIter = I>,
     ) -> Result<ProposedBatch, ProposedBatchError>
     where
@@ -435,10 +437,20 @@ impl MockChain {
         let (batch_reference_block, chain_mmr) =
             self.get_batch_inputs(transactions.iter().map(|tx| tx.block_num()));
 
-        ProposedBatch::new(transactions, batch_reference_block, chain_mmr, BTreeMap::default())
+        // TODO: Get the actual proofs as part of get_batch_inputs.
+        let unauthenticated_note_proofs = BTreeMap::new();
+
+        ProposedBatch::new(
+            transactions,
+            batch_reference_block,
+            chain_mmr,
+            unauthenticated_note_proofs,
+        )
     }
 
-    /// TODO
+    /// Mock-proves a proposed transaction batch from the provided [`ProposedBatch`] and returns it.
+    ///
+    /// This method does not modify the chain state.
     pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
         let (
             _transactions,
@@ -465,8 +477,11 @@ impl MockChain {
         )
     }
 
+    /// Proposes a new block from the provided batches and returns it.
+    ///
+    /// This method does not modify the chain state.
     pub fn propose_block<I>(
-        &mut self,
+        &self,
         batches: impl IntoIterator<Item = ProvenBatch, IntoIter = I>,
     ) -> Result<ProposedBlock, ProposedBlockError>
     where
@@ -474,6 +489,8 @@ impl MockChain {
     {
         let batches: Vec<_> = batches.into_iter().collect();
         let block_inputs = self.get_block_inputs(batches.iter());
+        // We can't access system time because the testing feature does not depend on std at this
+        // time. So we use the minimally correct next timestamp.
         let timestamp = block_inputs.prev_block_header().timestamp() + 1;
 
         let proposed_block = ProposedBlock::new_at(block_inputs, batches, timestamp)?;
@@ -708,9 +725,10 @@ impl MockChain {
         .unwrap()
     }
 
-    /// TODO
+    /// Gets inputs for a transaction batch for all the reference blocks of the provided
+    /// transactions.
     pub fn get_batch_inputs(
-        &mut self,
+        &self,
         tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
     ) -> (BlockHeader, ChainMmr) {
         let (batch_reference_block, chain_mmr) =
@@ -719,15 +737,15 @@ impl MockChain {
         (batch_reference_block, chain_mmr)
     }
 
-    /// TODO
+    /// Gets the inputs for a block for the provided batches.
     pub fn get_block_inputs<'batch, I>(
         &self,
-        batch_reference_blocks: impl IntoIterator<Item = &'batch ProvenBatch, IntoIter = I>,
+        batch_iter: impl IntoIterator<Item = &'batch ProvenBatch, IntoIter = I>,
     ) -> BlockInputs
     where
         I: Iterator<Item = &'batch ProvenBatch> + Clone,
     {
-        let batch_iterator = batch_reference_blocks.into_iter();
+        let batch_iterator = batch_iter.into_iter();
 
         let unauthenticated_note_proofs =
             self.unauthenticated_note_proofs(batch_iterator.clone().flat_map(|batch| {
@@ -929,7 +947,7 @@ impl MockChain {
         (latest_block_header, chain_mmr)
     }
 
-    /// TODO
+    /// Returns the witnesses for the provided account IDs of the current account tree.
     pub fn account_witnesses(
         &self,
         account_ids: impl IntoIterator<Item = AccountId>,
@@ -944,7 +962,7 @@ impl MockChain {
         account_witnesses
     }
 
-    /// TODO
+    /// Returns the witnesses for the provided nullifiers of the current nullifier tree.
     pub fn nullifier_witnesses(
         &self,
         nullifiers: impl IntoIterator<Item = Nullifier>,
@@ -959,7 +977,9 @@ impl MockChain {
         nullifier_proofs
     }
 
-    /// TODO
+    /// Returns all note inclusion proofs for the provided notes, **if they are available for
+    /// consumption**. Therefore, not all of the provided notes will be guaranteed to have an entry
+    /// in the returned map.
     pub fn unauthenticated_note_proofs(
         &self,
         notes: impl IntoIterator<Item = NoteId>,

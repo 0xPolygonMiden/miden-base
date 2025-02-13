@@ -12,11 +12,12 @@ use miden_tx::testing::Auth;
 use vm_core::assert_matches;
 
 use crate::tests::utils::{
-    generate_account, generate_batch, generate_executed_tx, generate_fungible_asset,
-    generate_output_note, generate_tracked_note, generate_tracked_note_with_asset,
-    generate_tx_with_authenticated_notes, generate_tx_with_unauthenticated_notes,
-    generate_untracked_note, generate_untracked_note_with_output_note, setup_chain_with_auth,
-    setup_chain_without_auth, ProvenTransactionExt, TestSetup,
+    generate_account, generate_batch, generate_executed_tx_with_authenticated_notes,
+    generate_fungible_asset, generate_output_note, generate_tracked_note,
+    generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
+    generate_tx_with_unauthenticated_notes, generate_untracked_note,
+    generate_untracked_note_with_output_note, setup_chain_with_auth, setup_chain_without_auth,
+    ProvenTransactionExt, TestSetup,
 };
 
 /// Tests that empty batches produce an error.
@@ -450,7 +451,11 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
     // Create an alternative chain where we consume the note so it is marked as spent in the
     // nullifier tree.
     let mut alternative_chain = chain.clone();
-    let transaction = generate_executed_tx(&mut alternative_chain, account1.id(), &[note0.id()]);
+    let transaction = generate_executed_tx_with_authenticated_notes(
+        &mut alternative_chain,
+        account1.id(),
+        &[note0.id()],
+    );
     alternative_chain.apply_executed_transaction(&transaction);
     alternative_chain.seal_block(None);
     let spent_proof = alternative_chain.nullifiers().open(&note0.nullifier().inner());
@@ -568,15 +573,27 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
     // nullifiers. So we create an alternative chain on which we generate the transactions, but
     // then actually use the transactions on the original chain.
     let mut alternative_chain = chain.clone();
-    let executed_tx0 = generate_executed_tx(&mut alternative_chain, account1.id(), &[note0.id()]);
+    let executed_tx0 = generate_executed_tx_with_authenticated_notes(
+        &mut alternative_chain,
+        account1.id(),
+        &[note0.id()],
+    );
     alternative_chain.apply_executed_transaction(&executed_tx0);
     alternative_chain.seal_block(None);
 
-    let executed_tx1 = generate_executed_tx(&mut alternative_chain, account1.id(), &[note1.id()]);
+    let executed_tx1 = generate_executed_tx_with_authenticated_notes(
+        &mut alternative_chain,
+        account1.id(),
+        &[note1.id()],
+    );
     alternative_chain.apply_executed_transaction(&executed_tx1);
     alternative_chain.seal_block(None);
 
-    let executed_tx2 = generate_executed_tx(&mut alternative_chain, account1.id(), &[note2.id()]);
+    let executed_tx2 = generate_executed_tx_with_authenticated_notes(
+        &mut alternative_chain,
+        account1.id(),
+        &[note2.id()],
+    );
     alternative_chain.apply_executed_transaction(&executed_tx2);
 
     // We will only include tx0 and tx2 and leave out tx1, which will trigger the error condition

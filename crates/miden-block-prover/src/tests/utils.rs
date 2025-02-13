@@ -50,6 +50,7 @@ pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
     generate_untracked_note_internal(sender, reciver, vec![])
 }
 
+/// Creates an NOP output note sent by the given sender.
 pub fn generate_output_note(sender: AccountId, seed: [u8; 32]) -> Note {
     let mut rng = SmallRng::from_seed(seed);
     NoteBuilder::new(sender, &mut rng)
@@ -60,7 +61,7 @@ pub fn generate_output_note(sender: AccountId, seed: [u8; 32]) -> Note {
 }
 
 pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: Note) -> Note {
-    // A note script that always creates the same note.
+    // A note script that creates the note that was passed in.
     let code = format!(
         "
     use.test::account
@@ -70,24 +71,24 @@ pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: 
         push.{recipient}
         push.{execution_hint_always}
         push.{PUBLIC_NOTE}
-        push.{aux0}
-        push.{tag0}
-        # => [tag_0, aux_0, note_type, execution_hint, RECIPIENT_0, pad(8)]
+        push.{aux}
+        push.{tag}
+        # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
 
         call.account::create_note drop
         # => [pad(16)]
 
-        dropw dropw dropw dropw dropw dropw
+        dropw dropw dropw dropw dropw
     end
     ",
         recipient = prepare_word(&output_note.recipient().digest()),
         PUBLIC_NOTE = output_note.header().metadata().note_type() as u8,
-        aux0 = output_note.metadata().aux(),
-        tag0 = output_note.metadata().tag(),
+        aux = output_note.metadata().aux(),
+        tag = output_note.metadata().tag(),
         execution_hint_always = Felt::from(output_note.metadata().execution_hint())
     );
 
-    // Create a note that will create the above output note.
+    // Create a note that will create the above output note when consumed.
     NoteBuilder::new(sender, &mut SmallRng::from_entropy())
         .code(code.clone())
         .build(&TransactionKernel::testing_assembler_with_mock_account())
@@ -114,7 +115,7 @@ pub fn generate_fungible_asset(amount: u64, faucet_id: AccountId) -> Asset {
     FungibleAsset::new(faucet_id, amount).unwrap().into()
 }
 
-pub fn generate_executed_tx(
+pub fn generate_executed_tx_with_authenticated_notes(
     chain: &mut MockChain,
     account: AccountId,
     notes: &[NoteId],
@@ -128,8 +129,8 @@ pub fn generate_tx_with_authenticated_notes(
     account_id: AccountId,
     notes: &[NoteId],
 ) -> ProvenTransaction {
-    let executed_tx1 = generate_executed_tx(chain, account_id, notes);
-    ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
+    let executed_tx = generate_executed_tx_with_authenticated_notes(chain, account_id, notes);
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
 }
 
 pub fn generate_tx_with_unauthenticated_notes(
@@ -137,9 +138,9 @@ pub fn generate_tx_with_unauthenticated_notes(
     account_id: AccountId,
     notes: &[Note],
 ) -> ProvenTransaction {
-    let tx1_context = chain.build_tx_context(account_id, &[], notes).build();
-    let executed_tx1 = tx1_context.execute().unwrap();
-    ProvenTransaction::from_executed_transaction_mocked(executed_tx1, &chain.latest_block_header())
+    let tx_context = chain.build_tx_context(account_id, &[], notes).build();
+    let executed_tx = tx_context.execute().unwrap();
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
 }
 
 pub fn generate_batch(chain: &mut MockChain, txs: Vec<ProvenTransaction>) -> ProvenBatch {
@@ -157,6 +158,9 @@ pub fn setup_chain_without_auth(num_accounts: usize) -> TestSetup {
     setup_test_chain(num_accounts, Auth::NoAuth)
 }
 
+/// Setup a test mock chain with the number of accounts, notes and transactions.
+///
+/// This is merely generating some valid data for testing purposes.
 fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
     let mut chain = MockChain::new();
     let sender_account = generate_account(&mut chain, Auth::NoAuth);
