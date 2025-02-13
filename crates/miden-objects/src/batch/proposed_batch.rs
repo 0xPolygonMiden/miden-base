@@ -412,8 +412,8 @@ mod tests {
         for i in 0..3 {
             let block_header = BlockHeader::mock(
                 i,
-                Some(Digest::default()),
-                Some(Digest::default()),
+                None,
+                None,
                 &[],
                 Digest::default(),
             );
