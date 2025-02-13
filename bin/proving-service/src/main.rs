@@ -46,14 +46,14 @@ mod test {
 
     use crate::{
         api::ProverRpcApi,
-        generated::{api_client::ApiClient, api_server::ApiServer, ProveTransactionRequest},
+        generated::{api_client::ApiClient, api_server::ApiServer, ProveRequest},
     };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_prove_transaction() {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
-        let api_service = ApiServer::new(ProverRpcApi::default());
+        let api_service = ApiServer::new(ProverRpcApi::new(true, false));
 
         // Spawn the server as a background task
         tokio::spawn(async move {
@@ -103,18 +103,20 @@ mod test {
 
         let transaction_witness = TransactionWitness::from(executed_transaction);
 
-        let request_1 = Request::new(ProveTransactionRequest {
-            transaction_witness: transaction_witness.to_bytes(),
+        let request_1 = Request::new(ProveRequest {
+            proof_type: 0,
+            payload: transaction_witness.to_bytes(),
         });
 
-        let request_2 = Request::new(ProveTransactionRequest {
-            transaction_witness: transaction_witness.to_bytes(),
+        let request_2 = Request::new(ProveRequest {
+            proof_type: 0,
+            payload: transaction_witness.to_bytes(),
         });
 
         // Send both requests concurrently
         let (t1, t2) = (
-            tokio::spawn(async move { client.prove_transaction(request_1).await }),
-            tokio::spawn(async move { client_2.prove_transaction(request_2).await }),
+            tokio::spawn(async move { client.prove(request_1).await }),
+            tokio::spawn(async move { client_2.prove(request_2).await }),
         );
 
         let (response_1, response_2) = (t1.await.unwrap(), t2.await.unwrap());

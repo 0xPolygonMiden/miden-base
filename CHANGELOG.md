@@ -17,6 +17,7 @@
 - [BREAKING] Implement most block constraints in `ProposedBlock` (#1123).
 - [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
 - Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
+- [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

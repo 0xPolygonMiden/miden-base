@@ -42,6 +42,7 @@ miden-objects = { path = "crates/miden-objects", version = "0.8", default-featur
 miden-prover = { version = "0.12", default-features = false }
 miden-stdlib = { version = "0.12", default-features = false }
 miden-tx = { path = "crates/miden-tx", version = "0.8", default-features = false }
+miden-tx-batch-prover = { path = "crates/miden-tx-batch-prover", version = "0.8", default-features = false }
 miden-verifier = { version = "0.12", default-features = false }
 rand = { version = "0.8", default-features = false }
 thiserror = { version = "2.0", default-features = false }

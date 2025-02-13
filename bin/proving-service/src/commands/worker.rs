@@ -15,6 +15,12 @@ pub struct StartWorker {
     /// The port of the worker
     #[clap(short, long, default_value = "50051")]
     port: u16,
+    /// Mark the worker as a transaction prover
+    #[clap(short, long)]
+    tx_prover: bool,
+    /// Mark the worker as a batch prover
+    #[clap(short, long)]
+    batch_prover: bool,
 }
 
 impl StartWorker {
@@ -30,8 +36,11 @@ impl StartWorker {
     #[instrument(target = MIDEN_PROVING_SERVICE, name = "worker:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let worker_addr = format!("{}:{}", self.host, self.port);
-        let rpc =
-            RpcListener::new(TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?);
+        let rpc = RpcListener::new(
+            TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?,
+            self.tx_prover,
+            self.batch_prover,
+        );
 
         info!(
             "Server listening on {}",
