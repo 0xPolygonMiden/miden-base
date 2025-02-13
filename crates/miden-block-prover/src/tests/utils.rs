@@ -9,7 +9,7 @@ use miden_objects::{
     asset::{Asset, FungibleAsset},
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
-    note::{Note, NoteExecutionHint, NoteId, NoteTag, NoteType},
+    note::{Note, NoteId, NoteTag, NoteType},
     testing::{note::NoteBuilder, prepare_word},
     transaction::{ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder},
     vm::ExecutionProof,
@@ -84,7 +84,7 @@ pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: 
         PUBLIC_NOTE = output_note.header().metadata().note_type() as u8,
         aux0 = output_note.metadata().aux(),
         tag0 = output_note.metadata().tag(),
-        execution_hint_always = Felt::from(NoteExecutionHint::always())
+        execution_hint_always = Felt::from(output_note.metadata().execution_hint())
     );
 
     // Create a note that will create the above output note.
