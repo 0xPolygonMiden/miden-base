@@ -472,40 +472,36 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
 
 /// Tests that multiple transactions against the same account that start from the same initial state
 /// commitment but produce different final state commitments produce an error.
+/// We test this simply by putting the same transaction in different batches and ensuring that the
+/// batch IDs will be unique to avoid triggering the duplicate batches check.
 #[test]
 fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> anyhow::Result<()> {
-    // We need authentication because we're modifying accounts with the input notes.
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_with_auth(2);
-    let asset0 = generate_fungible_asset(
-        100,
-        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
-    );
-    let asset1 = generate_fungible_asset(
-        50,
-        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
-    );
+    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain_without_auth(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
+    let random_tx = txs.remove(&0).unwrap();
 
-    let note0 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset0);
-    let note1 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset1);
+    let note0 = generate_tracked_note(&mut chain, account0.id(), account1.id());
+    let note1 = generate_tracked_note(&mut chain, account0.id(), account1.id());
+    // These notes should have different IDs.
+    assert_ne!(note0.id(), note1.id());
 
     // Add notes to the chain.
     chain.seal_block(None);
 
-    // Two transactions against the same account with input notes that will modify the account in
-    // different ways so they will produce a conflict.
-    let tx0 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[note0.id()]);
-    let tx1 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[note1.id()]);
+    // Create two different transactions against the same account consuming the same note.
+    let tx0 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[]);
 
-    let batch0 = generate_batch(&mut chain, vec![tx0]);
-    let batch1 = generate_batch(&mut chain, vec![tx1]);
+    // Add a random tx to batch0 to make it unique.
+    let batch0 = generate_batch(&mut chain, vec![tx0.clone(), random_tx]);
+    let batch1 = generate_batch(&mut chain, vec![tx0]);
 
     let batches = vec![batch0.clone(), batch1.clone()];
+
     let block_inputs = chain.get_block_inputs(&batches);
 
-    let error = ProposedBlock::new(block_inputs, batches).unwrap_err();
+    let error = ProposedBlock::new(block_inputs.clone(), batches.clone()).unwrap_err();
     assert_matches!(error, ProposedBlockError::ConflictingBatchesUpdateSameAccount {
       account_id,
       initial_state_commitment,
