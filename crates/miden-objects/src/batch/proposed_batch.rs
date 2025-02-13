@@ -395,12 +395,13 @@ impl Deserializable for ProposedBatch {
 mod tests {
     use miden_crypto::merkle::{Mmr, PartialMmr};
     use miden_verifier::ExecutionProof;
+    use vm_core::Felt;
     use winter_air::proof::Proof;
     use winter_rand_utils::rand_array;
 
     use super::*;
     use crate::{
-        account::{AccountIdVersion, AccountStorageMode, AccountType},
+        account::{Account, AccountComponent, AccountIdVersion, AccountStorageMode, AccountType},
         transaction::ProvenTransactionBuilder,
         Digest, Word,
     };
@@ -410,18 +411,12 @@ mod tests {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
-            let block_header = BlockHeader::new(
-                0,
+            let block_header = BlockHeader::mock(
+                i,
+                Some(Digest::default()),
+                Some(Digest::default()),
+                &[],
                 Digest::default(),
-                i.into(),
-                Digest::default(),
-                Digest::default(),
-                Digest::default(),
-                Digest::default(),
-                Digest::default(),
-                Digest::default(),
-                Digest::default(),
-                0,
             );
             mmr.add(block_header.hash());
         }
