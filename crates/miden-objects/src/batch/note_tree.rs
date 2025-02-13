@@ -1,12 +1,14 @@
+use alloc::vec::Vec;
+
 use miden_crypto::{
     hash::rpo::RpoDigest,
     merkle::{LeafIndex, MerkleError, SimpleSmt},
 };
-use vm_core::EMPTY_WORD;
 
 use crate::{
     note::{compute_note_hash, NoteId, NoteMetadata},
-    BATCH_NOTE_TREE_DEPTH,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
 };
 
 /// Wrapper over [SimpleSmt<BATCH_NOTE_TREE_DEPTH>] for batch note tree.
@@ -59,5 +61,26 @@ impl BatchNoteTree {
     /// Consumes the batch note tree and returns the underlying [`SimpleSmt`].
     pub fn into_smt(self) -> SimpleSmt<BATCH_NOTE_TREE_DEPTH> {
         self.0
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for BatchNoteTree {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.leaves().collect::<Vec<_>>().write_into(target);
+    }
+}
+
+impl Deserializable for BatchNoteTree {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let leaves = Vec::read_from(source)?;
+        let smt = SimpleSmt::with_contiguous_leaves(leaves.into_iter()).map_err(|err| {
+            DeserializationError::UnknownError(format!(
+                "failed to deserialize BatchNoteTree: {err}"
+            ))
+        })?;
+        Ok(Self(smt))
     }
 }
