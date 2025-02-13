@@ -1817,6 +1817,7 @@ dependencies = [
  "miden-objects",
  "miden-tx",
  "rand 0.8.5",
+ "thiserror 2.0.11",
  "winterfell",
 ]
 
@@ -1843,8 +1844,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1945918276152bd9b8e8434643ad24d4968e075b68a5ed03927b53ac75490a79"
+source = "git+https://github.com/0xPolygonMiden/crypto.git?branch=main#12d0eefeb20dcf263c5ab8dc97a21bb026985399"
 dependencies = [
  "blake3",
  "cc",

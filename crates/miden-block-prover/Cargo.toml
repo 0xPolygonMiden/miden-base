@@ -16,6 +16,9 @@ edition.workspace = true
 bench = false
 
 [dependencies]
+miden-crypto = { workspace = true }
+miden-objects = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { workspace = true }

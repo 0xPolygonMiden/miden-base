@@ -17,6 +17,9 @@ pub use proposed_block::ProposedBlock;
 mod nullifier_witness;
 pub use nullifier_witness::NullifierWitness;
 
+mod partial_nullifier_tree;
+pub use partial_nullifier_tree::PartialNullifierTree;
+
 mod account_witness;
 pub use account_witness::AccountWitness;
 
