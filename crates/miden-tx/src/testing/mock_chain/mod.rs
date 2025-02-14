@@ -16,9 +16,8 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        compute_tx_hash, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs,
-        BlockNoteIndex, BlockNoteTree, BlockNumber, NoteBatch, NullifierWitness, ProposedBlock,
-        ProvenBlock,
+        AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        BlockNoteTree, BlockNumber, NoteBatch, NullifierWitness, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -834,8 +833,9 @@ impl MockChain {
             let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
                 block.header().timestamp() + TIMESTAMP_STEP_SECS
             });
-            let tx_hash =
-                compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
+            let tx_hash = BlockHeader::compute_tx_commitment(
+                self.pending_objects.included_transactions.clone().into_iter(),
+            );
 
             let kernel_root = TransactionKernel::kernel_root();
 

@@ -8,7 +8,7 @@ mod proposed_block;
 pub use proposed_block::ProposedBlock;
 
 mod proven_block;
-pub use proven_block::{compute_tx_hash, NoteBatch, ProvenBlock};
+pub use proven_block::{NoteBatch, ProvenBlock};
 
 mod nullifier_witness;
 pub use nullifier_witness::NullifierWitness;

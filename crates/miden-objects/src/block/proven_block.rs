@@ -1,7 +1,5 @@
 use alloc::vec::Vec;
 
-use vm_core::{Felt, ZERO};
-
 use crate::{
     account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree},
@@ -9,7 +7,7 @@ use crate::{
     note::Nullifier,
     transaction::{OutputNote, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest, Hasher,
+    Digest,
 };
 
 pub type NoteBatch = Vec<OutputNote>;
@@ -132,11 +130,6 @@ impl ProvenBlock {
                 .map(|transaction_id| (*transaction_id, update.account_id()))
         })
     }
-
-    /// Computes a commitment to the transactions included in this block.
-    pub fn compute_tx_hash(&self) -> Digest {
-        compute_tx_hash(self.transactions())
-    }
 }
 
 impl Serializable for ProvenBlock {
@@ -159,22 +152,4 @@ impl Deserializable for ProvenBlock {
 
         Ok(block)
     }
-}
-
-// TRANSACTION HASH COMPUTATION
-// ================================================================================================
-
-// TODO: Make inherent method on BlockHeader?
-/// Computes a commitment to the provided list of transactions.
-pub fn compute_tx_hash(
-    updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
-) -> Digest {
-    let mut elements = vec![];
-    for (transaction_id, account_id) in updated_accounts {
-        let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(account_id);
-        elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
-        elements.extend_from_slice(transaction_id.as_elements());
-    }
-
-    Hasher::hash_elements(&elements)
 }
