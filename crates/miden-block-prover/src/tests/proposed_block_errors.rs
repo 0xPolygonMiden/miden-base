@@ -9,21 +9,19 @@ use miden_objects::{
     transaction::ProvenTransaction,
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
-use miden_tx::testing::Auth;
 
 use crate::tests::utils::{
     generate_account, generate_batch, generate_executed_tx_with_authenticated_notes,
     generate_fungible_asset, generate_output_note, generate_tracked_note,
     generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
     generate_tx_with_unauthenticated_notes, generate_untracked_note,
-    generate_untracked_note_with_output_note, setup_chain_with_auth, setup_chain_without_auth,
-    ProvenTransactionExt, TestSetup,
+    generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
 };
 
 /// Tests that empty batches produce an error.
 #[test]
 fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
-    let TestSetup { chain, .. } = setup_chain_without_auth(2);
+    let TestSetup { chain, .. } = setup_chain(2);
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
@@ -43,12 +41,12 @@ fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
 #[test]
 fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
     let count = MAX_BATCHES_PER_BLOCK;
-    let TestSetup { mut chain, accounts, mut txs, .. } = setup_chain_without_auth(count);
+    let TestSetup { mut chain, accounts, mut txs, .. } = setup_chain(count);
 
     // At this time, MockChain won't let us build more than 64 transactions before sealing a block,
     // so we add one more tx manually.
     let account0 = accounts.get(&0).unwrap();
-    let accountx = generate_account(&mut chain, Auth::NoAuth);
+    let accountx = generate_account(&mut chain);
     let notex = generate_tracked_note(&mut chain, account0.id(), accountx.id());
     chain.seal_block(None);
     let tx = generate_tx_with_authenticated_notes(&mut chain, accountx.id(), &[notex.id()]);
@@ -77,7 +75,7 @@ fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
 /// Tests that duplicate batches produce an error.
 #[test]
 fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
 
@@ -101,7 +99,7 @@ fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
 /// Tests that a timestamp at or before the previous block header produces an error.
 #[test]
 fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
     let batches = vec![batch0];
@@ -130,7 +128,7 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
 /// Tests that a chain MMR that is not at the state of the previous block header produces an error.
 #[test]
 fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
     let batches = vec![batch0];
@@ -180,7 +178,7 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
 /// error.
 #[test]
 fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut txs, .. } = setup_chain_without_auth(1);
+    let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
     let proven_tx0 = txs.remove(&0).unwrap();
 
     // This batch will reference the latest block with number 1.
@@ -217,7 +215,7 @@ fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()>
 /// Tests that duplicate input notes across batches produce an error.
 #[test]
 fn proposed_block_fails_on_duplicate_input_note() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
@@ -251,7 +249,7 @@ fn proposed_block_fails_on_duplicate_input_note() -> anyhow::Result<()> {
 /// Tests that duplicate output notes across batches produce an error.
 #[test]
 fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(1);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(1);
     let account = accounts.remove(&0).unwrap();
 
     let output_note = generate_output_note(account.id(), [10; 32]);
@@ -292,7 +290,7 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
 #[test]
 fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_block(
 ) -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
@@ -368,7 +366,7 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
 /// Tests that a missing note inclusion proof produces an error.
 #[test]
 fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
@@ -394,7 +392,7 @@ fn proposed_block_fails_on_missing_note_inclusion_proof() -> anyhow::Result<()> 
 /// Tests that a missing nullifier witness produces an error.
 #[test]
 fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
@@ -433,7 +431,7 @@ fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
 /// Tests that a nullifier witness pointing to a spent nullifier produces an error.
 #[test]
 fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 
@@ -482,7 +480,7 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
 /// batch IDs will be unique to avoid triggering the duplicate batches check.
 #[test]
 fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain(2);
 
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
@@ -525,7 +523,7 @@ fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> a
 /// Tests that a missing account witness produces an error.
 #[test]
 fn proposed_block_fails_on_missing_account_witness() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain(2);
     let account0 = accounts.remove(&0).unwrap();
     let tx0 = txs.remove(&0).unwrap();
 
@@ -551,8 +549,7 @@ fn proposed_block_fails_on_missing_account_witness() -> anyhow::Result<()> {
 /// build on top of each other produce an error when tx 1 is missing from the block.
 #[test]
 fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Result<()> {
-    // We need authentication because we're modifying accounts with the input notes.
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_with_auth(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
     let asset = generate_fungible_asset(
         100,
         AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),

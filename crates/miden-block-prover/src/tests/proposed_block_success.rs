@@ -10,15 +10,14 @@ use crate::tests::utils::{
     generate_batch, generate_executed_tx_with_authenticated_notes, generate_fungible_asset,
     generate_output_note, generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
     generate_tx_with_unauthenticated_notes, generate_untracked_note,
-    generate_untracked_note_with_output_note, setup_chain_with_auth, setup_chain_without_auth,
-    ProvenTransactionExt, TestSetup,
+    generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
 };
 
 /// Tests that a proposed block from two batches with one transaction each can be successfully
 /// built.
 #[test]
 fn proposed_block_basic_success() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain_without_auth(2);
+    let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain(2);
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
     let proven_tx0 = txs.remove(&0).unwrap();
@@ -67,7 +66,7 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
 #[test]
 fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
     // We need authentication because we're modifying accounts with the input notes.
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_with_auth(2);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
     let asset = generate_fungible_asset(
         100,
         AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
@@ -148,7 +147,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
 /// Tests that unauthenticated notes can be authenticated when inclusion proofs are provided.
 #[test]
 fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(3);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(3);
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
     let account2 = accounts.remove(&2).unwrap();
@@ -192,7 +191,7 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
 /// Tests that an unauthenticated note is erased when it is created in the same block.
 #[test]
 fn proposed_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain_without_auth(3);
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(3);
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 

@@ -592,7 +592,7 @@ impl MockChain {
     ///
     /// This account is added to the available accounts and are immediately available without having
     /// to seal a block.
-    fn add_from_account_builder(
+    pub fn add_from_account_builder(
         &mut self,
         auth_method: Auth,
         mut account_builder: AccountBuilder,
@@ -1049,7 +1049,7 @@ impl MockChain {
 
 /// Helper type for increased readability at call-sites. Indicates whether to build a new (nonce =
 /// ZERO) or existing account (nonce = ONE).
-enum AccountState {
+pub enum AccountState {
     New,
     Exists,
 }

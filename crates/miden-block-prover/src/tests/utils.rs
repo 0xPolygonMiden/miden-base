@@ -9,12 +9,14 @@ use miden_objects::{
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
     note::{Note, NoteId, NoteTag, NoteType},
-    testing::{note::NoteBuilder, prepare_word},
-    transaction::{ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder},
+    testing::{account_component::AccountMockComponent, note::NoteBuilder, prepare_word},
+    transaction::{
+        ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder, TransactionScript,
+    },
     vm::ExecutionProof,
     Felt,
 };
-use miden_tx::testing::{Auth, MockChain};
+use miden_tx::testing::{AccountState, Auth, MockChain};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use winterfell::Proof;
 
@@ -24,8 +26,11 @@ pub struct TestSetup {
     pub txs: BTreeMap<usize, ProvenTransaction>,
 }
 
-pub fn generate_account(chain: &mut MockChain, auth: Auth) -> Account {
-    chain.add_existing_wallet(auth, vec![])
+pub fn generate_account(chain: &mut MockChain) -> Account {
+    let account_builder = Account::builder(rand::thread_rng().gen()).with_component(
+        AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
+    );
+    chain.add_from_account_builder(Auth::NoAuth, account_builder, AccountState::Exists)
 }
 
 pub fn generate_tracked_note(chain: &mut MockChain, sender: AccountId, reciver: AccountId) -> Note {
@@ -119,7 +124,10 @@ pub fn generate_executed_tx_with_authenticated_notes(
     account: AccountId,
     notes: &[NoteId],
 ) -> ExecutedTransaction {
-    let tx_context = chain.build_tx_context(account, notes, &[]).build();
+    let tx_context = chain
+        .build_tx_context(account, notes, &[])
+        .tx_script(authenticate_mock_account_tx_script())
+        .build();
     tx_context.execute().unwrap()
 }
 
@@ -137,9 +145,32 @@ pub fn generate_tx_with_unauthenticated_notes(
     account_id: AccountId,
     notes: &[Note],
 ) -> ProvenTransaction {
-    let tx_context = chain.build_tx_context(account_id, &[], notes).build();
+    let tx_context = chain
+        .build_tx_context(account_id, &[], notes)
+        .tx_script(authenticate_mock_account_tx_script())
+        .build();
     let executed_tx = tx_context.execute().unwrap();
     ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
+}
+
+fn authenticate_mock_account_tx_script() -> TransactionScript {
+    let code = "
+use.test::account
+
+begin
+    padw padw padw
+    push.0.0.0.1
+    # => [1, pad(15)]
+
+    call.account::incr_nonce
+    # => [pad(16)]
+
+    dropw dropw dropw dropw
+end
+";
+
+    TransactionScript::compile(code, [], TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap()
 }
 
 pub fn generate_batch(chain: &mut MockChain, txs: Vec<ProvenTransaction>) -> ProvenBatch {
@@ -149,26 +180,18 @@ pub fn generate_batch(chain: &mut MockChain, txs: Vec<ProvenTransaction>) -> Pro
         .unwrap()
 }
 
-pub fn setup_chain_with_auth(num_accounts: usize) -> TestSetup {
-    setup_test_chain(num_accounts, Auth::BasicAuth)
-}
-
-pub fn setup_chain_without_auth(num_accounts: usize) -> TestSetup {
-    setup_test_chain(num_accounts, Auth::NoAuth)
-}
-
 /// Setup a test mock chain with the number of accounts, notes and transactions.
 ///
 /// This is merely generating some valid data for testing purposes.
-fn setup_test_chain(num_accounts: usize, auth: Auth) -> TestSetup {
+pub fn setup_chain(num_accounts: usize) -> TestSetup {
     let mut chain = MockChain::new();
-    let sender_account = generate_account(&mut chain, Auth::NoAuth);
+    let sender_account = generate_account(&mut chain);
     let mut accounts = BTreeMap::new();
     let mut notes = BTreeMap::new();
     let mut txs = BTreeMap::new();
 
     for i in 0..num_accounts {
-        let account = generate_account(&mut chain, auth);
+        let account = generate_account(&mut chain);
         let note = generate_tracked_note(&mut chain, sender_account.id(), account.id());
         accounts.insert(i, account);
         notes.insert(i, note);
