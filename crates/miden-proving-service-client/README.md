@@ -6,11 +6,11 @@ This crate contains protobuf definition for the Miden transaction proving servic
 
 Description of this crate's features:
 
-| Features     | Description                                                                                                 |
-| ------------ | ------------------------------------------------------------------------------------------------------------|
-| `std`        | Enable usage of Rust's `std`, use `--no-default-features` for `no-std` support.                             |
-| `tx-prover`  | Makes the `RemoteTransactionProver` struct public.                                                          |
-| `batch-prover`  | Makes the `RemoteBatchProver` struct public.                                                          |
+| Features      | Description                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------------|
+| `std`         | Enable usage of Rust's `std`, use `--no-default-features` for `no-std` support.                             |
+| `tx-prover`   | Makes the `RemoteTransactionProver` struct public.                                                          |
+| `batch-prover`| Makes the `RemoteBatchProver` struct public.                                                                |
 
 ## License
 
