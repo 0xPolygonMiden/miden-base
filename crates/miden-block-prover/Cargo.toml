@@ -15,21 +15,11 @@ edition.workspace = true
 [lib]
 bench = false
 
-[features]
-default = ["std"]
-std = [
-  "miden-objects/std",
-  "miden-tx/std",
-  "miden-crypto/std",
-]
-
 [dependencies]
-anyhow = { version = "1.0", default-features = false, optional = true }
-miden-crypto = { workspace = true }
-miden-tx = { workspace = true }
-miden-objects = { workspace = true }
 
 [dev-dependencies]
+miden-objects = { workspace = true }
+miden-crypto = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
 miden-lib = { workspace = true, features = ["std", "testing"] }
 winterfell = { version = "0.11" }

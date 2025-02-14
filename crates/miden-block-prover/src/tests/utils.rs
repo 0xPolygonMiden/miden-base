@@ -1,5 +1,4 @@
-use alloc::vec::Vec;
-use std::{collections::BTreeMap, vec};
+use std::{collections::BTreeMap, vec, vec::Vec};
 
 use miden_crypto::rand::RpoRandomCoin;
 use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
