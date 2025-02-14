@@ -61,6 +61,8 @@ impl Nullifier {
     }
 
     /// Returns the prefix of this nullifier.
+    ///
+    /// Nullifier prefix is defined as the 16 most significant bits of the nullifier value.
     pub fn prefix(&self) -> u16 {
         (self.inner()[3].as_int() >> NULLIFIER_PREFIX_SHIFT) as u16
     }
