@@ -51,7 +51,8 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     let dst_dir = crate_root.join("src").join("generated");
 
     // Remove `proving_service.rs` if it exists.
-    fs::remove_file(dst_dir.join("proving_service.rs")).into_diagnostic().ok();
+    // We don't need to check the success of this operation because the file may not exist.
+    let _ = fs::remove_file(dst_dir.join("proving_service.rs"));
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");

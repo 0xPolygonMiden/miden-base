@@ -51,8 +51,10 @@ fn compile_tonic_client_proto() -> miette::Result<()> {
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("proving_service").join("generated");
 
-    // Remove `tx_prover.rs` if it exists.
-    fs::remove_file(dst_dir.join("proving_service.rs")).into_diagnostic().ok();
+    // Remove `proving_service.rs` if it exists.
+    // We don't need to check the success of this operation because the file may not exist.
+    let _ = fs::remove_file(dst_dir.join("std").join("proving_service.rs"));
+    let _ = fs::remove_file(dst_dir.join("nostd").join("proving_service.rs"));
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
