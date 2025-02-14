@@ -11,6 +11,7 @@ use tonic::{Request, Response, Status};
 use tracing::instrument;
 
 use crate::{
+    commands::worker::ProverTypeSupport,
     generated::{
         api_server::{Api as ProverApi, ApiServer},
         ProvingRequest, ProvingResponse,
@@ -24,8 +25,8 @@ pub struct RpcListener {
 }
 
 impl RpcListener {
-    pub fn new(listener: TcpListener, is_tx_prover: bool, is_batch_prover: bool) -> Self {
-        let prover_rpc_api = ProverRpcApi::new(is_tx_prover, is_batch_prover);
+    pub fn new(listener: TcpListener, prover_type_support: ProverTypeSupport) -> Self {
+        let prover_rpc_api = ProverRpcApi::new(prover_type_support);
         let api_service = ApiServer::new(prover_rpc_api);
         Self { listener, api_service }
     }
@@ -36,14 +37,14 @@ struct Provers {
 }
 
 impl Provers {
-    fn new(is_tx_prover: bool, is_batch_prover: bool) -> Self {
-        let tx_prover = if is_tx_prover {
+    fn new(prover_type_support: ProverTypeSupport) -> Self {
+        let tx_prover = if prover_type_support.supports_transaction() {
             Some(LocalTransactionProver::default())
         } else {
             None
         };
 
-        let batch_prover = if is_batch_prover {
+        let batch_prover = if prover_type_support.supports_batch() {
             Some(LocalBatchProver::new(MIN_PROOF_SECURITY_LEVEL))
         } else {
             None
@@ -58,8 +59,8 @@ pub struct ProverRpcApi {
 }
 
 impl ProverRpcApi {
-    pub fn new(is_tx_prover: bool, is_batch_prover: bool) -> Self {
-        let provers = Mutex::new(Provers::new(is_tx_prover, is_batch_prover));
+    pub fn new(prover_type_support: ProverTypeSupport) -> Self {
+        let provers = Mutex::new(Provers::new(prover_type_support));
 
         Self { provers }
     }

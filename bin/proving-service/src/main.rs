@@ -46,6 +46,7 @@ mod test {
 
     use crate::{
         api::ProverRpcApi,
+        commands::worker::ProverTypeSupport,
         generated::{api_client::ApiClient, api_server::ApiServer, ProvingRequest},
     };
 
@@ -53,7 +54,11 @@ mod test {
     async fn test_prove_transaction() {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
-        let api_service = ApiServer::new(ProverRpcApi::new(true, false));
+
+        let mut prover_type = ProverTypeSupport::default();
+        prover_type.with_transaction();
+
+        let api_service = ApiServer::new(ProverRpcApi::new(prover_type));
 
         // Spawn the server as a background task
         tokio::spawn(async move {
