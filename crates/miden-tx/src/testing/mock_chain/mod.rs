@@ -1027,7 +1027,8 @@ impl MockChain {
         &self.available_notes
     }
 
-    /// Returns a reference to the map of account IDs to the accounts.
+    /// Returns a reference to the account identifed by the given account ID and panics if it does
+    /// not exist.
     pub fn available_account(&self, account_id: AccountId) -> &Account {
         self.available_accounts
             .get(&account_id)
