@@ -30,27 +30,38 @@ impl RpcListener {
         Self { listener, api_service }
     }
 }
-
-pub struct ProverRpcApi {
-    tx_prover: Option<Mutex<LocalTransactionProver>>,
-    batch_prover: Option<Mutex<LocalBatchProver>>,
+struct Provers {
+    tx_prover: Option<LocalTransactionProver>,
+    batch_prover: Option<LocalBatchProver>,
 }
 
-impl ProverRpcApi {
-    pub fn new(is_tx_prover: bool, is_batch_prover: bool) -> Self {
+impl Provers {
+    fn new(is_tx_prover: bool, is_batch_prover: bool) -> Self {
         let tx_prover = if is_tx_prover {
-            Some(Mutex::new(LocalTransactionProver::default()))
+            Some(LocalTransactionProver::default())
         } else {
             None
         };
 
         let batch_prover = if is_batch_prover {
-            Some(Mutex::new(LocalBatchProver::new(MIN_PROOF_SECURITY_LEVEL)))
+            Some(LocalBatchProver::new(MIN_PROOF_SECURITY_LEVEL))
         } else {
             None
         };
 
         Self { tx_prover, batch_prover }
+    }
+}
+
+pub struct ProverRpcApi {
+    provers: Mutex<Provers>,
+}
+
+impl ProverRpcApi {
+    pub fn new(is_tx_prover: bool, is_batch_prover: bool) -> Self {
+        let provers = Mutex::new(Provers::new(is_tx_prover, is_batch_prover));
+
+        Self { provers }
     }
     #[instrument(
         target = MIDEN_PROVING_SERVICE,
@@ -64,13 +75,15 @@ impl ProverRpcApi {
         &self,
         request: Request<ProvingRequest>,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
-        let tx_prover = self
+        let prover = self
+            .provers
+            .try_lock()
+            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
+
+        let prover = prover
             .tx_prover
             .as_ref()
             .ok_or(Status::unimplemented("Transaction prover is not enabled"))?;
-        let prover = tx_prover
-            .try_lock()
-            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
 
         let transaction_witness = TransactionWitness::read_from_bytes(&request.get_ref().payload)
             .map_err(invalid_argument)?;
@@ -96,13 +109,15 @@ impl ProverRpcApi {
         &self,
         request: Request<ProvingRequest>,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
-        let batch_prover = self
+        let prover = self
+            .provers
+            .try_lock()
+            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
+
+        let prover = prover
             .batch_prover
             .as_ref()
             .ok_or(Status::unimplemented("Batch prover is not enabled"))?;
-        let prover = batch_prover
-            .try_lock()
-            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
 
         let batch =
             ProposedBatch::read_from_bytes(&request.get_ref().payload).map_err(invalid_argument)?;
