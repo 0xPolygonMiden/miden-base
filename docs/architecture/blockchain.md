@@ -22,15 +22,15 @@ This approach enables near-instant blockchain syncing by verifying `Block` proof
 
 ## Batching
 
-To reduce the load on the blockchain, transactions are firstly aggregated into batches by the `batch_producer`, not directly into `Block`s. Batch producing is highly parallelizable.
+To reduce the load on the blockchain, transactions are firstly aggregated into batches by the batch producer, not directly into `Block`s. Batch producing is highly parallelizable.
 
-The purpose of this shceme is to produce a single proof attesting to the validity of some number of transactions which is done by recursively verifying each transaction proof in the Miden VM.
+The purpose of this scheme is to produce a single proof attesting to the validity of some number of transactions which is done by recursively verifying each transaction proof in the Miden VM.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Account diagram"/>
 </p>
 
-The batch producer processes each transaction proof sequentially and verifies the proofs against the initial and final state root of the accounts affected. If several transactions in the same batch affect one single account, the correct ordering must be ensured.
+The batch producer processes each transaction proof sequentially and verifies the proofs against the initial and final state roots of the affected accounts. If several transactions in the same batch affect one single account, the correct ordering must be enforced.
 
 Also the batch producer takes care to erase ephemeral notes if creation and consumption of this note happens to be in the same `Block`. As an example, there might be two transactions in a batch, `A` and `B`.
 
@@ -39,22 +39,22 @@ TX A: Consumes authenticated note Z, produces ephemeral note X.
 TX B: Consumes ephemeral note X.
 ```
 
-From the perspective of the the `Block` in which the batch would be aggregated to, ephemeral note X would have never existed. So the batch producer verifies the correctness of both transactions `A` and `B`, but the Notes DB will never see an entry of note X. That means, the executor of transaction `B` doesn't need to wait until note X exists on the blockchain for it to consume it.
+From the perspective of the `Block` in which the batch would be aggregated in, ephemeral note X would have never existed. So the batch producer verifies the correctness of both transactions `A` and `B`, but the Notes DB will never see an entry of note X. That means, the executor of transaction `B` doesn't need to wait until note X exists on the blockchain for it to consume it.
 
 ## Block production
 
-To create a `Block` multiple batches and their respective proofs are aggregated into a `Block`. 
+To create a `Block` multiple batches and their respective proofs are aggregated into a `Block`.
 
-`Block` production cannot happen in parallel and must be done by the Miden operator. In the future there will be several Miden operators competing for `Block` production. However, the idea of `Block` production is the same - recursive verification. This time, a set of batch proofs is being aggregated into a single `Block` proof. However, the `Block` also entails the commitments to the current global [state](state.md), the new nullifiers, the new state commitments for affected private accounts and created notes, and the full states for all affected public accounts and  created notes. The `Block` proof attests to the correct state transition from one the previous `Block` root to the next and therefore to the change of the global state of Miden. 
+`Block` production cannot happen in parallel and must be done by the Miden operator. In the future there will be several Miden operators competing for `Block` production. The scheme used for `Block` production is similar to the one used in batch production - recursive verification. Multiple batch proofs are aggregated into a single `Block` proof. However, the `Block` also contains the commitments to the current global [state](state.md), the newly created nullifiers, the new state commitments for affected private accounts and the newly created notes, and the full states for all affected public accounts and newly created notes. The `Block` proof attests to the correct state transition from the previous `Block` root to the next and therefore to the change of the global state of Miden.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/block.png" style="width:90%;" alt="Account diagram"/>
 </p>
 
 > **Tip: Block contents**
-> - **State updates** only contain the hashes of changes. For example, for each updated account, we record a tuple `([account id], [new account hash])`.
+> - **State updates** only contain the hashes of updated elements. For example, for each updated account, we record a tuple `([account id], [new account hash])`.
 > - **ZK Proof** attests that, given a state commitment from the previous `Block`, there was a sequence of valid transactions executed that resulted in the new state commitment, and the output also included state updates.
-> - The `Block` also contains full account and note data for public accounts and notes. For example, if account `123` is an updated public account which, in the **state updates** section we'd see a records for it as `(123, 0x456..)`. The full new state of this account (which should hash to `0x456..`) would be included in a separate section.
+> - The `Block` also contains full account and note data for public accounts and notes. For example, if account `123` is an updated public account which, in the **state updates** section we'd see a record for it as `(123, 0x456..)`. The full new state of this account (which should hash to `0x456..`) would be included in a separate section.
 
 ## Verifying blocks
 
@@ -67,4 +67,4 @@ To verify that a `Block` corresponds to a valid state transition, the following 
    - State commitment from the current `Block`.
    - State updates from the current `Block`.
 
-The above can be performed by a verifier contract on Ethereum L1, the Polygon AggLayer, or a decentralized network of Miden nodes.
+The above can be performed by an arbitrary verifier (e.g., contract on Ethereum, Polygon AggLayer, decentralized network of Miden nodes).
