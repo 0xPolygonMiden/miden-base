@@ -4,8 +4,8 @@ use miden_crypto::merkle::{LeafIndex, PartialMerkleTree};
 use miden_objects::{
     account::AccountId,
     block::{
-        compute_tx_hash, AccountUpdateWitness, BlockHeader, BlockNumber, NullifierWitness,
-        PartialNullifierTree, ProposedBlock,
+        AccountUpdateWitness, BlockHeader, BlockNumber, NullifierWitness, PartialNullifierTree,
+        ProposedBlock, ProvenBlock,
     },
     note::Nullifier,
     transaction::ChainMmr,
@@ -33,9 +33,9 @@ impl LocalBlockProver {
     pub fn prove_without_verification(
         &self,
         proposed_block: ProposedBlock,
-    ) -> Result<BlockHeader, ProvenBlockError> {
+    ) -> Result<ProvenBlock, ProvenBlockError> {
         let block_num = proposed_block.block_num();
-        let tx_hash = compute_tx_hash(proposed_block.affected_accounts());
+        let tx_hash = BlockHeader::compute_tx_commitment(proposed_block.affected_accounts());
 
         let timestamp = proposed_block.timestamp();
         let (
@@ -67,7 +67,7 @@ impl LocalBlockProver {
         // For now, we're not actually proving the block.
         let proof_hash = Digest::default();
 
-        Ok(BlockHeader::new(
+        let header = BlockHeader::new(
             version,
             prev_block_commitment,
             block_num,
@@ -79,9 +79,24 @@ impl LocalBlockProver {
             kernel_root,
             proof_hash,
             timestamp,
-        ))
+        );
+
+        let updated_accounts = vec![];
+        let output_note_batches = vec![];
+        let created_nullifiers = vec![]; //created_nullifiers.into_keys().collect();
+
+        let proven_block = ProvenBlock::new_unchecked(
+            header,
+            updated_accounts,
+            output_note_batches,
+            created_nullifiers,
+        );
+
+        Ok(proven_block)
     }
 }
+
+// TODO: Describe assumptions about inputs (completeness).
 
 /// Validates that the nullifiers returned from the store are the same the produced nullifiers
 /// in the batches. Note that validation that the value of the nullifiers is `0` will be

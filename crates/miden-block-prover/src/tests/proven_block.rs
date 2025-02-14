@@ -50,14 +50,14 @@ fn proven_block_compute_new_tree_roots() -> anyhow::Result<()> {
         .prove_without_verification(proposed_block)
         .context("failed to prove proposed block")?;
 
-    assert_eq!(block.nullifier_root(), current_nullifier_tree.root());
-    assert_eq!(block.account_root(), current_account_tree.root());
+    assert_eq!(block.header().nullifier_root(), current_nullifier_tree.root());
+    assert_eq!(block.header().account_root(), current_account_tree.root());
 
     // The Mmr in MockChain adds a new block after it is sealed, so at this point the chain contains
     // block2 and has length 3.
     // This means the chain root of the mock chain must match the chain root of the ChainMmr with
     // chain length 2 when the prev block (block2) is added.
-    assert_eq!(block.chain_root(), chain.block_chain().peaks().hash_peaks());
+    assert_eq!(block.header().chain_root(), chain.block_chain().peaks().hash_peaks());
 
     Ok(())
 }

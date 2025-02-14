@@ -3,7 +3,6 @@ use alloc::vec::Vec;
 use crate::{
     account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree},
-    errors::BlockError,
     note::Nullifier,
     transaction::{OutputNote, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -42,31 +41,29 @@ pub struct ProvenBlock {
     /// Note batches created by the transactions in this block.
     output_note_batches: Vec<NoteBatch>,
 
-    /// Nullifiers produced by the transactions in this block.
-    nullifiers: Vec<Nullifier>,
+    /// Nullifiers created by the transactions in this block through the consumption of notes.
+    created_nullifiers: Vec<Nullifier>,
 }
 
 impl ProvenBlock {
     /// Returns a new [Block] instantiated from the provided components.
     ///
-    /// # Errors
-    /// Returns an error if block didn't pass validation.
+    /// # Warning
     ///
-    /// Note: consistency of the provided components is not validated.
-    pub fn new(
+    /// This constructor does not do any validation, so passing incorrect values may lead to later
+    /// panics.
+    pub fn new_unchecked(
         header: BlockHeader,
         updated_accounts: Vec<BlockAccountUpdate>,
         output_note_batches: Vec<NoteBatch>,
-        nullifiers: Vec<Nullifier>,
-    ) -> Result<Self, BlockError> {
-        let block = Self {
+        created_nullifiers: Vec<Nullifier>,
+    ) -> Self {
+        Self {
             header,
             updated_accounts,
             output_note_batches,
-            nullifiers,
-        };
-
-        Ok(block)
+            created_nullifiers,
+        }
     }
 
     /// Returns a commitment to this block.
@@ -97,9 +94,9 @@ impl ProvenBlock {
         self.output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
             notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
                 (
-                    BlockNoteIndex::new(batch_idx, note_idx_in_batch).expect(
-                        "Something went wrong: block is invalid, but passed or skipped validation",
-                    ),
+                    // SAFETY: Batch and note index are assumed to be valid by construction of the
+                    // block.
+                    BlockNoteIndex::new(batch_idx, note_idx_in_batch),
                     note,
                 )
             })
@@ -115,9 +112,9 @@ impl ProvenBlock {
             .expect("Something went wrong: block is invalid, but passed or skipped validation")
     }
 
-    /// Returns a set of nullifiers for all notes consumed in the block.
-    pub fn nullifiers(&self) -> &[Nullifier] {
-        &self.nullifiers
+    /// Returns a reference to the slice of nullifiers for all notes consumed in the block.
+    pub fn created_nullifiers(&self) -> &[Nullifier] {
+        &self.created_nullifiers
     }
 
     /// Returns an iterator over all transactions which affected accounts in the block with
@@ -137,7 +134,7 @@ impl Serializable for ProvenBlock {
         self.header.write_into(target);
         self.updated_accounts.write_into(target);
         self.output_note_batches.write_into(target);
-        self.nullifiers.write_into(target);
+        self.created_nullifiers.write_into(target);
     }
 }
 
@@ -147,7 +144,7 @@ impl Deserializable for ProvenBlock {
             header: BlockHeader::read_from(source)?,
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
             output_note_batches: <Vec<NoteBatch>>::read_from(source)?,
-            nullifiers: <Vec<Nullifier>>::read_from(source)?,
+            created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
         };
 
         Ok(block)

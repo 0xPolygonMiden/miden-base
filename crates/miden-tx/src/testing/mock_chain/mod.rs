@@ -185,11 +185,7 @@ impl PendingObjects {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
                 batch.iter().enumerate().map(move |(note_index, note)| {
-                    (
-                        BlockNoteIndex::new(batch_index, note_index).unwrap(),
-                        note.id(),
-                        *note.metadata(),
-                    )
+                    (BlockNoteIndex::new(batch_index, note_index), note.id(), *note.metadata())
                 })
             });
 
@@ -856,13 +852,12 @@ impl MockChain {
                 timestamp,
             );
 
-            let block = ProvenBlock::new(
+            let block = ProvenBlock::new_unchecked(
                 header,
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
-            )
-            .unwrap();
+            );
 
             for (batch_index, note_batch) in
                 self.pending_objects.output_note_batches.iter().enumerate()
@@ -870,8 +865,7 @@ impl MockChain {
                 for (note_index, note) in note_batch.iter().enumerate() {
                     match note {
                         OutputNote::Full(note) => {
-                            let block_note_index =
-                                BlockNoteIndex::new(batch_index, note_index).unwrap();
+                            let block_note_index = BlockNoteIndex::new(batch_index, note_index);
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
                                 block.header().block_num(),

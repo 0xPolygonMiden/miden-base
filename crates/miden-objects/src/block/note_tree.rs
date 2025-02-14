@@ -9,7 +9,7 @@ use crate::{
     batch::BatchNoteTree,
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
     MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 
@@ -104,15 +104,11 @@ pub struct BlockNoteIndex {
 
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
-    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Result<Self, BlockError> {
-        if note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
-            return Err(BlockError::TooManyNotesInBatch(note_idx_in_batch));
-        }
-        if batch_idx >= MAX_BATCHES_PER_BLOCK {
-            return Err(BlockError::TooManyTransactionBatches(batch_idx));
-        }
+    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Self {
+        debug_assert!(note_idx_in_batch < MAX_OUTPUT_NOTES_PER_BATCH);
+        debug_assert!(batch_idx < MAX_BATCHES_PER_BLOCK);
 
-        Ok(Self { batch_idx, note_idx_in_batch })
+        Self { batch_idx, note_idx_in_batch }
     }
 
     /// Returns the batch index.
