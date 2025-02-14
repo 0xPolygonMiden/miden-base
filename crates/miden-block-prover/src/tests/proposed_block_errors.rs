@@ -27,7 +27,7 @@ fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -61,7 +61,7 @@ fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -85,7 +85,7 @@ fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -108,7 +108,7 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
     // Mock BlockInputs.
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -137,7 +137,7 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
 
     // Select the chain MMR which is valid for the current block but pass the next block in the
     // chain, which is an inconsistent combination.
-    let mut chain_mmr = chain.chain();
+    let mut chain_mmr = chain.latest_chain_mmr();
     let block2 = chain.clone().seal_block(None);
 
     let block_inputs = BlockInputs::new(
@@ -189,7 +189,7 @@ fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()>
 
     let block2 = chain.seal_block(None);
 
-    let (_, chain_mmr) = chain.chain_from_referenced_blocks([BlockNumber::from(0)]);
+    let (_, chain_mmr) = chain.latest_selective_chain_mmr([BlockNumber::from(0)]);
 
     // The proposed block references block 2 but the chain MMR only contains block 0 but not
     // block 1 which is referenced by the batch.

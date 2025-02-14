@@ -57,7 +57,8 @@ fn empty_transaction_batch() -> anyhow::Result<()> {
     let TestSetup { chain, .. } = setup_chain();
     let block1 = chain.block_header(1);
 
-    let error = ProposedBatch::new(vec![], block1, chain.chain(), BTreeMap::default()).unwrap_err();
+    let error = ProposedBatch::new(vec![], block1, chain.latest_chain_mmr(), BTreeMap::default())
+        .unwrap_err();
 
     assert_matches!(error, ProposedBatchError::EmptyTransactionBatch);
 
@@ -85,7 +86,7 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
@@ -116,7 +117,7 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -154,7 +155,7 @@ fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -192,7 +193,7 @@ fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -229,7 +230,7 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -271,7 +272,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
 
     // The chain MMR will contain all blocks in the mock chain, in particular block2 which both note
     // inclusion proofs need for verification.
-    let chain_mmr = chain.chain();
+    let chain_mmr = chain.latest_chain_mmr();
 
     // Case 1: Error: A wrong proof is passed.
     // --------------------------------------------------------------------------------------------
@@ -372,7 +373,7 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
@@ -410,7 +411,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
@@ -430,7 +431,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx2.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -476,7 +477,7 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
@@ -522,7 +523,7 @@ fn batch_expiration() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
@@ -545,7 +546,7 @@ fn duplicate_transaction() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -580,7 +581,7 @@ fn circular_note_dependency() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 

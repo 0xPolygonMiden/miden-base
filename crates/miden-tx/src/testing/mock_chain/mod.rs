@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+use std::collections::BTreeSet;
 
 use miden_lib::{
     account::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
@@ -732,7 +733,7 @@ impl MockChain {
         tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
     ) -> (BlockHeader, ChainMmr) {
         let (batch_reference_block, chain_mmr) =
-            self.chain_from_referenced_blocks(tx_reference_blocks);
+            self.latest_selective_chain_mmr(tx_reference_blocks);
 
         (batch_reference_block, chain_mmr)
     }
@@ -752,7 +753,7 @@ impl MockChain {
                 batch.input_notes().iter().filter_map(|note| note.header().map(NoteHeader::id))
             }));
 
-        let (block_reference_block, chain_mmr) = self.chain_from_referenced_blocks(
+        let (block_reference_block, chain_mmr) = self.latest_selective_chain_mmr(
             batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
                 unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
             ),
@@ -913,9 +914,8 @@ impl MockChain {
         &self.chain
     }
 
-    // TODO: Rename this to distinguish it better from self.chain.
     /// Gets the latest [ChainMmr].
-    pub fn chain(&self) -> ChainMmr {
+    pub fn latest_chain_mmr(&self) -> ChainMmr {
         // We cannot pass the latest block as that would violate the condition in the transaction
         // inputs that the chain length of the mmr must match the number of the reference block.
         let block_headers = self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1);
@@ -928,19 +928,21 @@ impl MockChain {
     ///
     /// The intended use is for the latest block header to become the reference block of a new
     /// transaction batch or block.
-    pub fn chain_from_referenced_blocks(
+    pub fn latest_selective_chain_mmr(
         &self,
         reference_blocks: impl IntoIterator<Item = BlockNumber>,
     ) -> (BlockHeader, ChainMmr) {
         let latest_block_header = self.latest_block_header();
+        // Deduplicate block numbers so each header will be included just once. This is required so
+        // ChainMmr::from_mmr does not panic.
+        let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
+
         // Include all block headers of the reference blocks except the latest block.
-        let mut block_headers: Vec<_> = reference_blocks
+        let block_headers: Vec<_> = reference_blocks
             .into_iter()
             .map(|block_ref_num| self.block_header(block_ref_num.as_usize()))
             .filter(|block_header| block_header.hash() != latest_block_header.hash())
             .collect();
-        // Deduplicate block headers.
-        block_headers.dedup();
 
         let chain_mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();
 
