@@ -64,7 +64,9 @@ impl AccountUpdateWitness {
         &self.initial_state_proof
     }
 
-    /// Returns a reference to the underlying [`AccountUpdateDetails`] of this update.
+    /// Returns a reference to the underlying [`AccountUpdateDetails`] of this update, representing
+    /// the state transition of the account from the previous block to the block this witness is
+    /// for.
     pub fn details(&self) -> &AccountUpdateDetails {
         &self.details
     }
@@ -83,11 +85,14 @@ impl AccountUpdateWitness {
     }
 
     /// Consumes self and returns its parts.
-    pub fn into_parts(self) -> (Digest, Digest, MerklePath, Vec<TransactionId>) {
+    pub fn into_parts(
+        self,
+    ) -> (Digest, Digest, MerklePath, AccountUpdateDetails, Vec<TransactionId>) {
         (
             self.initial_state_commitment,
             self.final_state_commitment,
             self.initial_state_proof,
+            self.details,
             self.transactions,
         )
     }
