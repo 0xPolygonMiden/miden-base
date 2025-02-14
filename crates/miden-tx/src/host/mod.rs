@@ -145,6 +145,7 @@ where
             account_delta,
             output_notes,
             tx_progress: TransactionProgress::default(),
+            // TODO(plafer): these need to come from the `MidenFalconSigner`
             generated_signatures: BTreeMap::new(),
             error_messages: kernel_assertion_errors,
         })
