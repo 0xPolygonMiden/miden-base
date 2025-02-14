@@ -2,7 +2,7 @@
 
 A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions and transaction batches.
 
-The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if is already in use.
+The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if it is already in use.
 
 The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue, assigning a worker to each request and retrying if the worker is not available. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
