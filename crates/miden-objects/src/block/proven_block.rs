@@ -14,23 +14,24 @@ use crate::{
 
 /// A block in the Miden chain.
 ///
-/// A block contains information resulting from executing a set of transactions against the chain
-/// state defined by the previous block. It consists of 3 main components:
-/// - A set of change descriptors for all accounts updated in this block. For private accounts, the
-///   block contains only the new account state hashes; for public accounts, the block also contains
-///   a set of state deltas which can be applied to the previous account state to get the new
-///   account state.
-/// - A set of new notes created in this block. For private notes, the block contains only note IDs
-///   and note metadata; for public notes, full note details are recorded.
-/// - A set of new nullifiers created for all notes that were consumed in the block.
+/// A block is built from batches of transactions, i.e. multiple
+/// [`ProvenBatch`](crate::batch::ProvenBatch)es, and each batch contains multiple
+/// [`ProvenTransaction`](crate::transaction::ProvenTransaction)s.
 ///
-/// In addition to the above components, a block also contains a block header which contains
-/// commitments to the new state of the chain as well as a ZK proof attesting that a set of valid
-/// transactions was executed to transition the chain into the state described by this block (the
-/// ZK proof part is not yet implemented).
-#[derive(Debug, Clone)]
+/// It consists of the following components:
+/// - A [`BlockHeader`] committing to the current state of the chain and against which account, note
+///   or nullifier inclusion or absence can be proven. See its documentation for details on what it
+///   commits to. Eventually, it will also contain a ZK proof of the validity of the block.
+/// - A list of account updates for all accounts updated in this block. For private accounts, the
+///   update contains only the new account state commitments while for public accounts, the update
+///   also includes the delta which can be applied to the previous account state to get the new
+///   account state.
+/// - A list of new notes created in this block. For private notes, the block contains only note IDs
+///   and note metadata while for public notes the full note details are included.
+/// - A list of new nullifiers created for all notes that were consumed in the block.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBlock {
-    /// Block header.
+    /// The header of the block, committing to the current state of the chain.
     header: BlockHeader,
 
     /// Account updates for the block.
@@ -44,7 +45,7 @@ pub struct ProvenBlock {
 }
 
 impl ProvenBlock {
-    /// Returns a new [Block] instantiated from the provided components.
+    /// Returns a new [`ProvenBlock`] instantiated from the provided components.
     ///
     /// # Warning
     ///
@@ -74,12 +75,12 @@ impl ProvenBlock {
         self.header
     }
 
-    /// Returns a set of account update descriptions for all accounts updated in this block.
+    /// Returns the slice of [`BlockAccountUpdate`]s for all accounts updated in this block.
     pub fn updated_accounts(&self) -> &[BlockAccountUpdate] {
         &self.updated_accounts
     }
 
-    /// Returns a set of note batches containing all notes created in this block.
+    /// Returns the slice of [`OutputNoteBatch`]es for all output notes created in this block.
     pub fn output_note_batches(&self) -> &[OutputNoteBatch] {
         &self.output_note_batches
     }
@@ -92,8 +93,9 @@ impl ProvenBlock {
         self.output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
             notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
                 (
-                    // SAFETY: Batch and note index are assumed to be valid by construction of the
-                    // block.
+                    // SAFETY: The proven block contains at most the max allowed number of batches
+                    // and each batch is guaranteed to contain at most the
+                    // max allowed number of output notes.
                     BlockNoteIndex::new(batch_idx, note_idx_in_batch),
                     note,
                 )
@@ -101,13 +103,17 @@ impl ProvenBlock {
         })
     }
 
-    /// Returns a note tree containing all notes created in this block.
+    /// Returns the [`BlockNoteTree`] containing all notes created in this block.
     pub fn build_note_tree(&self) -> BlockNoteTree {
         let entries =
             self.notes().map(|(note_index, note)| (note_index, note.id(), *note.metadata()));
 
+        // SAFETY: We only construct proven blocks that:
+        // - do not contain duplicates
+        // - contain at most the max allowed number of batches and each batch is guaranteed to
+        //   contain at most the max allowed number of output notes.
         BlockNoteTree::with_entries(entries)
-            .expect("Something went wrong: block is invalid, but passed or skipped validation")
+            .expect("the output notes of the block should not contain duplicates and contain at most the allowed maximum")
     }
 
     /// Returns a reference to the slice of nullifiers for all notes consumed in the block.
@@ -116,7 +122,7 @@ impl ProvenBlock {
     }
 
     /// Returns an iterator over all transactions which affected accounts in the block with
-    /// corresponding account IDs.
+    /// their corresponding account IDs.
     pub fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
         self.updated_accounts.iter().flat_map(|update| {
             update

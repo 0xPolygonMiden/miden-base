@@ -25,8 +25,8 @@ pub type OutputNoteBatch = Vec<OutputNote>;
 // PROPOSED BLOCK
 // =================================================================================================
 
-/// A proposed block with many, but not all constraints of a full [`Block`](crate::block::Block)
-/// enforced.
+/// A proposed block with many, but not all constraints of a
+/// [`ProvenBlock`](crate::block::ProvenBlock) enforced.
 ///
 /// See [`ProposedBlock::new_at`] for details on the checks.
 #[derive(Debug, Clone)]

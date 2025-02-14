@@ -8,6 +8,7 @@ use crate::{
 };
 
 /// The partial sparse merkle tree containing the nullifiers of consumed notes.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialNullifierTree(PartialSmt);
 
 impl PartialNullifierTree {

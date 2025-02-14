@@ -75,13 +75,12 @@ fn proven_block_success() -> anyhow::Result<()> {
         .enumerate()
         .map(|(note_idx_in_batch, note)| (1, note_idx_in_batch, note));
 
-    let expected_note_root = BlockNoteTree::with_entries(batch0_iter.chain(batch1_iter).map(
+    let expected_block_note_tree = BlockNoteTree::with_entries(batch0_iter.chain(batch1_iter).map(
         |(batch_idx, note_idx_in_batch, note)| {
             (BlockNoteIndex::new(batch_idx, note_idx_in_batch), note.id(), *note.metadata())
         },
     ))
-    .unwrap()
-    .root();
+    .unwrap();
 
     // Compute expected nullifier root on the full SMT.
     // --------------------------------------------------------------------------------------------
@@ -122,7 +121,9 @@ fn proven_block_success() -> anyhow::Result<()> {
     // chain length 2 when the prev block (block2) is added.
     assert_eq!(proven_block.header().chain_root(), chain.block_chain().peaks().hash_peaks());
 
-    assert_eq!(proven_block.header().note_root(), expected_note_root);
+    assert_eq!(proven_block.header().note_root(), expected_block_note_tree.root());
+    // Assert that the block note tree can be reconstructed.
+    assert_eq!(proven_block.build_note_tree(), expected_block_note_tree);
 
     // Check input notes / nullifiers.
     // --------------------------------------------------------------------------------------------
