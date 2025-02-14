@@ -34,9 +34,9 @@ pub struct RemoteBatchProver {
 impl RemoteBatchProver {
     /// Creates a new [RemoteBatchProver] with the specified gRPC server endpoint. The
     /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
-    pub fn new(endpoint: &str) -> Self {
+    pub fn new(endpoint: impl Into<String>) -> Self {
         RemoteBatchProver {
-            endpoint: endpoint.to_string(),
+            endpoint: endpoint.into(),
             client: Arc::new(Mutex::new(None)),
         }
     }

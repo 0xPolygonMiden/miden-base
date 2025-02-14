@@ -32,9 +32,9 @@ pub struct RemoteTransactionProver {
 impl RemoteTransactionProver {
     /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint. The
     /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
-    pub fn new(endpoint: &str) -> Self {
+    pub fn new(endpoint: impl Into<String>) -> Self {
         RemoteTransactionProver {
-            endpoint: endpoint.to_string(),
+            endpoint: endpoint.into(),
             client: RwLock::new(None),
         }
     }
