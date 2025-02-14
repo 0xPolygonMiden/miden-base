@@ -32,8 +32,15 @@ impl LocalBlockProver {
     ///
     /// For now this does not actually verify the batches or create a block proof, but will be added
     /// in the future.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the account witnesses provided in the proposed block result in a different account tree
+    ///   root than the contained previous block header commits to.
+    /// - the nullifier witnesses provided in the proposed block result in a different nullifier
+    ///   tree root than the contained previous block header commits to.
     pub fn prove(&self, proposed_block: ProposedBlock) -> Result<ProvenBlock, ProvenBlockError> {
-        // This method exists so we can add this in the future without breaking APIs.
         self.prove_without_verification_inner(proposed_block)
     }
 
@@ -49,6 +56,12 @@ impl LocalBlockProver {
         self.prove_without_verification_inner(proposed_block)
     }
 
+    /// Proves the provided [`ProposedBlock`] into a [`ProvenBlock`].
+    ///
+    /// The assumptions of this method are that the checks made by construction of a
+    /// [`ProposedBlock`] are enforced.
+    ///
+    /// See [`Self::prove`] for more details.
     fn prove_without_verification_inner(
         &self,
         proposed_block: ProposedBlock,
@@ -63,6 +76,10 @@ impl LocalBlockProver {
         // Split the proposed block into its parts.
         // --------------------------------------------------------------------------------------------
 
+        // TODO: We should include the batches in the block, right? If so, should we transform them
+        // into a `VerifiedBatch` struct, with the (eventually present) ZK proof removed and
+        // the batch note trees updated after erased notes on the block level have been
+        // taken into account?
         let (
             _batches,
             mut account_updated_witnesses,
@@ -79,8 +96,9 @@ impl LocalBlockProver {
         // --------------------------------------------------------------------------------------------
 
         // TODO: Do we need the full tree in proposed block or would the root be sufficient? We
-        // should be able to reconstruct the tree from the output note batches. The question is
-        // whether it should be readily accessible in the proven block or if recomputing is fine.
+        // can reconstruct the tree from the output note batches, so the question is whether it
+        // should be included in the proven block to be readily accessible or if recomputing it is
+        // fine.
         let note_root = block_note_tree.root();
 
         // Insert the created nullifiers into the nullifier tree to compute its new root.
@@ -157,11 +175,9 @@ impl LocalBlockProver {
     }
 }
 
-// TODO: Describe assumptions about inputs (completeness).
-
-/// Validates that the nullifiers returned from the store are the same the produced nullifiers
-/// in the batches. Note that validation that the value of the nullifiers is `0` will be
-/// done in MASM.
+/// Computes the new nullifier root by inserting the nullifier witnesses into a partial nullifier
+/// tree and marking each nullifier as spent in the given block number. Returns the list of
+/// nullifiers and the new nullifier tree root.
 fn compute_nullifiers(
     created_nullifiers: BTreeMap<Nullifier, NullifierWitness>,
     prev_block_header: &BlockHeader,
@@ -171,6 +187,8 @@ fn compute_nullifiers(
 
     let mut partial_nullifier_tree = PartialNullifierTree::new();
 
+    // First, reconstruct the current nullifier tree with the merkle paths of the nullifiers we want
+    // to update.
     // Due to the guarantees of ProposedBlock we can safely assume that each nullifier is mapped to
     // its corresponding nullifier witness, so we don't have to check again whether they match.
     for witness in created_nullifiers.into_values() {
@@ -185,6 +203,8 @@ fn compute_nullifiers(
         "partial nullifier tree root should match nullifier root of previous block header as validated in the loop"
     );
 
+    // Second, mark each nullifier as spent in the tree. Note that checking whether each nullifier
+    // is unspent is checked as part of the proposed block.
     for nullifier in nullifiers.iter().copied() {
         // SAFETY: As mentioned above, we can safely assume that each nullifier's witness was added
         // and every nullifier should be tracked by the partial tree and therefore updatable.
@@ -207,7 +227,7 @@ fn compute_chain_root(mut chain_mmr: ChainMmr, prev_block_header: BlockHeader) -
 /// Computes the new account tree root after the given updates.
 ///
 /// It uses a PartialMerkleTree for now while we use a SimpleSmt for the account tree. Once that is
-/// updated to an Smt, we can use PartialSmt instead.
+/// updated to an Smt, we can use a PartialSmt instead.
 fn compute_account_root(
     updated_accounts: &mut Vec<(AccountId, AccountUpdateWitness)>,
 ) -> Result<Digest, ProvenBlockError> {
@@ -217,6 +237,8 @@ fn compute_account_root(
     for (account_id, witness) in updated_accounts.iter_mut() {
         let account_leaf_index = LeafIndex::from(*account_id);
         // Shouldn't the value in PartialMerkleTree::add_path be a Word instead of a Digest?
+        // PartialMerkleTree::update_leaf (below) takes a Word as a value, so this seems
+        // inconsistent.
         partial_account_tree
             .add_path(
                 account_leaf_index.value(),

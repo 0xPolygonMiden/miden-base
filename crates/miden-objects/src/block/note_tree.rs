@@ -104,6 +104,12 @@ pub struct BlockNoteIndex {
 
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug mode if the batch index exceeds is equal to or greater than
+    /// [`MAX_BATCHES_PER_BLOCK`] or if the note index is equal to or greater than
+    /// [`MAX_OUTPUT_NOTES_PER_BATCH`].
     pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Self {
         debug_assert!(note_idx_in_batch < MAX_OUTPUT_NOTES_PER_BATCH);
         debug_assert!(batch_idx < MAX_BATCHES_PER_BLOCK);

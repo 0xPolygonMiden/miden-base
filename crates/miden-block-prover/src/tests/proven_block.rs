@@ -144,7 +144,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // Check account updates.
     // --------------------------------------------------------------------------------------------
 
-    // The block-level account updates should be the same as the one on transaction-level.
+    // The block-level account updates should be the same as the ones on transaction-level.
     for (tx, batch) in [(&tx0, &batch0), (&tx1, &batch0), (&tx2, &batch1), (&tx3, &batch1)] {
         let updated_account = tx.account_id();
         let block_account_update = proven_block
