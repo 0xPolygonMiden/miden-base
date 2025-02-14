@@ -2,7 +2,7 @@ use miden_objects::{
     batch::ProposedBatch, transaction::TransactionWitness, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_tx::{
-    utils::{Deserializable, Serializable},
+    utils::Serializable,
     LocalTransactionProver, TransactionProver,
 };
 use miden_tx_batch_prover::LocalBatchProver;
@@ -14,7 +14,7 @@ use crate::{
     commands::worker::ProverTypeSupport,
     generated::{
         api_server::{Api as ProverApi, ApiServer},
-        ProvingRequest, ProvingResponse,
+        ProofType, ProvingRequest, ProvingResponse,
     },
     utils::MIDEN_PROVING_SERVICE,
 };
@@ -74,7 +74,7 @@ impl ProverRpcApi {
     )]
     pub fn prove_tx(
         &self,
-        request: Request<ProvingRequest>,
+        transaction_witness: TransactionWitness,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
         let prover = self
             .provers
@@ -85,9 +85,6 @@ impl ProverRpcApi {
             .tx_prover
             .as_ref()
             .ok_or(Status::unimplemented("Transaction prover is not enabled"))?;
-
-        let transaction_witness = TransactionWitness::read_from_bytes(&request.get_ref().payload)
-            .map_err(invalid_argument)?;
 
         let proof = prover.prove(transaction_witness).map_err(internal_error)?;
 
@@ -108,7 +105,7 @@ impl ProverRpcApi {
     )]
     pub fn prove_batch(
         &self,
-        request: Request<ProvingRequest>,
+        proposed_batch: ProposedBatch,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
         let prover = self
             .provers
@@ -120,10 +117,7 @@ impl ProverRpcApi {
             .as_ref()
             .ok_or(Status::unimplemented("Batch prover is not enabled"))?;
 
-        let batch =
-            ProposedBatch::read_from_bytes(&request.get_ref().payload).map_err(invalid_argument)?;
-
-        let proof = prover.prove(batch).map_err(internal_error)?;
+        let proof = prover.prove(proposed_batch).map_err(internal_error)?;
 
         // Record the batch_id in the current tracing span
         let batch_id = proof.id();
@@ -147,9 +141,15 @@ impl ProverApi for ProverRpcApi {
         &self,
         request: Request<ProvingRequest>,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
-        match request.get_ref().proof_type {
-            0 => self.prove_tx(request),
-            1 => self.prove_batch(request),
+        match request.get_ref().proof_type() {
+            ProofType::Transaction => {
+                let tx_witness = request.into_inner().try_into().map_err(invalid_argument)?;
+                self.prove_tx(tx_witness)
+            },
+            ProofType::Batch => {
+                let proposed_batch = request.into_inner().try_into().map_err(invalid_argument)?;
+                self.prove_batch(proposed_batch)
+            },
             _ => Err(internal_error("Invalid proof type")),
         }
     }

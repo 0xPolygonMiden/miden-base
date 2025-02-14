@@ -1,4 +1,7 @@
-use miden_objects::transaction::ProvenTransaction;
+use miden_objects::{
+    batch::ProposedBatch,
+    transaction::{ProvenTransaction, TransactionWitness},
+};
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
 
 #[rustfmt::skip]
@@ -20,5 +23,21 @@ impl TryFrom<ProvingResponse> for ProvenTransaction {
 
     fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
         ProvenTransaction::read_from_bytes(&response.payload)
+    }
+}
+
+impl TryFrom<ProvingRequest> for TransactionWitness {
+    type Error = DeserializationError;
+
+    fn try_from(request: ProvingRequest) -> Result<Self, Self::Error> {
+        TransactionWitness::read_from_bytes(&request.payload)
+    }
+}
+
+impl TryFrom<ProvingRequest> for ProposedBatch {
+    type Error = DeserializationError;
+
+    fn try_from(request: ProvingRequest) -> Result<Self, Self::Error> {
+        ProposedBatch::read_from_bytes(&request.payload)
     }
 }
