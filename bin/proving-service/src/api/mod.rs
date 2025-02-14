@@ -1,10 +1,7 @@
 use miden_objects::{
     batch::ProposedBatch, transaction::TransactionWitness, MIN_PROOF_SECURITY_LEVEL,
 };
-use miden_tx::{
-    utils::Serializable,
-    LocalTransactionProver, TransactionProver,
-};
+use miden_tx::{utils::Serializable, LocalTransactionProver, TransactionProver};
 use miden_tx_batch_prover::LocalBatchProver;
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
