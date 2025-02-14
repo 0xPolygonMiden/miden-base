@@ -37,7 +37,7 @@ impl TryFrom<ProvingResponse> for ProvenTransaction {
 impl From<TransactionWitness> for ProvingRequest {
     fn from(witness: TransactionWitness) -> Self {
         ProvingRequest {
-            proof_type: 0,
+            proof_type: ProofType::Transaction.into(),
             payload: witness.to_bytes(),
         }
     }
@@ -46,7 +46,7 @@ impl From<TransactionWitness> for ProvingRequest {
 impl From<ProposedBatch> for ProvingRequest {
     fn from(proposed_batch: ProposedBatch) -> Self {
         ProvingRequest {
-            proof_type: 1,
+            proof_type: ProofType::Batch.into(),
             payload: proposed_batch.to_bytes(),
         }
     }
