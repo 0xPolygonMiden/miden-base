@@ -16,7 +16,7 @@ pub enum BatchProveError {
     #[error("{error_msg}")]
     Other {
         error_msg: Box<str>,
-        // thiserror will return this when calling Error::source on DataStoreError.
+        // thiserror will return this when calling `Error::source` on `BatchStoreError`.
         source: Option<Box<dyn CoreError + Send + Sync + 'static>>,
     },
 }
