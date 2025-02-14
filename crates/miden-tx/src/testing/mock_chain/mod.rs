@@ -1,5 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
-use std::collections::BTreeSet;
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
 
 use miden_lib::{
     account::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
