@@ -41,6 +41,7 @@ impl LocalBlockProver {
         let (
             _batches,
             account_updated_witnesses,
+            output_note_batches,
             block_note_tree,
             created_nullifiers,
             chain_mmr,
@@ -82,7 +83,6 @@ impl LocalBlockProver {
         );
 
         let updated_accounts = vec![];
-        let output_note_batches = vec![];
         let created_nullifiers = vec![]; //created_nullifiers.into_keys().collect();
 
         let proven_block = ProvenBlock::new_unchecked(

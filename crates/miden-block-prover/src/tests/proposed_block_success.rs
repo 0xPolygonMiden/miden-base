@@ -57,7 +57,12 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
         .contains_key(&proven_tx1.input_notes().get_note(0).nullifier()));
 
     // No notes were created.
-    assert!(proposed_block.block_note_tree().is_empty());
+    assert!(proposed_block.note_tree().is_empty());
+    // There are two batches in the block...
+    assert_eq!(proposed_block.output_note_batches().len(), 2);
+    // ... but none of them create notes.
+    assert!(proposed_block.output_note_batches()[0].is_empty());
+    assert!(proposed_block.output_note_batches()[1].is_empty());
 
     Ok(())
 }
@@ -184,6 +189,11 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
     assert_eq!(proposed_block.nullifiers().len(), 2);
     assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
     assert!(proposed_block.nullifiers().contains_key(&note1.nullifier()));
+    // There are two batches in the block...
+    assert_eq!(proposed_block.output_note_batches().len(), 2);
+    // ... but none of them create notes.
+    assert!(proposed_block.output_note_batches()[0].is_empty());
+    assert!(proposed_block.output_note_batches()[1].is_empty());
 
     Ok(())
 }
@@ -235,7 +245,12 @@ fn proposed_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     // The output note should have been erased, so we expect only note0's nullifier to be created.
     assert_eq!(proposed_block.nullifiers().len(), 1);
     assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
-    assert!(proposed_block.block_note_tree().is_empty());
+    assert!(proposed_block.note_tree().is_empty());
+    // There are two batches in the block...
+    assert_eq!(proposed_block.output_note_batches().len(), 2);
+    // ... but none of them create notes.
+    assert!(proposed_block.output_note_batches()[0].is_empty());
+    assert!(proposed_block.output_note_batches()[1].is_empty());
 
     Ok(())
 }

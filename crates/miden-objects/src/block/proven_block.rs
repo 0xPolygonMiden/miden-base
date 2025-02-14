@@ -2,14 +2,12 @@ use alloc::vec::Vec;
 
 use crate::{
     account::AccountId,
-    block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree},
+    block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
     transaction::{OutputNote, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
 };
-
-pub type NoteBatch = Vec<OutputNote>;
 
 // PROVEN BLOCK
 // ================================================================================================
@@ -39,7 +37,7 @@ pub struct ProvenBlock {
     updated_accounts: Vec<BlockAccountUpdate>,
 
     /// Note batches created by the transactions in this block.
-    output_note_batches: Vec<NoteBatch>,
+    output_note_batches: Vec<OutputNoteBatch>,
 
     /// Nullifiers created by the transactions in this block through the consumption of notes.
     created_nullifiers: Vec<Nullifier>,
@@ -55,7 +53,7 @@ impl ProvenBlock {
     pub fn new_unchecked(
         header: BlockHeader,
         updated_accounts: Vec<BlockAccountUpdate>,
-        output_note_batches: Vec<NoteBatch>,
+        output_note_batches: Vec<OutputNoteBatch>,
         created_nullifiers: Vec<Nullifier>,
     ) -> Self {
         Self {
@@ -82,7 +80,7 @@ impl ProvenBlock {
     }
 
     /// Returns a set of note batches containing all notes created in this block.
-    pub fn output_note_batches(&self) -> &[NoteBatch] {
+    pub fn output_note_batches(&self) -> &[OutputNoteBatch] {
         &self.output_note_batches
     }
 
@@ -143,7 +141,7 @@ impl Deserializable for ProvenBlock {
         let block = Self {
             header: BlockHeader::read_from(source)?,
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
-            output_note_batches: <Vec<NoteBatch>>::read_from(source)?,
+            output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
         };
 

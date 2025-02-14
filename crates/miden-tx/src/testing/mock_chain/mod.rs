@@ -17,7 +17,7 @@ use miden_objects::{
     batch::{ProposedBatch, ProvenBatch},
     block::{
         AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
-        BlockNoteTree, BlockNumber, NoteBatch, NullifierWitness, ProposedBlock, ProvenBlock,
+        BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -157,7 +157,7 @@ struct PendingObjects {
     updated_accounts: Vec<BlockAccountUpdate>,
 
     /// Note batches created in transactions in the block.
-    output_note_batches: Vec<NoteBatch>,
+    output_note_batches: Vec<OutputNoteBatch>,
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,

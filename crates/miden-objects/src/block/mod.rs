@@ -5,10 +5,10 @@ mod block_number;
 pub use block_number::BlockNumber;
 
 mod proposed_block;
-pub use proposed_block::ProposedBlock;
+pub use proposed_block::{OutputNoteBatch, ProposedBlock};
 
 mod proven_block;
-pub use proven_block::{NoteBatch, ProvenBlock};
+pub use proven_block::ProvenBlock;
 
 mod nullifier_witness;
 pub use nullifier_witness::NullifierWitness;
