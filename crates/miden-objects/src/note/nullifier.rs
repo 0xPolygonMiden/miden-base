@@ -7,6 +7,11 @@ use super::{
 };
 use crate::utils::{hex_to_bytes, HexParseError};
 
+// CONSTANTS
+// ================================================================================================
+
+const NULLIFIER_PREFIX_SHIFT: u8 = 48;
+
 // NULLIFIER
 // ================================================================================================
 
@@ -53,6 +58,11 @@ impl Nullifier {
     /// Returns the digest defining this nullifier.
     pub fn inner(&self) -> Digest {
         self.0
+    }
+
+    /// Returns the prefix of this nullifier.
+    pub fn prefix(&self) -> u16 {
+        (self.inner()[3].as_int() >> NULLIFIER_PREFIX_SHIFT) as u16
     }
 
     /// Creates a Nullifier from a hex string. Assumes that the string starts with "0x" and
