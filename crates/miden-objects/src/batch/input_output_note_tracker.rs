@@ -12,9 +12,11 @@ use crate::{
     ProposedBlockError,
 };
 
+type BatchInputNotes = Vec<InputNoteCommitment>;
 type BlockInputNotes = Vec<InputNoteCommitment>;
-type BlockErasedNotes = Vec<Nullifier>;
+type ErasedNotes = Vec<Nullifier>;
 type BlockOutputNotes = BTreeMap<NoteId, (BatchId, OutputNote)>;
+type BatchOutputNotes = Vec<OutputNote>;
 
 // INPUT OUTPUT NOTE TRACKER
 // ================================================================================================
@@ -55,7 +57,7 @@ impl InputOutputNoteTracker<TransactionId> {
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
         batch_reference_block: &BlockHeader,
-    ) -> Result<(Vec<InputNoteCommitment>, Vec<OutputNote>), ProposedBatchError> {
+    ) -> Result<(BatchInputNotes, BatchOutputNotes), ProposedBatchError> {
         let input_notes_iter = txs.clone().flat_map(|tx| {
             tx.input_notes()
                 .iter()
@@ -95,7 +97,7 @@ impl InputOutputNoteTracker<BatchId> {
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
         prev_block: &BlockHeader,
-    ) -> Result<(BlockInputNotes, BlockErasedNotes, BlockOutputNotes), ProposedBlockError> {
+    ) -> Result<(BlockInputNotes, ErasedNotes, BlockOutputNotes), ProposedBlockError> {
         let input_notes_iter = batches.clone().flat_map(|batch| {
             batch
                 .input_notes()
@@ -182,15 +184,18 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
     }
 
     /// Iterates the input notes and if an unauthenticated note is encountered, attempts to remove
-    /// it from the output notes if it is present in that set. If it is, the note is considered
-    /// erased, otherwise it is added to the final input notes.
+    /// it from the output notes if it is present in that set.
+    /// If it is, the note is considered erased and added to the list of erased notes, otherwise it
+    /// is added to the final input notes.
+    ///
+    /// Returns the sets of input notes, erased notes and output notes.
     #[allow(clippy::type_complexity)]
     fn erase_notes(
         mut self,
     ) -> Result<
         (
             Vec<InputNoteCommitment>,
-            Vec<Nullifier>,
+            ErasedNotes,
             BTreeMap<NoteId, (ContainerId, OutputNote)>,
         ),
         InputOutputNoteTrackerError<ContainerId>,
