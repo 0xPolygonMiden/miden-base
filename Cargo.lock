@@ -1811,7 +1811,7 @@ name = "miden-block-prover"
 version = "0.8.0"
 dependencies = [
  "anyhow",
- "miden-core",
+ "assert_matches",
  "miden-crypto",
  "miden-lib",
  "miden-objects",

@@ -3,7 +3,7 @@ name = "miden-block-prover"
 version = "0.8.0"
 description = "Miden rollup block executor and prover"
 readme = "README.md"
-categories = ["no-std"]
+categories = ["cryptography"]
 keywords = ["miden", "block", "prover"]
 license.workspace = true
 authors.workspace = true
@@ -21,7 +21,6 @@ std = [
   "miden-objects/std",
   "miden-tx/std",
   "miden-crypto/std",
-  "vm-core/std",
 ]
 
 [dependencies]
@@ -29,7 +28,6 @@ anyhow = { version = "1.0", default-features = false, optional = true }
 miden-crypto = { workspace = true }
 miden-tx = { workspace = true }
 miden-objects = { workspace = true }
-vm-core = { workspace = true }
 
 [dev-dependencies]
 rand = { workspace = true, features = ["small_rng"] }
@@ -37,3 +35,4 @@ miden-lib = { workspace = true, features = ["std", "testing"] }
 winterfell = { version = "0.11" }
 anyhow = { version = "1.0", features = ["std", "backtrace"] }
 miden-tx = { workspace = true, features = ["std", "testing"] }
+assert_matches = { version = "1.5.0" }

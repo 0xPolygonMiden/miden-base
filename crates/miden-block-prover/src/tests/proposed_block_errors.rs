@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, vec::Vec};
 
+use assert_matches::assert_matches;
 use miden_objects::{
     account::AccountId,
     block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
@@ -9,7 +10,6 @@ use miden_objects::{
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
 use miden_tx::testing::Auth;
-use vm_core::assert_matches;
 
 use crate::tests::utils::{
     generate_account, generate_batch, generate_executed_tx_with_authenticated_notes,

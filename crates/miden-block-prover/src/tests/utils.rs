@@ -13,10 +13,10 @@ use miden_objects::{
     testing::{note::NoteBuilder, prepare_word},
     transaction::{ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder},
     vm::ExecutionProof,
+    Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
-use vm_core::Felt;
 use winterfell::Proof;
 
 pub struct TestSetup {
