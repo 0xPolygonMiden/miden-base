@@ -73,29 +73,29 @@ impl RemoteBatchProver {
     pub async fn prove(
         &self,
         proposed_batch: ProposedBatch,
-    ) -> Result<ProvenBatch, BatchProveError> {
+    ) -> Result<ProvenBatch, RemoteProverError> {
         use miden_objects::utils::Serializable;
-        self.connect().await.map_err(|err| {
-            BatchProveError::other_with_source("failed to connect to the remote prover", err)
-        })?;
+        self.connect().await?;
 
         let mut client = self
             .client
             .lock()
             .await
             .as_ref()
-            .ok_or_else(|| BatchProveError::other("client should be connected"))?
+            .ok_or_else(|| {
+                RemoteProverError::ConnectionFailed("client should be connected".into())
+            })?
             .clone();
 
         let request = tonic::Request::new(proposed_batch.into());
 
         let response = client.prove(request).await.map_err(|err| {
-            BatchProveError::other_with_source("failed to prove transaction", err)
+            RemoteProverError::other_with_source("failed to prove transaction", err)
         })?;
 
         // Deserialize the response bytes back into a ProvenTransaction.
         let proven_transaction = ProvenBatch::try_from(response.into_inner()).map_err(|_| {
-            BatchProveError::other(
+            RemoteProverError::other(
                 "failed to deserialize received response from remote transaction prover",
             )
         })?;
