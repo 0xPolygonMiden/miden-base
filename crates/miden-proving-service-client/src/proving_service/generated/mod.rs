@@ -10,52 +10,52 @@ compile_error!("The `std` feature cannot be used when targeting `wasm32`.");
 #[cfg(feature = "std")]
 mod std;
 #[cfg(feature = "std")]
-pub use std::remote_prover::*;
+pub use std::proving_service::*;
 
 #[cfg(not(feature = "std"))]
 mod nostd;
 #[cfg(not(feature = "std"))]
-pub use nostd::remote_prover::*;
+pub use nostd::proving_service::*;
 
 // CONVERSIONS
 // ================================================================================================
 
-impl From<ProvenTransaction> for ProveResponse {
+impl From<ProvenTransaction> for ProvingResponse {
     fn from(value: ProvenTransaction) -> Self {
-        ProveResponse { payload: value.to_bytes() }
+        ProvingResponse { payload: value.to_bytes() }
     }
 }
 
-impl TryFrom<ProveResponse> for ProvenTransaction {
+impl TryFrom<ProvingResponse> for ProvenTransaction {
     type Error = DeserializationError;
 
-    fn try_from(response: ProveResponse) -> Result<Self, Self::Error> {
+    fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
         ProvenTransaction::read_from_bytes(&response.payload)
     }
 }
 
-impl From<TransactionWitness> for ProveRequest {
+impl From<TransactionWitness> for ProvingRequest {
     fn from(witness: TransactionWitness) -> Self {
-        ProveRequest {
+        ProvingRequest {
             proof_type: 0,
             payload: witness.to_bytes(),
         }
     }
 }
 
-impl From<ProposedBatch> for ProveRequest {
+impl From<ProposedBatch> for ProvingRequest {
     fn from(proposed_batch: ProposedBatch) -> Self {
-        ProveRequest {
+        ProvingRequest {
             proof_type: 1,
             payload: proposed_batch.to_bytes(),
         }
     }
 }
 
-impl TryFrom<ProveResponse> for ProvenBatch {
+impl TryFrom<ProvingResponse> for ProvenBatch {
     type Error = DeserializationError;
 
-    fn try_from(response: ProveResponse) -> Result<Self, Self::Error> {
+    fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
         ProvenBatch::read_from_bytes(&response.payload)
     }
 }

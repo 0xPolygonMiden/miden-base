@@ -36,8 +36,8 @@ fn main() -> miette::Result<()> {
 
 /// Copies the proto file from the root proto directory to the proto directory of this crate.
 fn copy_proto_files() -> miette::Result<()> {
-    let src_file = format!("{REPO_PROTO_DIR}/remote_prover.proto");
-    let dest_file = format!("{CRATE_PROTO_DIR}/remote_prover.proto");
+    let src_file = format!("{REPO_PROTO_DIR}/proving_service.proto");
+    let dest_file = format!("{CRATE_PROTO_DIR}/proving_service.proto");
 
     fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
     fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
@@ -49,16 +49,16 @@ fn copy_proto_files() -> miette::Result<()> {
 fn compile_tonic_client_proto() -> miette::Result<()> {
     let crate_root =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
-    let dst_dir = crate_root.join("src").join("remote_prover").join("generated");
+    let dst_dir = crate_root.join("src").join("proving_service").join("generated");
 
     // Remove `tx_prover.rs` if it exists.
-    fs::remove_file(dst_dir.join("remote_prover.rs")).into_diagnostic().ok();
+    fs::remove_file(dst_dir.join("proving_service.rs")).into_diagnostic().ok();
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
     let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
-    let protos = &[proto_dir.join("remote_prover.proto")];
+    let protos = &[proto_dir.join("proving_service.proto")];
     let includes = &[proto_dir];
 
     let file_descriptors = protox::compile(protos, includes)?;
@@ -70,9 +70,9 @@ fn compile_tonic_client_proto() -> miette::Result<()> {
     build_tonic_client(&file_descriptor_path, &std_path, protos, includes, false)?;
     build_tonic_client(&file_descriptor_path, &nostd_path, protos, includes, true)?;
 
-    // Replace `std` references with `core` and `alloc` in `remote_prover.rs`.
+    // Replace `std` references with `core` and `alloc` in `proving_service.rs`.
     // (Only for nostd version)
-    let nostd_file_path = nostd_path.join("remote_prover.rs");
+    let nostd_file_path = nostd_path.join("proving_service.rs");
     let file_content = fs::read_to_string(&nostd_file_path).into_diagnostic()?;
     let updated_content = file_content
         .replace("std::result", "core::result")

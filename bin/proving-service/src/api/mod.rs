@@ -13,7 +13,7 @@ use tracing::instrument;
 use crate::{
     generated::{
         api_server::{Api as ProverApi, ApiServer},
-        ProveRequest, ProveResponse,
+        ProvingRequest, ProvingResponse,
     },
     utils::MIDEN_PROVING_SERVICE,
 };
@@ -54,7 +54,7 @@ impl ProverRpcApi {
     }
     #[instrument(
         target = MIDEN_PROVING_SERVICE,
-        name = "remote_prover:prove_tx",
+        name = "proving_service:prove_tx",
         skip_all,
         ret(level = "debug"),
         fields(id = tracing::field::Empty),
@@ -62,8 +62,8 @@ impl ProverRpcApi {
     )]
     pub fn prove_tx(
         &self,
-        request: Request<ProveRequest>,
-    ) -> Result<Response<ProveResponse>, tonic::Status> {
+        request: Request<ProvingRequest>,
+    ) -> Result<Response<ProvingResponse>, tonic::Status> {
         let tx_prover = self
             .tx_prover
             .as_ref()
@@ -81,12 +81,12 @@ impl ProverRpcApi {
         let transaction_id = proof.id();
         tracing::Span::current().record("id", tracing::field::display(&transaction_id));
 
-        Ok(Response::new(ProveResponse { payload: proof.to_bytes() }))
+        Ok(Response::new(ProvingResponse { payload: proof.to_bytes() }))
     }
 
     #[instrument(
         target = MIDEN_PROVING_SERVICE,
-        name = "remote_prover:prove_batch",
+        name = "proving_service:prove_batch",
         skip_all,
         ret(level = "debug"),
         fields(id = tracing::field::Empty),
@@ -94,8 +94,8 @@ impl ProverRpcApi {
     )]
     pub fn prove_batch(
         &self,
-        request: Request<ProveRequest>,
-    ) -> Result<Response<ProveResponse>, tonic::Status> {
+        request: Request<ProvingRequest>,
+    ) -> Result<Response<ProvingResponse>, tonic::Status> {
         let batch_prover = self
             .batch_prover
             .as_ref()
@@ -113,7 +113,7 @@ impl ProverRpcApi {
         let batch_id = proof.id();
         tracing::Span::current().record("id", tracing::field::display(&batch_id));
 
-        Ok(Response::new(ProveResponse { payload: proof.to_bytes() }))
+        Ok(Response::new(ProvingResponse { payload: proof.to_bytes() }))
     }
 }
 
@@ -121,7 +121,7 @@ impl ProverRpcApi {
 impl ProverApi for ProverRpcApi {
     #[instrument(
         target = MIDEN_PROVING_SERVICE,
-        name = "remote_prover:prove",
+        name = "proving_service:prove",
         skip_all,
         ret(level = "debug"),
         fields(id = tracing::field::Empty),
@@ -129,8 +129,8 @@ impl ProverApi for ProverRpcApi {
     )]
     async fn prove(
         &self,
-        request: Request<ProveRequest>,
-    ) -> Result<Response<ProveResponse>, tonic::Status> {
+        request: Request<ProvingRequest>,
+    ) -> Result<Response<ProvingResponse>, tonic::Status> {
         match request.get_ref().proof_type {
             0 => self.prove_tx(request),
             1 => self.prove_batch(request),

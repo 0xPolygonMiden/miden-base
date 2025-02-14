@@ -46,7 +46,7 @@ mod test {
 
     use crate::{
         api::ProverRpcApi,
-        generated::{api_client::ApiClient, api_server::ApiServer, ProveRequest},
+        generated::{api_client::ApiClient, api_server::ApiServer, ProvingRequest},
     };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
@@ -103,12 +103,12 @@ mod test {
 
         let transaction_witness = TransactionWitness::from(executed_transaction);
 
-        let request_1 = Request::new(ProveRequest {
+        let request_1 = Request::new(ProvingRequest {
             proof_type: 0,
             payload: transaction_witness.to_bytes(),
         });
 
-        let request_2 = Request::new(ProveRequest {
+        let request_2 = Request::new(ProvingRequest {
             proof_type: 0,
             payload: transaction_witness.to_bytes(),
         });

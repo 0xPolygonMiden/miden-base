@@ -7,7 +7,7 @@ use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
 use super::generated::api_client::ApiClient;
-use crate::{remote_prover::generated, RemoteProverError};
+use crate::{proving_service::generated, RemoteProverError};
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================

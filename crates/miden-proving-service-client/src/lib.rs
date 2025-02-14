@@ -12,10 +12,10 @@ extern crate std;
 
 use thiserror::Error;
 
-pub mod remote_prover;
+pub mod proving_service;
 
 /// Protobuf definition for the Miden proving service
-pub const REMOTE_PROVER_PROTO: &str = include_str!("../proto/remote_prover.proto");
+pub const PROVING_SERVICE_PROTO: &str = include_str!("../proto/proving_service.proto");
 
 /// ERRORS
 /// ===============================================================================================

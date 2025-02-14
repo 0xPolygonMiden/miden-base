@@ -1,9 +1,9 @@
 // Specification of the user facing gRPC API.
 syntax = "proto3";
-package remote_prover;
+package proving_service;
 
 service Api {
-    rpc Prove(ProveRequest) returns (ProveResponse) {}
+    rpc Prove(ProvingRequest) returns (ProvingResponse) {}
 }
 
 enum ProofType {
@@ -12,11 +12,11 @@ enum ProofType {
     BLOCK = 2;
 }
 
-message ProveRequest {
+message ProvingRequest {
     ProofType proof_type = 1;
     bytes payload = 2;
 }
 
-message ProveResponse {
+message ProvingResponse {
     bytes payload = 1;
 }
