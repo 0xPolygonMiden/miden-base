@@ -16,8 +16,9 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        compute_tx_hash, AccountWitness, Block, BlockAccountUpdate, BlockHeader, BlockInputs,
+        compute_tx_hash, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs,
         BlockNoteIndex, BlockNoteTree, BlockNumber, NoteBatch, NullifierWitness, ProposedBlock,
+        ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -260,7 +261,7 @@ pub struct MockChain {
     chain: Mmr,
 
     /// History of produced blocks.
-    blocks: Vec<Block>,
+    blocks: Vec<ProvenBlock>,
 
     /// Tree containing the latest `Nullifier`'s tree.
     nullifiers: Smt,
@@ -782,7 +783,7 @@ impl MockChain {
     /// Creates the next block or generates blocks up to the input number if specified.
     /// This will also make all the objects currently pending available for use.
     /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
-    pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
+    pub fn seal_block(&mut self, block_num: Option<u32>) -> ProvenBlock {
         let next_block_num =
             self.blocks.last().map_or(0, |b| b.header().block_num().child().as_u32());
 
@@ -792,7 +793,7 @@ impl MockChain {
             panic!("Input block number should be higher than the last block number");
         }
 
-        let mut last_block: Option<Block> = None;
+        let mut last_block: Option<ProvenBlock> = None;
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
@@ -855,7 +856,7 @@ impl MockChain {
                 timestamp,
             );
 
-            let block = Block::new(
+            let block = ProvenBlock::new(
                 header,
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),

@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 
-use super::{BlockNumber, Digest, Felt, Hasher, ZERO};
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use crate::{
+    block::BlockNumber,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest, Felt, Hasher, ZERO,
 };
 
 /// The header of a block. It contains metadata about the block, commitments to the current
