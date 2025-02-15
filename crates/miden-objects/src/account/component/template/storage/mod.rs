@@ -14,8 +14,7 @@ use crate::account::StorageSlot;
 
 mod placeholder;
 pub use placeholder::{
-    FeltType, PlaceholderTypeRequirement, StorageValueName, StorageValueNameError,
-    TemplateTypeError, WordType,
+    PlaceholderTypeRequirement, StorageValueName, StorageValueNameError, TemplateTypeError,
 };
 
 mod init_storage_data;
@@ -328,7 +327,6 @@ mod tests {
     use crate::{
         account::{
             component::template::{
-                storage::placeholder::{FeltType, WordType},
                 AccountComponentMetadata, InitStorageData, MapEntry, MapRepresentation,
                 StorageValueName,
             },
@@ -348,7 +346,7 @@ mod tests {
             FeltRepresentation::from(Felt::new(1218)),
             FeltRepresentation::from(Felt::new(0xdba3)),
             FeltRepresentation::new_template(
-                FeltType::default(),
+                "felt",
                 StorageValueName::new("slot3").unwrap(),
                 Some("dummy description".into()),
             ),
@@ -361,25 +359,25 @@ mod tests {
             vec![
                 MapEntry {
                     key: WordRepresentation::new_template(
+                        "word",
                         StorageValueName::new("foo").unwrap(),
                         None,
-                        WordType::RpoFalcon512PublicKey,
                     ),
                     value: WordRepresentation::new_value(test_word.clone(), None, None),
                 },
                 MapEntry {
                     key: WordRepresentation::new_value(test_word.clone(), None, None),
                     value: WordRepresentation::new_template(
+                        "word",
                         StorageValueName::new("bar").unwrap(),
                         Some("bar description".into()),
-                        WordType::RpoFalcon512PublicKey,
                     ),
                 },
                 MapEntry {
                     key: WordRepresentation::new_template(
+                        "word",
                         StorageValueName::new("baz").unwrap(),
                         Some("baz description".into()),
-                        WordType::RpoFalcon512PublicKey,
                     ),
                     value: WordRepresentation::new_value(test_word, None, None),
                 },
@@ -398,22 +396,22 @@ mod tests {
                 vec![
                     [
                         FeltRepresentation::new_template(
-                            FeltType::Felt,
+                            "felt",
                             StorageValueName::new("test").unwrap(),
                             None,
                         ),
                         FeltRepresentation::new_template(
-                            FeltType::Felt,
+                            "felt",
                             StorageValueName::new("test2").unwrap(),
                             None,
                         ),
                         FeltRepresentation::new_template(
-                            FeltType::Felt,
+                            "felt",
                             StorageValueName::new("test3").unwrap(),
                             None,
                         ),
                         FeltRepresentation::new_template(
-                            FeltType::Felt,
+                            "felt",
                             StorageValueName::new("test4").unwrap(),
                             None,
                         ),
@@ -424,9 +422,9 @@ mod tests {
             StorageEntry::new_value(
                 4,
                 WordRepresentation::new_template(
+                    "word",
                     StorageValueName::new("single").unwrap(),
                     None,
-                    WordType::Words(1),
                 ),
             ),
         ];
@@ -469,7 +467,7 @@ mod tests {
             { type = "felt", name = "max_supply", description = "Maximum supply of the token in base units" }, # placeholder
             { type = "tokensymbol", value = "TST" }, # hardcoded non-felt type
             { type = "u8", name = "decimals", description = "Number of decimal places" }, # placeholder
-            { value = "0" }, # could also be just "0"?  maybe type can be inferred to either felt or word depending on "position"
+            { value = "0" }, 
         ]
 
         [[storage]]
@@ -512,7 +510,6 @@ mod tests {
         assert_eq!(template, template_deserialized);
 
         // Fail to parse because 2800 > u8
-
         let storage_placeholders = InitStorageData::new([
             (
                 StorageValueName::new("map_entry.map_key_template").unwrap(),

@@ -8,8 +8,8 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use super::{
-    placeholder::{FeltType, PlaceholderTypeRequirement, StorageValueName, TemplateType, WordType},
-    InitStorageData, MapEntry, TemplateRequirementsIter,
+    placeholder::{PlaceholderTypeRequirement, TEMPLATE_REGISTRY},
+    InitStorageData, MapEntry, StorageValueName, TemplateRequirementsIter,
 };
 use crate::account::{component::template::AccountComponentTemplateError, StorageMap};
 
@@ -29,12 +29,12 @@ pub enum WordRepresentation {
     /// This variant defines a type but does not store a value. The actual value is provided at the
     /// time of instantiation. The name is required to identify this template externally.
     Template {
+        /// The type associated with this templated word.
+        r#type: String,
         /// A human-readable identifier for the template.
         name: StorageValueName,
         /// An optional description explaining the purpose of this template.
         description: Option<String>,
-        /// The type associated with this templated word.
-        r#type: WordType,
     },
 
     /// A predefined value that can be used directly within storage.
@@ -54,11 +54,15 @@ pub enum WordRepresentation {
 impl WordRepresentation {
     /// Constructs a new `Template` variant.
     pub fn new_template(
+        r#type: impl Into<String>,
         name: impl Into<StorageValueName>,
         description: Option<String>,
-        r#type: WordType,
     ) -> Self {
-        WordRepresentation::Template { name: name.into(), description, r#type }
+        WordRepresentation::Template {
+            name: name.into(),
+            description,
+            r#type: r#type.into(),
+        }
     }
 
     /// Constructs a new `Value` variant.
@@ -89,10 +93,10 @@ impl WordRepresentation {
         }
     }
 
-    /// Returns the `WordType` if this is a `Template` variant; otherwise, returns `None`.
-    pub fn word_type(&self) -> Option<WordType> {
+    /// Returns the `String` if this is a `Template` variant; otherwise, returns `None`.
+    pub fn word_type(&self) -> Option<&str> {
         match self {
-            WordRepresentation::Template { r#type, .. } => Some(*r#type),
+            WordRepresentation::Template { r#type, .. } => Some(r#type),
             WordRepresentation::Value { .. } => None,
         }
     }
@@ -124,7 +128,7 @@ impl WordRepresentation {
                 placeholder_key,
                 PlaceholderTypeRequirement {
                     description: description.clone(),
-                    r#type: Box::new(*r#type),
+                    r#type: r#type.clone(),
                 },
             ))),
             // Otherwise, return inner iterators
@@ -149,10 +153,10 @@ impl WordRepresentation {
         match self {
             WordRepresentation::Template { name: placeholder_key, r#type, .. } => {
                 let placeholder_prefix = placeholder_prefix.with_suffix(placeholder_key);
-                let value = init_storage_data.get(&placeholder_prefix);
-                if let Some(v) = value {
-                    let parsed_value = r#type
-                        .try_parse_word(v)
+                let maybe_value = init_storage_data.get(&placeholder_prefix);
+                if let Some(value) = maybe_value {
+                    let parsed_value = TEMPLATE_REGISTRY
+                        .try_parse_word(r#type, value)
                         .map_err(AccountComponentTemplateError::StorageValueParsingError)?;
 
                     Ok(parsed_value)
@@ -204,7 +208,7 @@ impl Deserializable for WordRepresentation {
             0 => {
                 let name = StorageValueName::read_from(source)?;
                 let description = Option::<String>::read_from(source)?;
-                let r#type = WordType::read_from(source)?;
+                let r#type = String::read_from(source)?;
                 Ok(WordRepresentation::Template { name, description, r#type })
             },
             1 => {
@@ -271,12 +275,12 @@ pub enum FeltRepresentation {
     /// The name is required to uniquely identify the template, and an optional description can
     /// further clarify its intended use.
     Template {
+        /// The expected type for this felt element.
+        r#type: String,
         /// A unique name for the felt template.
         name: StorageValueName,
         /// An optional description that explains the purpose of this template.
         description: Option<String>,
-        /// The expected type for this felt element.
-        r#type: FeltType,
     },
 }
 
@@ -298,11 +302,15 @@ impl FeltRepresentation {
     ///
     /// The name will be used for identification at the moment of instantiating the componentn.
     pub fn new_template(
-        r#type: FeltType,
+        r#type: impl Into<String>,
         name: impl Into<StorageValueName>,
         description: Option<String>,
     ) -> FeltRepresentation {
-        FeltRepresentation::Template { name: name.into(), description, r#type }
+        FeltRepresentation::Template {
+            name: name.into(),
+            description,
+            r#type: r#type.into(),
+        }
     }
 
     /// Attempts to convert the [FeltRepresentation] into a [Felt].
@@ -321,8 +329,8 @@ impl FeltRepresentation {
                     AccountComponentTemplateError::PlaceholderValueNotProvided(placeholder_key),
                 )?;
 
-                Ok(r#type
-                    .parse_value(raw_value)
+                Ok(TEMPLATE_REGISTRY
+                    .try_parse_felt(&r#type, raw_value)
                     .map_err(AccountComponentTemplateError::StorageValueParsingError)?)
             },
             FeltRepresentation::Value { value, .. } => Ok(value),
@@ -343,7 +351,7 @@ impl FeltRepresentation {
                 placeholder_prefix.with_suffix(name),
                 PlaceholderTypeRequirement {
                     description: description.clone(),
-                    r#type: Box::new(*r#type),
+                    r#type: r#type.clone(),
                 },
             ))),
             _ => Box::new(iter::empty()),
@@ -403,7 +411,7 @@ impl Deserializable for FeltRepresentation {
             1 => {
                 let name = StorageValueName::read_from(source)?;
                 let description = Option::<String>::read_from(source)?;
-                let r#type = FeltType::read_from(source)?;
+                let r#type = String::read_from(source)?;
                 Ok(FeltRepresentation::new_template(r#type, name, description))
             },
             other => Err(DeserializationError::InvalidValue(format!(

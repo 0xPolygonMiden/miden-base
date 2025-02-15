@@ -9,16 +9,22 @@ use serde::{
     ser::SerializeStruct,
     Deserialize, Deserializer, Serialize, Serializer,
 };
+use vm_core::Felt;
 
 use super::{FeltRepresentation, MapEntry, MapRepresentation, StorageEntry, WordRepresentation};
 use crate::{
     account::{
-        component::template::storage::placeholder::{parse_felt_from_str, FeltType, WordType},
+        component::template::storage::placeholder::{TemplateFelt, TEMPLATE_REGISTRY},
         AccountComponentMetadata, StorageValueName,
     },
     errors::AccountComponentTemplateError,
     utils::parse_hex_string_as_word,
 };
+
+/// Default value assigned to felt entries with no type
+const DEFAULT_FELT_TYPE: &str = "felt";
+/// Default value assigned to word storage entries with no type
+const DEFAULT_WORD_TYPE: &str = "word";
 
 // ACCOUNT COMPONENT METADATA TOML FROM/TO
 // ================================================================================================
@@ -141,7 +147,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                     // The "value" field (if present) must be an array of 4 FeltRepresentations.
                     value: Option<[FeltRepresentation; 4]>,
                     #[serde(rename = "type")]
-                    r#type: Option<WordType>,
+                    r#type: Option<String>,
                 }
 
                 let helper =
@@ -156,8 +162,8 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                     let name = expect_parse_value_name(helper.name, "word template")?;
 
                     // If type not defined, assume Word
-                    let r#type = helper.r#type.unwrap_or(WordType::Words(1));
-                    Ok(WordRepresentation::new_template(name, helper.description, r#type))
+                    let r#type = helper.r#type.unwrap_or(DEFAULT_WORD_TYPE.into());
+                    Ok(WordRepresentation::new_template(r#type, name, helper.description))
                 }
             }
         }
@@ -217,7 +223,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
                 #[serde(default)]
                 value: Option<String>,
                 #[serde(rename = "type")]
-                r#type: Option<FeltType>,
+                r#type: Option<String>,
             },
             Scalar(String),
         }
@@ -225,7 +231,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
         let intermediate = Intermediate::deserialize(deserializer)?;
         match intermediate {
             Intermediate::Scalar(s) => {
-                let felt = parse_felt_from_str(&s)
+                let felt = Felt::parse_felt(&s)
                     .map_err(|e| D::Error::custom(format!("failed to parse Felt: {}", e)))?;
                 Ok(FeltRepresentation::Value {
                     name: None,
@@ -234,14 +240,17 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
                 })
             },
             Intermediate::Map { name, description, value, r#type } => {
-                // Get the defined type, or fall back to FeltType::Felt as default
-                let felt_type = r#type.unwrap_or_default();
+                // Get the defined type, or fall back to "felt" as default type
+                // TODO: Maybe types should be explicit every time and only assumed for bare
+                // strings?
+                let felt_type = r#type.unwrap_or(DEFAULT_FELT_TYPE.to_string());
 
                 if let Some(val_str) = value {
                     // Parse into felt from the input string
-                    let felt = felt_type
-                        .parse_value(&val_str)
-                        .map_err(|e| D::Error::custom(format!("failed to parse Felt: {}", e)))?;
+                    let felt =
+                        TEMPLATE_REGISTRY.try_parse_felt(&felt_type, &val_str).map_err(|e| {
+                            D::Error::custom(format!("failed to parse {felt_type} as Felt: {}", e))
+                        })?;
                     let name = name.map(parse_name).transpose()?;
                     Ok(FeltRepresentation::new_value(felt, name, description))
                 } else {
@@ -259,26 +268,13 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
 // ================================================================================================
 
 /// Represents the type of values that can be found in a storage slot's `values` field.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 enum StorageValues {
     /// List of individual words (for multi-slot entries).
     Words(Vec<[FeltRepresentation; 4]>),
     /// List of key-value entries (for map storage slots).
     MapEntries(Vec<MapEntry>),
-}
-
-// NOTE: We serialize manually here for forcing inline collection
-impl Serialize for StorageValues {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            StorageValues::Words(arrays) => serializer.collect_seq(arrays),
-            StorageValues::MapEntries(entries) => serializer.collect_seq(entries),
-        }
-    }
 }
 
 // STORAGE ENTRY SERIALIZATION
@@ -291,7 +287,7 @@ struct RawStorageEntry {
     slot: Option<u8>,
     slots: Option<Vec<u8>>,
     #[serde(rename = "type")]
-    word_type: Option<WordType>,
+    word_type: Option<String>,
     value: Option<[FeltRepresentation; 4]>,
     values: Option<StorageValues>,
 }
@@ -363,7 +359,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
             // If a type was provided instead, this is a WordRepresentation::Value entry
             let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "single-slot entry"))?;
             let name = expect_parse_value_name(raw.name, "single-slot entry")?;
-            let word_entry = WordRepresentation::new_template(name, raw.description, word_type);
+            let word_entry = WordRepresentation::new_template(word_type, name, raw.description);
 
             Ok(StorageEntry::Value { slot, word_entry })
         } else if let Some(StorageValues::MapEntries(map_entries)) = raw.values {
