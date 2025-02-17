@@ -28,16 +28,34 @@ use crate::{
 /// See [`ProposedBlock::new_at`] for details on the checks.
 #[derive(Debug, Clone)]
 pub struct ProposedBlock {
+    /// The transaction batches in this block.
     batches: Vec<ProvenBatch>,
+    /// The unix timestamp of the block in seconds.
     timestamp: u32,
+    /// All account's [`AccountUpdateWitness`] that were updated in this block. See its docs for
+    /// details.
     account_updated_witnesses: Vec<(AccountId, AccountUpdateWitness)>,
     /// Note batches created by the transactions in this block.
     ///
-    /// The length of this vector is guaranteed to be equal to the length of `batches`.
+    /// These are the output notes after note erasure has been done, so they represent the actual
+    /// output notes of the block.
+    ///
+    /// The length of this vector is guaranteed to be equal to the length of `batches` and the
+    /// inner batch of output notes may be empty if a batch did not create any notes.
     output_note_batches: Vec<OutputNoteBatch>,
     note_tree: BlockNoteTree,
+    /// The nullifiers created by this block.
+    ///
+    /// These are the nullifiers of all input notes after note erasure has been done, so these are
+    /// the nullifiers of all _authenticated_ notes consumed in the block.
     created_nullifiers: BTreeMap<Nullifier, NullifierWitness>,
+    /// The [`ChainMmr`] at the state of the previous block header. It is used to:
+    /// - authenticate unauthenticated notes whose note inclusion proof references a block.
+    /// - authenticate all reference blocks of the batches in this block.
     chain_mmr: ChainMmr,
+    /// The previous block's header which this block builds on top of.
+    ///
+    /// As part of proving the block, this header will be added to the next chain MMR.
     prev_block_header: BlockHeader,
 }
 
