@@ -8,10 +8,10 @@ use vm_processor::Digest;
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
-    batch::{BatchAccountUpdate, BatchId, BatchNoteTree, InputOutputNoteTracker, ProvenBatch},
+    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
-        block_inputs::BlockInputs, AccountUpdateWitness, AccountWitness, BlockHeader,
-        BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch,
+        block_inputs::BlockInputs, AccountUpdateWitness, AccountWitness, BlockHeader, BlockNumber,
+        NullifierWitness, OutputNoteBatch,
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
@@ -43,7 +43,6 @@ pub struct ProposedBlock {
     /// The length of this vector is guaranteed to be equal to the length of `batches` and the
     /// inner batch of output notes may be empty if a batch did not create any notes.
     output_note_batches: Vec<OutputNoteBatch>,
-    note_tree: BlockNoteTree,
     /// The nullifiers created by this block.
     ///
     /// These are the nullifiers of all input notes after note erasure has been done, so these are
@@ -208,8 +207,7 @@ impl ProposedBlock {
         // Compute the block note tree from the individual batch note trees.
         // --------------------------------------------------------------------------------------------
 
-        let (note_tree, output_note_batches) =
-            compute_block_output_notes(&batches, block_output_notes);
+        let output_note_batches = compute_block_output_notes(&batches, block_output_notes);
 
         // Build proposed blocks from parts.
         // --------------------------------------------------------------------------------------------
@@ -219,7 +217,6 @@ impl ProposedBlock {
             timestamp,
             account_updated_witnesses,
             output_note_batches,
-            note_tree,
             created_nullifiers: nullifier_witnesses,
             chain_mmr,
             prev_block_header,
@@ -298,11 +295,6 @@ impl ProposedBlock {
         self.timestamp
     }
 
-    /// Returns a reference to the [`BlockNoteTree`] of the proposed block.
-    pub fn note_tree(&self) -> &BlockNoteTree {
-        &self.note_tree
-    }
-
     /// Returns a slice of the [`OutputNoteBatch`] of each batch in this block.
     pub fn output_note_batches(&self) -> &[OutputNoteBatch] {
         &self.output_note_batches
@@ -319,7 +311,6 @@ impl ProposedBlock {
         Vec<ProvenBatch>,
         Vec<(AccountId, AccountUpdateWitness)>,
         Vec<OutputNoteBatch>,
-        BlockNoteTree,
         BTreeMap<Nullifier, NullifierWitness>,
         ChainMmr,
         BlockHeader,
@@ -328,7 +319,6 @@ impl ProposedBlock {
             self.batches,
             self.account_updated_witnesses,
             self.output_note_batches,
-            self.note_tree,
             self.created_nullifiers,
             self.chain_mmr,
             self.prev_block_header,
@@ -475,24 +465,15 @@ fn check_batch_reference_blocks(
 fn compute_block_output_notes(
     batches: &[ProvenBatch],
     mut block_output_notes: BTreeMap<NoteId, (BatchId, OutputNote)>,
-) -> (BlockNoteTree, Vec<OutputNoteBatch>) {
-    let mut block_note_tree = BlockNoteTree::empty();
+) -> Vec<OutputNoteBatch> {
     let mut block_output_note_batches = Vec::with_capacity(batches.len());
 
-    for (batch_idx, batch) in batches.iter().enumerate() {
-        let (batch_output_notes_tree, batch_output_notes) =
-            compute_batch_output_notes(batch, &mut block_output_notes);
-
+    for batch in batches.iter() {
+        let batch_output_notes = compute_batch_output_notes(batch, &mut block_output_notes);
         block_output_note_batches.push(batch_output_notes);
-        let batch_idx = u64::try_from(batch_idx).expect(
-            "the batch index should be less than MAX_BATCHES_PER_BLOCK and thus fit into a u64",
-        );
-        block_note_tree
-            .insert_batch_note_subtree(batch_idx, batch_output_notes_tree)
-            .expect("the batch note tree depth should not exceed the block note tree depth and the index should be less than MAX_BATCHES_PER_BLOCK");
     }
 
-    (block_note_tree, block_output_note_batches)
+    block_output_note_batches
 }
 
 /// Updates the [`BatchNoteTree`] of the given batch with the provided map.
@@ -504,14 +485,13 @@ fn compute_block_output_notes(
 fn compute_batch_output_notes(
     batch: &ProvenBatch,
     block_output_notes: &mut BTreeMap<NoteId, (BatchId, OutputNote)>,
-) -> (BatchNoteTree, OutputNoteBatch) {
-    let mut batch_output_notes_tree = batch.output_notes_tree().clone();
+) -> OutputNoteBatch {
     // The len of the batch output notes is a good indicator of how many notes the batch likely
     // produced, even if it may not be completely accurate, so we reserve that much space to
     // avoid reallocation.
     let mut batch_output_notes = Vec::with_capacity(batch.output_notes().len());
 
-    for (note_tree_idx, original_output_note) in batch.output_notes().iter().enumerate() {
+    for original_output_note in batch.output_notes().iter() {
         // If block_output_notes no longer contains a note it means it was erased and so we
         // remove it from the batch note tree.
         //
@@ -523,19 +503,10 @@ fn compute_batch_output_notes(
         {
             debug_assert_eq!(_batch_id, batch.id(), "batch that contained the note originally is no longer the batch that contains it according to the provided map");
             batch_output_notes.push(output_note);
-        } else {
-            // By construction of the batch note tree, the index of the note in the tree is the
-            // index of the note in the output notes of the batch.
-            let note_tree_idx = u64::try_from(note_tree_idx).expect(
-            "the number of output notes should be less than MAX_OUTPUT_NOTES_PER_BATCH and thus fit into a u64",
-          );
-            batch_output_notes_tree
-                .remove(note_tree_idx)
-                .expect("the note_tree_idx should be less than MAX_OUTPUT_NOTES_PER_BATCH");
         }
     }
 
-    (batch_output_notes_tree, batch_output_notes)
+    batch_output_notes
 }
 
 // ACCOUNT UPDATE AGGREGATOR

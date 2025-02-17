@@ -4,8 +4,9 @@ use miden_crypto::merkle::{LeafIndex, PartialMerkleTree};
 use miden_objects::{
     account::AccountId,
     block::{
-        AccountUpdateWitness, BlockAccountUpdate, BlockHeader, BlockNumber, NullifierWitness,
-        PartialNullifierTree, ProposedBlock, ProvenBlock,
+        AccountUpdateWitness, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
+        BlockNumber, NullifierWitness, OutputNoteBatch, PartialNullifierTree, ProposedBlock,
+        ProvenBlock,
     },
     note::Nullifier,
     transaction::ChainMmr,
@@ -76,15 +77,10 @@ impl LocalBlockProver {
         // Split the proposed block into its parts.
         // --------------------------------------------------------------------------------------------
 
-        // TODO: We should include the batches in the block, right? If so, should we transform them
-        // into a `VerifiedBatch` struct, with the (eventually present) ZK proof removed and
-        // the batch note trees updated after erased notes on the block level have been
-        // taken into account?
         let (
             _batches,
             mut account_updated_witnesses,
             output_note_batches,
-            block_note_tree,
             created_nullifiers,
             chain_mmr,
             prev_block_header,
@@ -92,14 +88,11 @@ impl LocalBlockProver {
 
         let prev_block_commitment = prev_block_header.hash();
 
-        // Get the root of the block note tree.
+        // Compute the root of the block note tree.
         // --------------------------------------------------------------------------------------------
 
-        // TODO: Do we need the full tree in proposed block or would the root be sufficient? We
-        // can reconstruct the tree from the output note batches, so the question is whether it
-        // should be included in the proven block to be readily accessible or if recomputing it is
-        // fine.
-        let note_root = block_note_tree.root();
+        let note_tree = compute_block_note_tree(&output_note_batches);
+        let note_root = note_tree.root();
 
         // Insert the created nullifiers into the nullifier tree to compute its new root.
         // --------------------------------------------------------------------------------------------
@@ -262,4 +255,28 @@ fn compute_account_root(
     }
 
     Ok(partial_account_tree.root())
+}
+
+/// Compute the block note tree from the output note batches.
+fn compute_block_note_tree(output_note_batches: &[OutputNoteBatch]) -> BlockNoteTree {
+    let output_notes_iter =
+        output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
+            notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
+                (
+                    // SAFETY: The proposed block contains at most the max allowed number of
+                    // batches and each batch is guaranteed to contain at most
+                    // the max allowed number of output notes.
+                    BlockNoteIndex::new(batch_idx, note_idx_in_batch),
+                    note.id(),
+                    *note.metadata(),
+                )
+            })
+        });
+
+    // SAFETY: We only construct proposed blocks that:
+    // - do not contain duplicates
+    // - contain at most the max allowed number of batches and each batch is guaranteed to contain
+    //   at most the max allowed number of output notes.
+    BlockNoteTree::with_entries(output_notes_iter)
+        .expect("the output notes of the block should not contain duplicates and contain at most the allowed maximum")
 }
