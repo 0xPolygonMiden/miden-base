@@ -199,9 +199,9 @@ fn compute_nullifiers(
     // Check the nullifier tree root in the previous block header matches the reconstructed tree's
     // root.
     if prev_block_header.nullifier_root() != partial_nullifier_tree.root() {
-        return Err(ProvenBlockError::NullifierTreeRootMismatch {
+        return Err(ProvenBlockError::StaleNullifierTreeRoot {
             prev_block_nullifier_root: prev_block_header.nullifier_root(),
-            computed_nullifier_root: partial_nullifier_tree.root(),
+            stale_nullifier_root: partial_nullifier_tree.root(),
         });
     }
 
@@ -258,9 +258,9 @@ fn compute_account_root(
     // Check the account tree root in the previous block header matches the reconstructed tree's
     // root.
     if prev_block_header.account_root() != partial_account_tree.root() {
-        return Err(ProvenBlockError::AccountTreeRootMismatch {
+        return Err(ProvenBlockError::StaleAccountTreeRoot {
             prev_block_account_root: prev_block_header.account_root(),
-            computed_account_root: partial_account_tree.root(),
+            stale_account_root: partial_account_tree.root(),
         });
     }
 

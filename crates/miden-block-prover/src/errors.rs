@@ -13,15 +13,15 @@ pub enum ProvenBlockError {
         source: MerkleError,
     },
 
-    #[error("account tree root of the previous block header is {prev_block_account_root} but the root of the partial tree computed from account witnesses is {computed_account_root}")]
-    AccountTreeRootMismatch {
+    #[error("account tree root of the previous block header is {prev_block_account_root} but the root of the partial tree computed from account witnesses is {stale_account_root}, indicating that the witnesses are stale")]
+    StaleAccountTreeRoot {
         prev_block_account_root: Digest,
-        computed_account_root: Digest,
+        stale_account_root: Digest,
     },
 
-    #[error("nullifier tree root of the previous block header is {prev_block_nullifier_root} but the root of the partial tree computed from nullifier witnesses is {computed_nullifier_root}")]
-    NullifierTreeRootMismatch {
+    #[error("nullifier tree root of the previous block header is {prev_block_nullifier_root} but the root of the partial tree computed from nullifier witnesses is {stale_nullifier_root}, indicating that the witnesses are stale")]
+    StaleNullifierTreeRoot {
         prev_block_nullifier_root: Digest,
-        computed_nullifier_root: Digest,
+        stale_nullifier_root: Digest,
     },
 }
