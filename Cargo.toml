@@ -50,4 +50,4 @@ vm-core = { package = "miden-core", version = "0.12", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.12", default-features = false }
 
 [patch.crates-io]
-miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto.git", branch = "main" }
+miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto.git", branch = "pgackst-partial-smt-stale-proof" }

@@ -1844,7 +1844,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.13.2"
-source = "git+https://github.com/0xPolygonMiden/crypto.git?branch=main#12d0eefeb20dcf263c5ab8dc97a21bb026985399"
+source = "git+https://github.com/0xPolygonMiden/crypto.git?branch=pgackst-partial-smt-stale-proof#05f1185082eefa12aa4beeb7afaf9155df805b8d"
 dependencies = [
  "blake3",
  "cc",

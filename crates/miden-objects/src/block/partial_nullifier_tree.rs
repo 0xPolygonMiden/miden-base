@@ -81,3 +81,43 @@ impl Default for PartialNullifierTree {
 fn block_num_to_leaf_value(block: BlockNumber) -> Word {
     [Felt::from(block), Felt::ZERO, Felt::ZERO, Felt::ZERO]
 }
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use miden_crypto::merkle::Smt;
+    use winter_rand_utils::rand_array;
+
+    use super::*;
+
+    /// Test that using a stale nullifier witness together with a current one results in a different
+    /// tree root and thus an error.
+    #[test]
+    fn partial_nullifier_tree_root_mismatch() {
+        let key0 = Digest::from(Word::from(rand_array()));
+        let key1 = Digest::from(Word::from(rand_array()));
+        let key2 = Digest::from(Word::from(rand_array()));
+
+        let value0 = EMPTY_WORD;
+        let value1 = Word::from(rand_array());
+        let value2 = EMPTY_WORD;
+
+        let kv_pairs = vec![(key0, value0)];
+
+        let mut full = Smt::with_entries(kv_pairs).unwrap();
+        let stale_proof0 = full.open(&key0);
+        // Insert a non-empty value so the nullifier tree's root changes.
+        full.insert(key1, value1);
+        full.insert(key2, value2);
+        let proof2 = full.open(&key2);
+
+        assert_ne!(stale_proof0.compute_root(), proof2.compute_root());
+
+        let mut partial = PartialNullifierTree::new();
+
+        partial.add_nullifier_witness(NullifierWitness::new(stale_proof0)).unwrap();
+        let error = partial.add_nullifier_witness(NullifierWitness::new(proof2)).unwrap_err();
+
+        assert_matches!(error, NullifierTreeError::TreeRootConflict(_));
+    }
+}
