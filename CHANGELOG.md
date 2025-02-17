@@ -15,8 +15,12 @@
 - Added block number as a public input to the transaction kernel. Updated prologue logic to validate the global input block number is consistent with the commitment block number (#1126).
 - Made NoteFile and AccountFile more consistent (#1133).
 - [BREAKING] Implement most block constraints in `ProposedBlock` (#1123).
-- [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
+- [BREAKING] Implement most block constraints in `ProposedBlock` (#1123, #1141).
 - [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
+- Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
+- Added `prefix` to `Nullifier` (#1153).
+- [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
+- [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

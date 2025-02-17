@@ -232,7 +232,7 @@ impl AccountComponentMetadata {
     }
 
     /// Returns the account types supported by the component.
-    pub fn targets(&self) -> &BTreeSet<AccountType> {
+    pub fn supported_types(&self) -> &BTreeSet<AccountType> {
         &self.supported_types
     }
 
@@ -482,8 +482,7 @@ mod tests {
             ))
         );
 
-        // Succesfully instantiate a map (keys are not duplicate)
-
+        // Successfully instantiate a map (keys are not duplicate)
         let valid_init_storage_data = InitStorageData::new([(
             StorageValueName::new("map.duplicate_key").unwrap(),
             "0x30".to_string(),

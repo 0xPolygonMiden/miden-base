@@ -130,15 +130,31 @@ impl ChainMmr {
             self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
         )
     }
+
+    // TESTING
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a mutable reference to the map of block numbers to block headers in this chain MMR.
+    ///
+    /// Allows mutating the inner map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn block_headers_mut(&mut self) -> &mut BTreeMap<BlockNumber, BlockHeader> {
+        &mut self.blocks
+    }
+
+    /// Returns a mutable reference to the partial MMR of this chain MMR.
+    ///
+    /// Allows mutating the inner partial MMR for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn partial_mmr_mut(&mut self) -> &mut PartialMmr {
+        &mut self.mmr
+    }
 }
 
 impl Serializable for ChainMmr {
     fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
         self.mmr.write_into(target);
-        self.blocks.len().write_into(target);
-        for block in self.blocks.values() {
-            block.write_into(target);
-        }
+        self.blocks.write_into(target);
     }
 }
 
@@ -147,12 +163,7 @@ impl Deserializable for ChainMmr {
         source: &mut R,
     ) -> Result<Self, miden_crypto::utils::DeserializationError> {
         let mmr = PartialMmr::read_from(source)?;
-        let block_count = usize::read_from(source)?;
-        let mut blocks = BTreeMap::new();
-        for _ in 0..block_count {
-            let block = BlockHeader::read_from(source)?;
-            blocks.insert(block.block_num(), block);
-        }
+        let blocks = BTreeMap::<BlockNumber, BlockHeader>::read_from(source)?;
         Ok(Self { mmr, blocks })
     }
 }

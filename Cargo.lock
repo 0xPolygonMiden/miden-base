@@ -1807,6 +1807,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-block-prover"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "miden-crypto",
+ "miden-lib",
+ "miden-objects",
+ "miden-tx",
+ "rand 0.8.5",
+ "winterfell",
+]
+
+[[package]]
 name = "miden-core"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1934,6 +1948,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.11",
  "toml",
+ "winter-air",
  "winter-rand-utils",
 ]
 
@@ -1974,6 +1989,7 @@ dependencies = [
  "miden-lib",
  "miden-objects",
  "miden-tx",
+ "miden-tx-batch-prover",
  "miette",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -2011,11 +2027,13 @@ dependencies = [
  "getrandom 0.2.15",
  "miden-objects",
  "miden-tx",
+ "miden-tx-batch-prover",
  "miette",
  "prost",
  "prost-build",
  "protox",
  "thiserror 2.0.11",
+ "tokio",
  "tonic",
  "tonic-build",
  "tonic-web",
@@ -4977,9 +4995,9 @@ dependencies = [
 
 [[package]]
 name = "winter-air"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a8fdb702503625f54dcaf9222aa2c7a0b2e868b3eb84b90d1837d68034bf999"
+checksum = "827ef2aa5a5ab663936e0a6326286e0fc83321771df0d9ea20c46c72c8baa90d"
 dependencies = [
  "libm",
  "winter-crypto",

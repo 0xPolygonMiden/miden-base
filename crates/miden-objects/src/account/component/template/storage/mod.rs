@@ -93,13 +93,11 @@ impl StorageEntry {
         }
     }
 
-    pub fn name(&self) -> &StorageValueName {
+    pub fn name(&self) -> Option<&StorageValueName> {
         match self {
-            StorageEntry::Value { word_entry, .. } => {
-                word_entry.name().expect("by construction, all top level entries have names")
-            },
-            StorageEntry::Map { map, .. } => map.name(),
-            StorageEntry::MultiSlot { name, .. } => name,
+            StorageEntry::Value { word_entry, .. } => word_entry.name(),
+            StorageEntry::Map { map, .. } => Some(map.name()),
+            StorageEntry::MultiSlot { name, .. } => Some(name),
         }
     }
 
@@ -120,9 +118,9 @@ impl StorageEntry {
                 word_entry.template_requirements(StorageValueName::default())
             },
             StorageEntry::Map { map: map_entries, .. } => map_entries.template_requirements(),
-            StorageEntry::MultiSlot { values, .. } => {
+            StorageEntry::MultiSlot { values, name, .. } => {
                 Box::new(values.iter().flat_map(move |word| {
-                    word.iter().flat_map(move |f| f.template_requirements(self.name().clone()))
+                    word.iter().flat_map(move |f| f.template_requirements(name.clone()))
                 }))
             },
         };
@@ -152,15 +150,14 @@ impl StorageEntry {
                 let storage_map = values.try_build_map(init_storage_data)?;
                 Ok(vec![StorageSlot::Map(storage_map)])
             },
-            StorageEntry::MultiSlot { values, .. } => Ok(values
+            StorageEntry::MultiSlot { values, name, .. } => Ok(values
                 .iter()
                 .map(|word_repr| {
                     let mut result = [Felt::ZERO; 4];
 
                     for (index, felt_repr) in word_repr.iter().enumerate() {
-                        result[index] = felt_repr
-                            .clone()
-                            .try_build_felt(init_storage_data, self.name().clone())?;
+                        result[index] =
+                            felt_repr.try_build_felt(init_storage_data, name.clone())?;
                     }
                     // SAFETY: result is guaranteed to have all its 4 indices rewritten
                     Ok(StorageSlot::Value(result))
@@ -193,7 +190,7 @@ impl StorageEntry {
                 }
                 Ok(())
             },
-            StorageEntry::Value { .. } => Ok(()),
+            StorageEntry::Value { word_entry, .. } => Ok(word_entry.validate()?),
         }
     }
 }
@@ -456,7 +453,7 @@ mod tests {
         values = [
             { key = "0x1", value = ["0x1","0x2","0x3","0"]},
             { key = "0x3", value = "0x123" }, 
-            { key = { name = "map_key_template", description = "this tests that the default type is correctly set" }, value = "0x3" }
+            { key = { name = "map_key_template", description = "this tests that the default type is correctly set", type="word"}, value = "0x3" }
         ]
 
         [[storage]]
@@ -473,7 +470,7 @@ mod tests {
         [[storage]]
         name = "default_recallable_height"
         slot = 2
-        type = "u32"
+        type = "word"
         "#;
 
         let component_metadata = AccountComponentMetadata::from_toml(toml_text).unwrap();
@@ -484,22 +481,22 @@ mod tests {
         let supply = requirements
             .get(&StorageValueName::new("token_metadata.max_supply").unwrap())
             .unwrap();
-        assert_eq!(supply.r#type.to_string(), "felt");
+        assert_eq!(supply.r#type, "felt");
 
         let decimals = requirements
             .get(&StorageValueName::new("token_metadata.decimals").unwrap())
             .unwrap();
-        assert_eq!(decimals.r#type.to_string(), "u8");
+        assert_eq!(decimals.r#type, "u8");
 
         let default_recallable_height = requirements
             .get(&StorageValueName::new("default_recallable_height").unwrap())
             .unwrap();
-        assert_eq!(default_recallable_height.r#type.to_string(), "u32");
+        assert_eq!(default_recallable_height.r#type, "word");
 
         let map_key_template = requirements
             .get(&StorageValueName::new("map_entry.map_key_template").unwrap())
             .unwrap();
-        assert_eq!(map_key_template.r#type.to_string(), "word");
+        assert_eq!(map_key_template.r#type, "word");
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
         let template = AccountComponentTemplate::new(component_metadata, library);
@@ -533,8 +530,7 @@ mod tests {
             ))
         );
 
-        // Instantiate succesfully
-
+        // Instantiate successfully
         let storage_placeholders = InitStorageData::new([
             (
                 StorageValueName::new("map_entry.map_key_template").unwrap(),
@@ -545,7 +541,7 @@ mod tests {
                 20_000u64.to_string(),
             ),
             (StorageValueName::new("token_metadata.decimals").unwrap(), "128".into()),
-            (StorageValueName::new("default_recallable_height").unwrap(), "0".into()),
+            (StorageValueName::new("default_recallable_height").unwrap(), "0x0".into()),
         ]);
 
         let component = AccountComponent::from_template(&template, &storage_placeholders).unwrap();
@@ -580,4 +576,24 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn test_no_duplicate_slot_names() {
+        let toml_text = r#"
+        name = "Test Component"
+        description = "This is a test component"
+        version = "1.0.1"
+        supported-types = ["FungibleFaucet", "RegularAccountImmutableCode"]
+
+        [[storage]]
+        name = "test_duplicate"
+        slot = 0
+        type = "felt" # Felt is not a valid type for word slots
+        "#;
+
+        let err = AccountComponentMetadata::from_toml(toml_text).unwrap_err();
+        assert_matches::assert_matches!(err, AccountComponentTemplateError::InvalidType(_, _))
+    }
+
+    // TODO: Test duplicates are not valid
 }

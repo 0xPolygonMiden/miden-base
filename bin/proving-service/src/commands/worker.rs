@@ -6,6 +6,41 @@ use tracing::{info, instrument};
 
 use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PROVING_SERVICE};
 
+/// Defines the possible types of provers that a worker can be.
+#[derive(Debug, Parser, Clone, Copy, Default)]
+pub struct ProverTypeSupport {
+    /// Mark the worker as a transaction prover
+    #[clap(short, long, default_value = "false")]
+    tx_prover: bool,
+    /// Mark the worker as a batch prover
+    #[clap(short, long, default_value = "false")]
+    batch_prover: bool,
+}
+
+impl ProverTypeSupport {
+    /// Checks if the worker is a transaction prover.
+    pub fn supports_transaction(&self) -> bool {
+        self.tx_prover
+    }
+
+    /// Checks if the worker is a batch prover.
+    pub fn supports_batch(&self) -> bool {
+        self.batch_prover
+    }
+
+    /// Mark the worker as a transaction prover.
+    pub fn with_transaction(mut self) -> Self {
+        self.tx_prover = true;
+        self
+    }
+
+    /// Mark the worker as a batch prover.
+    pub fn with_batch(mut self) -> Self {
+        self.batch_prover = true;
+        self
+    }
+}
+
 /// Starts a worker.
 #[derive(Debug, Parser)]
 pub struct StartWorker {
@@ -15,6 +50,9 @@ pub struct StartWorker {
     /// The port of the worker
     #[clap(short, long, default_value = "50051")]
     port: u16,
+    /// The type of prover that the worker will be
+    #[clap(flatten)]
+    prover_type: ProverTypeSupport,
 }
 
 impl StartWorker {
@@ -30,8 +68,10 @@ impl StartWorker {
     #[instrument(target = MIDEN_PROVING_SERVICE, name = "worker:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         let worker_addr = format!("{}:{}", self.host, self.port);
-        let rpc =
-            RpcListener::new(TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?);
+        let rpc = RpcListener::new(
+            TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?,
+            self.prover_type,
+        );
 
         info!(
             "Server listening on {}",

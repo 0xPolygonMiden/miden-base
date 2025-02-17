@@ -35,11 +35,13 @@ use crate::{
 pub enum AccountComponentTemplateError {
     #[cfg(feature = "std")]
     #[error("error trying to deserialize from toml")]
-    DeserializationError(#[source] toml::de::Error),
+    TomlDeserializationError(#[source] toml::de::Error),
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
     #[error("storage value name is incorrect: {0}")]
     IncorrectStorageValueName(#[source] StorageValueNameError),
+    #[error("type `{0}` is not valid for `{1}` slots")]
+    InvalidType(String, String),
     #[error("multi-slot entry should contain as many values as storage slots indices")]
     MultiSlotArityMismatch,
     #[error("error deserializing component metadata: {0}")]
@@ -50,7 +52,7 @@ pub enum AccountComponentTemplateError {
     PlaceholderValueNotProvided(StorageValueName),
     #[cfg(feature = "std")]
     #[error("error trying to deserialize from toml")]
-    SerializationError(#[source] toml::ser::Error),
+    TomlSerializationError(#[source] toml::ser::Error),
     #[error("error converting value into expected type: ")]
     StorageValueParsingError(#[source] TemplateTypeError),
     #[error("storage map contains duplicate key `{0}`")]
@@ -623,8 +625,12 @@ pub enum ProposedBlockError {
     #[error("block inputs do not contain a proof of inclusion for account {0}")]
     MissingAccountWitness(AccountId),
 
-    #[error("account {0} with state {1} cannot transition to any of the remaining states {2:?}")]
-    InconsistentAccountStateTransition(AccountId, Digest, Vec<Digest>),
+    #[error("account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}")]
+    InconsistentAccountStateTransition {
+        account_id: AccountId,
+        state_commitment: Digest,
+        remaining_state_commitments: Vec<Digest>,
+    },
 
     #[error("no proof for nullifier {0} was provided")]
     NullifierProofMissing(Nullifier),

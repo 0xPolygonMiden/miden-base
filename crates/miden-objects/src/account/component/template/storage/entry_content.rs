@@ -1,4 +1,9 @@
-use alloc::{boxed::Box, collections::BTreeSet, string::String, vec::Vec};
+use alloc::{
+    boxed::Box,
+    collections::BTreeSet,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::iter;
 
 use vm_core::{
@@ -55,14 +60,10 @@ impl WordRepresentation {
     /// Constructs a new `Template` variant.
     pub fn new_template(
         r#type: impl Into<String>,
-        name: impl Into<StorageValueName>,
+        name: StorageValueName,
         description: Option<String>,
     ) -> Self {
-        WordRepresentation::Template {
-            name: name.into(),
-            description,
-            r#type: r#type.into(),
-        }
+        WordRepresentation::Template { name, description, r#type: r#type.into() }
     }
 
     /// Constructs a new `Value` variant.
@@ -93,11 +94,11 @@ impl WordRepresentation {
         }
     }
 
-    /// Returns the `String` if this is a `Template` variant; otherwise, returns `None`.
-    pub fn word_type(&self) -> Option<&str> {
+    /// Returns the type name.
+    pub fn word_type(&self) -> &str {
         match self {
-            WordRepresentation::Template { r#type, .. } => Some(r#type),
-            WordRepresentation::Value { .. } => None,
+            WordRepresentation::Template { r#type, .. } => r#type,
+            WordRepresentation::Value { .. } => "word",
         }
     }
 
@@ -112,7 +113,7 @@ impl WordRepresentation {
 
     /// Returns an iterator over the word's placeholders.
     ///
-    /// For [`WordRepresentation::Value`], there correspond to inner iterators (since inner
+    /// For [`WordRepresentation::Value`], it corresponds to the inner iterators (since inner
     /// elements can be templated as well).
     /// For [`WordRepresentation::Template`] it returns the words's placeholder requirements
     /// as defined.
@@ -152,8 +153,8 @@ impl WordRepresentation {
     ) -> Result<Word, AccountComponentTemplateError> {
         match self {
             WordRepresentation::Template { name: placeholder_key, r#type, .. } => {
-                let placeholder_prefix = placeholder_prefix.with_suffix(placeholder_key);
-                let maybe_value = init_storage_data.get(&placeholder_prefix);
+                let placeholder_path = placeholder_prefix.with_suffix(placeholder_key);
+                let maybe_value = init_storage_data.get(&placeholder_path);
                 if let Some(value) = maybe_value {
                     let parsed_value = TEMPLATE_REGISTRY
                         .try_parse_word(r#type, value)
@@ -162,7 +163,7 @@ impl WordRepresentation {
                     Ok(parsed_value)
                 } else {
                     Err(AccountComponentTemplateError::PlaceholderValueNotProvided(
-                        placeholder_prefix,
+                        placeholder_path,
                     ))
                 }
             },
@@ -172,13 +173,32 @@ impl WordRepresentation {
                 for (index, felt_repr) in value.iter().enumerate() {
                     let placeholder =
                         placeholder_prefix.clone().with_suffix(&name.clone().unwrap_or_default());
-                    result[index] =
-                        felt_repr.clone().try_build_felt(init_storage_data, placeholder)?;
+                    result[index] = felt_repr.try_build_felt(init_storage_data, placeholder)?;
                 }
                 // SAFETY: result is guaranteed to have all its 4 indices rewritten
                 Ok(result)
             },
         }
+    }
+
+    /// Validates that the defined type exists and all the inner felt types exist as well
+    pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
+        // Check that type exists in registry
+        let type_exists = TEMPLATE_REGISTRY.contains_word_type(self.word_type());
+        if !type_exists {
+            return Err(AccountComponentTemplateError::InvalidType(
+                self.word_type().to_string(),
+                "Word".into(),
+            ));
+        }
+
+        if let Some(felts) = self.value() {
+            for felt in felts {
+                felt.validate()?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -288,14 +308,10 @@ impl FeltRepresentation {
     /// Creates a new [`FeltRepresentation::Value`] variant.
     pub fn new_value(
         value: impl Into<Felt>,
-        name: Option<impl Into<StorageValueName>>,
+        name: Option<StorageValueName>,
         description: Option<String>,
     ) -> FeltRepresentation {
-        FeltRepresentation::Value {
-            value: value.into(),
-            name: name.map(|n| n.into()),
-            description,
-        }
+        FeltRepresentation::Value { value: value.into(), name, description }
     }
 
     /// Creates a new [`FeltRepresentation::Template`] variant.
@@ -303,13 +319,17 @@ impl FeltRepresentation {
     /// The name will be used for identification at the moment of instantiating the componentn.
     pub fn new_template(
         r#type: impl Into<String>,
-        name: impl Into<StorageValueName>,
+        name: StorageValueName,
         description: Option<String>,
     ) -> FeltRepresentation {
-        FeltRepresentation::Template {
-            name: name.into(),
-            description,
-            r#type: r#type.into(),
+        FeltRepresentation::Template { name, description, r#type: r#type.into() }
+    }
+
+    /// Returns the type name.
+    pub fn felt_type(&self) -> &str {
+        match self {
+            FeltRepresentation::Template { r#type, .. } => r#type,
+            FeltRepresentation::Value { .. } => "felt",
         }
     }
 
@@ -318,22 +338,22 @@ impl FeltRepresentation {
     /// If the representation is a template, the value is retrieved from `init_storage_data`,
     /// identified by its key. Otherwise, the returned value is just the inner element.
     pub(crate) fn try_build_felt(
-        self,
+        &self,
         init_storage_data: &InitStorageData,
         placeholder_prefix: StorageValueName,
     ) -> Result<Felt, AccountComponentTemplateError> {
         match self {
             FeltRepresentation::Template { name, r#type, .. } => {
-                let placeholder_key = placeholder_prefix.with_suffix(&name);
+                let placeholder_key = placeholder_prefix.with_suffix(name);
                 let raw_value = init_storage_data.get(&placeholder_key).ok_or(
                     AccountComponentTemplateError::PlaceholderValueNotProvided(placeholder_key),
                 )?;
 
                 Ok(TEMPLATE_REGISTRY
-                    .try_parse_felt(&r#type, raw_value)
+                    .try_parse_felt(r#type, raw_value)
                     .map_err(AccountComponentTemplateError::StorageValueParsingError)?)
             },
-            FeltRepresentation::Value { value, .. } => Ok(value),
+            FeltRepresentation::Value { value, .. } => Ok(*value),
         }
     }
 
@@ -356,6 +376,19 @@ impl FeltRepresentation {
             ))),
             _ => Box::new(iter::empty()),
         }
+    }
+
+    /// Validates that the defined Felt type exists
+    pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
+        // Check that type exists in registry
+        let type_exists = TEMPLATE_REGISTRY.contains_felt_type(self.felt_type());
+        if !type_exists {
+            return Err(AccountComponentTemplateError::InvalidType(
+                self.felt_type().to_string(),
+                "Felt".into(),
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -457,14 +490,17 @@ impl MapRepresentation {
         )
     }
 
+    /// Returns a reference to map entries.
     pub fn entries(&self) -> &[MapEntry] {
         &self.entries
     }
 
+    /// Returns a reference to the map's name within the storage metadata.
     pub fn name(&self) -> &StorageValueName {
         &self.name
     }
 
+    /// Returns a reference to the field's description.
     pub fn description(&self) -> Option<&String> {
         self.description.as_ref()
     }
@@ -519,6 +555,8 @@ impl MapRepresentation {
             // Until instantiating the component we can only tell if keys are duplicate for any
             // predefined entries, so try to build any keys in the map to see if we have
             // duplicates
+            entry.key().validate()?;
+            entry.value().validate()?;
             if let Ok(key) = entry
                 .key()
                 .try_build_word(&InitStorageData::default(), StorageValueName::default())
@@ -530,6 +568,12 @@ impl MapRepresentation {
             };
         }
         Ok(())
+    }
+}
+
+impl From<MapRepresentation> for Vec<MapEntry> {
+    fn from(value: MapRepresentation) -> Self {
+        value.entries
     }
 }
 

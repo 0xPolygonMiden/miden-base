@@ -109,7 +109,7 @@ impl AccountComponent {
         }
 
         Ok(AccountComponent::new(template.library().clone(), storage_slots)?
-            .with_supported_types(template.metadata().targets().clone()))
+            .with_supported_types(template.metadata().supported_types().clone()))
     }
 
     // ACCESSORS

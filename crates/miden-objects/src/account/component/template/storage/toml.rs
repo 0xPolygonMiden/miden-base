@@ -40,7 +40,7 @@ impl AccountComponentMetadata {
     /// - If storage slots in the template are not contiguous.
     pub fn from_toml(toml_string: &str) -> Result<Self, AccountComponentTemplateError> {
         let component: AccountComponentMetadata = toml::from_str(toml_string)
-            .map_err(AccountComponentTemplateError::DeserializationError)?;
+            .map_err(AccountComponentTemplateError::TomlDeserializationError)?;
 
         component.validate()?;
         Ok(component)
@@ -49,7 +49,7 @@ impl AccountComponentMetadata {
     /// Serializes the account component template into a TOML string.
     pub fn as_toml(&self) -> Result<String, AccountComponentTemplateError> {
         let toml = toml::to_string_pretty(self)
-            .map_err(AccountComponentTemplateError::SerializationError)?;
+            .map_err(AccountComponentTemplateError::TomlSerializationError)?;
         Ok(toml)
     }
 }
@@ -97,7 +97,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                 formatter.write_str("a string or a map representing a WordRepresentation")
             }
 
-            // A bare stirng is interpreted it as a Value variant.
+            // A bare string is interpreted it as a Value variant.
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
             where
                 E: Error,
@@ -161,7 +161,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                     // Otherwise, we expect a Template variant (name is required for identification)
                     let name = expect_parse_value_name(helper.name, "word template")?;
 
-                    // If type not defined, assume Word
+                    // Get the type, or the default if it was not specified
                     let r#type = helper.r#type.unwrap_or(DEFAULT_WORD_TYPE.into());
                     Ok(WordRepresentation::new_template(r#type, name, helper.description))
                 }
@@ -240,10 +240,8 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
                 })
             },
             Intermediate::Map { name, description, value, r#type } => {
-                // Get the defined type, or fall back to "felt" as default type
-                // TODO: Maybe types should be explicit every time and only assumed for bare
-                // strings?
-                let felt_type = r#type.unwrap_or(DEFAULT_FELT_TYPE.to_string());
+                // Get the defined type, or the default if it was not specified
+                let felt_type = r#type.unwrap_or(DEFAULT_FELT_TYPE.into());
 
                 if let Some(val_str) = value {
                     // Parse into felt from the input string
@@ -315,7 +313,7 @@ impl From<StorageEntry> for RawStorageEntry {
                 name: Some(map.name().to_string()),
                 description: map.description().cloned(),
                 slot: Some(slot),
-                values: Some(StorageValues::MapEntries(map.entries().to_vec())),
+                values: Some(StorageValues::MapEntries(map.into())),
                 ..Default::default()
             },
             StorageEntry::MultiSlot { name, description, slots, values } => RawStorageEntry {
@@ -355,13 +353,6 @@ impl<'de> Deserialize<'de> for StorageEntry {
                 slot,
                 word_entry: WordRepresentation::new_value(word_entry, name, raw.description),
             })
-        } else if let Some(word_type) = raw.word_type {
-            // If a type was provided instead, this is a WordRepresentation::Value entry
-            let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "single-slot entry"))?;
-            let name = expect_parse_value_name(raw.name, "single-slot entry")?;
-            let word_entry = WordRepresentation::new_template(word_type, name, raw.description);
-
-            Ok(StorageEntry::Value { slot, word_entry })
         } else if let Some(StorageValues::MapEntries(map_entries)) = raw.values {
             // If `values` field contains key/value pairs, deserialize as map
             let name = expect_parse_value_name(raw.name, "map entry")?;
@@ -381,8 +372,15 @@ impl<'de> Deserialize<'de> for StorageEntry {
                 )));
             }
             Ok(StorageEntry::new_multislot(name, raw.description, slots, values))
+        } else if let Some(word_type) = raw.word_type {
+            // If a type was provided instead, this is a WordRepresentation::Value entry
+            let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "single-slot entry"))?;
+            let name = expect_parse_value_name(raw.name, "single-slot entry")?;
+            let word_entry = WordRepresentation::new_template(word_type, name, raw.description);
+
+            Ok(StorageEntry::Value { slot, word_entry })
         } else {
-            Err(D::Error::custom("invalid combination of fields for storage entry"))
+            Err(D::Error::custom("placeholder storage entries require the `type` field"))
         }
     }
 }
