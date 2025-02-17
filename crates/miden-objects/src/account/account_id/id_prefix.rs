@@ -1,7 +1,6 @@
 use alloc::string::{String, ToString};
 use core::fmt;
-
-use miden_crypto::utils::ByteWriter;
+use crate::utils::ByteWriter;
 use vm_core::{
     utils::{ByteReader, Deserializable, Serializable},
     Felt,

@@ -1,10 +1,7 @@
 use alloc::string::ToString;
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    FieldElement,
-};
-use vm_processor::DeserializationError;
+use crate::utils::{ByteReader,ByteWriter,Deserializable,Serializable,DeserializationError};
+use crate::FieldElement;
 
 use super::{Digest, Felt};
 use crate::AccountError;

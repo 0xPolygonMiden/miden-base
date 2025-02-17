@@ -1,6 +1,6 @@
 use core::{fmt, num::TryFromIntError};
 
-use miden_crypto::Felt;
+use crate::Felt;
 
 use super::{
     AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, NoteType,

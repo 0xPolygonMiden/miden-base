@@ -3,9 +3,6 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::EMPTY_WORD;
-use vm_processor::Digest;
-
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
@@ -16,7 +13,7 @@ use crate::{
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
-    MAX_BATCHES_PER_BLOCK,
+    Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
 };
 
 // PROPOSED BLOCK

@@ -1,11 +1,10 @@
 use alloc::collections::BTreeMap;
 
-use vm_core::utils::{Deserializable, Serializable};
-
 use crate::{
     block::{BlockHeader, BlockNumber},
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     ChainMmrError,
+    utils::{Deserializable,Serializable}
 };
 
 // CHAIN MMR

@@ -1,12 +1,11 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::{DeserializationError, Digest};
-
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
     errors::BatchAccountUpdateError,
     transaction::{ProvenTransaction, TransactionId},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest,
 };
 
 // BATCH ACCOUNT UPDATE

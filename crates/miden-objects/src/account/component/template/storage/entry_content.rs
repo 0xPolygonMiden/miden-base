@@ -1,10 +1,6 @@
 use alloc::{boxed::Box, collections::BTreeSet, string::ToString, vec::Vec};
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    Felt, FieldElement, Word,
-};
-use vm_processor::{DeserializationError, Digest};
+use crate::{utils::{ByteReader,ByteWriter,Deserializable,Serializable,DeserializationError},Felt,FieldElement,Word,Digest};
 
 use super::{placeholder::PlaceholderType, InitStorageData, MapEntry, StoragePlaceholder};
 use crate::account::{component::template::AccountComponentTemplateError, StorageMap};

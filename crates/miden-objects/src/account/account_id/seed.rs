@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
-use vm_core::{Felt, Word};
-use vm_processor::Digest;
+use crate::{Felt,Word};
+use crate::Digest;
 
 use crate::{
     account::{

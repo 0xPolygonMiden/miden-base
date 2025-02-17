@@ -3,16 +3,13 @@ use core::ops::Deref;
 
 use assembly::{Assembler, Compile};
 use miden_crypto::merkle::InnerNodeInfo;
-use vm_core::{
-    mast::{MastForest, MastNodeId},
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    AdviceMap, Program,
-};
-use vm_processor::{AdviceInputs, DeserializationError};
+use vm_core::mast::{MastForest, MastNodeId};
 
 use super::{Digest, Felt, Word};
 use crate::{
     note::{NoteDetails, NoteId},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    vm::{AdviceInputs, AdviceMap, Program},
     TransactionScriptError,
 };
 

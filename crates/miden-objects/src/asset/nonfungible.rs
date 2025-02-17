@@ -1,12 +1,13 @@
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::fmt;
 
-use vm_core::{FieldElement, WORD_SIZE};
 
 use super::{AccountIdPrefix, AccountType, Asset, AssetError, Felt, Hasher, Word};
 use crate::{
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
+    FieldElement,
+    WORD_SIZE
 };
 
 /// Position of the faucet_id inside the [`NonFungibleAsset`] word.

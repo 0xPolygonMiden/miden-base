@@ -1,15 +1,14 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_crypto::merkle::MerkleError;
-use vm_processor::Digest;
 
 use crate::{
     batch::{BatchId, ProvenBatch},
     block::BlockNumber,
+    crypto::merkle::MerkleError,
     errors::ProposedBatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
-    ProposedBlockError,
+    Digest, ProposedBlockError,
 };
 
 type BlockInputNotes = Vec<InputNoteCommitment>;

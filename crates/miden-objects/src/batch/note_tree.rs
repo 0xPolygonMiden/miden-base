@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{LeafIndex, MerkleError, SimpleSmt},
+use crate::{
+    crypto::merkle::{LeafIndex, MerkleError, SimpleSmt},
+    Digest,
 };
 
 use crate::{
@@ -35,7 +35,7 @@ impl BatchNoteTree {
     }
 
     /// Returns the root of the tree
-    pub fn root(&self) -> RpoDigest {
+    pub fn root(&self) -> Digest {
         self.0.root()
     }
 

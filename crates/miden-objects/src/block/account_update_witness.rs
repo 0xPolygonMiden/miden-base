@@ -1,9 +1,6 @@
 use alloc::vec::Vec;
 
-use miden_crypto::merkle::MerklePath;
-use vm_processor::Digest;
-
-use crate::{account::delta::AccountUpdateDetails, transaction::TransactionId};
+use crate::{account::delta::AccountUpdateDetails, transaction::TransactionId,Digest,crypto::merkle::MerklePath};
 
 /// This type encapsulates a proof that a certain account with a certain state commitment is in the
 /// account tree. Additionally, it contains the account delta representing the state transition from

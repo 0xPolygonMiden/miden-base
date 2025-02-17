@@ -1,7 +1,7 @@
 use alloc::string::{String, ToString};
 
 use thiserror::Error;
-use vm_core::{
+use crate::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, Word,
 };

@@ -1,5 +1,4 @@
-use miden_crypto::merkle::MerklePath;
-use vm_processor::Digest;
+use crate::{Digest,crypto::merkle::MerklePath};
 
 // ACCOUNT WITNESS
 // ================================================================================================
