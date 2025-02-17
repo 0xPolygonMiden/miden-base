@@ -27,6 +27,7 @@ clap = { version = "4.5", features = ["derive", "env"] }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false, features = ["std"] }
 miden-tx = { workspace = true, default-features = false, features = ["std"] }
+miden-tx-batch-prover = { workspace = true, default-features = false, features = ["std"]}
 opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
 opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }

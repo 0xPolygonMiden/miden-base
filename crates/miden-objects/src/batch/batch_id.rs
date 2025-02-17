@@ -1,12 +1,10 @@
 use alloc::{string::String, vec::Vec};
 
-use vm_core::{Felt, ZERO};
-use vm_processor::Digest;
-
 use crate::{
     account::AccountId,
     transaction::{ProvenTransaction, TransactionId},
-    Hasher,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest, Felt, Hasher, ZERO,
 };
 
 // BATCH ID
@@ -61,5 +59,20 @@ impl BatchId {
 impl core::fmt::Display for BatchId {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.to_hex())
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for BatchId {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.write_into(target);
+    }
+}
+
+impl Deserializable for BatchId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self(Digest::read_from(source)?))
     }
 }
