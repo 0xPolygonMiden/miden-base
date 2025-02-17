@@ -194,7 +194,7 @@ fn compute_nullifiers(
     for witness in created_nullifiers.into_values() {
         partial_nullifier_tree
             .add_nullifier_witness(witness)
-            .map_err(|source| ProvenBlockError::NullifierWitnessRootMismatch { source })?;
+            .map_err(ProvenBlockError::NullifierWitnessRootMismatch)?;
     }
 
     debug_assert_eq!(
@@ -209,7 +209,7 @@ fn compute_nullifiers(
         // SAFETY: As mentioned above, we can safely assume that each nullifier's witness was added
         // and every nullifier should be tracked by the partial tree and therefore updatable.
         partial_nullifier_tree.mark_spent(nullifier, block_num).expect(
-            "we should have previously added this nullifier's merkle path to the partial tree",
+            "nullifier's merkle path should have been added to the partial tree and the nullifier should be unspent",
         );
     }
 

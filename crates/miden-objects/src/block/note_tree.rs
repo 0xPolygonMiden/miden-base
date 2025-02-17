@@ -95,6 +95,9 @@ impl Default for BlockNoteTree {
     }
 }
 
+// BLOCK NOTE INDEX
+// ================================================================================================
+
 /// Index of a block note.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockNoteIndex {
@@ -107,12 +110,11 @@ impl BlockNoteIndex {
     ///
     /// # Panics
     ///
-    /// Panics in debug mode if the batch index exceeds is equal to or greater than
-    /// [`MAX_BATCHES_PER_BLOCK`] or if the note index is equal to or greater than
-    /// [`MAX_OUTPUT_NOTES_PER_BATCH`].
+    /// Panics if the batch index is equal to or greater than [`MAX_BATCHES_PER_BLOCK`] or if the
+    /// note index is equal to or greater than [`MAX_OUTPUT_NOTES_PER_BATCH`].
     pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Self {
-        debug_assert!(note_idx_in_batch < MAX_OUTPUT_NOTES_PER_BATCH);
-        debug_assert!(batch_idx < MAX_BATCHES_PER_BLOCK);
+        assert!(note_idx_in_batch < MAX_OUTPUT_NOTES_PER_BATCH);
+        assert!(batch_idx < MAX_BATCHES_PER_BLOCK);
 
         Self { batch_idx, note_idx_in_batch }
     }

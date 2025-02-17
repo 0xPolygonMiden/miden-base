@@ -1,9 +1,10 @@
-use miden_crypto::merkle::{MerkleError, PartialSmt};
+use miden_crypto::merkle::PartialSmt;
 use vm_core::{Felt, FieldElement, Word, EMPTY_WORD};
 use vm_processor::Digest;
 
 use crate::{
     block::{BlockNumber, NullifierWitness},
+    errors::NullifierTreeError,
     note::Nullifier,
 };
 
@@ -28,9 +29,12 @@ impl PartialNullifierTree {
     /// Returns an error if:
     /// - after the witness' merkle path was added the partial nullifier tree has a different root
     ///   than before it was added.
-    pub fn add_nullifier_witness(&mut self, witness: NullifierWitness) -> Result<(), MerkleError> {
+    pub fn add_nullifier_witness(
+        &mut self,
+        witness: NullifierWitness,
+    ) -> Result<(), NullifierTreeError> {
         let (path, leaf) = witness.into_proof().into_parts();
-        self.0.add_path(leaf, path)
+        self.0.add_path(leaf, path).map_err(NullifierTreeError::TreeRootConflict)
     }
 
     /// Marks the given nullifier as spent at the given block number.
@@ -38,14 +42,24 @@ impl PartialNullifierTree {
     /// # Errors
     ///
     /// Returns an error if:
+    /// - the nullifier was already spent.
     /// - the nullifier is not tracked by this partial nullifier tree, that is, its
     ///   [`NullifierWitness`] was not added to the tree previously.
     pub fn mark_spent(
         &mut self,
         nullifier: Nullifier,
         block_num: BlockNumber,
-    ) -> Result<(), MerkleError> {
-        self.0.insert(nullifier.inner(), block_num_to_leaf_value(block_num)).map(|_| ())
+    ) -> Result<(), NullifierTreeError> {
+        let prev_nullifier_value = self
+            .0
+            .insert(nullifier.inner(), block_num_to_leaf_value(block_num))
+            .map_err(|source| NullifierTreeError::UntrackedNullifier { nullifier, source })?;
+
+        if prev_nullifier_value != Self::UNSPENT_NULLIFIER {
+            Err(NullifierTreeError::NullifierAlreadySpent(nullifier))
+        } else {
+            Ok(())
+        }
     }
 
     /// Returns the root of the tree.

@@ -85,11 +85,11 @@ impl ProvenBlock {
         &self.output_note_batches
     }
 
-    /// Returns an iterator over all notes created in this block.
+    /// Returns an iterator over all [`OutputNote`]s created in this block.
     ///
     /// Each note is accompanied by a corresponding index specifying where the note is located
-    /// in the block's note tree.
-    pub fn notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
+    /// in the block's [`BlockNoteTree`].
+    pub fn output_notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
         self.output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
             notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
                 (
@@ -103,10 +103,11 @@ impl ProvenBlock {
         })
     }
 
-    /// Returns the [`BlockNoteTree`] containing all notes created in this block.
-    pub fn build_note_tree(&self) -> BlockNoteTree {
-        let entries =
-            self.notes().map(|(note_index, note)| (note_index, note.id(), *note.metadata()));
+    /// Returns the [`BlockNoteTree`] containing all [`OutputNote`]s created in this block.
+    pub fn build_output_note_tree(&self) -> BlockNoteTree {
+        let entries = self
+            .output_notes()
+            .map(|(note_index, note)| (note_index, note.id(), *note.metadata()));
 
         // SAFETY: We only construct proven blocks that:
         // - do not contain duplicates

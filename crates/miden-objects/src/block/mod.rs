@@ -5,7 +5,7 @@ mod block_number;
 pub use block_number::BlockNumber;
 
 mod proposed_block;
-pub use proposed_block::{OutputNoteBatch, ProposedBlock};
+pub use proposed_block::ProposedBlock;
 
 mod proven_block;
 pub use proven_block::ProvenBlock;
@@ -30,3 +30,6 @@ pub use block_inputs::BlockInputs;
 
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
+
+/// The set of notes created in a transaction batch.
+pub type OutputNoteBatch = alloc::vec::Vec<crate::transaction::OutputNote>;

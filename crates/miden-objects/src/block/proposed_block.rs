@@ -11,16 +11,13 @@ use crate::{
     batch::{BatchAccountUpdate, BatchId, BatchNoteTree, InputOutputNoteTracker, ProvenBatch},
     block::{
         block_inputs::BlockInputs, AccountUpdateWitness, AccountWitness, BlockHeader,
-        BlockNoteTree, BlockNumber, NullifierWitness,
+        BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch,
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
     MAX_BATCHES_PER_BLOCK,
 };
-
-/// The set of notes created in a transaction batch.
-pub type OutputNoteBatch = Vec<OutputNote>;
 
 // PROPOSED BLOCK
 // =================================================================================================

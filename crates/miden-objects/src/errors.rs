@@ -640,3 +640,19 @@ pub enum ProposedBlockError {
         source: AccountDeltaError,
     },
 }
+
+// NULLIFIER TREE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum NullifierTreeError {
+    #[error("attempt to mark nullifier {0} as spent but it is already spent")]
+    NullifierAlreadySpent(Nullifier),
+    #[error("nullifier {nullifier} is not tracked by the partial nullifier tree")]
+    UntrackedNullifier {
+        nullifier: Nullifier,
+        source: MerkleError,
+    },
+    #[error("new tree root after nullifier witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
+}

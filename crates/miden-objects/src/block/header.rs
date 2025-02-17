@@ -228,8 +228,8 @@ impl BlockHeader {
         let mut elements = vec![];
         for (transaction_id, account_id) in updated_accounts {
             let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(account_id);
-            elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
             elements.extend_from_slice(transaction_id.as_elements());
+            elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
         }
 
         Hasher::hash_elements(&elements)
