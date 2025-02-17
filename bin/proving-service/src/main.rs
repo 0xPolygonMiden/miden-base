@@ -55,8 +55,7 @@ mod test {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
 
-        let mut prover_type = ProverTypeSupport::default();
-        prover_type.with_transaction();
+        let prover_type = ProverTypeSupport::default().with_transaction();
 
         let api_service = ApiServer::new(ProverRpcApi::new(prover_type));
 

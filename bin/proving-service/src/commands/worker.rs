@@ -7,7 +7,7 @@ use tracing::{info, instrument};
 use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PROVING_SERVICE};
 
 /// Defines the possible types of provers that a worker can be.
-#[derive(Debug, Parser, Clone, Default)]
+#[derive(Debug, Parser, Clone, Copy, Default)]
 pub struct ProverTypeSupport {
     /// Mark the worker as a transaction prover
     #[clap(short, long, default_value = "false")]
@@ -29,13 +29,15 @@ impl ProverTypeSupport {
     }
 
     /// Mark the worker as a transaction prover.
-    pub fn with_transaction(&mut self) {
+    pub fn with_transaction(mut self) -> Self {
         self.tx_prover = true;
+        self
     }
 
     /// Mark the worker as a batch prover.
-    pub fn with_batch(&mut self) {
+    pub fn with_batch(mut self) -> Self {
         self.batch_prover = true;
+        self
     }
 }
 
@@ -68,7 +70,7 @@ impl StartWorker {
         let worker_addr = format!("{}:{}", self.host, self.port);
         let rpc = RpcListener::new(
             TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?,
-            self.prover_type.clone(),
+            self.prover_type,
         );
 
         info!(
