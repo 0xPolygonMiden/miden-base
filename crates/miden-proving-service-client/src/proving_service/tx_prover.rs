@@ -1,15 +1,13 @@
-pub mod generated;
-
 use alloc::{
     boxed::Box,
     string::{String, ToString},
 };
 
-use generated::api_client::ApiClient;
 use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
 use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
-use crate::RemoteProverError;
+use super::generated::api_client::ApiClient;
+use crate::{proving_service::generated, RemoteProverError};
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
@@ -34,9 +32,9 @@ pub struct RemoteTransactionProver {
 impl RemoteTransactionProver {
     /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint. The
     /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
-    pub fn new(endpoint: &str) -> Self {
+    pub fn new(endpoint: impl Into<String>) -> Self {
         RemoteTransactionProver {
-            endpoint: endpoint.to_string(),
+            endpoint: endpoint.into(),
             client: RwLock::new(None),
         }
     }
@@ -87,11 +85,9 @@ impl TransactionProver for RemoteTransactionProver {
             .ok_or_else(|| TransactionProverError::other("client should be connected"))?
             .clone();
 
-        let request = tonic::Request::new(generated::ProveTransactionRequest {
-            transaction_witness: tx_witness.to_bytes(),
-        });
+        let request = tonic::Request::new(tx_witness.into());
 
-        let response = client.prove_transaction(request).await.map_err(|err| {
+        let response = client.prove(request).await.map_err(|err| {
             TransactionProverError::other_with_source("failed to prove transaction", err)
         })?;
 
