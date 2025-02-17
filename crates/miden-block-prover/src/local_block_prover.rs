@@ -41,6 +41,10 @@ impl LocalBlockProver {
     ///   root than the contained previous block header commits to.
     /// - the nullifier witnesses provided in the proposed block result in a different nullifier
     ///   tree root than the contained previous block header commits to.
+    /// - the account tree root in the previous block header does not match the root of the tree
+    ///   computed from the account witnesses.
+    /// - the nullifier tree root in the previous block header does not match the root of the tree
+    ///   computed from the nullifier witnesses.
     pub fn prove(&self, proposed_block: ProposedBlock) -> Result<ProvenBlock, ProvenBlockError> {
         self.prove_without_verification_inner(proposed_block)
     }
@@ -100,16 +104,17 @@ impl LocalBlockProver {
         let (created_nullifiers, new_nullifier_root) =
             compute_nullifiers(created_nullifiers, &prev_block_header, block_num)?;
 
-        // Insert the previous block header into the block chain MMR to get the new chain root.
-        // --------------------------------------------------------------------------------------------
-
-        let new_chain_root = compute_chain_root(chain_mmr, prev_block_header);
-
         // Insert the state commitments of updated accounts into the account tree to compute its new
         // root.
         // --------------------------------------------------------------------------------------------
 
-        let new_account_root = compute_account_root(&mut account_updated_witnesses)?;
+        let new_account_root =
+            compute_account_root(&mut account_updated_witnesses, &prev_block_header)?;
+
+        // Insert the previous block header into the block chain MMR to get the new chain root.
+        // --------------------------------------------------------------------------------------------
+
+        let new_chain_root = compute_chain_root(chain_mmr, prev_block_header);
 
         // Transform the account update witnesses into block account updates.
         // --------------------------------------------------------------------------------------------
@@ -190,11 +195,14 @@ fn compute_nullifiers(
             .map_err(ProvenBlockError::NullifierWitnessRootMismatch)?;
     }
 
-    debug_assert_eq!(
-        partial_nullifier_tree.root(),
-        prev_block_header.nullifier_root(),
-        "partial nullifier tree root should match nullifier root of previous block header as validated in the loop"
-    );
+    // Check the nullifier tree root in the previous block header matches the reconstructed tree's
+    // root.
+    if prev_block_header.nullifier_root() != partial_nullifier_tree.root() {
+        return Err(ProvenBlockError::NullifierTreeRootMismatch {
+            prev_block_nullifier_root: prev_block_header.nullifier_root(),
+            computed_nullifier_root: partial_nullifier_tree.root(),
+        });
+    }
 
     // Second, mark each nullifier as spent in the tree. Note that checking whether each nullifier
     // is unspent is checked as part of the proposed block.
@@ -223,6 +231,7 @@ fn compute_chain_root(mut chain_mmr: ChainMmr, prev_block_header: BlockHeader) -
 /// updated to an Smt, we can use a PartialSmt instead.
 fn compute_account_root(
     updated_accounts: &mut Vec<(AccountId, AccountUpdateWitness)>,
+    prev_block_header: &BlockHeader,
 ) -> Result<Digest, ProvenBlockError> {
     let mut partial_account_tree = PartialMerkleTree::new();
 
@@ -243,6 +252,15 @@ fn compute_account_root(
                 account_id: *account_id,
                 source,
             })?;
+    }
+
+    // Check the account tree root in the previous block header matches the reconstructed tree's
+    // root.
+    if prev_block_header.account_root() != partial_account_tree.root() {
+        return Err(ProvenBlockError::AccountTreeRootMismatch {
+            prev_block_account_root: prev_block_header.account_root(),
+            computed_account_root: partial_account_tree.root(),
+        });
     }
 
     // Second, update the account tree by inserting the new final account state commitments to
