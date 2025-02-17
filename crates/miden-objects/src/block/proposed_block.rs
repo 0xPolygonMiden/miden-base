@@ -144,11 +144,13 @@ impl ProposedBlock {
         // authenticating unauthenticated notes.
         // --------------------------------------------------------------------------------------------
 
-        let (block_input_notes, block_output_notes) = InputOutputNoteTracker::from_batches(
-            batches.iter(),
-            block_inputs.unauthenticated_note_proofs(),
-            block_inputs.chain_mmr(),
-        )?;
+        let (block_input_notes, block_erased_notes, block_output_notes) =
+            InputOutputNoteTracker::from_batches(
+                batches.iter(),
+                block_inputs.unauthenticated_note_proofs(),
+                block_inputs.chain_mmr(),
+                block_inputs.prev_block_header(),
+            )?;
 
         // All unauthenticated notes must be erased or authenticated by now.
         if let Some(nullifier) = block_input_notes
@@ -161,18 +163,22 @@ impl ProposedBlock {
         // Check for nullifiers proofs and unspent nullifiers.
         // --------------------------------------------------------------------------------------------
 
+        let (prev_block_header, chain_mmr, account_witnesses, mut nullifier_witnesses, _) =
+            block_inputs.into_parts();
+
+        // Remove nullifiers of erased notes, so we only add the nullifiers of actual input notes to
+        // the proposed block.
+        remove_erased_nullifiers(&mut nullifier_witnesses, block_erased_notes.into_iter());
+
         // Check against computed block_input_notes which also contain unauthenticated notes that
         // have been authenticated.
         check_nullifiers(
-            &block_inputs,
+            &nullifier_witnesses,
             block_input_notes.iter().map(InputNoteCommitment::nullifier),
         )?;
 
         // Aggregate account updates across batches.
         // --------------------------------------------------------------------------------------------
-
-        let (prev_block_header, chain_mmr, account_witnesses, nullifiers, _) =
-            block_inputs.into_parts();
 
         let aggregator = AccountUpdateAggregator::from_batches(&batches)?;
         let account_updated_witnesses = aggregator.into_update_witnesses(account_witnesses)?;
@@ -190,7 +196,7 @@ impl ProposedBlock {
             timestamp,
             account_updated_witnesses,
             block_note_tree,
-            created_nullifiers: nullifiers,
+            created_nullifiers: nullifier_witnesses,
             chain_mmr,
             prev_block_header,
         })
@@ -268,6 +274,11 @@ impl ProposedBlock {
         self.timestamp
     }
 
+    /// Returns a reference to the [`BlockNoteTree`] of the proposed block.
+    pub fn block_note_tree(&self) -> &BlockNoteTree {
+        &self.block_note_tree
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -326,27 +337,39 @@ fn check_timestamp_increases_monotonically(
 /// Check that each nullifier in the block has a proof provided and that the nullifier is
 /// unspent. The proofs are required to update the nullifier tree.
 fn check_nullifiers(
-    block_inputs: &BlockInputs,
-    batch_nullifiers: impl Iterator<Item = Nullifier>,
+    nullifier_witnesses: &BTreeMap<Nullifier, NullifierWitness>,
+    block_input_notes: impl Iterator<Item = Nullifier>,
 ) -> Result<(), ProposedBlockError> {
-    for batch_nullifier in batch_nullifiers {
-        match block_inputs
-            .nullifier_witnesses()
-            .get(&batch_nullifier)
-            .and_then(|x| x.proof().get(&batch_nullifier.inner()))
+    for block_input_note in block_input_notes {
+        match nullifier_witnesses
+            .get(&block_input_note)
+            .and_then(|x| x.proof().get(&block_input_note.inner()))
         {
             Some(nullifier_value) => {
                 if nullifier_value != EMPTY_WORD {
-                    return Err(ProposedBlockError::NullifierSpent(batch_nullifier));
+                    return Err(ProposedBlockError::NullifierSpent(block_input_note));
                 }
             },
             // If the nullifier witnesses did not contain a proof for this nullifier or the provided
             // proof was not for this nullifier, then it's an error.
-            None => return Err(ProposedBlockError::NullifierProofMissing(batch_nullifier)),
+            None => return Err(ProposedBlockError::NullifierProofMissing(block_input_note)),
         }
     }
 
     Ok(())
+}
+
+/// Removes the nullifiers from the nullifier witnesses that were erased (i.e. created and consumed
+/// within the block).
+fn remove_erased_nullifiers(
+    nullifier_witnesses: &mut BTreeMap<Nullifier, NullifierWitness>,
+    block_erased_notes: impl Iterator<Item = Nullifier>,
+) {
+    for erased_note in block_erased_notes {
+        // We do not check that the nullifier was actually present to allow the block inputs to
+        // not include a nullifier that is known to belong to an erased note.
+        let _ = nullifier_witnesses.remove(&erased_note);
+    }
 }
 
 /// Checks consistency between the previous block header and the provided chain MMR.
@@ -546,11 +569,11 @@ impl AccountUpdateAggregator {
         let mut current_commitment = initial_state_commitment;
         while !updates.is_empty() {
             let (update, _) = updates.remove(&current_commitment).ok_or_else(|| {
-                ProposedBlockError::InconsistentAccountStateTransition(
+                ProposedBlockError::InconsistentAccountStateTransition {
                     account_id,
-                    current_commitment,
-                    updates.keys().copied().collect(),
-                )
+                    state_commitment: current_commitment,
+                    remaining_state_commitments: updates.keys().copied().collect(),
+                }
             })?;
 
             current_commitment = update.final_state_commitment();

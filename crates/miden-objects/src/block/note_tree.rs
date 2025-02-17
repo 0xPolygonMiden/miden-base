@@ -77,6 +77,16 @@ impl BlockNoteTree {
         // get the path to the leaf containing the note (path len = 16)
         self.0.open(&index.leaf_index()).path
     }
+
+    /// Returns the number of notes in this block note tree.
+    pub fn num_notes(&self) -> usize {
+        self.0.num_leaves()
+    }
+
+    /// Returns a boolean value indicating whether the block note tree is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl Default for BlockNoteTree {

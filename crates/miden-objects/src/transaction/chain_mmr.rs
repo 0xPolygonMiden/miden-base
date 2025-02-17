@@ -130,6 +130,25 @@ impl ChainMmr {
             self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
         )
     }
+
+    // TESTING
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a mutable reference to the map of block numbers to block headers in this chain MMR.
+    ///
+    /// Allows mutating the inner map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn block_headers_mut(&mut self) -> &mut BTreeMap<BlockNumber, BlockHeader> {
+        &mut self.blocks
+    }
+
+    /// Returns a mutable reference to the partial MMR of this chain MMR.
+    ///
+    /// Allows mutating the inner partial MMR for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn partial_mmr_mut(&mut self) -> &mut PartialMmr {
+        &mut self.mmr
+    }
 }
 
 impl Serializable for ChainMmr {
