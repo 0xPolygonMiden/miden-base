@@ -26,7 +26,7 @@ message ProvingRequest {
 
     // Serialized payload requiring proof generation. The encoding format is
     // type-specific:
-    // - TRANSACTION: TransactionWitness encoded
+    // - TRANSACTION: TransactionWitness encoded.
     // - BATCH: ProposedBatch encoded.
     // - BLOCK: ProposedBlock encoded.
     bytes payload = 2;
