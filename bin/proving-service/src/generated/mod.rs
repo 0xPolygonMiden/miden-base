@@ -2,23 +2,23 @@ use miden_objects::transaction::ProvenTransaction;
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
 
 #[rustfmt::skip]
-pub mod tx_prover;
+pub mod remote_prover;
 
-pub use tx_prover::*;
+pub use remote_prover::*;
 
 // CONVERSIONS
 // ================================================================================================
 
-impl From<ProvenTransaction> for ProveTransactionResponse {
+impl From<ProvenTransaction> for ProveResponse {
     fn from(value: ProvenTransaction) -> Self {
-        ProveTransactionResponse { proven_transaction: value.to_bytes() }
+        ProveResponse { payload: value.to_bytes() }
     }
 }
 
-impl TryFrom<ProveTransactionResponse> for ProvenTransaction {
+impl TryFrom<ProveResponse> for ProvenTransaction {
     type Error = DeserializationError;
 
-    fn try_from(response: ProveTransactionResponse) -> Result<Self, Self::Error> {
-        ProvenTransaction::read_from_bytes(&response.proven_transaction)
+    fn try_from(response: ProveResponse) -> Result<Self, Self::Error> {
+        ProvenTransaction::read_from_bytes(&response.payload)
     }
 }
