@@ -21,6 +21,7 @@ testing = []
 [dependencies]
 miden-crypto = { workspace = true }
 miden-objects = { workspace = true }
+miden-lib = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

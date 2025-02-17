@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, vec::Vec};
 
 use miden_crypto::merkle::{LeafIndex, PartialMerkleTree};
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::AccountId,
     block::{
@@ -137,11 +138,11 @@ impl LocalBlockProver {
         // Construct the new block header.
         // --------------------------------------------------------------------------------------------
 
-        // TODO: Where is this defined? Should we rename this to `protocol_version`, if it is that?
+        // Currently undefined and reserved for future use.
+        // See miden-base/1155.
         let version = 0;
-        // TODO: How should we compute this? Which kernel do we mean (tx, batch, block)? Should we
-        // rename it to indicate that?
-        let kernel_root = Digest::default();
+        let kernel_root = TransactionKernel::kernel_root();
+
         // For now, we're not actually proving the block.
         let proof_hash = Digest::default();
 
