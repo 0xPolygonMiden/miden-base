@@ -207,13 +207,13 @@ fn compute_nullifiers(
 
     // Second, mark each nullifier as spent in the tree. Note that checking whether each nullifier
     // is unspent is checked as part of the proposed block.
-    for nullifier in nullifiers.iter().copied() {
-        // SAFETY: As mentioned above, we can safely assume that each nullifier's witness was added
-        // and every nullifier should be tracked by the partial tree and therefore updatable.
-        partial_nullifier_tree.mark_spent(nullifier, block_num).expect(
-            "nullifier's merkle path should have been added to the partial tree and the nullifier should be unspent",
-        );
-    }
+
+    // SAFETY: As mentioned above, we can safely assume that each nullifier's witness was
+    // added and every nullifier should be tracked by the partial tree and
+    // therefore updatable.
+    partial_nullifier_tree.mark_spent(nullifiers.iter().copied(), block_num).expect(
+      "nullifiers' merkle path should have been added to the partial tree and the nullifiers should be unspent",
+    );
 
     Ok((nullifiers, partial_nullifier_tree.root()))
 }

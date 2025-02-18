@@ -37,15 +37,37 @@ impl PartialNullifierTree {
         self.0.add_path(leaf, path).map_err(NullifierTreeError::TreeRootConflict)
     }
 
-    /// Marks the given nullifier as spent at the given block number.
+    /// Marks the given nullifiers as spent at the given block number.
     ///
     /// # Errors
     ///
     /// Returns an error if:
-    /// - the nullifier was already spent.
-    /// - the nullifier is not tracked by this partial nullifier tree, that is, its
+    /// - a nullifier was already spent.
+    /// - a nullifier is not tracked by this partial nullifier tree, that is, its
     ///   [`NullifierWitness`] was not added to the tree previously.
     pub fn mark_spent(
+        &mut self,
+        nullifiers: impl Iterator<Item = Nullifier>,
+        block_num: BlockNumber,
+    ) -> Result<(), NullifierTreeError> {
+        for nullifier in nullifiers {
+            self.mark_spent_single(nullifier, block_num)?;
+        }
+
+        Ok(())
+    }
+
+    /// Returns the root of the tree.
+    pub fn root(&self) -> Digest {
+        self.0.root()
+    }
+
+    /// Marks the given nullifier as spent at the given block number.
+    ///
+    /// # Errors
+    ///
+    /// See [`Self::mark_spent`] for the possible error conditions.
+    fn mark_spent_single(
         &mut self,
         nullifier: Nullifier,
         block_num: BlockNumber,
@@ -60,11 +82,6 @@ impl PartialNullifierTree {
         } else {
             Ok(())
         }
-    }
-
-    /// Returns the root of the tree.
-    pub fn root(&self) -> Digest {
-        self.0.root()
     }
 }
 
