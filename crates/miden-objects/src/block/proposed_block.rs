@@ -204,7 +204,7 @@ impl ProposedBlock {
         let aggregator = AccountUpdateAggregator::from_batches(&batches)?;
         let account_updated_witnesses = aggregator.into_update_witnesses(account_witnesses)?;
 
-        // Compute the block note tree from the individual batch note trees.
+        // Compute the block's output note batches from the individual batch output notes.
         // --------------------------------------------------------------------------------------------
 
         let output_note_batches = compute_block_output_notes(&batches, block_output_notes);
@@ -447,21 +447,17 @@ fn check_batch_reference_blocks(
     Ok(())
 }
 
-/// Computes the [`BlockNoteTree`] from the note trees of the batches in the block.
+/// Computes the block's output notes from the batches of notes of each batch in the block.
 ///
-/// We pass in `block_output_notes` which are the output notes of the block, with output notes
-/// erased that are consumed by another batch in the block.
+/// We pass in `block_output_notes` which is the full set of output notes of the block, with output
+/// notes erased that are consumed by some batch in the block.
 ///
-/// The batch note tree of each proven batch however contains all the notes that it creates,
+/// The batch output notes of each proven batch however contain all the notes that it creates,
 /// including ones that were potentially erased in `block_output_notes`. This means we have to
-/// make the batch note tree consistent with `block_output_notes` by removing the erased notes from
-/// the batch note tree. Then it accurately represents what output notes the batch actually creates
-/// as part of the block.
+/// make the batch output notes consistent with `block_output_notes` by removing the erased notes.
+/// Then it accurately represents what output notes the batch actually creates as part of the block.
 ///
-/// After the batch note tree was made consistent, we insert it as a subtree into the larger block
-/// note tree.
-///
-/// Returns the block note tree as well as the [`OutputNote`] that each batch creates.
+/// Returns the set of [`OutputNoteBatch`]es that each batch creates.
 fn compute_block_output_notes(
     batches: &[ProvenBatch],
     mut block_output_notes: BTreeMap<NoteId, (BatchId, OutputNote)>,
@@ -476,19 +472,20 @@ fn compute_block_output_notes(
     block_output_note_batches
 }
 
-/// Updates the [`BatchNoteTree`] of the given batch with the provided map.
+/// Computes the output note of the given batch. This is essentially the batch's output notes minus
+/// all erased notes.
 ///
-/// If a note in the batch's tree is not present in the map it is removed from the tree.
-/// If it is present, it is added to the set of output notes of this batch.
+/// If a note in the batch's output notes is not present in the block output notes map it means it
+/// was erased and should therefore not be added to the batch's output notes. If it is present, it
+/// is added to the set of output notes of this batch.
 ///
-/// The updated tree and the output note set are returned.
+/// The output note set is returned.
 fn compute_batch_output_notes(
     batch: &ProvenBatch,
     block_output_notes: &mut BTreeMap<NoteId, (BatchId, OutputNote)>,
 ) -> OutputNoteBatch {
-    // The len of the batch output notes is a good indicator of how many notes the batch likely
-    // produced, even if it may not be completely accurate, so we reserve that much space to
-    // avoid reallocation.
+    // The len of the batch output notes is an upper bound of how many notes the batch could've
+    // produced so we reserve that much space to avoid reallocation.
     let mut batch_output_notes = Vec::with_capacity(batch.output_notes().len());
 
     for (note_idx, original_output_note) in batch.output_notes().iter().enumerate() {
@@ -499,7 +496,7 @@ fn compute_batch_output_notes(
         // inserting the individual batch note trees (with erased notes removed) as subtrees into an
         // empty block note tree or 2) by iterating the set `OutputNoteBatch`es. If we did not store
         // the index, then the second method would assume a contiguous layout of output notes and
-        // result in a different three than the first method.
+        // result in a different tree than the first method.
         //
         // Note that because we disallow duplicate output notes, if this map contains the
         // original note id, then we can be certain it was created by this batch and should stay
