@@ -56,11 +56,6 @@ lint: ## Runs all linting tasks at once (Clippy, fixing, formatting)
 doc: ## Generates & checks documentation
 	$(WARNINGS) cargo doc $(ALL_FEATURES_BUT_ASYNC) --keep-going --release
 
-
-.PHONY: doc-serve
-doc-serve: ## Serves documentation site
-	./scripts/serve-doc-site.sh
-
 # --- testing -------------------------------------------------------------------------------------
 
 .PHONY: test-build
