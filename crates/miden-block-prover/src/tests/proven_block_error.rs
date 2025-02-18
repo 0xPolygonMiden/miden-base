@@ -68,7 +68,7 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
         .context("failed to propose block 0")?;
 
     let error = LocalBlockProver::new(0)
-        .prove_without_verification(proposed_block0)
+        .prove_without_batch_verification(proposed_block0)
         .unwrap_err();
 
     assert_matches!(
@@ -101,7 +101,7 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
         .context("failed to propose block 1")?;
 
     let error = LocalBlockProver::new(0)
-        .prove_without_verification(proposed_block1)
+        .prove_without_batch_verification(proposed_block1)
         .unwrap_err();
 
     assert_matches!(
@@ -126,7 +126,7 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
         .context("failed to propose block 2")?;
 
     let error = LocalBlockProver::new(0)
-        .prove_without_verification(proposed_block2)
+        .prove_without_batch_verification(proposed_block2)
         .unwrap_err();
 
     assert_matches!(
@@ -159,7 +159,7 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
         .context("failed to propose block 3")?;
 
     let error = LocalBlockProver::new(0)
-        .prove_without_verification(proposed_block3)
+        .prove_without_batch_verification(proposed_block3)
         .unwrap_err();
 
     assert_matches!(

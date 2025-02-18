@@ -47,7 +47,7 @@ impl LocalBlockProver {
     /// - the nullifier tree root in the previous block header does not match the root of the tree
     ///   computed from the nullifier witnesses.
     pub fn prove(&self, proposed_block: ProposedBlock) -> Result<ProvenBlock, ProvenBlockError> {
-        self.prove_without_verification_inner(proposed_block)
+        self.prove_without_batch_verification_inner(proposed_block)
     }
 
     /// Proves the provided [`ProposedBlock`] into a [`ProvenBlock`], **without verifying batches
@@ -55,11 +55,11 @@ impl LocalBlockProver {
     ///
     /// This is exposed for testing purposes.
     #[cfg(any(feature = "testing", test))]
-    pub fn prove_without_verification(
+    pub fn prove_without_batch_verification(
         &self,
         proposed_block: ProposedBlock,
     ) -> Result<ProvenBlock, ProvenBlockError> {
-        self.prove_without_verification_inner(proposed_block)
+        self.prove_without_batch_verification_inner(proposed_block)
     }
 
     /// Proves the provided [`ProposedBlock`] into a [`ProvenBlock`].
@@ -68,7 +68,7 @@ impl LocalBlockProver {
     /// [`ProposedBlock`] are enforced.
     ///
     /// See [`Self::prove`] for more details.
-    fn prove_without_verification_inner(
+    fn prove_without_batch_verification_inner(
         &self,
         proposed_block: ProposedBlock,
     ) -> Result<ProvenBlock, ProvenBlockError> {
