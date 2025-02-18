@@ -266,6 +266,7 @@ fn compute_account_root(
 
     // Second, update the account tree by inserting the new final account state commitments to
     // compute the new root of the account tree.
+    // TODO: Move this loop into a method on `PartialAccountTree` once it is added.
     for (account_id, witness) in updated_accounts {
         let account_leaf_index = LeafIndex::from(*account_id);
         partial_account_tree
