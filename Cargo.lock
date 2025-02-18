@@ -1849,8 +1849,9 @@ dependencies = [
 
 [[package]]
 name = "miden-crypto"
-version = "0.13.2"
-source = "git+https://github.com/0xPolygonMiden/crypto.git?branch=pgackst-partial-smt-stale-proof#05f1185082eefa12aa4beeb7afaf9155df805b8d"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d8f76b64bfbb75705403ec3e2faad6a045544871d9c441758becc55415cfe64"
 dependencies = [
  "blake3",
  "cc",
