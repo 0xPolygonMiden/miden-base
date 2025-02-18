@@ -47,11 +47,8 @@ impl StorageMap {
     }
 
     pub fn with_entries(entries: impl IntoIterator<Item = (RpoDigest, Word)>) -> Self {
-        let mut storage_map = Smt::new();
-
-        for (key, value) in entries {
-            storage_map.insert(key, value);
-        }
+        let storage_map =
+            Smt::with_entries(entries).map_err(|e| e).expect("Failed to create storage map");
 
         StorageMap { map: storage_map }
     }
@@ -138,6 +135,8 @@ impl Deserializable for StorageMap {
 
 #[cfg(test)]
 mod tests {
+    use std::panic::catch_unwind;
+
     use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
     use super::{Deserializable, Serializable, StorageMap, Word, EMPTY_STORAGE_MAP_ROOT};
@@ -170,5 +169,30 @@ mod tests {
     fn test_empty_storage_map_constants() {
         // If these values don't match, update the constants.
         assert_eq!(StorageMap::default().root(), EMPTY_STORAGE_MAP_ROOT);
+    }
+
+    #[test]
+    fn account_storage_fail() {
+        // StorageMap for default types (empty map)
+        let storage_map_default = StorageMap::default();
+        let bytes = storage_map_default.to_bytes();
+        assert_eq!(storage_map_default, StorageMap::read_from_bytes(&bytes).unwrap());
+
+        // StorageMap with values
+        let storage_map_leaves_2: [(RpoDigest, Word); 2] = [
+            (
+                RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+                [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+            ),
+            (
+                RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+                [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
+            ),
+        ];
+        // let storage_map = StorageMap::with_entries(storage_map_leaves_2);
+
+        let result = catch_unwind(|| StorageMap::with_entries(storage_map_leaves_2));
+
+        assert!(result.is_err(), "Failed to create storage map: DuplicateValuesForIndex(104)");
     }
 }

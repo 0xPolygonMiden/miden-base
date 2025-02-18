@@ -19,6 +19,7 @@
 - Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
 - Added `prefix` to `Nullifier` (#1153).
 - [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
+- Use `Smt::with_entries` to create `StorageMap` (#1167)
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 
