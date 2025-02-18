@@ -31,5 +31,9 @@ pub use block_inputs::BlockInputs;
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
-/// The set of notes created in a transaction batch.
-pub type OutputNoteBatch = alloc::vec::Vec<crate::transaction::OutputNote>;
+/// The set of notes created in a transaction batch with their index in the batch.
+///
+/// The index is included as some notes may be erased at the block level that were part of the
+/// output notes of a batch. To correctly build the [`BlockNoteTree`] of a block, this index is
+/// required.
+pub type OutputNoteBatch = alloc::vec::Vec<(usize, crate::transaction::OutputNote)>;

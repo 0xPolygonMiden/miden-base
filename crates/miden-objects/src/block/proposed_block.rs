@@ -491,9 +491,15 @@ fn compute_batch_output_notes(
     // avoid reallocation.
     let mut batch_output_notes = Vec::with_capacity(batch.output_notes().len());
 
-    for original_output_note in batch.output_notes().iter() {
-        // If block_output_notes no longer contains a note it means it was erased and so we
-        // remove it from the batch note tree.
+    for (note_idx, original_output_note) in batch.output_notes().iter().enumerate() {
+        // If block_output_notes no longer contains a note it means it was erased and we do not
+        // include it in the output notes of the current batch. We include the original index of the
+        // note in the batch so we can later correctly construct the block note tree. This index is
+        // needed because we want to be able to construct the block note tree in two ways: 1) By
+        // inserting the individual batch note trees (with erased notes removed) as subtrees into an
+        // empty block note tree or 2) by iterating the set `OutputNoteBatch`es. If we did not store
+        // the index, then the second method would assume a contiguous layout of output notes and
+        // result in a different three than the first method.
         //
         // Note that because we disallow duplicate output notes, if this map contains the
         // original note id, then we can be certain it was created by this batch and should stay
@@ -502,7 +508,7 @@ fn compute_batch_output_notes(
             block_output_notes.remove(&original_output_note.id())
         {
             debug_assert_eq!(_batch_id, batch.id(), "batch that contained the note originally is no longer the batch that contains it according to the provided map");
-            batch_output_notes.push(output_note);
+            batch_output_notes.push((note_idx, output_note));
         }
     }
 

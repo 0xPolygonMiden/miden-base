@@ -280,12 +280,12 @@ fn compute_account_root(
 fn compute_block_note_tree(output_note_batches: &[OutputNoteBatch]) -> BlockNoteTree {
     let output_notes_iter =
         output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
-            notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
+            notes.iter().map(move |(note_idx_in_batch, note)| {
                 (
                     // SAFETY: The proposed block contains at most the max allowed number of
                     // batches and each batch is guaranteed to contain at most
                     // the max allowed number of output notes.
-                    BlockNoteIndex::new(batch_idx, note_idx_in_batch),
+                    BlockNoteIndex::new(batch_idx, *note_idx_in_batch),
                     note.id(),
                     *note.metadata(),
                 )

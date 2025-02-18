@@ -184,8 +184,8 @@ impl PendingObjects {
     pub fn build_notes_tree(&self) -> BlockNoteTree {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
-                batch.iter().enumerate().map(move |(note_index, note)| {
-                    (BlockNoteIndex::new(batch_index, note_index), note.id(), *note.metadata())
+                batch.iter().map(move |(note_index, note)| {
+                    (BlockNoteIndex::new(batch_index, *note_index), note.id(), *note.metadata())
                 })
             });
 
@@ -363,7 +363,9 @@ impl MockChain {
 
         // TODO: check that notes are not duplicate
         let output_notes: Vec<OutputNote> = transaction.output_notes().iter().cloned().collect();
-        self.pending_objects.output_note_batches.push(output_notes);
+        self.pending_objects
+            .output_note_batches
+            .push(output_notes.into_iter().enumerate().collect());
         self.pending_objects
             .included_transactions
             .push((transaction.id(), transaction.account_id()));
@@ -374,7 +376,7 @@ impl MockChain {
     /// Adds a public [Note] to the pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_pending_note(&mut self, note: Note) {
-        self.pending_objects.output_note_batches.push(vec![OutputNote::Full(note)]);
+        self.pending_objects.output_note_batches.push(vec![(0, OutputNote::Full(note))]);
     }
 
     /// Adds a P2ID [Note] to the pending objects and returns it.
@@ -862,10 +864,10 @@ impl MockChain {
             for (batch_index, note_batch) in
                 self.pending_objects.output_note_batches.iter().enumerate()
             {
-                for (note_index, note) in note_batch.iter().enumerate() {
+                for (note_index, note) in note_batch.iter() {
                     match note {
                         OutputNote::Full(note) => {
-                            let block_note_index = BlockNoteIndex::new(batch_index, note_index);
+                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index);
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
                                 block.header().block_num(),

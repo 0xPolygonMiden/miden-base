@@ -145,11 +145,11 @@ fn proven_block_success() -> anyhow::Result<()> {
     assert_eq!(proven_block.output_note_batches().len(), 2);
     assert_eq!(
         proven_block.output_note_batches()[0],
-        vec![(0_u32, batch0.output_notes()[0].clone())]
+        batch0.output_notes().iter().cloned().enumerate().collect::<Vec<_>>()
     );
     assert_eq!(
         proven_block.output_note_batches()[1],
-        vec![(0_u32, batch1.output_notes()[0].clone())]
+        batch1.output_notes().iter().cloned().enumerate().collect::<Vec<_>>()
     );
 
     // Check account updates.
@@ -271,7 +271,7 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
         .collect::<BTreeMap<_, _>>()
         .into_iter()
         .enumerate()
-        .map(|(note_idx, (_, note))| (note_idx as u32, note))
+        .map(|(note_idx, (_, note))| (note_idx, note))
         .collect();
 
     // Find and remove the erased note from the expected output notes.
