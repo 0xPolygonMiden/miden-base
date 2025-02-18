@@ -6,14 +6,14 @@ From `Block`s one can derive the progress of the chain, by observing the delta o
 
 Miden's `Block` structure aims for the following:
 
-- **Real time proving**: All included transactions have already been proven.
-- **Fast Genesis syncing**: New nodes efficiently sync to the network through a multi-step process:
+- **Real time proving**: All included transactions have already been proven and verified when they reach the block.
+- **Fast genesis syncing**: New nodes efficiently sync to the network through a multi-step process:
 
 1. Download historical `Block`s from genesis to present
 2. Verify zero-knowledge proofs for all `Block`s
 3. Retrieve current state data (accounts, notes, and nullifiers)
 4. Validate that the downloaded state matches the latest `Block`'s state commitment
- 
+
 This approach enables near-instant blockchain syncing by verifying `Block` proofs rather than re-executing individual transactions, resulting in exponentially faster performance. Hence state sync is dominated by the time needed to download the data.
 
 <p style="text-align: center;">
@@ -22,7 +22,7 @@ This approach enables near-instant blockchain syncing by verifying `Block` proof
 
 ## Batching
 
-To reduce the load on the blockchain, transactions are firstly aggregated into batches by the batch producer, not directly into `Block`s. Batch producing is highly parallelizable.
+To reduce the load on the blockchain, transaction proofs are firstly aggregated into batches by the batch producer, not directly into `Block`s. Batch producing is highly parallelizable and there will be multiple batch producers running at the same time.
 
 The purpose of this scheme is to produce a single proof attesting to the validity of some number of transactions which is done by recursively verifying each transaction proof in the Miden VM.
 
@@ -30,16 +30,26 @@ The purpose of this scheme is to produce a single proof attesting to the validit
     <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Account diagram"/>
 </p>
 
-The batch producer processes each transaction proof sequentially and verifies the proofs against the initial and final state roots of the affected accounts. If several transactions in the same batch affect one single account, the correct ordering must be enforced.
+The batch producer processes each transaction proof sequentially and verifies the proofs against the initial and final state roots of the affected accounts. There are some rules that the batch producer needs to follow to ensure the correctness of the overall protocol.
 
-Also the batch producer takes care to erase ephemeral notes if creation and consumption of this note happens to be in the same `Block`. As an example, there might be two transactions in a batch, `A` and `B`.
+First, if several transactions in the same batch affect one single account, the correct ordering must be enforced. That means if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify in the correct order `A -> Tx1 -> A' -> Tx2 -> A''`.
+
+Second, the batch producer doesn't check for double spending. The uniqueness and existence of a note's nullifier is being checked at the block level. Only if `Tx1` and `Tx2` consume the same note `N` and they end up in the same batch, the batch producer would reject one transaction.
+
+However, this is different for **ephemeral notes**. The batch producer takes care to erase ephemeral notes if creation and consumption of this note happens to be in the same batch. As an example, there might be two transactions in a batch, `A` and `B`.
 
 ```
-TX A: Consumes authenticated note Z, produces ephemeral note X.
-TX B: Consumes ephemeral note X.
+TX A: Creates ephemeral note N.
+TX B: Consumes ephemeral note N.
 ```
 
-From the perspective of the `Block` in which the batch would be aggregated in, ephemeral note X would have never existed. So the batch producer verifies the correctness of both transactions `A` and `B`, but the Notes DB will never see an entry of note X. That means, the executor of transaction `B` doesn't need to wait until note X exists on the blockchain for it to consume it.
+From the perspective of the `Block` in which the batch would be aggregated in, ephemeral note N would have never existed. So the batch producer verifies the correctness of both transactions `A` and `B`, but the Notes DB will never see an entry of note N. That means, the executor of transaction `B` doesn't need to wait until note X exists on the blockchain for it to consume it.
+
+But the batch producer needs to check, the uniqueness of ephemeral notes across all transactions in the batch. That is because ephemeral notes will never reach the block and therefore there will never be a nullifier check for those notes.
+
+Third, transactions can have an expiration. If transaction `A` specifies it expires at block `X`, and transaction `B` specifies it expires at block `X-2`, but both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations.
+
+Forth, the set of output notes resulting from all transactions in a batch must distinct - free of duplicates. That means we don't allow two valid transactions creating exactly the same note. Identical notes have the same nullifier and would only be consumable once.
 
 ## Block production
 
@@ -61,7 +71,7 @@ To create a `Block` multiple batches and their respective proofs are aggregated 
 To verify that a `Block` corresponds to a valid state transition, the following must be done:
 
 1. Compute hashes of public accounts and notes states.
-2. Ensure that these hashes match records in the **state updates** section.
+2. Ensure that these hashes match records in the **state updates** section (see picture).
 3. Verify the included `Block` proof against the following public inputs:
    - State commitment from the previous `Block`.
    - State commitment from the current `Block`.
