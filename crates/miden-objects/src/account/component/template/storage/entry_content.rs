@@ -337,19 +337,13 @@ impl MapRepresentation {
                         let value = map_entry.value().try_build_word(init_storage_data)?;
                         Ok((key.into(), value))
                     })
-                    .collect::<Result<Vec<(Digest, Word)>, _>>()?;
+                    .collect::<Result<Vec<(Digest, Word)>, AccountComponentTemplateError>>()?;
 
-                // validate that no key appears multiple times
-                let mut seen_keys = BTreeSet::new();
-                for (map_key, _map_value) in entries.iter() {
-                    if !seen_keys.insert(map_key) {
-                        return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(
-                            map_key.to_hex(),
-                        ));
-                    }
-                }
-
-                StorageMap::with_entries(entries)
+                StorageMap::with_entries(entries).map_err(|err| {
+                    // Include the error directly instead of using it as a source error, since this
+                    // error variant is used in another place as well.
+                    AccountComponentTemplateError::StorageMapHasDuplicateKeys(err.to_string())
+                })?
             },
             MapRepresentation::Template(storage_placeholder) => init_storage_data
                 .get(storage_placeholder)

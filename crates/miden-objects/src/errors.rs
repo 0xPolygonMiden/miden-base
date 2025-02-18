@@ -57,7 +57,6 @@ pub enum AccountComponentTemplateError {
     )]
     StoragePlaceholderTypeMismatch(StoragePlaceholder, PlaceholderType, PlaceholderType),
 }
-
 // ACCOUNT ERROR
 // ================================================================================================
 

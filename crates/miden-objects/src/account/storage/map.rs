@@ -1,4 +1,4 @@
-use miden_crypto::merkle::EmptySubtreeRoots;
+use miden_crypto::merkle::{EmptySubtreeRoots, MerkleError};
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Serializable, Word,
@@ -46,11 +46,15 @@ impl StorageMap {
         StorageMap { map: Smt::new() }
     }
 
-    pub fn with_entries(entries: impl IntoIterator<Item = (RpoDigest, Word)>) -> Self {
-        let storage_map =
-            Smt::with_entries(entries).map_err(|e| e).expect("Failed to create storage map");
-
-        StorageMap { map: storage_map }
+    /// Creates a new [`StorageMap`] from the provided key-value entries.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the provided entries contain multiple values for the same key.
+    pub fn with_entries(
+        entries: impl IntoIterator<Item = (RpoDigest, Word)>,
+    ) -> Result<Self, MerkleError> {
+        Smt::with_entries(entries).map(|map| StorageMap { map })
     }
 
     // PUBLIC ACCESSORS
@@ -135,9 +139,8 @@ impl Deserializable for StorageMap {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::catch_unwind;
-
-    use miden_crypto::{hash::rpo::RpoDigest, Felt};
+    use assert_matches::assert_matches;
+    use miden_crypto::{hash::rpo::RpoDigest, merkle::MerkleError, Felt};
 
     use super::{Deserializable, Serializable, StorageMap, Word, EMPTY_STORAGE_MAP_ROOT};
 
@@ -159,7 +162,7 @@ mod tests {
                 [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
             ),
         ];
-        let storage_map = StorageMap::with_entries(storage_map_leaves_2);
+        let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
 
         let bytes = storage_map.to_bytes();
         assert_eq!(storage_map, StorageMap::read_from_bytes(&bytes).unwrap());
@@ -172,12 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn account_storage_fail() {
-        // StorageMap for default types (empty map)
-        let storage_map_default = StorageMap::default();
-        let bytes = storage_map_default.to_bytes();
-        assert_eq!(storage_map_default, StorageMap::read_from_bytes(&bytes).unwrap());
-
+    fn account_storage_map_fails_on_duplicate_entries() {
         // StorageMap with values
         let storage_map_leaves_2: [(RpoDigest, Word); 2] = [
             (
@@ -189,10 +187,8 @@ mod tests {
                 [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
             ),
         ];
-        // let storage_map = StorageMap::with_entries(storage_map_leaves_2);
 
-        let result = catch_unwind(|| StorageMap::with_entries(storage_map_leaves_2));
-
-        assert!(result.is_err(), "Failed to create storage map: DuplicateValuesForIndex(104)");
+        let error = StorageMap::with_entries(storage_map_leaves_2).unwrap_err();
+        assert_matches!(error, MerkleError::DuplicateValuesForIndex(_));
     }
 }
