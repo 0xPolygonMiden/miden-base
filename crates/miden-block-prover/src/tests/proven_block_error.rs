@@ -1,7 +1,11 @@
 use anyhow::Context;
 use assert_matches::assert_matches;
 use miden_crypto::merkle::MerkleError;
-use miden_objects::{block::ProposedBlock, NullifierTreeError};
+use miden_objects::{
+    batch::ProvenBatch,
+    block::{BlockInputs, ProposedBlock},
+    NullifierTreeError,
+};
 
 use crate::{
     tests::utils::{
@@ -11,17 +15,16 @@ use crate::{
     LocalBlockProver, ProvenBlockError,
 };
 
-/// Tests that a proven block cannot be built if:
-/// - witnesses from a stale nullifier or account tree are used (i.e. not the previous block
-///   header's tree).
-/// - both witnesses from a stale nullifier and from the correct account tree are used, which
-///   results in different tree roots.
-#[test]
-fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Result<()> {
-    // Setup test with notes that produce output notes, in order to test the block note tree root
-    // computation.
-    // --------------------------------------------------------------------------------------------
+struct WitnessTestSetup {
+    stale_block_inputs: BlockInputs,
+    valid_block_inputs: BlockInputs,
+    batches: Vec<ProvenBatch>,
+}
 
+/// Setup for a test which returns two inputs for the same block. The valid inputs match the
+/// commitments of the latest block and the stale inputs match the commitments of the latest block
+/// minus 1.
+fn witness_test_setup() -> WitnessTestSetup {
     let TestSetup { mut chain, mut accounts, mut txs, .. } = setup_chain(4);
 
     let account0 = accounts.remove(&0).unwrap();
@@ -38,7 +41,7 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
 
     let batch1 = generate_batch(&mut chain, vec![tx1, tx2]);
     let batches = vec![batch1];
-    let mut stale_block_inputs = chain.get_block_inputs(&batches);
+    let stale_block_inputs = chain.get_block_inputs(&batches);
 
     let account_root0 = chain.accounts().root();
     let nullifier_root0 = chain.nullifiers().root();
@@ -53,6 +56,26 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
     // previously fetched block inputs become invalid.
     assert_ne!(chain.accounts().root(), account_root0);
     assert_ne!(chain.nullifiers().root(), nullifier_root0);
+
+    WitnessTestSetup {
+        stale_block_inputs,
+        valid_block_inputs,
+        batches,
+    }
+}
+
+/// Tests that a proven block cannot be built if witnesses from a stale account tree are used
+/// (i.e. an account tree whose root is not in the previous block header).
+#[test]
+fn proven_block_fails_on_stale_account_witnesses() -> anyhow::Result<()> {
+    // Setup test with stale and valid block inputs.
+    // --------------------------------------------------------------------------------------------
+
+    let WitnessTestSetup {
+        stale_block_inputs,
+        valid_block_inputs,
+        batches,
+    } = witness_test_setup();
 
     // Account tree root mismatch.
     // --------------------------------------------------------------------------------------------
@@ -78,6 +101,63 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
             ..
         } if prev_block_account_root == valid_block_inputs.prev_block_header().account_root()
     );
+
+    Ok(())
+}
+
+/// Tests that a proven block cannot be built if witnesses from a stale nullifier tree are used
+/// (i.e. a nullifier tree whose root is not in the previous block header).
+#[test]
+fn proven_block_fails_on_stale_nullifier_witnesses() -> anyhow::Result<()> {
+    // Setup test with stale and valid block inputs.
+    // --------------------------------------------------------------------------------------------
+
+    let WitnessTestSetup {
+        stale_block_inputs,
+        valid_block_inputs,
+        batches,
+    } = witness_test_setup();
+
+    // Nullifier tree root mismatch.
+    // --------------------------------------------------------------------------------------------
+
+    // Make the block inputs invalid by using the stale nullifier witnesses.
+    let mut invalid_nullifier_tree_block_inputs = valid_block_inputs.clone();
+    core::mem::swap(
+        invalid_nullifier_tree_block_inputs.nullifier_witnesses_mut(),
+        &mut stale_block_inputs.nullifier_witnesses().clone(),
+    );
+
+    let proposed_block2 = ProposedBlock::new(invalid_nullifier_tree_block_inputs, batches.clone())
+        .context("failed to propose block 2")?;
+
+    let error = LocalBlockProver::new(0)
+        .prove_without_batch_verification(proposed_block2)
+        .unwrap_err();
+
+    assert_matches!(
+        error,
+        ProvenBlockError::StaleNullifierTreeRoot {
+          prev_block_nullifier_root,
+          ..
+        } if prev_block_nullifier_root == valid_block_inputs.prev_block_header().nullifier_root()
+    );
+
+    Ok(())
+}
+
+/// Tests that a proven block cannot be built if both witnesses from a stale account tree and from
+/// the current account tree are used which results in different account tree roots.
+#[test]
+fn proven_block_fails_on_account_tree_root_mismatch() -> anyhow::Result<()> {
+    // Setup test with stale and valid block inputs.
+    // --------------------------------------------------------------------------------------------
+
+    let WitnessTestSetup {
+        mut stale_block_inputs,
+        valid_block_inputs,
+        batches,
+    } = witness_test_setup();
 
     // Stale and current account witnesses used together.
     // --------------------------------------------------------------------------------------------
@@ -112,30 +192,21 @@ fn proven_block_fails_on_stale_account_or_nullifier_witnesses() -> anyhow::Resul
         }
     );
 
-    // Nullifier tree root mismatch.
+    Ok(())
+}
+
+/// Tests that a proven block cannot be built if both witnesses from a stale nullifier tree and from
+/// the current nullifier tree are used which results in different nullifier tree roots.
+#[test]
+fn proven_block_fails_on_nullifier_tree_root_mismatch() -> anyhow::Result<()> {
+    // Setup test with stale and valid block inputs.
     // --------------------------------------------------------------------------------------------
 
-    // Make the block inputs invalid by using the stale nullifier witnesses.
-    let mut invalid_nullifier_tree_block_inputs = valid_block_inputs.clone();
-    core::mem::swap(
-        invalid_nullifier_tree_block_inputs.nullifier_witnesses_mut(),
-        &mut stale_block_inputs.nullifier_witnesses().clone(),
-    );
-
-    let proposed_block2 = ProposedBlock::new(invalid_nullifier_tree_block_inputs, batches.clone())
-        .context("failed to propose block 2")?;
-
-    let error = LocalBlockProver::new(0)
-        .prove_without_batch_verification(proposed_block2)
-        .unwrap_err();
-
-    assert_matches!(
-        error,
-        ProvenBlockError::StaleNullifierTreeRoot {
-          prev_block_nullifier_root,
-          ..
-        } if prev_block_nullifier_root == valid_block_inputs.prev_block_header().nullifier_root()
-    );
+    let WitnessTestSetup {
+        mut stale_block_inputs,
+        valid_block_inputs,
+        batches,
+    } = witness_test_setup();
 
     // Stale and current nullifier witnesses used together.
     // --------------------------------------------------------------------------------------------
