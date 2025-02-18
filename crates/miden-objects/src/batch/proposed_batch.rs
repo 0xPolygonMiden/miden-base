@@ -375,7 +375,7 @@ impl Deserializable for ProposedBatch {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let transactions = Vec::<ProvenTransaction>::read_from(source)?
             .into_iter()
-            .map(|tx| Arc::new(tx))
+            .map(Arc::new)
             .collect::<Vec<Arc<ProvenTransaction>>>();
 
         let block_header = BlockHeader::read_from(source)?;
