@@ -4,6 +4,7 @@ use miden_lib::utils::sync::RwLock;
 use miden_objects::account::{AccountDelta, AuthSecretKey};
 use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
+use winter_maybe_async::{maybe_async, maybe_async_trait};
 
 use super::signatures::get_falcon_signature;
 use crate::errors::AuthenticationError;
@@ -18,6 +19,7 @@ use crate::errors::AuthenticationError;
 /// private key pairs, and can be requested to generate signatures against any of the managed keys.
 ///
 /// The public keys are defined by [Digest]'s which are the hashes of the actual public keys.
+#[maybe_async_trait]
 pub trait TransactionAuthenticator {
     /// Retrieves a signature for a specific message as a list of [Felt].
     ///
@@ -30,6 +32,7 @@ pub trait TransactionAuthenticator {
     ///   to the point of calling `get_signature()`. This allows the authenticator to review any
     ///   alterations to the account prior to signing. It should not be directly used in the
     ///   signature computation.
+    #[maybe_async]
     fn get_signature(
         &self,
         pub_key: Word,
