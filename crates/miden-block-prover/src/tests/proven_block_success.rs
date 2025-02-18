@@ -176,7 +176,16 @@ fn proven_block_success() -> anyhow::Result<()> {
 
 /// Tests that an unauthenticated note is erased when it is created in the same block.
 ///
-/// TODO
+/// The high level test setup is that there are four transactions split in two batches:
+/// tx0 (batch0): consume note0 -> create output_note0.
+/// tx1 (batch1): consume output_note0.
+/// tx2 (batch0): consume note2 -> create output_note2.
+/// tx3 (batch0): consume note3 -> create output_note3.
+///
+/// The expected result is that output_note0 is erased from the set of output notes of the block.
+///
+/// We also test that the batch note tree containing the output generating transactions is a subtree
+/// of the subtree of the overall block note tree computed from the block's output notes.
 #[test]
 fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain(4);
