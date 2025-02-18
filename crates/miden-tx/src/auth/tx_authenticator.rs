@@ -40,7 +40,7 @@ impl<R: Rng> BasicAuthenticator<R> {
     }
 }
 
-impl<R: Rng + Send + Sync> TransactionAuthenticator for BasicAuthenticator<R> {
+impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
     /// Gets a signature over a message, given a public key.
     /// The key should be included in the `keys` map and should be a variant of [AuthSecretKey].
     ///

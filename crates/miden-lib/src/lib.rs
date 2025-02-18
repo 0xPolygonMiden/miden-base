@@ -96,7 +96,7 @@ impl AuthenticationError {
 /// private key pairs, and can be requested to generate signatures against any of the managed keys.
 ///
 /// The public keys are defined by [Digest]'s which are the hashes of the actual public keys.
-pub trait TransactionAuthenticator: Send + Sync {
+pub trait TransactionAuthenticator {
     /// Retrieves a signature for a specific message as a list of [Felt].
     ///
     /// The request is initiated by the VM as a consequence of the SigToStack advice
