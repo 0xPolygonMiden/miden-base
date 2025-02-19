@@ -4,23 +4,23 @@ use alloc::{
     sync::Arc,
 };
 
-use miden_objects::batch::{ProposedBatch, ProvenBatch};
+use miden_objects::block::{ProposedBlock, ProvenBlock};
 use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
 use crate::RemoteProverError;
 
-// REMOTE BATCH PROVER
+// REMOTE BLOCK PROVER
 // ================================================================================================
 
-/// A [`RemoteBatchProver`] is a batch prover that sends a proposed batch data to a remote
-/// gRPC server and receives a proven batch.
+/// A [`RemoteBlockProver`] is a block prover that sends a proposed block data to a remote
+/// gRPC server and receives a proven block.
 ///
 /// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
 ///
-/// The transport layer connection is established lazily when the first batch is proven.
-pub struct RemoteBatchProver {
+/// The transport layer connection is established lazily when the first transaction is proven.
+pub struct RemoteBlockProver {
     #[cfg(target_arch = "wasm32")]
     client: Arc<Mutex<Option<ApiClient<tonic_web_wasm_client::Client>>>>,
 
@@ -30,17 +30,17 @@ pub struct RemoteBatchProver {
     endpoint: String,
 }
 
-impl RemoteBatchProver {
-    /// Creates a new [RemoteBatchProver] with the specified gRPC server endpoint. The
+impl RemoteBlockProver {
+    /// Creates a new [RemoteBlockProver] with the specified gRPC server endpoint. The
     /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
     pub fn new(endpoint: impl Into<String>) -> Self {
-        RemoteBatchProver {
+        RemoteBlockProver {
             endpoint: endpoint.into(),
             client: Arc::new(Mutex::new(None)),
         }
     }
 
-    /// Establishes a connection to the remote batch prover server. The connection is
+    /// Establishes a connection to the remote block prover server. The connection is
     /// maintained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
     async fn connect(&self) -> Result<(), RemoteProverError> {
@@ -68,11 +68,11 @@ impl RemoteBatchProver {
     }
 }
 
-impl RemoteBatchProver {
+impl RemoteBlockProver {
     pub async fn prove(
         &self,
-        proposed_batch: ProposedBatch,
-    ) -> Result<ProvenBatch, RemoteProverError> {
+        proposed_block: ProposedBlock,
+    ) -> Result<ProvenBlock, RemoteProverError> {
         use miden_objects::utils::Serializable;
         self.connect().await?;
 
@@ -86,21 +86,21 @@ impl RemoteBatchProver {
             })?
             .clone();
 
-        let request = tonic::Request::new(proposed_batch.into());
+        let request = tonic::Request::new(proposed_block.into());
 
         let response = client
             .prove(request)
             .await
             .map_err(|err| RemoteProverError::other_with_source("failed to prove block", err))?;
 
-        // Deserialize the response bytes back into a ProvenBatch.
-        let proven_batch = ProvenBatch::try_from(response.into_inner()).map_err(|err| {
+        // Deserialize the response bytes back into a ProvenBlock.
+        let proven_block = ProvenBlock::try_from(response.into_inner()).map_err(|err| {
             RemoteProverError::other_with_source(
-                "failed to deserialize received response from remote prover",
+                "failed to deserialize received response from remote block prover",
                 err,
             )
         })?;
 
-        Ok(proven_batch)
+        Ok(proven_block)
     }
 }

@@ -1,5 +1,6 @@
 use miden_objects::{
     batch::{ProposedBatch, ProvenBatch},
+    block::{ProposedBlock, ProvenBlock},
     transaction::{ProvenTransaction, TransactionWitness},
 };
 use miden_tx::utils::{Deserializable, DeserializationError, Serializable};
@@ -57,5 +58,22 @@ impl TryFrom<ProvingResponse> for ProvenBatch {
 
     fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
         ProvenBatch::read_from_bytes(&response.payload)
+    }
+}
+
+impl TryFrom<ProvingResponse> for ProvenBlock {
+    type Error = DeserializationError;
+
+    fn try_from(value: ProvingResponse) -> Result<Self, Self::Error> {
+        ProvenBlock::read_from_bytes(&value.payload)
+    }
+}
+
+impl From<ProposedBlock> for ProvingRequest {
+    fn from(proposed_block: ProposedBlock) -> Self {
+        ProvingRequest {
+            proof_type: ProofType::Block.into(),
+            payload: proposed_block.to_bytes(),
+        }
     }
 }

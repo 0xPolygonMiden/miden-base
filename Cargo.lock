@@ -1993,6 +1993,7 @@ dependencies = [
  "axum",
  "bytes",
  "clap 4.5.30",
+ "miden-block-prover",
  "miden-lib",
  "miden-objects",
  "miden-tx",
@@ -2032,8 +2033,10 @@ version = "0.8.0"
 dependencies = [
  "async-trait",
  "getrandom 0.2.15",
+ "miden-block-prover",
  "miden-objects",
  "miden-tx",
+ "miden-tx-batch-prover",
  "miette",
  "prost",
  "prost-build",

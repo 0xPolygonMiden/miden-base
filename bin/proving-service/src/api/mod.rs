@@ -1,5 +1,7 @@
+use miden_block_prover::LocalBlockProver;
 use miden_objects::{
-    batch::ProposedBatch, transaction::TransactionWitness, MIN_PROOF_SECURITY_LEVEL,
+    batch::ProposedBatch, block::ProposedBlock, transaction::TransactionWitness,
+    MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_tx::{utils::Serializable, LocalTransactionProver, TransactionProver};
 use miden_tx_batch_prover::LocalBatchProver;
@@ -31,6 +33,7 @@ impl RpcListener {
 struct Provers {
     tx_prover: Option<LocalTransactionProver>,
     batch_prover: Option<LocalBatchProver>,
+    block_prover: Option<LocalBlockProver>,
 }
 
 impl Provers {
@@ -47,7 +50,13 @@ impl Provers {
             None
         };
 
-        Self { tx_prover, batch_prover }
+        let block_prover = if prover_type_support.supports_block() {
+            Some(LocalBlockProver::new(MIN_PROOF_SECURITY_LEVEL))
+        } else {
+            None
+        };
+
+        Self { tx_prover, batch_prover, block_prover }
     }
 }
 
@@ -122,6 +131,38 @@ impl ProverRpcApi {
 
         Ok(Response::new(ProvingResponse { payload: proof.to_bytes() }))
     }
+
+    #[instrument(
+        target = MIDEN_PROVING_SERVICE,
+        name = "proving_service:prove_block",
+        skip_all,
+        ret(level = "debug"),
+        fields(id = tracing::field::Empty),
+        err
+    )]
+    pub fn prove_block(
+        &self,
+        proposed_block: ProposedBlock,
+    ) -> Result<Response<ProvingResponse>, tonic::Status> {
+        let prover = self
+            .provers
+            .try_lock()
+            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
+
+        let prover = prover
+            .block_prover
+            .as_ref()
+            .ok_or(Status::unimplemented("Block prover is not enabled"))?;
+
+        let proof = prover.prove(proposed_block).map_err(internal_error)?;
+
+        // Record the commitment of the block in the current tracing span
+        let block_id = proof.hash();
+
+        tracing::Span::current().record("id", tracing::field::display(&block_id));
+
+        Ok(Response::new(ProvingResponse { payload: proof.to_bytes() }))
+    }
 }
 
 #[async_trait::async_trait]
@@ -147,7 +188,10 @@ impl ProverApi for ProverRpcApi {
                 let proposed_batch = request.into_inner().try_into().map_err(invalid_argument)?;
                 self.prove_batch(proposed_batch)
             },
-            _ => Err(internal_error("Invalid proof type")),
+            ProofType::Block => {
+                let proposed_block = request.into_inner().try_into().map_err(invalid_argument)?;
+                self.prove_block(proposed_block)
+            },
         }
     }
 }

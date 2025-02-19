@@ -3,8 +3,11 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::EMPTY_WORD;
-use vm_processor::Digest;
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    EMPTY_WORD,
+};
+use vm_processor::{DeserializationError, Digest};
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
@@ -333,6 +336,36 @@ impl ProposedBlock {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProposedBlock {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.batches.write_into(target);
+        self.timestamp.write_into(target);
+        self.account_updated_witnesses.write_into(target);
+        self.output_note_batches.write_into(target);
+        self.created_nullifiers.write_into(target);
+        self.chain_mmr.write_into(target);
+        self.prev_block_header.write_into(target);
+    }
+}
+
+impl Deserializable for ProposedBlock {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let block = Self {
+            batches: <Vec<ProvenBatch>>::read_from(source)?,
+            timestamp: u32::read_from(source)?,
+            account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
+            output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
+            created_nullifiers: <BTreeMap<Nullifier, NullifierWitness>>::read_from(source)?,
+            chain_mmr: ChainMmr::read_from(source)?,
+            prev_block_header: BlockHeader::read_from(source)?,
+        };
+
+        Ok(block)
+    }
+}
 // HELPER FUNCTIONS
 // ================================================================================================
 
