@@ -552,6 +552,13 @@ pub enum ProposedBlockError {
     #[error("block must contain at most {MAX_BATCHES_PER_BLOCK} transaction batches")]
     TooManyBatches,
 
+    #[error("batch {batch_id} expired at block {batch_expiration_block_num} but the current block number is {current_block_num}")]
+    ExpiredBatch {
+        batch_id: BatchId,
+        batch_expiration_block_num: BlockNumber,
+        current_block_num: BlockNumber,
+    },
+
     #[error("batch {batch_id} appears twice in the block inputs")]
     DuplicateBatch { batch_id: BatchId },
 

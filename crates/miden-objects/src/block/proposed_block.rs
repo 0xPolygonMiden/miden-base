@@ -76,6 +76,8 @@ impl ProposedBlock {
     ///
     /// - The number of batches is zero or exceeds [`MAX_BATCHES_PER_BLOCK`].
     /// - There are duplicate batches, i.e. they have the same [`BatchId`].
+    /// - The expiration block number of any batch is less than the block number of the currently
+    ///   proposed block.
     ///
     /// ## Chain
     ///
@@ -142,6 +144,11 @@ impl ProposedBlock {
         // --------------------------------------------------------------------------------------------
 
         check_timestamp_increases_monotonically(timestamp, block_inputs.prev_block_header())?;
+
+        // Check for batch expiration.
+        // --------------------------------------------------------------------------------------------
+
+        check_batch_expiration(&batches, block_inputs.prev_block_header())?;
 
         // Check for consistency between the chain MMR and the referenced previous block.
         // --------------------------------------------------------------------------------------------
@@ -353,6 +360,29 @@ fn check_timestamp_increases_monotonically(
     } else {
         Ok(())
     }
+}
+
+/// Checks whether any of the batches is expired and can no longer be included in this block.
+///
+/// To illustrate, a batch which expired at block 4 cannot be included in block 5, but if it
+/// expires at block 5 then it can still be included in block 5.
+fn check_batch_expiration(
+    batches: &[ProvenBatch],
+    prev_block_header: &BlockHeader,
+) -> Result<(), ProposedBlockError> {
+    let current_block_num = prev_block_header.block_num() + 1;
+
+    for batch in batches {
+        if batch.batch_expiration_block_num() < current_block_num {
+            return Err(ProposedBlockError::ExpiredBatch {
+                batch_id: batch.id(),
+                batch_expiration_block_num: batch.batch_expiration_block_num(),
+                current_block_num,
+            });
+        }
+    }
+
+    Ok(())
 }
 
 /// Check that each nullifier in the block has a proof provided and that the nullifier is
