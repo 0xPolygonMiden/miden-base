@@ -15,7 +15,14 @@ edition.workspace = true
 [lib]
 bench = false
 
+[features]
+testing = []
+
 [dependencies]
+miden-crypto = { workspace = true }
+miden-objects = { workspace = true }
+miden-lib = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { workspace = true }

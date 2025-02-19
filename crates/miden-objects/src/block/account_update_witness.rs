@@ -5,9 +5,13 @@ use vm_processor::Digest;
 
 use crate::{account::delta::AccountUpdateDetails, transaction::TransactionId};
 
-/// This type encapsulates a proof that a certain account with a certain state commitment is in the
-/// account tree. Additionally, it contains the account delta representing the state transition from
-/// this account within a block and all transaction IDs that contributed to this update.
+/// This type encapsulates essentially three components:
+/// - The witness is a merkle path of the initial state commitment of the account before the block
+///   in which the witness is included, that is, in the account tree at the state of the previous
+///   block header.
+/// - The account update details represent the delta between the state of the account before the
+///   block and the state after this block.
+/// - Additionally contains a list of transaction IDs that contributed to this update.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUpdateWitness {
     /// The state commitment before the update.
@@ -64,7 +68,9 @@ impl AccountUpdateWitness {
         &self.initial_state_proof
     }
 
-    /// Returns a reference to the underlying [`AccountUpdateDetails`] of this update.
+    /// Returns a reference to the underlying [`AccountUpdateDetails`] of this update, representing
+    /// the state transition of the account from the previous block to the block this witness is
+    /// for.
     pub fn details(&self) -> &AccountUpdateDetails {
         &self.details
     }
@@ -83,11 +89,14 @@ impl AccountUpdateWitness {
     }
 
     /// Consumes self and returns its parts.
-    pub fn into_parts(self) -> (Digest, Digest, MerklePath, Vec<TransactionId>) {
+    pub fn into_parts(
+        self,
+    ) -> (Digest, Digest, MerklePath, AccountUpdateDetails, Vec<TransactionId>) {
         (
             self.initial_state_commitment,
             self.final_state_commitment,
             self.initial_state_proof,
+            self.details,
             self.transactions,
         )
     }
