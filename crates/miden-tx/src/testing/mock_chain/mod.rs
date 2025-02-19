@@ -461,7 +461,6 @@ impl MockChain {
             id,
             account_updates,
             input_notes,
-            output_notes_tree,
             output_notes,
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
@@ -472,7 +471,6 @@ impl MockChain {
             block_header.block_num(),
             account_updates,
             input_notes,
-            output_notes_tree,
             output_notes,
             batch_expiration_block_num,
         )

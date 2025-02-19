@@ -6,7 +6,7 @@ use alloc::{
 
 use crate::{
     account::AccountId,
-    batch::{BatchAccountUpdate, BatchId, BatchNoteTree, InputOutputNoteTracker},
+    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker},
     block::{BlockHeader, BlockNumber},
     errors::ProposedBatchError,
     note::{NoteId, NoteInclusionProof},
@@ -46,8 +46,6 @@ pub struct ProposedBatch {
     /// authentication is delayed to the block kernel. These are sorted by
     /// [`InputNoteCommitment::nullifier`].
     input_notes: InputNotes<InputNoteCommitment>,
-    /// The SMT over the output notes of this batch.
-    output_notes_tree: BatchNoteTree,
     /// The output notes of this batch. This consists of all notes created by transactions in the
     /// batch that are not consumed within the same batch. These are sorted by [`OutputNote::id`].
     output_notes: Vec<OutputNote>,
@@ -261,17 +259,6 @@ impl ProposedBatch {
             return Err(ProposedBatchError::TooManyOutputNotes(output_notes.len()));
         }
 
-        // Build the output notes SMT.
-        // --------------------------------------------------------------------------------------------
-
-        // SAFETY: We can `expect` here because:
-        // - the input output note tracker already returns an error for duplicate output notes,
-        // - we have checked that the number of output notes is <= 2^BATCH_NOTE_TREE_DEPTH.
-        let output_notes_tree = BatchNoteTree::with_contiguous_leaves(
-            output_notes.iter().map(|note| (note.id(), note.metadata())),
-        )
-        .expect("there should be no duplicate notes and there should be <= 2^BATCH_NOTE_TREE_DEPTH notes");
-
         // Compute batch ID.
         // --------------------------------------------------------------------------------------------
 
@@ -287,7 +274,6 @@ impl ProposedBatch {
             batch_expiration_block_num,
             input_notes,
             output_notes,
-            output_notes_tree,
         })
     }
 
@@ -335,11 +321,6 @@ impl ProposedBatch {
         &self.output_notes
     }
 
-    /// Returns the [`BatchNoteTree`] representing the output notes of the batch.
-    pub fn output_notes_tree(&self) -> &BatchNoteTree {
-        &self.output_notes_tree
-    }
-
     /// Consumes the proposed batch and returns its underlying parts.
     #[allow(clippy::type_complexity)]
     pub fn into_parts(
@@ -352,7 +333,6 @@ impl ProposedBatch {
         BatchId,
         BTreeMap<AccountId, BatchAccountUpdate>,
         InputNotes<InputNoteCommitment>,
-        BatchNoteTree,
         Vec<OutputNote>,
         BlockNumber,
     ) {
@@ -364,7 +344,6 @@ impl ProposedBatch {
             self.id,
             self.account_updates,
             self.input_notes,
-            self.output_notes_tree,
             self.output_notes,
             self.batch_expiration_block_num,
         )
@@ -482,6 +461,5 @@ mod tests {
         assert_eq!(batch.batch_expiration_block_num, batch2.batch_expiration_block_num);
         assert_eq!(batch.input_notes, batch2.input_notes);
         assert_eq!(batch.output_notes, batch2.output_notes);
-        assert_eq!(batch.output_notes_tree, batch2.output_notes_tree);
     }
 }

@@ -33,7 +33,6 @@ impl LocalBatchProver {
             id,
             updated_accounts,
             input_notes,
-            output_notes_smt,
             output_notes,
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
@@ -52,7 +51,6 @@ impl LocalBatchProver {
             block_header.block_num(),
             updated_accounts,
             input_notes,
-            output_notes_smt,
             output_notes,
             batch_expiration_block_num,
         ))

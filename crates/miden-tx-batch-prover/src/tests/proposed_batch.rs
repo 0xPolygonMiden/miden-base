@@ -92,7 +92,6 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
 
     assert_eq!(batch.input_notes().num_notes(), 0);
     assert_eq!(batch.output_notes().len(), 0);
-    assert_eq!(batch.output_notes_tree().num_leaves(), 0);
 
     Ok(())
 }
@@ -379,7 +378,6 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
 
     assert_eq!(batch.input_notes().num_notes(), 1);
     assert_eq!(batch.output_notes().len(), 1);
-    assert_eq!(batch.output_notes_tree().num_leaves(), 1);
 
     Ok(())
 }
@@ -489,8 +487,6 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
 
     assert_eq!(batch.output_notes().len(), 3);
     assert_eq!(batch.output_notes(), expected_output_notes);
-
-    assert_eq!(batch.output_notes_tree().num_leaves(), 3);
 
     // Input notes are sorted by the order in which they appeared in the batch.
     assert_eq!(batch.input_notes().num_notes(), 2);
