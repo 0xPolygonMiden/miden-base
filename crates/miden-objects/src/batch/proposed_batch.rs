@@ -108,6 +108,8 @@ impl ProposedBatch {
     ///   potentially result in the same [`BatchId`] for two empty batches which would mean batch
     ///   IDs are no longer unique.
     /// - There are duplicate transactions.
+    /// - If the minimum of all transaction's expiration block number is less than or equal to the
+    ///   batch's reference block.
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         block_header: BlockHeader,
@@ -199,6 +201,16 @@ impl ProposedBatch {
 
         if account_updates.len() > MAX_ACCOUNTS_PER_BATCH {
             return Err(ProposedBatchError::TooManyAccountUpdates(account_updates.len()));
+        }
+
+        // Check the expiration num of the batch is greater than the reference block.
+        // --------------------------------------------------------------------------------------------
+
+        if batch_expiration_block_num <= block_header.block_num() {
+            return Err(ProposedBatchError::ExpiredBatch {
+                batch_expiration_num: batch_expiration_block_num,
+                reference_block_num: block_header.block_num(),
+            });
         }
 
         // Check for duplicates in input notes.
