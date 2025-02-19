@@ -390,6 +390,7 @@ impl Deserializable for ProposedBatch {
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Context;
     use miden_crypto::merkle::{Mmr, PartialMmr};
     use miden_verifier::ExecutionProof;
     use winter_air::proof::Proof;
@@ -403,7 +404,7 @@ mod tests {
     };
 
     #[test]
-    fn proposed_batch_serialization() {
+    fn proposed_batch_serialization() -> anyhow::Result<()> {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
@@ -416,7 +417,7 @@ mod tests {
         let chain_root = chain_mmr.peaks().hash_peaks();
         let note_root: Word = rand_array();
         let kernel_root: Word = rand_array();
-        let header =
+        let reference_block_header =
             BlockHeader::mock(3, Some(chain_root), Some(note_root.into()), &[], kernel_root.into());
 
         let account_id = AccountId::dummy(
@@ -428,9 +429,9 @@ mod tests {
         let initial_account_hash =
             [2; 32].try_into().expect("failed to create initial account hash");
         let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
-        let block_num = BlockNumber::from(1);
-        let block_ref = header.hash();
-        let expiration_block_num = BlockNumber::from(2);
+        let block_num = reference_block_header.block_num();
+        let block_ref = reference_block_header.hash();
+        let expiration_block_num = reference_block_header.block_num() + 1;
         let proof = ExecutionProof::new(Proof::new_dummy(), Default::default());
 
         let tx = ProvenTransactionBuilder::new(
@@ -443,14 +444,20 @@ mod tests {
             proof,
         )
         .build()
-        .expect("failed to build proven transaction");
+        .context("failed to build proven transaction")?;
 
-        let batch =
-            ProposedBatch::new(vec![Arc::new(tx)], header, chain_mmr, BTreeMap::new()).unwrap();
+        let batch = ProposedBatch::new(
+            vec![Arc::new(tx)],
+            reference_block_header,
+            chain_mmr,
+            BTreeMap::new(),
+        )
+        .context("failed to propose batch")?;
 
         let encoded_batch = batch.to_bytes();
 
-        let batch2 = ProposedBatch::read_from_bytes(&encoded_batch).unwrap();
+        let batch2 = ProposedBatch::read_from_bytes(&encoded_batch)
+            .context("failed to deserialize proposed batch")?;
 
         assert_eq!(batch.transactions(), batch2.transactions());
         assert_eq!(batch.block_header, batch2.block_header);
@@ -461,5 +468,7 @@ mod tests {
         assert_eq!(batch.batch_expiration_block_num, batch2.batch_expiration_block_num);
         assert_eq!(batch.input_notes, batch2.input_notes);
         assert_eq!(batch.output_notes, batch2.output_notes);
+
+        Ok(())
     }
 }
