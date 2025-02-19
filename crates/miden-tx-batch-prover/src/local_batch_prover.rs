@@ -1,7 +1,7 @@
 use miden_objects::batch::{ProposedBatch, ProvenBatch};
 use miden_tx::TransactionVerifier;
 
-use crate::errors::BatchProveError;
+use crate::errors::ProvenBatchError;
 
 // LOCAL BATCH PROVER
 // ================================================================================================
@@ -24,7 +24,7 @@ impl LocalBatchProver {
     ///
     /// Returns an error if:
     /// - a proof of any transaction in the batch fails to verify.
-    pub fn prove(&self, proposed_batch: ProposedBatch) -> Result<ProvenBatch, BatchProveError> {
+    pub fn prove(&self, proposed_batch: ProposedBatch) -> Result<ProvenBatch, ProvenBatchError> {
         let (
             transactions,
             block_header,
@@ -42,7 +42,7 @@ impl LocalBatchProver {
 
         for tx in transactions {
             verifier.verify(&tx).map_err(|source| {
-                BatchProveError::TransactionVerificationFailed { transaction_id: tx.id(), source }
+                ProvenBatchError::TransactionVerificationFailed { transaction_id: tx.id(), source }
             })?;
         }
 
