@@ -126,7 +126,7 @@ pub fn generate_executed_tx_with_authenticated_notes(
 ) -> ExecutedTransaction {
     let tx_context = chain
         .build_tx_context(account, notes, &[])
-        .tx_script(authenticate_mock_account_tx_script())
+        .tx_script(authenticate_mock_account_tx_script(u16::MAX))
         .build();
     tx_context.execute().unwrap()
 }
@@ -140,6 +140,24 @@ pub fn generate_tx_with_authenticated_notes(
     ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
 }
 
+/// Generates a transaction that expires at the given block number.
+pub fn generate_tx_with_expiration(
+    chain: &mut MockChain,
+    account_id: AccountId,
+    expiration_block: BlockNumber,
+) -> ProvenTransaction {
+    let expiration_delta = expiration_block
+        .checked_sub(chain.latest_block_header().block_num().as_u32())
+        .unwrap();
+
+    let tx_context = chain
+        .build_tx_context(account_id, &[], &[])
+        .tx_script(authenticate_mock_account_tx_script(expiration_delta.as_u32() as u16))
+        .build();
+    let executed_tx = tx_context.execute().unwrap();
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
+}
+
 pub fn generate_tx_with_unauthenticated_notes(
     chain: &mut MockChain,
     account_id: AccountId,
@@ -147,27 +165,33 @@ pub fn generate_tx_with_unauthenticated_notes(
 ) -> ProvenTransaction {
     let tx_context = chain
         .build_tx_context(account_id, &[], notes)
-        .tx_script(authenticate_mock_account_tx_script())
+        .tx_script(authenticate_mock_account_tx_script(u16::MAX))
         .build();
     let executed_tx = tx_context.execute().unwrap();
     ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
 }
 
-fn authenticate_mock_account_tx_script() -> TransactionScript {
-    let code = "
-use.test::account
+fn authenticate_mock_account_tx_script(expiration_delta: u16) -> TransactionScript {
+    let code = format!(
+        "
+        use.test::account
+        use.miden::tx
 
-begin
-    padw padw padw
-    push.0.0.0.1
-    # => [1, pad(15)]
+        begin
+            padw padw padw
+            push.0.0.0.1
+            # => [1, pad(15)]
 
-    call.account::incr_nonce
-    # => [pad(16)]
+            call.account::incr_nonce
+            # => [pad(16)]
 
-    dropw dropw dropw dropw
-end
-";
+            dropw dropw dropw dropw
+
+            push.{expiration_delta}
+            exec.tx::update_expiration_block_delta
+        end
+        "
+    );
 
     TransactionScript::compile(code, [], TransactionKernel::testing_assembler_with_mock_account())
         .unwrap()
@@ -241,7 +265,7 @@ impl ProvenTransactionExt for ProvenTransaction {
             executed_tx.final_account().hash(),
             block_reference.block_num(),
             block_reference.hash(),
-            BlockNumber::from(u32::MAX),
+            executed_tx.expiration_block_num(),
             ExecutionProof::new(Proof::new_dummy(), Default::default()),
         )
         .add_input_notes(executed_tx.input_notes())

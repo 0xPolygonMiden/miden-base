@@ -14,7 +14,7 @@ use crate::tests::utils::{
     generate_account, generate_batch, generate_executed_tx_with_authenticated_notes,
     generate_fungible_asset, generate_output_note, generate_tracked_note,
     generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
-    generate_tx_with_unauthenticated_notes, generate_untracked_note,
+    generate_tx_with_expiration, generate_tx_with_unauthenticated_notes, generate_untracked_note,
     generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
 };
 
@@ -92,6 +92,43 @@ fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
     let error = ProposedBlock::new(block_inputs, batches).unwrap_err();
 
     assert_matches!(error, ProposedBlockError::DuplicateBatch { batch_id } if batch_id == batch0.id());
+
+    Ok(())
+}
+
+/// Tests that an expired batch produces an error.
+#[test]
+fn proposed_block_fails_on_expired_batches() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let block1_num = chain.block_header(1).block_num();
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    let tx0 = generate_tx_with_expiration(&mut chain, account0.id(), block1_num + 5);
+    let tx1 = generate_tx_with_expiration(&mut chain, account1.id(), block1_num + 1);
+
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+    let batch1 = generate_batch(&mut chain, vec![tx1]);
+
+    let _block2 = chain.seal_block(None);
+
+    let batches = vec![batch0.clone(), batch1.clone()];
+
+    // This block's number is 3 (the previous block is block 2), which means batch 1, which expires
+    // at block 2 (due to tx1), will be flagged as expired.
+    let block_inputs = chain.get_block_inputs(&batches);
+    let error = ProposedBlock::new(block_inputs.clone(), batches.clone()).unwrap_err();
+
+    assert_matches!(
+        error,
+        ProposedBlockError::ExpiredBatch {
+            batch_id,
+            batch_expiration_block_num,
+            current_block_num
+        } if batch_id == batch1.id() &&
+          batch_expiration_block_num.as_u32() == 2 &&
+          current_block_num.as_u32() == 3
+    );
 
     Ok(())
 }
