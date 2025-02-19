@@ -515,9 +515,11 @@ fn batch_expiration() -> anyhow::Result<()> {
         .block_reference(block1.hash())
         .expiration_block_num(BlockNumber::from(35))
         .build()?;
+    // This transaction has the smallest valid expiration block num that allows it to still be
+    // included in the batch.
     let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
         .block_reference(block1.hash())
-        .expiration_block_num(BlockNumber::from(30))
+        .expiration_block_num(block1.block_num() + 1)
         .build()?;
 
     let batch = ProposedBatch::new(
@@ -527,7 +529,7 @@ fn batch_expiration() -> anyhow::Result<()> {
         BTreeMap::default(),
     )?;
 
-    assert_eq!(batch.batch_expiration_block_num(), BlockNumber::from(30));
+    assert_eq!(batch.batch_expiration_block_num(), block1.block_num() + 1);
 
     Ok(())
 }
