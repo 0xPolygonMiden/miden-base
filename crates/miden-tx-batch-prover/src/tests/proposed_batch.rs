@@ -590,3 +590,39 @@ fn circular_note_dependency() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+/// Tests that expired transactions cannot be included in a batch.
+#[test]
+fn expired_transaction() -> anyhow::Result<()> {
+    let TestSetup { chain, account1, account2 } = setup_chain();
+    let block1 = chain.block_header(1);
+
+    // This transaction expired at the batch's reference block.
+    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+        .block_reference(block1.hash())
+        .expiration_block_num(block1.block_num())
+        .build()?;
+    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+        .block_reference(block1.hash())
+        .expiration_block_num(block1.block_num() + 3)
+        .build()?;
+
+    let error = ProposedBatch::new(
+        [tx1, tx2].into_iter().map(Arc::new).collect(),
+        block1,
+        chain.latest_chain_mmr(),
+        BTreeMap::default(),
+    )
+    .unwrap_err();
+
+    assert_matches!(
+        error,
+        ProposedBatchError::ExpiredBatch {
+            batch_expiration_num,
+            reference_block_num
+        } if batch_expiration_num == block1.block_num() &&
+          reference_block_num == block1.block_num()
+    );
+
+    Ok(())
+}
