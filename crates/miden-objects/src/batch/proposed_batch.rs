@@ -148,19 +148,14 @@ impl ProposedBatch {
             });
         }
 
-        // Verify all block references from the transactions are in the chain.
+        // Verify all block references from the transactions are in the chain MMR, except for the
+        // batch's reference block.
         // --------------------------------------------------------------------------------------------
 
-        // Aggregate block references into a set since the chain MMR does not index by hash.
-        let mut block_references =
-            BTreeSet::from_iter(chain_mmr.block_headers().map(BlockHeader::hash));
-        // Insert the block referenced by the batch to consider it authenticated. We can assume this
-        // because the block kernel will verify the block hash as it is a public input to the batch
-        // kernel.
-        block_references.insert(block_header.hash());
-
         for tx in transactions.iter() {
-            if !block_references.contains(&tx.block_ref()) {
+            if block_header.block_num() != tx.block_num()
+                && !chain_mmr.contains_block(tx.block_num())
+            {
                 return Err(ProposedBatchError::MissingTransactionBlockReference {
                     block_reference: tx.block_ref(),
                     transaction_id: tx.id(),
