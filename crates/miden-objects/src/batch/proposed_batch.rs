@@ -43,12 +43,13 @@ pub struct ProposedBatch {
     batch_expiration_block_num: BlockNumber,
     /// The input note commitment of the transaction batch. This consists of all authenticated
     /// notes that transactions in the batch consume as well as unauthenticated notes whose
-    /// authentication is delayed to the block kernel.
+    /// authentication is delayed to the block kernel. These are sorted by
+    /// [`InputNoteCommitment::nullifier`].
     input_notes: InputNotes<InputNoteCommitment>,
     /// The SMT over the output notes of this batch.
     output_notes_tree: BatchNoteTree,
     /// The output notes of this batch. This consists of all notes created by transactions in the
-    /// batch that are not consumed within the same batch.
+    /// batch that are not consumed within the same batch. These are sorted by [`OutputNote::id`].
     output_notes: Vec<OutputNote>,
 }
 
@@ -374,8 +375,8 @@ impl Serializable for ProposedBatch {
 impl Deserializable for ProposedBatch {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let transactions = Vec::<ProvenTransaction>::read_from(source)?
-            .iter()
-            .map(|tx| Arc::new(tx.clone()))
+            .into_iter()
+            .map(Arc::new)
             .collect::<Vec<Arc<ProvenTransaction>>>();
 
         let block_header = BlockHeader::read_from(source)?;

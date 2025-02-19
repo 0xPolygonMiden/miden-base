@@ -8,9 +8,8 @@ use miden_objects::{
 
 use crate::tests::utils::{
     generate_batch, generate_executed_tx_with_authenticated_notes, generate_fungible_asset,
-    generate_output_note, generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
-    generate_tx_with_unauthenticated_notes, generate_untracked_note,
-    generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
+    generate_tracked_note_with_asset, generate_tx_with_unauthenticated_notes,
+    generate_untracked_note, setup_chain, ProvenTransactionExt, TestSetup,
 };
 
 /// Tests that a proposed block from two batches with one transaction each can be successfully
@@ -56,8 +55,11 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
         .nullifiers()
         .contains_key(&proven_tx1.input_notes().get_note(0).nullifier()));
 
-    // No notes were created.
-    assert!(proposed_block.block_note_tree().is_empty());
+    // There are two batches in the block...
+    assert_eq!(proposed_block.output_note_batches().len(), 2);
+    // ... but none of them create notes.
+    assert!(proposed_block.output_note_batches()[0].is_empty());
+    assert!(proposed_block.output_note_batches()[1].is_empty());
 
     Ok(())
 }
@@ -184,58 +186,11 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
     assert_eq!(proposed_block.nullifiers().len(), 2);
     assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
     assert!(proposed_block.nullifiers().contains_key(&note1.nullifier()));
-
-    Ok(())
-}
-
-/// Tests that an unauthenticated note is erased when it is created in the same block.
-#[test]
-fn proposed_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(3);
-    let account0 = accounts.remove(&0).unwrap();
-    let account1 = accounts.remove(&1).unwrap();
-
-    let output_note = generate_output_note(account0.id(), [10; 32]);
-
-    let note0 = generate_untracked_note_with_output_note(account0.id(), output_note.clone());
-    // Add note0 to the chain so we can consume it.
-    chain.add_pending_note(note0.clone());
-    chain.seal_block(None);
-
-    let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);
-    let tx1 =
-        generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[output_note.clone()]);
-
-    assert_eq!(tx0.input_notes().num_notes(), 1);
-    assert_eq!(tx0.output_notes().num_notes(), 1);
-    assert_eq!(tx1.output_notes().num_notes(), 0);
-    // The unauthenticated note is an input note of the tx.
-    assert_eq!(tx1.input_notes().num_notes(), 1);
-
-    assert_eq!(
-        tx0.output_notes().get_note(0).id(),
-        tx1.input_notes().get_note(0).header().unwrap().id()
-    );
-
-    // These batches will use block1 as the reference block.
-    let batch0 = generate_batch(&mut chain, vec![tx0.clone()]);
-    let batch1 = generate_batch(&mut chain, vec![tx1.clone()]);
-
-    // Sanity check: The batches and contained transactions should have the same input notes.
-    assert_eq!(batch0.input_notes(), tx0.input_notes());
-    assert_eq!(batch1.input_notes(), tx1.input_notes());
-
-    let batches = [batch0, batch1];
-    // This block will use block2 as the reference block.
-    let block_inputs = chain.get_block_inputs(&batches);
-
-    let proposed_block = ProposedBlock::new(block_inputs.clone(), batches.to_vec())
-        .context("failed to build proposed block")?;
-
-    // The output note should have been erased, so we expect only note0's nullifier to be created.
-    assert_eq!(proposed_block.nullifiers().len(), 1);
-    assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
-    assert!(proposed_block.block_note_tree().is_empty());
+    // There are two batches in the block...
+    assert_eq!(proposed_block.output_note_batches().len(), 2);
+    // ... but none of them create notes.
+    assert!(proposed_block.output_note_batches()[0].is_empty());
+    assert!(proposed_block.output_note_batches()[1].is_empty());
 
     Ok(())
 }

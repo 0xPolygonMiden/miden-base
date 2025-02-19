@@ -12,8 +12,7 @@ use super::{
     asset::{FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     note::NoteId,
-    Digest, Word, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
-    MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
+    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 use crate::{
     account::{
@@ -645,23 +644,18 @@ pub enum ProposedBlockError {
     },
 }
 
-// BLOCK VALIDATION ERROR
+// NULLIFIER TREE ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum BlockError {
-    #[error("duplicate note with id {0} in the block")]
-    DuplicateNoteFound(NoteId),
-    #[error("too many accounts updated in the block (max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {0})")]
-    TooManyAccountUpdates(usize),
-    #[error("too many notes in the batch (max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {0})")]
-    TooManyNotesInBatch(usize),
-    #[error("too many notes in the block (max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {0})")]
-    TooManyNotesInBlock(usize),
-    #[error("too many nullifiers in the block (max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {0})")]
-    TooManyNullifiersInBlock(usize),
-    #[error(
-        "too many transaction batches in the block (max: {MAX_BATCHES_PER_BLOCK}, actual: {0})"
-    )]
-    TooManyTransactionBatches(usize),
+pub enum NullifierTreeError {
+    #[error("attempt to mark nullifier {0} as spent but it is already spent")]
+    NullifierAlreadySpent(Nullifier),
+    #[error("nullifier {nullifier} is not tracked by the partial nullifier tree")]
+    UntrackedNullifier {
+        nullifier: Nullifier,
+        source: MerkleError,
+    },
+    #[error("new tree root after nullifier witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
 }
