@@ -21,7 +21,7 @@
 - [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
 - [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168).
 - [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
-- Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#????).
+- Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#1169).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

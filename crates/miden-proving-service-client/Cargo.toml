@@ -18,7 +18,7 @@ default = ["std"]
 std = ["miden-objects/std", "miden-tx/std"]
 tx-prover = ["miden-tx/async"]
 batch-prover = ["miden-tx/async", "dep:tokio", "dep:miden-tx-batch-prover"]
-block-prover = ["miden-tx/async", "dep:tokio", "dep:miden-block-prover"]
+block-prover = ["miden-tx/async", "dep:tokio"]
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 tonic-web-wasm-client = { version = "0.6", default-features = false }
@@ -31,7 +31,6 @@ tonic-web = { version = "0.12", optional = true }
 
 [dependencies]
 async-trait = "0.1"
-miden-block-prover = { workspace = true, default-features = false, optional = true }
 miden-objects = { workspace = true, default-features = false }
 miden-tx = { workspace = true, default-features = false }
 miden-tx-batch-prover = { workspace = true, default-features = false, optional = true}
