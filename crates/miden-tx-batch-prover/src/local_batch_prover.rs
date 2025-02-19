@@ -46,7 +46,7 @@ impl LocalBatchProver {
             })?;
         }
 
-        Ok(ProvenBatch::new(
+        Ok(ProvenBatch::new_unchecked(
             id,
             block_header.hash(),
             block_header.block_num(),

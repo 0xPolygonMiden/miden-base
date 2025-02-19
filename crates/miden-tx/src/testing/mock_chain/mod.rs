@@ -466,7 +466,7 @@ impl MockChain {
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
 
-        ProvenBatch::new(
+        ProvenBatch::new_unchecked(
             id,
             block_header.hash(),
             block_header.block_num(),

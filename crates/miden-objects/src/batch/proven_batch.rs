@@ -29,7 +29,7 @@ impl ProvenBatch {
 
     /// Creates a new [`ProvenBatch`] from the provided parts.
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub fn new_unchecked(
         id: BatchId,
         reference_block_commitment: Digest,
         reference_block_num: BlockNumber,
@@ -143,7 +143,7 @@ impl Deserializable for ProvenBatch {
         let output_notes = Vec::<OutputNote>::read_from(source)?;
         let batch_expiration_block_num = BlockNumber::read_from(source)?;
 
-        Ok(Self::new(
+        Ok(Self::new_unchecked(
             id,
             reference_block_commitment,
             reference_block_num,
