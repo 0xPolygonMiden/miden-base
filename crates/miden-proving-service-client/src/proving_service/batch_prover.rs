@@ -5,7 +5,6 @@ use alloc::{
 };
 
 use miden_objects::batch::{ProposedBatch, ProvenBatch};
-use miden_tx_batch_prover::errors::BatchProveError;
 use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
