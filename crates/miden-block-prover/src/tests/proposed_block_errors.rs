@@ -357,12 +357,10 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
     // --------------------------------------------------------------------------------------------
 
     let mut invalid_block_inputs = original_block_inputs.clone();
-    // For completeness, we should also untrack it, but this currently panics.
-    // Uncomment when https://github.com/0xPolygonMiden/crypto/issues/379 is fixed.
-    // invalid_block_inputs
-    //     .chain_mmr_mut()
-    //     .partial_mmr_mut()
-    //     .untrack(block2.header().block_num().as_usize());
+    invalid_block_inputs
+        .chain_mmr_mut()
+        .partial_mmr_mut()
+        .untrack(block2.header().block_num().as_usize());
     invalid_block_inputs
         .chain_mmr_mut()
         .block_headers_mut()
