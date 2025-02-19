@@ -251,7 +251,14 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
 
     let batches = [batch0.clone(), batch1];
     // This block will use block2 as the reference block.
-    let block_inputs = chain.get_block_inputs(&batches);
+    let mut block_inputs = chain.get_block_inputs(&batches);
+
+    // Remove the nullifier witness for output_note0 which will be erased, to check that the
+    // proposed block does not _require_ nullifier witnesses for erased notes.
+    block_inputs
+        .nullifier_witnesses_mut()
+        .remove(&output_note0.nullifier())
+        .unwrap();
 
     let proposed_block = ProposedBlock::new(block_inputs.clone(), batches.to_vec())
         .context("failed to build proposed block")?;
