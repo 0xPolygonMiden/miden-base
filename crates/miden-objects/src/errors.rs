@@ -471,9 +471,10 @@ pub enum ProposedBatchError {
     )]
     TooManyAccountUpdates(usize),
 
-    #[error("transaction batch's expiration number is {batch_expiration_num} which is not greater than the number of its reference block {reference_block_num}")]
-    ExpiredBatch {
-        batch_expiration_num: BlockNumber,
+    #[error("transaction {transaction_id} expires at block number {transaction_expiration_num} which is not greater than the number of the batch's reference block {reference_block_num}")]
+    ExpiredTransaction {
+        transaction_id: TransactionId,
+        transaction_expiration_num: BlockNumber,
         reference_block_num: BlockNumber,
     },
 

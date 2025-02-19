@@ -198,14 +198,23 @@ impl ProposedBatch {
             return Err(ProposedBatchError::TooManyAccountUpdates(account_updates.len()));
         }
 
-        // Check the expiration num of the batch is greater than the reference block.
+        // Check that all transaction's expiration block numbers are greater than the reference
+        // block.
         // --------------------------------------------------------------------------------------------
 
-        if batch_expiration_block_num <= block_header.block_num() {
-            return Err(ProposedBatchError::ExpiredBatch {
-                batch_expiration_num: batch_expiration_block_num,
-                reference_block_num: block_header.block_num(),
-            });
+        let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
+        for tx in transactions.iter() {
+            if tx.expiration_block_num() <= block_header.block_num() {
+                return Err(ProposedBatchError::ExpiredTransaction {
+                    transaction_id: tx.id(),
+                    transaction_expiration_num: tx.expiration_block_num(),
+                    reference_block_num: block_header.block_num(),
+                });
+            }
+
+            // The expiration block of the batch is the minimum of all transaction's expiration
+            // block.
+            batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
         }
 
         // Check for duplicates in input notes.

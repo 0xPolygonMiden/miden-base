@@ -610,7 +610,7 @@ fn expired_transaction() -> anyhow::Result<()> {
         .build()?;
 
     let error = ProposedBatch::new(
-        [tx1, tx2].into_iter().map(Arc::new).collect(),
+        [tx1.clone(), tx2].into_iter().map(Arc::new).collect(),
         block1,
         chain.latest_chain_mmr(),
         BTreeMap::default(),
@@ -619,11 +619,13 @@ fn expired_transaction() -> anyhow::Result<()> {
 
     assert_matches!(
         error,
-        ProposedBatchError::ExpiredBatch {
-            batch_expiration_num,
+        ProposedBatchError::ExpiredTransaction {
+            transaction_id,
+            transaction_expiration_num,
             reference_block_num
-        } if batch_expiration_num == block1.block_num() &&
-          reference_block_num == block1.block_num()
+        }  if transaction_id == tx1.id() &&
+            transaction_expiration_num == block1.block_num() &&
+            reference_block_num == block1.block_num()
     );
 
     Ok(())
