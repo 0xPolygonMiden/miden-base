@@ -108,8 +108,8 @@ impl ProposedBatch {
     ///   potentially result in the same [`BatchId`] for two empty batches which would mean batch
     ///   IDs are no longer unique.
     /// - There are duplicate transactions.
-    /// - If the minimum of all transaction's expiration block number is less than or equal to the
-    ///   batch's reference block.
+    /// - If any transaction's expiration block number is less than or equal to the batch's
+    ///   reference block.
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         block_header: BlockHeader,
