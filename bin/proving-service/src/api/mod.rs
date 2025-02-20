@@ -1,9 +1,9 @@
 use miden_block_prover::LocalBlockProver;
 use miden_objects::{
     batch::ProposedBatch, block::ProposedBlock, transaction::TransactionWitness,
-    MIN_PROOF_SECURITY_LEVEL,
+    utils::Serializable, MIN_PROOF_SECURITY_LEVEL,
 };
-use miden_tx::{utils::Serializable, LocalTransactionProver, TransactionProver};
+use miden_tx::{LocalTransactionProver, TransactionProver};
 use miden_tx_batch_prover::LocalBatchProver;
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::{Request, Response, Status};
