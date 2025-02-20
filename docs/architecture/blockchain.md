@@ -1,10 +1,10 @@
 # Blockchain
 
-`Block`s in Miden are containers that aggregate account state changes and their proofs, together with created and consumed notes. For every `Block`, there is a `Block` proof that attests to the correctness of all state transitions it contains.
+The Miden blockchain protocol describes the process how [state](state.md) progresses in distinct time periods. `Block`s in Miden are containers that aggregate account state changes and their proofs, together with created and consumed notes for one period. For every `Block`, there is a `Block` proof that attests to the correctness of all state transitions it contains.
 
 From `Block`s one can derive the progress of the chain, by observing the delta of the global [state](state.md) between two time periods.
 
-Miden's `Block` structure aims for the following:
+Miden's blockchain protocol aims for the following:
 
 - **Real time proving**: All included transactions have already been proven and verified when they reach the block.
 - **Fast genesis syncing**: New nodes efficiently sync to the network through a multi-step process:
@@ -43,19 +43,19 @@ TX A: Creates ephemeral note N.
 TX B: Consumes ephemeral note N.
 ```
 
-From the perspective of the `Block` in which the batch would be aggregated in, ephemeral note N would have never existed. So the batch producer verifies the correctness of both transactions `A` and `B`, but the Notes DB will never see an entry of note N. That means, the executor of transaction `B` doesn't need to wait until note X exists on the blockchain for it to consume it.
+From the perspective of the `Block` in which the batch would be aggregated in, ephemeral note `N` would have never existed. So the batch producer verifies the correctness of both transactions `A` and `B`, but the Notes DB will never see an entry of note `N`. That means, the executor of transaction `B` doesn't need to wait until note X exists on the blockchain for it to consume it.
 
 But the batch producer needs to check, the uniqueness of ephemeral notes across all transactions in the batch. That is because ephemeral notes will never reach the block and therefore there will never be a nullifier check for those notes.
 
-Third, transactions can have an expiration. If transaction `A` specifies it expires at block `X`, and transaction `B` specifies it expires at block `X-2`, but both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations.
+Third, transactions can have an expiration. And so can aggregated transactions, called batches. If transaction `A` specifies it expires at block `X`, and transaction `B` specifies it expires at block `X-2`, but both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations.
 
-Forth, the set of output notes resulting from all transactions in a batch must distinct - free of duplicates. That means we don't allow two valid transactions creating exactly the same note. Identical notes have the same nullifier and would only be consumable once.
+Forth, the set of output notes resulting from all transactions in a batch must be distinct - free of duplicates. That means we don't allow two valid transactions creating exactly the same note. Identical notes have the same nullifier and would only be consumable once.
 
 ## Block production
 
 To create a `Block` multiple batches and their respective proofs are aggregated into a `Block`.
 
-`Block` production cannot happen in parallel and must be done by the Miden operator. In the future there will be several Miden operators competing for `Block` production. The scheme used for `Block` production is similar to the one used in batch production - recursive verification. Multiple batch proofs are aggregated into a single `Block` proof. However, the `Block` also contains the commitments to the current global [state](state.md), the newly created nullifiers, the new state commitments for affected private accounts and the newly created notes, and the full states for all affected public accounts and newly created notes. The `Block` proof attests to the correct state transition from the previous `Block` root to the next and therefore to the change of the global state of Miden.
+`Block` production cannot happen in parallel and must be done by the Miden operator. In the future there will be several Miden operators competing for `Block` production. The schema used for `Block` production is similar to the one used in batch production - recursive verification. Multiple batch proofs are aggregated into a single `Block` proof. However, the `Block` also contains the commitments to the current global [state](state.md), the newly created nullifiers, the new state commitments for affected private accounts and the newly created notes, and the full states for all affected public accounts and newly created notes. The `Block` proof attests to the correct state transition from the previous `Block` root to the next and therefore to the change of the global state of Miden.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/block.png" style="width:90%;" alt="Account diagram"/>
@@ -68,7 +68,7 @@ To create a `Block` multiple batches and their respective proofs are aggregated 
 
 ## Verifying blocks
 
-To verify that a `Block` corresponds to a valid state transition, the following must be done:
+To verify that a `Block` corresponds to a valid (global) state transition, the following must be done:
 
 1. Compute hashes of public accounts and notes states.
 2. Ensure that these hashes match records in the **state updates** section (see picture).
