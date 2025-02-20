@@ -16,8 +16,8 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        compute_tx_hash, AccountWitness, Block, BlockAccountUpdate, BlockHeader, BlockInputs,
-        BlockNoteIndex, BlockNoteTree, BlockNumber, NoteBatch, NullifierWitness, ProposedBlock,
+        AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -157,7 +157,7 @@ struct PendingObjects {
     updated_accounts: Vec<BlockAccountUpdate>,
 
     /// Note batches created in transactions in the block.
-    output_note_batches: Vec<NoteBatch>,
+    output_note_batches: Vec<OutputNoteBatch>,
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,
@@ -184,12 +184,8 @@ impl PendingObjects {
     pub fn build_notes_tree(&self) -> BlockNoteTree {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
-                batch.iter().enumerate().map(move |(note_index, note)| {
-                    (
-                        BlockNoteIndex::new(batch_index, note_index).unwrap(),
-                        note.id(),
-                        *note.metadata(),
-                    )
+                batch.iter().map(move |(note_index, note)| {
+                    (BlockNoteIndex::new(batch_index, *note_index), note.id(), *note.metadata())
                 })
             });
 
@@ -260,7 +256,7 @@ pub struct MockChain {
     chain: Mmr,
 
     /// History of produced blocks.
-    blocks: Vec<Block>,
+    blocks: Vec<ProvenBlock>,
 
     /// Tree containing the latest `Nullifier`'s tree.
     nullifiers: Smt,
@@ -367,7 +363,9 @@ impl MockChain {
 
         // TODO: check that notes are not duplicate
         let output_notes: Vec<OutputNote> = transaction.output_notes().iter().cloned().collect();
-        self.pending_objects.output_note_batches.push(output_notes);
+        self.pending_objects
+            .output_note_batches
+            .push(output_notes.into_iter().enumerate().collect());
         self.pending_objects
             .included_transactions
             .push((transaction.id(), transaction.account_id()));
@@ -378,7 +376,7 @@ impl MockChain {
     /// Adds a public [Note] to the pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_pending_note(&mut self, note: Note) {
-        self.pending_objects.output_note_batches.push(vec![OutputNote::Full(note)]);
+        self.pending_objects.output_note_batches.push(vec![(0, OutputNote::Full(note))]);
     }
 
     /// Adds a P2ID [Note] to the pending objects and returns it.
@@ -463,18 +461,16 @@ impl MockChain {
             id,
             account_updates,
             input_notes,
-            output_notes_tree,
             output_notes,
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
 
-        ProvenBatch::new(
+        ProvenBatch::new_unchecked(
             id,
             block_header.hash(),
             block_header.block_num(),
             account_updates,
             input_notes,
-            output_notes_tree,
             output_notes,
             batch_expiration_block_num,
         )
@@ -782,7 +778,7 @@ impl MockChain {
     /// Creates the next block or generates blocks up to the input number if specified.
     /// This will also make all the objects currently pending available for use.
     /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
-    pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
+    pub fn seal_block(&mut self, block_num: Option<u32>) -> ProvenBlock {
         let next_block_num =
             self.blocks.last().map_or(0, |b| b.header().block_num().child().as_u32());
 
@@ -792,7 +788,7 @@ impl MockChain {
             panic!("Input block number should be higher than the last block number");
         }
 
-        let mut last_block: Option<Block> = None;
+        let mut last_block: Option<ProvenBlock> = None;
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
@@ -833,8 +829,9 @@ impl MockChain {
             let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
                 block.header().timestamp() + TIMESTAMP_STEP_SECS
             });
-            let tx_hash =
-                compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
+            let tx_hash = BlockHeader::compute_tx_commitment(
+                self.pending_objects.included_transactions.clone().into_iter(),
+            );
 
             let kernel_root = TransactionKernel::kernel_root();
 
@@ -855,22 +852,20 @@ impl MockChain {
                 timestamp,
             );
 
-            let block = Block::new(
+            let block = ProvenBlock::new_unchecked(
                 header,
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
-            )
-            .unwrap();
+            );
 
             for (batch_index, note_batch) in
                 self.pending_objects.output_note_batches.iter().enumerate()
             {
-                for (note_index, note) in note_batch.iter().enumerate() {
+                for (note_index, note) in note_batch.iter() {
                     match note {
                         OutputNote::Full(note) => {
-                            let block_note_index =
-                                BlockNoteIndex::new(batch_index, note_index).unwrap();
+                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index);
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
                                 block.header().block_num(),

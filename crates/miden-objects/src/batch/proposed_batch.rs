@@ -6,7 +6,7 @@ use alloc::{
 
 use crate::{
     account::AccountId,
-    batch::{BatchAccountUpdate, BatchId, BatchNoteTree, InputOutputNoteTracker},
+    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker},
     block::{BlockHeader, BlockNumber},
     errors::ProposedBatchError,
     note::{NoteId, NoteInclusionProof},
@@ -43,12 +43,11 @@ pub struct ProposedBatch {
     batch_expiration_block_num: BlockNumber,
     /// The input note commitment of the transaction batch. This consists of all authenticated
     /// notes that transactions in the batch consume as well as unauthenticated notes whose
-    /// authentication is delayed to the block kernel.
+    /// authentication is delayed to the block kernel. These are sorted by
+    /// [`InputNoteCommitment::nullifier`].
     input_notes: InputNotes<InputNoteCommitment>,
-    /// The SMT over the output notes of this batch.
-    output_notes_tree: BatchNoteTree,
     /// The output notes of this batch. This consists of all notes created by transactions in the
-    /// batch that are not consumed within the same batch.
+    /// batch that are not consumed within the same batch. These are sorted by [`OutputNote::id`].
     output_notes: Vec<OutputNote>,
 }
 
@@ -107,6 +106,8 @@ impl ProposedBatch {
     ///   potentially result in the same [`BatchId`] for two empty batches which would mean batch
     ///   IDs are no longer unique.
     /// - There are duplicate transactions.
+    /// - If any transaction's expiration block number is less than or equal to the batch's
+    ///   reference block.
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         block_header: BlockHeader,
@@ -145,19 +146,14 @@ impl ProposedBatch {
             });
         }
 
-        // Verify all block references from the transactions are in the chain.
+        // Verify all block references from the transactions are in the chain MMR, except for the
+        // batch's reference block.
         // --------------------------------------------------------------------------------------------
 
-        // Aggregate block references into a set since the chain MMR does not index by hash.
-        let mut block_references =
-            BTreeSet::from_iter(chain_mmr.block_headers().map(BlockHeader::hash));
-        // Insert the block referenced by the batch to consider it authenticated. We can assume this
-        // because the block kernel will verify the block hash as it is a public input to the batch
-        // kernel.
-        block_references.insert(block_header.hash());
-
         for tx in transactions.iter() {
-            if !block_references.contains(&tx.block_ref()) {
+            if block_header.block_num() != tx.block_num()
+                && !chain_mmr.contains_block(tx.block_num())
+            {
                 return Err(ProposedBatchError::MissingTransactionBlockReference {
                     block_reference: tx.block_ref(),
                     transaction_id: tx.id(),
@@ -198,6 +194,25 @@ impl ProposedBatch {
 
         if account_updates.len() > MAX_ACCOUNTS_PER_BATCH {
             return Err(ProposedBatchError::TooManyAccountUpdates(account_updates.len()));
+        }
+
+        // Check that all transaction's expiration block numbers are greater than the reference
+        // block.
+        // --------------------------------------------------------------------------------------------
+
+        let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
+        for tx in transactions.iter() {
+            if tx.expiration_block_num() <= block_header.block_num() {
+                return Err(ProposedBatchError::ExpiredTransaction {
+                    transaction_id: tx.id(),
+                    transaction_expiration_num: tx.expiration_block_num(),
+                    reference_block_num: block_header.block_num(),
+                });
+            }
+
+            // The expiration block of the batch is the minimum of all transaction's expiration
+            // block.
+            batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
         }
 
         // Check for duplicates in input notes.
@@ -244,17 +259,6 @@ impl ProposedBatch {
             return Err(ProposedBatchError::TooManyOutputNotes(output_notes.len()));
         }
 
-        // Build the output notes SMT.
-        // --------------------------------------------------------------------------------------------
-
-        // SAFETY: We can `expect` here because:
-        // - the input output note tracker already returns an error for duplicate output notes,
-        // - we have checked that the number of output notes is <= 2^BATCH_NOTE_TREE_DEPTH.
-        let output_notes_tree = BatchNoteTree::with_contiguous_leaves(
-            output_notes.iter().map(|note| (note.id(), note.metadata())),
-        )
-        .expect("there should be no duplicate notes and there should be <= 2^BATCH_NOTE_TREE_DEPTH notes");
-
         // Compute batch ID.
         // --------------------------------------------------------------------------------------------
 
@@ -270,7 +274,6 @@ impl ProposedBatch {
             batch_expiration_block_num,
             input_notes,
             output_notes,
-            output_notes_tree,
         })
     }
 
@@ -318,11 +321,6 @@ impl ProposedBatch {
         &self.output_notes
     }
 
-    /// Returns the [`BatchNoteTree`] representing the output notes of the batch.
-    pub fn output_notes_tree(&self) -> &BatchNoteTree {
-        &self.output_notes_tree
-    }
-
     /// Consumes the proposed batch and returns its underlying parts.
     #[allow(clippy::type_complexity)]
     pub fn into_parts(
@@ -335,7 +333,6 @@ impl ProposedBatch {
         BatchId,
         BTreeMap<AccountId, BatchAccountUpdate>,
         InputNotes<InputNoteCommitment>,
-        BatchNoteTree,
         Vec<OutputNote>,
         BlockNumber,
     ) {
@@ -347,7 +344,6 @@ impl ProposedBatch {
             self.id,
             self.account_updates,
             self.input_notes,
-            self.output_notes_tree,
             self.output_notes,
             self.batch_expiration_block_num,
         )
@@ -374,8 +370,8 @@ impl Serializable for ProposedBatch {
 impl Deserializable for ProposedBatch {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let transactions = Vec::<ProvenTransaction>::read_from(source)?
-            .iter()
-            .map(|tx| Arc::new(tx.clone()))
+            .into_iter()
+            .map(Arc::new)
             .collect::<Vec<Arc<ProvenTransaction>>>();
 
         let block_header = BlockHeader::read_from(source)?;
@@ -394,6 +390,7 @@ impl Deserializable for ProposedBatch {
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Context;
     use miden_crypto::merkle::{Mmr, PartialMmr};
     use miden_verifier::ExecutionProof;
     use winter_air::proof::Proof;
@@ -407,7 +404,7 @@ mod tests {
     };
 
     #[test]
-    fn proposed_batch_serialization() {
+    fn proposed_batch_serialization() -> anyhow::Result<()> {
         // create chain MMR with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
@@ -420,7 +417,7 @@ mod tests {
         let chain_root = chain_mmr.peaks().hash_peaks();
         let note_root: Word = rand_array();
         let kernel_root: Word = rand_array();
-        let header =
+        let reference_block_header =
             BlockHeader::mock(3, Some(chain_root), Some(note_root.into()), &[], kernel_root.into());
 
         let account_id = AccountId::dummy(
@@ -432,9 +429,9 @@ mod tests {
         let initial_account_hash =
             [2; 32].try_into().expect("failed to create initial account hash");
         let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
-        let block_num = BlockNumber::from(1);
-        let block_ref = header.hash();
-        let expiration_block_num = BlockNumber::from(2);
+        let block_num = reference_block_header.block_num();
+        let block_ref = reference_block_header.hash();
+        let expiration_block_num = reference_block_header.block_num() + 1;
         let proof = ExecutionProof::new(Proof::new_dummy(), Default::default());
 
         let tx = ProvenTransactionBuilder::new(
@@ -447,14 +444,20 @@ mod tests {
             proof,
         )
         .build()
-        .expect("failed to build proven transaction");
+        .context("failed to build proven transaction")?;
 
-        let batch =
-            ProposedBatch::new(vec![Arc::new(tx)], header, chain_mmr, BTreeMap::new()).unwrap();
+        let batch = ProposedBatch::new(
+            vec![Arc::new(tx)],
+            reference_block_header,
+            chain_mmr,
+            BTreeMap::new(),
+        )
+        .context("failed to propose batch")?;
 
         let encoded_batch = batch.to_bytes();
 
-        let batch2 = ProposedBatch::read_from_bytes(&encoded_batch).unwrap();
+        let batch2 = ProposedBatch::read_from_bytes(&encoded_batch)
+            .context("failed to deserialize proposed batch")?;
 
         assert_eq!(batch.transactions(), batch2.transactions());
         assert_eq!(batch.block_header, batch2.block_header);
@@ -465,6 +468,7 @@ mod tests {
         assert_eq!(batch.batch_expiration_block_num, batch2.batch_expiration_block_num);
         assert_eq!(batch.input_notes, batch2.input_notes);
         assert_eq!(batch.output_notes, batch2.output_notes);
-        assert_eq!(batch.output_notes_tree, batch2.output_notes_tree);
+
+        Ok(())
     }
 }
