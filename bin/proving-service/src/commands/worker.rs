@@ -6,16 +6,17 @@ use tracing::{info, instrument};
 
 use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PROVING_SERVICE};
 
-/// Defines the possible types of provers that a worker can be.
+/// Specifies the types of proving tasks a worker can handle.
+/// Multiple options can be enabled simultaneously.
 #[derive(Debug, Parser, Clone, Copy, Default)]
 pub struct ProverTypeSupport {
-    /// Mark the worker as a transaction prover
+    /// Enables transaction proving.
     #[clap(short, long, default_value = "false")]
     tx_prover: bool,
-    /// Mark the worker as a batch prover
+    /// Enables batch proving.
     #[clap(short, long, default_value = "false")]
     batch_prover: bool,
-    /// Mark the worker as a block prover
+    /// Enables block proving.
     #[clap(short, long, default_value = "false")]
     block_prover: bool,
 }
