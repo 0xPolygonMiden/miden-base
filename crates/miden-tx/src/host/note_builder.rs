@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, vec::Vec};
+use crate::alloc::{boxed::Box, vec::Vec};
 
 use miden_objects::{
     asset::Asset,

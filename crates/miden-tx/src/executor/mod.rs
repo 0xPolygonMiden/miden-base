@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
+use crate::alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{

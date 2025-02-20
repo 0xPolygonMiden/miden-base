@@ -1,12 +1,9 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
 
-use miden_objects::{
-    account::AccountId, block::BlockNumber, note::NoteId, transaction::TransactionInputs,
-};
-use winter_maybe_async::*;
-
+use super::{AccountId, BlockNumber, NoteId, TransactionInputs};
 use crate::DataStoreError;
+use winter_maybe_async::*;
 
 // DATA STORE TRAIT
 // ================================================================================================

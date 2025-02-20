@@ -1,4 +1,4 @@
-pub use alloc::vec::Vec;
+use crate::alloc::vec::Vec;
 
 use super::{NoteId, RowIndex, TransactionMeasurements};
 

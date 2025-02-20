@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use crate::alloc::vec::Vec;
 
 use miden_objects::crypto::dsa::rpo_falcon512::{self, Polynomial};
 use rand::Rng;

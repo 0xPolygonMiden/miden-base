@@ -1,5 +1,3 @@
-use alloc::{boxed::Box, collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
-
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
     transaction::{TransactionEvent, TransactionEventError},
@@ -13,7 +11,11 @@ use vm_processor::{
     MastForestStore, MemAdviceProvider, ProcessState,
 };
 
-use crate::{host::AccountProcedureIndexMap, TransactionMastStore};
+use crate::{
+    alloc::{boxed::Box, collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec},
+    host::AccountProcedureIndexMap,
+    TransactionMastStore,
+};
 
 // MOCK HOST
 // ================================================================================================

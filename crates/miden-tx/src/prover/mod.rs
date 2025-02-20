@@ -1,6 +1,6 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
-use alloc::{sync::Arc, vec::Vec};
+use crate::alloc::{sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{

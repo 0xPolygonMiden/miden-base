@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
+use crate::alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::utils::sync::RwLock;
 use miden_objects::account::{AccountDelta, AuthSecretKey};

@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String};
+use crate::alloc::{boxed::Box, string::String};
 use core::error::Error;
 
 use miden_objects::{
