@@ -3,11 +3,20 @@ use alloc::{
     string::{String, ToString},
 };
 
-use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
+use miden_objects::{
+    transaction::{ProvenTransaction, TransactionWitness},
+    utils::{Deserializable, DeserializationError, Serializable},
+};
 use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
 
 use super::generated::api_client::ApiClient;
-use crate::{proving_service::generated, RemoteProverError};
+use crate::{
+    proving_service::{
+        generated,
+        generated::{ProofType, ProvingRequest, ProvingResponse},
+    },
+    RemoteProverError,
+};
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
@@ -100,5 +109,25 @@ impl TransactionProver for RemoteTransactionProver {
             })?;
 
         Ok(proven_transaction)
+    }
+}
+
+// CONVERSIONS
+// ================================================================================================
+
+impl TryFrom<ProvingResponse> for ProvenTransaction {
+    type Error = DeserializationError;
+
+    fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
+        ProvenTransaction::read_from_bytes(&response.payload)
+    }
+}
+
+impl From<TransactionWitness> for ProvingRequest {
+    fn from(witness: TransactionWitness) -> Self {
+        ProvingRequest {
+            proof_type: ProofType::Transaction.into(),
+            payload: witness.to_bytes(),
+        }
     }
 }

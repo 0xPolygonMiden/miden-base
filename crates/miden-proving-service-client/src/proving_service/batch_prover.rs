@@ -4,11 +4,17 @@ use alloc::{
     sync::Arc,
 };
 
-use miden_objects::batch::{ProposedBatch, ProvenBatch};
+use miden_objects::{
+    batch::{ProposedBatch, ProvenBatch},
+    utils::{Deserializable, DeserializationError, Serializable},
+};
 use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
-use crate::RemoteProverError;
+use crate::{
+    proving_service::generated::{ProofType, ProvingRequest, ProvingResponse},
+    RemoteProverError,
+};
 
 // REMOTE BATCH PROVER
 // ================================================================================================
@@ -102,5 +108,25 @@ impl RemoteBatchProver {
         })?;
 
         Ok(proven_batch)
+    }
+}
+
+// CONVERSIONS
+// ================================================================================================
+
+impl From<ProposedBatch> for ProvingRequest {
+    fn from(proposed_batch: ProposedBatch) -> Self {
+        ProvingRequest {
+            proof_type: ProofType::Batch.into(),
+            payload: proposed_batch.to_bytes(),
+        }
+    }
+}
+
+impl TryFrom<ProvingResponse> for ProvenBatch {
+    type Error = DeserializationError;
+
+    fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
+        ProvenBatch::read_from_bytes(&response.payload)
     }
 }

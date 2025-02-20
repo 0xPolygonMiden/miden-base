@@ -4,11 +4,17 @@ use alloc::{
     sync::Arc,
 };
 
-use miden_objects::block::{ProposedBlock, ProvenBlock};
+use miden_objects::{
+    block::{ProposedBlock, ProvenBlock},
+    utils::{Deserializable, DeserializationError, Serializable},
+};
 use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
-use crate::RemoteProverError;
+use crate::{
+    proving_service::generated::{ProofType, ProvingRequest, ProvingResponse},
+    RemoteProverError,
+};
 
 // REMOTE BLOCK PROVER
 // ================================================================================================
@@ -102,5 +108,25 @@ impl RemoteBlockProver {
         })?;
 
         Ok(proven_block)
+    }
+}
+
+// CONVERSION
+// ================================================================================================
+
+impl TryFrom<ProvingResponse> for ProvenBlock {
+    type Error = DeserializationError;
+
+    fn try_from(value: ProvingResponse) -> Result<Self, Self::Error> {
+        ProvenBlock::read_from_bytes(&value.payload)
+    }
+}
+
+impl From<ProposedBlock> for ProvingRequest {
+    fn from(proposed_block: ProposedBlock) -> Self {
+        ProvingRequest {
+            proof_type: ProofType::Block.into(),
+            payload: proposed_block.to_bytes(),
+        }
     }
 }
