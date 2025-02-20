@@ -19,7 +19,7 @@
 - Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
 - Added `prefix` to `Nullifier` (#1153).
 - [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
-- [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168).
+- [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168, #1172).
 - [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
 - Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#1169).
 
