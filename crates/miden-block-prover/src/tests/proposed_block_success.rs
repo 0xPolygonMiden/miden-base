@@ -198,7 +198,7 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
 
 /// Tests that a batch that expires at the block being proposed is still accepted.
 #[test]
-fn proposed_block_unexpired_batches() -> anyhow::Result<()> {
+fn proposed_block_with_batch_at_expiration_limit() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
     let block1_num = chain.block_header(1).block_num();
     let account0 = accounts.remove(&0).unwrap();
