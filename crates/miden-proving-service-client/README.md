@@ -1,6 +1,6 @@
 # Miden remote provers
 
-This crate contains protobuf definition for the Miden transaction proving services. It also provides an optional `RemoteTransactionProver`, `RemoteBatchProver` and `RemoteBlockProver`, which can be used to interact with a remote proving service.
+This crate contains protobuf definition for the Miden transaction proving services. It also provides an optional `RemoteTransactionProver`, `RemoteBatchProver` and `RemoteBlockProver` structs, which can be used to interact with a remote proving service.
 
 ## Features
 

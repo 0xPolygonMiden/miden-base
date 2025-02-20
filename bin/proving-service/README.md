@@ -1,6 +1,6 @@
 # Miden proving service
 
-A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions, transaction batches and blocks.
+A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions, transaction batches, and blocks.
 
 The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if it is already in use.
 
@@ -26,7 +26,7 @@ miden-proving-service start-worker --host 0.0.0.0 --port 8082 --tx-prover --batc
 
 This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. This command will start a worker that can handle transaction and batch proving requests.
 
-Note that the worker service can be started with the `--tx-prover`, `--batch-prover` and `--block-prover` flags, to handle transaction, batch and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
+Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
 
 ## Proxy
 
