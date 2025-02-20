@@ -1,6 +1,6 @@
 # Blockchain
 
-The Miden blockchain protocol describes the process how [state](state.md) progresses in distinct time periods. `Block`s in Miden are containers that aggregate account state changes and their proofs, together with created and consumed notes for one period. For every `Block`, there is a `Block` proof that attests to the correctness of all state transitions it contains.
+The Miden blockchain protocol describes the process of how [state](state.md) progresses. `Block`s in Miden are containers that aggregate account state changes and their proofs, together with created and consumed notes. For every `Block`, there is a `Block` proof that attests to the correctness of all state transitions it contains.
 
 From `Block`s one can derive the progress of the chain, by observing the delta of the global [state](state.md) between two time periods.
 
@@ -47,9 +47,9 @@ From the perspective of the `Block` in which the batch would be aggregated in, e
 
 But the batch producer needs to check, the uniqueness of ephemeral notes across all transactions in the batch. That is because ephemeral notes will never reach the block and therefore there will never be a nullifier check for those notes.
 
-Third, transactions can have an expiration. And so can aggregated transactions, called batches. If transaction `A` specifies it expires at block `X`, and transaction `B` specifies it expires at block `X-2`, but both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations.
+Third, it is possible to set an expiration window for transactions which result in the batch having an expiration window. If transaction `A` specifies it expires at block `X`, and transaction `B` specifies it expires at block `X-2`, but both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations.
 
-Forth, the set of output notes resulting from all transactions in a batch must be distinct - free of duplicates. That means we don't allow two valid transactions creating exactly the same note. Identical notes have the same nullifier and would only be consumable once.
+Forth, the set of notes resulting from all transactions in a batch must be free of duplicates. Which means that two valid transactions creating exactly the same note resulting in having the same nullifier and hence the note being consumable only once wouldn't be allowed.
 
 ## Block production
 
