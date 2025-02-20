@@ -1,7 +1,7 @@
 use miden_objects::{
     account::{
-        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode,
-        AccountType, StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountInterfaceType,
+        AccountStorageMode, AccountType, StorageSlot,
     },
     asset::{FungibleAsset, TokenSymbol},
     AccountError, Felt, FieldElement, Word,
@@ -73,6 +73,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
 
         AccountComponent::new(basic_fungible_faucet_library(), vec![StorageSlot::Value(metadata)])
             .expect("basic fungible faucet component should satisfy the requirements of a valid account component")
+            .with_account_interface(AccountInterfaceType::BasicFungibleFaucet)
             .with_supported_type(AccountType::FungibleFaucet)
     }
 }

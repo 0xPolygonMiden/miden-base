@@ -22,6 +22,9 @@ pub use data_store::DataStore;
 mod mast_store;
 pub use mast_store::TransactionMastStore;
 
+mod compatibility_checker;
+pub use compatibility_checker::{check_account_interface_compatibility, CheckResult};
+
 // TRANSACTION EXECUTOR
 // ================================================================================================
 

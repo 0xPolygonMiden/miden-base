@@ -9,7 +9,10 @@ extern crate std;
 pub use miden_objects::transaction::TransactionInputs;
 
 mod executor;
-pub use executor::{DataStore, TransactionExecutor, TransactionMastStore};
+pub use executor::{
+    check_account_interface_compatibility, CheckResult, DataStore, TransactionExecutor,
+    TransactionMastStore,
+};
 
 pub mod host;
 pub use host::{TransactionHost, TransactionProgress};

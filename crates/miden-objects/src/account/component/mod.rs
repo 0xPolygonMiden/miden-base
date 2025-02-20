@@ -1,6 +1,6 @@
-use alloc::{collections::BTreeSet, vec::Vec};
+use alloc::{collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
-use assembly::{Assembler, Compile, Library};
+use assembly::{ast::Module, Assembler, Compile, Library, LibraryPath};
 use vm_processor::MastForest;
 
 mod template;
@@ -8,7 +8,8 @@ pub use template::*;
 
 use crate::{
     account::{AccountType, StorageSlot},
-    AccountError,
+    utils::{Deserializable, Serializable},
+    AccountError, Digest,
 };
 
 /// An [`AccountComponent`] defines a [`Library`] of code and the initial value and types of
@@ -31,6 +32,7 @@ pub struct AccountComponent {
     pub(super) library: Library,
     pub(super) storage_slots: Vec<StorageSlot>,
     pub(super) supported_types: BTreeSet<AccountType>,
+    pub(super) providing_interface: AccountInterfaceType,
 }
 
 impl AccountComponent {
@@ -56,10 +58,13 @@ impl AccountComponent {
         u8::try_from(storage_slots.len())
             .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
 
+        let interface_type = AccountInterfaceType::Custom(*code.digest());
+
         Ok(Self {
             library: code,
             storage_slots,
             supported_types: BTreeSet::new(),
+            providing_interface: interface_type,
         })
     }
 
@@ -81,6 +86,36 @@ impl AccountComponent {
     ) -> Result<Self, AccountError> {
         let library = assembler
             .assemble_library([source_code])
+            .map_err(AccountError::AccountComponentAssemblyError)?;
+
+        Self::new(library, storage_slots)
+    }
+
+    /// Returns a new [`AccountComponent`] whose library is compiled from the provided `source_code`
+    /// using the specified `assembler`, `library_path`, and with the given `storage_slots`.
+    ///
+    /// All procedures exported from the provided code will become members of the account's public
+    /// interface when added to an [`AccountCode`](crate::account::AccountCode), and could be called
+    /// using the provided library path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the compilation of the provided source code fails.
+    /// - The number of storage slots exceeds 255.
+    pub fn compile_with_path(
+        source_code: impl ToString,
+        assembler: Assembler,
+        storage_slots: Vec<StorageSlot>,
+        library_path: LibraryPath,
+    ) -> Result<Self, AccountError> {
+        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
+        let module = Module::parser(assembly::ast::ModuleKind::Library)
+            .parse_str(library_path, source_code, &source_manager)
+            .map_err(AccountError::AccountComponentAssemblyError)?;
+
+        let library = assembler
+            .assemble_library(&[*module])
             .map_err(AccountError::AccountComponentAssemblyError)?;
 
         Self::new(library, storage_slots)
@@ -146,6 +181,10 @@ impl AccountComponent {
         self.supported_types.contains(&account_type)
     }
 
+    pub fn providing_interface(&self) -> AccountInterfaceType {
+        self.providing_interface
+    }
+
     // MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -177,10 +216,69 @@ impl AccountComponent {
         ]);
         self
     }
+
+    pub fn with_account_interface(mut self, account_interface: AccountInterfaceType) -> Self {
+        self.providing_interface = account_interface;
+        self
+    }
 }
 
 impl From<AccountComponent> for Library {
     fn from(component: AccountComponent) -> Self {
         component.library
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum AccountInterfaceType {
+    BasicWallet,
+    BasicFungibleFaucet,
+    RpoFalcon512,
+    // currently I'm using the library hash, but I think we should use the hash of the whole
+    // component instead to be able to differentiate between two components with the same
+    // libraries but different storage slots and supported types
+    Custom(Digest),
+}
+
+impl Serializable for AccountInterfaceType {
+    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
+        match self {
+            AccountInterfaceType::BasicWallet => target.write_u8(0),
+            AccountInterfaceType::BasicFungibleFaucet => target.write_u8(1),
+            AccountInterfaceType::RpoFalcon512 => target.write_u8(2),
+            AccountInterfaceType::Custom(digest) => {
+                target.write_u8(3);
+                digest.write_into(target);
+            },
+        }
+    }
+
+    fn get_size_hint(&self) -> usize {
+        match self {
+            AccountInterfaceType::BasicWallet => 1,
+            AccountInterfaceType::BasicFungibleFaucet => 1,
+            AccountInterfaceType::RpoFalcon512 => 1,
+            AccountInterfaceType::Custom(digest) => digest.get_size_hint() + 1,
+        }
+    }
+}
+
+impl Deserializable for AccountInterfaceType {
+    fn read_from<R: vm_core::utils::ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, vm_processor::DeserializationError> {
+        let type_index = source.read_u8()?;
+        match type_index {
+            0 => Ok(AccountInterfaceType::BasicWallet),
+            1 => Ok(AccountInterfaceType::BasicFungibleFaucet),
+            2 => Ok(AccountInterfaceType::RpoFalcon512),
+            3 => {
+                let library_commitment = Digest::read_from(source)?;
+                Ok(AccountInterfaceType::Custom(library_commitment))
+            },
+            _ => Err(vm_processor::DeserializationError::InvalidValue(format!(
+                "invalid account interface type: {type_index}"
+            ))),
+        }
     }
 }

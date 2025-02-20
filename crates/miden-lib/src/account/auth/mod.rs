@@ -1,5 +1,5 @@
 use miden_objects::{
-    account::{AccountComponent, StorageSlot},
+    account::{AccountComponent, AccountInterfaceType, StorageSlot},
     crypto::dsa::rpo_falcon512::PublicKey,
 };
 
@@ -36,6 +36,7 @@ impl From<RpoFalcon512> for AccountComponent {
             vec![StorageSlot::Value(falcon.public_key.into())],
         )
         .expect("falcon component should satisfy the requirements of a valid account component")
+        .with_account_interface(AccountInterfaceType::RpoFalcon512)
         .with_supports_all_types()
     }
 }

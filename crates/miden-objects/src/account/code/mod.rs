@@ -3,8 +3,8 @@ use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 use vm_core::mast::MastForest;
 
 use super::{
-    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
-    Hasher, Serializable,
+    AccountError, AccountInterfaceType, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, Felt, Hasher, Serializable,
 };
 use crate::account::{AccountComponent, AccountType};
 
@@ -33,6 +33,7 @@ pub struct AccountCode {
     mast: Arc<MastForest>,
     procedures: Vec<AccountProcedureInfo>,
     commitment: Digest,
+    available_interfaces: BTreeSet<AccountInterfaceType>,
 }
 
 impl AccountCode {
@@ -79,6 +80,7 @@ impl AccountCode {
 
         let mut procedures = Vec::new();
         let mut proc_root_set = BTreeSet::new();
+        let mut available_interfaces = BTreeSet::new();
 
         // Slot 0 is globally reserved for faucet accounts so the accessible slots begin at 1 if
         // there is a faucet component present.
@@ -117,6 +119,9 @@ impl AccountCode {
 
             component_storage_offset = component_storage_offset.checked_add(component_storage_size)
               .expect("account procedure info constructor should return an error if the addition overflows");
+
+            available_interfaces.insert(component.providing_interface());
+            // procedures.insert(component.providing_interface(), component_procedures);
         }
 
         // make sure the number of procedures is between 1 and 256 (both inclusive)
@@ -130,6 +135,7 @@ impl AccountCode {
             commitment: build_procedure_commitment(&procedures),
             procedures,
             mast: Arc::new(merged_mast_forest),
+            available_interfaces,
         })
     }
 
@@ -149,7 +155,11 @@ impl AccountCode {
     /// - The number of procedures is smaller than 1 or greater than 256.
     /// - If some any of the provided procedures does not have a corresponding root in the provided
     ///   MAST forest.
-    pub fn from_parts(mast: Arc<MastForest>, procedures: Vec<AccountProcedureInfo>) -> Self {
+    pub fn from_parts(
+        mast: Arc<MastForest>,
+        procedures: Vec<AccountProcedureInfo>,
+        available_interfaces: BTreeSet<AccountInterfaceType>,
+    ) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
 
@@ -157,10 +167,11 @@ impl AccountCode {
             commitment: build_procedure_commitment(&procedures),
             procedures,
             mast,
+            available_interfaces,
         }
     }
 
-    // PUBLIC ACCESSORS
+    // PUBLIC ACCESSORSs
     // --------------------------------------------------------------------------------------------
 
     /// Returns a commitment to an account's public interface.
@@ -176,6 +187,11 @@ impl AccountCode {
     /// Returns a reference to the account procedures.
     pub fn procedures(&self) -> &[AccountProcedureInfo] {
         &self.procedures
+    }
+
+    /// Returns a reference to the available account interfaces.
+    pub fn available_interfaces(&self) -> &BTreeSet<AccountInterfaceType> {
+        &self.available_interfaces
     }
 
     /// Returns an iterator over the procedure MAST roots of this account code.
@@ -256,6 +272,10 @@ impl Serializable for AccountCode {
         // number as a single byte - but we do have to subtract 1 to store 256 as 255.
         target.write_u8((self.procedures.len() - 1) as u8);
         target.write_many(self.procedures());
+
+        // we could apply the same optimization for the number of available interfaces
+        target.write_u8((self.available_interfaces.len() - 1) as u8);
+        target.write_many(self.available_interfaces.iter());
     }
 
     fn get_size_hint(&self) -> usize {
@@ -271,6 +291,13 @@ impl Serializable for AccountCode {
             size += procedure.get_size_hint();
         }
 
+        // Size of the serialized available interfaces length.
+        size += u8_size;
+
+        for interface in self.available_interfaces() {
+            size += interface.get_size_hint();
+        }
+
         size
     }
 }
@@ -280,8 +307,12 @@ impl Deserializable for AccountCode {
         let module = Arc::new(MastForest::read_from(source)?);
         let num_procedures = (source.read_u8()? as usize) + 1;
         let procedures = source.read_many::<AccountProcedureInfo>(num_procedures)?;
+        let num_interfaces = (source.read_u8()? as usize) + 1;
+        let available_interfaces = BTreeSet::from_iter(
+            source.read_many::<AccountInterfaceType>(num_interfaces)?.iter().cloned(),
+        );
 
-        Ok(Self::from_parts(module, procedures))
+        Ok(Self::from_parts(module, procedures, available_interfaces))
     }
 }
 
