@@ -1,13 +1,15 @@
 use alloc::{
     boxed::Box,
     string::{String, ToString},
+    sync::Arc,
 };
 
 use miden_objects::{
     transaction::{ProvenTransaction, TransactionWitness},
     utils::{Deserializable, DeserializationError, Serializable},
 };
-use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
+use miden_tx::{TransactionProver, TransactionProverError};
+use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
 use crate::{
@@ -30,10 +32,10 @@ use crate::{
 /// The transport layer connection is established lazily when the first transaction is proven.
 pub struct RemoteTransactionProver {
     #[cfg(target_arch = "wasm32")]
-    client: RwLock<Option<ApiClient<tonic_web_wasm_client::Client>>>,
+    client: Arc<Mutex<Option<ApiClient<tonic_web_wasm_client::Client>>>>,
 
     #[cfg(not(target_arch = "wasm32"))]
-    client: RwLock<Option<ApiClient<tonic::transport::Channel>>>,
+    client: Arc<Mutex<Option<ApiClient<tonic::transport::Channel>>>>,
 
     endpoint: String,
 }
@@ -44,7 +46,7 @@ impl RemoteTransactionProver {
     pub fn new(endpoint: impl Into<String>) -> Self {
         RemoteTransactionProver {
             endpoint: endpoint.into(),
-            client: RwLock::new(None),
+            client: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -52,7 +54,7 @@ impl RemoteTransactionProver {
     /// maintained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
     async fn connect(&self) -> Result<(), RemoteProverError> {
-        let mut client = self.client.write();
+        let mut client = self.client.lock().await;
         if client.is_some() {
             return Ok(());
         }
@@ -89,7 +91,8 @@ impl TransactionProver for RemoteTransactionProver {
 
         let mut client = self
             .client
-            .write()
+            .lock()
+            .await
             .as_ref()
             .ok_or_else(|| TransactionProverError::other("client should be connected"))?
             .clone();

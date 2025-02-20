@@ -16,7 +16,7 @@ crate-type = ["lib"]
 [features]
 default = ["std"]
 std = ["miden-objects/std", "miden-tx/std"]
-tx-prover = ["miden-tx/async"]
+tx-prover = ["miden-tx/async", "dep:tokio"]
 batch-prover = ["dep:miden-tx", "dep:tokio"]
 block-prover = ["dep:miden-tx", "dep:tokio"]
 
