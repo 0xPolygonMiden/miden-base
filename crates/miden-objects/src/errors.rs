@@ -33,32 +33,34 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum AccountComponentTemplateError {
-    #[cfg(feature = "std")]
-    #[error("error trying to deserialize from toml")]
-    TomlDeserializationError(#[source] toml::de::Error),
+    #[error("storage slot name `{0}` is duplicate")]
+    DuplicateEntryNames(String),
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
     #[error("storage value name is incorrect: {0}")]
     IncorrectStorageValueName(#[source] StorageValueNameError),
     #[error("type `{0}` is not valid for `{1}` slots")]
     InvalidType(String, String),
-    #[error("multi-slot entry should contain as many values as storage slots indices")]
-    MultiSlotArityMismatch,
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
+    #[error("multi-slot entry should contain as many values as storage slots indices")]
+    MultiSlotArityMismatch,
     #[error("component storage slots are not contiguous ({0} is followed by {1})")]
     NonContiguousSlots(u8, u8),
     #[error("storage value for placeholder `{0}` was not provided in the init storage data")]
     PlaceholderValueNotProvided(StorageValueName),
-    #[cfg(feature = "std")]
-    #[error("error trying to deserialize from toml")]
-    TomlSerializationError(#[source] toml::ser::Error),
-    #[error("error converting value into expected type: ")]
-    StorageValueParsingError(#[source] TemplateTypeError),
     #[error("storage map contains duplicate key `{0}`")]
     StorageMapHasDuplicateKeys(Digest),
     #[error("component storage slots have to start at 0, but they start at {0}")]
     StorageSlotsDoNotStartAtZero(u8),
+    #[error("error converting value into expected type: ")]
+    StorageValueParsingError(#[source] TemplateTypeError),
+    #[cfg(feature = "std")]
+    #[error("error trying to deserialize from toml")]
+    TomlDeserializationError(#[source] toml::de::Error),
+    #[cfg(feature = "std")]
+    #[error("error trying to deserialize from toml")]
+    TomlSerializationError(#[source] toml::ser::Error),
 }
 
 // ACCOUNT ERROR

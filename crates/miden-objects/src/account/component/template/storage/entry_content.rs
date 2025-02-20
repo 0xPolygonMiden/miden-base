@@ -13,7 +13,7 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use super::{
-    placeholder::{PlaceholderTypeRequirement, TEMPLATE_REGISTRY},
+    placeholder::{PlaceholderTypeRequirement, TemplateType, TEMPLATE_REGISTRY},
     InitStorageData, MapEntry, StorageValueName, TemplateRequirementsIter,
 };
 use crate::account::{component::template::AccountComponentTemplateError, StorageMap};
@@ -35,7 +35,7 @@ pub enum WordRepresentation {
     /// time of instantiation. The name is required to identify this template externally.
     Template {
         /// The type associated with this templated word.
-        r#type: String,
+        r#type: TemplateType,
         /// A human-readable identifier for the template.
         name: StorageValueName,
         /// An optional description explaining the purpose of this template.
@@ -59,11 +59,11 @@ pub enum WordRepresentation {
 impl WordRepresentation {
     /// Constructs a new `Template` variant.
     pub fn new_template(
-        r#type: impl Into<String>,
+        r#type: TemplateType,
         name: StorageValueName,
         description: Option<String>,
     ) -> Self {
-        WordRepresentation::Template { name, description, r#type: r#type.into() }
+        WordRepresentation::Template { name, description, r#type }
     }
 
     /// Constructs a new `Value` variant.
@@ -95,10 +95,10 @@ impl WordRepresentation {
     }
 
     /// Returns the type name.
-    pub fn word_type(&self) -> &str {
+    pub fn word_type(&self) -> TemplateType {
         match self {
-            WordRepresentation::Template { r#type, .. } => r#type,
-            WordRepresentation::Value { .. } => "word",
+            WordRepresentation::Template { r#type, .. } => r#type.clone(),
+            WordRepresentation::Value { .. } => TemplateType::new("word"),
         }
     }
 
@@ -184,7 +184,7 @@ impl WordRepresentation {
     /// Validates that the defined type exists and all the inner felt types exist as well
     pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         // Check that type exists in registry
-        let type_exists = TEMPLATE_REGISTRY.contains_word_type(self.word_type());
+        let type_exists = TEMPLATE_REGISTRY.contains_word_type(&self.word_type());
         if !type_exists {
             return Err(AccountComponentTemplateError::InvalidType(
                 self.word_type().to_string(),
@@ -228,7 +228,7 @@ impl Deserializable for WordRepresentation {
             0 => {
                 let name = StorageValueName::read_from(source)?;
                 let description = Option::<String>::read_from(source)?;
-                let r#type = String::read_from(source)?;
+                let r#type = TemplateType::read_from(source)?;
                 Ok(WordRepresentation::Template { name, description, r#type })
             },
             1 => {
@@ -296,7 +296,7 @@ pub enum FeltRepresentation {
     /// further clarify its intended use.
     Template {
         /// The expected type for this felt element.
-        r#type: String,
+        r#type: TemplateType,
         /// A unique name for the felt template.
         name: StorageValueName,
         /// An optional description that explains the purpose of this template.
@@ -318,18 +318,18 @@ impl FeltRepresentation {
     ///
     /// The name will be used for identification at the moment of instantiating the componentn.
     pub fn new_template(
-        r#type: impl Into<String>,
+        r#type: TemplateType,
         name: StorageValueName,
         description: Option<String>,
     ) -> FeltRepresentation {
-        FeltRepresentation::Template { name, description, r#type: r#type.into() }
+        FeltRepresentation::Template { name, description, r#type }
     }
 
     /// Returns the type name.
-    pub fn felt_type(&self) -> &str {
+    pub fn felt_type(&self) -> TemplateType {
         match self {
-            FeltRepresentation::Template { r#type, .. } => r#type,
-            FeltRepresentation::Value { .. } => "felt",
+            FeltRepresentation::Template { r#type, .. } => r#type.clone(),
+            FeltRepresentation::Value { .. } => TemplateType::new("felt"),
         }
     }
 
@@ -381,7 +381,7 @@ impl FeltRepresentation {
     /// Validates that the defined Felt type exists
     pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         // Check that type exists in registry
-        let type_exists = TEMPLATE_REGISTRY.contains_felt_type(self.felt_type());
+        let type_exists = TEMPLATE_REGISTRY.contains_felt_type(&self.felt_type());
         if !type_exists {
             return Err(AccountComponentTemplateError::InvalidType(
                 self.felt_type().to_string(),
@@ -444,7 +444,7 @@ impl Deserializable for FeltRepresentation {
             1 => {
                 let name = StorageValueName::read_from(source)?;
                 let description = Option::<String>::read_from(source)?;
-                let r#type = String::read_from(source)?;
+                let r#type = TemplateType::read_from(source)?;
                 Ok(FeltRepresentation::new_template(r#type, name, description))
             },
             other => Err(DeserializationError::InvalidValue(format!(

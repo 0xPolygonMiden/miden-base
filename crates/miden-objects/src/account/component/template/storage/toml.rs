@@ -3,15 +3,20 @@ use alloc::{
     vec::Vec,
 };
 use core::fmt;
+use std::collections::BTreeMap;
 
 use serde::{
     de::{value::MapAccessDeserializer, Error, SeqAccess, Visitor},
     ser::SerializeStruct,
     Deserialize, Deserializer, Serialize, Serializer,
 };
+use thiserror::Error;
 use vm_core::Felt;
 
-use super::{FeltRepresentation, MapEntry, MapRepresentation, StorageEntry, WordRepresentation};
+use super::{
+    placeholder::TemplateType, FeltRepresentation, InitStorageData, MapEntry, MapRepresentation,
+    StorageEntry, StorageValueNameError, WordRepresentation,
+};
 use crate::{
     account::{
         component::template::storage::placeholder::{TemplateFelt, TEMPLATE_REGISTRY},
@@ -20,11 +25,6 @@ use crate::{
     errors::AccountComponentTemplateError,
     utils::parse_hex_string_as_word,
 };
-
-/// Default value assigned to felt entries with no type
-const DEFAULT_FELT_TYPE: &str = "felt";
-/// Default value assigned to word storage entries with no type
-const DEFAULT_WORD_TYPE: &str = "word";
 
 // ACCOUNT COMPONENT METADATA TOML FROM/TO
 // ================================================================================================
@@ -147,7 +147,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                     // The "value" field (if present) must be an array of 4 FeltRepresentations.
                     value: Option<[FeltRepresentation; 4]>,
                     #[serde(rename = "type")]
-                    r#type: Option<String>,
+                    r#type: Option<TemplateType>,
                 }
 
                 let helper =
@@ -162,7 +162,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                     let name = expect_parse_value_name(helper.name, "word template")?;
 
                     // Get the type, or the default if it was not specified
-                    let r#type = helper.r#type.unwrap_or(DEFAULT_WORD_TYPE.into());
+                    let r#type = helper.r#type.unwrap_or(TemplateType::default_word_type());
                     Ok(WordRepresentation::new_template(r#type, name, helper.description))
                 }
             }
@@ -223,7 +223,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
                 #[serde(default)]
                 value: Option<String>,
                 #[serde(rename = "type")]
-                r#type: Option<String>,
+                r#type: Option<TemplateType>,
             },
             Scalar(String),
         }
@@ -241,7 +241,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
             },
             Intermediate::Map { name, description, value, r#type } => {
                 // Get the defined type, or the default if it was not specified
-                let felt_type = r#type.unwrap_or(DEFAULT_FELT_TYPE.into());
+                let felt_type = r#type.unwrap_or(TemplateType::default_felt_type());
 
                 if let Some(val_str) = value {
                     // Parse into felt from the input string
@@ -285,7 +285,7 @@ struct RawStorageEntry {
     slot: Option<u8>,
     slots: Option<Vec<u8>>,
     #[serde(rename = "type")]
-    word_type: Option<String>,
+    word_type: Option<TemplateType>,
     value: Option<[FeltRepresentation; 4]>,
     values: Option<StorageValues>,
 }
@@ -319,7 +319,7 @@ impl From<StorageEntry> for RawStorageEntry {
             StorageEntry::MultiSlot { name, description, slots, values } => RawStorageEntry {
                 name: Some(name.to_string()),
                 description,
-                slots: Some(slots),
+                slots: Some(slots.collect()),
                 values: Some(StorageValues::Words(values)),
                 ..Default::default()
             },
@@ -362,16 +362,24 @@ impl<'de> Deserialize<'de> for StorageEntry {
             Ok(StorageEntry::Map { slot, map })
         } else if let Some(StorageValues::Words(values)) = raw.values {
             let name = expect_parse_value_name(raw.name, "multislot entry")?;
-            let slots = raw.slots.ok_or_else(|| missing_field_for("slots", "multislot entry"))?;
+            let mut slots =
+                raw.slots.ok_or_else(|| missing_field_for("slots", "multislot entry"))?;
 
-            if slots.len() != values.len() {
-                return Err(D::Error::custom(format!(
-                    "number of slots ({}) does not match number of values ({}) for multislot entry",
-                    slots.len(),
-                    values.len()
-                )));
+            // Sort so we can check contiguity
+            slots.sort_unstable();
+
+            for pair in slots.windows(2) {
+                if pair[1] != pair[0] + 1 {
+                    return Err(serde::de::Error::custom(format!(
+                        "`slots` field in `{name}` entry is not a valid range"
+                    )));
+                }
             }
-            Ok(StorageEntry::new_multislot(name, raw.description, slots, values))
+
+            let start = slots[0];
+            let end = slots.last().expect("checked validity") + 1;
+
+            Ok(StorageEntry::new_multislot(name, raw.description, start..end, values))
         } else if let Some(word_type) = raw.word_type {
             // If a type was provided instead, this is a WordRepresentation::Value entry
             let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "single-slot entry"))?;
@@ -383,6 +391,84 @@ impl<'de> Deserialize<'de> for StorageEntry {
             Err(D::Error::custom("placeholder storage entries require the `type` field"))
         }
     }
+}
+
+// INIT STORAGE DATA
+// ================================================================================================
+
+impl InitStorageData {
+    /// Creates an instance of [`InitStorageData`] from a TOML string.
+    ///
+    /// This method parses the provided TOML and flattens nested tables into
+    /// dot‑separated keys using [`StorageValueName`] as keys. All values are converted to plain
+    /// strings (so that, for example, `key = 10` and `key = "10"` both yield
+    /// `String::from("10")` as the value).
+    ///
+    /// # Errors
+    ///
+    /// - If duplicate keys or empty tables are found in the string
+    /// - If the TOML string includes arrays
+    pub fn from_toml(toml_str: &str) -> Result<Self, InitStorageDataError> {
+        let value: toml::Value = toml::from_str(toml_str)?;
+        let mut placeholders = BTreeMap::new();
+        // Start with an empty prefix (i.e. the default, which is an empty string)
+        Self::flatten_parse_toml_value(StorageValueName::default(), &value, &mut placeholders)?;
+        Ok(InitStorageData::new(placeholders))
+    }
+
+    /// Recursively flattens a TOML `Value` into a flat mapping.
+    ///
+    /// When recursing into nested tables, keys are combined using
+    /// [`StorageValueName::with_suffix`]. If an encountered table is empty (and not the top-level),
+    /// an error is returned. Arrays are not supported.
+    fn flatten_parse_toml_value(
+        prefix: StorageValueName,
+        value: &toml::Value,
+        map: &mut BTreeMap<StorageValueName, String>,
+    ) -> Result<(), InitStorageDataError> {
+        match value {
+            toml::Value::Table(table) => {
+                // If this is not the root and the table is empty, error
+                if !prefix.as_str().is_empty() && table.is_empty() {
+                    return Err(InitStorageDataError::EmptyTable(prefix.as_str().into()));
+                }
+                for (key, val) in table {
+                    // Create a new key and combine it with the current prefix.
+                    let new_key = StorageValueName::new(key.to_string())
+                        .map_err(InitStorageDataError::InvalidStorageValueName)?;
+                    let new_prefix = prefix.clone().with_suffix(&new_key);
+                    Self::flatten_parse_toml_value(new_prefix, val, map)?;
+                }
+            },
+            toml::Value::Array(_) => {
+                return Err(InitStorageDataError::ArraysNotSupported);
+            },
+            toml_value => {
+                // Get the string value, or convert to string if it's some other type
+                let value = match toml_value {
+                    toml::Value::String(s) => s.clone(),
+                    _ => value.to_string(),
+                };
+                map.insert(prefix, value);
+            },
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum InitStorageDataError {
+    #[error("failed to parse TOML: {0}")]
+    InvalidToml(#[from] toml::de::Error),
+
+    #[error("empty table encountered for key `{0}`")]
+    EmptyTable(String),
+
+    #[error("invalid input: arrays are not supported")]
+    ArraysNotSupported,
+
+    #[error("invalid storage value name")]
+    InvalidStorageValueName(#[source] StorageValueNameError),
 }
 
 // UTILS / HELPERS

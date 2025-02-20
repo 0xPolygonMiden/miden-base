@@ -110,7 +110,7 @@ impl Deserializable for AccountComponentTemplate {
 /// # use miden_objects::{testing::account_code::CODE, account::{
 /// #     AccountComponent, AccountComponentMetadata, StorageEntry,
 /// #     StorageValueName,
-/// #     AccountComponentTemplate, FeltRepresentation, WordRepresentation},
+/// #     AccountComponentTemplate, FeltRepresentation, WordRepresentation, TemplateType},
 /// #     assembly::Assembler, Felt};
 /// # use miden_objects::account::InitStorageData;
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -118,8 +118,11 @@ impl Deserializable for AccountComponentTemplate {
 /// let second_felt = FeltRepresentation::from(Felt::new(1u64));
 /// let third_felt = FeltRepresentation::from(Felt::new(2u64));
 /// // Templated element:
-/// let last_element =
-///     FeltRepresentation::new_template("felt", StorageValueName::new("foo")?, None);
+/// let last_element = FeltRepresentation::new_template(
+///     TemplateType::new("felt"),
+///     StorageValueName::new("foo")?,
+///     None,
+/// );
 ///
 /// let word_representation = WordRepresentation::new_value(
 ///     [first_felt, second_felt, third_felt, last_element],
@@ -250,11 +253,8 @@ impl AccountComponentMetadata {
     /// - If the slot numbers do not start at zero.
     /// - If the slots are not contiguous.
     fn validate(&self) -> Result<(), AccountComponentTemplateError> {
-        let mut all_slots: Vec<u8> = self
-            .storage
-            .iter()
-            .flat_map(|entry| entry.slot_indices().iter().copied())
-            .collect();
+        let mut all_slots: Vec<u8> =
+            self.storage.iter().flat_map(|entry| entry.slot_indices()).collect();
 
         // Check that slots start at 0 and are contiguous
         all_slots.sort_unstable();
@@ -276,8 +276,17 @@ impl AccountComponentMetadata {
             }
         }
 
+        let mut seen_names = BTreeSet::new();
         for entry in self.storage_entries() {
             entry.validate()?;
+            if let Some(name) = entry.name() {
+                let name_existed = !seen_names.insert(name.as_str());
+                if name_existed {
+                    return Err(AccountComponentTemplateError::DuplicateEntryNames(
+                        name.as_str().into(),
+                    ));
+                }
+            }
         }
 
         Ok(())
@@ -313,6 +322,7 @@ impl Deserializable for AccountComponentMetadata {
 
 // TESTS
 // ================================================================================================
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -353,13 +363,13 @@ mod tests {
     }
 
     #[test]
-    fn test_contiguous_value_slots() {
+    fn contiguous_value_slots() {
         let storage = vec![
             StorageEntry::new_value(0, default_felt_array()),
             StorageEntry::new_multislot(
                 StorageValueName::new("slot1").unwrap(),
                 Some("multi-slot value of arity 2".into()),
-                vec![1, 2],
+                1..3,
                 vec![default_felt_array(), default_felt_array()],
             ),
         ];
@@ -378,7 +388,7 @@ mod tests {
     }
 
     #[test]
-    fn test_new_non_contiguous_value_slots() {
+    fn new_non_contiguous_value_slots() {
         let storage = vec![
             StorageEntry::new_value(0, default_felt_array()),
             StorageEntry::new_value(2, default_felt_array()),
@@ -395,12 +405,12 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_serde_roundtrip() {
+    fn binary_serde_roundtrip() {
         let storage = vec![
             StorageEntry::new_multislot(
                 StorageValueName::new("slot1").unwrap(),
                 Option::<String>::None,
-                vec![1, 2],
+                1..3,
                 vec![default_felt_array(), default_felt_array()],
             ),
             StorageEntry::new_value(0, default_felt_array()),
@@ -425,7 +435,7 @@ mod tests {
     }
 
     #[test]
-    pub fn fail_duplicate_key() {
+    pub fn fail_on_duplicate_key() {
         let toml_text = r#"
             name = "Test Component"
             description = "This is a test component"
