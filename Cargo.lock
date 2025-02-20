@@ -2035,7 +2035,6 @@ dependencies = [
  "getrandom 0.2.15",
  "miden-objects",
  "miden-tx",
- "miden-tx-batch-prover",
  "miette",
  "prost",
  "prost-build",
