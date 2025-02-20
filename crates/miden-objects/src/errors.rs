@@ -468,8 +468,15 @@ pub enum ProposedBatchError {
 
     #[error(
       "transaction batch has {0} account updates but at most {MAX_ACCOUNTS_PER_BATCH} are allowed"
-  )]
+    )]
     TooManyAccountUpdates(usize),
+
+    #[error("transaction {transaction_id} expires at block number {transaction_expiration_num} which is not greater than the number of the batch's reference block {reference_block_num}")]
+    ExpiredTransaction {
+        transaction_id: TransactionId,
+        transaction_expiration_num: BlockNumber,
+        reference_block_num: BlockNumber,
+    },
 
     #[error("transaction batch must contain at least one transaction")]
     EmptyTransactionBatch,
@@ -545,6 +552,13 @@ pub enum ProposedBlockError {
 
     #[error("block must contain at most {MAX_BATCHES_PER_BLOCK} transaction batches")]
     TooManyBatches,
+
+    #[error("batch {batch_id} expired at block {batch_expiration_block_num} but the current block number is {current_block_num}")]
+    ExpiredBatch {
+        batch_id: BatchId,
+        batch_expiration_block_num: BlockNumber,
+        current_block_num: BlockNumber,
+    },
 
     #[error("batch {batch_id} appears twice in the block inputs")]
     DuplicateBatch { batch_id: BatchId },

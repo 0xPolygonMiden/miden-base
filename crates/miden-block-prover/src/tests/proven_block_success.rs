@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, vec::Vec};
 use anyhow::Context;
 use miden_crypto::merkle::LeafIndex;
 use miden_objects::{
+    batch::BatchNoteTree,
     block::{BlockNoteIndex, BlockNoteTree, ProposedBlock},
     transaction::InputNoteCommitment,
     Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
@@ -250,7 +251,14 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
 
     let batches = [batch0.clone(), batch1];
     // This block will use block2 as the reference block.
-    let block_inputs = chain.get_block_inputs(&batches);
+    let mut block_inputs = chain.get_block_inputs(&batches);
+
+    // Remove the nullifier witness for output_note0 which will be erased, to check that the
+    // proposed block does not _require_ nullifier witnesses for erased notes.
+    block_inputs
+        .nullifier_witnesses_mut()
+        .remove(&output_note0.nullifier())
+        .unwrap();
 
     let proposed_block = ProposedBlock::new(block_inputs.clone(), batches.to_vec())
         .context("failed to build proposed block")?;
@@ -303,7 +311,10 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     let actual_block_note_tree = proven_block.build_output_note_tree();
 
     // Remove the erased note to get the expected batch note tree.
-    let mut batch_tree = batch0.output_notes_tree().clone();
+    let mut batch_tree = BatchNoteTree::with_contiguous_leaves(
+        batch0.output_notes().iter().map(|note| (note.id(), note.metadata())),
+    )
+    .unwrap();
     batch_tree.remove(erased_note_idx as u64).unwrap();
 
     let mut expected_block_note_tree = BlockNoteTree::empty();
