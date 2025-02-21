@@ -74,7 +74,9 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 
 #### Ephemeral note
 
-These specific `Note`s can be consumed even if not yet registered on-chain. They can be chained together into one final proof. This can allow for example sub-second communication below blocktimes by adding additional trust assumptions.
+Ephemeral `Note`s can be consumed before having been registered on-chain. At the [blockchain](blockchain.md) level the protocol takes care to erase `Note`s if the creation and the consumption of the said `Note` happens to be in the same batch.
+
+Ephemeral `Note`s can be chained together into a final proof which allows for example, sub-second communication below blocktimes by adding additional trust assumptions.
 
 ### Note validation
 
