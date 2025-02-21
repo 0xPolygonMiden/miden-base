@@ -761,7 +761,7 @@ impl MockChain {
             self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
 
         let nullifier_proofs =
-            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::produced_nullifiers));
+            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::created_nullifiers));
 
         BlockInputs::new(
             block_reference_block,

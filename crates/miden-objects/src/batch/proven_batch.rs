@@ -94,8 +94,8 @@ impl ProvenBatch {
         &self.input_notes
     }
 
-    /// Returns an iterator over the nullifiers produced in this batch.
-    pub fn produced_nullifiers(&self) -> impl Iterator<Item = Nullifier> + use<'_> {
+    /// Returns an iterator over the nullifiers created in this batch.
+    pub fn created_nullifiers(&self) -> impl Iterator<Item = Nullifier> + use<'_> {
         self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 
