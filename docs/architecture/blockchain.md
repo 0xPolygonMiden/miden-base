@@ -30,7 +30,7 @@ The purpose of this scheme is to produce a single proof attesting to the validit
     <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Account diagram"/>
 </p>
 
-The batch producer processes each transaction proof sequentially and verifies the proofs against the initial and final state roots of the affected accounts. There are some rules that the batch producer needs to follow to ensure the correctness of the overall protocol.
+The batch producer processes each transaction proof sequentially and verifies each proof against the initial and final state commitment of the affected account. There are some rules that the batch producer needs to follow to ensure the correctness of the overall protocol.
 
 First, if several transactions in the same batch affect one single account, the correct ordering must be enforced. That means if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify in the correct order `A -> Tx1 -> A' -> Tx2 -> A''`.
 
