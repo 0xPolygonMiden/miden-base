@@ -1,7 +1,8 @@
 use alloc::vec::Vec;
 
 use miden_crypto::merkle::MerklePath;
-use vm_processor::Digest;
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::{DeserializationError, Digest};
 
 use crate::{account::delta::AccountUpdateDetails, transaction::TransactionId};
 
@@ -99,5 +100,35 @@ impl AccountUpdateWitness {
             self.details,
             self.transactions,
         )
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AccountUpdateWitness {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(self.initial_state_commitment);
+        target.write(self.final_state_commitment);
+        target.write(&self.initial_state_proof);
+        target.write(&self.details);
+        target.write(&self.transactions);
+    }
+}
+
+impl Deserializable for AccountUpdateWitness {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let initial_state_commitment = source.read()?;
+        let final_state_commitment = source.read()?;
+        let initial_state_proof = source.read()?;
+        let details = source.read()?;
+        let transactions = source.read()?;
+        Ok(AccountUpdateWitness {
+            initial_state_commitment,
+            final_state_commitment,
+            initial_state_proof,
+            details,
+            transactions,
+        })
     }
 }

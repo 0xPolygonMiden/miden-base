@@ -1993,6 +1993,7 @@ dependencies = [
  "axum",
  "bytes",
  "clap 4.5.30",
+ "miden-block-prover",
  "miden-lib",
  "miden-objects",
  "miden-tx",
