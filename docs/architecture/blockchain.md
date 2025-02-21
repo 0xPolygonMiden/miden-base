@@ -47,7 +47,7 @@ From the perspective of the `Block` in which the batch would be aggregated in, e
 
 But the batch producer needs to check, the uniqueness of ephemeral notes across all transactions in the batch. That is because ephemeral notes will never reach the block and therefore there will never be a nullifier check for those notes.
 
-Third, it is possible to set an expiration window for transactions which result in the batch having an expiration window. If transaction `A` specifies it expires at block `X`, and transaction `B` specifies it expires at block `X-2`, but both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations.
+Third, it is possible to set an expiration window for transactions which result in the batch having an expiration window, too. If transaction `A` specifies it expires at block `8`, and transaction `B` specifies it expires at block `5`, and both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
 
 Forth, the set of notes resulting from all transactions in a batch must be free of duplicates. Which means that two valid transactions creating exactly the same note resulting in having the same nullifier and hence the note being consumable only once wouldn't be allowed.
 
