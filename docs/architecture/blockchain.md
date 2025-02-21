@@ -2,11 +2,11 @@
 
 The Miden blockchain protocol describes the process of how [state](state.md) progresses. `Block`s in Miden are containers that aggregate account state changes and their proofs, together with created and consumed notes. For every `Block`, there is a `Block` proof that attests to the correctness of all state transitions it contains.
 
-From `Block`s one can derive the progress of the chain, by observing the delta of the global [state](state.md) between two time periods.
+`Block`s represent the delta of the global [state](state.md) between two time periods. One can derive the current global state, by applying all the blocks to the genesis state.
 
 Miden's blockchain protocol aims for the following:
 
-- **Real time proving**: All included transactions have already been proven and verified when they reach the block.
+- **Proven transactions**: All included transactions have already been proven and verified when they reach the block.
 - **Fast genesis syncing**: New nodes efficiently sync to the network through a multi-step process:
 
 1. Download historical `Block`s from genesis to present
