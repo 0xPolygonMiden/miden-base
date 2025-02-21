@@ -22,7 +22,7 @@ This approach enables near-instant blockchain syncing by verifying `Block` proof
 
 ## Batching
 
-To reduce the load on the blockchain, transaction proofs are firstly aggregated into batches by the batch producer, not directly into `Block`s. Batch producing is highly parallelizable and there will be multiple batch producers running at the same time.
+To reduce the load on the blockchain, transaction proofs are aggregated into batches by batch producers first, not directly into `Block`s. Batch production is highly parallelizable and there will be multiple batch producers running at the same time.
 
 The purpose of this scheme is to produce a single proof attesting to the validity of some number of transactions which is done by recursively verifying each transaction proof in the Miden VM.
 
