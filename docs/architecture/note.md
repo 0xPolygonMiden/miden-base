@@ -74,11 +74,11 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 
 #### Ephemeral note
 
-If a note is produced and consumed within the same batch or block then the processor of this note may decide to make it an ephemeral note. Such a note is never formally recorded by the network but is essentially "erased" as part of the proving process. This is safe to do since the proving system knows this note was produced and was consumed. In a way this is similar to aggregating multiple account updates into a single one. 
+If a `Note` is produced and consumed within the same batch or block then the processor of this `Note` may decide to make it an ephemeral `Note`. Such a `Note` is never formally recorded by the network but is "erased" as part of the proving process. This is safe to do since the proving system knows this `Note` was produced and was consumed. In a way this is similar to aggregating multiple account updates into a single one. 
 
-This reduces the load and storage requirements of the network and batch and block producers will be incentivized to perform this erasure as part of the fee reward system.
+This reduces the load and storage requirements of the network and can occur at both the batch and block production level.
 
-This can occur at both the batch and block production level.
+As an example Ephemeral `Note`s could be used to allow for sub-second transactions on an order-book exchange.
 
 ### Note validation
 
