@@ -93,7 +93,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // --------------------------------------------------------------------------------------------
 
     let mut expected_nullifier_tree = chain.nullifiers().clone();
-    for nullifier in proposed_block.nullifiers().keys() {
+    for nullifier in proposed_block.created_nullifiers().keys() {
         expected_nullifier_tree.insert(
             nullifier.inner(),
             [Felt::from(proposed_block.block_num()), Felt::ZERO, Felt::ZERO, Felt::ZERO],
@@ -266,10 +266,10 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
 
     // The output note should have been erased, so we expect only the nullifiers of note0, note2 and
     // note3 to be created.
-    assert_eq!(proposed_block.nullifiers().len(), 3);
-    assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
-    assert!(proposed_block.nullifiers().contains_key(&note2.nullifier()));
-    assert!(proposed_block.nullifiers().contains_key(&note3.nullifier()));
+    assert_eq!(proposed_block.created_nullifiers().len(), 3);
+    assert!(proposed_block.created_nullifiers().contains_key(&note0.nullifier()));
+    assert!(proposed_block.created_nullifiers().contains_key(&note2.nullifier()));
+    assert!(proposed_block.created_nullifiers().contains_key(&note3.nullifier()));
 
     // There are two batches in the block.
     assert_eq!(proposed_block.output_note_batches().len(), 2);

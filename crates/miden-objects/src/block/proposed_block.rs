@@ -277,7 +277,7 @@ impl ProposedBlock {
     }
 
     /// Returns the map of nullifiers to their proofs from the proposed block.
-    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
+    pub fn created_nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
         &self.created_nullifiers
     }
 
