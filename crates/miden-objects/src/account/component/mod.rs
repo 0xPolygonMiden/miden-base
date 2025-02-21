@@ -8,8 +8,7 @@ pub use template::*;
 
 use crate::{
     account::{AccountType, StorageSlot},
-    utils::{Deserializable, Serializable},
-    AccountError, Digest,
+    AccountError,
 };
 
 /// An [`AccountComponent`] defines a [`Library`] of code and the initial value and types of
@@ -32,7 +31,6 @@ pub struct AccountComponent {
     pub(super) library: Library,
     pub(super) storage_slots: Vec<StorageSlot>,
     pub(super) supported_types: BTreeSet<AccountType>,
-    pub(super) providing_interface: AccountInterfaceType,
 }
 
 impl AccountComponent {
@@ -58,13 +56,10 @@ impl AccountComponent {
         u8::try_from(storage_slots.len())
             .map_err(|_| AccountError::StorageTooManySlots(storage_slots.len() as u64))?;
 
-        let interface_type = AccountInterfaceType::Custom(*code.digest());
-
         Ok(Self {
             library: code,
             storage_slots,
             supported_types: BTreeSet::new(),
-            providing_interface: interface_type,
         })
     }
 
@@ -181,10 +176,6 @@ impl AccountComponent {
         self.supported_types.contains(&account_type)
     }
 
-    pub fn providing_interface(&self) -> AccountInterfaceType {
-        self.providing_interface
-    }
-
     // MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -216,69 +207,10 @@ impl AccountComponent {
         ]);
         self
     }
-
-    pub fn with_account_interface(mut self, account_interface: AccountInterfaceType) -> Self {
-        self.providing_interface = account_interface;
-        self
-    }
 }
 
 impl From<AccountComponent> for Library {
     fn from(component: AccountComponent) -> Self {
         component.library
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum AccountInterfaceType {
-    BasicWallet,
-    BasicFungibleFaucet,
-    RpoFalcon512,
-    // currently I'm using the library hash, but I think we should use the hash of the whole
-    // component instead to be able to differentiate between two components with the same
-    // libraries but different storage slots and supported types
-    Custom(Digest),
-}
-
-impl Serializable for AccountInterfaceType {
-    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
-        match self {
-            AccountInterfaceType::BasicWallet => target.write_u8(0),
-            AccountInterfaceType::BasicFungibleFaucet => target.write_u8(1),
-            AccountInterfaceType::RpoFalcon512 => target.write_u8(2),
-            AccountInterfaceType::Custom(digest) => {
-                target.write_u8(3);
-                digest.write_into(target);
-            },
-        }
-    }
-
-    fn get_size_hint(&self) -> usize {
-        match self {
-            AccountInterfaceType::BasicWallet => 1,
-            AccountInterfaceType::BasicFungibleFaucet => 1,
-            AccountInterfaceType::RpoFalcon512 => 1,
-            AccountInterfaceType::Custom(digest) => digest.get_size_hint() + 1,
-        }
-    }
-}
-
-impl Deserializable for AccountInterfaceType {
-    fn read_from<R: vm_core::utils::ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, vm_processor::DeserializationError> {
-        let type_index = source.read_u8()?;
-        match type_index {
-            0 => Ok(AccountInterfaceType::BasicWallet),
-            1 => Ok(AccountInterfaceType::BasicFungibleFaucet),
-            2 => Ok(AccountInterfaceType::RpoFalcon512),
-            3 => {
-                let library_commitment = Digest::read_from(source)?;
-                Ok(AccountInterfaceType::Custom(library_commitment))
-            },
-            _ => Err(vm_processor::DeserializationError::InvalidValue(format!(
-                "invalid account interface type: {type_index}"
-            ))),
-        }
     }
 }

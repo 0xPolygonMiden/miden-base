@@ -1,6 +1,10 @@
 use assembly::LibraryPath;
 use miden_lib::{
-    account::{auth::RpoFalcon512, wallets::BasicWallet},
+    account::{
+        auth::RpoFalcon512,
+        interface::{AccountInterface, CheckResult},
+        wallets::BasicWallet,
+    },
     note::{create_p2id_note, create_p2idr_note, create_swap_note},
     transaction::TransactionKernel,
 };
@@ -22,11 +26,7 @@ use miden_objects::{
     },
     Felt,
 };
-use miden_tx::{
-    check_account_interface_compatibility,
-    testing::{Auth, MockChain},
-    CheckResult,
-};
+use miden_tx::testing::{Auth, MockChain};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 
@@ -41,7 +41,10 @@ fn test_basic_wallet_default_notes() {
     let mut mock_chain = MockChain::new();
     let wallet_account =
         mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
+    let wallet_account_interface = AccountInterface::from(&wallet_account);
+
     let faucet_account = mock_chain.add_existing_faucet(Auth::BasicAuth, "POL", 200u64, None);
+    let faucet_account_interface = AccountInterface::from(faucet_account.account());
 
     let p2id_note = create_p2id_note(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
@@ -78,32 +81,14 @@ fn test_basic_wallet_default_notes() {
     .unwrap();
 
     // Basic wallet
-    assert_eq!(
-        CheckResult::Yes,
-        check_account_interface_compatibility(wallet_account.code(), &p2id_note)
-    );
-    assert_eq!(
-        CheckResult::Yes,
-        check_account_interface_compatibility(wallet_account.code(), &p2idr_note)
-    );
-    assert_eq!(
-        CheckResult::Yes,
-        check_account_interface_compatibility(wallet_account.code(), &swap_note)
-    );
+    assert_eq!(CheckResult::Yes, wallet_account_interface.can_consume(&p2id_note));
+    assert_eq!(CheckResult::Yes, wallet_account_interface.can_consume(&p2idr_note));
+    assert_eq!(CheckResult::Yes, wallet_account_interface.can_consume(&swap_note));
 
     // Basic fungible faucet
-    assert_eq!(
-        CheckResult::No,
-        check_account_interface_compatibility(faucet_account.account().code(), &p2id_note)
-    );
-    assert_eq!(
-        CheckResult::No,
-        check_account_interface_compatibility(faucet_account.account().code(), &p2idr_note)
-    );
-    assert_eq!(
-        CheckResult::No,
-        check_account_interface_compatibility(faucet_account.account().code(), &swap_note)
-    );
+    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&p2id_note));
+    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&p2idr_note));
+    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&swap_note));
 
     // STATEFUL CHECK
     // --------------------------------------------------------------------------------------------
@@ -122,6 +107,8 @@ fn test_basic_wallet_custom_notes() {
     let mut mock_chain = MockChain::new();
     let wallet_account =
         mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
+    let wallet_account_interface = AccountInterface::from(&wallet_account);
+
     let sender_account_id =
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap();
     let serial_num =
@@ -160,7 +147,7 @@ fn test_basic_wallet_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         CheckResult::Maybe,
-        check_account_interface_compatibility(wallet_account.code(), &compatible_custom_note)
+        wallet_account_interface.can_consume(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -184,10 +171,7 @@ fn test_basic_wallet_custom_notes() {
             .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
-    assert_eq!(
-        CheckResult::No,
-        check_account_interface_compatibility(wallet_account.code(), &incompatible_custom_note)
-    );
+    assert_eq!(CheckResult::No, wallet_account_interface.can_consume(&incompatible_custom_note));
 
     // STATEFUL CHECK
     // --------------------------------------------------------------------------------------------
@@ -202,6 +186,8 @@ fn test_basic_fungible_faucet_custom_notes() {
 
     let mut mock_chain = MockChain::new();
     let faucet_account = mock_chain.add_existing_faucet(Auth::BasicAuth, "POL", 200u64, None);
+    let faucet_account_interface = AccountInterface::from(faucet_account.account());
+
     let sender_account_id =
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap();
     let serial_num =
@@ -240,10 +226,7 @@ fn test_basic_fungible_faucet_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         CheckResult::Maybe,
-        check_account_interface_compatibility(
-            faucet_account.account().code(),
-            &compatible_custom_note
-        )
+        faucet_account_interface.can_consume(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -267,13 +250,7 @@ fn test_basic_fungible_faucet_custom_notes() {
             .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
-    assert_eq!(
-        CheckResult::No,
-        check_account_interface_compatibility(
-            faucet_account.account().code(),
-            &incompatible_custom_note
-        )
-    );
+    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&incompatible_custom_note));
 
     // STATEFUL CHECK
     // --------------------------------------------------------------------------------------------
@@ -309,6 +286,7 @@ fn test_custom_account_custom_notes() {
         .with_component(account_component.clone())
         .build_existing()
         .unwrap();
+    let target_account_interface = AccountInterface::from(&target_account);
 
     let mut mock_chain = MockChain::with_accounts(&[target_account.clone()]);
     let sender_account =
@@ -352,7 +330,7 @@ fn test_custom_account_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         CheckResult::Maybe,
-        check_account_interface_compatibility(target_account.code(), &compatible_custom_note)
+        target_account_interface.can_consume(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -380,10 +358,7 @@ fn test_custom_account_custom_notes() {
     .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
-    assert_eq!(
-        CheckResult::No,
-        check_account_interface_compatibility(target_account.code(), &incompatible_custom_note)
-    );
+    assert_eq!(CheckResult::No, target_account_interface.can_consume(&incompatible_custom_note));
 
     // STATEFUL CHECK
     // --------------------------------------------------------------------------------------------
@@ -427,6 +402,7 @@ fn test_custom_account_multiple_components_custom_notes() {
         .with_component(rpo_component)
         .build_existing()
         .unwrap();
+    let target_account_interface = AccountInterface::from(&target_account);
 
     let mut mock_chain = MockChain::with_accounts(&[target_account.clone()]);
     let sender_account =
@@ -475,7 +451,7 @@ fn test_custom_account_multiple_components_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         CheckResult::Maybe,
-        check_account_interface_compatibility(target_account.code(), &compatible_custom_note)
+        target_account_interface.can_consume(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -510,8 +486,5 @@ fn test_custom_account_multiple_components_custom_notes() {
     .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault.clone(), metadata, recipient);
-    assert_eq!(
-        CheckResult::No,
-        check_account_interface_compatibility(target_account.code(), &incompatible_custom_note)
-    );
+    assert_eq!(CheckResult::No, target_account_interface.can_consume(&incompatible_custom_note));
 }

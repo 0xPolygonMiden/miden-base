@@ -2,8 +2,7 @@ use alloc::string::ToString;
 
 use miden_objects::{
     account::{
-        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountInterfaceType,
-        AccountStorageMode, AccountType,
+        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode, AccountType,
     },
     AccountError, Word,
 };
@@ -37,7 +36,6 @@ impl From<BasicWallet> for AccountComponent {
     fn from(_: BasicWallet) -> Self {
         AccountComponent::new(basic_wallet_library(), vec![])
           .expect("basic wallet component should satisfy the requirements of a valid account component")
-          .with_account_interface(AccountInterfaceType::BasicWallet)
           .with_supports_all_types()
     }
 }
