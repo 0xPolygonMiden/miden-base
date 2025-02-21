@@ -74,9 +74,11 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 
 #### Ephemeral note
 
-Ephemeral `Note`s can be consumed before having been registered on-chain. At the [blockchain](blockchain.md) level the protocol takes care to erase `Note`s if the creation and the consumption of the said `Note` happens to be in the same batch.
+If a note is produced and consumed within the same batch or block then the processor of this note may decide to make it an ephemeral note. Such a note is never formally recorded by the network but is essentially "erased" as part of the proving process. This is safe to do since the proving system knows this note was produced and was consumed. In a way this is similar to aggregating multiple account updates into a single one. 
 
-Ephemeral `Note`s can be chained together into a final proof which allows for example, sub-second communication below blocktimes by adding additional trust assumptions.
+This reduces the load and storage requirements of the network and batch and block producers will be incentivized to perform this erasure as part of the fee reward system.
+
+This can occur at both the batch and block production level.
 
 ### Note validation
 
