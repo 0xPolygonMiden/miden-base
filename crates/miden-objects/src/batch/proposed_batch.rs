@@ -149,15 +149,21 @@ impl ProposedBatch {
         }
 
         // Verify all block references from the transactions are in the chain MMR, except for the
-        // batch's reference block. Note that a block X is only added to the blockchain MMR by
-        // block X + 1. This is because block X cannot compute its own block commitment and
-        // thus cannot add itself to the chain. So, more generally, a parent block is added to the
-        // blockchain by its child block.
+        // batch's reference block.
+        //
+        // Note that some block X is only added to the blockchain MMR by block X + 1. This is
+        // because block X cannot compute its own block commitment and thus cannot add itself to the
+        // chain. So, more generally, a parent block is added to the blockchain by its child block.
+        //
         // The reference block of a batch may be the latest block in the chain and, as mentioned,
         // block is not yet part of the blockchain MMR, so its inclusion cannot be proven. Since the
         // inclusion cannot be proven in all cases, the batch kernel instead commits to this
-        // reference block's commitment as a public input, which means the block kernel will
-        // prove this block's inclusion when including this batch and verifying its ZK proof.
+        // reference block's commitment as a public input, which means the block kernel will prove
+        // this block's inclusion when including this batch and verifying its ZK proof.
+        //
+        // Finally, note that we don't verify anything cryptographically here. We have previously
+        // verified that the batch reference block's chain root matches the hashed peaks of the
+        // `ChainMmr`, and so we only have to check if the chain MMR contains the block here.
         // --------------------------------------------------------------------------------------------
 
         for tx in transactions.iter() {
