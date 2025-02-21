@@ -9,7 +9,7 @@ use super::{
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionWitness,
 };
-use crate::account::AccountCode;
+use crate::{account::AccountCode, block::BlockNumber};
 
 // EXECUTED TRANSACTION
 // ================================================================================================
@@ -99,6 +99,11 @@ impl ExecutedTransaction {
     /// Returns the notes created in this transaction.
     pub fn output_notes(&self) -> &OutputNotes {
         &self.tx_outputs.output_notes
+    }
+
+    /// Returns the block number at which the transaction will expire.
+    pub fn expiration_block_num(&self) -> BlockNumber {
+        self.tx_outputs.expiration_block_num
     }
 
     /// Returns a reference to the transaction args.
