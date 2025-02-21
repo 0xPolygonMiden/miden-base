@@ -25,7 +25,7 @@ pub struct ProposedBatch {
     /// The transactions of this batch.
     transactions: Vec<Arc<ProvenTransaction>>,
     /// The header is boxed as it has a large stack size.
-    block_header: BlockHeader,
+    reference_block_header: BlockHeader,
     /// The chain MMR used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
     /// - all block hashes referenced by the transactions in the batch.
@@ -74,9 +74,10 @@ impl ProposedBatch {
     ///     - Unauthenticated note authentication can be delayed to the block kernel.
     ///     - Another transaction in the batch creates an output note matching an unauthenticated
     ///       input note, in which case inclusion in the chain does not need to be proven.
-    /// - The block header's block number must be greater or equal to the highest block number
-    ///   referenced by any transaction. This is not verified explicitly, but will implicitly cause
-    ///   an error during validating that each reference block of a transaction is in the chain MMR.
+    /// - The reference block of a batch must satisfy the following requirement: Its block number
+    ///   must be greater or equal to the highest block number referenced by any transaction. This
+    ///   is not verified explicitly, but will implicitly cause an error during the validation that
+    ///   each reference block of a transaction is in the chain MMR.
     ///
     /// # Errors
     ///
@@ -110,7 +111,7 @@ impl ProposedBatch {
     ///   reference block.
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
-        block_header: BlockHeader,
+        reference_block_header: BlockHeader,
         chain_mmr: ChainMmr,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, ProposedBatchError> {
@@ -131,27 +132,35 @@ impl ProposedBatch {
         // Verify block header and chain MMR match.
         // --------------------------------------------------------------------------------------------
 
-        if chain_mmr.chain_length() != block_header.block_num() {
+        if chain_mmr.chain_length() != reference_block_header.block_num() {
             return Err(ProposedBatchError::InconsistentChainLength {
-                expected: block_header.block_num(),
+                expected: reference_block_header.block_num(),
                 actual: chain_mmr.chain_length(),
             });
         }
 
         let hashed_peaks = chain_mmr.peaks().hash_peaks();
-        if hashed_peaks != block_header.chain_root() {
+        if hashed_peaks != reference_block_header.chain_root() {
             return Err(ProposedBatchError::InconsistentChainRoot {
-                expected: block_header.chain_root(),
+                expected: reference_block_header.chain_root(),
                 actual: hashed_peaks,
             });
         }
 
         // Verify all block references from the transactions are in the chain MMR, except for the
-        // batch's reference block.
+        // batch's reference block. Note that a block X is only added to the blockchain MMR by
+        // block X + 1. This is because block X cannot compute its own block commitment and
+        // thus cannot add itself to the chain. So, more generally, a parent block is added to the
+        // blockchain by its child block.
+        // The reference block of a batch may be the latest block in the chain and, as mentioned,
+        // block is not yet part of the blockchain MMR, so its inclusion cannot be proven. Since the
+        // inclusion cannot be proven in all cases, the batch kernel instead commits to this
+        // reference block's commitment as a public input, which means the block kernel will
+        // prove this block's inclusion when including this batch and verifying its ZK proof.
         // --------------------------------------------------------------------------------------------
 
         for tx in transactions.iter() {
-            if block_header.block_num() != tx.block_num()
+            if reference_block_header.block_num() != tx.block_num()
                 && !chain_mmr.contains_block(tx.block_num())
             {
                 return Err(ProposedBatchError::MissingTransactionBlockReference {
@@ -202,11 +211,11 @@ impl ProposedBatch {
 
         let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
         for tx in transactions.iter() {
-            if tx.expiration_block_num() <= block_header.block_num() {
+            if tx.expiration_block_num() <= reference_block_header.block_num() {
                 return Err(ProposedBatchError::ExpiredTransaction {
                     transaction_id: tx.id(),
                     transaction_expiration_num: tx.expiration_block_num(),
-                    reference_block_num: block_header.block_num(),
+                    reference_block_num: reference_block_header.block_num(),
                 });
             }
 
@@ -245,7 +254,7 @@ impl ProposedBatch {
             transactions.iter().map(AsRef::as_ref),
             &unauthenticated_note_proofs,
             &chain_mmr,
-            &block_header,
+            &reference_block_header,
         )?;
 
         if input_notes.len() > MAX_INPUT_NOTES_PER_BATCH {
@@ -267,7 +276,7 @@ impl ProposedBatch {
         Ok(Self {
             id,
             transactions,
-            block_header,
+            reference_block_header,
             chain_mmr,
             unauthenticated_note_proofs,
             account_updates,
@@ -338,7 +347,7 @@ impl ProposedBatch {
     ) {
         (
             self.transactions,
-            self.block_header,
+            self.reference_block_header,
             self.chain_mmr,
             self.unauthenticated_note_proofs,
             self.id,
@@ -361,7 +370,7 @@ impl Serializable for ProposedBatch {
             .collect::<Vec<ProvenTransaction>>()
             .write_into(target);
 
-        self.block_header.write_into(target);
+        self.reference_block_header.write_into(target);
         self.chain_mmr.write_into(target);
         self.unauthenticated_note_proofs.write_into(target);
     }
@@ -460,7 +469,7 @@ mod tests {
             .context("failed to deserialize proposed batch")?;
 
         assert_eq!(batch.transactions(), batch2.transactions());
-        assert_eq!(batch.block_header, batch2.block_header);
+        assert_eq!(batch.reference_block_header, batch2.reference_block_header);
         assert_eq!(batch.chain_mmr, batch2.chain_mmr);
         assert_eq!(batch.unauthenticated_note_proofs, batch2.unauthenticated_note_proofs);
         assert_eq!(batch.id, batch2.id);
