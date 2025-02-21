@@ -20,25 +20,21 @@ This approach enables near-instant blockchain syncing by verifying `Block` proof
     <img src="../img/architecture/blockchain/execution.png" style="width:70%;" alt="Execution diagram"/>
 </p>
 
-## Batching
+## Batch production
 
-To reduce the load on the blockchain, transaction proofs are aggregated into batches by batch producers first, not directly into `Block`s. Batch production is highly parallelizable and there will be multiple batch producers running at the same time.
+To reduce the load on the blockchain, transaction proofs are first aggregated into batches by batch producers instead of being added directly into `Block`s. Batch production is highly parallelizable, and multiple batch producers may run simultaneously.
 
-The purpose of this scheme is to produce a single proof attesting to the validity of some number of transactions which is done by recursively verifying each transaction proof in the Miden VM.
+The purpose of this scheme is to produce a single proof that attests to the validity of a number of transactions. This is achieved by recursively verifying each transaction proof within the Miden VM.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Batch diagram"/>
 </p>
 
-The batch producer processes each transaction proof sequentially and verifies each proof against the initial and final state commitment of the affected account. There are some rules that the batch producer needs to follow to ensure the correctness of the overall protocol.
+The batch producer processes each transaction proof sequentially and verifies each proof against the initial and final state commitment of the affected account. Several rules must be followed to ensure the correctness of the overall protocol:
 
-First, if several transactions in the same batch affect one single account, the correct ordering must be enforced. That means if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify in the correct order `A -> Tx1 -> A' -> Tx2 -> A''`.
-
-Second, to prevent double spending. The batch producer needs to check the uniqueness of all notes across all transactions in the batch for the transactions to be valid.
-
-Third, it is possible to set an expiration window for transactions which result in the batch having an expiration window, too. If transaction `A` specifies it expires at block `8`, and transaction `B` specifies it expires at block `5`, and both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
-
-Forth, the set of notes resulting from all transactions in a batch must be free of duplicates. For example, consider two valid transactions creating exactly the same note. Both notes have the same nullifier but only one note could later be consumed because the nullifier would be marked as spent after the first one is consumed.
+1. **Ordering of transactions**: If several transactions within the same batch affect a single account, the correct ordering must be enforced. For example, if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify them in the order: `A -> Tx1 -> A' -> Tx2 -> A''`.
+2. **Prevention of double spending and duplicate notes**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This prevents double spending and avoids the situation where duplicate notes, which would share identical nullifiers, are created. Only one of such duplicate notes can later be consumed, as the nullifier will be marked as spent after the first consumption.
+3. **Expiration windows**: It is possible to set an expiration window for transactions, which in turn sets an expiration window for the entire batch. For instance, if transaction `A` expires at block `8` and transaction `B` expires at block `5`, then the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
 
 ## Block production
 
