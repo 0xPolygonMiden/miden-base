@@ -92,8 +92,7 @@ impl Account {
         // The component does not have any storage slots so we don't need to instantiate storage
         // from the component. We also need to set the custom value for the storage map so we
         // construct storage manually.
-        let account_storage =
-            AccountStorage::new(vec![StorageSlot::Map(nft_storage_map)]).unwrap();
+        let account_storage = AccountStorage::new(vec![StorageSlot::Map(nft_storage_map)]).unwrap();
 
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
     }

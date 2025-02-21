@@ -54,11 +54,12 @@ pub enum AccountComponentTemplateError {
     TomlSerializationError(#[source] toml::ser::Error),
     #[error("error converting value into expected type: ")]
     StorageValueParsingError(#[source] TemplateTypeError),
-    #[error("storage map contains duplicate key `{0}`")]
-    StorageMapHasDuplicateKeys(Digest),
+    #[error("storage map contains duplicate keys")]
+    StorageMapHasDuplicateKeys(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error("component storage slots have to start at 0, but they start at {0}")]
     StorageSlotsDoNotStartAtZero(u8),
 }
+
 // ACCOUNT ERROR
 // ================================================================================================
 

@@ -534,11 +534,8 @@ impl MapRepresentation {
             })
             .collect::<Result<Vec<(Digest, Word)>, _>>()?;
 
-            StorageMap::with_entries(entries).map_err(|err| {
-                // Include the error directly instead of using it as a source error, since this
-                // error variant is used in another place as well.
-                AccountComponentTemplateError::StorageMapHasDuplicateKeys(err.to_string().as_bytes().try_into().expect("Unable to convert error to Digest"))
-            })
+        StorageMap::with_entries(entries)
+            .map_err(|err| AccountComponentTemplateError::StorageMapHasDuplicateKeys(Box::new(err)))
     }
 
     /// Validates map keys by checking for duplicates.
@@ -559,7 +556,9 @@ impl MapRepresentation {
             {
                 let key: Digest = key.into();
                 if !seen_keys.insert(key) {
-                    return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(key));
+                    return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(
+                        Box::from(format!("key `{key}` is duplicated")),
+                    ));
                 }
             };
         }
