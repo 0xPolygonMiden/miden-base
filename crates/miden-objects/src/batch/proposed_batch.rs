@@ -64,7 +64,8 @@ impl ProposedBatch {
     ///   matches the account state before any transactions are executed and B's initial account
     ///   state commitment matches the final account state commitment of A, then A must come before
     ///   B.
-    /// - The chain MMR should contain all block headers
+    /// - The chain MMR's hashed peaks must match the reference block's `chain_root` and it must
+    ///   contain all block headers:
     ///   - that are referenced by note inclusion proofs in `unauthenticated_note_proofs`.
     ///   - that are referenced by a transaction in the batch.
     /// - The `unauthenticated_note_proofs` should contain [`NoteInclusionProof`]s for any
