@@ -22,7 +22,7 @@ This approach enables near-instant blockchain syncing by verifying `Block` proof
 
 ## Batch production
 
-To reduce the load on the blockchain, transaction proofs are first aggregated into batches by batch producers instead of being added directly into `Block`s. Batch production is highly parallelizable, and multiple batch producers may run simultaneously.
+A Miden block consist of multiple transaction batches. This enables recursive proving and also allows transactions to be processed concurrently as batches with no overlap in accounts and notes can be built in parallel. Miden will have multiple batch producers operating simultaneously and, together with offchain/client-side transaction proving, this massively reduces the work the network is required to do.
 
 The purpose of this scheme is to produce a single proof that attests to the validity of a number of transactions. This is achieved by recursively verifying each transaction proof within the Miden VM.
 
