@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use crate::alloc::vec::Vec;
 
 use kernel_v0::KERNEL0_PROCEDURES;
 use miden_objects::{Digest, Felt, Hasher};

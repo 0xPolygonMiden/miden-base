@@ -1,12 +1,10 @@
-use miden_objects::{
-    account::{AccountHeader, AccountId},
-    AccountError, Felt, Word, WORD_SIZE,
-};
+use miden_objects::{AccountError, Word, WORD_SIZE};
 
 use super::memory::{
     MemoryOffset, ACCT_CODE_COMMITMENT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET,
     ACCT_NONCE_IDX, ACCT_STORAGE_COMMITMENT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
+use super::{AccountHeader, AccountId, Felt};
 use crate::transaction::memory::{ACCT_ID_PREFIX_IDX, ACCT_ID_SUFFIX_IDX};
 
 // STACK OUTPUTS
