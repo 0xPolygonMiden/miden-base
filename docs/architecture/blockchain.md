@@ -1,20 +1,20 @@
 # Blockchain
 
-The Miden blockchain protocol describes the process of how [state](state.md) progresses. `Block`s in Miden are containers that aggregate account state changes and their proofs, together with created and consumed notes. For every `Block`, there is a `Block` proof that attests to the correctness of all state transitions it contains.
+The Miden blockchain protocol describes how the [state](state.md) progresses. In Miden, `Block`s are containers that aggregate account state changes and their proofs, together with created and consumed notes. Each `Block` is accompanied by a corresponding proof that attests to the correctness of all state transitions it contains.
 
-`Block`s represent the delta of the global [state](state.md) between two time periods. One can derive the current global state, by applying all the blocks to the genesis state.
+`Block`s represent the delta of the global [state](state.md) between two time periods. The current global state can be derived by applying all the blocks to the genesis state.
 
 Miden's blockchain protocol aims for the following:
 
 - **Proven transactions**: All included transactions have already been proven and verified when they reach the block.
 - **Fast genesis syncing**: New nodes efficiently sync to the network through a multi-step process:
 
-1. Download historical `Block`s from genesis to present
-2. Verify zero-knowledge proofs for all `Block`s
-3. Retrieve current state data (accounts, notes, and nullifiers)
-4. Validate that the downloaded state matches the latest `Block`'s state commitment
+  1. Download historical `Block`s from genesis to the present.
+  2. Verify zero-knowledge proofs for all `Block`s.
+  3. Retrieve current state data (accounts, notes, and nullifiers).
+  4. Validate that the downloaded state matches the latest `Block`'s state commitment.
 
-This approach enables near-instant blockchain syncing by verifying `Block` proofs rather than re-executing individual transactions, resulting in exponentially faster performance. Hence state sync is dominated by the time needed to download the data.
+This approach enables near-instant blockchain syncing by verifying `Block` proofs rather than re-executing individual transactions, resulting in exponentially faster performance. Consequently, state sync is dominated by the time needed to download the data.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/execution.png" style="width:70%;" alt="Execution diagram"/>
@@ -57,13 +57,13 @@ To create a `Block` multiple batches and their respective proofs are aggregated 
 
 ## Verifying blocks
 
-To verify that a `Block` corresponds to a valid (global) state transition, the following must be done:
+To verify that a `Block` corresponds to a valid global state transition, the following steps must be performed:
 
-1. Compute hashes of public accounts and notes states.
-2. Ensure that these hashes match records in the **state updates** section (see picture).
-3. Verify the included `Block` proof against the following public inputs and output:
-   - Input: Previous `Block` commitment.
-   - Input: Set of batches commitment.
-   - Output: Current `Block` commitment.
+1. Compute the hashes of public accounts and note states.
+2. Ensure that these hashes match the records in the **state updates** section.
+3. Verify the included `Block` proof using the following public inputs and output:
+   - **Input**: Previous `Block` commitment.
+   - **Input**: Set of batch commitments.
+   - **Output**: Current `Block` commitment.
 
-The above can be performed by an arbitrary verifier (e.g., contract on Ethereum, Polygon AggLayer, decentralized network of Miden nodes).
+These steps can be performed by any verifier (e.g., a contract on Ethereum, Polygon AggLayer, or a decentralized network of Miden nodes).
