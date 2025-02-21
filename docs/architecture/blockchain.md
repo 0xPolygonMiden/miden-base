@@ -49,7 +49,7 @@ But the batch producer needs to check, the uniqueness of ephemeral notes across 
 
 Third, it is possible to set an expiration window for transactions which result in the batch having an expiration window, too. If transaction `A` specifies it expires at block `8`, and transaction `B` specifies it expires at block `5`, and both end up in the same batch, the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
 
-Forth, the set of notes resulting from all transactions in a batch must be free of duplicates. Which means that two valid transactions creating exactly the same note resulting in having the same nullifier and hence the note being consumable only once wouldn't be allowed.
+Forth, the set of notes resulting from all transactions in a batch must be free of duplicates. For example, consider two valid transactions creating exactly the same note. Both notes have the same nullifier but only one note could later be consumed because the nullifier would be marked as spent after the first one is consumed.
 
 ## Block production
 
