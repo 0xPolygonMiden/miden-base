@@ -63,7 +63,7 @@ To create a `Block` multiple batches and their respective proofs are aggregated 
 
 > **Tip: Block contents**
 > - **State updates** only contain the hashes of updated elements. For example, for each updated account, we record a tuple `([account id], [new account hash])`.
-> - **ZK Proof** attests that, given a state commitment from the previous `Block`, there was a sequence of valid transactions executed that resulted in the new state commitment, and the output also included state updates.
+> - **ZK Proof** attests that, given a state commitment from the previous `Block`, there was a set of valid batches executed that resulted in the new state commitment.
 > - The `Block` also contains full account and note data for public accounts and notes. For example, if account `123` is an updated public account which, in the **state updates** section we'd see a record for it as `(123, 0x456..)`. The full new state of this account (which should hash to `0x456..`) would be included in a separate section.
 
 ## Verifying blocks
