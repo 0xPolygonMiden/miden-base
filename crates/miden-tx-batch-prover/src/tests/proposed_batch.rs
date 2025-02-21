@@ -92,7 +92,6 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
 
     assert_eq!(batch.input_notes().num_notes(), 0);
     assert_eq!(batch.output_notes().len(), 0);
-    assert_eq!(batch.output_notes_tree().num_leaves(), 0);
 
     Ok(())
 }
@@ -379,7 +378,6 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
 
     assert_eq!(batch.input_notes().num_notes(), 1);
     assert_eq!(batch.output_notes().len(), 1);
-    assert_eq!(batch.output_notes_tree().num_leaves(), 1);
 
     Ok(())
 }
@@ -490,8 +488,6 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
     assert_eq!(batch.output_notes().len(), 3);
     assert_eq!(batch.output_notes(), expected_output_notes);
 
-    assert_eq!(batch.output_notes_tree().num_leaves(), 3);
-
     // Input notes are sorted by the order in which they appeared in the batch.
     assert_eq!(batch.input_notes().num_notes(), 2);
     assert_eq!(
@@ -515,9 +511,11 @@ fn batch_expiration() -> anyhow::Result<()> {
         .block_reference(block1.hash())
         .expiration_block_num(BlockNumber::from(35))
         .build()?;
+    // This transaction has the smallest valid expiration block num that allows it to still be
+    // included in the batch.
     let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
         .block_reference(block1.hash())
-        .expiration_block_num(BlockNumber::from(30))
+        .expiration_block_num(block1.block_num() + 1)
         .build()?;
 
     let batch = ProposedBatch::new(
@@ -527,7 +525,7 @@ fn batch_expiration() -> anyhow::Result<()> {
         BTreeMap::default(),
     )?;
 
-    assert_eq!(batch.batch_expiration_block_num(), BlockNumber::from(30));
+    assert_eq!(batch.batch_expiration_block_num(), block1.block_num() + 1);
 
     Ok(())
 }
@@ -587,6 +585,44 @@ fn circular_note_dependency() -> anyhow::Result<()> {
 
     assert_eq!(batch.input_notes().num_notes(), 0);
     assert_eq!(batch.output_notes().len(), 0);
+
+    Ok(())
+}
+
+/// Tests that expired transactions cannot be included in a batch.
+#[test]
+fn expired_transaction() -> anyhow::Result<()> {
+    let TestSetup { chain, account1, account2 } = setup_chain();
+    let block1 = chain.block_header(1);
+
+    // This transaction expired at the batch's reference block.
+    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+        .block_reference(block1.hash())
+        .expiration_block_num(block1.block_num())
+        .build()?;
+    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+        .block_reference(block1.hash())
+        .expiration_block_num(block1.block_num() + 3)
+        .build()?;
+
+    let error = ProposedBatch::new(
+        [tx1.clone(), tx2].into_iter().map(Arc::new).collect(),
+        block1,
+        chain.latest_chain_mmr(),
+        BTreeMap::default(),
+    )
+    .unwrap_err();
+
+    assert_matches!(
+        error,
+        ProposedBatchError::ExpiredTransaction {
+            transaction_id,
+            transaction_expiration_num,
+            reference_block_num
+        }  if transaction_id == tx1.id() &&
+            transaction_expiration_num == block1.block_num() &&
+            reference_block_num == block1.block_num()
+    );
 
     Ok(())
 }

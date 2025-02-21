@@ -3,8 +3,11 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::EMPTY_WORD;
-use vm_processor::Digest;
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    EMPTY_WORD,
+};
+use vm_processor::{DeserializationError, Digest};
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
@@ -76,6 +79,8 @@ impl ProposedBlock {
     ///
     /// - The number of batches is zero or exceeds [`MAX_BATCHES_PER_BLOCK`].
     /// - There are duplicate batches, i.e. they have the same [`BatchId`].
+    /// - The expiration block number of any batch is less than the block number of the currently
+    ///   proposed block.
     ///
     /// ## Chain
     ///
@@ -142,6 +147,11 @@ impl ProposedBlock {
         // --------------------------------------------------------------------------------------------
 
         check_timestamp_increases_monotonically(timestamp, block_inputs.prev_block_header())?;
+
+        // Check for batch expiration.
+        // --------------------------------------------------------------------------------------------
+
+        check_batch_expiration(&batches, block_inputs.prev_block_header())?;
 
         // Check for consistency between the chain MMR and the referenced previous block.
         // --------------------------------------------------------------------------------------------
@@ -326,6 +336,36 @@ impl ProposedBlock {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProposedBlock {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.batches.write_into(target);
+        self.timestamp.write_into(target);
+        self.account_updated_witnesses.write_into(target);
+        self.output_note_batches.write_into(target);
+        self.created_nullifiers.write_into(target);
+        self.chain_mmr.write_into(target);
+        self.prev_block_header.write_into(target);
+    }
+}
+
+impl Deserializable for ProposedBlock {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let block = Self {
+            batches: <Vec<ProvenBatch>>::read_from(source)?,
+            timestamp: u32::read_from(source)?,
+            account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
+            output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
+            created_nullifiers: <BTreeMap<Nullifier, NullifierWitness>>::read_from(source)?,
+            chain_mmr: ChainMmr::read_from(source)?,
+            prev_block_header: BlockHeader::read_from(source)?,
+        };
+
+        Ok(block)
+    }
+}
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -353,6 +393,29 @@ fn check_timestamp_increases_monotonically(
     } else {
         Ok(())
     }
+}
+
+/// Checks whether any of the batches is expired and can no longer be included in this block.
+///
+/// To illustrate, a batch which expired at block 4 cannot be included in block 5, but if it
+/// expires at block 5 then it can still be included in block 5.
+fn check_batch_expiration(
+    batches: &[ProvenBatch],
+    prev_block_header: &BlockHeader,
+) -> Result<(), ProposedBlockError> {
+    let current_block_num = prev_block_header.block_num() + 1;
+
+    for batch in batches {
+        if batch.batch_expiration_block_num() < current_block_num {
+            return Err(ProposedBlockError::ExpiredBatch {
+                batch_id: batch.id(),
+                batch_expiration_block_num: batch.batch_expiration_block_num(),
+                current_block_num,
+            });
+        }
+    }
+
+    Ok(())
 }
 
 /// Check that each nullifier in the block has a proof provided and that the nullifier is

@@ -19,9 +19,11 @@
 - Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
 - Added `prefix` to `Nullifier` (#1153).
 - [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
-- [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152).
+- [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168).
 - [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
 - Implement `AccountInterface` structure (#1171).
+- Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#1169).
+- Use `Smt::with_entries` to error on duplicates in `StorageMap::with_entries` (#1167)
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

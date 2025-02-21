@@ -1,36 +1,31 @@
 use alloc::{
-    boxed::Box,
     string::{String, ToString},
     sync::Arc,
 };
 
 use miden_objects::{
-    transaction::{ProvenTransaction, TransactionWitness},
+    block::{ProposedBlock, ProvenBlock},
     utils::{Deserializable, DeserializationError, Serializable},
 };
-use miden_tx::{TransactionProver, TransactionProverError};
 use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
 use crate::{
-    proving_service::{
-        generated,
-        generated::{ProofType, ProvingRequest, ProvingResponse},
-    },
+    proving_service::generated::{ProofType, ProvingRequest, ProvingResponse},
     RemoteProverError,
 };
 
-// REMOTE TRANSACTION PROVER
+// REMOTE BLOCK PROVER
 // ================================================================================================
 
-/// A [RemoteTransactionProver] is a transaction prover that sends witness data to a remote
-/// gRPC server and receives a proven transaction.
+/// A [`RemoteBlockProver`] is a block prover that sends a proposed block data to a remote
+/// gRPC server and receives a proven block.
 ///
 /// When compiled for the `wasm32-unknown-unknown` target, it uses the `tonic_web_wasm_client`
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
 ///
 /// The transport layer connection is established lazily when the first transaction is proven.
-pub struct RemoteTransactionProver {
+pub struct RemoteBlockProver {
     #[cfg(target_arch = "wasm32")]
     client: Arc<Mutex<Option<ApiClient<tonic_web_wasm_client::Client>>>>,
 
@@ -40,17 +35,17 @@ pub struct RemoteTransactionProver {
     endpoint: String,
 }
 
-impl RemoteTransactionProver {
-    /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint. The
+impl RemoteBlockProver {
+    /// Creates a new [RemoteBlockProver] with the specified gRPC server endpoint. The
     /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
     pub fn new(endpoint: impl Into<String>) -> Self {
-        RemoteTransactionProver {
+        RemoteBlockProver {
             endpoint: endpoint.into(),
             client: Arc::new(Mutex::new(None)),
         }
     }
 
-    /// Establishes a connection to the remote transaction prover server. The connection is
+    /// Establishes a connection to the remote block prover server. The connection is
     /// maintained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
     async fn connect(&self) -> Result<(), RemoteProverError> {
@@ -78,59 +73,59 @@ impl RemoteTransactionProver {
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl TransactionProver for RemoteTransactionProver {
-    async fn prove(
+impl RemoteBlockProver {
+    pub async fn prove(
         &self,
-        tx_witness: TransactionWitness,
-    ) -> Result<ProvenTransaction, TransactionProverError> {
+        proposed_block: ProposedBlock,
+    ) -> Result<ProvenBlock, RemoteProverError> {
         use miden_objects::utils::Serializable;
-        self.connect().await.map_err(|err| {
-            TransactionProverError::other_with_source("failed to connect to the remote prover", err)
-        })?;
+        self.connect().await?;
 
         let mut client = self
             .client
             .lock()
             .await
             .as_ref()
-            .ok_or_else(|| TransactionProverError::other("client should be connected"))?
+            .ok_or_else(|| {
+                RemoteProverError::ConnectionFailed("client should be connected".into())
+            })?
             .clone();
 
-        let request = tonic::Request::new(tx_witness.into());
+        let request = tonic::Request::new(proposed_block.into());
 
-        let response = client.prove(request).await.map_err(|err| {
-            TransactionProverError::other_with_source("failed to prove transaction", err)
+        let response = client
+            .prove(request)
+            .await
+            .map_err(|err| RemoteProverError::other_with_source("failed to prove block", err))?;
+
+        // Deserialize the response bytes back into a ProvenBlock.
+        let proven_block = ProvenBlock::try_from(response.into_inner()).map_err(|err| {
+            RemoteProverError::other_with_source(
+                "failed to deserialize received response from remote block prover",
+                err,
+            )
         })?;
 
-        // Deserialize the response bytes back into a ProvenTransaction.
-        let proven_transaction =
-            ProvenTransaction::try_from(response.into_inner()).map_err(|_| {
-                TransactionProverError::other(
-                    "failed to deserialize received response from remote transaction prover",
-                )
-            })?;
-
-        Ok(proven_transaction)
+        Ok(proven_block)
     }
 }
 
-// CONVERSIONS
+// CONVERSION
 // ================================================================================================
 
-impl TryFrom<ProvingResponse> for ProvenTransaction {
+impl TryFrom<ProvingResponse> for ProvenBlock {
     type Error = DeserializationError;
 
-    fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
-        ProvenTransaction::read_from_bytes(&response.payload)
+    fn try_from(value: ProvingResponse) -> Result<Self, Self::Error> {
+        ProvenBlock::read_from_bytes(&value.payload)
     }
 }
 
-impl From<TransactionWitness> for ProvingRequest {
-    fn from(witness: TransactionWitness) -> Self {
+impl From<ProposedBlock> for ProvingRequest {
+    fn from(proposed_block: ProposedBlock) -> Self {
         ProvingRequest {
-            proof_type: ProofType::Transaction.into(),
-            payload: witness.to_bytes(),
+            proof_type: ProofType::Block.into(),
+            payload: proposed_block.to_bytes(),
         }
     }
 }
