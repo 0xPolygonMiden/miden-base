@@ -22,6 +22,7 @@
 - [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168).
 - [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
 - Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#1169).
+- Use `Smt::with_entries` to error on duplicates in `StorageMap::with_entries` (#1167)
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

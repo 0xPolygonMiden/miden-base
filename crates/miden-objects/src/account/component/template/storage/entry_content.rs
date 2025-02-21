@@ -534,15 +534,8 @@ impl MapRepresentation {
             })
             .collect::<Result<Vec<(Digest, Word)>, _>>()?;
 
-        // Validate that no key appears multiple times.
-        let mut seen_keys = BTreeSet::new();
-        for (map_key, _) in entries.iter() {
-            if !seen_keys.insert(map_key) {
-                return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(*map_key));
-            }
-        }
-
-        Ok(StorageMap::with_entries(entries))
+        StorageMap::with_entries(entries)
+            .map_err(|err| AccountComponentTemplateError::StorageMapHasDuplicateKeys(Box::new(err)))
     }
 
     /// Validates map keys by checking for duplicates.
@@ -563,7 +556,9 @@ impl MapRepresentation {
             {
                 let key: Digest = key.into();
                 if !seen_keys.insert(key) {
-                    return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(key));
+                    return Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(
+                        Box::from(format!("key `{key}` is duplicated")),
+                    ));
                 }
             };
         }
