@@ -183,7 +183,6 @@ impl ProposedBatch {
 
         // Populate batch output notes and updated accounts.
         let mut account_updates = BTreeMap::<AccountId, BatchAccountUpdate>::new();
-        let mut batch_expiration_block_num = BlockNumber::from(u32::MAX);
         for tx in transactions.iter() {
             // Merge account updates so that state transitions A->B->C become A->C.
             match account_updates.entry(tx.account_id()) {
@@ -202,10 +201,6 @@ impl ProposedBatch {
                     })?;
                 },
             };
-
-            // The expiration block of the batch is the minimum of all transaction's expiration
-            // block.
-            batch_expiration_block_num = batch_expiration_block_num.min(tx.expiration_block_num());
         }
 
         if account_updates.len() > MAX_ACCOUNTS_PER_BATCH {
