@@ -42,18 +42,23 @@ Forth, the set of notes resulting from all transactions in a batch must be free 
 
 ## Block production
 
-To create a `Block` multiple batches and their respective proofs are aggregated into a `Block`.
+To create a `Block`, multiple batches and their respective proofs are aggregated. `Block` production is not parallelizable and must be performed by the Miden operator. In the future, several Miden operators may compete for `Block` production. The schema used for `Block` production is similar to that in batch production—recursive verification. Multiple batch proofs are aggregated into a single `Block` proof. In addition, the `Block` contains:
+- The commitments to the current global [state](state.md).
+- The newly created nullifiers.
+- The new state commitments for affected private accounts.
+- The full states for all affected public accounts and newly created notes.
 
-`Block` production cannot happen in parallel and must be done by the Miden operator. In the future there will be several Miden operators competing for `Block` production. The schema used for `Block` production is similar to the one used in batch production - recursive verification. Multiple batch proofs are aggregated into a single `Block` proof. However, the `Block` also contains the commitments to the current global [state](state.md), the newly created nullifiers, the new state commitments for affected private accounts and the full states for all affected public accounts and newly created notes. The `Block` proof attests to the correct state transition from the previous `Block` commitment to the next and therefore to the change of the global state of Miden.
+The `Block` proof attests to the correct state transition from the previous `Block` commitment to the next, and therefore to the change in Miden's global state.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/block.png" style="width:90%;" alt="Block diagram"/>
 </p>
 
-> **Tip: Block contents**
-> - **State updates** only contain the hashes of updated elements. For example, for each updated account, we record a tuple `([account id], [new account hash])`.
-> - **ZK Proof** attests that, given a state commitment from the previous `Block`, there was a set of valid batches executed that resulted in the new state commitment.
-> - The `Block` also contains full account and note data for public accounts and notes. For example, if account `123` is an updated public account which, in the **state updates** section we'd see a record for it as `(123, 0x456..)`. The full new state of this account (which should hash to `0x456..`) would be included in a separate section.
+> **Tip: Block Contents**
+>
+> - **State updates**: Contains only the hashes of updated elements. For example, for each updated account, a tuple is recorded as `([account id], [new account hash])`.
+> - **ZK Proof**: This proof attests that, given a state commitment from the previous `Block`, a set of valid batches was executed that resulted in the new state commitment.
+> - The `Block` also includes the full account and note data for public accounts and notes. For example, if account `123` is a public account that has been updated, you would see a record in the **state updates** section as `(123, 0x456..)`, and the full new state of this account (which should hash to `0x456..`) would be included in a separate section.
 
 ## Verifying blocks
 
