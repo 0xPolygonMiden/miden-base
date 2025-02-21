@@ -30,7 +30,7 @@ The purpose of this scheme is to produce a single proof that attests to the vali
     <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Batch diagram"/>
 </p>
 
-The batch producer processes each transaction proof sequentially and verifies each proof against the initial and final state commitment of the affected account. Several rules must be followed to ensure the correctness of the overall protocol:
+The batch producer aggregates transactions sequentially by verifying their proofs and state transactions are correct. More specifically, the batch producers ensures:
 
 1. **Ordering of transactions**: If several transactions within the same batch affect a single account, the correct ordering must be enforced. For example, if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify them in the order: `A -> Tx1 -> A' -> Tx2 -> A''`.
 2. **Prevention of double spending and duplicate notes**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This prevents double spending and avoids the situation where duplicate notes, which would share identical nullifiers, are created. Only one of such duplicate notes can later be consumed, as the nullifier will be marked as spent after the first consumption.
