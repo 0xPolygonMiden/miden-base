@@ -71,8 +71,8 @@ impl ProvenBlock {
     }
 
     /// Returns the header of this block.
-    pub fn header(&self) -> BlockHeader {
-        self.header
+    pub fn header(&self) -> &BlockHeader {
+        &self.header
     }
 
     /// Returns the slice of [`BlockAccountUpdate`]s for all accounts updated in this block.

@@ -28,7 +28,7 @@ use crate::{
 ///   representation is sufficient to represent time up to year 2106.
 /// - `sub_hash` is a sequential hash of all fields except the note_root.
 /// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockHeader {
     version: u32,
     prev_hash: Digest,
