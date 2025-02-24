@@ -20,6 +20,7 @@ use crate::errors::ProvenBlockError;
 // ================================================================================================
 
 /// A local prover for blocks, proving a [`ProposedBlock`] and returning a [`ProvenBlock`].
+#[derive(Clone)]
 pub struct LocalBlockProver {}
 
 impl LocalBlockProver {
