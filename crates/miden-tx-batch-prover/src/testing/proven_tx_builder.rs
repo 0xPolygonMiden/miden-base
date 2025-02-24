@@ -1,5 +1,3 @@
-use alloc::vec::Vec;
-
 use anyhow::Context;
 use miden_crypto::merkle::MerklePath;
 use miden_objects::{
@@ -11,6 +9,8 @@ use miden_objects::{
 };
 use vm_processor::Digest;
 use winterfell::Proof;
+
+use crate::alloc::vec::Vec;
 
 /// A builder to build mocked [`ProvenTransaction`]s.
 pub struct MockProvenTxBuilder {
