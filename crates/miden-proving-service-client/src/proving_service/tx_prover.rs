@@ -1,15 +1,24 @@
-pub mod generated;
-
 use alloc::{
     boxed::Box,
     string::{String, ToString},
+    sync::Arc,
 };
 
-use generated::api_client::ApiClient;
-use miden_objects::transaction::{ProvenTransaction, TransactionWitness};
-use miden_tx::{utils::sync::RwLock, TransactionProver, TransactionProverError};
+use miden_objects::{
+    transaction::{ProvenTransaction, TransactionWitness},
+    utils::{Deserializable, DeserializationError, Serializable},
+};
+use miden_tx::{TransactionProver, TransactionProverError};
+use tokio::sync::Mutex;
 
-use crate::RemoteProverError;
+use super::generated::api_client::ApiClient;
+use crate::{
+    proving_service::{
+        generated,
+        generated::{ProofType, ProvingRequest, ProvingResponse},
+    },
+    RemoteProverError,
+};
 
 // REMOTE TRANSACTION PROVER
 // ================================================================================================
@@ -23,10 +32,10 @@ use crate::RemoteProverError;
 /// The transport layer connection is established lazily when the first transaction is proven.
 pub struct RemoteTransactionProver {
     #[cfg(target_arch = "wasm32")]
-    client: RwLock<Option<ApiClient<tonic_web_wasm_client::Client>>>,
+    client: Arc<Mutex<Option<ApiClient<tonic_web_wasm_client::Client>>>>,
 
     #[cfg(not(target_arch = "wasm32"))]
-    client: RwLock<Option<ApiClient<tonic::transport::Channel>>>,
+    client: Arc<Mutex<Option<ApiClient<tonic::transport::Channel>>>>,
 
     endpoint: String,
 }
@@ -34,10 +43,10 @@ pub struct RemoteTransactionProver {
 impl RemoteTransactionProver {
     /// Creates a new [RemoteTransactionProver] with the specified gRPC server endpoint. The
     /// endpoint should be in the format `{protocol}://{hostname}:{port}`.
-    pub fn new(endpoint: &str) -> Self {
+    pub fn new(endpoint: impl Into<String>) -> Self {
         RemoteTransactionProver {
-            endpoint: endpoint.to_string(),
-            client: RwLock::new(None),
+            endpoint: endpoint.into(),
+            client: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -45,7 +54,7 @@ impl RemoteTransactionProver {
     /// maintained for the lifetime of the prover. If the connection is already established, this
     /// method does nothing.
     async fn connect(&self) -> Result<(), RemoteProverError> {
-        let mut client = self.client.write();
+        let mut client = self.client.lock().await;
         if client.is_some() {
             return Ok(());
         }
@@ -82,16 +91,15 @@ impl TransactionProver for RemoteTransactionProver {
 
         let mut client = self
             .client
-            .write()
+            .lock()
+            .await
             .as_ref()
             .ok_or_else(|| TransactionProverError::other("client should be connected"))?
             .clone();
 
-        let request = tonic::Request::new(generated::ProveTransactionRequest {
-            transaction_witness: tx_witness.to_bytes(),
-        });
+        let request = tonic::Request::new(tx_witness.into());
 
-        let response = client.prove_transaction(request).await.map_err(|err| {
+        let response = client.prove(request).await.map_err(|err| {
             TransactionProverError::other_with_source("failed to prove transaction", err)
         })?;
 
@@ -104,5 +112,25 @@ impl TransactionProver for RemoteTransactionProver {
             })?;
 
         Ok(proven_transaction)
+    }
+}
+
+// CONVERSIONS
+// ================================================================================================
+
+impl TryFrom<ProvingResponse> for ProvenTransaction {
+    type Error = DeserializationError;
+
+    fn try_from(response: ProvingResponse) -> Result<Self, Self::Error> {
+        ProvenTransaction::read_from_bytes(&response.payload)
+    }
+}
+
+impl From<TransactionWitness> for ProvingRequest {
+    fn from(witness: TransactionWitness) -> Self {
+        ProvingRequest {
+            proof_type: ProofType::Transaction.into(),
+            payload: witness.to_bytes(),
+        }
     }
 }

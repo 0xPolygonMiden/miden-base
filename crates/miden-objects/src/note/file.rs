@@ -7,12 +7,13 @@ use std::{
 };
 
 #[cfg(feature = "std")]
-use crate::utils::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
-};
+use vm_core::utils::SliceReader;
 
 use super::{Note, NoteDetails, NoteId, NoteInclusionProof, NoteTag};
-use crate::block::BlockNumber;
+use crate::{
+    block::BlockNumber,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 const MAGIC: &str = "note";
 

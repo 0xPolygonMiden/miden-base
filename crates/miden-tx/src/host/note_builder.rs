@@ -1,11 +1,10 @@
-use crate::alloc::{boxed::Box, vec::Vec};
-
 use miden_objects::{
     asset::Asset,
     note::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, PartialNote},
 };
 
 use super::{AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
+use crate::alloc::{boxed::Box, vec::Vec};
 
 // OUTPUT NOTE BUILDER
 // ================================================================================================

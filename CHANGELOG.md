@@ -14,10 +14,15 @@
 - [BREAKING] Refactored config file for `miden-proving-service` to be based on environment variables (#1120).
 - Added block number as a public input to the transaction kernel. Updated prologue logic to validate the global input block number is consistent with the commitment block number (#1126).
 - Made NoteFile and AccountFile more consistent (#1133).
-- [BREAKING] Implement most block constraints in `ProposedBlock` (#1123).
+- [BREAKING] Implement most block constraints in `ProposedBlock` (#1123, #1141).
 - [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
 - Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
 - Added `prefix` to `Nullifier` (#1153).
+- [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
+- [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168, #1172).
+- [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
+- Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#1169).
+- Use `Smt::with_entries` to error on duplicates in `StorageMap::with_entries` (#1167)
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

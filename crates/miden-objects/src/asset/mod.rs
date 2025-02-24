@@ -1,7 +1,7 @@
 use super::{
     account::AccountType,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    AssetError, Felt, Hasher, Word, ZERO,
+    AssetError, Felt, Hasher, Word,
 };
 use crate::account::AccountIdPrefix;
 

@@ -1,5 +1,3 @@
-use crate::alloc::vec::Vec;
-
 use miden_objects::{
     account::{Account, StorageSlot},
     transaction::{ChainMmr, InputNote, TransactionScript},
@@ -10,6 +8,7 @@ use super::{
     AdviceInputs, Digest, Felt, TransactionArgs, TransactionInputs, TransactionKernel, EMPTY_WORD,
     ZERO,
 };
+use crate::alloc::vec::Vec;
 
 // ADVICE INPUTS
 // ================================================================================================

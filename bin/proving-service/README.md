@@ -1,8 +1,8 @@
 # Miden proving service
 
-A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. Currently, only supports transactions proving.
+A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions, transaction batches, and blocks.
 
-The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can only handle one request at a time and returns an error if is already in use.
+The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if it is already in use.
 
 The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue, assigning a worker to each request and retrying if the worker is not available. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
@@ -14,17 +14,19 @@ To build the service from a local version, from the root of the workspace you ca
 make install-proving-service
 ```
 
-The CLI can be installed from the source code using specific git revisions with `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only.
+The CLI can be installed from the source code using specific git revisions with `cargo install` or from crates.io with `cargo install miden-proving-service`.
 
 ## Worker
 
 To start the worker service you will need to run:
 
 ```bash
-miden-proving-service start-worker --host 0.0.0.0 --port 8082
+miden-proving-service start-worker --host 0.0.0.0 --port 8082 --tx-prover --batch-prover
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. This command will start a worker that can handle transaction and batch proving requests.
+
+Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
 
 ## Proxy
 

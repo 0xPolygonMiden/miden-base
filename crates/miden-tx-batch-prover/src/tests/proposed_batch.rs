@@ -57,7 +57,8 @@ fn empty_transaction_batch() -> anyhow::Result<()> {
     let TestSetup { chain, .. } = setup_chain();
     let block1 = chain.block_header(1);
 
-    let error = ProposedBatch::new(vec![], block1, chain.chain(), BTreeMap::default()).unwrap_err();
+    let error = ProposedBatch::new(vec![], block1, chain.latest_chain_mmr(), BTreeMap::default())
+        .unwrap_err();
 
     assert_matches!(error, ProposedBatchError::EmptyTransactionBatch);
 
@@ -85,13 +86,12 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
     assert_eq!(batch.input_notes().num_notes(), 0);
     assert_eq!(batch.output_notes().len(), 0);
-    assert_eq!(batch.output_notes_tree().num_leaves(), 0);
 
     Ok(())
 }
@@ -116,7 +116,7 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -154,7 +154,7 @@ fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -192,7 +192,7 @@ fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -229,7 +229,7 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -271,7 +271,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
 
     // The chain MMR will contain all blocks in the mock chain, in particular block2 which both note
     // inclusion proofs need for verification.
-    let chain_mmr = chain.chain();
+    let chain_mmr = chain.latest_chain_mmr();
 
     // Case 1: Error: A wrong proof is passed.
     // --------------------------------------------------------------------------------------------
@@ -372,13 +372,12 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block2.header(),
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
     assert_eq!(batch.input_notes().num_notes(), 1);
     assert_eq!(batch.output_notes().len(), 1);
-    assert_eq!(batch.output_notes_tree().num_leaves(), 1);
 
     Ok(())
 }
@@ -410,7 +409,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
@@ -430,7 +429,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx2.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -476,7 +475,7 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
@@ -488,8 +487,6 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
 
     assert_eq!(batch.output_notes().len(), 3);
     assert_eq!(batch.output_notes(), expected_output_notes);
-
-    assert_eq!(batch.output_notes_tree().num_leaves(), 3);
 
     // Input notes are sorted by the order in which they appeared in the batch.
     assert_eq!(batch.input_notes().num_notes(), 2);
@@ -514,19 +511,21 @@ fn batch_expiration() -> anyhow::Result<()> {
         .block_reference(block1.hash())
         .expiration_block_num(BlockNumber::from(35))
         .build()?;
+    // This transaction has the smallest valid expiration block num that allows it to still be
+    // included in the batch.
     let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
         .block_reference(block1.hash())
-        .expiration_block_num(BlockNumber::from(30))
+        .expiration_block_num(block1.block_num() + 1)
         .build()?;
 
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
-    assert_eq!(batch.batch_expiration_block_num(), BlockNumber::from(30));
+    assert_eq!(batch.batch_expiration_block_num(), block1.block_num() + 1);
 
     Ok(())
 }
@@ -545,7 +544,7 @@ fn duplicate_transaction() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -580,12 +579,50 @@ fn circular_note_dependency() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block1,
-        chain.chain(),
+        chain.latest_chain_mmr(),
         BTreeMap::default(),
     )?;
 
     assert_eq!(batch.input_notes().num_notes(), 0);
     assert_eq!(batch.output_notes().len(), 0);
+
+    Ok(())
+}
+
+/// Tests that expired transactions cannot be included in a batch.
+#[test]
+fn expired_transaction() -> anyhow::Result<()> {
+    let TestSetup { chain, account1, account2 } = setup_chain();
+    let block1 = chain.block_header(1);
+
+    // This transaction expired at the batch's reference block.
+    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
+        .block_reference(block1.hash())
+        .expiration_block_num(block1.block_num())
+        .build()?;
+    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
+        .block_reference(block1.hash())
+        .expiration_block_num(block1.block_num() + 3)
+        .build()?;
+
+    let error = ProposedBatch::new(
+        [tx1.clone(), tx2].into_iter().map(Arc::new).collect(),
+        block1,
+        chain.latest_chain_mmr(),
+        BTreeMap::default(),
+    )
+    .unwrap_err();
+
+    assert_matches!(
+        error,
+        ProposedBatchError::ExpiredTransaction {
+            transaction_id,
+            transaction_expiration_num,
+            reference_block_num
+        }  if transaction_id == tx1.id() &&
+            transaction_expiration_num == block1.block_num() &&
+            reference_block_num == block1.block_num()
+    );
 
     Ok(())
 }

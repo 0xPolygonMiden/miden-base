@@ -1,12 +1,12 @@
 use alloc::string::ToString;
+
 use crate::{
     batch::BatchNoteTree,
+    crypto::merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    Digest, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
     MAX_OUTPUT_NOTES_PER_BLOCK,
-    Digest,
-    crypto::merkle::{LeafIndex,MerkleError,MerklePath,SimpleSmt}
 };
 
 /// Wrapper over [SimpleSmt<BLOCK_NOTE_TREE_DEPTH>] for notes tree.
@@ -73,6 +73,16 @@ impl BlockNoteTree {
         // get the path to the leaf containing the note (path len = 16)
         self.0.open(&index.leaf_index()).path
     }
+
+    /// Returns the number of notes in this block note tree.
+    pub fn num_notes(&self) -> usize {
+        self.0.num_leaves()
+    }
+
+    /// Returns a boolean value indicating whether the block note tree is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl Default for BlockNoteTree {
@@ -80,6 +90,9 @@ impl Default for BlockNoteTree {
         Self(SimpleSmt::new().expect("Unreachable"))
     }
 }
+
+// BLOCK NOTE INDEX
+// ================================================================================================
 
 /// Index of a block note.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,15 +103,17 @@ pub struct BlockNoteIndex {
 
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
-    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Result<Self, BlockError> {
-        if note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
-            return Err(BlockError::TooManyNotesInBatch(note_idx_in_batch));
-        }
-        if batch_idx >= MAX_BATCHES_PER_BLOCK {
-            return Err(BlockError::TooManyTransactionBatches(batch_idx));
+    ///
+    /// # Errors
+    ///
+    /// Returns `None` if the batch index is equal to or greater than [`MAX_BATCHES_PER_BLOCK`] or
+    /// if the note index is equal to or greater than [`MAX_OUTPUT_NOTES_PER_BATCH`].
+    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Option<Self> {
+        if batch_idx >= MAX_BATCHES_PER_BLOCK || note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
+            return None;
         }
 
-        Ok(Self { batch_idx, note_idx_in_batch })
+        Some(Self { batch_idx, note_idx_in_batch })
     }
 
     /// Returns the batch index.

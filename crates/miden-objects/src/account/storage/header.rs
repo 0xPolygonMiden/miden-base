@@ -1,12 +1,10 @@
 use alloc::vec::Vec;
 
+use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
 use crate::{
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    ZERO,
+    AccountError, ZERO,
 };
-
-use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
-use crate::AccountError;
 
 // ACCOUNT STORAGE HEADER
 // ================================================================================================

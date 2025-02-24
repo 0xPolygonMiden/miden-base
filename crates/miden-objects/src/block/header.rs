@@ -1,8 +1,11 @@
 use alloc::vec::Vec;
 
-use super::{BlockNumber, Digest, Felt, Hasher, ZERO};
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use crate::{
+    account::AccountId,
+    block::BlockNumber,
+    transaction::TransactionId,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest, Felt, Hasher, ZERO,
 };
 
 /// The header of a block. It contains metadata about the block, commitments to the current
@@ -215,6 +218,20 @@ impl BlockHeader {
         elements.extend_from_slice(kernel_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
         elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
+        Hasher::hash_elements(&elements)
+    }
+
+    /// Computes a commitment to the provided list of transactions.
+    pub fn compute_tx_commitment(
+        updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
+    ) -> Digest {
+        let mut elements = vec![];
+        for (transaction_id, account_id) in updated_accounts {
+            let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(account_id);
+            elements.extend_from_slice(transaction_id.as_elements());
+            elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
+        }
+
         Hasher::hash_elements(&elements)
     }
 }

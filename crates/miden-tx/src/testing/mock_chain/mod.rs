@@ -1,4 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
 
 use miden_lib::{
     account::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
@@ -11,21 +14,22 @@ use miden_objects::{
         AccountId, AccountIdAnchor, AccountType, AuthSecretKey,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
+    batch::{ProposedBatch, ProvenBatch},
     block::{
-        compute_tx_hash, Block, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
-        BlockNumber, NoteBatch,
+        AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{Mmr, Smt},
+        merkle::{LeafIndex, Mmr, Smt},
     },
-    note::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
+    note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
-        TransactionId, TransactionInputs, TransactionScript,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
+        ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
     },
-    AccountError, NoteError, ACCOUNT_TREE_DEPTH,
+    AccountError, NoteError, ProposedBatchError, ProposedBlockError, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -49,6 +53,7 @@ const TIMESTAMP_STEP_SECS: u32 = 10;
 // ================================================================================================
 
 /// Specifies which authentication mechanism is desired for accounts
+#[derive(Debug, Clone, Copy)]
 pub enum Auth {
     /// Creates a [SecretKey] for the account and creates a [BasicAuthenticator] that gets used for
     /// authenticating the account.
@@ -152,7 +157,7 @@ struct PendingObjects {
     updated_accounts: Vec<BlockAccountUpdate>,
 
     /// Note batches created in transactions in the block.
-    output_note_batches: Vec<NoteBatch>,
+    output_note_batches: Vec<OutputNoteBatch>,
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,
@@ -179,9 +184,11 @@ impl PendingObjects {
     pub fn build_notes_tree(&self) -> BlockNoteTree {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
-                batch.iter().enumerate().map(move |(note_index, note)| {
+                batch.iter().map(move |(note_index, note)| {
                     (
-                        BlockNoteIndex::new(batch_index, note_index).unwrap(),
+                        BlockNoteIndex::new(batch_index, *note_index).expect(
+                            "max batches in block and max notes in batches should be enforced",
+                        ),
                         note.id(),
                         *note.metadata(),
                     )
@@ -255,7 +262,7 @@ pub struct MockChain {
     chain: Mmr,
 
     /// History of produced blocks.
-    blocks: Vec<Block>,
+    blocks: Vec<ProvenBlock>,
 
     /// Tree containing the latest `Nullifier`'s tree.
     nullifiers: Smt,
@@ -362,7 +369,9 @@ impl MockChain {
 
         // TODO: check that notes are not duplicate
         let output_notes: Vec<OutputNote> = transaction.output_notes().iter().cloned().collect();
-        self.pending_objects.output_note_batches.push(output_notes);
+        self.pending_objects
+            .output_note_batches
+            .push(output_notes.into_iter().enumerate().collect());
         self.pending_objects
             .included_transactions
             .push((transaction.id(), transaction.account_id()));
@@ -373,7 +382,7 @@ impl MockChain {
     /// Adds a public [Note] to the pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_pending_note(&mut self, note: Note) {
-        self.pending_objects.output_note_batches.push(vec![OutputNote::Full(note)]);
+        self.pending_objects.output_note_batches.push(vec![(0, OutputNote::Full(note))]);
     }
 
     /// Adds a P2ID [Note] to the pending objects and returns it.
@@ -418,6 +427,80 @@ impl MockChain {
     /// A block has to be created to finalize the new entity.
     pub fn add_nullifier(&mut self, nullifier: Nullifier) {
         self.pending_objects.created_nullifiers.push(nullifier);
+    }
+
+    /// Proposes a new transaction batch from the provided transactions and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn propose_transaction_batch<I>(
+        &self,
+        txs: impl IntoIterator<Item = ProvenTransaction, IntoIter = I>,
+    ) -> Result<ProposedBatch, ProposedBatchError>
+    where
+        I: Iterator<Item = ProvenTransaction> + Clone,
+    {
+        let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
+
+        let (batch_reference_block, chain_mmr) =
+            self.get_batch_inputs(transactions.iter().map(|tx| tx.block_num()));
+
+        // TODO: Get the actual proofs as part of get_batch_inputs.
+        let unauthenticated_note_proofs = BTreeMap::new();
+
+        ProposedBatch::new(
+            transactions,
+            batch_reference_block,
+            chain_mmr,
+            unauthenticated_note_proofs,
+        )
+    }
+
+    /// Mock-proves a proposed transaction batch from the provided [`ProposedBatch`] and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
+        let (
+            _transactions,
+            block_header,
+            _chain_mmr,
+            _unauthenticated_note_proofs,
+            id,
+            account_updates,
+            input_notes,
+            output_notes,
+            batch_expiration_block_num,
+        ) = proposed_batch.into_parts();
+
+        ProvenBatch::new_unchecked(
+            id,
+            block_header.hash(),
+            block_header.block_num(),
+            account_updates,
+            input_notes,
+            output_notes,
+            batch_expiration_block_num,
+        )
+    }
+
+    /// Proposes a new block from the provided batches and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn propose_block<I>(
+        &self,
+        batches: impl IntoIterator<Item = ProvenBatch, IntoIter = I>,
+    ) -> Result<ProposedBlock, ProposedBlockError>
+    where
+        I: Iterator<Item = ProvenBatch> + Clone,
+    {
+        let batches: Vec<_> = batches.into_iter().collect();
+        let block_inputs = self.get_block_inputs(batches.iter());
+        // We can't access system time because the testing feature does not depend on std at this
+        // time. So we use the minimally correct next timestamp.
+        let timestamp = block_inputs.prev_block_header().timestamp() + 1;
+
+        let proposed_block = ProposedBlock::new_at(block_inputs, batches, timestamp)?;
+
+        Ok(proposed_block)
     }
 
     // OTHER IMPLEMENTATIONS
@@ -511,7 +594,7 @@ impl MockChain {
     ///
     /// This account is added to the available accounts and are immediately available without having
     /// to seal a block.
-    fn add_from_account_builder(
+    pub fn add_from_account_builder(
         &mut self,
         auth_method: Auth,
         mut account_builder: AccountBuilder,
@@ -537,6 +620,7 @@ impl MockChain {
 
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
+        self.accounts.insert(LeafIndex::from(account.id()), Word::from(account.hash()));
 
         account
     }
@@ -646,13 +730,61 @@ impl MockChain {
         .unwrap()
     }
 
+    /// Gets inputs for a transaction batch for all the reference blocks of the provided
+    /// transactions.
+    pub fn get_batch_inputs(
+        &self,
+        tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
+    ) -> (BlockHeader, ChainMmr) {
+        let (batch_reference_block, chain_mmr) =
+            self.latest_selective_chain_mmr(tx_reference_blocks);
+
+        (batch_reference_block, chain_mmr)
+    }
+
+    /// Gets the inputs for a block for the provided batches.
+    pub fn get_block_inputs<'batch, I>(
+        &self,
+        batch_iter: impl IntoIterator<Item = &'batch ProvenBatch, IntoIter = I>,
+    ) -> BlockInputs
+    where
+        I: Iterator<Item = &'batch ProvenBatch> + Clone,
+    {
+        let batch_iterator = batch_iter.into_iter();
+
+        let unauthenticated_note_proofs =
+            self.unauthenticated_note_proofs(batch_iterator.clone().flat_map(|batch| {
+                batch.input_notes().iter().filter_map(|note| note.header().map(NoteHeader::id))
+            }));
+
+        let (block_reference_block, chain_mmr) = self.latest_selective_chain_mmr(
+            batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
+                unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
+            ),
+        );
+
+        let account_witnesses =
+            self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
+
+        let nullifier_proofs =
+            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::created_nullifiers));
+
+        BlockInputs::new(
+            block_reference_block,
+            chain_mmr,
+            account_witnesses,
+            nullifier_proofs,
+            unauthenticated_note_proofs,
+        )
+    }
+
     // MODIFIERS
     // =========================================================================================
 
     /// Creates the next block or generates blocks up to the input number if specified.
     /// This will also make all the objects currently pending available for use.
     /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
-    pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
+    pub fn seal_block(&mut self, block_num: Option<u32>) -> ProvenBlock {
         let next_block_num =
             self.blocks.last().map_or(0, |b| b.header().block_num().child().as_u32());
 
@@ -662,7 +794,7 @@ impl MockChain {
             panic!("Input block number should be higher than the last block number");
         }
 
-        let mut last_block: Option<Block> = None;
+        let mut last_block: Option<ProvenBlock> = None;
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
@@ -703,8 +835,9 @@ impl MockChain {
             let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
                 block.header().timestamp() + TIMESTAMP_STEP_SECS
             });
-            let tx_hash =
-                compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
+            let tx_hash = BlockHeader::compute_tx_commitment(
+                self.pending_objects.included_transactions.clone().into_iter(),
+            );
 
             let kernel_root = TransactionKernel::kernel_root();
 
@@ -725,22 +858,23 @@ impl MockChain {
                 timestamp,
             );
 
-            let block = Block::new(
+            let block = ProvenBlock::new_unchecked(
                 header,
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
-            )
-            .unwrap();
+            );
 
             for (batch_index, note_batch) in
                 self.pending_objects.output_note_batches.iter().enumerate()
             {
-                for (note_index, note) in note_batch.iter().enumerate() {
+                for (note_index, note) in note_batch.iter() {
                     match note {
                         OutputNote::Full(note) => {
-                            let block_note_index =
-                                BlockNoteIndex::new(batch_index, note_index).unwrap();
+                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index)
+                                .expect(
+                                "max batches in block and max notes in batches should be enforced",
+                            );
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
                                 block.header().block_num(),
@@ -781,13 +915,102 @@ impl MockChain {
     // ACCESSORS
     // =========================================================================================
 
+    /// Returns a refernce to the current [`Mmr`] representing the blockchain.
+    pub fn block_chain(&self) -> &Mmr {
+        &self.chain
+    }
+
     /// Gets the latest [ChainMmr].
-    pub fn chain(&self) -> ChainMmr {
+    pub fn latest_chain_mmr(&self) -> ChainMmr {
         // We cannot pass the latest block as that would violate the condition in the transaction
         // inputs that the chain length of the mmr must match the number of the reference block.
         let block_headers = self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1);
 
         ChainMmr::from_mmr(&self.chain, block_headers).unwrap()
+    }
+
+    /// Creates a new [`ChainMmr`] with all reference blocks in the given iterator except for the
+    /// latest block header in the chain and returns that latest block header.
+    ///
+    /// The intended use is for the latest block header to become the reference block of a new
+    /// transaction batch or block.
+    pub fn latest_selective_chain_mmr(
+        &self,
+        reference_blocks: impl IntoIterator<Item = BlockNumber>,
+    ) -> (BlockHeader, ChainMmr) {
+        let latest_block_header = self.latest_block_header();
+        // Deduplicate block numbers so each header will be included just once. This is required so
+        // ChainMmr::from_mmr does not panic.
+        let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
+
+        // Include all block headers of the reference blocks except the latest block.
+        let block_headers: Vec<_> = reference_blocks
+            .into_iter()
+            .map(|block_ref_num| self.block_header(block_ref_num.as_usize()))
+            .filter(|block_header| block_header.hash() != latest_block_header.hash())
+            .collect();
+
+        let chain_mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();
+
+        (latest_block_header, chain_mmr)
+    }
+
+    /// Returns the witnesses for the provided account IDs of the current account tree.
+    pub fn account_witnesses(
+        &self,
+        account_ids: impl IntoIterator<Item = AccountId>,
+    ) -> BTreeMap<AccountId, AccountWitness> {
+        let mut account_witnesses = BTreeMap::new();
+
+        for account_id in account_ids {
+            let proof = self.accounts.open(&account_id.into());
+            account_witnesses.insert(account_id, AccountWitness::new(proof.value, proof.path));
+        }
+
+        account_witnesses
+    }
+
+    /// Returns the witnesses for the provided nullifiers of the current nullifier tree.
+    pub fn nullifier_witnesses(
+        &self,
+        nullifiers: impl IntoIterator<Item = Nullifier>,
+    ) -> BTreeMap<Nullifier, NullifierWitness> {
+        let mut nullifier_proofs = BTreeMap::new();
+
+        for nullifier in nullifiers {
+            let proof = self.nullifiers.open(&nullifier.inner());
+            nullifier_proofs.insert(nullifier, NullifierWitness::new(proof));
+        }
+
+        nullifier_proofs
+    }
+
+    /// Returns all note inclusion proofs for the provided notes, **if they are available for
+    /// consumption**. Therefore, not all of the provided notes will be guaranteed to have an entry
+    /// in the returned map.
+    pub fn unauthenticated_note_proofs(
+        &self,
+        notes: impl IntoIterator<Item = NoteId>,
+    ) -> BTreeMap<NoteId, NoteInclusionProof> {
+        let mut proofs = BTreeMap::default();
+        for note in notes {
+            if let Some(input_note) = self.available_notes.get(&note) {
+                proofs.insert(
+                    note,
+                    input_note
+                        .proof()
+                        .cloned()
+                        .expect("all notes tracked by the chain are authenticated"),
+                );
+            }
+        }
+
+        proofs
+    }
+
+    /// Returns a reference to the latest [`BlockHeader`].
+    pub fn latest_block_header(&self) -> BlockHeader {
+        self.blocks[self.chain.forest() - 1].header()
     }
 
     /// Gets a reference to [BlockHeader] with `block_number`.
@@ -810,6 +1033,15 @@ impl MockChain {
         &self.available_notes
     }
 
+    /// Returns a reference to the account identifed by the given account ID and panics if it does
+    /// not exist.
+    pub fn available_account(&self, account_id: AccountId) -> &Account {
+        self.available_accounts
+            .get(&account_id)
+            .expect("account should be available")
+            .account()
+    }
+
     /// Get the reference to the accounts hash tree.
     pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
         &self.accounts
@@ -821,7 +1053,7 @@ impl MockChain {
 
 /// Helper type for increased readability at call-sites. Indicates whether to build a new (nonce =
 /// ZERO) or existing account (nonce = ONE).
-enum AccountState {
+pub enum AccountState {
     New,
     Exists,
 }

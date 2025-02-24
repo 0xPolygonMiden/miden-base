@@ -543,16 +543,21 @@ impl Deserializable for InputNoteCommitment {
 mod tests {
     use alloc::collections::BTreeMap;
 
+    use miden_verifier::ExecutionProof;
+    use vm_core::utils::Deserializable;
+    use winter_air::proof::Proof;
     use winter_rand_utils::rand_array;
 
     use super::ProvenTransaction;
     use crate::{
         account::{
-            delta::AccountUpdateDetails, AccountDelta, AccountId, AccountStorageDelta,
-            AccountVaultDelta, StorageMapDelta,
+            delta::AccountUpdateDetails, AccountDelta, AccountId, AccountIdVersion,
+            AccountStorageDelta, AccountStorageMode, AccountType, AccountVaultDelta,
+            StorageMapDelta,
         },
+        block::BlockNumber,
         testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        transaction::TxAccountUpdate,
+        transaction::{ProvenTransactionBuilder, TxAccountUpdate},
         utils::Serializable,
         Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
     };
@@ -626,5 +631,38 @@ mod tests {
         assert!(
             matches!(err, ProvenTransactionError::AccountUpdateSizeLimitExceeded { update_size, .. } if update_size == details_size)
         );
+    }
+
+    #[test]
+    fn test_proven_tx_serde_roundtrip() {
+        let account_id = AccountId::dummy(
+            [1; 15],
+            AccountIdVersion::Version0,
+            AccountType::FungibleFaucet,
+            AccountStorageMode::Private,
+        );
+        let initial_account_hash =
+            [2; 32].try_into().expect("failed to create initial account hash");
+        let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
+        let block_num = BlockNumber::from(1);
+        let block_ref = Digest::default();
+        let expiration_block_num = BlockNumber::from(2);
+        let proof = ExecutionProof::new(Proof::new_dummy(), Default::default());
+
+        let tx = ProvenTransactionBuilder::new(
+            account_id,
+            initial_account_hash,
+            final_account_hash,
+            block_num,
+            block_ref,
+            expiration_block_num,
+            proof,
+        )
+        .build()
+        .expect("failed to build proven transaction");
+
+        let deserialized = ProvenTransaction::read_from_bytes(&tx.to_bytes()).unwrap();
+
+        assert_eq!(tx, deserialized);
     }
 }

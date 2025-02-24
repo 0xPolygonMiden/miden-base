@@ -1,6 +1,6 @@
 use alloc::string::{String, ToString};
 use core::fmt;
-use crate::utils::ByteWriter;
+
 use vm_core::{
     utils::{ByteReader, Deserializable, Serializable},
     Felt,
@@ -14,6 +14,7 @@ use crate::{
         AccountType,
     },
     errors::AccountIdError,
+    utils::ByteWriter,
 };
 
 // ACCOUNT ID PREFIX

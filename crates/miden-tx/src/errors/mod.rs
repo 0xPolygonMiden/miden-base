@@ -1,4 +1,3 @@
-use crate::alloc::{boxed::Box, string::String};
 use core::error::Error;
 
 use miden_objects::{
@@ -8,6 +7,8 @@ use miden_objects::{
 use miden_verifier::VerificationError;
 use thiserror::Error;
 use vm_processor::ExecutionError;
+
+use crate::alloc::{boxed::Box, string::String};
 
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================

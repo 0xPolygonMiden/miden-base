@@ -1,10 +1,10 @@
 use alloc::string::ToString;
 
-use crate::utils::{ByteReader,ByteWriter,Deserializable,Serializable,DeserializationError};
-use crate::FieldElement;
-
 use super::{Digest, Felt};
-use crate::AccountError;
+use crate::{
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    AccountError, FieldElement,
+};
 
 // ACCOUNT PROCEDURE INFO
 // ================================================================================================

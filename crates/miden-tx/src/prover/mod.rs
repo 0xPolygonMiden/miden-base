@@ -1,6 +1,5 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
-use crate::alloc::{sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -14,7 +13,10 @@ use vm_processor::MemAdviceProvider;
 use winter_maybe_async::*;
 
 use super::{TransactionHost, TransactionProverError};
-use crate::executor::TransactionMastStore;
+use crate::{
+    alloc::{sync::Arc, vec::Vec},
+    executor::TransactionMastStore,
+};
 
 // TRANSACTION PROVER TRAIT
 // ================================================================================================

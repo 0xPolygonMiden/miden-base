@@ -1,0 +1,35 @@
+[package]
+name = "miden-block-prover"
+version = "0.8.0"
+description = "Miden rollup block executor and prover"
+readme = "README.md"
+categories = ["cryptography"]
+keywords = ["miden", "block", "prover"]
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lib]
+bench = false
+
+[features]
+testing = []
+
+[dependencies]
+miden-crypto = { workspace = true }
+miden-objects = { workspace = true }
+miden-lib = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+miden-objects = { workspace = true }
+miden-crypto = { workspace = true }
+rand = { workspace = true, features = ["small_rng"] }
+miden-lib = { workspace = true, features = ["std", "testing"] }
+winterfell = { version = "0.11" }
+anyhow = { version = "1.0", features = ["std", "backtrace"] }
+miden-tx = { workspace = true, features = ["std", "testing"] }
+assert_matches = { version = "1.5.0" }

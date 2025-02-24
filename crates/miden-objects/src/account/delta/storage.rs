@@ -10,9 +10,8 @@ use super::{
 };
 use crate::{
     account::{AccountStorage, StorageMap, StorageSlot},
-    Digest,
     crypto::merkle::SmtLeaf,
-    EMPTY_WORD
+    Digest, EMPTY_WORD,
 };
 // ACCOUNT STORAGE DELTA
 // ================================================================================================

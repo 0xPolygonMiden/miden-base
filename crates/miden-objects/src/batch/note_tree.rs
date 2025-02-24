@@ -2,13 +2,9 @@ use alloc::vec::Vec;
 
 use crate::{
     crypto::merkle::{LeafIndex, MerkleError, SimpleSmt},
-    Digest,
-};
-
-use crate::{
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
+    Digest, BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
 };
 
 /// Wrapper over [SimpleSmt<BATCH_NOTE_TREE_DEPTH>] for batch note tree.
@@ -76,7 +72,7 @@ impl Serializable for BatchNoteTree {
 impl Deserializable for BatchNoteTree {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let leaves = Vec::read_from(source)?;
-        let smt = SimpleSmt::with_contiguous_leaves(leaves.into_iter()).map_err(|err| {
+        let smt = SimpleSmt::with_leaves(leaves.into_iter()).map_err(|err| {
             DeserializationError::UnknownError(format!(
                 "failed to deserialize BatchNoteTree: {err}"
             ))

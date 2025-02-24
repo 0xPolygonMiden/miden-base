@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use crate::{
     account::AccountId,
-    batch::{BatchAccountUpdate, BatchId, BatchNoteTree},
+    batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
     note::Nullifier,
     transaction::{InputNoteCommitment, InputNotes, OutputNote},
@@ -18,7 +18,6 @@ pub struct ProvenBatch {
     reference_block_num: BlockNumber,
     account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
     input_notes: InputNotes<InputNoteCommitment>,
-    output_notes_smt: BatchNoteTree,
     output_notes: Vec<OutputNote>,
     batch_expiration_block_num: BlockNumber,
 }
@@ -29,13 +28,12 @@ impl ProvenBatch {
 
     /// Creates a new [`ProvenBatch`] from the provided parts.
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub fn new_unchecked(
         id: BatchId,
         reference_block_commitment: Digest,
         reference_block_num: BlockNumber,
         account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
         input_notes: InputNotes<InputNoteCommitment>,
-        output_notes_smt: BatchNoteTree,
         output_notes: Vec<OutputNote>,
         batch_expiration_block_num: BlockNumber,
     ) -> Self {
@@ -45,7 +43,6 @@ impl ProvenBatch {
             reference_block_num,
             account_updates,
             input_notes,
-            output_notes_smt,
             output_notes,
             batch_expiration_block_num,
         }
@@ -97,8 +94,8 @@ impl ProvenBatch {
         &self.input_notes
     }
 
-    /// Returns an iterator over the nullifiers produced in this batch.
-    pub fn produced_nullifiers(&self) -> impl Iterator<Item = Nullifier> + use<'_> {
+    /// Returns an iterator over the nullifiers created in this batch.
+    pub fn created_nullifiers(&self) -> impl Iterator<Item = Nullifier> + use<'_> {
         self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 
@@ -108,11 +105,6 @@ impl ProvenBatch {
     /// ones that were consumed within the batch itself.
     pub fn output_notes(&self) -> &[OutputNote] {
         &self.output_notes
-    }
-
-    /// Returns the [`BatchNoteTree`] representing the output notes of the batch.
-    pub fn output_notes_tree(&self) -> &BatchNoteTree {
-        &self.output_notes_smt
     }
 }
 
@@ -126,7 +118,6 @@ impl Serializable for ProvenBatch {
         self.reference_block_num.write_into(target);
         self.account_updates.write_into(target);
         self.input_notes.write_into(target);
-        self.output_notes_smt.write_into(target);
         self.output_notes.write_into(target);
         self.batch_expiration_block_num.write_into(target);
     }
@@ -139,17 +130,15 @@ impl Deserializable for ProvenBatch {
         let reference_block_num = BlockNumber::read_from(source)?;
         let account_updates = BTreeMap::read_from(source)?;
         let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
-        let output_notes_smt = BatchNoteTree::read_from(source)?;
         let output_notes = Vec::<OutputNote>::read_from(source)?;
         let batch_expiration_block_num = BlockNumber::read_from(source)?;
 
-        Ok(Self::new(
+        Ok(Self::new_unchecked(
             id,
             reference_block_commitment,
             reference_block_num,
             account_updates,
             input_notes,
-            output_notes_smt,
             output_notes,
             batch_expiration_block_num,
         ))

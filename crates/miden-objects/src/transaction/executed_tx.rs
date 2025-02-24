@@ -8,6 +8,7 @@ use super::{
 };
 use crate::{
     account::AccountCode,
+    block::BlockNumber,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -99,6 +100,11 @@ impl ExecutedTransaction {
     /// Returns the notes created in this transaction.
     pub fn output_notes(&self) -> &OutputNotes {
         &self.tx_outputs.output_notes
+    }
+
+    /// Returns the block number at which the transaction will expire.
+    pub fn expiration_block_num(&self) -> BlockNumber {
+        self.tx_outputs.expiration_block_num
     }
 
     /// Returns a reference to the transaction args.

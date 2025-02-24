@@ -1,12 +1,6 @@
 // TRANSACTION CONTEXT BUILDER
 // ================================================================================================
 
-use crate::alloc::{collections::BTreeMap, vec::Vec};
-
-use super::{
-    Account, AccountCode, AccountId, AdviceInputs, Assembler, Note, NoteId, TransactionArgs,
-    TransactionContext, TransactionInputs, TransactionKernel,
-};
 use miden_objects::{
     asset::{Asset, FungibleAsset, NonFungibleAsset},
     note::{NoteExecutionHint, NoteType},
@@ -32,7 +26,15 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Felt, Word};
 
-use crate::{auth::BasicAuthenticator, testing::MockChain};
+use super::{
+    Account, AccountCode, AccountId, AdviceInputs, Assembler, Note, NoteId, TransactionArgs,
+    TransactionContext, TransactionInputs, TransactionKernel,
+};
+use crate::{
+    alloc::{collections::BTreeMap, vec::Vec},
+    auth::BasicAuthenticator,
+    testing::MockChain,
+};
 
 pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 

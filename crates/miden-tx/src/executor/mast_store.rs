@@ -1,14 +1,12 @@
+use miden_lib::{MidenLib, StdLibrary};
+use miden_objects::{assembly::mast::MastForest, Digest};
+use vm_processor::MastForestStore;
+
+use super::{AccountCode, TransactionArgs, TransactionInputs, TransactionKernel};
 use crate::{
     alloc::{collections::BTreeMap, sync::Arc},
     utils::sync::RwLock,
 };
-
-use super::{
-    AccountCode, TransactionArgs, TransactionInputs, TransactionKernel,
-};
-use miden_lib::{MidenLib, StdLibrary};
-use miden_objects::{assembly::mast::MastForest, Digest};
-use vm_processor::MastForestStore;
 
 // TRANSACTION MAST STORE
 // ================================================================================================

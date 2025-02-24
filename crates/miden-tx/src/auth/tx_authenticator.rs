@@ -1,12 +1,13 @@
-use crate::alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
-
 use miden_lib::utils::sync::RwLock;
 use miden_objects::account::{AccountDelta, AuthSecretKey};
 use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
 
 use super::signatures::get_falcon_signature;
-use crate::errors::AuthenticationError;
+use crate::{
+    alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec},
+    errors::AuthenticationError,
+};
 
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================

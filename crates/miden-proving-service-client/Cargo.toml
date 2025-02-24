@@ -16,7 +16,9 @@ crate-type = ["lib"]
 [features]
 default = ["std"]
 std = ["miden-objects/std", "miden-tx/std"]
-tx-prover = ["miden-tx/async"]
+tx-prover = ["miden-tx/async", "dep:tokio", "dep:miden-objects"]
+batch-prover = ["dep:tokio", "dep:miden-objects"]
+block-prover = ["dep:tokio", "dep:miden-objects"]
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 tonic-web-wasm-client = { version = "0.6", default-features = false }
@@ -29,10 +31,11 @@ tonic-web = { version = "0.12", optional = true }
 
 [dependencies]
 async-trait = "0.1"
-miden-objects = { workspace = true, default-features = false }
-miden-tx = { workspace = true, default-features = false }
+miden-objects = { workspace = true, default-features = false, optional = true }
+miden-tx = { workspace = true, default-features = false, optional = true }
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 thiserror = "2.0"
+tokio = { version = "1.38", default-features = false, features = ["sync"], optional = true }
 
 [build-dependencies]
 miette = { version = "7.2", features = ["fancy"] }

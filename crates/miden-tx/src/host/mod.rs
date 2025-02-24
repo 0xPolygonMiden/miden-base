@@ -1,11 +1,3 @@
-use crate::alloc::{
-    boxed::Box,
-    collections::{BTreeMap, BTreeSet},
-    string::ToString,
-    sync::Arc,
-    vec::Vec,
-};
-
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
     transaction::{
@@ -24,6 +16,14 @@ use miden_objects::{
 use vm_processor::{
     AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt, Host, MastForest,
     MastForestStore, ProcessState,
+};
+
+use crate::alloc::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+    string::ToString,
+    sync::Arc,
+    vec::Vec,
 };
 
 mod account_delta_tracker;

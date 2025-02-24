@@ -1,5 +1,4 @@
-use super::{AccountId,Asset,Word};
-
+use super::{AccountId, Asset, Word};
 use crate::note::{
     scripts, NoteError, NoteExecutionMode, NoteInputs, NoteRecipient, NoteTag, NoteType,
 };

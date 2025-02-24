@@ -1,9 +1,10 @@
-use crate::alloc::{boxed::Box, vec::Vec};
 use core::error::Error;
 
-use super::{Digest, Felt};
 use miden_objects::{note::NoteMetadata, AccountDeltaError, AssetError, NoteError};
 use thiserror::Error;
+
+use super::{Digest, Felt};
+use crate::alloc::{boxed::Box, vec::Vec};
 
 // TRANSACTION KERNEL ERROR
 // ================================================================================================

@@ -94,4 +94,39 @@ impl BlockInputs {
             self.unauthenticated_note_proofs,
         )
     }
+
+    // TESTING
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a mutable reference to the [`ChainMmr`].
+    ///
+    /// Allows mutating the inner chain MMR for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn chain_mmr_mut(&mut self) -> &mut ChainMmr {
+        &mut self.chain_mmr
+    }
+
+    /// Returns a mutable reference to the note inclusion proofs.
+    ///
+    /// Allows mutating the inner note proofs map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn unauthenticated_note_proofs_mut(&mut self) -> &mut BTreeMap<NoteId, NoteInclusionProof> {
+        &mut self.unauthenticated_note_proofs
+    }
+
+    /// Returns a mutable reference to the nullifier witnesses.
+    ///
+    /// Allows mutating the inner nullifier witnesses map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn nullifier_witnesses_mut(&mut self) -> &mut BTreeMap<Nullifier, NullifierWitness> {
+        &mut self.nullifier_witnesses
+    }
+
+    /// Returns a mutable reference to the account witnesses.
+    ///
+    /// Allows mutating the inner account witnesses map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn account_witnesses_mut(&mut self) -> &mut BTreeMap<AccountId, AccountWitness> {
+        &mut self.account_witnesses
+    }
 }

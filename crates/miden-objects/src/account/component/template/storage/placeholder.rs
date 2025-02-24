@@ -1,54 +1,61 @@
-use alloc::string::{String, ToString};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+};
+use core::fmt::{self, Display};
 
 use thiserror::Error;
-use crate::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    Felt, Word,
-};
 use vm_processor::DeserializationError;
 
-use crate::account::{component::template::AccountComponentTemplateError, StorageMap};
+use crate::{
+    asset::TokenSymbol,
+    utils::{
+        parse_hex_string_as_word, sync::LazyLock, ByteReader, ByteWriter, Deserializable,
+        Serializable,
+    },
+    Felt, Word,
+};
 
-// STORAGE PLACEHOLDER
+/// A global registry for template converters.
+///
+/// It is used during component instantiation to dynamically convert template placeholders into
+/// their respective storage values.
+pub static TEMPLATE_REGISTRY: LazyLock<TemplateRegistry> = LazyLock::new(|| {
+    let mut registry = TemplateRegistry::new();
+    registry.register_felt_type::<u8>();
+    registry.register_felt_type::<u16>();
+    registry.register_felt_type::<u32>();
+    registry.register_felt_type::<Felt>();
+    registry.register_felt_type::<TokenSymbol>();
+    registry.register_word_type::<Word>();
+    registry.register_word_type::<FalconPubKey>();
+    registry
+});
+
+// STORAGE VALUE NAME
 // ================================================================================================
 
-/// A simple wrapper type around a string key that enables templating.
+/// A simple wrapper type around a string key that identifies values.
 ///
-/// A storage placeholder is a string that identifies dynamic values within a component's metadata
-/// storage entries. Storage placeholders are serialized as "{{key}}" and can be used as
-/// placeholders in map keys, map values, or individual [Felt]s within a [Word].
+/// A storage value name is a string that identifies dynamic values within a component's metadata
+/// storage entries.
 ///
-/// At component instantiation, a map of keys to [StorageValue] must be provided to dynamically
+/// These names can be chained together, in a way that allows composing unique keys for inner
+/// templated elements.
+///
+/// At component instantiation, a map of names to values must be provided to dynamically
 /// replace these placeholders with the instance’s actual values.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct StoragePlaceholder {
-    key: String,
+#[derive(Clone, Debug, Default, Ord, PartialOrd, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(::serde::Deserialize, ::serde::Serialize))]
+#[cfg_attr(feature = "std", serde(transparent))]
+pub struct StorageValueName {
+    fully_qualified_name: String,
 }
 
-/// An identifier for the expected type for a storage placeholder.
-/// These indicate which variant of [StorageValue] should be provided when instantiating a
-/// component.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PlaceholderType {
-    Felt,
-    Map,
-    Word,
-}
-
-impl core::fmt::Display for PlaceholderType {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            PlaceholderType::Felt => f.write_str("Felt"),
-            PlaceholderType::Map => f.write_str("Map"),
-            PlaceholderType::Word => f.write_str("Word"),
-        }
-    }
-}
-
-impl StoragePlaceholder {
-    /// Creates a new [StoragePlaceholder] from the provided string.
+impl StorageValueName {
+    /// Creates a new [`StorageValueName`] from the provided string.
     ///
-    /// A [StoragePlaceholder] serves as an identifier for storage values that are determined at
+    /// A [`StorageValueName`] serves as an identifier for storage values that are determined at
     /// instantiation time of an [AccountComponentTemplate](super::super::AccountComponentTemplate).
     ///
     /// The key can consist of one or more segments separated by dots (`.`).  
@@ -60,142 +67,320 @@ impl StoragePlaceholder {
     /// This method returns an error if:
     /// - Any segment (or the whole key) is empty.
     /// - Any segment contains invalid characters.
-    pub fn new(key: impl Into<String>) -> Result<Self, StoragePlaceholderError> {
-        let key: String = key.into();
-        Self::validate(&key)?;
-        Ok(Self { key })
+    pub fn new(base: impl Into<String>) -> Result<Self, StorageValueNameError> {
+        let base: String = base.into();
+        for segment in base.split('.') {
+            Self::validate_segment(segment)?;
+        }
+        Ok(Self { fully_qualified_name: base })
     }
 
-    /// Returns the key name
-    pub fn inner(&self) -> &str {
-        &self.key
-    }
-
-    /// Checks if the given string is a valid key.
-    /// A storage placeholder is valid if it's made of one or more segments that are non-empty
-    /// alphanumeric strings.
-    fn validate(key: &str) -> Result<(), StoragePlaceholderError> {
-        if key.is_empty() {
-            return Err(StoragePlaceholderError::EmptyKey);
+    /// Adds a suffix to the storage value name, separated by a period.
+    #[must_use]
+    pub fn with_suffix(self, suffix: &StorageValueName) -> StorageValueName {
+        let mut key = self;
+        if !suffix.as_str().is_empty() {
+            if !key.as_str().is_empty() {
+                key.fully_qualified_name.push('.');
+            }
+            key.fully_qualified_name.push_str(suffix.as_str());
         }
 
-        for segment in key.split('.') {
-            if segment.is_empty() {
-                return Err(StoragePlaceholderError::EmptyKey);
-            }
+        key
+    }
 
-            for c in segment.chars() {
-                if !(c.is_ascii_alphanumeric() || c == '_' || c == '-') {
-                    return Err(StoragePlaceholderError::InvalidChar(key.into(), c));
-                }
-            }
+    /// Returns the fully qualified name as a string slice.
+    pub fn as_str(&self) -> &str {
+        &self.fully_qualified_name
+    }
+
+    fn validate_segment(segment: &str) -> Result<(), StorageValueNameError> {
+        if segment.is_empty() {
+            return Err(StorageValueNameError::EmptySegment);
+        }
+        if let Some(offending_char) =
+            segment.chars().find(|&c| !(c.is_ascii_alphanumeric() || c == '_' || c == '-'))
+        {
+            return Err(StorageValueNameError::InvalidCharacter {
+                part: segment.to_string(),
+                character: offending_char,
+            });
         }
 
         Ok(())
     }
 }
 
-impl TryFrom<&str> for StoragePlaceholder {
-    type Error = StoragePlaceholderError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        if value.starts_with("{{") && value.ends_with("}}") {
-            let inner = &value[2..value.len() - 2];
-            Self::validate(inner)?;
-
-            Ok(StoragePlaceholder { key: inner.to_string() })
-        } else {
-            Err(StoragePlaceholderError::FormatError(value.into()))
-        }
+impl Display for StorageValueName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
-impl TryFrom<&String> for StoragePlaceholder {
-    type Error = StoragePlaceholderError;
-
-    fn try_from(value: &String) -> Result<Self, Self::Error> {
-        Self::try_from(value.as_str())
+impl Serializable for StorageValueName {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(&self.fully_qualified_name);
     }
 }
 
-impl core::fmt::Display for StoragePlaceholder {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{{{{{}}}}}", self.key)
+impl Deserializable for StorageValueName {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let key: String = source.read()?;
+        Ok(StorageValueName { fully_qualified_name: key })
     }
 }
 
 #[derive(Debug, Error)]
-pub enum StoragePlaceholderError {
-    #[error("entire key and key segments cannot be empty")]
-    EmptyKey,
-    #[error("key `{0}` is invalid (expected string in {{...}} format)")]
-    FormatError(String),
-    #[error(
-        "key `{0}` contains invalid character ({1}) (must be alphanumeric, underscore, or hyphen)"
-    )]
-    InvalidChar(String, char),
+pub enum StorageValueNameError {
+    #[error("key segment is empty")]
+    EmptySegment,
+    #[error("key segment '{part}' contains invalid character '{character}'")]
+    InvalidCharacter { part: String, character: char },
 }
 
-// SERIALIZATION
+// TEMPLATE TYPE ERROR
 // ================================================================================================
 
-impl Serializable for StoragePlaceholder {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write(&self.key);
-    }
+/// Errors that can occur when parsing or converting template types.
+///
+/// This enum covers various failure cases including parsing errors, conversion errors,
+/// unsupported conversions, and cases where a required type is not found in the registry.
+#[derive(Debug, Error)]
+pub enum TemplateTypeError {
+    #[error("failed to parse input `{0}` as `{1}`")]
+    ParseError(String, String),
+    #[error("conversion error: {0}")]
+    ConversionError(String),
+    #[error("felt type ` {0}` not found in the type registry")]
+    FeltTypeNotFound(String),
+    #[error("word type ` {0}` not found in the type registry")]
+    WordTypeNotFound(String),
 }
 
-impl Deserializable for StoragePlaceholder {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let key: String = source.read()?;
-        StoragePlaceholder::new(key)
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
-    }
-}
-
-// STORAGE VALUE
+// TEMPLATE REQUIREMENT
 // ================================================================================================
 
-/// Represents a value used within a templating context.
+/// Describes the expected type and additional metadata for a templated storage entry.
 ///
-/// A [StorageValue] can be one of:
-/// - `Felt(Felt)`: a single [Felt] value
-/// - `Word(Word)`: a single [Word] value
-/// - `Map(StorageMap)`: a storage map
-///
-/// These values are used to resolve dynamic placeholders at component instantiation.
-#[derive(Clone, Debug)]
-pub enum StorageValue {
-    Felt(Felt),
-    Word(Word),
-    Map(StorageMap),
+/// A `PlaceholderTypeRequirement` specifies the expected type identifier for a storage entry as
+/// well as an optional description. This information is used to validate and provide context for
+/// dynamic storage values.
+#[derive(Debug)]
+pub struct PlaceholderTypeRequirement {
+    /// The expected type identifier as a string.
+    pub r#type: String,
+    /// An optional description providing additional context.
+    pub description: Option<String>,
 }
 
-impl StorageValue {
-    /// Returns `Some(&Felt)` if the variant is `Felt`, otherwise errors.
-    pub fn as_felt(&self) -> Result<&Felt, AccountComponentTemplateError> {
-        if let StorageValue::Felt(felt) = self {
-            Ok(felt)
-        } else {
-            Err(AccountComponentTemplateError::IncorrectStorageValue("Felt".into()))
-        }
+// TEMPLATE TRAITS
+// ================================================================================================
+
+/// Trait for converting a string into a single `Felt`.
+pub trait TemplateFelt {
+    /// Returns the type identifier.
+    fn type_name() -> &'static str;
+    /// Parses the input string into a `Felt`.
+    fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError>;
+}
+
+/// Trait for converting a string into a single `Word`.
+pub trait TemplateWord {
+    /// Returns the type identifier.
+    fn type_name() -> &'static str;
+    /// Parses the input string into a `Word`.
+    fn parse_word(input: &str) -> Result<Word, TemplateTypeError>;
+}
+
+// IMPLEMENTATIONS FOR NATIVE TYPES
+// ================================================================================================
+
+impl TemplateFelt for u8 {
+    fn type_name() -> &'static str {
+        "u8"
     }
 
-    /// Returns `Ok(&Word)` if the variant is `Word`, otherwise errors.
-    pub fn as_word(&self) -> Result<&Word, AccountComponentTemplateError> {
-        if let StorageValue::Word(word) = self {
-            Ok(word)
-        } else {
-            Err(AccountComponentTemplateError::IncorrectStorageValue("Word".into()))
-        }
+    fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
+        let native: u8 = input.parse().map_err(|_| {
+            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
+        })?;
+        Ok(Felt::from(native))
+    }
+}
+
+impl TemplateFelt for u16 {
+    fn type_name() -> &'static str {
+        "u16"
     }
 
-    /// Returns `Ok(&StorageMap>` if the variant is `Map`, otherwise errors.
-    pub fn as_map(&self) -> Result<&StorageMap, AccountComponentTemplateError> {
-        if let StorageValue::Map(map) = self {
-            Ok(map)
+    fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
+        let native: u16 = input.parse().map_err(|_| {
+            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
+        })?;
+        Ok(Felt::from(native))
+    }
+}
+
+impl TemplateFelt for u32 {
+    fn type_name() -> &'static str {
+        "u32"
+    }
+
+    fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
+        let native: u32 = input.parse().map_err(|_| {
+            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
+        })?;
+        Ok(Felt::from(native))
+    }
+}
+
+impl TemplateFelt for Felt {
+    fn type_name() -> &'static str {
+        "felt"
+    }
+
+    fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
+        let n = if let Some(hex) = input.strip_prefix("0x").or_else(|| input.strip_prefix("0X")) {
+            u64::from_str_radix(hex, 16)
         } else {
-            Err(AccountComponentTemplateError::IncorrectStorageValue("Map".into()))
+            input.parse::<u64>()
         }
+        .map_err(|_| {
+            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
+        })?;
+        Felt::try_from(n).map_err(|_| TemplateTypeError::ConversionError(input.to_string()))
+    }
+}
+
+impl TemplateFelt for TokenSymbol {
+    fn type_name() -> &'static str {
+        "tokensymbol"
+    }
+    fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
+        let token = TokenSymbol::new(input).map_err(|_| {
+            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
+        })?;
+        Ok(Felt::from(token))
+    }
+}
+
+// WORD IMPLS
+// ================================================================================================
+
+impl TemplateWord for Word {
+    fn type_name() -> &'static str {
+        "word"
+    }
+    fn parse_word(input: &str) -> Result<Word, TemplateTypeError> {
+        parse_hex_string_as_word(input).map_err(|e| {
+            TemplateTypeError::ParseError(Self::type_name().to_string(), e.to_string())
+        })
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct FalconPubKey;
+impl TemplateWord for FalconPubKey {
+    fn type_name() -> &'static str {
+        "auth::rpo_falcon512::pub_key"
+    }
+    fn parse_word(input: &str) -> Result<Word, TemplateTypeError> {
+        parse_hex_string_as_word(input)
+            .map_err(|e| TemplateTypeError::ParseError(input.to_string(), e.to_string()))
+    }
+}
+
+// TYPE ALIASES FOR CONVERTER CLOSURES
+// ================================================================================================
+
+/// Type alias for a function that converts a string into a [`Felt`] value.
+type TemplateFeltConverter = fn(&str) -> Result<Felt, TemplateTypeError>;
+
+/// Type alias for a function that converts a string into a [`Word`].
+type TemplateWordConverter = fn(&str) -> Result<Word, TemplateTypeError>;
+
+// TODO: Implement converting to list of words for multi-slot values
+
+// TEMPLATE REGISTRY
+// ================================================================================================
+
+/// Registry for template converters.
+///
+/// This registry maintains mappings from type identifiers (as strings) to conversion functions for
+/// [`Felt`], [`Word`], and [`Vec<Word>`] types. It is used to dynamically parse template inputs
+/// into their corresponding storage representations.
+#[derive(Clone, Debug, Default)]
+pub struct TemplateRegistry {
+    felt: BTreeMap<String, TemplateFeltConverter>,
+    word: BTreeMap<String, TemplateWordConverter>,
+}
+
+impl TemplateRegistry {
+    /// Creates a new, empty `TemplateRegistry`.
+    ///
+    /// The registry is initially empty and conversion functions can be registered using the
+    /// `register_*_type` methods.
+    pub fn new() -> Self {
+        Self { ..Default::default() }
+    }
+
+    /// Registers a `TemplateFelt` converter, to interpret a string as a [`Felt``].
+    pub fn register_felt_type<T: TemplateFelt + 'static>(&mut self) {
+        let key = T::type_name();
+        self.felt.insert(key.to_string(), T::parse_felt);
+    }
+
+    /// Registers a `TemplateWord` converter, to interpret a string as a [`Word`].
+    pub fn register_word_type<T: TemplateWord + 'static>(&mut self) {
+        let key = T::type_name();
+        self.word.insert(key.to_string(), T::parse_word);
+    }
+
+    /// Attempts to parse a string into a `Felt` using the registered converter for the given type
+    /// name.
+    ///
+    /// # Arguments
+    ///
+    /// - type_name: A string that acts as the type identifier.
+    /// - value: The string representation of the value to be parsed.
+    ///
+    /// # Errors
+    ///
+    /// - If the type is not registered or if the conversion fails.
+    pub fn try_parse_felt(&self, type_name: &str, value: &str) -> Result<Felt, TemplateTypeError> {
+        let converter = self
+            .felt
+            .get(type_name)
+            .ok_or(TemplateTypeError::FeltTypeNotFound(type_name.into()))?;
+        converter(value)
+    }
+
+    /// Attempts to parse a string into a `Word` using the registered converter for the given type
+    /// name.
+    ///
+    /// # Arguments
+    ///
+    /// - type_name: A string that acts as the type identifier.
+    /// - value: The string representation of the value to be parsed.
+    ///
+    /// # Errors
+    ///
+    /// - If the type is not registered or if the conversion fails.
+    pub fn try_parse_word(&self, type_name: &str, value: &str) -> Result<Word, TemplateTypeError> {
+        let converter = self
+            .word
+            .get(type_name)
+            .ok_or(TemplateTypeError::WordTypeNotFound(type_name.into()))?;
+        converter(value)
+    }
+
+    /// Returns `true` if a `TemplateFelt` is registered for the given type.
+    pub fn contains_felt_type(&self, type_name: &str) -> bool {
+        self.felt.contains_key(type_name)
+    }
+
+    /// Returns `true` if a `TemplateWord` is registered for the given type.
+    pub fn contains_word_type(&self, type_name: &str) -> bool {
+        self.word.contains_key(type_name)
     }
 }

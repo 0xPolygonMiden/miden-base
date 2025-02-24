@@ -1,10 +1,8 @@
-use crate::alloc::vec::Vec;
-
 use miden_objects::crypto::dsa::rpo_falcon512::{self, Polynomial};
 use rand::Rng;
 use vm_processor::{Felt, Word};
 
-use crate::AuthenticationError;
+use crate::{alloc::vec::Vec, AuthenticationError};
 
 /// Retrieves a falcon signature over a message.
 ///

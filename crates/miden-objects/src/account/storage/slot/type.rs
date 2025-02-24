@@ -1,10 +1,7 @@
 use alloc::string::{String, ToString};
 
 use crate::{
-    utils::{
-        ByteReader, ByteWriter, Deserializable, DeserializationError,
-        Serializable,
-    },
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Felt, Word, ONE, ZERO,
 };
 

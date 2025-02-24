@@ -1,5 +1,3 @@
-use crate::alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
-
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::{AccountCode, AccountId},
@@ -14,7 +12,10 @@ use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
-use crate::auth::TransactionAuthenticator;
+use crate::{
+    alloc::{collections::BTreeSet, sync::Arc, vec::Vec},
+    auth::TransactionAuthenticator,
+};
 
 mod data_store;
 pub use data_store::DataStore;

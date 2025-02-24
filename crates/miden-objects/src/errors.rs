@@ -12,13 +12,12 @@ use super::{
     asset::{FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     note::NoteId,
-    Digest, Word, MAX_ACCOUNTS_PER_BLOCK, MAX_BATCHES_PER_BLOCK, MAX_INPUT_NOTES_PER_BLOCK,
-    MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
+    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 use crate::{
     account::{
-        AccountCode, AccountIdPrefix, AccountStorage, AccountType, PlaceholderType,
-        StoragePlaceholder,
+        AccountCode, AccountIdPrefix, AccountStorage, AccountType, StorageValueName,
+        StorageValueNameError, TemplateTypeError,
     },
     batch::BatchId,
     block::BlockNumber,
@@ -35,27 +34,30 @@ use crate::{
 pub enum AccountComponentTemplateError {
     #[cfg(feature = "std")]
     #[error("error trying to deserialize from toml")]
-    DeserializationError(#[source] toml::de::Error),
+    TomlDeserializationError(#[source] toml::de::Error),
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
-    #[error("storage value was not of the expected type {0}")]
-    IncorrectStorageValue(String),
+    #[error("storage value name is incorrect: {0}")]
+    IncorrectStorageValueName(#[source] StorageValueNameError),
+    #[error("type `{0}` is not valid for `{1}` slots")]
+    InvalidType(String, String),
     #[error("multi-slot entry should contain as many values as storage slots indices")]
     MultiSlotArityMismatch,
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
     #[error("component storage slots are not contiguous ({0} is followed by {1})")]
     NonContiguousSlots(u8, u8),
-    #[error("storage value for placeholder `{0}` was not provided in the map")]
-    PlaceholderValueNotProvided(StoragePlaceholder),
-    #[error("storage map contains duplicate key `{0}`")]
-    StorageMapHasDuplicateKeys(String),
+    #[error("storage value for placeholder `{0}` was not provided in the init storage data")]
+    PlaceholderValueNotProvided(StorageValueName),
+    #[cfg(feature = "std")]
+    #[error("error trying to deserialize from toml")]
+    TomlSerializationError(#[source] toml::ser::Error),
+    #[error("error converting value into expected type: ")]
+    StorageValueParsingError(#[source] TemplateTypeError),
+    #[error("storage map contains duplicate keys")]
+    StorageMapHasDuplicateKeys(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error("component storage slots have to start at 0, but they start at {0}")]
     StorageSlotsDoNotStartAtZero(u8),
-    #[error(
-        "storage placeholder `{0}` appears more than once representing different types `{0}` and `{1}`"
-    )]
-    StoragePlaceholderTypeMismatch(StoragePlaceholder, PlaceholderType, PlaceholderType),
 }
 
 // ACCOUNT ERROR
@@ -466,8 +468,15 @@ pub enum ProposedBatchError {
 
     #[error(
       "transaction batch has {0} account updates but at most {MAX_ACCOUNTS_PER_BATCH} are allowed"
-  )]
+    )]
     TooManyAccountUpdates(usize),
+
+    #[error("transaction {transaction_id} expires at block number {transaction_expiration_num} which is not greater than the number of the batch's reference block {reference_block_num}")]
+    ExpiredTransaction {
+        transaction_id: TransactionId,
+        transaction_expiration_num: BlockNumber,
+        reference_block_num: BlockNumber,
+    },
 
     #[error("transaction batch must contain at least one transaction")]
     EmptyTransactionBatch,
@@ -543,6 +552,13 @@ pub enum ProposedBlockError {
 
     #[error("block must contain at most {MAX_BATCHES_PER_BLOCK} transaction batches")]
     TooManyBatches,
+
+    #[error("batch {batch_id} expired at block {batch_expiration_block_num} but the current block number is {current_block_num}")]
+    ExpiredBatch {
+        batch_id: BatchId,
+        batch_expiration_block_num: BlockNumber,
+        current_block_num: BlockNumber,
+    },
 
     #[error("batch {batch_id} appears twice in the block inputs")]
     DuplicateBatch { batch_id: BatchId },
@@ -622,8 +638,12 @@ pub enum ProposedBlockError {
     #[error("block inputs do not contain a proof of inclusion for account {0}")]
     MissingAccountWitness(AccountId),
 
-    #[error("account {0} with state {1} cannot transition to any of the remaining states {2:?}")]
-    InconsistentAccountStateTransition(AccountId, Digest, Vec<Digest>),
+    #[error("account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}")]
+    InconsistentAccountStateTransition {
+        account_id: AccountId,
+        state_commitment: Digest,
+        remaining_state_commitments: Vec<Digest>,
+    },
 
     #[error("no proof for nullifier {0} was provided")]
     NullifierProofMissing(Nullifier),
@@ -638,23 +658,18 @@ pub enum ProposedBlockError {
     },
 }
 
-// BLOCK VALIDATION ERROR
+// NULLIFIER TREE ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum BlockError {
-    #[error("duplicate note with id {0} in the block")]
-    DuplicateNoteFound(NoteId),
-    #[error("too many accounts updated in the block (max: {MAX_ACCOUNTS_PER_BLOCK}, actual: {0})")]
-    TooManyAccountUpdates(usize),
-    #[error("too many notes in the batch (max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {0})")]
-    TooManyNotesInBatch(usize),
-    #[error("too many notes in the block (max: {MAX_OUTPUT_NOTES_PER_BLOCK}, actual: {0})")]
-    TooManyNotesInBlock(usize),
-    #[error("too many nullifiers in the block (max: {MAX_INPUT_NOTES_PER_BLOCK}, actual: {0})")]
-    TooManyNullifiersInBlock(usize),
-    #[error(
-        "too many transaction batches in the block (max: {MAX_BATCHES_PER_BLOCK}, actual: {0})"
-    )]
-    TooManyTransactionBatches(usize),
+pub enum NullifierTreeError {
+    #[error("attempt to mark nullifier {0} as spent but it is already spent")]
+    NullifierAlreadySpent(Nullifier),
+    #[error("nullifier {nullifier} is not tracked by the partial nullifier tree")]
+    UntrackedNullifier {
+        nullifier: Nullifier,
+        source: MerkleError,
+    },
+    #[error("new tree root after nullifier witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
 }

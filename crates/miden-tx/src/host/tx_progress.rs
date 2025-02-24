@@ -1,6 +1,5 @@
-use crate::alloc::vec::Vec;
-
 use super::{NoteId, RowIndex, TransactionMeasurements};
+use crate::alloc::vec::Vec;
 
 // TRANSACTION PROGRESS
 // ================================================================================================

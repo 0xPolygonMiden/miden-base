@@ -1,9 +1,10 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
 
+use winter_maybe_async::*;
+
 use super::{AccountId, BlockNumber, NoteId, TransactionInputs};
 use crate::DataStoreError;
-use winter_maybe_async::*;
 
 // DATA STORE TRAIT
 // ================================================================================================

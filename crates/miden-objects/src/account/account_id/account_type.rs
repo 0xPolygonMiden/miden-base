@@ -1,8 +1,9 @@
 use core::{fmt, str::FromStr};
 
-use crate::utils::{ByteReader,Deserializable,Serializable,DeserializationError};
-
-use crate::errors::AccountIdError;
+use crate::{
+    errors::AccountIdError,
+    utils::{ByteReader, Deserializable, DeserializationError, Serializable},
+};
 
 // ACCOUNT TYPE
 // ================================================================================================

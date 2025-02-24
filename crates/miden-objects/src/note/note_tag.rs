@@ -1,11 +1,10 @@
 use core::{fmt, num::TryFromIntError};
 
-use crate::Felt;
-
 use super::{
     AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, NoteType,
     Serializable,
 };
+use crate::Felt;
 
 // CONSTANTS
 // ================================================================================================

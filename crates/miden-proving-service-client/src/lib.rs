@@ -5,18 +5,22 @@
 #![allow(unused_imports)]
 #[macro_use]
 extern crate alloc;
-use alloc::string::{String, ToString};
+
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+};
+use core::error::Error as CoreError;
 
 #[cfg(feature = "std")]
 extern crate std;
 
 use thiserror::Error;
 
-#[cfg(feature = "tx-prover")]
-pub mod tx_prover;
+pub mod proving_service;
 
 /// Protobuf definition for the Miden proving service
-pub const TX_PROVER_PROTO: &str = include_str!("../proto/tx_prover.proto");
+pub const PROVING_SERVICE_PROTO: &str = include_str!("../proto/proving_service.proto");
 
 /// ERRORS
 /// ===============================================================================================
@@ -29,10 +33,39 @@ pub enum RemoteProverError {
     #[error("failed to connect to prover {0}")]
     /// Indicates that the connection to the server failed.
     ConnectionFailed(String),
+    /// Custom error variant for errors not covered by the other variants.
+    #[error("{error_msg}")]
+    Other {
+        error_msg: Box<str>,
+        // thiserror will return this when calling `Error::source` on `RemoteProverError`.
+        source: Option<Box<dyn CoreError + Send + Sync + 'static>>,
+    },
 }
 
 impl From<RemoteProverError> for String {
     fn from(err: RemoteProverError) -> Self {
         err.to_string()
+    }
+}
+
+impl RemoteProverError {
+    /// Creates a custom error using the [`RemoteProverError::Other`] variant from an error
+    /// message.
+    pub fn other(message: impl Into<String>) -> Self {
+        let message: String = message.into();
+        Self::Other { error_msg: message.into(), source: None }
+    }
+
+    /// Creates a custom error using the [`RemoteProverError::Other`] variant from an error
+    /// message and a source error.
+    pub fn other_with_source(
+        message: impl Into<String>,
+        source: impl CoreError + Send + Sync + 'static,
+    ) -> Self {
+        let message: String = message.into();
+        Self::Other {
+            error_msg: message.into(),
+            source: Some(Box::new(source)),
+        }
     }
 }

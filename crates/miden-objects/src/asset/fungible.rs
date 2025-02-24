@@ -1,13 +1,12 @@
 use alloc::{boxed::Box, string::ToString};
 use core::fmt;
 
+use super::{is_not_a_non_fungible_asset, AccountType, Asset, AssetError};
 use crate::{
+    account::{AccountId, AccountIdPrefix},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Felt, Word, ZERO,
 };
-
-use super::{is_not_a_non_fungible_asset, AccountType, Asset, AssetError};
-use crate::account::{AccountId, AccountIdPrefix};
 
 // FUNGIBLE ASSET
 // ================================================================================================

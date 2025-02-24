@@ -1,9 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-
 use crate::{
     batch::{BatchId, ProvenBatch},
-    block::BlockNumber,
+    block::{BlockHeader, BlockNumber},
     crypto::merkle::MerkleError,
     errors::ProposedBatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof, Nullifier},
@@ -11,8 +10,11 @@ use crate::{
     Digest, ProposedBlockError,
 };
 
+type BatchInputNotes = Vec<InputNoteCommitment>;
 type BlockInputNotes = Vec<InputNoteCommitment>;
+type ErasedNotes = Vec<Nullifier>;
 type BlockOutputNotes = BTreeMap<NoteId, (BatchId, OutputNote)>;
+type BatchOutputNotes = Vec<OutputNote>;
 
 // INPUT OUTPUT NOTE TRACKER
 // ================================================================================================
@@ -52,7 +54,8 @@ impl InputOutputNoteTracker<TransactionId> {
         txs: impl Iterator<Item = &'a ProvenTransaction> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
-    ) -> Result<(Vec<InputNoteCommitment>, Vec<OutputNote>), ProposedBatchError> {
+        batch_reference_block: &BlockHeader,
+    ) -> Result<(BatchInputNotes, BatchOutputNotes), ProposedBatchError> {
         let input_notes_iter = txs.clone().flat_map(|tx| {
             tx.input_notes()
                 .iter()
@@ -67,10 +70,11 @@ impl InputOutputNoteTracker<TransactionId> {
             output_notes_iter,
             unauthenticated_note_proofs,
             chain_mmr,
+            batch_reference_block,
         )
         .map_err(ProposedBatchError::from)?;
 
-        let (batch_input_notes, batch_output_notes) =
+        let (batch_input_notes, _erased_notes, batch_output_notes) =
             tracker.erase_notes().map_err(ProposedBatchError::from)?;
 
         // Collect the remaining (non-erased) output notes into the final set of output notes.
@@ -90,7 +94,8 @@ impl InputOutputNoteTracker<BatchId> {
         batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
-    ) -> Result<(BlockInputNotes, BlockOutputNotes), ProposedBlockError> {
+        prev_block: &BlockHeader,
+    ) -> Result<(BlockInputNotes, ErasedNotes, BlockOutputNotes), ProposedBlockError> {
         let input_notes_iter = batches.clone().flat_map(|batch| {
             batch
                 .input_notes()
@@ -107,13 +112,14 @@ impl InputOutputNoteTracker<BatchId> {
             output_notes_iter,
             unauthenticated_note_proofs,
             chain_mmr,
+            prev_block,
         )
         .map_err(ProposedBlockError::from)?;
 
-        let (block_input_notes, block_output_notes) =
+        let (block_input_notes, erased_notes, block_output_notes) =
             tracker.erase_notes().map_err(ProposedBlockError::from)?;
 
-        Ok((block_input_notes, block_output_notes))
+        Ok((block_input_notes, erased_notes, block_output_notes))
     }
 }
 
@@ -128,6 +134,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         output_notes_iter: impl Iterator<Item = (OutputNote, ContainerId)>,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
         chain_mmr: &ChainMmr,
+        reference_block: &BlockHeader,
     ) -> Result<Self, InputOutputNoteTrackerError<ContainerId>> {
         let mut input_notes = BTreeMap::new();
         let mut output_notes = BTreeMap::new();
@@ -142,6 +149,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
                         note_header,
                         proof,
                         chain_mmr,
+                        reference_block,
                     )?;
                 }
             }
@@ -174,25 +182,37 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
     }
 
     /// Iterates the input notes and if an unauthenticated note is encountered, attempts to remove
-    /// it from the output notes if it is present in that set. If it is, the note is considered
-    /// erased, otherwise it is added to the final input notes.
+    /// it from the output notes if it is present in that set.
+    /// If it is, the note is considered erased and added to the list of erased notes, otherwise it
+    /// is added to the final input notes.
+    ///
+    /// Returns the sets of input notes, erased notes and output notes.
     #[allow(clippy::type_complexity)]
     fn erase_notes(
         mut self,
     ) -> Result<
-        (Vec<InputNoteCommitment>, BTreeMap<NoteId, (ContainerId, OutputNote)>),
+        (
+            Vec<InputNoteCommitment>,
+            ErasedNotes,
+            BTreeMap<NoteId, (ContainerId, OutputNote)>,
+        ),
         InputOutputNoteTrackerError<ContainerId>,
     > {
+        let mut erased_notes = Vec::new();
         let mut final_input_notes = Vec::new();
 
         for (_, input_note_commitment) in self.input_notes.values() {
             match input_note_commitment.header() {
                 Some(input_note_header) => {
-                    // If the unauthenticated note is also created as an output note we erase it by
-                    // not adding it to the final_input_notes.
-                    let was_output_note =
+                    let is_output_note =
                         Self::remove_output_note(input_note_header, &mut self.output_notes)?;
-                    if !was_output_note {
+
+                    // If the unauthenticated note is also created as an output note we erase it by
+                    // adding it to the erased notes and, crucially, not adding it to the
+                    // final_input_notes.
+                    if is_output_note {
+                        erased_notes.push(input_note_commitment.nullifier());
+                    } else {
                         final_input_notes.push(input_note_commitment.clone());
                     }
                 },
@@ -202,7 +222,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
             }
         }
 
-        Ok((final_input_notes, self.output_notes))
+        Ok((final_input_notes, erased_notes, self.output_notes))
     }
 
     /// Attempts to remove the given input note from the output note set.
@@ -250,14 +270,19 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         note_header: &NoteHeader,
         proof: &NoteInclusionProof,
         chain_mmr: &ChainMmr,
+        reference_block: &BlockHeader,
     ) -> Result<InputNoteCommitment, InputOutputNoteTrackerError<ContainerId>> {
-        let note_block_header =
+        let proof_reference_block = proof.location().block_num();
+        let note_block_header = if reference_block.block_num() == proof_reference_block {
+            reference_block
+        } else {
             chain_mmr.get_block(proof.location().block_num()).ok_or_else(|| {
                 InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
                     block_number: proof.location().block_num(),
                     note_id: note_header.id(),
                 }
-            })?;
+            })?
+        };
 
         let note_index = proof.location().node_index_in_block().into();
         let note_hash = note_header.hash();

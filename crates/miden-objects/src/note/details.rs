@@ -1,9 +1,8 @@
+use super::{NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier};
 use crate::{
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Word,
 };
-
-use super::{NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier};
 
 // NOTE DETAILS
 // ================================================================================================
