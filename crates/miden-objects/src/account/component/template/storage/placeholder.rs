@@ -172,7 +172,7 @@ pub struct TemplateType(String);
 impl TemplateType {
     /// Creates a new [`TemplateType`] from a `String`.
     ///
-    /// Thename must follow a Rust-style namespace format, consisting of one or more segments
+    /// The name must follow a Rust-style namespace format, consisting of one or more segments
     /// (non-empty, and alphanumerical) separated by double-colon (`::`) delimiters.
     ///
     /// # Errors
@@ -237,8 +237,8 @@ impl Serializable for TemplateType {
 impl Deserializable for TemplateType {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let id: String = source.read()?;
-        Ok(TemplateType::new(id)
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?)
+
+        TemplateType::new(id).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
