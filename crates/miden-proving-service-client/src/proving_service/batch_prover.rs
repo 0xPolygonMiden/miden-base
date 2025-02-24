@@ -1,8 +1,3 @@
-use alloc::{
-    string::{String, ToString},
-    sync::Arc,
-};
-
 use miden_objects::{
     batch::{ProposedBatch, ProvenBatch},
     utils::{Deserializable, DeserializationError, Serializable},
@@ -11,6 +6,10 @@ use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
 use crate::{
+    alloc::{
+        string::{String, ToString},
+        sync::Arc,
+    },
     proving_service::generated::{ProofType, ProvingRequest, ProvingResponse},
     RemoteProverError,
 };
