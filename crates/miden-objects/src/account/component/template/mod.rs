@@ -119,7 +119,7 @@ impl Deserializable for AccountComponentTemplate {
 /// let third_felt = FeltRepresentation::from(Felt::new(2u64));
 /// // Templated element:
 /// let last_element = FeltRepresentation::new_template(
-///     TemplateType::new("felt"),
+///     TemplateType::new("felt")?,
 ///     StorageValueName::new("foo")?,
 ///     None,
 /// );
