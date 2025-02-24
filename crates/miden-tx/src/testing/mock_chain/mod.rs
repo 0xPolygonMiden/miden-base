@@ -185,7 +185,13 @@ impl PendingObjects {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
                 batch.iter().map(move |(note_index, note)| {
-                    (BlockNoteIndex::new(batch_index, *note_index), note.id(), *note.metadata())
+                    (
+                        BlockNoteIndex::new(batch_index, *note_index).expect(
+                            "max batches in block and max notes in batches should be enforced",
+                        ),
+                        note.id(),
+                        *note.metadata(),
+                    )
                 })
             });
 
@@ -865,7 +871,10 @@ impl MockChain {
                 for (note_index, note) in note_batch.iter() {
                     match note {
                         OutputNote::Full(note) => {
-                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index);
+                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index)
+                                .expect(
+                                "max batches in block and max notes in batches should be enforced",
+                            );
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
                                 block.header().block_num(),
