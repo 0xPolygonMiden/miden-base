@@ -18,25 +18,6 @@ use crate::tests::utils::{
     generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
 };
 
-/// Tests that empty batches produce an error.
-#[test]
-fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
-    let TestSetup { chain, .. } = setup_chain(2);
-
-    let block_inputs = BlockInputs::new(
-        chain.latest_block_header(),
-        chain.latest_chain_mmr(),
-        BTreeMap::default(),
-        BTreeMap::default(),
-        BTreeMap::default(),
-    );
-    let error = ProposedBlock::new(block_inputs, Vec::new()).unwrap_err();
-
-    assert_matches!(error, ProposedBlockError::EmptyBlock);
-
-    Ok(())
-}
-
 /// Tests that too many batches produce an error.
 #[test]
 fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {

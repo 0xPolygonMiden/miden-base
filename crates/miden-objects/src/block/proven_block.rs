@@ -96,7 +96,8 @@ impl ProvenBlock {
                     // SAFETY: The proven block contains at most the max allowed number of batches
                     // and each batch is guaranteed to contain at most the
                     // max allowed number of output notes.
-                    BlockNoteIndex::new(batch_idx, *note_idx_in_batch),
+                    BlockNoteIndex::new(batch_idx, *note_idx_in_batch)
+                        .expect("max batches in block and max notes in batches should be enforced"),
                     note,
                 )
             })
