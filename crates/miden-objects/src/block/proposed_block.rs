@@ -3,8 +3,11 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::EMPTY_WORD;
-use vm_processor::Digest;
+use vm_core::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    EMPTY_WORD,
+};
+use vm_processor::{DeserializationError, Digest};
 
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
@@ -74,7 +77,7 @@ impl ProposedBlock {
     ///
     /// ## Batches
     ///
-    /// - The number of batches is zero or exceeds [`MAX_BATCHES_PER_BLOCK`].
+    /// - The number of batches exceeds [`MAX_BATCHES_PER_BLOCK`].
     /// - There are duplicate batches, i.e. they have the same [`BatchId`].
     /// - The expiration block number of any batch is less than the block number of the currently
     ///   proposed block.
@@ -127,12 +130,8 @@ impl ProposedBlock {
         batches: Vec<ProvenBatch>,
         timestamp: u32,
     ) -> Result<Self, ProposedBlockError> {
-        // Check for empty or duplicate batches.
+        // Check for duplicate and max number of batches.
         // --------------------------------------------------------------------------------------------
-
-        if batches.is_empty() {
-            return Err(ProposedBlockError::EmptyBlock);
-        }
 
         if batches.len() > MAX_BATCHES_PER_BLOCK {
             return Err(ProposedBlockError::TooManyBatches);
@@ -278,7 +277,7 @@ impl ProposedBlock {
     }
 
     /// Returns the map of nullifiers to their proofs from the proposed block.
-    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
+    pub fn created_nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
         &self.created_nullifiers
     }
 
@@ -333,6 +332,36 @@ impl ProposedBlock {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProposedBlock {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.batches.write_into(target);
+        self.timestamp.write_into(target);
+        self.account_updated_witnesses.write_into(target);
+        self.output_note_batches.write_into(target);
+        self.created_nullifiers.write_into(target);
+        self.chain_mmr.write_into(target);
+        self.prev_block_header.write_into(target);
+    }
+}
+
+impl Deserializable for ProposedBlock {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let block = Self {
+            batches: <Vec<ProvenBatch>>::read_from(source)?,
+            timestamp: u32::read_from(source)?,
+            account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
+            output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
+            created_nullifiers: <BTreeMap<Nullifier, NullifierWitness>>::read_from(source)?,
+            chain_mmr: ChainMmr::read_from(source)?,
+            prev_block_header: BlockHeader::read_from(source)?,
+        };
+
+        Ok(block)
+    }
+}
 // HELPER FUNCTIONS
 // ================================================================================================
 

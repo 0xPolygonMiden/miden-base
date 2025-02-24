@@ -584,4 +584,3 @@ mod tests {
         assert!(result.source().unwrap().to_string().contains("duplicate"));
     }
 }
-

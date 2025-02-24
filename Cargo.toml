@@ -37,6 +37,7 @@ lto = true
 [workspace.dependencies]
 assembly = { package = "miden-assembly", version = "0.12", default-features = false }
 assert_matches = { version = "1.5", default-features = false }
+miden-block-prover = { path = "crates/miden-block-prover", version = "0.8", default-features = false }
 miden-crypto = { version = "0.13", default-features = false }
 miden-lib = { path = "crates/miden-lib", version = "0.8", default-features = false }
 miden-objects = { path = "crates/miden-objects", version = "0.8", default-features = false }

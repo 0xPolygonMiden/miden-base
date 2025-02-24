@@ -15,7 +15,7 @@ pub struct InitStorageData {
 
 impl InitStorageData {
     /// Creates a new instance of [InitStorageData].
-    /// 
+    ///
     /// A [`BTreeMap`] is constructed from the passed iterator, so duplicate keys will cause
     /// overridden values.
     ///

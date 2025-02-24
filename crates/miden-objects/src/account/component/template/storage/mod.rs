@@ -308,7 +308,7 @@ impl Deserializable for MapEntry {
 #[cfg(test)]
 mod tests {
     use core::{error::Error, panic};
-    use std::string::ToString;
+    use std::{println, string::ToString};
 
     use assembly::Assembler;
     use semver::Version;
@@ -339,7 +339,7 @@ mod tests {
             FeltRepresentation::from(Felt::new(1218)),
             FeltRepresentation::from(Felt::new(0xdba3)),
             FeltRepresentation::new_template(
-                TemplateType::new("felt"),
+                TemplateType::default_felt_type(),
                 StorageValueName::new("slot3").unwrap(),
                 Some("dummy description".into()),
             ),
@@ -352,7 +352,7 @@ mod tests {
             vec![
                 MapEntry {
                     key: WordRepresentation::new_template(
-                        TemplateType::new("word"),
+                        TemplateType::default_word_type(),
                         StorageValueName::new("foo").unwrap(),
                         None,
                     ),
@@ -361,14 +361,14 @@ mod tests {
                 MapEntry {
                     key: WordRepresentation::new_value(test_word.clone(), None, None),
                     value: WordRepresentation::new_template(
-                        TemplateType::new("word"),
+                        TemplateType::default_word_type(),
                         StorageValueName::new("bar").unwrap(),
                         Some("bar description".into()),
                     ),
                 },
                 MapEntry {
                     key: WordRepresentation::new_template(
-                        TemplateType::new("word"),
+                        TemplateType::default_word_type(),
                         StorageValueName::new("baz").unwrap(),
                         Some("baz description".into()),
                     ),
@@ -389,22 +389,22 @@ mod tests {
                 vec![
                     [
                         FeltRepresentation::new_template(
-                            TemplateType::new("felt"),
+                            TemplateType::default_felt_type(),
                             StorageValueName::new("test").unwrap(),
                             None,
                         ),
                         FeltRepresentation::new_template(
-                            TemplateType::new("felt"),
+                            TemplateType::default_felt_type(),
                             StorageValueName::new("test2").unwrap(),
                             None,
                         ),
                         FeltRepresentation::new_template(
-                            TemplateType::new("felt"),
+                            TemplateType::default_felt_type(),
                             StorageValueName::new("test3").unwrap(),
                             None,
                         ),
                         FeltRepresentation::new_template(
-                            TemplateType::new("felt"),
+                            TemplateType::default_felt_type(),
                             StorageValueName::new("test4").unwrap(),
                             None,
                         ),
@@ -415,7 +415,7 @@ mod tests {
             StorageEntry::new_value(
                 4,
                 WordRepresentation::new_template(
-                    TemplateType::new("word"),
+                    TemplateType::default_word_type(),
                     StorageValueName::new("single").unwrap(),
                     None,
                 ),
@@ -430,6 +430,7 @@ mod tests {
             storage,
         };
         let toml = config.as_toml().unwrap();
+        println!("{toml}");
         let deserialized = AccountComponentMetadata::from_toml(&toml).unwrap();
 
         assert_eq!(deserialized, config);
@@ -449,7 +450,7 @@ mod tests {
         values = [
             { key = "0x1", value = ["0x1","0x2","0x3","0"]},
             { key = "0x3", value = "0x123" }, 
-            { key = { name = "map_key_template", description = "this tests that the default type is correctly set", type="word"}, value = "0x3" }
+            { key = { name = "map_key_template", description = "this tests that the default type is correctly set"}, value = "0x3" },
         ]
 
         [[storage]]

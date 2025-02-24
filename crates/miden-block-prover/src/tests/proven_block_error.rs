@@ -213,7 +213,7 @@ fn proven_block_fails_on_nullifier_tree_root_mismatch() -> anyhow::Result<()> {
 
     // Make the block inputs invalid by using a single stale nullifier witnesses.
     let mut invalid_nullifier_witness_block_inputs = valid_block_inputs.clone();
-    let batch_nullifier0 = batches[0].produced_nullifiers().next().unwrap();
+    let batch_nullifier0 = batches[0].created_nullifiers().next().unwrap();
     core::mem::swap(
         invalid_nullifier_witness_block_inputs
             .nullifier_witnesses_mut()

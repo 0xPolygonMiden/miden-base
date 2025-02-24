@@ -33,7 +33,9 @@ use crate::{
 #[derive(Debug, Error)]
 pub enum AccountComponentTemplateError {
     #[error("storage slot name `{0}` is duplicate")]
-    DuplicateEntryNames(String),
+    DuplicateEntryNames(StorageValueName),
+    #[error("storage placeholder name `{0}` is duplicate")]
+    DuplicatePlaceholderName(StorageValueName),
     #[error("slot {0} is defined multiple times")]
     DuplicateSlot(u8),
     #[error("storage value name is incorrect: {0}")]
@@ -48,12 +50,12 @@ pub enum AccountComponentTemplateError {
     NonContiguousSlots(u8, u8),
     #[error("storage value for placeholder `{0}` was not provided in the init storage data")]
     PlaceholderValueNotProvided(StorageValueName),
-    #[error("storage map contains duplicate key `{0}`")]
-    StorageMapHasDuplicateKeys(Digest),
-    #[error("component storage slots have to start at 0, but they start at {0}")]
-    StorageSlotsDoNotStartAtZero(u8),
     #[error("error converting value into expected type: ")]
     StorageValueParsingError(#[source] TemplateTypeError),
+    #[error("storage map contains duplicate keys")]
+    StorageMapHasDuplicateKeys(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[error("component storage slots have to start at 0, but they start at {0}")]
+    StorageSlotsDoNotStartAtZero(u8),
     #[cfg(feature = "std")]
     #[error("error trying to deserialize from toml")]
     TomlDeserializationError(#[source] toml::de::Error),
