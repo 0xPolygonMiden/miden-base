@@ -178,7 +178,7 @@ impl TemplateType {
         TemplateType::new("felt")
     }
 
-    /// Returns the default felt type, assigned to entries with no type.
+    /// Returns the default word type, assigned to entries with no type.
     pub fn default_word_type() -> TemplateType {
         TemplateType::new("word")
     }
@@ -317,7 +317,7 @@ impl TemplateFelt for TokenSymbol {
 
 impl TemplateWord for Word {
     fn type_name() -> TemplateType {
-        TemplateType::new("word")
+        TemplateType::default_word_type()
     }
     fn parse_word(input: &str) -> Result<Word, TemplateTypeError> {
         parse_hex_string_as_word(input).map_err(|_| {

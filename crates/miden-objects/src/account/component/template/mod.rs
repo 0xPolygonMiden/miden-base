@@ -248,8 +248,8 @@ impl AccountComponentMetadata {
     ///
     /// # Errors
     ///
-    /// - If the specified storage slots contain duplicates.
-    /// - If the template contains multiple storage placeholders of different type.
+    /// - If the specified storage entries contain duplicate names.
+    /// - If the template contains duplicate placeholder names.
     /// - If the slot numbers do not start at zero.
     /// - If the slots are not contiguous.
     fn validate(&self) -> Result<(), AccountComponentTemplateError> {
@@ -454,6 +454,27 @@ mod tests {
 
         let result = AccountComponentMetadata::from_toml(toml_text);
         assert_matches!(result, Err(AccountComponentTemplateError::StorageMapHasDuplicateKeys(_)));
+    }
+
+    #[test]
+    pub fn fail_on_duplicate_placeholder_name() {
+        let toml_text = r#"
+            name = "Test Component"
+            description = "This is a test component"
+            version = "1.0.1"
+            supported-types = ["FungibleFaucet"]
+
+            [[storage]]
+            name = "map"
+            description = "A storage map entry"
+            slot = 0
+            values = [
+                { key = "0x1", value = [{type = "felt", name = "test"}, "0x1", "0x2", "0x3"] },
+                { key = "0x1", value = ["0x1", "0x2", "0x3", {type = "felt", name = "test"}] }
+            ]
+        "#;
+
+        let result = AccountComponentMetadata::from_toml(toml_text).unwrap();
     }
 
     #[test]
