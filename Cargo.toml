@@ -50,3 +50,11 @@ rand = { version = "0.8", default-features = false }
 thiserror = { version = "2.0", default-features = false }
 vm-core = { package = "miden-core", version = "0.12", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.12", default-features = false }
+
+# Lints are set to warn for development, which are promoted to errors in CI.
+[workspace.lints.clippy]
+# Pedantic lints are set to a lower priority which allows lints in the group to be selectively enabled.
+pedantic = { level = "warn", priority = -1 }
+
+large_types_passed_by_value = "allow" # Triggered by BlockHeader being Copy + 334 bytes.
+# End of pedantic lints.
