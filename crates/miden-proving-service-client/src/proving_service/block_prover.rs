@@ -25,6 +25,7 @@ use crate::{
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
 ///
 /// The transport layer connection is established lazily when the first transaction is proven.
+#[derive(Clone)]
 pub struct RemoteBlockProver {
     #[cfg(target_arch = "wasm32")]
     client: Arc<Mutex<Option<ApiClient<tonic_web_wasm_client::Client>>>>,

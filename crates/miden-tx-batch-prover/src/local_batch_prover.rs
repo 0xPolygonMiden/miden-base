@@ -8,7 +8,7 @@ use crate::errors::ProvenBatchError;
 
 /// A local prover for transaction batches, proving the transactions in a [`ProposedBatch`] and
 /// returning a [`ProvenBatch`].
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct LocalBatchProver {
     proof_security_level: u32,
 }
