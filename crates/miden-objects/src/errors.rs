@@ -44,8 +44,10 @@ pub enum AccountComponentTemplateError {
     InvalidType(String, String),
     #[error("error deserializing component metadata: {0}")]
     MetadataDeserializationError(String),
-    #[error("multi-slot entry should contain as many values as storage slots indices")]
+    #[error("multi-slot entry should contain as many values as storage slot indices")]
     MultiSlotArityMismatch,
+    #[error("multi-slot entry slot range should occupy more than one storage slot")]
+    MultiSlotSpansOneSlot,
     #[error("component storage slots are not contiguous ({0} is followed by {1})")]
     NonContiguousSlots(u8, u8),
     #[error("storage value for placeholder `{0}` was not provided in the init storage data")]

@@ -26,7 +26,7 @@ impl InitStorageData {
         InitStorageData {
             storage_placeholders: entries
                 .into_iter()
-                .filter(|(k, _)| !k.as_str().is_empty())
+                .filter(|(entry_name, _)| !entry_name.as_str().is_empty())
                 .collect(),
         }
     }

@@ -1,8 +1,12 @@
 use alloc::{
+    boxed::Box,
     collections::BTreeMap,
     string::{String, ToString},
 };
-use core::fmt::{self, Display};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+};
 
 use miden_crypto::dsa::rpo_falcon512::{self};
 use thiserror::Error;
@@ -46,7 +50,7 @@ pub static TEMPLATE_REGISTRY: LazyLock<TemplateRegistry> = LazyLock::new(|| {
 ///
 /// At component instantiation, a map of names to values must be provided to dynamically
 /// replace these placeholders with the instance’s actual values.
-#[derive(Clone, Debug, Default, Ord, PartialOrd, PartialEq, Eq)]
+#[derive(Clone, Debug, Ord, PartialOrd, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(::serde::Deserialize, ::serde::Serialize))]
 #[cfg_attr(feature = "std", serde(transparent))]
 pub struct StorageValueName {
@@ -74,6 +78,11 @@ impl StorageValueName {
             Self::validate_segment(segment)?;
         }
         Ok(Self { fully_qualified_name: base })
+    }
+
+    /// Creates an empty [`StorageValueName`].
+    pub(crate) fn empty() -> Self {
+        StorageValueName { fully_qualified_name: String::default() }
     }
 
     /// Adds a suffix to the storage value name, separated by a period.
@@ -154,10 +163,29 @@ pub enum TemplateTypeError {
     FeltTypeNotFound(TemplateType),
     #[error("invalid type name `{0}`: {1}")]
     InvalidTypeName(String, String),
-    #[error("failed to parse input `{0}` as `{1}`")]
-    ParseError(String, TemplateType),
+    #[error("failed to parse input `{input}` as `{template_type}`")]
+    ParseError {
+        input: String,
+        template_type: TemplateType,
+        source: Box<dyn Error + Send + Sync + 'static>,
+    },
     #[error("word type ` {0}` not found in the type registry")]
     WordTypeNotFound(TemplateType),
+}
+
+impl TemplateTypeError {
+    /// Creates a [`TemplateTypeError::ParseError`].
+    pub fn parse(
+        input: impl Into<String>,
+        template_type: TemplateType,
+        source: impl Error + Send + Sync + 'static,
+    ) -> Self {
+        TemplateTypeError::ParseError {
+            input: input.into(),
+            template_type,
+            source: Box::new(source),
+        }
+    }
 }
 
 // TEMPLATE TYPE
@@ -206,13 +234,13 @@ impl TemplateType {
         Ok(Self(s))
     }
 
-    /// Returns the default felt type,  assigned to entries with no type.
-    pub fn default_felt_type() -> TemplateType {
+    /// Returns the [`TemplateType`] for the native [`Felt`] type.
+    pub fn native_felt() -> TemplateType {
         TemplateType::new("felt").expect("type is well formed")
     }
 
-    /// Returns the default word type, assigned to entries with no type.
-    pub fn default_word_type() -> TemplateType {
+    /// Returns the [`TemplateType`] for the native [`Word`] type.
+    pub fn native_word() -> TemplateType {
         TemplateType::new("word").expect("type is well formed")
     }
 
@@ -288,7 +316,7 @@ impl TemplateFelt for u8 {
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
         let native: u8 = input
             .parse()
-            .map_err(|_| TemplateTypeError::ParseError(input.to_string(), Self::type_name()))?;
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(native))
     }
 }
@@ -301,7 +329,7 @@ impl TemplateFelt for u16 {
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
         let native: u16 = input
             .parse()
-            .map_err(|_| TemplateTypeError::ParseError(input.to_string(), Self::type_name()))?;
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(native))
     }
 }
@@ -314,7 +342,7 @@ impl TemplateFelt for u32 {
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
         let native: u32 = input
             .parse()
-            .map_err(|_| TemplateTypeError::ParseError(input.to_string(), Self::type_name()))?;
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(native))
     }
 }
@@ -330,7 +358,7 @@ impl TemplateFelt for Felt {
         } else {
             input.parse::<u64>()
         }
-        .map_err(|_| TemplateTypeError::ParseError(input.to_string(), Self::type_name()))?;
+        .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Felt::try_from(n).map_err(|_| TemplateTypeError::ConversionError(input.to_string()))
     }
 }
@@ -341,7 +369,7 @@ impl TemplateFelt for TokenSymbol {
     }
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
         let token = TokenSymbol::new(input)
-            .map_err(|_| TemplateTypeError::ParseError(input.to_string(), Self::type_name()))?;
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(token))
     }
 }
@@ -349,13 +377,21 @@ impl TemplateFelt for TokenSymbol {
 // WORD IMPLS FOR NATIVE TYPES
 // ================================================================================================
 
+#[derive(Debug, Error)]
+#[error("error parsing word: {0}")]
+struct WordParseError(String);
+
 impl TemplateWord for Word {
     fn type_name() -> TemplateType {
-        TemplateType::default_word_type()
+        TemplateType::native_word()
     }
     fn parse_word(input: &str) -> Result<Word, TemplateTypeError> {
-        parse_hex_string_as_word(input).map_err(|_| {
-            TemplateTypeError::ParseError(Self::type_name().as_str().into(), Self::type_name())
+        parse_hex_string_as_word(input).map_err(|err| {
+            TemplateTypeError::parse(
+                Self::type_name().as_str(),
+                Self::type_name(),
+                WordParseError(err.into()),
+            )
         })
     }
 }
@@ -365,8 +401,13 @@ impl TemplateWord for rpo_falcon512::PublicKey {
         TemplateType::new("auth::rpo_falcon512::pub_key").expect("type is well formed")
     }
     fn parse_word(input: &str) -> Result<Word, TemplateTypeError> {
-        parse_hex_string_as_word(input)
-            .map_err(|_| TemplateTypeError::ParseError(input.to_string(), Self::type_name()))
+        parse_hex_string_as_word(input).map_err(|err| {
+            TemplateTypeError::parse(
+                input.to_string(),
+                Self::type_name(),
+                WordParseError(err.into()),
+            )
+        })
     }
 }
 

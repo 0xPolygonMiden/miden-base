@@ -131,9 +131,9 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                         &"expected an array of 4 elements",
                     ));
                 }
-                let array: [FeltRepresentation; 4] =
+                let value: [FeltRepresentation; 4] =
                     elements.try_into().expect("length was checked");
-                Ok(WordRepresentation::new_value(array, None, None))
+                Ok(WordRepresentation::new_value(value, None))
             }
 
             fn visit_map<M>(self, map: M) -> Result<Self::Value, M::Error>
@@ -154,16 +154,24 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                     WordRepresentationHelper::deserialize(MapAccessDeserializer::new(map))?;
 
                 // If a value field is present, assume a Value variant.
-                if let Some(val) = helper.value {
+                if let Some(value) = helper.value {
                     let name = helper.name.map(parse_name).transpose()?;
-                    Ok(WordRepresentation::new_value(val, name, helper.description))
+                    Ok(WordRepresentation::Value {
+                        value,
+                        name,
+                        description: helper.description,
+                    })
                 } else {
                     // Otherwise, we expect a Template variant (name is required for identification)
                     let name = expect_parse_value_name(helper.name, "word template")?;
 
                     // Get the type, or the default if it was not specified
-                    let r#type = helper.r#type.unwrap_or(TemplateType::default_word_type());
-                    Ok(WordRepresentation::new_template(r#type, name, helper.description))
+                    let r#type = helper.r#type.unwrap_or(TemplateType::native_word());
+                    Ok(WordRepresentation::Template {
+                        r#type,
+                        name,
+                        description: helper.description,
+                    })
                 }
             }
         }
@@ -241,7 +249,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
             },
             Intermediate::Map { name, description, value, r#type } => {
                 // Get the defined type, or the default if it was not specified
-                let felt_type = r#type.unwrap_or(TemplateType::default_felt_type());
+                let felt_type = r#type.unwrap_or(TemplateType::native_felt());
 
                 if let Some(val_str) = value {
                     // Parse into felt from the input string
@@ -250,12 +258,12 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
                             D::Error::custom(format!("failed to parse {felt_type} as Felt: {}", e))
                         })?;
                     let name = name.map(parse_name).transpose()?;
-                    Ok(FeltRepresentation::new_value(felt, name, description))
+                    Ok(FeltRepresentation::Value { value: felt, name, description })
                 } else {
                     // No value provided, so this is a placeholder
                     let name = expect_parse_value_name(name, "map template")?;
 
-                    Ok(FeltRepresentation::new_template(felt_type, name, description))
+                    Ok(FeltRepresentation::Template { r#type: felt_type, name, description })
                 }
             },
         }
@@ -351,13 +359,20 @@ impl<'de> Deserialize<'de> for StorageEntry {
 
             Ok(StorageEntry::Value {
                 slot,
-                word_entry: WordRepresentation::new_value(word_entry, name, raw.description),
+                word_entry: WordRepresentation::Value {
+                    value: word_entry,
+                    name,
+                    description: raw.description,
+                },
             })
         } else if let Some(StorageValues::MapEntries(map_entries)) = raw.values {
             // If `values` field contains key/value pairs, deserialize as map
             let name = expect_parse_value_name(raw.name, "map entry")?;
             let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "map entry"))?;
-            let map = MapRepresentation::new(map_entries, name, raw.description);
+            let mut map = MapRepresentation::new(map_entries, name);
+            if let Some(description) = raw.description {
+                map = map.with_description(description);
+            }
 
             Ok(StorageEntry::Map { slot, map })
         } else if let Some(StorageValues::Words(values)) = raw.values {
@@ -371,7 +386,7 @@ impl<'de> Deserialize<'de> for StorageEntry {
             for pair in slots.windows(2) {
                 if pair[1] != pair[0] + 1 {
                     return Err(serde::de::Error::custom(format!(
-                        "`slots` field in `{name}` entry is not a valid range"
+                        "`slots` in the `{name}` storage entry are not contiguous"
                     )));
                 }
             }
@@ -384,7 +399,11 @@ impl<'de> Deserialize<'de> for StorageEntry {
             // If a type was provided instead, this is a WordRepresentation::Value entry
             let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "single-slot entry"))?;
             let name = expect_parse_value_name(raw.name, "single-slot entry")?;
-            let word_entry = WordRepresentation::new_template(word_type, name, raw.description);
+            let word_entry = WordRepresentation::Template {
+                r#type: word_type,
+                name,
+                description: raw.description,
+            };
 
             Ok(StorageEntry::Value { slot, word_entry })
         } else {
@@ -412,7 +431,7 @@ impl InitStorageData {
         let value: toml::Value = toml::from_str(toml_str)?;
         let mut placeholders = BTreeMap::new();
         // Start with an empty prefix (i.e. the default, which is an empty string)
-        Self::flatten_parse_toml_value(StorageValueName::default(), &value, &mut placeholders)?;
+        Self::flatten_parse_toml_value(StorageValueName::empty(), &value, &mut placeholders)?;
         Ok(InitStorageData::new(placeholders))
     }
 
@@ -458,7 +477,7 @@ impl InitStorageData {
 
 #[derive(Debug, Error)]
 pub enum InitStorageDataError {
-    #[error("failed to parse TOML: {0}")]
+    #[error("failed to parse TOML")]
     InvalidToml(#[from] toml::de::Error),
 
     #[error("empty table encountered for key `{0}`")]

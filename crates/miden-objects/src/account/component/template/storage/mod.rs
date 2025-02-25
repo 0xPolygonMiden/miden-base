@@ -117,7 +117,7 @@ impl StorageEntry {
     pub fn template_requirements(&self) -> TemplateRequirementsIter {
         let requirements = match self {
             StorageEntry::Value { word_entry, .. } => {
-                word_entry.template_requirements(StorageValueName::default())
+                word_entry.template_requirements(StorageValueName::empty())
             },
             StorageEntry::Map { map: map_entries, .. } => map_entries.template_requirements(),
             StorageEntry::MultiSlot { values, name, .. } => {
@@ -130,11 +130,12 @@ impl StorageEntry {
         requirements
     }
 
-    /// Attempts to convert the storage entry into a list of [StorageSlot].
+    /// Attempts to convert the storage entry into a list of [`StorageSlot`].
     ///
-    /// - StorageEntry::Value would convert to a [StorageSlot::Value]
-    /// - StorageEntry::MultiSlot would convert to as many [StorageSlot::Value] as defined
-    /// - StorageEntry::Map would convert to a [StorageSlot::Map]
+    /// - [`StorageEntry::Value`] would convert to a [`StorageSlot::Value`]
+    /// - [`StorageEntry::MultiSlot`] would convert to as many [`StorageSlot::Value`] as required by
+    ///   the defined type
+    /// - [`StorageEntry::Map`] would convert to a [`StorageSlot::Map`]
     ///
     /// Each of the entry's values could be templated. These values are replaced for values found
     /// in `init_storage_data`, identified by its key.
@@ -145,7 +146,7 @@ impl StorageEntry {
         match self {
             StorageEntry::Value { word_entry, .. } => {
                 let slot =
-                    word_entry.try_build_word(init_storage_data, StorageValueName::default())?;
+                    word_entry.try_build_word(init_storage_data, StorageValueName::empty())?;
                 Ok(vec![StorageSlot::Value(slot)])
             },
             StorageEntry::Map { map: values, .. } => {
@@ -173,11 +174,20 @@ impl StorageEntry {
         match self {
             StorageEntry::Map { map, .. } => map.validate(),
             StorageEntry::MultiSlot { slots, values, .. } => {
-                if slots.len() != values.len() {
-                    Err(AccountComponentTemplateError::MultiSlotArityMismatch)
-                } else {
-                    Ok(())
+                if slots.len() == 1 {
+                    return Err(AccountComponentTemplateError::MultiSlotSpansOneSlot);
                 }
+
+                if slots.len() != values.len() {
+                    return Err(AccountComponentTemplateError::MultiSlotArityMismatch);
+                }
+
+                for slot_word in values {
+                    for felt_in_slot in slot_word {
+                        felt_in_slot.validate()?;
+                    }
+                }
+                Ok(())
             },
             StorageEntry::Value { word_entry, .. } => Ok(word_entry.validate()?),
         }
@@ -308,7 +318,7 @@ impl Deserializable for MapEntry {
 #[cfg(test)]
 mod tests {
     use core::{error::Error, panic};
-    use std::{println, string::ToString};
+    use std::string::ToString;
 
     use assembly::Assembler;
     use semver::Version;
@@ -339,10 +349,10 @@ mod tests {
             FeltRepresentation::from(Felt::new(1218)),
             FeltRepresentation::from(Felt::new(0xdba3)),
             FeltRepresentation::new_template(
-                TemplateType::default_felt_type(),
+                TemplateType::native_felt(),
                 StorageValueName::new("slot3").unwrap(),
-                Some("dummy description".into()),
-            ),
+            )
+            .with_description("dummy description"),
         ];
 
         let test_word: Word = digest!("0x000001").into();
@@ -352,32 +362,31 @@ mod tests {
             vec![
                 MapEntry {
                     key: WordRepresentation::new_template(
-                        TemplateType::default_word_type(),
+                        TemplateType::native_word(),
                         StorageValueName::new("foo").unwrap(),
-                        None,
                     ),
-                    value: WordRepresentation::new_value(test_word.clone(), None, None),
+                    value: WordRepresentation::new_value(test_word.clone(), None),
                 },
                 MapEntry {
-                    key: WordRepresentation::new_value(test_word.clone(), None, None),
+                    key: WordRepresentation::new_value(test_word.clone(), None),
                     value: WordRepresentation::new_template(
-                        TemplateType::default_word_type(),
+                        TemplateType::native_word(),
                         StorageValueName::new("bar").unwrap(),
-                        Some("bar description".into()),
-                    ),
+                    )
+                    .with_description("bar description"),
                 },
                 MapEntry {
                     key: WordRepresentation::new_template(
-                        TemplateType::default_word_type(),
+                        TemplateType::native_word(),
                         StorageValueName::new("baz").unwrap(),
-                        Some("baz description".into()),
-                    ),
-                    value: WordRepresentation::new_value(test_word, None, None),
+                    )
+                    .with_description("baz description"),
+                    value: WordRepresentation::new_value(test_word, None),
                 },
             ],
             StorageValueName::new("map").unwrap(),
-            Some("A storage map entry".into()),
-        );
+        )
+        .with_description("a storage map description");
 
         let storage = vec![
             StorageEntry::new_value(0, felt_array.clone()),
@@ -389,24 +398,20 @@ mod tests {
                 vec![
                     [
                         FeltRepresentation::new_template(
-                            TemplateType::default_felt_type(),
+                            TemplateType::native_felt(),
                             StorageValueName::new("test").unwrap(),
-                            None,
                         ),
                         FeltRepresentation::new_template(
-                            TemplateType::default_felt_type(),
+                            TemplateType::native_felt(),
                             StorageValueName::new("test2").unwrap(),
-                            None,
                         ),
                         FeltRepresentation::new_template(
-                            TemplateType::default_felt_type(),
+                            TemplateType::native_felt(),
                             StorageValueName::new("test3").unwrap(),
-                            None,
                         ),
                         FeltRepresentation::new_template(
-                            TemplateType::default_felt_type(),
+                            TemplateType::native_felt(),
                             StorageValueName::new("test4").unwrap(),
-                            None,
                         ),
                     ],
                     felt_array,
@@ -415,9 +420,8 @@ mod tests {
             StorageEntry::new_value(
                 4,
                 WordRepresentation::new_template(
-                    TemplateType::default_word_type(),
+                    TemplateType::native_word(),
                     StorageValueName::new("single").unwrap(),
-                    None,
                 ),
             ),
         ];
@@ -430,7 +434,6 @@ mod tests {
             storage,
         };
         let toml = config.as_toml().unwrap();
-        println!("{toml}");
         let deserialized = AccountComponentMetadata::from_toml(&toml).unwrap();
 
         assert_eq!(deserialized, config);
@@ -522,7 +525,7 @@ mod tests {
             component,
             Err(AccountError::AccountComponentTemplateInstantiationError(
                 AccountComponentTemplateError::StorageValueParsingError(
-                    TemplateTypeError::ParseError(_, _)
+                    TemplateTypeError::ParseError { .. }
                 )
             ))
         );
@@ -687,6 +690,29 @@ mod tests {
         assert_matches::assert_matches!(
             result.unwrap_err(),
             AccountComponentTemplateError::DuplicateEntryNames(_)
+        );
+    }
+
+    #[test]
+    fn toml_fail_multislot_spans_one_slot() {
+        let toml_text = r#"
+        name = "Test Component"
+        description = "Test multislot spans one slot"
+        version = "1.0.1"
+        supported-types = ["RegularAccountImmutableCode"]
+
+        [[storage]]
+        name = "multislot_one_slot"
+        slots = [0]
+        values = [
+            [ "0x1", "0x2", "0x3", "0x4" ],
+        ]
+    "#;
+
+        let result = AccountComponentMetadata::from_toml(toml_text);
+        assert_matches::assert_matches!(
+            result.unwrap_err(),
+            AccountComponentTemplateError::MultiSlotSpansOneSlot
         );
     }
 

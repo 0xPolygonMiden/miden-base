@@ -118,17 +118,14 @@ impl Deserializable for AccountComponentTemplate {
 /// let second_felt = FeltRepresentation::from(Felt::new(1u64));
 /// let third_felt = FeltRepresentation::from(Felt::new(2u64));
 /// // Templated element:
-/// let last_element = FeltRepresentation::new_template(
-///     TemplateType::new("felt")?,
-///     StorageValueName::new("foo")?,
-///     None,
-/// );
+/// let last_element =
+///     FeltRepresentation::new_template(TemplateType::new("felt")?, StorageValueName::new("foo")?);
 ///
 /// let word_representation = WordRepresentation::new_value(
 ///     [first_felt, second_felt, third_felt, last_element],
 ///     Some(StorageValueName::new("test_value")?),
-///     Some("This is a test value".into()),
-/// );
+/// )
+/// .with_description("this is the first entry in the storage layout");
 /// let storage_entry = StorageEntry::new_value(0, word_representation);
 ///
 /// let init_storage_data =
