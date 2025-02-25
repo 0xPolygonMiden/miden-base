@@ -318,7 +318,7 @@ impl Deserializable for MapEntry {
 #[cfg(test)]
 mod tests {
     use core::{error::Error, panic};
-    use std::string::ToString;
+    use std::{println, string::ToString};
 
     use assembly::Assembler;
     use semver::Version;
@@ -663,7 +663,7 @@ mod tests {
 
         let err = AccountComponentMetadata::from_toml(toml_text).unwrap_err();
         // validate inner serde error
-        assert!(err.source().unwrap().to_string().contains("not a valid range"));
+        assert!(err.source().unwrap().to_string().contains("are not contiguous"));
     }
 
     #[test]
