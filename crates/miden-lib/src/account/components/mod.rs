@@ -1,7 +1,4 @@
-use miden_objects::{
-    assembly::Library,
-    utils::{sync::LazyLock, Deserializable},
-};
+use crate::{Deserializable, LazyLock, Library};
 
 // Initialize the Basic Wallet library only once.
 static BASIC_WALLET_LIBRARY: LazyLock<Library> = LazyLock::new(|| {

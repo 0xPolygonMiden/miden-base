@@ -1,11 +1,7 @@
-use miden_objects::{
-    account::AccountId,
-    asset::Asset,
-    note::{NoteExecutionMode, NoteInputs, NoteRecipient, NoteTag, NoteType},
-    NoteError, Word,
+use crate::note::{
+    scripts, AccountId, Asset, NoteError, NoteExecutionMode, NoteInputs, NoteRecipient, NoteTag,
+    NoteType, Word,
 };
-
-use crate::note::scripts;
 
 /// Creates a [NoteRecipient] for the P2ID note.
 ///
