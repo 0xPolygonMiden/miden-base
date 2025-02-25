@@ -1,19 +1,10 @@
-use assembly::LibraryPath;
-use miden_lib::{
-    account::{
-        auth::RpoFalcon512,
-        interface::{AccountInterface, CheckResult},
-        wallets::BasicWallet,
-    },
-    note::{create_p2id_note, create_p2idr_note, create_swap_note},
-    transaction::TransactionKernel,
-};
 use miden_objects::{
-    account::{AccountBuilder, AccountComponent},
-    asset::{FungibleAsset, NonFungibleAsset},
+    account::{AccountBuilder, AccountComponent, AccountType},
+    assembly::LibraryPath,
+    asset::{FungibleAsset, NonFungibleAsset, TokenSymbol},
     block::BlockNumber,
     crypto::{
-        dsa::rpo_falcon512::SecretKey,
+        dsa::rpo_falcon512::PublicKey,
         rand::{FeltRng, RpoRandomCoin},
     },
     note::{
@@ -24,27 +15,49 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2,
     },
-    Felt,
+    Digest, Felt, ONE, ZERO,
 };
-use miden_tx::testing::{Auth, MockChain};
-use rand::{Rng, SeedableRng};
-use rand_chacha::ChaCha20Rng;
+
+use crate::{
+    account::{
+        auth::RpoFalcon512,
+        faucets::BasicFungibleFaucet,
+        interface::{AccountInterface, NoteAccountCompatibility},
+        wallets::BasicWallet,
+    },
+    note::{create_p2id_note, create_p2idr_note, create_swap_note},
+    transaction::TransactionKernel,
+};
 
 // DEFAULT NOTES
 // ================================================================================================
 
 #[test]
 fn test_basic_wallet_default_notes() {
-    // STATELESS CHECK
-    // --------------------------------------------------------------------------------------------
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let wallet_account = AccountBuilder::new(mock_seed)
+        .with_component(BasicWallet)
+        .with_assets(vec![FungibleAsset::mock(20)])
+        .build_existing()
+        .expect("failed to create wallet account");
 
-    let mut mock_chain = MockChain::new();
-    let wallet_account =
-        mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
     let wallet_account_interface = AccountInterface::from(&wallet_account);
 
-    let faucet_account = mock_chain.add_existing_faucet(Auth::BasicAuth, "POL", 200u64, None);
-    let faucet_account_interface = AccountInterface::from(faucet_account.account());
+    let mock_seed =
+        Digest::from([Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]).as_bytes();
+    let faucet_account = AccountBuilder::new(mock_seed)
+        .account_type(AccountType::FungibleFaucet)
+        .with_component(
+            BasicFungibleFaucet::new(
+                TokenSymbol::new("POL").expect("invalid token symbol"),
+                10,
+                Felt::new(100),
+            )
+            .expect("failed to create a fungible faucet component"),
+        )
+        .build_existing()
+        .expect("failed to create wallet account");
+    let faucet_account_interface = AccountInterface::from(&faucet_account);
 
     let p2id_note = create_p2id_note(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
@@ -52,7 +65,7 @@ fn test_basic_wallet_default_notes() {
         vec![FungibleAsset::mock(10)],
         NoteType::Public,
         Default::default(),
-        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
@@ -63,7 +76,7 @@ fn test_basic_wallet_default_notes() {
         NoteType::Public,
         Default::default(),
         BlockNumber::default(),
-        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
@@ -75,25 +88,20 @@ fn test_basic_wallet_default_notes() {
         offered_asset,
         requested_asset,
         NoteType::Public,
-        Felt::new(0),
-        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        ZERO,
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
     // Basic wallet
-    assert_eq!(CheckResult::Yes, wallet_account_interface.can_consume(&p2id_note));
-    assert_eq!(CheckResult::Yes, wallet_account_interface.can_consume(&p2idr_note));
-    assert_eq!(CheckResult::Yes, wallet_account_interface.can_consume(&swap_note));
+    assert_eq!(NoteAccountCompatibility::Yes, wallet_account_interface.can_consume(&p2id_note));
+    assert_eq!(NoteAccountCompatibility::Yes, wallet_account_interface.can_consume(&p2idr_note));
+    assert_eq!(NoteAccountCompatibility::Yes, wallet_account_interface.can_consume(&swap_note));
 
     // Basic fungible faucet
-    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&p2id_note));
-    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&p2idr_note));
-    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&swap_note));
-
-    // STATEFUL CHECK
-    // --------------------------------------------------------------------------------------------
-
-    // TODO: implement
+    assert_eq!(NoteAccountCompatibility::No, faucet_account_interface.can_consume(&p2id_note));
+    assert_eq!(NoteAccountCompatibility::No, faucet_account_interface.can_consume(&p2idr_note));
+    assert_eq!(NoteAccountCompatibility::No, faucet_account_interface.can_consume(&swap_note));
 }
 
 // CUSTOM NOTES
@@ -101,18 +109,18 @@ fn test_basic_wallet_default_notes() {
 
 #[test]
 fn test_basic_wallet_custom_notes() {
-    // STATELESS CHECK
-    // --------------------------------------------------------------------------------------------
-
-    let mut mock_chain = MockChain::new();
-    let wallet_account =
-        mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let wallet_account = AccountBuilder::new(mock_seed)
+        .with_component(BasicWallet)
+        .with_assets(vec![FungibleAsset::mock(20)])
+        .build_existing()
+        .expect("failed to create wallet account");
     let wallet_account_interface = AccountInterface::from(&wallet_account);
 
     let sender_account_id =
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap();
     let serial_num =
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
+        RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
     let tag = NoteTag::from_account_id(wallet_account.id(), NoteExecutionMode::Local).unwrap();
     let metadata = NoteMetadata::new(
         sender_account_id,
@@ -131,9 +139,16 @@ fn test_basic_wallet_custom_notes() {
         begin
             push.1
             if.true 
+                # supported procs
+                call.wallet::receive_asset
+                call.wallet::create_note
+                call.wallet::move_asset_to_note
+                
+                # unsupported procs
                 call.fungible_faucet::distribute
                 call.fungible_faucet::burn
             else
+                # supported procs
                 call.wallet::receive_asset
                 call.wallet::create_note
                 call.wallet::move_asset_to_note
@@ -146,7 +161,7 @@ fn test_basic_wallet_custom_notes() {
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
-        CheckResult::Maybe,
+        NoteAccountCompatibility::Maybe,
         wallet_account_interface.can_consume(&compatible_custom_note)
     );
 
@@ -157,11 +172,16 @@ fn test_basic_wallet_custom_notes() {
         begin
             push.1
             if.true 
+                # unsupported procs
                 call.fungible_faucet::distribute
                 call.fungible_faucet::burn
             else
+                # unsupported proc
                 call.fungible_faucet::distribute
+
+                # supported procs
                 call.wallet::create_note
+                call.wallet::receive_asset
                 call.wallet::move_asset_to_note
             end
         end
@@ -171,27 +191,34 @@ fn test_basic_wallet_custom_notes() {
             .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
-    assert_eq!(CheckResult::No, wallet_account_interface.can_consume(&incompatible_custom_note));
-
-    // STATEFUL CHECK
-    // --------------------------------------------------------------------------------------------
-
-    // TODO: implement
+    assert_eq!(
+        NoteAccountCompatibility::No,
+        wallet_account_interface.can_consume(&incompatible_custom_note)
+    );
 }
 
 #[test]
 fn test_basic_fungible_faucet_custom_notes() {
-    // STATELESS CHECK
-    // --------------------------------------------------------------------------------------------
-
-    let mut mock_chain = MockChain::new();
-    let faucet_account = mock_chain.add_existing_faucet(Auth::BasicAuth, "POL", 200u64, None);
-    let faucet_account_interface = AccountInterface::from(faucet_account.account());
+    let mock_seed =
+        Digest::from([Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]).as_bytes();
+    let faucet_account = AccountBuilder::new(mock_seed)
+        .account_type(AccountType::FungibleFaucet)
+        .with_component(
+            BasicFungibleFaucet::new(
+                TokenSymbol::new("POL").expect("invalid token symbol"),
+                10,
+                Felt::new(100),
+            )
+            .expect("failed to create a fungible faucet component"),
+        )
+        .build_existing()
+        .expect("failed to create wallet account");
+    let faucet_account_interface = AccountInterface::from(&faucet_account);
 
     let sender_account_id =
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap();
     let serial_num =
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
+        RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
     let tag = NoteTag::from_account_id(faucet_account.id(), NoteExecutionMode::Local).unwrap();
     let metadata = NoteMetadata::new(
         sender_account_id,
@@ -210,9 +237,14 @@ fn test_basic_fungible_faucet_custom_notes() {
         begin
             push.1
             if.true 
+                # supported procs
                 call.fungible_faucet::distribute
                 call.fungible_faucet::burn
             else
+                # supported proc
+                call.fungible_faucet::distribute
+
+                # unsupported procs
                 call.wallet::receive_asset
                 call.wallet::create_note
                 call.wallet::move_asset_to_note
@@ -225,7 +257,7 @@ fn test_basic_fungible_faucet_custom_notes() {
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
-        CheckResult::Maybe,
+        NoteAccountCompatibility::Maybe,
         faucet_account_interface.can_consume(&compatible_custom_note)
     );
 
@@ -236,10 +268,17 @@ fn test_basic_fungible_faucet_custom_notes() {
         begin
             push.1
             if.true 
+                # supported procs
                 call.fungible_faucet::distribute
+                call.fungible_faucet::burn
+            
+                # unsupported proc
                 call.wallet::receive_asset
             else
+                # supported proc
                 call.fungible_faucet::burn
+
+                # unsupported procs
                 call.wallet::create_note
                 call.wallet::move_asset_to_note
             end
@@ -250,19 +289,19 @@ fn test_basic_fungible_faucet_custom_notes() {
             .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
-    assert_eq!(CheckResult::No, faucet_account_interface.can_consume(&incompatible_custom_note));
-
-    // STATEFUL CHECK
-    // --------------------------------------------------------------------------------------------
-
-    // TODO: implement
+    assert_eq!(
+        NoteAccountCompatibility::No,
+        faucet_account_interface.can_consume(&incompatible_custom_note)
+    );
 }
 
+/// Checks the compatibility of the note with custom code against an account with one custom
+/// interface.
+///
+/// In that setup the note script should have at least one execution branch with procedures from the
+/// account interface for being `Maybe` compatible.
 #[test]
 fn test_custom_account_custom_notes() {
-    // STATELESS CHECK
-    // --------------------------------------------------------------------------------------------
-
     let account_custom_code_source = "
         export.procedure_1
             push.1.2.3.4 dropw
@@ -282,17 +321,22 @@ fn test_custom_account_custom_notes() {
     .unwrap()
     .with_supports_all_types();
 
-    let target_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let target_account = AccountBuilder::new(mock_seed)
         .with_component(account_component.clone())
         .build_existing()
         .unwrap();
     let target_account_interface = AccountInterface::from(&target_account);
 
-    let mut mock_chain = MockChain::with_accounts(&[target_account.clone()]);
-    let sender_account =
-        mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let sender_account = AccountBuilder::new(mock_seed)
+        .with_component(BasicWallet)
+        .with_assets(vec![FungibleAsset::mock(20)])
+        .build_existing()
+        .expect("failed to create wallet account");
+
     let serial_num =
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
+        RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
     let tag = NoteTag::from_account_id(target_account.id(), NoteExecutionMode::Local).unwrap();
     let metadata = NoteMetadata::new(
         sender_account.id(),
@@ -311,9 +355,13 @@ fn test_custom_account_custom_notes() {
         begin
             push.1
             if.true 
-                call.wallet::receive_asset
+                # supported proc
                 call.test_account::procedure_1
+
+                # unsupported proc
+                call.wallet::receive_asset
             else
+                # supported procs
                 call.test_account::procedure_1
                 call.test_account::procedure_2
             end
@@ -329,7 +377,7 @@ fn test_custom_account_custom_notes() {
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
-        CheckResult::Maybe,
+        NoteAccountCompatibility::Maybe,
         target_account_interface.can_consume(&compatible_custom_note)
     );
 
@@ -358,19 +406,19 @@ fn test_custom_account_custom_notes() {
     .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
-    assert_eq!(CheckResult::No, target_account_interface.can_consume(&incompatible_custom_note));
-
-    // STATEFUL CHECK
-    // --------------------------------------------------------------------------------------------
-
-    // TODO: implement
+    assert_eq!(
+        NoteAccountCompatibility::No,
+        target_account_interface.can_consume(&incompatible_custom_note)
+    );
 }
 
+/// Checks the compatibility of the note with custom code against an account with many custom
+/// interfaces.
+///
+/// In that setup the note script should have at least one execution branch with procedures from the
+/// account interface for being `Maybe` compatible.
 #[test]
 fn test_custom_account_multiple_components_custom_notes() {
-    // STATELESS CHECK
-    // --------------------------------------------------------------------------------------------
-
     let account_custom_code_source = "
         export.procedure_1
             push.1.2.3.4 dropw
@@ -390,13 +438,11 @@ fn test_custom_account_multiple_components_custom_notes() {
     .unwrap()
     .with_supports_all_types();
 
-    let mut rng = ChaCha20Rng::from_seed(Default::default());
-    let sec_key = SecretKey::with_rng(&mut rng);
-    let pub_key = sec_key.public_key();
+    let mock_public_key = PublicKey::new([ZERO, ONE, Felt::new(2), Felt::new(3)]);
+    let rpo_component = RpoFalcon512::new(mock_public_key);
 
-    let rpo_component = RpoFalcon512::new(pub_key);
-
-    let target_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let target_account = AccountBuilder::new(mock_seed)
         .with_component(custom_component.clone())
         .with_component(BasicWallet)
         .with_component(rpo_component)
@@ -404,11 +450,15 @@ fn test_custom_account_multiple_components_custom_notes() {
         .unwrap();
     let target_account_interface = AccountInterface::from(&target_account);
 
-    let mut mock_chain = MockChain::with_accounts(&[target_account.clone()]);
-    let sender_account =
-        mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let sender_account = AccountBuilder::new(mock_seed)
+        .with_component(BasicWallet)
+        .with_assets(vec![FungibleAsset::mock(20)])
+        .build_existing()
+        .expect("failed to create wallet account");
+
     let serial_num =
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
+        RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
     let tag = NoteTag::from_account_id(target_account.id(), NoteExecutionMode::Local).unwrap();
     let metadata = NoteMetadata::new(
         sender_account.id(),
@@ -424,10 +474,12 @@ fn test_custom_account_multiple_components_custom_notes() {
         use.miden::contracts::wallets::basic->wallet
         use.miden::contracts::auth::basic->basic_auth
         use.test::account::component_1->test_account
+        use.miden::contracts::faucets::basic_fungible->fungible_faucet
 
         begin
             push.1
             if.true 
+                # supported procs
                 call.wallet::receive_asset
                 call.wallet::create_note
                 call.wallet::move_asset_to_note
@@ -435,8 +487,16 @@ fn test_custom_account_multiple_components_custom_notes() {
                 call.test_account::procedure_2
                 call.basic_auth::auth_tx_rpo_falcon512
             else
+                # supported procs
+                call.wallet::receive_asset
+                call.wallet::create_note
+                call.wallet::move_asset_to_note
                 call.test_account::procedure_1
                 call.test_account::procedure_2
+                call.basic_auth::auth_tx_rpo_falcon512
+
+                # unsupported proc
+                call.fungible_faucet::distribute
             end
         end
     ";
@@ -450,7 +510,7 @@ fn test_custom_account_multiple_components_custom_notes() {
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
-        CheckResult::Maybe,
+        NoteAccountCompatibility::Maybe,
         target_account_interface.can_consume(&compatible_custom_note)
     );
 
@@ -463,16 +523,22 @@ fn test_custom_account_multiple_components_custom_notes() {
         begin
             push.1
             if.true 
+                # supported procs
                 call.wallet::receive_asset
                 call.wallet::create_note
                 call.wallet::move_asset_to_note
                 call.test_account::procedure_1
                 call.test_account::procedure_2
                 call.basic_auth::auth_tx_rpo_falcon512
+
+                # unsupported proc
                 call.fungible_faucet::distribute
             else
+                # supported procs
                 call.test_account::procedure_1
                 call.test_account::procedure_2
+
+                # unsupported proc
                 call.fungible_faucet::burn
             end
         end
@@ -486,5 +552,8 @@ fn test_custom_account_multiple_components_custom_notes() {
     .unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, NoteInputs::default());
     let incompatible_custom_note = Note::new(vault.clone(), metadata, recipient);
-    assert_eq!(CheckResult::No, target_account_interface.can_consume(&incompatible_custom_note));
+    assert_eq!(
+        NoteAccountCompatibility::No,
+        target_account_interface.can_consume(&incompatible_custom_note)
+    );
 }

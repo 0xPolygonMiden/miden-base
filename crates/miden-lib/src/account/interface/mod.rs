@@ -1,7 +1,11 @@
-use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    vec::Vec,
+};
 
 use miden_objects::{
-    account::{Account, AccountId, AccountProcedureInfo},
+    account::{Account, AccountCode, AccountId, AccountProcedureInfo, AccountType},
     assembly::mast::{MastForest, MastNode, MastNodeId},
     crypto::dsa::rpo_falcon512,
     note::{Note, NoteScript},
@@ -12,96 +16,20 @@ use crate::{
     account::components::{
         basic_fungible_faucet_library, basic_wallet_library, rpo_falcon_512_library,
     },
-    note::scripts::{p2id, p2idr, swap},
+    note::scripts::{p2id_commitment, p2idr_commitment, swap_commitment},
     AuthScheme,
 };
 
-/// Possible variations of result whether some note be consumed by some account.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CheckResult {
-    Yes,
-    No,
-    // `Maybe` variant means that the account has all necessary procedures to execute the note,
-    // but the correctness of the note script could not be guaranteed.
-    Maybe,
-}
+#[cfg(test)]
+mod test;
 
-// The enum holding all possible account interfaces which could be loaded to some account.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum AccountComponentInterface {
-    BasicWallet,
-    BasicFungibleFaucet,
-    // Internal value of the `RpoFalcon512` holds the storage offset where the private key is
-    // stored
-    RpoFalcon512(u8),
-    Custom(Vec<AccountProcedureInfo>),
-}
+// ACCOUNT INTERFACE
+// ================================================================================================
 
-impl AccountComponentInterface {
-    /// Creates a set of [AccountComponentInterface] instances, specifying components which were
-    /// used to create an account with the provided procedures array.
-    pub fn from_procedures(procedures: &[AccountProcedureInfo]) -> BTreeSet<Self> {
-        let rpo_falcon_procs = rpo_falcon_512_library()
-            .mast_forest()
-            .procedure_digests()
-            .collect::<Vec<Digest>>();
-
-        debug_assert!(rpo_falcon_procs.len() == 1);
-        let rpo_falcon_proc = rpo_falcon_procs[0];
-
-        let mut component_interface_set = BTreeSet::new();
-
-        if basic_wallet_library().mast_forest().procedure_digests().all(|proc_digest| {
-            procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
-        }) {
-            component_interface_set.insert(AccountComponentInterface::BasicWallet);
-        }
-
-        if basic_fungible_faucet_library()
-            .mast_forest()
-            .procedure_digests()
-            .all(|proc_digest| {
-                procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
-            })
-        {
-            component_interface_set.insert(AccountComponentInterface::BasicFungibleFaucet);
-        }
-
-        procedures.iter().for_each(|proc_info| {
-            if proc_info.mast_root() == &rpo_falcon_proc {
-                component_interface_set
-                    .insert(AccountComponentInterface::RpoFalcon512(proc_info.storage_offset()));
-            }
-        });
-
-        let custom_interface_procs = procedures
-            .iter()
-            .filter(|proc_digest| {
-                !basic_wallet_library()
-                    .mast_forest()
-                    .procedure_digests()
-                    .any(|wallet_proc_digest| &wallet_proc_digest == proc_digest.mast_root())
-                    && !basic_fungible_faucet_library()
-                        .mast_forest()
-                        .procedure_digests()
-                        .any(|faucet_proc_digest| &faucet_proc_digest == proc_digest.mast_root())
-                    && (&rpo_falcon_proc != proc_digest.mast_root())
-            })
-            .cloned()
-            .collect::<Vec<AccountProcedureInfo>>();
-
-        if !custom_interface_procs.is_empty() {
-            component_interface_set
-                .insert(AccountComponentInterface::Custom(custom_interface_procs));
-        }
-
-        component_interface_set
-    }
-
-    // probably it would be convenient to also have `from_components` constructor
-}
-
-/// An [`AccountInterface`]
+/// An [`AccountInterface`] describes the exported, callable procedures of an account.
+///
+/// A note script's compatibility with this interface can be inspected to check whether the note may
+/// result in a successful execution against this account.
 pub struct AccountInterface {
     account_id: AccountId,
     auth: Vec<AuthScheme>,
@@ -109,12 +37,43 @@ pub struct AccountInterface {
 }
 
 impl AccountInterface {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Creates a new [`AccountInterface`] instance from the provided account ID, authentication
+    /// schemes and account code.
+    pub fn new(account_id: AccountId, auth: Vec<AuthScheme>, code: &AccountCode) -> Self {
+        let component_interfaces = AccountComponentInterface::from_procedures(code.procedures());
+
+        Self { account_id, auth, component_interfaces }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the account ID.
-    pub fn account_id(&self) -> &AccountId {
+    pub fn id(&self) -> &AccountId {
         &self.account_id
+    }
+
+    /// Returns the type of the reference account.
+    pub fn account_type(&self) -> AccountType {
+        self.account_id.account_type()
+    }
+
+    /// Returns true if the reference account can issue assets.
+    pub fn is_faucet(&self) -> bool {
+        self.account_id.is_faucet()
+    }
+
+    /// Returns true if the reference account is a regular.
+    pub fn is_regular_account(&self) -> bool {
+        self.account_id.is_regular_account()
+    }
+
+    /// Returns true if the reference account is public.
+    pub fn is_public(&self) -> bool {
+        self.account_id.is_public()
     }
 
     /// Returns a reference to the vector of used authentication schemes.
@@ -128,17 +87,17 @@ impl AccountInterface {
     }
 
     /// checks if a note can be consumed against the current [AccountInterface] instance.
-    pub fn can_consume(&self, note: &Note) -> CheckResult {
-        let basic_wallet_notes = [p2id().hash(), p2idr().hash(), swap().hash()];
+    pub fn can_consume(&self, note: &Note) -> NoteAccountCompatibility {
+        let basic_wallet_notes = [p2id_commitment(), p2idr_commitment(), swap_commitment()];
         let is_basic_wallet_note = basic_wallet_notes.contains(&note.script().hash());
 
         if is_basic_wallet_note {
             if self.component_interfaces.contains(&AccountComponentInterface::BasicWallet) {
-                return CheckResult::Yes;
+                return NoteAccountCompatibility::Yes;
             }
             let custom_interfaces_procs = component_proc_digests(self.components(), true);
             if custom_interfaces_procs.is_empty() {
-                CheckResult::No
+                NoteAccountCompatibility::No
             } else {
                 verify_note_script_compatibility(note.script(), custom_interfaces_procs)
             }
@@ -176,6 +135,122 @@ impl From<&Account> for AccountInterface {
     }
 }
 
+// ACCOUNT COMPONENT INTERFACE
+// ================================================================================================
+
+/// The enum holding all possible account interfaces which could be loaded to some account.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum AccountComponentInterface {
+    /// Exposes `receive_asset`, `create_note` and `move_asset_to_note` procedures from the
+    /// `miden::contracts::wallets::basic` module.
+    BasicWallet,
+    /// Exposes `distribute` and `burn` procedures from the
+    /// `miden::contracts::faucets::basic_fungible` module.
+    BasicFungibleFaucet,
+    /// Exposes `auth_tx_rpo_falcon512` procedure from the `miden::contracts::auth::basic` module.
+    ///
+    /// Internal value holds the storage offset where the public key for the RpoFalcon512
+    /// authentication scheme is stored.
+    RpoFalcon512(u8),
+    /// Exposes the procedures vector specified by its internal value.
+    Custom(Vec<AccountProcedureInfo>),
+}
+
+impl AccountComponentInterface {
+    /// Creates a set of [AccountComponentInterface] instances, specifying components which were
+    /// used to create an account with the provided procedures array.
+    pub fn from_procedures(procedures: &[AccountProcedureInfo]) -> BTreeSet<Self> {
+        let mut component_interface_set = BTreeSet::new();
+
+        if basic_wallet_library().mast_forest().procedure_digests().all(|proc_digest| {
+            procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
+        }) {
+            component_interface_set.insert(AccountComponentInterface::BasicWallet);
+        }
+
+        if basic_fungible_faucet_library()
+            .mast_forest()
+            .procedure_digests()
+            .all(|proc_digest| {
+                procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
+            })
+        {
+            component_interface_set.insert(AccountComponentInterface::BasicFungibleFaucet);
+        }
+
+        let rpo_falcon_procs = rpo_falcon_512_library()
+            .mast_forest()
+            .procedure_digests()
+            .collect::<Vec<Digest>>();
+
+        debug_assert!(rpo_falcon_procs.len() == 1);
+        let rpo_falcon_proc = rpo_falcon_procs[0];
+
+        procedures.iter().for_each(|proc_info| {
+            if proc_info.mast_root() == &rpo_falcon_proc {
+                component_interface_set
+                    .insert(AccountComponentInterface::RpoFalcon512(proc_info.storage_offset()));
+            }
+        });
+
+        let mut custom_interface_procs_map: BTreeMap<u8, Vec<AccountProcedureInfo>> =
+            BTreeMap::new();
+        procedures.iter().for_each(|proc_digest| {
+            if !basic_wallet_library()
+                .mast_forest()
+                .procedure_digests()
+                .any(|wallet_proc_digest| &wallet_proc_digest == proc_digest.mast_root())
+                && !basic_fungible_faucet_library()
+                    .mast_forest()
+                    .procedure_digests()
+                    .any(|faucet_proc_digest| &faucet_proc_digest == proc_digest.mast_root())
+                && (&rpo_falcon_proc != proc_digest.mast_root())
+            {
+                match custom_interface_procs_map.get_mut(&proc_digest.storage_offset()) {
+                    Some(proc_vec) => proc_vec.push(proc_digest.clone()),
+                    None => {
+                        custom_interface_procs_map
+                            .insert(proc_digest.storage_offset(), vec![proc_digest.clone()]);
+                    },
+                }
+            }
+        });
+
+        if !custom_interface_procs_map.is_empty() {
+            for proc_vec in custom_interface_procs_map.into_values() {
+                component_interface_set.insert(AccountComponentInterface::Custom(proc_vec));
+            }
+        }
+
+        component_interface_set
+    }
+
+    // probably it would be convenient to also have `from_components` constructor
+}
+
+// ACCOUNT COMPONENT INTERFACE
+// ================================================================================================
+
+/// Describes whether a note is compatible with a specific account.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoteAccountCompatibility {
+    /// A note is fully compatible with an account.
+    ///
+    /// Being fully compatible with an account interface means that account has all necessary
+    /// procedures to consume the note and the correctness of the note script is guaranteed,
+    /// however there is still a possibility that account may be in a state where it won't be
+    /// able to consume the note.
+    Yes,
+    /// A note is incompatible with an account.
+    ///
+    /// The account interface does not have procedures for being able to execute at least one of
+    /// the program execution branches.
+    No,
+    /// The account has all necessary procedures to consume the note, but the correctness of the
+    /// note script is not guaranteed.
+    Maybe,
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -192,38 +267,26 @@ fn component_proc_digests(
         match component {
             AccountComponentInterface::BasicWallet => {
                 if !only_custom {
-                    component_proc_digests.append(
-                        &mut basic_wallet_library()
-                            .mast_forest()
-                            .procedure_digests()
-                            .collect::<Vec<Digest>>(),
-                    );
+                    component_proc_digests
+                        .extend(&mut basic_wallet_library().mast_forest().procedure_digests());
                 }
             },
             AccountComponentInterface::BasicFungibleFaucet => {
                 if !only_custom {
-                    component_proc_digests.append(
-                        &mut basic_fungible_faucet_library()
-                            .mast_forest()
-                            .procedure_digests()
-                            .collect::<Vec<Digest>>(),
+                    component_proc_digests.extend(
+                        &mut basic_fungible_faucet_library().mast_forest().procedure_digests(),
                     );
                 }
             },
             AccountComponentInterface::RpoFalcon512(_) => {
                 if !only_custom {
-                    component_proc_digests.append(
-                        &mut rpo_falcon_512_library()
-                            .mast_forest()
-                            .procedure_digests()
-                            .collect::<Vec<Digest>>(),
-                    );
+                    component_proc_digests
+                        .extend(&mut rpo_falcon_512_library().mast_forest().procedure_digests());
                 }
             },
             AccountComponentInterface::Custom(custom_procs) => {
-                component_proc_digests.append(
-                    &mut custom_procs.iter().map(|info| *info.mast_root()).collect::<Vec<Digest>>(),
-                );
+                component_proc_digests
+                    .extend(&mut custom_procs.iter().map(|info| *info.mast_root()));
             },
         }
     }
@@ -238,7 +301,7 @@ fn component_proc_digests(
 fn verify_note_script_compatibility(
     note_script: &NoteScript,
     account_procedures: Vec<Digest>,
-) -> CheckResult {
+) -> NoteAccountCompatibility {
     // collect call branches of the note script
     let branches = collect_call_branches(note_script);
 
@@ -247,10 +310,10 @@ fn verify_note_script_compatibility(
         .iter()
         .any(|call_targets| call_targets.iter().all(|target| account_procedures.contains(target)))
     {
-        return CheckResult::No;
+        return NoteAccountCompatibility::No;
     }
 
-    CheckResult::Maybe
+    NoteAccountCompatibility::Maybe
 }
 
 /// Collect call branches by recursively traversing through program execution branches and
@@ -284,11 +347,7 @@ fn recursively_collect_call_branches(
             // If the previous branch had additional calls we need to create a new branch
             if branches.last().expect("at least one execution branch").len() > current_len {
                 branches.push(
-                    branches.last().expect(
-                        "at least one execution
-branch",
-                    )[..current_len]
-                        .to_vec(),
+                    branches.last().expect("at least one execution branch")[..current_len].to_vec(),
                 );
             }
 
