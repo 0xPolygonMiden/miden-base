@@ -80,6 +80,9 @@ This reduces the load and storage requirements of the network and can occur at b
 
 As an example Ephemeral `Note`s could be used to allow for sub-second transactions on an order-book exchange.
 
+> **Info**
+> - Ephemeral `Note`s leak their ID to the operator that erases them. e.g. If a note is private the contents still remain private but the fact that transaction `X` consumed note `Y` becomes public (which does not happen with regular private notes). 
+
 ### Note validation
 
 Once created, a `Note` must be validated by a Miden operator. Validation involves checking the transaction proof that produced the `Note` to ensure it meets all protocol requirements.
