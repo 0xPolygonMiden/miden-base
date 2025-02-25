@@ -39,6 +39,7 @@ The batch producer aggregates transactions sequentially by verifying their proof
 To create a `Block`, multiple batches and their respective proofs are aggregated. `Block` production is not parallelizable and must be performed by the Miden operator. In the future, several Miden operators may compete for `Block` production. The schema used for `Block` production is similar to that in batch production—recursive verification. Multiple batch proofs are aggregated into a single `Block` proof. In addition, the `Block` contains:
 - The commitments to the current global [state](state.md).
 - The newly created nullifiers.
+- The commitments to newly created notes.
 - The new state commitments for affected private accounts.
 - The full states for all affected public accounts and newly created notes.
 
