@@ -74,7 +74,14 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 
 #### Ephemeral note
 
-These specific `Note`s can be consumed even if not yet registered on-chain. They can be chained together into one final proof. This can allow for example sub-second communication below blocktimes by adding additional trust assumptions.
+If a `Note` is produced and consumed within the same batch or block then the processor of this `Note` may decide to make it an ephemeral `Note`. Such a `Note` is never formally recorded by the network but is "erased" as part of the proving process. This is safe to do since the proving system knows this `Note` was produced and was consumed. In a way this is similar to aggregating multiple account updates into a single one. 
+
+This reduces the load and storage requirements of the network and can occur at both the batch and block production level.
+
+As an example Ephemeral `Note`s could be used to allow for sub-second transactions on an order-book exchange.
+
+> **Info**
+> - Ephemeral `Note`s leak their ID to the operator that erases them. e.g. If a note is private the contents still remain private but the fact that transaction `X` consumed note `Y` becomes public (which does not happen with regular private notes). 
 
 ### Note validation
 
