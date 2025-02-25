@@ -5,6 +5,7 @@ use alloc::{
 };
 use core::fmt;
 
+use bech32::{primitives::decode::CheckedHrpstring, Bech32m};
 use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
 pub use prefix::AccountIdPrefixV0;
 use vm_core::{
@@ -20,11 +21,13 @@ use crate::{
                 FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET, REGULAR_ACCOUNT_IMMUTABLE_CODE,
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
             },
+            address_type::AddressType,
             storage_mode::{PRIVATE, PUBLIC},
+            NetworkId,
         },
         AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
     },
-    errors::AccountIdError,
+    errors::{AccountIdError, Bech32Error},
     AccountError, Hasher, ACCOUNT_TREE_DEPTH,
 };
 
@@ -65,6 +68,9 @@ impl AccountIdV0 {
 
     /// The bit at index 5 of the prefix encodes whether the account is a faucet.
     pub(crate) const IS_FAUCET_MASK: u64 = 0b10 << Self::TYPE_SHIFT;
+
+    /// The index of the metadata byte in the [u8; 15] format.
+    const METADATA_BYTE_IDX: usize = 7;
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -221,6 +227,73 @@ impl AccountIdV0 {
             format!("0x{:016x}{:016x}", self.prefix().as_u64(), self.suffix().as_int());
         hex_string.truncate(32);
         hex_string
+    }
+
+    /// See [`AccountId::to_bech32`](super::AccountId::to_bech32) for details.
+    pub fn to_bech32(&self, network_id: NetworkId) -> String {
+        let mut id_bytes: [u8; Self::SERIALIZED_SIZE] = (*self).into();
+
+        let metadata_byte = id_bytes[Self::METADATA_BYTE_IDX];
+        id_bytes.copy_within(0..7, 1);
+        id_bytes[0] = metadata_byte;
+
+        let mut data = [0; Self::SERIALIZED_SIZE + 1];
+        data[0] = AddressType::AccountId as u8;
+        data[1..16].copy_from_slice(&id_bytes);
+
+        // SAFETY: Encoding only panics if the total length of the hrp, data (in GF(32)), separator
+        // and checksum exceeds Bech32m::CODE_LENGTH, which is 1023. Since the data is 26 bytes in
+        // that field and the hrp is at most 83 in size we are way below the limit.
+        bech32::encode::<Bech32m>(network_id.into_hrp(), &data)
+            .expect("code length of bech32 should not be exceeded")
+    }
+
+    /// See [`AccountId::from_bech32`](super::AccountId::from_bech32) for details.
+    pub fn from_bech32(bech32_string: &str) -> Result<(NetworkId, Self), AccountIdError> {
+        // We use CheckedHrpString with an explicit checksum algorithm so we don't allow the
+        // `Bech32` or `NoChecksum` algorithms.
+        let checked_string = CheckedHrpstring::new::<Bech32m>(bech32_string).map_err(|source| {
+            // The CheckedHrpStringError does not implement core::error::Error, only
+            // std::error::Error, so for now we convert it to a String. Even if it will
+            // implement the trait in the future, we should include it as an opaque
+            // error since the crate does not have a stable release yet.
+            AccountIdError::Bech32DecodeError(Bech32Error::DecodeError(source.to_string().into()))
+        })?;
+
+        let hrp = checked_string.hrp();
+        let network_id = NetworkId::from_hrp(hrp);
+
+        let mut byte_iter = checked_string.byte_iter();
+        // The length must be the serialized size of the account ID plus the address byte.
+        if byte_iter.len() != Self::SERIALIZED_SIZE + 1 {
+            return Err(AccountIdError::Bech32DecodeError(Bech32Error::InvalidDataLength {
+                expected: Self::SERIALIZED_SIZE + 1,
+                actual: byte_iter.len(),
+            }));
+        }
+
+        let address_byte = byte_iter.next().expect("there should be at least one byte");
+        if address_byte != AddressType::AccountId as u8 {
+            return Err(AccountIdError::Bech32DecodeError(Bech32Error::UnknownAddressType(
+                address_byte,
+            )));
+        }
+
+        // Every byte is guaranteed to be overwritten since we've checked the length of the
+        // iterator.
+        let mut id_bytes = [0_u8; Self::SERIALIZED_SIZE];
+        for (i, byte) in byte_iter.enumerate() {
+            id_bytes[i] = byte;
+        }
+
+        // Revert the remove-insert of the metadata byte during encoding.
+        let metadata_byte = id_bytes[0];
+        id_bytes.copy_within(1..8, 0);
+        id_bytes[Self::METADATA_BYTE_IDX] = metadata_byte;
+
+        let account_id = Self::try_from(id_bytes)?;
+
+        Ok((network_id, account_id))
     }
 
     /// Returns the [`AccountIdPrefixV0`] of this account ID.
