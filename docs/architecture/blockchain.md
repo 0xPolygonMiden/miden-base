@@ -5,14 +5,7 @@ The Miden blockchain protocol describes how the [state](state.md) progresses thr
 Miden's blockchain protocol aims for the following:
 
 - **Proven transactions**: All included transactions have already been proven and verified when they reach the block.
-- **Fast genesis syncing**: New nodes efficiently sync to the network through a multi-step process:
-
-  1. Download historical `Block`s from genesis to the present.
-  2. Verify zero-knowledge proofs for all `Block`s.
-  3. Retrieve current state data (accounts, notes, and nullifiers).
-  4. Validate that the downloaded state matches the latest `Block`'s state commitment.
-
-This approach enables fast blockchain syncing by verifying `Block` proofs rather than re-executing individual transactions, resulting in exponentially faster performance. Consequently, state sync is dominated by the time needed to download the data.
+- **Fast genesis syncing**: New nodes can efficiently sync to the tip of the chain.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/execution.png" style="width:70%;" alt="Execution diagram"/>
@@ -20,9 +13,7 @@ This approach enables fast blockchain syncing by verifying `Block` proofs rather
 
 ## Batch production
 
-A Miden block consists of multiple transaction batches. This enables recursive proving and also allows transactions to be processed concurrently as batches with no overlap in accounts and notes can be built in parallel. Miden will have multiple batch producers operating simultaneously and, together with offchain/client-side transaction proving, this massively reduces the work the network is required to do.
-
-The purpose of this scheme is to produce a single proof that attests to the validity of a number of transactions. This is achieved by recursively verifying each transaction proof within the Miden VM.
+To reduce the required space on the blockchain, transaction proofs are not directly put into blocks. First, they are batched together by verifying them in the batch producer. The purpose of the batch producer is to generate a single proof that some number of proven transactions have been verified. This involves recursively verifying individual transaction proofs inside the Miden VM. As with any program that runs in the Miden VM, there is a proof of correct execution running the Miden verifier to verify transaction proofs. This results into a single batch proof.
 
 <p style="text-align: center;">
     <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Batch diagram"/>
@@ -31,12 +22,28 @@ The purpose of this scheme is to produce a single proof that attests to the vali
 The batch producer aggregates transactions sequentially by verifying that their proofs and state transitions are correct. More specifically, the batch producer ensures:
 
 1. **Ordering of transactions**: If several transactions within the same batch affect a single account, the correct ordering must be enforced. For example, if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify them in the order: `A -> Tx1 -> A' -> Tx2 -> A''`.
-2. **Prevention of double spending and duplicate notes**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This prevents double spending and avoids the situation where duplicate notes, which would share identical nullifiers, are created. Only one such duplicate note can later be consumed, as the nullifier will be marked as spent after the first consumption.
+2. **Ensuring uniqueness of notes in a single batch**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This will prevent the situation where duplicate notes, which would share identical nullifiers, are created. Only one such duplicate note can later be consumed, as the nullifier will be marked as spent after the first consumption. It also checks for double spends in the set of consumed notes, even though the real double spent check only happens at the block production level.
 3. **Expiration windows**: It is possible to set an expiration window for transactions, which in turn sets an expiration window for the entire batch. For instance, if transaction `A` expires at block `8` and transaction `B` expires at block `5`, then the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
+4. **Note erasure of ephemeral notes**: Ephemeral notes don't exist in the Notes DB. They are unauthenticated. Accounts can still consume unauthenticated notes to consume those notes faster, they don't have to wait for notes being included into a block. If creation and consumption of an ephemeral note happens in the same batch, the batch producer erases those note.
 
 ## Block production
 
-To create a `Block`, multiple batches and their respective proofs are aggregated. `Block` production is not parallelizable and must be performed by the Miden operator. In the future, several Miden operators may compete for `Block` production. The schema used for `Block` production is similar to that in batch production—recursive verification. Multiple batch proofs are aggregated into a single `Block` proof. In addition, the `Block` contains:
+To create a `Block`, multiple batches and their respective proofs are aggregated. `Block` production is not parallelizable and must be performed by the Miden operator. In the future, several Miden operators may compete for `Block` production. The schema used for `Block` production is similar to that in batch production—recursive verification. Multiple batch proofs are aggregated into a single `Block` proof.
+
+The block producer ensures:
+
+1. **Account DB integrity**: The Block `N+1` Account DB commitment must be authenticated against all previous and resulting account commitments across transactions, ensuring valid state transitions and preventing execution on stale states.
+2. **Nullifier DB integrity**: Nullifiers of newly created notes are added to the Nullifier DB. The Block `N+1` Nullifier DB commitment must be authenticated against all new nullifiers to guarantee completeness.
+3. **Block hash references**: Check that all block hashes references by batches are in the chain.
+4. **Double-spend prevention**: Each consumed note’s nullifier is checked against prior consumption. The Block `N` Nullifier DB commitment is authenticated against all provided nullifiers for consumed notes, ensuring no nullifier is reused.
+5. **Global note uniqueness**: All created and consumed notes must be unique across batches.
+6. **Batch expiration**: The block height of the created block must be smaller or equal than the lowest batch expiration.
+7. **Block time increase**: The block timestamp must increase monotonically from the previous block.
+8. **Ephemeral note erasure**: If an ephemeral note is created and consumed in different batches, it is erased.
+9. **Ephemeral note authentication**: If an ephemeral note is unconsumed within the block, it is authenticated and added to the Note DB.
+10. **Valid ephemeral note creation**: If an ephemeral note is consumed but not created within the block, the batch it contains is rejected. The Miden operator's mempool should preemptively filter such transactions.
+
+In final `Block` contains:
 - The commitments to the current global [state](state.md).
 - The newly created nullifiers.
 - The commitments to newly created notes.
@@ -67,3 +74,16 @@ To verify that a `Block` corresponds to a valid global state transition, the fol
    - **Output**: Current `Block` commitment.
 
 These steps can be performed by any verifier (e.g., a contract on Ethereum, Polygon AggLayer, or a decentralized network of Miden nodes).
+
+## Syncing from genesis
+Nodes can sync efficiently from genesis to the tip of the chain through a multi-step process:
+
+  1. Download historical `Block`s from genesis to the present.
+  2. Verify zero-knowledge proofs for all `Block`s.
+  3. Retrieve current state data (accounts, notes, and nullifiers).
+  4. Validate that the downloaded state matches the latest `Block`'s state commitment.
+
+This approach enables fast blockchain syncing by verifying `Block` proofs rather than re-executing individual transactions, resulting in exponentially faster performance. Consequently, state sync is dominated by the time needed to download the data.
+
+## Consensus and decentralization
+Miden will start as a centralized L2 on the Ethereum network. Over time, Miden will decentralize, but this part of the protocol, especially consensus is not yet set.
