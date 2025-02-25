@@ -3,12 +3,6 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    EMPTY_WORD,
-};
-use vm_processor::{DeserializationError, Digest};
-
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
@@ -19,7 +13,8 @@ use crate::{
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
-    MAX_BATCHES_PER_BLOCK,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
 };
 
 // PROPOSED BLOCK

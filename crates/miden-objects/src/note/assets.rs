@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
-use super::{
-    Asset, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher,
-    NoteError, Serializable, Word, WORD_SIZE, ZERO,
+use super::Asset;
+use crate::{
+    errors::NoteError,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest, Felt, Hasher, Word, MAX_ASSETS_PER_NOTE, WORD_SIZE, ZERO,
 };
-use crate::MAX_ASSETS_PER_NOTE;
 
 // NOTE ASSETS
 // ================================================================================================
