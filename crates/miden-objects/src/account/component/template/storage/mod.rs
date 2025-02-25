@@ -318,7 +318,7 @@ impl Deserializable for MapEntry {
 #[cfg(test)]
 mod tests {
     use core::{error::Error, panic};
-    use std::{println, string::ToString};
+    use std::string::ToString;
 
     use assembly::Assembler;
     use semver::Version;
