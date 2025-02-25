@@ -1,5 +1,5 @@
+use alloc::string::ToString;
 use core::str::FromStr;
-use std::string::ToString;
 
 use bech32::Hrp;
 
