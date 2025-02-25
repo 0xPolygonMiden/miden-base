@@ -1,9 +1,9 @@
 use core::{fmt, str::FromStr};
 
-use vm_core::utils::{ByteReader, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
-use crate::errors::AccountIdError;
+use crate::{
+    errors::AccountIdError,
+    utils::serde::{ByteReader, Deserializable, DeserializationError, Serializable},
+};
 
 // ACCOUNT TYPE
 // ================================================================================================

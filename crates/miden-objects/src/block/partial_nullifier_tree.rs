@@ -1,11 +1,9 @@
-use miden_crypto::merkle::PartialSmt;
-use vm_core::{Felt, FieldElement, Word, EMPTY_WORD};
-use vm_processor::Digest;
-
 use crate::{
     block::{BlockNumber, NullifierWitness},
+    crypto::merkle::PartialSmt,
     errors::NullifierTreeError,
     note::Nullifier,
+    Digest, Felt, FieldElement, Word, EMPTY_WORD,
 };
 
 /// The partial sparse merkle tree containing the nullifiers of consumed notes.
