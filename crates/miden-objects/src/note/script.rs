@@ -80,6 +80,11 @@ impl NoteScript {
     pub fn mast(&self) -> Arc<MastForest> {
         self.mast.clone()
     }
+
+    /// Returns an entrypoint node ID of the current script.
+    pub fn entrypoint(&self) -> MastNodeId {
+        self.entrypoint
+    }
 }
 
 // CONVERSIONS INTO NOTE SCRIPT
