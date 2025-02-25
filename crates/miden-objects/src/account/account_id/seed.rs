@@ -1,8 +1,5 @@
 use alloc::vec::Vec;
 
-use vm_core::{Felt, Word};
-use vm_processor::Digest;
-
 use crate::{
     account::{
         account_id::{
@@ -11,7 +8,7 @@ use crate::{
         },
         AccountStorageMode, AccountType,
     },
-    AccountError,
+    AccountError, Digest, Felt, Word,
 };
 
 /// Finds and returns a seed suitable for creating an account ID for the specified account type

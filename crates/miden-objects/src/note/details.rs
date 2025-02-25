@@ -1,10 +1,8 @@
-use miden_crypto::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+use super::{NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier};
+use crate::{
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Word,
 };
-use vm_processor::DeserializationError;
-
-use super::{NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier};
 
 // NOTE DETAILS
 // ================================================================================================

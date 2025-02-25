@@ -1,15 +1,14 @@
 use alloc::collections::BTreeMap;
 
-use vm_core::utils::{Deserializable, Serializable};
-
 use crate::{
     block::{BlockHeader, BlockNumber},
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
+    utils::{Deserializable, Serializable},
     ChainMmrError,
 };
 
 // CHAIN MMR
-// ================================================================================================
+// ====================================================================================c============
 
 /// A struct that represents the chain Merkle Mountain Range (MMR).
 ///

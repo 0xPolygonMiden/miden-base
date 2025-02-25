@@ -1,15 +1,11 @@
 use alloc::string::ToString;
 
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
-};
-
 use crate::{
     batch::BatchNoteTree,
+    crypto::merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    Digest, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
     MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 
@@ -68,7 +64,7 @@ impl BlockNoteTree {
     }
 
     /// Returns the root of the tree
-    pub fn root(&self) -> RpoDigest {
+    pub fn root(&self) -> Digest {
         self.0.root()
     }
 

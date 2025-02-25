@@ -1,14 +1,10 @@
 use alloc::vec::Vec;
 
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{LeafIndex, MerkleError, SimpleSmt},
-};
-
 use crate::{
+    crypto::merkle::{LeafIndex, MerkleError, SimpleSmt},
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
+    Digest, BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
 };
 
 /// Wrapper over [SimpleSmt<BATCH_NOTE_TREE_DEPTH>] for batch note tree.
@@ -35,7 +31,7 @@ impl BatchNoteTree {
     }
 
     /// Returns the root of the tree
-    pub fn root(&self) -> RpoDigest {
+    pub fn root(&self) -> Digest {
         self.0.root()
     }
 

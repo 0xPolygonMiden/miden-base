@@ -5,15 +5,15 @@ use alloc::{
 use core::fmt::{self, Display};
 
 use thiserror::Error;
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    Felt, Word,
-};
 use vm_processor::DeserializationError;
 
 use crate::{
     asset::TokenSymbol,
-    utils::{parse_hex_string_as_word, sync::LazyLock},
+    utils::{
+        parse_hex_string_as_word, sync::LazyLock, ByteReader, ByteWriter, Deserializable,
+        Serializable,
+    },
+    Felt, Word,
 };
 
 /// A global registry for template converters.
