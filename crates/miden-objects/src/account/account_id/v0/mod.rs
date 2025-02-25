@@ -233,9 +233,8 @@ impl AccountIdV0 {
     pub fn to_bech32(&self, network_id: NetworkId) -> String {
         let mut id_bytes: [u8; Self::SERIALIZED_SIZE] = (*self).into();
 
-        let metadata_byte = id_bytes[Self::METADATA_BYTE_IDX];
-        id_bytes.copy_within(0..7, 1);
-        id_bytes[0] = metadata_byte;
+        // Swap first byte with the metadata byte so it is more easily accessible.
+        id_bytes.swap(0, Self::METADATA_BYTE_IDX);
 
         let mut data = [0; Self::SERIALIZED_SIZE + 1];
         data[0] = AddressType::AccountId as u8;
@@ -286,10 +285,8 @@ impl AccountIdV0 {
             id_bytes[i] = byte;
         }
 
-        // Revert the remove-insert of the metadata byte during encoding.
-        let metadata_byte = id_bytes[0];
-        id_bytes.copy_within(1..8, 0);
-        id_bytes[Self::METADATA_BYTE_IDX] = metadata_byte;
+        // Revert the swap of the metadata byte during encoding.
+        id_bytes.swap(0, Self::METADATA_BYTE_IDX);
 
         let account_id = Self::try_from(id_bytes)?;
 

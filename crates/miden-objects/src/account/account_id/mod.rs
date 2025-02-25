@@ -312,8 +312,7 @@ impl AccountId {
     ///
     /// The encoding of an account ID into bech32 is done as follows:
     /// - Convert the account ID into its `[u8; 15]` data format.
-    /// - Remove the metadata byte of the ID at index 7 shifting all bytes after it to the left.
-    /// - Insert it at index 0, shifting all other elements to the right.
+    /// - Swap the first byte at index 0 with the metadata byte at index 7.
     /// - Insert the address type [`AddressType::AccountId`] byte at index 0, shifting all other
     ///   elements to the right.
     /// - Choose an HRP, defined as a [`NetworkId`], for example [`NetworkId::Mainnet`] whose string
@@ -327,6 +326,23 @@ impl AccountId {
     /// hex:    0x140fa04a1e61fc900000126ef8f1d6
     /// bech32: mm1qzgpgraqfg0xrlqqqqfxa7836czc9qzl
     /// ```
+    ///
+    /// ## Rationale
+    ///
+    /// We swap the metadata byte to the front so that its version can be read without having to
+    /// make assumptions about anything else of the ID, which is useful in case the layout of
+    /// the ID changes with future versions.
+    ///
+    /// Having the address type at the very beginning is so that it can be decoded to detect the
+    /// type of the address without having to decode the entire data. Moreover, choosing the
+    /// address type as a multiple of 8 means the first character of the bech32 string after the
+    /// `1` separator will be different for every address type. This makes the type of the address
+    /// conveniently human-readable.
+    ///
+    /// The only allowed checksum algorithm is [`Bech32m`](bech32::Bech32m) due to being the best
+    /// available checksum algorithm with no known weaknesses (unlike [`Bech32`](bech32::Bech32)).
+    /// No checksum is also not allowed since the intended use of bech32 is to have error
+    /// detection capabilities.
     pub fn to_bech32(&self, network_id: NetworkId) -> String {
         match self {
             AccountId::V0(account_id_v0) => account_id_v0.to_bech32(network_id),
@@ -335,12 +351,8 @@ impl AccountId {
 
     /// Decodes a [bech32](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki) string into an [`AccountId`].
     ///
-    /// See [`AccountId::to_bech32`] for details on the format.
-    ///
-    /// The only allowed checksum algorithm is [`Bech32m`](bech32::Bech32m) due to being the best
-    /// available checksum algorithm with no known weaknesses (e.g. like
-    /// [`Bech32`](bech32::Bech32)). No checksum is also not allowed since the intended use of
-    /// bech32 is to have error detection capabilities.
+    /// See [`AccountId::to_bech32`] for details on the format. The procedure for decoding the
+    /// bech32 data into the ID are the inverse operations of encoding.
     pub fn from_bech32(bech32_string: &str) -> Result<(NetworkId, Self), AccountIdError> {
         AccountIdV0::from_bech32(bech32_string)
             .map(|(network_id, account_id)| (network_id, AccountId::V0(account_id)))
@@ -627,8 +639,6 @@ mod tests {
     fn bech32_invalid_address_type() {
         let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
         let mut id_bytes = account_id.to_bytes();
-        let metadata_byte = id_bytes.remove(7);
-        id_bytes.insert(0, metadata_byte);
 
         // Set invalid address type.
         id_bytes.insert(0, 16);
@@ -647,8 +657,6 @@ mod tests {
     fn bech32_invalid_other_checksum() {
         let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
         let mut id_bytes = account_id.to_bytes();
-        let metadata_byte = id_bytes.remove(7);
-        id_bytes.insert(0, metadata_byte);
         id_bytes.insert(0, AddressType::AccountId as u8);
 
         // Use Bech32 instead of Bech32m which is disallowed.
@@ -668,8 +676,6 @@ mod tests {
     fn bech32_invalid_length() {
         let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
         let mut id_bytes = account_id.to_bytes();
-        let metadata_byte = id_bytes.remove(7);
-        id_bytes.insert(0, metadata_byte);
         id_bytes.insert(0, AddressType::AccountId as u8);
         // Add one byte to make the length invalid.
         id_bytes.push(5);
