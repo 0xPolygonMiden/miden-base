@@ -374,7 +374,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     assert_eq!(empty_chain_mmr.block_headers().count(), 0);
 
     let block_inputs = BlockInputs::new(
-        latest_block_header,
+        latest_block_header.clone(),
         empty_chain_mmr.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
