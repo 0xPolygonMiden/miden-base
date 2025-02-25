@@ -31,7 +31,7 @@ The purpose of this scheme is to produce a single proof that attests to the vali
 The batch producer aggregates transactions sequentially by verifying their proofs and state transitions are correct. More specifically, the batch producers ensures:
 
 1. **Ordering of transactions**: If several transactions within the same batch affect a single account, the correct ordering must be enforced. For example, if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify them in the order: `A -> Tx1 -> A' -> Tx2 -> A''`.
-2. **Prevention of double spending and duplicate notes**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This prevents double spending and avoids the situation where duplicate notes, which would share identical nullifiers, are created. Only one of such duplicate notes can later be consumed, as the nullifier will be marked as spent after the first consumption.
+2. **Prevention of double spending and duplicate notes**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This prevents double spending and avoids the situation where duplicate notes, which would share identical nullifiers, are created. Only one of such duplicate notes could later be consumed, as the nullifier will be marked as spent after the first consumption.
 3. **Expiration windows**: It is possible to set an expiration window for transactions, which in turn sets an expiration window for the entire batch. For instance, if transaction `A` expires at block `8` and transaction `B` expires at block `5`, then the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
 
 ## Block production
