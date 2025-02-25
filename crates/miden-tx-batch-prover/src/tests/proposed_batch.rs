@@ -1,6 +1,3 @@
-use alloc::sync::Arc;
-use std::collections::BTreeMap;
-
 use anyhow::Context;
 use miden_crypto::merkle::MerkleError;
 use miden_lib::transaction::TransactionKernel;
@@ -18,7 +15,7 @@ use rand::{rngs::SmallRng, SeedableRng};
 use vm_core::assert_matches;
 use vm_processor::Digest;
 
-use crate::testing::MockProvenTxBuilder;
+use crate::{alloc::sync::Arc, std::collections::BTreeMap, testing::MockProvenTxBuilder};
 
 fn mock_account_id(num: u8) -> AccountId {
     AccountIdBuilder::new().build_with_rng(&mut SmallRng::from_seed([num; 32]))

@@ -1,9 +1,3 @@
-use alloc::{
-    boxed::Box,
-    string::{String, ToString},
-    sync::Arc,
-};
-
 use miden_objects::{
     transaction::{ProvenTransaction, TransactionWitness},
     utils::{Deserializable, DeserializationError, Serializable},
@@ -13,6 +7,11 @@ use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
 use crate::{
+    alloc::{
+        boxed::Box,
+        string::{String, ToString},
+        sync::Arc,
+    },
     proving_service::{
         generated,
         generated::{ProofType, ProvingRequest, ProvingResponse},
