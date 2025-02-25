@@ -13,7 +13,7 @@ use crate::{
         },
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
-    Felt, Word, ZERO,
+    Felt, ZERO,
 };
 
 // MOCK ACCOUNT
@@ -73,12 +73,13 @@ impl Account {
             true => vec![],
             false => {
                 let asset = NonFungibleAsset::mock(&constants::NON_FUNGIBLE_ASSET_DATA_2);
-                vec![(Word::from(asset).into(), asset.into())]
+                let vault_key = asset.vault_key();
+                vec![(vault_key.into(), asset.into())]
             },
         };
 
         // construct nft tree
-        let nft_storage_map = StorageMap::with_entries(entries);
+        let nft_storage_map = StorageMap::with_entries(entries).unwrap();
 
         let account_id = AccountId::try_from(account_id).unwrap();
 

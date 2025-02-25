@@ -259,6 +259,7 @@ pub const NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR: MemoryAddress =
 /// The size of the memory segment allocated to each note.
 pub const NOTE_MEM_SIZE: MemoryAddress = 2048;
 
+#[allow(clippy::empty_line_after_outer_attr)]
 #[rustfmt::skip]
 // INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------

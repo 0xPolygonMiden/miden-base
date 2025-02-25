@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{btree_map::Entry, BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet},
     string::{String, ToString},
     vec::Vec,
 };
@@ -86,8 +86,8 @@ impl Deserializable for AccountComponentTemplate {
 /// Represents the full component template configuration.
 ///
 /// An account component metadata describes the component alongside its storage layout.
-/// On the storage layout, [placeholders](StoragePlaceholder) can be utilized to identify
-/// [values](StorageValue) that should be provided at the moment of instantiation.
+/// On the storage layout, placeholders can be utilized to identify values that should be provided
+/// at the moment of instantiation.
 ///
 /// When the `std` feature is enabled, this struct allows for serialization and deserialization to
 /// and from a TOML file.
@@ -97,11 +97,10 @@ impl Deserializable for AccountComponentTemplate {
 /// - The metadata's storage layout does not contain duplicate slots, and it always starts at slot
 ///   index 0.
 /// - Storage slots are laid out in a contiguous manner.
-/// - Storage placeholders can appear multiple times, but only if the expected [StorageValue] is of
-///   the same type in all instances. The expected placeholders can be retrieved with
-///   [AccountComponentMetadata::get_unique_storage_placeholders()], which returns a map from
-///   [StoragePlaceholder] to [PlaceholderType] (which, in turn, indicates the expected value type
-///   for the placeholder).
+/// - Each placeholder represents a single value. The expected placeholders can be retrieved with
+///   [AccountComponentMetadata::get_placeholder_requirements()], which returns a map from keys to
+///   [PlaceholderTypeRequirement] (which, in turn, indicates the expected value type for the
+///   placeholder).
 ///
 /// # Example
 ///
@@ -109,35 +108,35 @@ impl Deserializable for AccountComponentTemplate {
 /// # use semver::Version;
 /// # use std::collections::BTreeSet;
 /// # use miden_objects::{testing::account_code::CODE, account::{
-/// #     AccountComponent, AccountComponentMetadata, InitStorageData, StorageEntry,
-/// #     StoragePlaceholder, StorageValue,
+/// #     AccountComponent, AccountComponentMetadata, StorageEntry,
+/// #     StorageValueName,
 /// #     AccountComponentTemplate, FeltRepresentation, WordRepresentation},
 /// #     assembly::Assembler, Felt};
+/// # use miden_objects::account::InitStorageData;
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// let first_felt = FeltRepresentation::Decimal(Felt::new(0u64));
-/// let second_felt = FeltRepresentation::Decimal(Felt::new(1u64));
-/// let third_felt = FeltRepresentation::Decimal(Felt::new(2u64));
+/// let first_felt = FeltRepresentation::from(Felt::new(0u64));
+/// let second_felt = FeltRepresentation::from(Felt::new(1u64));
+/// let third_felt = FeltRepresentation::from(Felt::new(2u64));
 /// // Templated element:
-/// let last_element = FeltRepresentation::Template(StoragePlaceholder::new("foo")?);
+/// let last_element =
+///     FeltRepresentation::new_template("felt", StorageValueName::new("foo")?, None);
 ///
-/// let storage_entry = StorageEntry::new_value(
-///     "test-entry",
-///     Some("a test entry"),
-///     0,
-///     WordRepresentation::Array([first_felt, second_felt, third_felt, last_element]),
+/// let word_representation = WordRepresentation::new_value(
+///     [first_felt, second_felt, third_felt, last_element],
+///     Some(StorageValueName::new("test_value")?),
+///     Some("This is a test value".into()),
 /// );
+/// let storage_entry = StorageEntry::new_value(0, word_representation);
 ///
-/// let init_storage_data = InitStorageData::new([(
-///     StoragePlaceholder::new("foo")?,
-///     StorageValue::Felt(Felt::new(300u64)),
-/// )]);
+/// let init_storage_data =
+///     InitStorageData::new([(StorageValueName::new("test_value.foo")?, "300".to_string())]);
 ///
 /// let component_template = AccountComponentMetadata::new(
 ///     "test name".into(),
 ///     "description of the component".into(),
 ///     Version::parse("0.1.0")?,
 ///     BTreeSet::new(),
-///     vec![],
+///     vec![storage_entry],
 /// )?;
 ///
 /// let library = Assembler::default().assemble_library([CODE]).unwrap();
@@ -149,6 +148,7 @@ impl Deserializable for AccountComponentTemplate {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "std", serde(rename_all = "kebab-case"))]
 pub struct AccountComponentMetadata {
     /// The human-readable name of the component.
     name: String,
@@ -161,7 +161,7 @@ pub struct AccountComponentMetadata {
     version: Version,
 
     /// A set of supported target account types for this component.
-    targets: BTreeSet<AccountType>,
+    supported_types: BTreeSet<AccountType>,
 
     /// A list of storage entries defining the component's storage layout and initialization
     /// values.
@@ -187,32 +187,33 @@ impl AccountComponentMetadata {
             name,
             description,
             version,
-            targets,
+            supported_types: targets,
             storage,
         };
         component.validate()?;
         Ok(component)
     }
 
-    /// Retrieves a map of unique storage placeholders mapped to their expected type that require
-    /// a value at the moment of component instantiation.
+    /// Retrieves a map of unique storage placeholder names mapped to their expected type that
+    /// require a value at the moment of component instantiation.
     ///
-    /// These values will be used for
-    /// initializing storage slot values, or storage map entries. For a full example on how a
-    /// placeholder may be utilized, please refer to the docs for [AccountComponentMetadata].
+    /// These values will be used for initializing storage slot values, or storage map entries.
+    /// For a full example on how a placeholder may be utilized, please refer to the docs for
+    /// [AccountComponentMetadata].
     ///
     /// Types for the returned storage placeholders are inferred based on their location in the
     /// storage layout structure.
-    pub fn get_unique_storage_placeholders(&self) -> BTreeMap<StoragePlaceholder, PlaceholderType> {
-        let mut placeholder_map = BTreeMap::new();
-        for storage_entry in &self.storage {
-            for (placeholder, placeholder_type) in storage_entry.all_placeholders_iter() {
-                // The constructors of this type guarantee each placeholder has the same type, so
-                // reinserting them multiple times is fine.
-                placeholder_map.insert(placeholder.clone(), placeholder_type);
+    pub fn get_placeholder_requirements(
+        &self,
+    ) -> BTreeMap<StorageValueName, PlaceholderTypeRequirement> {
+        let mut templates = BTreeMap::new();
+        for entry in self.storage_entries() {
+            for (name, requirement) in entry.template_requirements() {
+                templates.insert(name, requirement);
             }
         }
-        placeholder_map
+
+        templates
     }
 
     /// Returns the name of the account component.
@@ -231,8 +232,8 @@ impl AccountComponentMetadata {
     }
 
     /// Returns the account types supported by the component.
-    pub fn targets(&self) -> &BTreeSet<AccountType> {
-        &self.targets
+    pub fn supported_types(&self) -> &BTreeSet<AccountType> {
+        &self.supported_types
     }
 
     /// Returns the list of storage entries of the component.
@@ -275,30 +276,6 @@ impl AccountComponentMetadata {
             }
         }
 
-        // Check that placeholders do not appear more than once with a different type
-        let mut placeholders = BTreeMap::new();
-        for storage_entry in &self.storage {
-            for (placeholder, placeholder_type) in storage_entry.all_placeholders_iter() {
-                match placeholders.entry(placeholder.clone()) {
-                    Entry::Occupied(entry) => {
-                        // if already exists, make sure it's the same type
-                        if *entry.get() != placeholder_type {
-                            return Err(
-                                AccountComponentTemplateError::StoragePlaceholderTypeMismatch(
-                                    placeholder.clone(),
-                                    *entry.get(),
-                                    placeholder_type,
-                                ),
-                            );
-                        }
-                    },
-                    Entry::Vacant(slot) => {
-                        slot.insert(placeholder_type);
-                    },
-                }
-            }
-        }
-
         for entry in self.storage_entries() {
             entry.validate()?;
         }
@@ -315,7 +292,7 @@ impl Serializable for AccountComponentMetadata {
         self.name.write_into(target);
         self.description.write_into(target);
         self.version.to_string().write_into(target);
-        self.targets.write_into(target);
+        self.supported_types.write_into(target);
         self.storage.write_into(target);
     }
 }
@@ -328,7 +305,7 @@ impl Deserializable for AccountComponentMetadata {
             version: semver::Version::from_str(&String::read_from(source)?).map_err(
                 |err: semver::Error| DeserializationError::InvalidValue(err.to_string()),
             )?,
-            targets: BTreeSet::<AccountType>::read_from(source)?,
+            supported_types: BTreeSet::<AccountType>::read_from(source)?,
             storage: Vec::<StorageEntry>::read_from(source)?,
         })
     }
@@ -336,67 +313,75 @@ impl Deserializable for AccountComponentMetadata {
 
 // TESTS
 // ================================================================================================
-
 #[cfg(test)]
 mod tests {
+    use std::{
+        collections::BTreeSet,
+        string::{String, ToString},
+    };
+
     use assembly::Assembler;
     use assert_matches::assert_matches;
-    use storage::WordRepresentation;
-    use vm_core::{Felt, FieldElement};
+    use semver::Version;
+    use vm_core::{
+        utils::{Deserializable, Serializable},
+        Felt, FieldElement,
+    };
 
-    use super::*;
-    use crate::{account::AccountComponent, testing::account_code::CODE, AccountError};
+    use super::FeltRepresentation;
+    // Import the new types and helpers.
+    use crate::{
+        account::{
+            component::template::{
+                storage::StorageEntry, AccountComponentMetadata, AccountComponentTemplate,
+                InitStorageData,
+            },
+            AccountComponent, StorageValueName,
+        },
+        errors::AccountComponentTemplateError,
+        testing::account_code::CODE,
+        AccountError,
+    };
+
+    fn default_felt_array() -> [FeltRepresentation; 4] {
+        [
+            FeltRepresentation::from(Felt::ZERO),
+            FeltRepresentation::from(Felt::ZERO),
+            FeltRepresentation::from(Felt::ZERO),
+            FeltRepresentation::from(Felt::ZERO),
+        ]
+    }
 
     #[test]
     fn test_contiguous_value_slots() {
         let storage = vec![
-            StorageEntry::Value {
-                name: "slot0".into(),
-                description: None,
-                slot: 0,
-                value: WordRepresentation::Value(Default::default()),
-            },
-            StorageEntry::MultiSlot {
-                name: "slot1".into(),
-                description: None,
-                slots: vec![1, 2],
-                values: vec![
-                    WordRepresentation::Array(Default::default()),
-                    WordRepresentation::Value(Default::default()),
-                ],
-            },
+            StorageEntry::new_value(0, default_felt_array()),
+            StorageEntry::new_multislot(
+                StorageValueName::new("slot1").unwrap(),
+                Some("multi-slot value of arity 2".into()),
+                vec![1, 2],
+                vec![default_felt_array(), default_felt_array()],
+            ),
         ];
 
-        let original_config = AccountComponentMetadata::new(
-            "test".into(),
-            "desc".into(),
-            Version::parse("0.1.0").unwrap(),
-            BTreeSet::new(),
+        let original_config = AccountComponentMetadata {
+            name: "test".into(),
+            description: "desc".into(),
+            version: Version::parse("0.1.0").unwrap(),
+            supported_types: BTreeSet::new(),
             storage,
-        )
-        .unwrap();
+        };
 
         let serialized = original_config.as_toml().unwrap();
-
         let deserialized = AccountComponentMetadata::from_toml(&serialized).unwrap();
-        assert_eq!(deserialized, original_config)
+        assert_eq!(deserialized, original_config);
     }
 
     #[test]
     fn test_new_non_contiguous_value_slots() {
         let storage = vec![
-            StorageEntry::Value {
-                name: "slot0".into(),
-                description: None,
-                slot: 0,
-                value: Default::default(),
-            },
-            StorageEntry::Value {
-                name: "slot2".into(),
-                description: None,
-                slot: 2,
-                value: Default::default(),
-            },
+            StorageEntry::new_value(0, default_felt_array()),
+            StorageEntry::new_value(2, default_felt_array()),
         ];
 
         let result = AccountComponentMetadata::new(
@@ -412,40 +397,31 @@ mod tests {
     #[test]
     fn test_binary_serde_roundtrip() {
         let storage = vec![
-            StorageEntry::MultiSlot {
-                name: "slot1".into(),
-                description: None,
-                slots: vec![1, 2],
-                values: vec![
-                    WordRepresentation::Array(Default::default()),
-                    WordRepresentation::Value(Default::default()),
-                ],
-            },
-            StorageEntry::Value {
-                name: "slot0".into(),
-                description: None,
-                slot: 0,
-                value: WordRepresentation::Value(Default::default()),
-            },
+            StorageEntry::new_multislot(
+                StorageValueName::new("slot1").unwrap(),
+                Option::<String>::None,
+                vec![1, 2],
+                vec![default_felt_array(), default_felt_array()],
+            ),
+            StorageEntry::new_value(0, default_felt_array()),
         ];
 
-        let component_template = AccountComponentMetadata::new(
-            "test".into(),
-            "desc".into(),
-            Version::parse("0.1.0").unwrap(),
-            BTreeSet::new(),
+        let component_metadata = AccountComponentMetadata {
+            name: "test".into(),
+            description: "desc".into(),
+            version: Version::parse("0.1.0").unwrap(),
+            supported_types: BTreeSet::new(),
             storage,
-        )
-        .unwrap();
+        };
 
         let library = Assembler::default().assemble_library([CODE]).unwrap();
-        let template = AccountComponentTemplate::new(component_template, library);
-        _ = AccountComponent::from_template(&template, &InitStorageData::default()).unwrap();
+        let template = AccountComponentTemplate::new(component_metadata, library);
+        let _ = AccountComponent::from_template(&template, &InitStorageData::default()).unwrap();
 
         let serialized = template.to_bytes();
         let deserialized = AccountComponentTemplate::read_from_bytes(&serialized).unwrap();
 
-        assert_eq!(deserialized, template)
+        assert_eq!(deserialized, template);
     }
 
     #[test]
@@ -454,15 +430,15 @@ mod tests {
             name = "Test Component"
             description = "This is a test component"
             version = "1.0.1"
-            targets = ["FungibleFaucet"]
+            supported-types = ["FungibleFaucet"]
 
             [[storage]]
             name = "map"
             description = "A storage map entry"
             slot = 0
             values = [
-                { key = "0x1", value = ["{{value.test}}", "0x1", "0x2", "0x3"] },
-                { key = "0x1", value = ["0x1", "0x2", "0x3", "{{value.test}}"] },
+                { key = "0x1", value = ["0x3", "0x1", "0x2", "0x3"] },
+                { key = "0x1", value = ["0x1", "0x2", "0x3", "0x10"] }
             ]
         "#;
 
@@ -476,15 +452,15 @@ mod tests {
             name = "Test Component"
             description = "This is a test component"
             version = "1.0.1"
-            targets = ["FungibleFaucet"]
+            supported-types = ["FungibleFaucet"]
 
             [[storage]]
             name = "map"
             description = "A storage map entry"
             slot = 0
             values = [
-                { key = ["0","0","0","1"], value = ["{{value.test}}", "0x1", "0x2", "0x3"] },
-                { key = "{{word.test}}", value = ["0x1", "0x2", "0x3", "{{value.test}}"] },
+                { key = ["0", "0", "0", "1"], value = ["0x9", "0x12", "0x31", "0x18"] },
+                { key = {name="duplicate_key" }, value = ["0x1", "0x2", "0x3", "0x4"] }
             ]
         "#;
 
@@ -492,13 +468,12 @@ mod tests {
         let library = Assembler::default().assemble_library([CODE]).unwrap();
         let template = AccountComponentTemplate::new(metadata, library);
 
-        let init_storage_data = InitStorageData::new([
-            (
-                StoragePlaceholder::new("word.test").unwrap(),
-                StorageValue::Word([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ONE]),
-            ),
-            (StoragePlaceholder::new("value.test").unwrap(), StorageValue::Felt(Felt::ONE)),
-        ]);
+        // Fail to instantiate on a duplicate key
+
+        let init_storage_data = InitStorageData::new([(
+            StorageValueName::new("map.duplicate_key").unwrap(),
+            "0x0000000000000000000000000000000000000000000000000100000000000000".to_string(),
+        )]);
         let account_component = AccountComponent::from_template(&template, &init_storage_data);
         assert_matches!(
             account_component,
@@ -507,13 +482,11 @@ mod tests {
             ))
         );
 
-        let valid_init_storage_data = InitStorageData::new([
-            (
-                StoragePlaceholder::new("word.test").unwrap(),
-                StorageValue::Word([Felt::new(30), Felt::new(20), Felt::new(10), Felt::ZERO]),
-            ),
-            (StoragePlaceholder::new("value.test").unwrap(), StorageValue::Felt(Felt::ONE)),
-        ]);
+        // Successfully instantiate a map (keys are not duplicate)
+        let valid_init_storage_data = InitStorageData::new([(
+            StorageValueName::new("map.duplicate_key").unwrap(),
+            "0x30".to_string(),
+        )]);
         AccountComponent::from_template(&template, &valid_init_storage_data).unwrap();
     }
 }

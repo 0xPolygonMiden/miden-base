@@ -228,7 +228,7 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
 fn chain_mmr_memory_assertions(process: &Process, prepared_tx: &TransactionContext) {
     // update the chain MMR to point to the block against which this transaction is being executed
     let mut chain_mmr = prepared_tx.tx_inputs().block_chain().clone();
-    chain_mmr.add_block(*prepared_tx.tx_inputs().block_header(), true);
+    chain_mmr.add_block(prepared_tx.tx_inputs().block_header().clone(), true);
 
     assert_eq!(
         read_root_mem_word(&process.into(), CHAIN_MMR_NUM_LEAVES_PTR)[0],
@@ -657,7 +657,7 @@ fn test_get_blk_version() {
         exec.prologue::prepare_transaction
         exec.memory::get_blk_version
 
-        # truncate the stack 
+        # truncate the stack
         swap drop
     end
     ";
@@ -678,7 +678,7 @@ fn test_get_blk_timestamp() {
         exec.prologue::prepare_transaction
         exec.memory::get_blk_timestamp
 
-        # truncate the stack 
+        # truncate the stack
         swap drop
     end
     ";

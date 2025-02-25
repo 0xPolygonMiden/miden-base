@@ -1,6 +1,6 @@
 [package]
 name = "miden-proving-service"
-version = "0.7.0"
+version = "0.8.0"
 description = "Miden rollup proving service"
 readme = "README.md"
 keywords = ["miden", "proving", "service"]
@@ -21,13 +21,14 @@ concurrent = ["miden-tx/concurrent"]
 
 [dependencies]
 async-trait = "0.1"
-axum = {version = "0.7" }
+axum = { version = "0.7" }
 bytes = "1.0"
-clap = { version = "4.5", features = ["derive"] }
-figment = { version = "0.10", features = ["toml", "env"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+miden-block-prover = { workspace = true, default-features = false }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false, features = ["std"] }
 miden-tx = { workspace = true, default-features = false, features = ["std"] }
+miden-tx-batch-prover = { workspace = true, default-features = false, features = ["std"] }
 opentelemetry = { version = "0.27", features = ["metrics", "trace"] }
 opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
@@ -43,9 +44,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_qs = { version = "0.13" }
 tokio = { version = "1.38", features = ["full"] }
 tokio-stream = { version = "0.1", features = [ "net" ]}
-toml = { version = "0.8" }
 thiserror = { workspace = true }
-tonic = { version = "0.12", default-features = false, features = ["prost", "codegen", "transport"] }
+tonic = { version = "0.12", default-features = false, features = ["codegen", "prost", "transport"] }
 tonic-health = { version = "0.12" }
 tonic-web = { version = "0.12" }
 tracing = { version = "0.1" }

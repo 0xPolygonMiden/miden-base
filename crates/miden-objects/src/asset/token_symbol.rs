@@ -2,7 +2,7 @@ use alloc::string::String;
 
 use super::{AssetError, Felt};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct TokenSymbol(Felt);
 
 impl TokenSymbol {

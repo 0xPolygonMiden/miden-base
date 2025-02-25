@@ -23,8 +23,8 @@ pub use code::{procedure::AccountProcedureInfo, AccountCode};
 mod component;
 pub use component::{
     AccountComponent, AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation,
-    InitStorageData, MapRepresentation, PlaceholderType, StorageEntry, StoragePlaceholder,
-    StorageValue, WordRepresentation,
+    InitStorageData, MapEntry, PlaceholderTypeRequirement, StorageEntry, StorageValueName,
+    StorageValueNameError, TemplateTypeError, WordRepresentation,
 };
 
 pub mod delta;
@@ -39,8 +39,8 @@ pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot,
 mod header;
 pub use header::AccountHeader;
 
-mod data;
-pub use data::AccountData;
+mod file;
+pub use file::AccountFile;
 
 // ACCOUNT
 // ================================================================================================
@@ -461,7 +461,8 @@ mod tests {
                 Digest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
                 [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
             ),
-        ]);
+        ])
+        .unwrap();
         let storage_slot_map = StorageSlot::Map(storage_map.clone());
 
         let mut account = build_account(

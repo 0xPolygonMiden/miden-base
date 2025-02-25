@@ -7,6 +7,11 @@ use super::{
 };
 use crate::utils::{hex_to_bytes, HexParseError};
 
+// CONSTANTS
+// ================================================================================================
+
+const NULLIFIER_PREFIX_SHIFT: u8 = 48;
+
 // NULLIFIER
 // ================================================================================================
 
@@ -55,6 +60,13 @@ impl Nullifier {
         self.0
     }
 
+    /// Returns the prefix of this nullifier.
+    ///
+    /// Nullifier prefix is defined as the 16 most significant bits of the nullifier value.
+    pub fn prefix(&self) -> u16 {
+        (self.inner()[3].as_int() >> NULLIFIER_PREFIX_SHIFT) as u16
+    }
+
     /// Creates a Nullifier from a hex string. Assumes that the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_value: &str) -> Result<Self, HexParseError> {
@@ -67,6 +79,13 @@ impl Nullifier {
     /// Returns a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
         self.0.to_hex()
+    }
+
+    #[cfg(any(feature = "testing", test))]
+    pub fn dummy(n: u64) -> Self {
+        use vm_core::FieldElement;
+
+        Self(Digest::new([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(n)]))
     }
 }
 

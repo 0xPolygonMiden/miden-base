@@ -246,13 +246,14 @@ export.incr_nonce
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
-#! Returns the account ID.
+#! Returns the id of the current account.
 #!
 #! Inputs:  []
-#! Outputs: [acct_id]
+#! Outputs: [curr_acct_id_prefix, curr_acct_id_suffix]
 #!
 #! Where:
-#! - acct_id is the account ID.
+#! - curr_acct_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the currently
+#!   accessing account.
 export.memory::get_account_id->get_id
 
 #! Returns the account nonce.
@@ -573,11 +574,11 @@ end
 #! Panics if:
 #! - the requested storage slot type is not map.
 export.get_map_item
-    # check if storage slot type is map
+    # get the storage slot type 
     dup exec.get_storage_slot_type
     # => [slot_type, index, KEY]
 
-    # check if type == map
+    # check if storage slot type is map
     exec.constants::get_storage_slot_type_map eq
     assert.err=ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY]
@@ -617,7 +618,7 @@ end
 export.set_map_item.12
     # store index for later
     dup loc_store.0
-    # => [index, KEY, NEW_VALUE, ...]
+    # => [index, KEY, NEW_VALUE, OLD_ROOT, ...]
 
     # check if storage type is map
     dup exec.get_storage_slot_type
@@ -673,7 +674,7 @@ end
 export.get_storage_slot_type
     # check that index is in bounds
     dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-    # => [index, V']
+    # => [index]
 
     # get account storage slots section offset
     exec.memory::get_acct_storage_slots_section_ptr

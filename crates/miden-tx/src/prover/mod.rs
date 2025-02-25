@@ -95,6 +95,7 @@ impl TransactionProver for LocalTransactionProver {
 
         let account = tx_inputs.account();
         let input_notes = tx_inputs.input_notes();
+        let block_num = tx_inputs.block_header().block_num();
         let block_hash = tx_inputs.block_header().hash();
 
         // execute and prove
@@ -137,6 +138,7 @@ impl TransactionProver for LocalTransactionProver {
             account.id(),
             account.init_hash(),
             tx_outputs.account.hash(),
+            block_num,
             block_hash,
             tx_outputs.expiration_block_num,
             proof,

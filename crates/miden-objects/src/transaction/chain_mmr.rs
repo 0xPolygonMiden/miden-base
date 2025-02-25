@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::collections::BTreeMap;
 
 use vm_core::utils::{Deserializable, Serializable};
 
@@ -43,21 +43,24 @@ impl ChainMmr {
     ///   partial MMR.
     /// - The same block appears more than once in the provided list of block headers.
     /// - The partial MMR does not track authentication paths for any of the specified blocks.
-    pub fn new(mmr: PartialMmr, blocks: Vec<BlockHeader>) -> Result<Self, ChainMmrError> {
+    pub fn new(
+        mmr: PartialMmr,
+        blocks: impl IntoIterator<Item = BlockHeader>,
+    ) -> Result<Self, ChainMmrError> {
         let chain_length = mmr.forest();
-
         let mut block_map = BTreeMap::new();
-        for block in blocks.into_iter() {
+        for block in blocks {
+            let block_num = block.block_num();
             if block.block_num().as_usize() >= chain_length {
-                return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
+                return Err(ChainMmrError::block_num_too_big(chain_length, block_num));
             }
 
-            if block_map.insert(block.block_num(), block).is_some() {
-                return Err(ChainMmrError::duplicate_block(block.block_num()));
+            if !mmr.is_tracked(block_num.as_usize()) {
+                return Err(ChainMmrError::untracked_block(block_num));
             }
 
-            if !mmr.is_tracked(block.block_num().as_usize()) {
-                return Err(ChainMmrError::untracked_block(block.block_num()));
+            if block_map.insert(block_num, block).is_some() {
+                return Err(ChainMmrError::duplicate_block(block_num));
             }
         }
 
@@ -66,6 +69,11 @@ impl ChainMmr {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the underlying [`PartialMmr`].
+    pub fn mmr(&self) -> &PartialMmr {
+        &self.mmr
+    }
 
     /// Returns peaks of this MMR.
     pub fn peaks(&self) -> MmrPeaks {
@@ -89,6 +97,11 @@ impl ChainMmr {
     /// this chain MMR.
     pub fn get_block(&self, block_num: BlockNumber) -> Option<&BlockHeader> {
         self.blocks.get(&block_num)
+    }
+
+    /// Returns an iterator over the block headers in this chain MMR.
+    pub fn block_headers(&self) -> impl Iterator<Item = &BlockHeader> {
+        self.blocks.values()
     }
 
     // DATA MUTATORS
@@ -118,15 +131,31 @@ impl ChainMmr {
             self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
         )
     }
+
+    // TESTING
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a mutable reference to the map of block numbers to block headers in this chain MMR.
+    ///
+    /// Allows mutating the inner map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn block_headers_mut(&mut self) -> &mut BTreeMap<BlockNumber, BlockHeader> {
+        &mut self.blocks
+    }
+
+    /// Returns a mutable reference to the partial MMR of this chain MMR.
+    ///
+    /// Allows mutating the inner partial MMR for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn partial_mmr_mut(&mut self) -> &mut PartialMmr {
+        &mut self.mmr
+    }
 }
 
 impl Serializable for ChainMmr {
     fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
         self.mmr.write_into(target);
-        self.blocks.len().write_into(target);
-        for block in self.blocks.values() {
-            block.write_into(target);
-        }
+        self.blocks.write_into(target);
     }
 }
 
@@ -135,12 +164,7 @@ impl Deserializable for ChainMmr {
         source: &mut R,
     ) -> Result<Self, miden_crypto::utils::DeserializationError> {
         let mmr = PartialMmr::read_from(source)?;
-        let block_count = usize::read_from(source)?;
-        let mut blocks = BTreeMap::new();
-        for _ in 0..block_count {
-            let block = BlockHeader::read_from(source)?;
-            blocks.insert(block.block_num(), block);
-        }
+        let blocks = BTreeMap::<BlockNumber, BlockHeader>::read_from(source)?;
         Ok(Self { mmr, blocks })
     }
 }

@@ -84,6 +84,9 @@ const.NOTE_BEFORE_ADD_ASSET_EVENT=131085
 # Event emitted after an ASSET is added to a note
 const.NOTE_AFTER_ADD_ASSET_EVENT=131086
 
+# PROCEDURES
+# =================================================================================================
+
 #! Returns the block hash of the reference block to memory.
 #!
 #! Inputs:  []
@@ -101,6 +104,15 @@ export.memory::get_block_hash
 #! Where:
 #! - num is the last known block number.
 export.memory::get_blk_num->get_block_number
+
+#! Returns the block timestamp of the reference block for this transaction.
+#!
+#! Inputs:  []
+#! Outputs: [timestamp]
+#!
+#! Where:
+#! - timestamp is the timestamp of the reference block for this transaction.
+export.memory::get_blk_timestamp->get_block_timestamp
 
 #! Returns the input notes commitment hash.
 #!

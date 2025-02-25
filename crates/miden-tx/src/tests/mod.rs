@@ -829,7 +829,7 @@ fn prove_witness_and_verify() {
     let serialized_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialized_transaction).unwrap();
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
-    assert!(verifier.verify(proven_transaction).is_ok());
+    assert!(verifier.verify(&proven_transaction).is_ok());
 }
 
 // TEST TRANSACTION SCRIPT

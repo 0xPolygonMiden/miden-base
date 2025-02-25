@@ -1,6 +1,6 @@
-use alloc::collections::BTreeMap;
+use alloc::{collections::BTreeMap, string::String};
 
-use super::{StoragePlaceholder, StorageValue};
+use super::StorageValueName;
 
 /// Represents the data required to initialize storage entries when instantiating an
 /// [AccountComponent](crate::account::AccountComponent) from a
@@ -8,7 +8,7 @@ use super::{StoragePlaceholder, StorageValue};
 #[derive(Clone, Debug, Default)]
 pub struct InitStorageData {
     /// A mapping of storage placeholder names to their corresponding storage values.
-    storage_placeholders: BTreeMap<StoragePlaceholder, StorageValue>,
+    storage_placeholders: BTreeMap<StorageValueName, String>,
 }
 
 impl InitStorageData {
@@ -17,20 +17,20 @@ impl InitStorageData {
     /// # Parameters
     ///
     /// - `entries`: An iterable collection of key-value pairs.
-    pub fn new(entries: impl IntoIterator<Item = (StoragePlaceholder, StorageValue)>) -> Self {
+    pub fn new(entries: impl IntoIterator<Item = (StorageValueName, String)>) -> Self {
         InitStorageData {
             storage_placeholders: entries.into_iter().collect(),
         }
     }
 
     /// Retrieves a reference to the storage placeholders.
-    pub fn placeholders(&self) -> &BTreeMap<StoragePlaceholder, StorageValue> {
+    pub fn placeholders(&self) -> &BTreeMap<StorageValueName, String> {
         &self.storage_placeholders
     }
 
-    /// Returns a reference to the [StorageValue] corresponding to the placeholder, or
+    /// Returns a reference to the name corresponding to the placeholder, or
     /// [`Option::None`] if the placeholder is not present.
-    pub fn get(&self, key: &StoragePlaceholder) -> Option<&StorageValue> {
+    pub fn get(&self, key: &StorageValueName) -> Option<&String> {
         self.storage_placeholders.get(key)
     }
 }
