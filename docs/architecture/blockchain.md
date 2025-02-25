@@ -20,7 +20,7 @@ This approach enables fast blockchain syncing by verifying `Block` proofs rather
 
 ## Batch production
 
-A Miden block consist of multiple transaction batches. This enables recursive proving and also allows transactions to be processed concurrently as batches with no overlap in accounts and notes can be built in parallel. Miden will have multiple batch producers operating simultaneously and, together with offchain/client-side transaction proving, this massively reduces the work the network is required to do.
+A Miden block consists of multiple transaction batches. This enables recursive proving and also allows transactions to be processed concurrently as batches with no overlap in accounts and notes can be built in parallel. Miden will have multiple batch producers operating simultaneously and, together with offchain/client-side transaction proving, this massively reduces the work the network is required to do.
 
 The purpose of this scheme is to produce a single proof that attests to the validity of a number of transactions. This is achieved by recursively verifying each transaction proof within the Miden VM.
 
@@ -28,10 +28,10 @@ The purpose of this scheme is to produce a single proof that attests to the vali
     <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Batch diagram"/>
 </p>
 
-The batch producer aggregates transactions sequentially by verifying their proofs and state transitions are correct. More specifically, the batch producers ensures:
+The batch producer aggregates transactions sequentially by verifying that their proofs and state transitions are correct. More specifically, the batch producer ensures:
 
 1. **Ordering of transactions**: If several transactions within the same batch affect a single account, the correct ordering must be enforced. For example, if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify them in the order: `A -> Tx1 -> A' -> Tx2 -> A''`.
-2. **Prevention of double spending and duplicate notes**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This prevents double spending and avoids the situation where duplicate notes, which would share identical nullifiers, are created. Only one of such duplicate notes could later be consumed, as the nullifier will be marked as spent after the first consumption.
+2. **Prevention of double spending and duplicate notes**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This prevents double spending and avoids the situation where duplicate notes, which would share identical nullifiers, are created. Only one such duplicate note can later be consumed, as the nullifier will be marked as spent after the first consumption.
 3. **Expiration windows**: It is possible to set an expiration window for transactions, which in turn sets an expiration window for the entire batch. For instance, if transaction `A` expires at block `8` and transaction `B` expires at block `5`, then the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
 
 ## Block production
