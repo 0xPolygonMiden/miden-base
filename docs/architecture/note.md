@@ -72,18 +72,11 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 - **Public mode:** The `Note` data is stored in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database), making it fully visible on-chain.
 - **Private mode:** Only the `Note`’s hash is stored publicly. The `Note`’s actual data remains off-chain, enhancing privacy.
 
-#### Ephemeral note
-
-These specific `Note`s can be consumed even if not yet registered on-chain. They can be chained together into one final proof. This can allow for example sub-second communication below blocktimes by adding additional trust assumptions.
-
 ### Note validation
 
 Once created, a `Note` must be validated by a Miden operator. Validation involves checking the transaction proof that produced the `Note` to ensure it meets all protocol requirements.
 
-- **Private Notes:** Only the `Note`’s hash is recorded on-chain, keeping the data confidential.
-- **Public Notes:** The full `Note` data is stored, providing transparency for applications requiring public state visibility.
-
-After validation, `Note`s become “live” and eligible for discovery and eventual consumption.
+After validation `Note`s become “live” and eligible for consumption. If creation and consumption happens within the same block, there is no entry in the Notes DB. All other notes, are being added either as a commitment or fully public.
 
 ### Note discovery
 
