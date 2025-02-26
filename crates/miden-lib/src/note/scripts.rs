@@ -2,6 +2,7 @@ use miden_objects::{
     note::NoteScript,
     utils::{sync::LazyLock, Deserializable},
     vm::Program,
+    Digest,
 };
 
 // Initialize the P2ID note script only once
@@ -30,12 +31,30 @@ pub fn p2id() -> NoteScript {
     P2ID_SCRIPT.clone()
 }
 
+/// Returns the P2ID (Pay-to-ID) note script commitment.
+pub fn p2id_commitment() -> Digest {
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID_commitment"));
+    Digest::try_from(bytes).unwrap()
+}
+
 /// Returns the P2IDR (Pay-to-ID with recall) note script.
 pub fn p2idr() -> NoteScript {
     P2IDR_SCRIPT.clone()
 }
 
+/// Returns the P2IDR (Pay-to-ID with recall) note script commitment.
+pub fn p2idr_commitment() -> Digest {
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR_commitment"));
+    Digest::try_from(bytes).unwrap()
+}
+
 /// Returns the SWAP (Swap note) note script.
 pub fn swap() -> NoteScript {
     SWAP_SCRIPT.clone()
+}
+
+/// Returns the SWAP (Swap note) note script commitment.
+pub fn swap_commitment() -> Digest {
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP_commitment"));
+    Digest::try_from(bytes).unwrap()
 }
