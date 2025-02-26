@@ -25,6 +25,7 @@ use crate::{
 /// transport. Otherwise, it uses the built-in `tonic::transport` for native platforms.
 ///
 /// The transport layer connection is established lazily when the first batch is proven.
+#[derive(Clone)]
 pub struct RemoteBatchProver {
     #[cfg(target_arch = "wasm32")]
     client: Arc<Mutex<Option<ApiClient<tonic_web_wasm_client::Client>>>>,

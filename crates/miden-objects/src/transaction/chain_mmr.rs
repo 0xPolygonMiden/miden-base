@@ -50,16 +50,17 @@ impl ChainMmr {
         let chain_length = mmr.forest();
         let mut block_map = BTreeMap::new();
         for block in blocks {
+            let block_num = block.block_num();
             if block.block_num().as_usize() >= chain_length {
-                return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
+                return Err(ChainMmrError::block_num_too_big(chain_length, block_num));
             }
 
-            if block_map.insert(block.block_num(), block).is_some() {
-                return Err(ChainMmrError::duplicate_block(block.block_num()));
+            if !mmr.is_tracked(block_num.as_usize()) {
+                return Err(ChainMmrError::untracked_block(block_num));
             }
 
-            if !mmr.is_tracked(block.block_num().as_usize()) {
-                return Err(ChainMmrError::untracked_block(block.block_num()));
+            if block_map.insert(block_num, block).is_some() {
+                return Err(ChainMmrError::duplicate_block(block_num));
             }
         }
 
