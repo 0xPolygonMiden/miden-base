@@ -1,10 +1,9 @@
 use alloc::string::{String, ToString};
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+use crate::{
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Felt, Word, ONE, ZERO,
 };
-use vm_processor::DeserializationError;
 
 // STORAGE SLOT TYPE
 // ================================================================================================

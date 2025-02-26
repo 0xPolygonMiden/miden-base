@@ -1,15 +1,16 @@
 use alloc::vec::Vec;
 use core::cell::OnceCell;
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
 use super::{
     Account, AccountDelta, AccountHeader, AccountId, AdviceInputs, BlockHeader, InputNote,
     InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionWitness,
 };
-use crate::{account::AccountCode, block::BlockNumber};
+use crate::{
+    account::AccountCode,
+    block::BlockNumber,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 // EXECUTED TRANSACTION
 // ================================================================================================

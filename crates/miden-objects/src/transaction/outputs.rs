@@ -1,13 +1,11 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 use core::fmt::Debug;
 
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
 use crate::{
     account::AccountHeader,
     block::BlockNumber,
     note::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
 // TRANSACTION OUTPUTS

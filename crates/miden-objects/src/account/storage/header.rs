@@ -1,13 +1,10 @@
 use alloc::vec::Vec;
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    ZERO,
-};
-use vm_processor::DeserializationError;
-
 use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
-use crate::AccountError;
+use crate::{
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    AccountError, ZERO,
+};
 
 // ACCOUNT STORAGE HEADER
 // ================================================================================================

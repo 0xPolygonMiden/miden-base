@@ -1,12 +1,11 @@
 use alloc::string::ToString;
 
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
-};
-
 use crate::{
     batch::BatchNoteTree,
+    crypto::{
+        hash::rpo::RpoDigest,
+        merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
+    },
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,

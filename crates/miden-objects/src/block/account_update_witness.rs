@@ -1,10 +1,12 @@
 use alloc::vec::Vec;
 
-use miden_crypto::merkle::MerklePath;
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::{DeserializationError, Digest};
-
-use crate::{account::delta::AccountUpdateDetails, transaction::TransactionId};
+use crate::{
+    account::delta::AccountUpdateDetails,
+    crypto::merkle::MerklePath,
+    transaction::TransactionId,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest,
+};
 
 /// This type encapsulates essentially three components:
 /// - The witness is a merkle path of the initial state commitment of the account before the block

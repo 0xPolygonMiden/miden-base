@@ -1,13 +1,6 @@
 use alloc::string::{String, ToString};
 use core::fmt;
 
-use miden_crypto::utils::ByteWriter;
-use vm_core::{
-    utils::{ByteReader, Deserializable, Serializable},
-    Felt,
-};
-use vm_processor::DeserializationError;
-
 use super::v0;
 use crate::{
     account::{
@@ -15,6 +8,8 @@ use crate::{
         AccountType,
     },
     errors::AccountIdError,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Felt,
 };
 
 // ACCOUNT ID PREFIX

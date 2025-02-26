@@ -1,11 +1,11 @@
 use alloc::{boxed::Box, string::ToString};
 use core::fmt;
 
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
 use super::{is_not_a_non_fungible_asset, AccountType, Asset, AssetError, Felt, Word, ZERO};
-use crate::account::{AccountId, AccountIdPrefix};
+use crate::{
+    account::{AccountId, AccountIdPrefix},
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 // FUNGIBLE ASSET
 // ================================================================================================
