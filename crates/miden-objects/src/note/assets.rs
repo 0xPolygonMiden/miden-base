@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
-use super::Asset;
 use crate::{
+    asset::Asset,
     errors::NoteError,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest, Felt, Hasher, Word, MAX_ASSETS_PER_NOTE, WORD_SIZE, ZERO,

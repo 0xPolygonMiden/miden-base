@@ -1,18 +1,15 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt::Display;
 
-use assembly::Compile;
-use vm_core::prettier::PrettyPrint;
-
 use super::{Digest, Felt};
 use crate::{
     assembly::{
         mast::{MastForest, MastNodeId},
-        Assembler,
+        Assembler, Compile,
     },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::Program,
-    NoteError,
+    NoteError, PrettyPrint,
 };
 
 // NOTE SCRIPT

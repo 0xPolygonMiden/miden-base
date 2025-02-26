@@ -3,14 +3,13 @@ use core::ops::Deref;
 
 use assembly::{Assembler, Compile};
 use miden_crypto::merkle::InnerNodeInfo;
-use vm_core::mast::{MastForest, MastNodeId};
 
 use super::{Digest, Felt, Word};
 use crate::{
     note::{NoteDetails, NoteId},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::{AdviceInputs, AdviceMap, Program},
-    TransactionScriptError,
+    MastForest, MastNodeId, TransactionScriptError,
 };
 
 // TRANSACTION ARGS
