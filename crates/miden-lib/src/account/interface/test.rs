@@ -104,6 +104,79 @@ fn test_basic_wallet_default_notes() {
     assert_eq!(NoteAccountCompatibility::No, faucet_account_interface.can_consume(&swap_note));
 }
 
+/// Checks the compatibility of the basic notes (P2ID, P2IDR and SWAP) against an account with a
+/// custom interface containing a procedure from the basic wallet.
+///
+/// In that setup check against P2ID and P2IDR notes should result in `Maybe`, and the check against
+/// SWAP should result in `No`.
+#[test]
+fn test_custom_account_default_note() {
+    let account_custom_code_source = "
+        use.miden::contracts::wallets::basic
+
+        export.basic::receive_asset
+    ";
+
+    let account_component = AccountComponent::compile(
+        account_custom_code_source,
+        TransactionKernel::testing_assembler(),
+        vec![],
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let target_account = AccountBuilder::new(mock_seed)
+        .with_component(account_component.clone())
+        .build_existing()
+        .unwrap();
+    let target_account_interface = AccountInterface::from(&target_account);
+
+    let p2id_note = create_p2id_note(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        vec![FungibleAsset::mock(10)],
+        NoteType::Public,
+        Default::default(),
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
+    )
+    .unwrap();
+
+    let p2idr_note = create_p2idr_note(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        vec![FungibleAsset::mock(10)],
+        NoteType::Public,
+        Default::default(),
+        BlockNumber::default(),
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
+    )
+    .unwrap();
+
+    let offered_asset = NonFungibleAsset::mock(&[5, 6, 7, 8]);
+    let requested_asset = NonFungibleAsset::mock(&[1, 2, 3, 4]);
+
+    let (swap_note, _) = create_swap_note(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        offered_asset,
+        requested_asset,
+        NoteType::Public,
+        ZERO,
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
+    )
+    .unwrap();
+
+    assert_eq!(
+        NoteAccountCompatibility::Maybe,
+        target_account_interface.can_consume(&p2id_note)
+    );
+    assert_eq!(
+        NoteAccountCompatibility::Maybe,
+        target_account_interface.can_consume(&p2idr_note)
+    );
+    assert_eq!(NoteAccountCompatibility::No, target_account_interface.can_consume(&swap_note));
+}
+
 // CUSTOM NOTES
 // ================================================================================================
 

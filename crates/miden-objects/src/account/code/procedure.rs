@@ -27,7 +27,7 @@ use crate::AccountError;
 /// account's storage. For example, if storage size for a procedure is set to 3, the procedure will
 /// be bounded to access storage slots in the range [storage_offset, storage_offset + 3 - 1].
 /// Furthermore storage_size = 0 indicates that a procedure does not need to access storage.
-#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub struct AccountProcedureInfo {
     mast_root: Digest,
     storage_offset: u8,
@@ -167,10 +167,10 @@ mod tests {
     fn test_from_to_account_procedure() {
         let account_code = AccountCode::mock();
 
-        let procedure = account_code.procedures()[0].clone();
+        let procedure = account_code.procedures()[0];
 
         // from procedure to [Felt; 8]
-        let felts: [Felt; 8] = procedure.clone().into();
+        let felts: [Felt; 8] = procedure.into();
 
         // try_from [Felt; 8] to procedure
         let final_procedure: AccountProcedureInfo = felts.try_into().unwrap();
