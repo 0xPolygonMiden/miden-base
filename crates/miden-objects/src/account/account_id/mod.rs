@@ -312,7 +312,6 @@ impl AccountId {
     ///
     /// The encoding of an account ID into bech32 is done as follows:
     /// - Convert the account ID into its `[u8; 15]` data format.
-    /// - Swap the first byte at index 0 with the metadata byte at index 7.
     /// - Insert the address type [`AddressType::AccountId`] byte at index 0, shifting all other
     ///   elements to the right.
     /// - Choose an HRP, defined as a [`NetworkId`], for example [`NetworkId::Mainnet`] whose string
@@ -328,10 +327,6 @@ impl AccountId {
     /// ```
     ///
     /// ## Rationale
-    ///
-    /// We swap the metadata byte to the front so that its version can be read without having to
-    /// make assumptions about anything else of the ID, which is useful in case the layout of
-    /// the ID changes with future versions.
     ///
     /// Having the address type at the very beginning is so that it can be decoded to detect the
     /// type of the address without having to decode the entire data. Moreover, choosing the
@@ -352,7 +347,7 @@ impl AccountId {
     /// Decodes a [bech32](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki) string into an [`AccountId`].
     ///
     /// See [`AccountId::to_bech32`] for details on the format. The procedure for decoding the
-    /// bech32 data into the ID are the inverse operations of encoding.
+    /// bech32 data into the ID consists of the inverse operations of encoding.
     pub fn from_bech32(bech32_string: &str) -> Result<(NetworkId, Self), AccountIdError> {
         AccountIdV0::from_bech32(bech32_string)
             .map(|(network_id, account_id)| (network_id, AccountId::V0(account_id)))
@@ -606,11 +601,11 @@ mod tests {
                 // Raw bech32 data should contain the address type as the first byte.
                 assert_eq!(data[0], AddressType::AccountId as u8);
 
-                // Raw bech32 data should contain the metadata byte as the second byte.
-                assert_eq!(extract_version(data[1] as u64).unwrap(), account_id.version());
-                assert_eq!(extract_type(data[1] as u64), account_id.account_type());
+                // Raw bech32 data should contain the metadata byte at index 8.
+                assert_eq!(extract_version(data[8] as u64).unwrap(), account_id.version());
+                assert_eq!(extract_type(data[8] as u64), account_id.account_type());
                 assert_eq!(
-                    extract_storage_mode(data[1] as u64).unwrap(),
+                    extract_storage_mode(data[8] as u64).unwrap(),
                     account_id.storage_mode()
                 );
             }
