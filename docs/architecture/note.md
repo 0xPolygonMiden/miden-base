@@ -76,7 +76,7 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 
 Once created, a `Note` must be validated by a Miden operator. Validation involves checking the transaction proof that produced the `Note` to ensure it meets all protocol requirements.
 
-After validation `Note`s become “live” and eligible for consumption. If creation and consumption happens within the same block, there is no entry in the Notes DB. All other notes, are being added either as a commitment or fully public. 
+After validation `Note`s become “live” and eligible for consumption. If creation and consumption happens within the same block, there is no entry in the Notes DB. All other notes, are being added either as a commitment or fully public.
 
 ### Note discovery
 

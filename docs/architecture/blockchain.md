@@ -24,7 +24,7 @@ The batch producer aggregates transactions sequentially by verifying that their 
 1. **Ordering of transactions**: If several transactions within the same batch affect a single account, the correct ordering must be enforced. For example, if `Tx1` and `Tx2` both describe state changes of account `A`, then the batch kernel must verify them in the order: `A -> Tx1 -> A' -> Tx2 -> A''`.
 2. **Uniqueness of notes in a single batch**: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This will prevent the situation where duplicate notes, which would share identical nullifiers, are created. Only one such duplicate note could later be consumed, as the nullifier will be marked as spent after the first consumption. It also checks for double spends in the set of consumed notes, even though the real double spent check only happens at the block production level.
 3. **Expiration windows**: It is possible to set an expiration window for transactions, which in turn sets an expiration window for the entire batch. For instance, if transaction `Tx1` expires at block `8` and transaction `Tx2` expires at block `5`, then the batch expiration will be set to the minimum of all transaction expirations, which is `5`.
-4. **Note erasure of ephemeral notes**: Ephemeral notes don't exist in the Notes DB. They are unauthenticated. Accounts can still consume unauthenticated notes to consume those notes faster, they don't have to wait for notes being included into a block. If creation and consumption of an ephemeral note happens in the same batch, the batch producer erases this note.
+4. **Note erasure of erasable notes**: Erasable notes don't exist in the Notes DB. They are unauthenticated. Accounts can still consume unauthenticated notes to consume those notes faster, they don't have to wait for notes being included into a block. If creation and consumption of an erasable note happens in the same batch, the batch producer erases this note.
 
 ## Block production
 
@@ -39,8 +39,7 @@ The block producer ensures:
 5. **Global note uniqueness**: All created and consumed notes must be unique across batches.
 6. **Batch expiration**: The block height of the created block must be smaller or equal than the lowest batch expiration.
 7. **Block time increase**: The block timestamp must increase monotonically from the previous block.
-8. **Ephemeral note erasure**: If an ephemeral note is created and consumed in different batches, it is erased now.
-9. **Valid ephemeral note creation**: If an ephemeral note is consumed but not created within the block, the batch it contains is rejected. The Miden operator's mempool should preemptively filter such transactions.
+8. **Note erasure of erasable notes**: If an erasable note is created and consumed in different batches, it is erased now. If, however, an erasable note is consumed but not created within the block, the batch it contains is rejected. The Miden operator's mempool should preemptively filter such transactions.
 
 In final `Block` contains:
 - The commitments to the current global [state](state.md).
