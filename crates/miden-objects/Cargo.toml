@@ -26,6 +26,7 @@ testing = ["dep:winter-rand-utils", "dep:rand", "dep:rand_xoshiro"]
 
 [dependencies]
 assembly = { workspace = true }
+bech32 = { version = "0.11", default-features = false, features = ["alloc"] }
 log = { version = "0.4", optional = true }
 miden-crypto = { workspace = true }
 miden-verifier = { workspace = true }
