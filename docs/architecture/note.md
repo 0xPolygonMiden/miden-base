@@ -76,21 +76,7 @@ As with [accounts](accounts.md), `Note`s can be stored either publicly or privat
 
 Once created, a `Note` must be validated by a Miden operator. Validation involves checking the transaction proof that produced the `Note` to ensure it meets all protocol requirements.
 
-- **Private Notes:** Only the `Note`’s hash is recorded on-chain, keeping the data confidential.
-- **Public Notes:** The full `Note` data is stored, providing transparency for applications requiring public state visibility.
-
-After validation, `Note`s become “live” and eligible for discovery and eventual consumption.
-
-#### Ephemeral notes
-
-Accounts can consume `Note`s before they are formally recorded by the network. Those notes are called ephemeral notes. They are erased - created and consumed - before an entry is made in the Notes DB. This is safe to do since the proving system knows this `Note` was produced and was consumed. In a way this is similar to aggregating multiple account updates into a single one.
-
-As an example, `Tx1` produces `Note` `N` and `Tx2` consumes `Note` `N`. The account executing `Tx2` might not want to wait for the block to be finalized. So it can decided to consume `Note` `N` as ephemeral `Note` in the same block as `Tx1` happens. In theory, `Tx2` could again create a `Note` `M`, which can also be consumed in the very same block. Accounts can build dependent chains of transactions only bound by the time it takes to create a client-side proof.
-
-This reduces the load and storage requirements of the network and can occur at both the batch and block production level. Ephemeral `Note`s can be used to allow for sub-second transactions on an order-book exchange.
-
-> **Info**
-> - Ephemeral `Note`s leak their ID to the operator that erases them, e.g., if a note is private the contents still remain private but the fact that transaction `Tx2` consumed note `N` becomes public (which does not happen with regular private notes).
+After validation `Note`s become “live” and eligible for consumption. If creation and consumption happens within the same block, there is no entry in the Notes DB. All other notes, are being added either as a commitment or fully public. 
 
 ### Note discovery
 
