@@ -2,12 +2,14 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     account::{Account, StorageSlot},
-    transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
-    vm::AdviceInputs,
-    Digest, Felt, FieldElement, Word, EMPTY_WORD, WORD_SIZE, ZERO,
+    transaction::{ChainMmr, InputNote, TransactionScript},
+    FieldElement, Word, WORD_SIZE,
 };
 
 use super::TransactionKernel;
+use crate::transaction::{
+    AdviceInputs, Digest, Felt, TransactionArgs, TransactionInputs, EMPTY_WORD, ZERO,
+};
 
 // ADVICE INPUTS
 // ================================================================================================
