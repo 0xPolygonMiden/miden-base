@@ -8,7 +8,7 @@ Miden's blockchain protocol aims for the following:
 - **Fast genesis syncing**: New nodes can efficiently sync to the tip of the chain.
 
 <p style="text-align: center;">
-    <img src="../img/architecture/blockchain/execution.png" style="width:70%;" alt="Execution diagram"/>
+    <img src="img/blockchain/execution.png" style="width:70%;" alt="Execution diagram"/>
 </p>
 
 ## Batch production
@@ -16,7 +16,7 @@ Miden's blockchain protocol aims for the following:
 To reduce the required space on the blockchain, transaction proofs are not directly put into blocks. First, they are batched together by verifying them in the batch producer. The purpose of the batch producer is to generate a single proof that some number of proven transactions have been verified. This involves recursively verifying individual transaction proofs inside the Miden VM. As with any program that runs in the Miden VM, there is a proof of correct execution running the Miden verifier to verify transaction proofs. This results into a single batch proof.
 
 <p style="text-align: center;">
-    <img src="../img/architecture/blockchain/batching.png" style="width:50%;" alt="Batch diagram"/>
+    <img src="img/blockchain/batching.png" style="width:50%;" alt="Batch diagram"/>
 </p>
 
 The batch producer aggregates transactions sequentially by verifying that their proofs and state transitions are correct. More specifically, the batch producer ensures:
@@ -51,7 +51,7 @@ In final `Block` contains:
 The `Block` proof attests to the correct state transition from the previous `Block` commitment to the next, and therefore to the change in Miden's global state.
 
 <p style="text-align: center;">
-    <img src="../img/architecture/blockchain/block.png" style="width:90%;" alt="Block diagram"/>
+    <img src="img/blockchain/block.png" style="width:90%;" alt="Block diagram"/>
 </p>
 
 > **Tip: Block Contents**
@@ -74,6 +74,7 @@ To verify that a `Block` corresponds to a valid global state transition, the fol
 These steps can be performed by any verifier (e.g., a contract on Ethereum, Polygon AggLayer, or a decentralized network of Miden nodes).
 
 ## Syncing from genesis
+
 Nodes can sync efficiently from genesis to the tip of the chain through a multi-step process:
 
   1. Download historical `Block`s from genesis to the present.
@@ -84,4 +85,5 @@ Nodes can sync efficiently from genesis to the tip of the chain through a multi-
 This approach enables fast blockchain syncing by verifying `Block` proofs rather than re-executing individual transactions, resulting in exponentially faster performance. Consequently, state sync is dominated by the time needed to download the data.
 
 ## Consensus and decentralization
+
 Miden will start as a centralized L2 on the Ethereum network. Over time, Miden will decentralize, but this part of the protocol, especially consensus is not yet set.
