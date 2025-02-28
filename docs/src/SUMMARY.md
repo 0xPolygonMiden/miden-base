@@ -1,6 +1,6 @@
 # Summary
 
-- [Protocol](index.md)
+- [Introduction](index.md)
     * [Account](account.md)
     * [Note](note.md)
     * [Asset](asset.md)
