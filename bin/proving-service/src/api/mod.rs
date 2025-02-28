@@ -82,14 +82,14 @@ impl ProverRpcApi {
         &self,
         transaction_witness: TransactionWitness,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
-        let prover = self
+        let mut prover = self
             .provers
             .try_lock()
             .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
 
         let prover = prover
             .tx_prover
-            .as_ref()
+            .as_mut()
             .ok_or(Status::unimplemented("Transaction prover is not enabled"))?;
 
         let proof = prover.prove(transaction_witness).map_err(internal_error)?;

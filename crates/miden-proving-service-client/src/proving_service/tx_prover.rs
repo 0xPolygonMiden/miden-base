@@ -81,7 +81,7 @@ impl RemoteTransactionProver {
 #[async_trait::async_trait(?Send)]
 impl TransactionProver for RemoteTransactionProver {
     async fn prove(
-        &self,
+        &mut self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         use miden_objects::utils::Serializable;
