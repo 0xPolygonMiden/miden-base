@@ -28,6 +28,7 @@ pub const ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH: u32 = 0x00020008;
 pub const ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 0x0002000A;
 pub const ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT: u32 = 0x00020009;
 pub const ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH: u32 = 0x00020012;
+pub const ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x0002000D;
 pub const ERR_ACCOUNT_TOO_MANY_PROCEDURES: u32 = 0x00020010;
 pub const ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS: u32 = 0x00020011;
 
@@ -100,8 +101,6 @@ pub const ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT: u32 = 0x0002004F;
 pub const ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT: u32 = 0x0002003A;
 pub const ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT: u32 = 0x0002003F;
 
-pub const ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x0002000D;
-
 pub const ERR_SWAP_WRONG_NUMBER_OF_ASSETS: u32 = 0x00020056;
 pub const ERR_SWAP_WRONG_NUMBER_OF_INPUTS: u32 = 0x00020055;
 
@@ -136,6 +135,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 92] = [
     (ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Failed to write an account map item to a non-map storage slot"),
     (ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT, "Failed to write an account value item to a non-value storage slot"),
     (ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH, "Computed account storage commitment does not match recorded account storage commitment"),
+    (ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
     (ERR_ACCOUNT_TOO_MANY_PROCEDURES, "Number of account procedures exceeds the maximum limit of 256"),
     (ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeds the maximum limit of 255"),
 
@@ -207,8 +207,6 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 92] = [
     (ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT, "Number of note inputs exceeded the maximum limit of 128"),
     (ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT, "Account data provided does not match the commitment recorded on-chain"),
     (ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT, "Provided info about assets of an input does not match its commitment"),
-
-    (ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
 
     (ERR_SWAP_WRONG_NUMBER_OF_ASSETS, "SWAP script requires exactly 1 note asset"),
     (ERR_SWAP_WRONG_NUMBER_OF_INPUTS, "SWAP script expects exactly 10 note inputs"),
