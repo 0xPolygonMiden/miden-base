@@ -7,5 +7,3 @@
     * [Transaction](./transaction.md)
     * [State](./state.md)
     * [Blockchain](./blockchain.md)
-    * [Network](./network.md)
-    * [Limits](./limits.md)
