@@ -1,6 +1,12 @@
+use alloc::{string::ToString, sync::Arc, vec::Vec};
+
+use assembly::{
+    ast::{Module, ModuleKind},
+    DefaultSourceManager,
+};
 use miden_objects::{
-    account::{AccountBuilder, AccountComponent, AccountType},
-    assembly::LibraryPath,
+    account::{AccountBuilder, AccountComponent, AccountType, StorageSlot},
+    assembly::{Assembler, LibraryPath},
     asset::{FungibleAsset, NonFungibleAsset, TokenSymbol},
     block::BlockNumber,
     crypto::{
@@ -15,7 +21,7 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2,
     },
-    Digest, Felt, ONE, ZERO,
+    AccountError, Digest, Felt, ONE, ZERO,
 };
 
 use crate::{
@@ -629,4 +635,50 @@ fn test_custom_account_multiple_components_custom_notes() {
         NoteAccountCompatibility::No,
         target_account_interface.can_consume(&incompatible_custom_note)
     );
+}
+
+// HELPER TRAIT
+// ================================================================================================
+
+/// [AccountComponentExt] is a helper trait which only implements the `compile_with_path` procedure
+/// for testing purposes.
+trait AccountComponentExt {
+    fn compile_with_path(
+        source_code: impl ToString,
+        assembler: Assembler,
+        storage_slots: Vec<StorageSlot>,
+        library_path: LibraryPath,
+    ) -> Result<AccountComponent, AccountError>;
+}
+
+impl AccountComponentExt for AccountComponent {
+    /// Returns a new [`AccountComponent`] whose library is compiled from the provided `source_code`
+    /// using the specified `assembler`, `library_path`, and with the given `storage_slots`.
+    ///
+    /// All procedures exported from the provided code will become members of the account's public
+    /// interface when added to an [`AccountCode`](crate::account::AccountCode), and could be called
+    /// using the provided library path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the compilation of the provided source code fails.
+    /// - The number of storage slots exceeds 255.
+    fn compile_with_path(
+        source_code: impl ToString,
+        assembler: Assembler,
+        storage_slots: Vec<StorageSlot>,
+        library_path: LibraryPath,
+    ) -> Result<Self, AccountError> {
+        let source_manager = Arc::new(DefaultSourceManager::default());
+        let module = Module::parser(ModuleKind::Library)
+            .parse_str(library_path, source_code, &source_manager)
+            .map_err(AccountError::AccountComponentAssemblyError)?;
+
+        let library = assembler
+            .assemble_library(&[*module])
+            .map_err(AccountError::AccountComponentAssemblyError)?;
+
+        Self::new(library, storage_slots)
+    }
 }

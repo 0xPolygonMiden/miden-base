@@ -1,6 +1,6 @@
-use alloc::{collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, vec::Vec};
 
-use assembly::{ast::Module, Assembler, Compile, Library, LibraryPath};
+use assembly::{Assembler, Compile, Library};
 use vm_processor::MastForest;
 
 mod template;
@@ -81,36 +81,6 @@ impl AccountComponent {
     ) -> Result<Self, AccountError> {
         let library = assembler
             .assemble_library([source_code])
-            .map_err(AccountError::AccountComponentAssemblyError)?;
-
-        Self::new(library, storage_slots)
-    }
-
-    /// Returns a new [`AccountComponent`] whose library is compiled from the provided `source_code`
-    /// using the specified `assembler`, `library_path`, and with the given `storage_slots`.
-    ///
-    /// All procedures exported from the provided code will become members of the account's public
-    /// interface when added to an [`AccountCode`](crate::account::AccountCode), and could be called
-    /// using the provided library path.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - the compilation of the provided source code fails.
-    /// - The number of storage slots exceeds 255.
-    pub fn compile_with_path(
-        source_code: impl ToString,
-        assembler: Assembler,
-        storage_slots: Vec<StorageSlot>,
-        library_path: LibraryPath,
-    ) -> Result<Self, AccountError> {
-        let source_manager = Arc::new(assembly::DefaultSourceManager::default());
-        let module = Module::parser(assembly::ast::ModuleKind::Library)
-            .parse_str(library_path, source_code, &source_manager)
-            .map_err(AccountError::AccountComponentAssemblyError)?;
-
-        let library = assembler
-            .assemble_library(&[*module])
             .map_err(AccountError::AccountComponentAssemblyError)?;
 
         Self::new(library, storage_slots)

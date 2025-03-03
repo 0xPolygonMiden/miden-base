@@ -1,8 +1,4 @@
-use alloc::{
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
 use miden_objects::{
     account::{Account, AccountCode, AccountId, AccountProcedureInfo, AccountType},
@@ -33,7 +29,7 @@ mod test;
 pub struct AccountInterface {
     account_id: AccountId,
     auth: Vec<AuthScheme>,
-    component_interfaces: BTreeSet<AccountComponentInterface>,
+    component_interfaces: Vec<AccountComponentInterface>,
 }
 
 impl AccountInterface {
@@ -82,7 +78,7 @@ impl AccountInterface {
     }
 
     /// Returns a reference to the set of used component interfaces.
-    pub fn components(&self) -> &BTreeSet<AccountComponentInterface> {
+    pub fn components(&self) -> &Vec<AccountComponentInterface> {
         &self.component_interfaces
     }
 
@@ -109,7 +105,8 @@ impl AccountInterface {
         verify_note_script_compatibility(note.script(), component_proc_digests(self.components()))
     }
 
-    /// Returns a boolean flag whether the custom interfaces are used by the reference account.
+    /// Returns a boolean flag indicating whether at least one custom interface is used in the
+    /// reference account.
     pub fn contains_non_standard_interface(&self) -> bool {
         self.component_interfaces
             .iter()
@@ -118,14 +115,14 @@ impl AccountInterface {
 }
 
 impl From<&Account> for AccountInterface {
-    fn from(value: &Account) -> Self {
-        let components = AccountComponentInterface::from_procedures(value.code().procedures());
+    fn from(account: &Account) -> Self {
+        let components = AccountComponentInterface::from_procedures(account.code().procedures());
         let mut auth = Vec::new();
         components.iter().for_each(|interface| {
             if let AccountComponentInterface::RpoFalcon512(storage_offset) = interface {
                 auth.push(AuthScheme::RpoFalcon512 {
                     pub_key: rpo_falcon512::PublicKey::new(
-                        *value
+                        *account
                             .storage()
                             .get_item(*storage_offset)
                             .expect("invalid storage offset of the public key"),
@@ -135,7 +132,7 @@ impl From<&Account> for AccountInterface {
         });
 
         Self {
-            account_id: value.id(),
+            account_id: account.id(),
             auth,
             component_interfaces: components,
         }
@@ -146,106 +143,185 @@ impl From<&Account> for AccountInterface {
 // ================================================================================================
 
 /// The enum holding all possible account interfaces which could be loaded to some account.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountComponentInterface {
-    /// Exposes `receive_asset`, `create_note` and `move_asset_to_note` procedures from the
-    /// `miden::contracts::wallets::basic` module.
+    /// Exposes procedures from the [`BasicWallet`][crate::account::wallets::BasicWallet] module.
     BasicWallet,
-    /// Exposes `distribute` and `burn` procedures from the
-    /// `miden::contracts::faucets::basic_fungible` module.
+    /// Exposes procedures from the
+    /// [`BasicFungibleFaucet`][crate::account::faucets::BasicFungibleFaucet] module.
     BasicFungibleFaucet,
-    /// Exposes `auth_tx_rpo_falcon512` procedure from the `miden::contracts::auth::basic` module.
+    /// Exposes procedures from the
+    /// [`RpoFalcon512`][crate::account::auth::RpoFalcon512] module.
     ///
     /// Internal value holds the storage offset where the public key for the RpoFalcon512
     /// authentication scheme is stored.
     RpoFalcon512(u8),
-    /// Exposes the procedures vector specified by its internal value.
+    /// A non-standard, custom interface which exposes the contained procedures.
+    ///
+    /// Custom interface holds procedures which are not part of some standard interface which is
+    /// used by this account. Each custom interface holds procedures with the same storage offset.
     Custom(Vec<AccountProcedureInfo>),
 }
 
 impl AccountComponentInterface {
     /// Creates a set of [AccountComponentInterface] instances, specifying components which were
     /// used to create an account with the provided procedures array.
-    pub fn from_procedures(procedures: &[AccountProcedureInfo]) -> BTreeSet<Self> {
-        let mut component_interface_set = BTreeSet::new();
+    pub fn from_procedures(procedures: &[AccountProcedureInfo]) -> Vec<Self> {
+        // let mut component_interface_set = BTreeSet::new();
 
-        let mut has_basic_wallet = false;
-        let mut has_fungible_faucet = false;
+        // let mut has_basic_wallet = false;
+        // let mut has_fungible_faucet = false;
 
-        if basic_wallet_library().mast_forest().procedure_digests().all(|proc_digest| {
-            procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
-        }) {
-            component_interface_set.insert(AccountComponentInterface::BasicWallet);
-            has_basic_wallet = true;
+        // if basic_wallet_library().mast_forest().procedure_digests().all(|proc_digest| {
+        //     procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
+        // }) {
+        //     component_interface_set.insert(AccountComponentInterface::BasicWallet);
+        //     has_basic_wallet = true;
+        // }
+
+        // if basic_fungible_faucet_library()
+        //     .mast_forest()
+        //     .procedure_digests()
+        //     .all(|proc_digest| {
+        //         procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
+        //     })
+        // {
+        //     component_interface_set.insert(AccountComponentInterface::BasicFungibleFaucet);
+        //     has_fungible_faucet = true;
+        // }
+
+        // let rpo_falcon_procs = rpo_falcon_512_library()
+        //     .mast_forest()
+        //     .procedure_digests()
+        //     .collect::<Vec<Digest>>();
+
+        // debug_assert!(rpo_falcon_procs.len() == 1);
+        // let rpo_falcon_proc = rpo_falcon_procs[0];
+
+        // procedures.iter().for_each(|proc_info| {
+        //     if proc_info.mast_root() == &rpo_falcon_proc {
+        //         component_interface_set
+        //             .insert(AccountComponentInterface::RpoFalcon512(proc_info.storage_offset()));
+        //     }
+        // });
+
+        // let mut custom_interface_procs_map: BTreeMap<u8, Vec<AccountProcedureInfo>> =
+        //     BTreeMap::new();
+        // procedures.iter().for_each(|proc_info| {
+        //     // the meaning of this huge logical statement below is as follows:
+        //     // If we are examining a procedure from the basic wallet library, then it should be
+        //     // skipped, but only in case we already have basic wallet interface loaded.
+        // Motivation     // for that is that we should add procedures from the basic
+        // interfaces if they are     // included into some custom interface. Since the
+        // procedure duplication is not allowed,     // procedure should be included into
+        // the custom interface only if we haven't already     // loaded the corresponding
+        // basic interface. The same works for the procedures from the     // basic fungible
+        // faucet. RpoFalcon512 has only one procedure, so this statement could     // be simplified
+        // in that case.     if !(basic_wallet_library()
+        //         .mast_forest()
+        //         .procedure_digests()
+        //         .any(|wallet_proc_digest| &wallet_proc_digest == proc_info.mast_root())
+        //         && has_basic_wallet
+        //         || basic_fungible_faucet_library()
+        //             .mast_forest()
+        //             .procedure_digests()
+        //             .any(|faucet_proc_digest| &faucet_proc_digest == proc_info.mast_root())
+        //             && has_fungible_faucet)
+        //         && (&rpo_falcon_proc != proc_info.mast_root())
+        //     {
+        //         match custom_interface_procs_map.get_mut(&proc_info.storage_offset()) {
+        //             Some(proc_vec) => proc_vec.push(*proc_info),
+        //             None => {
+        //                 custom_interface_procs_map
+        //                     .insert(proc_info.storage_offset(), vec![*proc_info]);
+        //             },
+        //         }
+        //     }
+        // });
+
+        // if !custom_interface_procs_map.is_empty() {
+        //     for proc_vec in custom_interface_procs_map.into_values() {
+        //         component_interface_set.insert(AccountComponentInterface::Custom(proc_vec));
+        //     }
+        // }
+
+        // component_interface_set
+
+        let mut component_interface_vec = Vec::new();
+
+        let mut procedures: BTreeMap<_, _> = procedures
+            .iter()
+            .map(|procedure_info| (*procedure_info.mast_root(), procedure_info))
+            .collect();
+
+        // Basic Wallet
+        // ------------------------------------------------------------------------------------------------
+
+        if basic_wallet_library()
+            .mast_forest()
+            .procedure_digests()
+            .all(|proc_digest| procedures.contains_key(&proc_digest))
+        {
+            basic_wallet_library().mast_forest().procedure_digests().for_each(
+                |component_procedure| {
+                    procedures.remove(&component_procedure);
+                },
+            );
+
+            component_interface_vec.push(AccountComponentInterface::BasicWallet);
         }
+
+        // Basic Fungible Faucet
+        // ------------------------------------------------------------------------------------------------
 
         if basic_fungible_faucet_library()
             .mast_forest()
             .procedure_digests()
-            .all(|proc_digest| {
-                procedures.iter().any(|proc_info| proc_info.mast_root() == &proc_digest)
-            })
+            .all(|proc_digest| procedures.contains_key(&proc_digest))
         {
-            component_interface_set.insert(AccountComponentInterface::BasicFungibleFaucet);
-            has_fungible_faucet = true;
+            basic_fungible_faucet_library().mast_forest().procedure_digests().for_each(
+                |component_procedure| {
+                    procedures.remove(&component_procedure);
+                },
+            );
+
+            component_interface_vec.push(AccountComponentInterface::BasicFungibleFaucet);
         }
 
-        let rpo_falcon_procs = rpo_falcon_512_library()
+        // RPO Falcon 512
+        // ------------------------------------------------------------------------------------------------
+
+        let rpo_falcon_proc = rpo_falcon_512_library()
             .mast_forest()
             .procedure_digests()
-            .collect::<Vec<Digest>>();
+            .next()
+            .expect("rpo falcon 512 component should export exactly one procedure");
 
-        debug_assert!(rpo_falcon_procs.len() == 1);
-        let rpo_falcon_proc = rpo_falcon_procs[0];
+        if let Some(proc_info) = procedures.remove(&rpo_falcon_proc) {
+            component_interface_vec
+                .push(AccountComponentInterface::RpoFalcon512(proc_info.storage_offset()));
+        }
 
-        procedures.iter().for_each(|proc_info| {
-            if proc_info.mast_root() == &rpo_falcon_proc {
-                component_interface_set
-                    .insert(AccountComponentInterface::RpoFalcon512(proc_info.storage_offset()));
-            }
-        });
+        // Custom interfaces
+        // ------------------------------------------------------------------------------------------------
 
-        let mut custom_interface_procs_map: BTreeMap<u8, Vec<AccountProcedureInfo>> =
-            BTreeMap::new();
-        procedures.iter().for_each(|proc_info| {
-            // the meaning of this huge logical statement below is as follows:
-            // If we are examining a procedure from the basic wallet library, then it should be
-            // skipped, but only in case we already have basic wallet interface loaded. Motivation
-            // for that is that we should add procedures from the basic interfaces if they are
-            // included into some custom interface. Since the procedure duplication is not allowed,
-            // procedure should be included into the custom interface only if we haven't already
-            // loaded the corresponding basic interface. The same works for the procedures from the
-            // basic fungible faucet. RpoFalcon512 has only one procedure, so this statement could
-            // be simplified in that case.
-            if !(basic_wallet_library()
-                .mast_forest()
-                .procedure_digests()
-                .any(|wallet_proc_digest| &wallet_proc_digest == proc_info.mast_root())
-                && has_basic_wallet
-                || basic_fungible_faucet_library()
-                    .mast_forest()
-                    .procedure_digests()
-                    .any(|faucet_proc_digest| &faucet_proc_digest == proc_info.mast_root())
-                    && has_fungible_faucet)
-                && (&rpo_falcon_proc != proc_info.mast_root())
-            {
-                match custom_interface_procs_map.get_mut(&proc_info.storage_offset()) {
-                    Some(proc_vec) => proc_vec.push(*proc_info),
-                    None => {
-                        custom_interface_procs_map
-                            .insert(proc_info.storage_offset(), vec![*proc_info]);
-                    },
-                }
+        let mut custom_interface_procs_map = BTreeMap::<u8, Vec<AccountProcedureInfo>>::new();
+        procedures.into_iter().for_each(|(_, proc_info)| {
+            match custom_interface_procs_map.get_mut(&proc_info.storage_offset()) {
+                Some(proc_vec) => proc_vec.push(*proc_info),
+                None => {
+                    custom_interface_procs_map.insert(proc_info.storage_offset(), vec![*proc_info]);
+                },
             }
         });
 
         if !custom_interface_procs_map.is_empty() {
             for proc_vec in custom_interface_procs_map.into_values() {
-                component_interface_set.insert(AccountComponentInterface::Custom(proc_vec));
+                component_interface_vec.push(AccountComponentInterface::Custom(proc_vec));
             }
         }
 
-        component_interface_set
+        component_interface_vec
     }
 
     // probably it would be convenient to also have `from_components` constructor
@@ -277,11 +353,8 @@ pub enum NoteAccountCompatibility {
 // ================================================================================================
 
 /// Returns a vector of digests of all account component interfaces.
-///
-/// If `only_custom` flag set to `true`, returns digests of custom interfaces only, ignoring all
-/// other types.
 fn component_proc_digests(
-    account_component_interfaces: &BTreeSet<AccountComponentInterface>,
+    account_component_interfaces: &[AccountComponentInterface],
 ) -> Vec<Digest> {
     let mut component_proc_digests = Vec::new();
     for component in account_component_interfaces.iter() {
@@ -311,6 +384,9 @@ fn component_proc_digests(
 ///
 /// This is achieved by checking that at least one execution branch in the note script is compatible
 /// with the account procedures vector.
+///
+/// This check relies on the fact that account procedures are the only procedures that are `call`ed
+/// from note scripts, while kernel procedures are `sycall`ed.
 fn verify_note_script_compatibility(
     note_script: &NoteScript,
     account_procedures: Vec<Digest>,

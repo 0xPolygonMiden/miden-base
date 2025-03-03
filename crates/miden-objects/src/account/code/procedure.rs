@@ -27,7 +27,7 @@ use crate::AccountError;
 /// account's storage. For example, if storage size for a procedure is set to 3, the procedure will
 /// be bounded to access storage slots in the range [storage_offset, storage_offset + 3 - 1].
 /// Furthermore storage_size = 0 indicates that a procedure does not need to access storage.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct AccountProcedureInfo {
     mast_root: Digest,
     storage_offset: u8,
