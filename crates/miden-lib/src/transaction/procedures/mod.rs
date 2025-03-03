@@ -1,10 +1,9 @@
 use alloc::vec::Vec;
 
 use kernel_v0::KERNEL0_PROCEDURES;
-use miden_objects::Hasher;
+use miden_objects::{Digest, Felt, Hasher};
 
 use super::TransactionKernel;
-use crate::transaction::{Digest, Felt};
 
 // Include kernel v0 procedure hashes generated in build.rs
 #[rustfmt::skip]
