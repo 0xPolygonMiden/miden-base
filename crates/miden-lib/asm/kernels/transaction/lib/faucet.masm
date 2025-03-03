@@ -9,19 +9,19 @@ use.kernel::memory
 # =================================================================================================
 
 # Asset mint operation would cause the new total supply to exceed the maximum allowed asset amount
-const.ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT=0x0002002A
+const.ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT=0x00020704
 
 # Asset amount to burn can not exceed the existing total supply
-const.ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY=0x0002002B
+const.ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY=0x00020700
 
 # Failed to mint new non-fungible asset because it was already issued
-const.ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED=0x0002002C
+const.ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED=0x00020705
 
 # The burn_non_fungible_asset procedure can only be called on a non-fungible faucet
-const.ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET=0x0002002D
+const.ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET=0x00020701
 
 # Failed to burn non-existent non-fungible asset in the vault
-const.ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND=0x0002002E
+const.ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND=0x00020706
 
 # FUNGIBLE ASSETS
 # ==================================================================================================
