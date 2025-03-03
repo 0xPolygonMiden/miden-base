@@ -45,7 +45,7 @@ proc.add_note_assets_to_account
         # load the asset
         mem_loadw
         # => [ASSET, ptr, end_ptr, ...]
-        
+
         # pad the stack before call
         padw swapw padw padw swapdw
         # => [ASSET, pad(12), ptr, end_ptr, ...]
@@ -71,7 +71,7 @@ end
 #! matches target account ID specified by the note inputs OR matches the sender ID if the note is
 #! consumed after the reclaim block height specified by the note inputs.
 #!
-#! Requires that the account exposes: 
+#! Requires that the account exposes:
 #! - miden::contracts::wallets::basic::receive_asset procedure.
 #!
 #! Inputs:  []

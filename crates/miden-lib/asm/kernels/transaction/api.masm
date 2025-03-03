@@ -485,7 +485,7 @@ end
 #! Outputs: [balance, pad(15)]
 #!
 #! Where:
-#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible 
+#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible
 #!   asset of interest.
 #! - balance is the vault balance of the fungible asset.
 #!
@@ -612,7 +612,7 @@ end
 #! Invocation: dynexec
 export.faucet_get_total_fungible_asset_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
-    exec.account::get_id swap drop exec.account::is_fungible_faucet 
+    exec.account::get_id swap drop exec.account::is_fungible_faucet
     assert.err=ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [pad(16)]
 
@@ -625,7 +625,7 @@ export.faucet_get_total_fungible_asset_issuance
     # => [total_issuance, pad(15)]
 end
 
-#! Returns a boolean indicating whether the provided non-fungible asset has been already issued by 
+#! Returns a boolean indicating whether the provided non-fungible asset has been already issued by
 #! this faucet.
 #!
 #! Inputs:  [ASSET, pad(12)]
@@ -642,7 +642,7 @@ end
 #! Invocation: dynexec
 export.faucet_is_non_fungible_asset_issued
     # assert that we are executing a transaction against a non-fungible faucet (access checks)
-    exec.account::get_id swap drop exec.account::is_non_fungible_faucet 
+    exec.account::get_id swap drop exec.account::is_non_fungible_faucet
     assert.err=ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
     # => [ASSET, pad(12)]
 
@@ -758,7 +758,7 @@ end
 #! Outputs: [sender_id_prefix, sender_id_suffix, pad(14)]
 #!
 #! Where:
-#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender account ID of the note 
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender account ID of the note
 #!   currently being processed.
 #!
 #! Panics if:
@@ -768,7 +768,7 @@ end
 export.note_get_sender
     exec.note::get_sender
     # => [sender_id_prefix, sender_id_suffix, pad(16)]
-    
+
     # truncate the stack
     movup.2 drop movup.2 drop
     # => [sender_id_prefix, sender_id_suffix, pad(14)]
@@ -830,10 +830,10 @@ end
 
 #! Returns the input notes commitment.
 #!
-#! This is computed as a sequential hash of `(NULLIFIER, EMPTY_WORD_OR_NOTE_HASH)` over all input 
-#! notes. The data `EMPTY_WORD_OR_NOTE_HASH` functions as a flag, if the value is set to zero, then 
-#! the notes are authenticated by the transaction kernel. If the value is non-zero, then note 
-#! authentication will be delayed to the batch/block kernel. The delayed authentication allows a 
+#! This is computed as a sequential hash of `(NULLIFIER, EMPTY_WORD_OR_NOTE_HASH)` over all input
+#! notes. The data `EMPTY_WORD_OR_NOTE_HASH` functions as a flag, if the value is set to zero, then
+#! the notes are authenticated by the transaction kernel. If the value is non-zero, then note
+#! authentication will be delayed to the batch/block kernel. The delayed authentication allows a
 #! transaction to consume a public note that is not yet included to a block.
 #!
 #! Inputs:  [pad(16)]
@@ -852,7 +852,7 @@ export.tx_get_input_notes_commitment
     # => [INPUT_NOTES_COMMITMENT, pad(12)]
 end
 
-#! Returns the output notes commitment. This is computed as a sequential hash of 
+#! Returns the output notes commitment. This is computed as a sequential hash of
 #! (note_id, note_metadata) tuples over all output notes.
 #!
 #! Inputs:  [pad(16)]
@@ -943,7 +943,7 @@ end
 #!   Operand stack: [pad(16)]
 #!
 #! Where:
-#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign 
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign
 #!   account whose procedure is going to be executed.
 #! - FOREIGN_ACCOUNT_ID is the word constructed from the foreign_account_id as follows:
 #!   [foreign_account_id_suffix, foreign_account_id_prefix, 0, 0].
