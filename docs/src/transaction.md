@@ -27,11 +27,11 @@ A `Transaction` requires several inputs:
 
 - **Account**: A `Transaction` is always executed against a single account. The executor must have complete knowledge of the account's state.
 
-- **Notes**: A `Transaction` can consume up to `1K` notes. The executor must have complete knowledge of the note data, including note inputs, before consumption. For private notes, the data cannot be fetched from the blockchain and must be received through an off-chain channel.
+- **Notes**: A `Transaction` can consume and output up to `1024` notes. The executor must have complete knowledge of the note data, including note inputs, before consumption. For private notes, the data cannot be fetched from the blockchain and must be received through an off-chain channel.
 
 - **Blockchain state**: The current reference block and information about the notes database used to authenticate notes to be consumed must be retrieved from the Miden operator before execution. Usually, notes to be consumed in a `Transaction` must have been created before the reference block.
 
-- **Transaction script (optional)**: `Transaction` scripts are defined by the executor. And like note scripts, they can invoke account methods, e.g., sign a transaction.
+- **Transaction script (optional)**: The `Transaction` script is code defined by the executor. And like note scripts, they can invoke account methods, e.g., sign a transaction. There is no limit to the amount of code a `Transaction` script can hold.
 
 - **Transaction arguments (optional)**: For every note, the executor can inject transaction arguments that are present at runtime. If the note script — and therefore the note creator — allows, the note script can read those arguments to allow dynamic execution. See below for an example.
 
@@ -135,3 +135,5 @@ The ability to facilitate both, local and network `Transaction`s, **is one of th
 >   - The note's consumption condition is defined as "anyone can consume this note to take `X` units of asset A if they simultaneously create a note sending Y units of asset B back to the creator." If an executor wants to buy only a fraction `(X-m)` of asset A, they provide this amount via transaction arguments. The executor would provide the value `m`. The note script then enforces the correct transfer:
 >     - A new note is created returning `Y-((m*Y)/X)` of asset B to the sender.
 >     - A second note is created, holding the remaining `(X-m)` of asset A for future consumption.
+>
+> - When executing a `Transaction` the max number of VM cycles is **$2^{30}$**.

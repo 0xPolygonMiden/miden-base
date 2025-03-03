@@ -41,6 +41,7 @@ Every Miden `Account` is essentially a smart contract. The `Code` component defi
 - **Mutable access:** Only the `Account`’s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.  
 - **Function commitment:** Each function can be called by its [MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte hash. This ensures integrity, i.e., the caller calls what he expects.
 - **Note creation:** `Account` functions can generate new notes.
+- **Code size:** `Account`'s code size has no limit.
 
 ### Storage
 
@@ -55,7 +56,7 @@ The [storage](../../objects/src/accounts/storage/mod.rs) is divided into a maxim
 
 > A collection of [assets](asset.md) stored by the `Account`.
 
-Large amounts of fungible and non-fungible assets can be stored in the `Account`s vault.
+A large amount of fungible and non-fungible assets can be stored in the `Account`s vault.
 
 ### Nonce
 

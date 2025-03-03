@@ -26,13 +26,13 @@ These components are:
 
 > An [asset](asset.md) container for a `Note`.
 
-A `Note` can contain up to 256 different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
+A `Note` can contain from 0 up to 256 different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
 
 ### Script
 
 > The code executed when the `Note` is consumed.
 
-Each `Note` has a script that defines the conditions under which it can be consumed. When accounts consume `Note`s in transactions, `Note` scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making `Note` scripts highly versatile.
+Each `Note` has a script that defines the conditions under which it can be consumed. When accounts consume `Note`s in transactions, `Note` scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making `Note` scripts highly versatile. There is no limit to the amount of code a `Note` can hold.
 
 ### Inputs
 
