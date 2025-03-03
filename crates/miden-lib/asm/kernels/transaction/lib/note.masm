@@ -34,7 +34,7 @@ const.OUTPUT_NOTE_HASHING_MEM_DIFF=2040
 #! Outputs: [sender_id_prefix, sender_id_suffix]
 #!
 #! Where:
-#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently 
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently
 #!   being processed.
 #!
 #! Panics if:
@@ -54,7 +54,7 @@ export.get_sender
     # => [sender_id_prefix, sender_id_suffix]
 end
 
-#! Returns the number of assets and the assets hash of the note currently being processed. 
+#! Returns the number of assets and the assets hash of the note currently being processed.
 #!
 #! Inputs:  []
 #! Outputs: [ASSETS_HASH, num_assets]
