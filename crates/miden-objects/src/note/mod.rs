@@ -6,7 +6,7 @@ use miden_crypto::{
 };
 use vm_processor::DeserializationError;
 
-use crate::{account::AccountId, asset::Asset, Digest, Felt, Hasher, NoteError, WORD_SIZE, ZERO};
+use crate::{account::AccountId, Digest, Felt, Hasher, NoteError, WORD_SIZE, ZERO};
 
 mod assets;
 pub use assets::NoteAssets;

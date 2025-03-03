@@ -1,11 +1,10 @@
 use alloc::vec::Vec;
 
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{LeafIndex, MerkleError, SimpleSmt},
-};
-
 use crate::{
+    crypto::{
+        hash::rpo::RpoDigest,
+        merkle::{LeafIndex, MerkleError, SimpleSmt},
+    },
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
