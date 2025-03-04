@@ -4,12 +4,13 @@ use std::{
     fmt::Write,
     fs::{self},
     io::{self},
+    ops::Range,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use assembly::{
-    diagnostics::{IntoDiagnostic, Result},
+    diagnostics::{IntoDiagnostic, Result, WrapErr},
     utils::Serializable,
     Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, Report,
 };
@@ -32,7 +33,12 @@ const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const SHARED_DIR: &str = "shared";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
-const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
+
+const TX_KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
+const NOTE_SCRIPT_ERRORS_FILE: &str = "src/errors/note_script_errors.rs";
+
+const TX_KERNEL_ERRORS_ARRAY_NAME: &str = "TX_KERNEL_ERRORS";
+const NOTE_SCRIPT_ERRORS_ARRAY_NAME: &str = "NOTE_SCRIPT_ERRORS";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -81,7 +87,7 @@ fn main() -> Result<()> {
         assembler,
     )?;
 
-    generate_kernel_error_constants(&source_dir)?;
+    generate_error_constants(&source_dir)?;
 
     Ok(())
 }
@@ -453,24 +459,72 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 /// Because the error files will be written to ./src/errors, this should be a no-op if ./src is
 /// read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC` environment
 /// variable.
-fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
+fn generate_error_constants(asm_source_dir: &Path) -> Result<()> {
     if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 
+    let categories =
+        extract_all_masm_errors(asm_source_dir).context("failed to extract all masm errors")?;
+
+    for (category, mut errors) in categories {
+        // Sort by error code.
+        errors.sort_by_key(|(_, error)| error.code.clone());
+
+        // Generate the errors file.
+        let error_file_content = generate_error_file_content(category, errors)?;
+        std::fs::write(category.error_file_name(), error_file_content).into_diagnostic()?;
+    }
+
+    Ok(())
+}
+
+/// A map where the key is the error name and the value is the error code with the message.
+type ErrorCategoryMap = BTreeMap<ErrorCategory, Vec<(ErrorName, ExtractedError)>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ErrorCategory {
+    TxKernel,
+    NoteScript,
+}
+
+impl ErrorCategory {
+    pub const fn err_code_range(&self) -> Range<u32> {
+        match self {
+            ErrorCategory::TxKernel => 0x2_0000..0x2_4000,
+            ErrorCategory::NoteScript => 0x2_c000..0x3_0000,
+        }
+    }
+
+    pub const fn error_file_name(&self) -> &'static str {
+        match self {
+            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_FILE,
+            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_FILE,
+        }
+    }
+
+    pub const fn array_name(&self) -> &'static str {
+        match self {
+            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_ARRAY_NAME,
+            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_ARRAY_NAME,
+        }
+    }
+}
+
+fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
     // We use a BTree here to order the errors by their categories which is the first part after the
     // ERR_ prefix and to allow for the same error code to be defined multiple times in
     // different files (as long as the constant names match).
     let mut errors = BTreeMap::new();
 
     // Walk all files of the kernel source directory.
-    for entry in WalkDir::new(kernel_source_dir) {
+    for entry in WalkDir::new(asm_source_dir) {
         let entry = entry.into_diagnostic()?;
         if !is_masm_file(entry.path()).into_diagnostic()? {
             continue;
         }
         let file_contents = std::fs::read_to_string(entry.path()).into_diagnostic()?;
-        extract_kernel_errors(&mut errors, &file_contents)?;
+        extract_masm_errors(&mut errors, &file_contents)?;
     }
 
     // Check if any error code is used twice with different error names.
@@ -483,14 +537,33 @@ fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
         error_codes.insert(error.code.clone(), error_name);
     }
 
-    // Generate the errors file.
-    let error_file_content = generate_kernel_errors(errors)?;
-    std::fs::write(KERNEL_ERRORS_FILE, error_file_content).into_diagnostic()?;
+    let mut category_map: BTreeMap<ErrorCategory, Vec<(String, ExtractedError)>> = BTreeMap::new();
+    for (error_name, error) in errors.into_iter() {
+        let error_num = u32::from_str_radix(&error.code, 16)
+            .into_diagnostic()
+            .context("failed to parse error code into u32")?;
 
-    Ok(())
+        let ranges = [ErrorCategory::TxKernel, ErrorCategory::NoteScript];
+
+        let category = ranges
+            .iter()
+            .find(|category| category.err_code_range().contains(&error_num))
+            .ok_or_else(|| {
+                Report::msg(format!("error num {error_num} does not lie in a known range"))
+            })?;
+
+        category_map
+            .entry(*category)
+            .and_modify(|entry| {
+                entry.push((error_name.clone(), error.clone()));
+            })
+            .or_insert_with(|| vec![(error_name, error)]);
+    }
+
+    Ok(category_map)
 }
 
-fn extract_kernel_errors(
+fn extract_masm_errors(
     errors: &mut BTreeMap<ErrorName, ExtractedError>,
     file_contents: &str,
 ) -> Result<()> {
@@ -548,7 +621,10 @@ fn is_new_error_category<'a>(last_error: &mut Option<&'a str>, current_error: &'
     is_new
 }
 
-fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result<String> {
+fn generate_error_file_content(
+    category: ErrorCategory,
+    errors: Vec<(ErrorName, ExtractedError)>,
+) -> Result<String> {
     let mut output = String::new();
 
     writeln!(
@@ -562,24 +638,32 @@ fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result
 //
 // The comment directly above the constant will be interpreted as the error message for that error.
 
-// KERNEL ASSERTION ERROR
+// {}
 // ================================================================================================
-"
+",
+        category.array_name().replace("_", " ")
     )
     .into_diagnostic()?;
 
     let mut last_error = None;
-    for (error_name, ExtractedError { code, .. }) in errors.iter() {
+    for (error_name, ExtractedError { code, message }) in errors.iter() {
         // Group errors into blocks separate by newlines.
         if is_new_error_category(&mut last_error, error_name) {
             writeln!(output).into_diagnostic()?;
         }
+
+        writeln!(output, "/// {message}").into_diagnostic()?;
         writeln!(output, "pub const ERR_{error_name}: u32 = 0x{code};").into_diagnostic()?;
     }
     writeln!(output).into_diagnostic()?;
 
-    writeln!(output, "pub const TX_KERNEL_ERRORS: [(u32, &str); {}] = [", errors.len())
-        .into_diagnostic()?;
+    writeln!(
+        output,
+        "pub const {}: [(u32, &str); {}] = [",
+        category.array_name(),
+        errors.len()
+    )
+    .into_diagnostic()?;
 
     let mut last_error = None;
     for (error_name, ExtractedError { message, .. }) in errors.iter() {
@@ -597,6 +681,7 @@ fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result
 
 type ErrorName = String;
 
+#[derive(Debug, Clone)]
 struct ExtractedError {
     code: String,
     message: String,
