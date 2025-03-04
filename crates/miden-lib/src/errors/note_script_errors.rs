@@ -13,21 +13,21 @@
 // ================================================================================================
 
 /// P2ID script expects exactly 2 note inputs
-pub const ERR_P2ID_WRONG_NUMBER_OF_INPUTS: u32 = 0x0002c000;
+pub const ERR_P2ID_WRONG_NUMBER_OF_INPUTS: u32 = 0x2c000;
 /// P2ID's target account address and transaction address do not match
-pub const ERR_P2ID_TARGET_ACCT_MISMATCH: u32 = 0x0002c001;
+pub const ERR_P2ID_TARGET_ACCT_MISMATCH: u32 = 0x2c001;
 
 /// P2IDR scripts expect exactly 3 note inputs
-pub const ERR_P2IDR_WRONG_NUMBER_OF_INPUTS: u32 = 0x0002c002;
+pub const ERR_P2IDR_WRONG_NUMBER_OF_INPUTS: u32 = 0x2c002;
 /// P2IDR's reclaimer is not the original sender
-pub const ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER: u32 = 0x0002c003;
+pub const ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER: u32 = 0x2c003;
 /// P2IDR can not be reclaimed as the transaction's reference block is lower than the reclaim height
-pub const ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED: u32 = 0x0002c004;
+pub const ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED: u32 = 0x2c004;
 
 /// SWAP script expects exactly 10 note inputs
-pub const ERR_SWAP_WRONG_NUMBER_OF_INPUTS: u32 = 0x0002c005;
+pub const ERR_SWAP_WRONG_NUMBER_OF_INPUTS: u32 = 0x2c005;
 /// SWAP script requires exactly 1 note asset
-pub const ERR_SWAP_WRONG_NUMBER_OF_ASSETS: u32 = 0x0002c006;
+pub const ERR_SWAP_WRONG_NUMBER_OF_ASSETS: u32 = 0x2c006;
 
 pub const NOTE_SCRIPT_ERRORS: [(u32, &str); 7] = [
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID script expects exactly 2 note inputs"),

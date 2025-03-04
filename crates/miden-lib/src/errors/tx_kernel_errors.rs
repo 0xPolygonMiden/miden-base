@@ -25,185 +25,185 @@
 // ================================================================================================
 
 /// Provided kernel procedure offset is out of bounds
-pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 0x00020000;
+pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 0x20000;
 
 /// Existing accounts must have a non-zero nonce
-pub const ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE: u32 = 0x00020040;
+pub const ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE: u32 = 0x20040;
 /// The provided global inputs do not match the block hash commitment
-pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT: u32 = 0x00020041;
+pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT: u32 = 0x20041;
 /// The provided global inputs do not match the block number commitment
-pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT: u32 = 0x00020042;
+pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT: u32 = 0x20042;
 /// Note commitment computed from the input note data does not match given note commitment
-pub const ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH: u32 = 0x00020043;
+pub const ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH: u32 = 0x20043;
 /// Account IDs provided via global inputs and advice provider do not match
-pub const ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER: u32 = 0x00020044;
+pub const ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER: u32 = 0x20044;
 /// Reference block MMR and note's authentication MMR must match
-pub const ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR: u32 = 0x00020045;
+pub const ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR: u32 = 0x20045;
 /// New account must have a zero nonce
-pub const ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO: u32 = 0x00020046;
+pub const ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO: u32 = 0x20046;
 /// New account must have an empty vault
-pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x00020047;
+pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x20047;
 /// Reserved slot for new fungible faucet has an invalid type
-pub const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE: u32 = 0x00020048;
+pub const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE: u32 = 0x20048;
 /// Reserved slot for new fungible faucet is not empty
-pub const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY: u32 = 0x00020049;
+pub const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY: u32 = 0x20049;
 /// Reserved slot for new non-fungible faucet has an invalid type
-pub const ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE: u32 = 0x0002004a;
+pub const ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE: u32 = 0x2004a;
 /// Reserved slot for non-fungible faucet is not a valid empty SMT
-pub const ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT: u32 = 0x0002004b;
+pub const ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT: u32 = 0x2004b;
 /// Number of input notes exceeds the kernel's maximum limit of 1024
-pub const ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT: u32 = 0x0002004c;
+pub const ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT: u32 = 0x2004c;
 /// Number of note assets exceeds the maximum limit of 256
-pub const ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT: u32 = 0x0002004d;
+pub const ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT: u32 = 0x2004d;
 /// Number of note inputs exceeded the maximum limit of 128
-pub const ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT: u32 = 0x0002004e;
+pub const ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT: u32 = 0x2004e;
 /// Account data provided does not match the commitment recorded on-chain
-pub const ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT: u32 = 0x0002004f;
+pub const ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT: u32 = 0x2004f;
 /// Provided info about assets of an input does not match its commitment
-pub const ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT: u32 = 0x00020050;
+pub const ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT: u32 = 0x20050;
 
 /// Total number of assets in the account and all involved notes must stay the same
-pub const ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME: u32 = 0x00020080;
+pub const ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME: u32 = 0x20080;
 
 /// Transaction expiration block delta must be within 0x1 and 0xFFFF.
-pub const ERR_TX_INVALID_EXPIRATION_DELTA: u32 = 0x000200c0;
+pub const ERR_TX_INVALID_EXPIRATION_DELTA: u32 = 0x200c0;
 /// Number of output notes in the transaction exceeds the maximum limit of 1024
-pub const ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT: u32 = 0x000200c1;
+pub const ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT: u32 = 0x200c1;
 
 /// Attempted to access note assets from incorrect context
-pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT: u32 = 0x00020100;
+pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT: u32 = 0x20100;
 /// Attempted to access note inputs from incorrect context
-pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT: u32 = 0x00020101;
+pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT: u32 = 0x20101;
 /// Attempted to access note sender from incorrect context
-pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT: u32 = 0x00020102;
+pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT: u32 = 0x20102;
 /// Note data does not match the commitment
-pub const ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT: u32 = 0x00020103;
+pub const ERR_NOTE_DATA_DOES_NOT_MATCH_COMMITMENT: u32 = 0x20103;
 /// Adding a fungible asset to a note cannot exceed the max_amount of 9223372036854775807
-pub const ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED: u32 = 0x00020104;
+pub const ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED: u32 = 0x20104;
 /// Failed to find note at the given index; index must be within [0, num_of_notes]
-pub const ERR_NOTE_INVALID_INDEX: u32 = 0x00020105;
+pub const ERR_NOTE_INVALID_INDEX: u32 = 0x20105;
 /// Invalid note type for the given note tag prefix
-pub const ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX: u32 = 0x00020106;
+pub const ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX: u32 = 0x20106;
 /// Invalid note type
-pub const ERR_NOTE_INVALID_TYPE: u32 = 0x00020107;
+pub const ERR_NOTE_INVALID_TYPE: u32 = 0x20107;
 /// Number of assets in a note exceed 255
-pub const ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT: u32 = 0x00020108;
+pub const ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT: u32 = 0x20108;
 /// The note's tag must fit into a u32 so the 32 most significant bits must be zero.
-pub const ERR_NOTE_TAG_MUST_BE_U32: u32 = 0x00020109;
+pub const ERR_NOTE_TAG_MUST_BE_U32: u32 = 0x20109;
 
 /// Anchor block hash must not be empty
-pub const ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY: u32 = 0x00020140;
+pub const ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY: u32 = 0x20140;
 /// Computed account code commitment does not match recorded account code commitment
-pub const ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH: u32 = 0x00020141;
+pub const ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH: u32 = 0x20141;
 /// Account code must be updatable for it to be possible to set new code
-pub const ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE: u32 = 0x00020142;
+pub const ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE: u32 = 0x20142;
 /// Epoch must be less than u16::MAX (0xffff).
-pub const ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX: u32 = 0x00020143;
+pub const ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX: u32 = 0x20143;
 /// Least significant byte of the account ID suffix must be zero.
-pub const ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO: u32 = 0x00020144;
+pub const ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO: u32 = 0x20144;
 /// Unknown account storage mode in account ID.
-pub const ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE: u32 = 0x00020145;
+pub const ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE: u32 = 0x20145;
 /// Unknown version in account ID.
-pub const ERR_ACCOUNT_ID_UNKNOWN_VERSION: u32 = 0x00020146;
+pub const ERR_ACCOUNT_ID_UNKNOWN_VERSION: u32 = 0x20146;
 /// Storage offset is invalid for 0 storage size (should be 0)
-pub const ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x00020147;
+pub const ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x20147;
 /// The current account is not native
-pub const ERR_ACCOUNT_IS_NOT_NATIVE: u32 = 0x00020148;
+pub const ERR_ACCOUNT_IS_NOT_NATIVE: u32 = 0x20148;
 /// Account nonce did not increase after a state changing transaction
-pub const ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE: u32 = 0x00020149;
+pub const ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE: u32 = 0x20149;
 /// Account nonce cannot be increased by a greater than u32 value
-pub const ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32: u32 = 0x0002014a;
+pub const ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32: u32 = 0x2014a;
 /// Provided procedure index is out of bounds
-pub const ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS: u32 = 0x0002014b;
+pub const ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS: u32 = 0x2014b;
 /// Account procedure is not part of the account code
-pub const ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE: u32 = 0x0002014c;
+pub const ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE: u32 = 0x2014c;
 /// Failed to read an account map item from a non-map storage slot
-pub const ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT: u32 = 0x0002014d;
+pub const ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT: u32 = 0x2014d;
 /// ID of the new account does not match the ID computed from the seed and anchor block hash
-pub const ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH: u32 = 0x0002014e;
+pub const ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH: u32 = 0x2014e;
 /// Failed to write an account map item to a non-map storage slot
-pub const ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 0x0002014f;
+pub const ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 0x2014f;
 /// Failed to write an account value item to a non-value storage slot
-pub const ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT: u32 = 0x00020150;
+pub const ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT: u32 = 0x20150;
 /// Computed account storage commitment does not match recorded account storage commitment
-pub const ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH: u32 = 0x00020151;
+pub const ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH: u32 = 0x20151;
 /// Provided storage slot index is out of bounds
-pub const ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x00020152;
+pub const ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x20152;
 /// Number of account procedures exceeds the maximum limit of 256
-pub const ERR_ACCOUNT_TOO_MANY_PROCEDURES: u32 = 0x00020153;
+pub const ERR_ACCOUNT_TOO_MANY_PROCEDURES: u32 = 0x20153;
 /// Number of account storage slots exceeds the maximum limit of 255
-pub const ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS: u32 = 0x00020154;
+pub const ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS: u32 = 0x20154;
 
 /// Provided foreign account ID is equal to the native account ID.
-pub const ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID: u32 = 0x00020180;
+pub const ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID: u32 = 0x20180;
 /// ID of the provided foreign account equals zero.
-pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 0x00020181;
+pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 0x20181;
 /// State of the current foreign account is invalid.
-pub const ERR_FOREIGN_ACCOUNT_INVALID: u32 = 0x00020182;
+pub const ERR_FOREIGN_ACCOUNT_INVALID: u32 = 0x20182;
 /// Maximum allowed number of foreign account to be loaded (64) was exceeded.
-pub const ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED: u32 = 0x00020183;
+pub const ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED: u32 = 0x20183;
 
 /// Asset amount to burn can not exceed the existing total supply
-pub const ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY: u32 = 0x000201c0;
+pub const ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY: u32 = 0x201c0;
 /// The burn_non_fungible_asset procedure can only be called on a non-fungible faucet
-pub const ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x000201c1;
+pub const ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x201c1;
 /// Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)
-pub const ERR_FAUCET_INVALID_STORAGE_OFFSET: u32 = 0x000201c2;
+pub const ERR_FAUCET_INVALID_STORAGE_OFFSET: u32 = 0x201c2;
 /// The faucet_is_non_fungible_asset_issued procedure can only be called on a non-fungible faucet
-pub const ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x000201c3;
+pub const ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x201c3;
 /// Asset mint operation would cause the new total supply to exceed the maximum allowed asset amount
-pub const ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT: u32 = 0x000201c4;
+pub const ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT: u32 = 0x201c4;
 /// Failed to mint new non-fungible asset because it was already issued
-pub const ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED: u32 = 0x000201c5;
+pub const ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED: u32 = 0x201c5;
 /// Failed to burn non-existent non-fungible asset in the vault
-pub const ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND: u32 = 0x000201c6;
+pub const ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND: u32 = 0x201c6;
 /// For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item
-pub const ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED: u32 = 0x000201c7;
+pub const ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED: u32 = 0x201c7;
 /// The faucet_get_total_fungible_asset_issuance procedure can only be called on a fungible faucet
-pub const ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET: u32 = 0x000201c8;
+pub const ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET: u32 = 0x201c8;
 
 /// Fungible asset build operation called with amount that exceeds the maximum allowed asset amount
-pub const ERR_FUNGIBLE_ASSET_AMOUNT_EXCEEDS_MAX_ALLOWED_AMOUNT: u32 = 0x00020200;
+pub const ERR_FUNGIBLE_ASSET_AMOUNT_EXCEEDS_MAX_ALLOWED_AMOUNT: u32 = 0x20200;
 /// Distribute would cause the maximum supply to be exceeded
-pub const ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED: u32 = 0x00020201;
+pub const ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED: u32 = 0x20201;
 /// The origin of the fungible asset is not this faucet
-pub const ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN: u32 = 0x00020202;
+pub const ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN: u32 = 0x20202;
 /// Malformed fungible asset: ASSET[1] must be 0
-pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO: u32 = 0x00020203;
+pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO: u32 = 0x20203;
 /// Malformed fungible asset: ASSET[2] and ASSET[3] must be a valid fungible faucet id
-pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x00020204;
+pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x20204;
 /// Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount
-pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS: u32 = 0x00020205;
+pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS: u32 = 0x20205;
 /// Failed to build the fungible asset because the provided faucet id is not from a fungible faucet
-pub const ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x00020206;
+pub const ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x20206;
 
 /// Non-fungible asset that already exists in the note cannot be added again
-pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x00020240;
+pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x20240;
 /// The origin of the non-fungible asset is not this faucet
-pub const ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN: u32 = 0x00020241;
+pub const ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN: u32 = 0x20241;
 /// Malformed non-fungible asset: ASSET[3] is not a valid non-fungible faucet id
-pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x00020242;
+pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x20242;
 /// Malformed non-fungible asset: the most significant bit must be 0
-pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO: u32 = 0x00020243;
+pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO: u32 = 0x20243;
 /// Failed to build the non-fungible asset because the provided faucet id is not from a non-fungible faucet
-pub const ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x00020244;
+pub const ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x20244;
 
 /// Failed to add fungible asset to the asset vault due to the initial value being invalid
-pub const ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x00020280;
+pub const ERR_VAULT_ADD_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x20280;
 /// Failed to remove the fungible asset from the vault since the amount of the asset in the vault is less than the amount to remove
-pub const ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW: u32 = 0x00020281;
+pub const ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW: u32 = 0x20281;
 /// Adding the fungible asset to the vault would exceed the max amount of 9223372036854775807
-pub const ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED: u32 = 0x00020282;
+pub const ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED: u32 = 0x20282;
 /// The get_balance procedure can only be called on a fungible faucet
-pub const ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET: u32 = 0x00020283;
+pub const ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET: u32 = 0x20283;
 /// The has_non_fungible_asset procedure can only be called on a non-fungible faucet
-pub const ERR_VAULT_HAS_NON_FUNGIBLE_ASSET_PROC_CAN_BE_CALLED_ONLY_WITH_NON_FUNGIBLE_ASSET: u32 = 0x00020284;
+pub const ERR_VAULT_HAS_NON_FUNGIBLE_ASSET_PROC_CAN_BE_CALLED_ONLY_WITH_NON_FUNGIBLE_ASSET: u32 = 0x20284;
 /// The non-fungible asset already exists in the asset vault
-pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x00020285;
+pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x20285;
 /// Failed to remove non-existent non-fungible asset from the vault
-pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x00020286;
+pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x20286;
 /// Failed to remove fungible asset from the asset vault due to the initial value being invalid
-pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x00020287;
+pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x20287;
 
 pub const TX_KERNEL_ERRORS: [(u32, &str); 85] = [
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),

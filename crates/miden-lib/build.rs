@@ -18,7 +18,7 @@ use regex::Regex;
 use walkdir::WalkDir;
 
 /// A map where the key is the error name and the value is the error code with the message.
-type ErrorCategoryMap = BTreeMap<ErrorCategory, Vec<(ErrorName, ExtractedError)>>;
+type ErrorCategoryMap = BTreeMap<ErrorCategory, Vec<NamedError>>;
 
 // CONSTANTS
 // ================================================================================================
@@ -489,7 +489,7 @@ fn generate_error_constants(asm_source_dir: &Path) -> Result<()> {
 
     for (category, mut errors) in categories {
         // Sort by error code.
-        errors.sort_by_key(|(_, error)| error.code.clone());
+        errors.sort_by_key(|error| error.code);
 
         // Generate the errors file.
         let error_file_content = generate_error_file_content(category, errors)?;
@@ -526,7 +526,7 @@ fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
         error_codes.insert(error.code.clone(), error_name);
     }
 
-    let mut category_map: BTreeMap<ErrorCategory, Vec<(String, ExtractedError)>> = BTreeMap::new();
+    let mut category_map: BTreeMap<ErrorCategory, Vec<NamedError>> = BTreeMap::new();
     for (error_name, error) in errors.into_iter() {
         let error_num = u32::from_str_radix(&error.code, 16)
             .into_diagnostic()
@@ -541,12 +541,13 @@ fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
 
         validate_error_category(*category, error_num, &error_name)?;
 
-        category_map
-            .entry(*category)
-            .and_modify(|entry| {
-                entry.push((error_name.clone(), error.clone()));
-            })
-            .or_insert_with(|| vec![(error_name, error)]);
+        let named_error = NamedError {
+            name: error_name,
+            code: error_num,
+            message: error.message,
+        };
+
+        category_map.entry(*category).or_default().push(named_error);
     }
 
     Ok(category_map)
@@ -643,10 +644,7 @@ fn is_new_error_category<'a>(last_error: &mut Option<&'a str>, current_error: &'
 }
 
 /// Generates the content of an error file for the given category and the set of errors.
-fn generate_error_file_content(
-    category: ErrorCategory,
-    errors: Vec<(ErrorName, ExtractedError)>,
-) -> Result<String> {
+fn generate_error_file_content(category: ErrorCategory, errors: Vec<NamedError>) -> Result<String> {
     let mut output = String::new();
 
     writeln!(
@@ -675,14 +673,16 @@ fn generate_error_file_content(
     .unwrap();
 
     let mut last_error = None;
-    for (error_name, ExtractedError { code, message }) in errors.iter() {
+    for named_error in errors.iter() {
+        let NamedError { name, code, message } = named_error;
+
         // Group errors into blocks separate by newlines.
-        if is_new_error_category(&mut last_error, error_name) {
+        if is_new_error_category(&mut last_error, name) {
             writeln!(output).into_diagnostic()?;
         }
 
         writeln!(output, "/// {message}").into_diagnostic()?;
-        writeln!(output, "pub const ERR_{error_name}: u32 = 0x{code};").into_diagnostic()?;
+        writeln!(output, "pub const ERR_{name}: u32 = 0x{code:x};").into_diagnostic()?;
     }
     writeln!(output).into_diagnostic()?;
 
@@ -695,12 +695,14 @@ fn generate_error_file_content(
     .into_diagnostic()?;
 
     let mut last_error = None;
-    for (error_name, ExtractedError { message, .. }) in errors.iter() {
+    for named_error in errors.iter() {
+        let NamedError { name, message, .. } = named_error;
+
         // Group errors into blocks separate by newlines.
-        if is_new_error_category(&mut last_error, error_name) {
+        if is_new_error_category(&mut last_error, name) {
             writeln!(output).into_diagnostic()?;
         }
-        writeln!(output, r#"    (ERR_{error_name}, "{message}"),"#).into_diagnostic()?;
+        writeln!(output, r#"    (ERR_{name}, "{message}"),"#).into_diagnostic()?;
     }
 
     writeln!(output, "];").into_diagnostic()?;
@@ -713,6 +715,13 @@ type ErrorName = String;
 #[derive(Debug, Clone)]
 struct ExtractedError {
     code: String,
+    message: String,
+}
+
+#[derive(Debug, Clone)]
+struct NamedError {
+    name: ErrorName,
+    code: u32,
     message: String,
 }
 
