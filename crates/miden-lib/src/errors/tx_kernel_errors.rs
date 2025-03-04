@@ -168,11 +168,11 @@ pub const ERR_FUNGIBLE_ASSET_AMOUNT_EXCEEDS_MAX_ALLOWED_AMOUNT: u32 = 0x20200;
 pub const ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED: u32 = 0x20201;
 /// The origin of the fungible asset is not this faucet
 pub const ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN: u32 = 0x20202;
-/// Malformed fungible asset: ASSET[1] must be 0
+/// Malformed fungible asset: `ASSET[1]` must be 0
 pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO: u32 = 0x20203;
-/// Malformed fungible asset: ASSET[2] and ASSET[3] must be a valid fungible faucet id
+/// Malformed fungible asset: `ASSET[2]` and `ASSET[3]` must be a valid fungible faucet id
 pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x20204;
-/// Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount
+/// Malformed fungible asset: `ASSET[0]` exceeds the maximum allowed amount
 pub const ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS: u32 = 0x20205;
 /// Failed to build the fungible asset because the provided faucet id is not from a fungible faucet
 pub const ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x20206;
@@ -181,7 +181,7 @@ pub const ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID: u32 = 0x20206;
 pub const ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: u32 = 0x20240;
 /// The origin of the non-fungible asset is not this faucet
 pub const ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN: u32 = 0x20241;
-/// Malformed non-fungible asset: ASSET[3] is not a valid non-fungible faucet id
+/// Malformed non-fungible asset: `ASSET[3]` is not a valid non-fungible faucet id
 pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 0x20242;
 /// Malformed non-fungible asset: the most significant bit must be 0
 pub const ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO: u32 = 0x20243;
@@ -282,14 +282,14 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 85] = [
     (ERR_FUNGIBLE_ASSET_AMOUNT_EXCEEDS_MAX_ALLOWED_AMOUNT, "Fungible asset build operation called with amount that exceeds the maximum allowed asset amount"),
     (ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED, "Distribute would cause the maximum supply to be exceeded"),
     (ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN, "The origin of the fungible asset is not this faucet"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO, "Malformed fungible asset: ASSET[1] must be 0"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset: ASSET[2] and ASSET[3] must be a valid fungible faucet id"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS, "Malformed fungible asset: ASSET[0] exceeds the maximum allowed amount"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ONE_MUST_BE_ZERO, "Malformed fungible asset: `ASSET[1]` must be 0"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_TWO_AND_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset: `ASSET[2]` and `ASSET[3]` must be a valid fungible faucet id"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_ELEMENT_ZERO_MUST_BE_WITHIN_LIMITS, "Malformed fungible asset: `ASSET[0]` exceeds the maximum allowed amount"),
     (ERR_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "Failed to build the fungible asset because the provided faucet id is not from a fungible faucet"),
 
     (ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, "Non-fungible asset that already exists in the note cannot be added again"),
     (ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN, "The origin of the non-fungible asset is not this faucet"),
-    (ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed non-fungible asset: ASSET[3] is not a valid non-fungible faucet id"),
+    (ERR_NON_FUNGIBLE_ASSET_FORMAT_ELEMENT_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed non-fungible asset: `ASSET[3]` is not a valid non-fungible faucet id"),
     (ERR_NON_FUNGIBLE_ASSET_FORMAT_MOST_SIGNIFICANT_BIT_MUST_BE_ZERO, "Malformed non-fungible asset: the most significant bit must be 0"),
     (ERR_NON_FUNGIBLE_ASSET_PROVIDED_FAUCET_ID_IS_INVALID, "Failed to build the non-fungible asset because the provided faucet id is not from a non-fungible faucet"),
 
