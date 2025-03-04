@@ -445,21 +445,23 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
     }
 }
 
-// KERNEL ERROR CONSTANTS
+// ERROR CONSTANTS FILE GENERATION
 // ================================================================================================
 
-/// Reads all MASM files from the `kernel_source_dir` and extracts its error constants and their
-/// associated comment as the error message and generates a Rust file from them. For example:
+/// Reads all MASM files from the `asm_source_dir` and extracts its error constants and their
+/// associated comment as the error message and generates a Rust file for each category of errors.
+/// For example:
 ///
 /// ```text
 /// # New account must have an empty vault
-/// const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020141
+/// const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020000
 /// ```
 ///
-/// would generate a Rust file with the following content:
+/// would generate a Rust file for transaction kernel errors (since the error belongs to that
+/// category, identified by its range) with - roughly - the following content:
 ///
 /// ```rust
-/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x00020141;
+/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x00020000;
 /// ```
 ///
 /// and add an entry in the constant -> error mapping array:
@@ -497,6 +499,7 @@ fn generate_error_constants(asm_source_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Extract all masm errors from the given path and returns a map by error category.
 fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
     // We use a BTree here to order the errors by their categories which is the first part after the
     // ERR_ prefix and to allow for the same error code to be defined multiple times in
@@ -567,11 +570,11 @@ fn validate_error_category(
                 ))
             })?;
 
-        if !error_name.starts_with(tx_kernel_error_category.error_code_name()) {
+        if !error_name.starts_with(tx_kernel_error_category.category_name()) {
             return Err(Report::msg(format!(
             "expected error with code {} to be in category {}, but its name {} does not start with the category name",
             error_num,
-            tx_kernel_error_category.error_code_name(),
+            tx_kernel_error_category.category_name(),
             error_name
         )));
         }
@@ -580,6 +583,7 @@ fn validate_error_category(
     Ok(())
 }
 
+/// Extracts the errors from a single masm file and inserts them into the provided map.
 fn extract_masm_errors(
     errors: &mut BTreeMap<ErrorName, ExtractedError>,
     file_contents: &str,
@@ -638,6 +642,7 @@ fn is_new_error_category<'a>(last_error: &mut Option<&'a str>, current_error: &'
     is_new
 }
 
+/// Generates the content of an error file for the given category and the set of errors.
 fn generate_error_file_content(
     category: ErrorCategory,
     errors: Vec<(ErrorName, ExtractedError)>,
@@ -759,7 +764,7 @@ impl ErrorCategory {
                     writeln!(
                         output,
                         "// {} is in range 0x{:x}..0x{:x}",
-                        category.error_code_name(),
+                        category.category_name(),
                         category.error_code_range().start,
                         category.error_code_range().end
                     )
@@ -813,7 +818,7 @@ impl TxKernelErrorCategory {
         }
     }
 
-    pub const fn error_code_name(&self) -> &'static str {
+    pub const fn category_name(&self) -> &'static str {
         match self {
             TxKernelErrorCategory::Kernel => "KERNEL",
             TxKernelErrorCategory::Prologue => "PROLOGUE",
