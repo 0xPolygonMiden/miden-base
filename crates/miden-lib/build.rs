@@ -429,13 +429,13 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 ///
 /// ```text
 /// # New account must have an empty vault
-/// const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020501
+/// const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020141
 /// ```
 ///
 /// would generate a Rust file with the following content:
 ///
 /// ```rust
-/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x00020501;
+/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x00020141;
 /// ```
 ///
 /// and add an entry in the constant -> error mapping array:
