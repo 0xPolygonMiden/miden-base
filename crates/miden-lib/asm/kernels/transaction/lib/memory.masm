@@ -5,10 +5,10 @@ use.kernel::constants
 # =================================================================================================
 
 # Number of assets in a note exceed 255
-const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002F
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x00020108
 
 # The current account is not native
-const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020030
+const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020148
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================

@@ -1,4 +1,4 @@
-use miden_lib::errors::tx_kernel_errors::{
+use miden_lib::errors::note_script_errors::{
     ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
 };
 use miden_objects::{

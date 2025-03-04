@@ -28,10 +28,10 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # =================================================================================================
 
 # Number of output notes in the transaction exceeds the maximum limit of 1024
-const.ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT=0x00020042
+const.ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT=0x000200c1
 
 # Invalid note type
-const.ERR_NOTE_INVALID_TYPE=0x00020043
+const.ERR_NOTE_INVALID_TYPE=0x00020107
 
 # The 2 highest bits in the u32 tag have the following meaning:
 #
@@ -54,22 +54,22 @@ const.ERR_NOTE_INVALID_TYPE=0x00020043
 # invalid tags. None of these scenarios have any significant impact.
 
 # Invalid note type for the given note tag prefix
-const.ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX=0x00020044
+const.ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX=0x00020106
 
 # The note's tag must fit into a u32 so the 32 most significant bits must be zero.
-const.ERR_NOTE_TAG_MUST_BE_U32=0x00020045
+const.ERR_NOTE_TAG_MUST_BE_U32=0x00020109
 
 # Adding a fungible asset to a note cannot exceed the max_amount of 9223372036854775807
-const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x00020046
+const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x00020104
 
 # Non-fungible asset that already exists in the note cannot be added again
-const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020047
+const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020240
 
 # Failed to find note at the given index; index must be within [0, num_of_notes]
-const.ERR_NOTE_INVALID_INDEX=0x00020048
+const.ERR_NOTE_INVALID_INDEX=0x00020105
 
 # Transaction expiration block delta must be within 0x1 and 0xFFFF.
-const.ERR_TX_INVALID_EXPIRATION_DELTA=0x00020049
+const.ERR_TX_INVALID_EXPIRATION_DELTA=0x000200c0
 
 # EVENTS
 # =================================================================================================

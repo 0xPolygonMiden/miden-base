@@ -11,73 +11,73 @@ use.kernel::memory
 # =================================================================================================
 
 # Account nonce cannot be increased by a greater than u32 value
-const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x00020004
+const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x0002014a
 
 # Account code must be updatable for it to be possible to set new code
-const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020006
+const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020142
 
 # Anchor block hash must not be empty
-const.ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY=0x00020007
+const.ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY=0x00020140
 
 # ID of the new account does not match the ID computed from the seed and anchor block hash
-const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH=0x00020008
+const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH=0x0002014e
 
 # Failed to write an account value item to a non-value storage slot
-const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020009
+const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020150
 
 # Failed to write an account map item to a non-map storage slot
-const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x0002000A
+const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x0002014f
 
 # Account procedure is not part of the account code
-const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002000B
+const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002014c
 
 # Provided procedure index is out of bounds
-const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002000C
+const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002014b
 
 # Provided storage slot index is out of bounds
-const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002000D
+const.ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x00020152
 
 # Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)
-const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x0002000E
+const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x000201c2
 
 # Computed account code commitment does not match recorded account code commitment
-const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH=0x0002000F
+const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH=0x00020141
 
 # Number of account procedures exceeds the maximum limit of 256
-const.ERR_ACCOUNT_TOO_MANY_PROCEDURES=0x00020010
+const.ERR_ACCOUNT_TOO_MANY_PROCEDURES=0x00020153
 
 # Number of account storage slots exceeds the maximum limit of 255
-const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS=0x00020011
+const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS=0x00020154
 
 # Computed account storage commitment does not match recorded account storage commitment
-const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH=0x00020012
+const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH=0x00020151
 
 # Storage offset is invalid for 0 storage size (should be 0)
-const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020013
+const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020147
 
 # ID of the provided foreign account equals zero.
-const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020014
+const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020181
 
 # Maximum allowed number of foreign account to be loaded (64) was exceeded.
-const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020015
+const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020183
 
 # Provided foreign account ID is equal to the native account ID.
-const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020016
+const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020180
 
 # State of the current foreign account is invalid.
-const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020017
+const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020182
 
 # Unknown version in account ID.
-const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020057
+const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020146
 
 # Epoch must be less than u16::MAX (0xffff).
-const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020058
+const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020143
 
 # Unknown account storage mode in account ID.
-const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE=0x00020059
+const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE=0x00020145
 
 # Failed to read an account map item from a non-map storage slot
-const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020002
+const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x0002014d
 
 # CONSTANTS
 # =================================================================================================
@@ -399,7 +399,7 @@ export.apply_storage_offset
     # => [offset_slot_index, storage_offset, storage_size]
 
     # verify that slot_index is in bounds
-    movdn.2 add dup.1 gt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    movdn.2 add dup.1 gt assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 
@@ -449,11 +449,11 @@ export.validate_procedure_metadata
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is in bounds
-            dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            dup dup.4 lt assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage limit is in bounds
-            add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            add dup.2 lte assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [index, num_storage_slots, num_account_procedures]
 
             # check if we should continue looping
@@ -468,7 +468,7 @@ export.validate_procedure_metadata
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage offset is in bounds
-            dup dup.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            dup dup.4 lt assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # Procedures that do not access storage are defined with (offset, size) = (0, 0).
@@ -480,7 +480,7 @@ export.validate_procedure_metadata
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage limit is in bounds
-            add dup.2 lte assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+            add dup.2 lte assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [index, num_storage_slots, num_account_procedures]
 
             # check if we should continue looping
@@ -673,7 +673,7 @@ end
 #! - the slot index is out of bounds.
 export.get_storage_slot_type
     # check that index is in bounds
-    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    dup exec.memory::get_num_storage_slots lt assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [index]
 
     # get account storage slots section offset

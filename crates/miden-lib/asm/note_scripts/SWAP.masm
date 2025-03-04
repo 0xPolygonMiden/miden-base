@@ -10,10 +10,10 @@ const.PRIVATE_NOTE=2
 # =================================================================================================
 
 # SWAP script expects exactly 10 note inputs
-const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020055
+const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x0002c005
 
 # SWAP script requires exactly 1 note asset
-const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020056
+const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x0002c006
 
 #! Swap script: adds an asset from the note into consumers account and
 #! creates a note consumable by note issuer containing requested ASSET.
