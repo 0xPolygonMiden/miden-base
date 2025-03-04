@@ -654,13 +654,20 @@ fn generate_error_file_content(
 // Non-Fungible-Asset, ...).
 //
 // The comment directly above the constant will be interpreted as the error message for that error.
+"
+    )
+    .unwrap();
 
-// {}
+    writeln!(output, "{}", category.category_info()).unwrap();
+
+    writeln!(
+        output,
+        "// {}
 // ================================================================================================
 ",
         category.array_name().replace("_", " ")
     )
-    .into_diagnostic()?;
+    .unwrap();
 
     let mut last_error = None;
     for (error_name, ExtractedError { code, message }) in errors.iter() {
@@ -733,6 +740,44 @@ impl ErrorCategory {
             ErrorCategory::TxKernel => TX_KERNEL_ERRORS_ARRAY_NAME,
             ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_ARRAY_NAME,
         }
+    }
+
+    pub fn category_info(&self) -> String {
+        let mut output = String::new();
+        match self {
+            ErrorCategory::TxKernel => {
+                writeln!(
+                    output,
+                    "// Transaction Kernel errors are in range 0x{:x}..0x{:x}.
+// Its sub categories are:",
+                    self.err_code_range().start,
+                    self.err_code_range().end,
+                )
+                .unwrap();
+
+                TX_KERNEL_ERROR_CATEGORIES.iter().for_each(|category| {
+                    writeln!(
+                        output,
+                        "// {} is in range 0x{:x}..0x{:x}",
+                        category.error_code_name(),
+                        category.error_code_range().start,
+                        category.error_code_range().end
+                    )
+                    .unwrap()
+                });
+            },
+            ErrorCategory::NoteScript => {
+                writeln!(
+                    output,
+                    "// Note Script errors are in range 0x{:x}..0x{:x}.",
+                    self.err_code_range().start,
+                    self.err_code_range().end,
+                )
+                .unwrap();
+            },
+        }
+
+        output
     }
 }
 

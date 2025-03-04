@@ -7,6 +7,20 @@
 //
 // The comment directly above the constant will be interpreted as the error message for that error.
 
+// Transaction Kernel errors are in range 0x20000..0x24000.
+// Its sub categories are:
+// KERNEL is in range 0x20000..0x20040
+// PROLOGUE is in range 0x20040..0x20080
+// EPILOGUE is in range 0x20080..0x200c0
+// TX is in range 0x200c0..0x20100
+// NOTE is in range 0x20100..0x20140
+// ACCOUNT is in range 0x20140..0x20180
+// FOREIGN_ACCOUNT is in range 0x20180..0x201c0
+// FAUCET is in range 0x201c0..0x20200
+// FUNGIBLE_ASSET is in range 0x20200..0x20240
+// NON_FUNGIBLE_ASSET is in range 0x20240..0x20280
+// VAULT is in range 0x20280..0x202c0
+
 // TX KERNEL ERRORS
 // ================================================================================================
 

@@ -7,6 +7,8 @@
 //
 // The comment directly above the constant will be interpreted as the error message for that error.
 
+// Note Script errors are in range 0x2c000..0x30000.
+
 // NOTE SCRIPT ERRORS
 // ================================================================================================
 
