@@ -54,7 +54,7 @@ const.INVERSE_FUNGIBLE_BITMASK_U32=0xffffffdf # last byte: 0b1101_1111
 #! - the asset is not a fungible asset.
 export.get_balance
     # assert that the faucet id is a fungible faucet
-    dup exec.account::is_fungible_faucet 
+    dup exec.account::is_fungible_faucet
     assert.err=ERR_VAULT_GET_BALANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET
     # => [faucet_id_prefix, faucet_id_suffix, vault_root_ptr]
 
@@ -117,7 +117,7 @@ end
 # ADD ASSET
 # =================================================================================================
 
-#! Add the specified fungible asset to the vault. If the vault already contains an asset issued by 
+#! Add the specified fungible asset to the vault. If the vault already contains an asset issued by
 #! the same faucet, the amounts are added together.
 #!
 #! Inputs:  [ASSET, vault_root_ptr]
@@ -318,7 +318,7 @@ export.remove_fungible_asset
 
     # arrange elements
     movup.3 movup.12 dup dup.2
-    # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, 
+    # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE,
     #     ASSET, vault_root_ptr]
 
     # assert amount <= cur_amount
@@ -345,7 +345,7 @@ export.remove_fungible_asset
 
     # update asset in vault and assert the old value is equivalent to the value provided via the
     # decorator
-    exec.smt::set movupw.2 
+    exec.smt::set movupw.2
     assert_eqw.err=ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 

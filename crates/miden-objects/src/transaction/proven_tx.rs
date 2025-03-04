@@ -1,7 +1,5 @@
 use alloc::{string::ToString, vec::Vec};
 
-use miden_verifier::ExecutionProof;
-
 use super::{InputNote, ToInputNoteCommitments};
 use crate::{
     account::delta::AccountUpdateDetails,
@@ -11,6 +9,7 @@ use crate::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    vm::ExecutionProof,
     ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE,
 };
 

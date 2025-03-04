@@ -1,6 +1,7 @@
-use miden_crypto::merkle::SmtProof;
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
+use crate::{
+    crypto::merkle::SmtProof,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 // NULLIFIER WITNESS
 // ================================================================================================

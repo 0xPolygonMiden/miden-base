@@ -120,7 +120,7 @@ export.get_inputs
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # validate the input length
-    dup exec.get_max_inputs_per_note lte 
+    dup exec.get_max_inputs_per_note lte
     assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
@@ -147,7 +147,7 @@ end
 #! Outputs: [sender_id_prefix, sender_id_suffix]
 #!
 #! Where:
-#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently 
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently
 #!   being processed.
 #!
 #! Panics if:
@@ -201,7 +201,7 @@ end
 #! Computes hash of note inputs starting at the specified memory address.
 #!
 #! This procedure checks that the provided number of inputs is within limits and then computes the
-#! hash using the procedure from the standard library. See the documentation of the 
+#! hash using the procedure from the standard library. See the documentation of the
 #! `std::crypto::hashes::rpo::hash_memory` for the more detailed description.
 #!
 #! If the number if inputs is 0, procedure returns the empty word: [0, 0, 0, 0].

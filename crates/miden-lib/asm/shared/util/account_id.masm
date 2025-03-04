@@ -91,7 +91,7 @@ end
 #!
 #! Where:
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
-#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to 
+#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to
 #!   compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
 export.is_equal
