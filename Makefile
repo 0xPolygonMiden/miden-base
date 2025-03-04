@@ -84,6 +84,11 @@ test-prove: ## Run `prove` tests (tests which use the Miden prover)
 	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
 
 
+.PHONY: test-prove-cuda
+test-prove-cuda: ## Run `prove` tests (tests which use the Miden prover)
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) MIDEN_CUDA_MEM_SIZE_MB=1024 cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing,cuda --filter-expr "test(prove)"
+
+
 .PHONY: test
 test: test-default test-prove ## Run all tests
 

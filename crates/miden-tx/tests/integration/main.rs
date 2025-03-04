@@ -49,7 +49,7 @@ pub fn prove_and_verify_transaction(
     // Prove the transaction
 
     let proof_options = ProvingOptions::default();
-    let prover = LocalTransactionProver::new(proof_options);
+    let mut prover = LocalTransactionProver::new(proof_options);
     let proven_transaction = prover.prove(executed_transaction.into()).unwrap();
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
