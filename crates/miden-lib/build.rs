@@ -17,6 +17,9 @@ use assembly::{
 use regex::Regex;
 use walkdir::WalkDir;
 
+/// A map where the key is the error name and the value is the error code with the message.
+type ErrorCategoryMap = BTreeMap<ErrorCategory, Vec<(ErrorName, ExtractedError)>>;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -39,6 +42,21 @@ const NOTE_SCRIPT_ERRORS_FILE: &str = "src/errors/note_script_errors.rs";
 
 const TX_KERNEL_ERRORS_ARRAY_NAME: &str = "TX_KERNEL_ERRORS";
 const NOTE_SCRIPT_ERRORS_ARRAY_NAME: &str = "NOTE_SCRIPT_ERRORS";
+
+const ERROR_CATEGORIES: [ErrorCategory; 2] = [ErrorCategory::TxKernel, ErrorCategory::NoteScript];
+const TX_KERNEL_ERROR_CATEGORIES: [TxKernelErrorCategory; 11] = [
+    TxKernelErrorCategory::Kernel,
+    TxKernelErrorCategory::Prologue,
+    TxKernelErrorCategory::Epilogue,
+    TxKernelErrorCategory::Tx,
+    TxKernelErrorCategory::Note,
+    TxKernelErrorCategory::Account,
+    TxKernelErrorCategory::ForeignAccount,
+    TxKernelErrorCategory::Faucet,
+    TxKernelErrorCategory::FungibleAsset,
+    TxKernelErrorCategory::NonFugibleAsset,
+    TxKernelErrorCategory::Vault,
+];
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -479,38 +497,6 @@ fn generate_error_constants(asm_source_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// A map where the key is the error name and the value is the error code with the message.
-type ErrorCategoryMap = BTreeMap<ErrorCategory, Vec<(ErrorName, ExtractedError)>>;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum ErrorCategory {
-    TxKernel,
-    NoteScript,
-}
-
-impl ErrorCategory {
-    pub const fn err_code_range(&self) -> Range<u32> {
-        match self {
-            ErrorCategory::TxKernel => 0x2_0000..0x2_4000,
-            ErrorCategory::NoteScript => 0x2_c000..0x3_0000,
-        }
-    }
-
-    pub const fn error_file_name(&self) -> &'static str {
-        match self {
-            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_FILE,
-            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_FILE,
-        }
-    }
-
-    pub const fn array_name(&self) -> &'static str {
-        match self {
-            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_ARRAY_NAME,
-            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_ARRAY_NAME,
-        }
-    }
-}
-
 fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
     // We use a BTree here to order the errors by their categories which is the first part after the
     // ERR_ prefix and to allow for the same error code to be defined multiple times in
@@ -543,14 +529,14 @@ fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
             .into_diagnostic()
             .context("failed to parse error code into u32")?;
 
-        let ranges = [ErrorCategory::TxKernel, ErrorCategory::NoteScript];
-
-        let category = ranges
+        let category = ERROR_CATEGORIES
             .iter()
             .find(|category| category.err_code_range().contains(&error_num))
             .ok_or_else(|| {
                 Report::msg(format!("error num {error_num} does not lie in a known range"))
             })?;
+
+        validate_error_category(*category, error_num, &error_name)?;
 
         category_map
             .entry(*category)
@@ -561,6 +547,37 @@ fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
     }
 
     Ok(category_map)
+}
+
+/// Validates that an error's category, implied from its error code, and the category of its name
+/// match.
+fn validate_error_category(
+    category: ErrorCategory,
+    error_num: u32,
+    error_name: &ErrorName,
+) -> Result<()> {
+    if category == ErrorCategory::TxKernel {
+        let tx_kernel_error_category = TX_KERNEL_ERROR_CATEGORIES
+            .iter()
+            .find(|tx_kernel_category| tx_kernel_category.error_code_range().contains(&error_num))
+            .copied()
+            .ok_or_else(|| {
+                Report::msg(format!(
+                    "error num {error_num} does not lie in a known tx kernel error range"
+                ))
+            })?;
+
+        if !error_name.starts_with(tx_kernel_error_category.error_code_name()) {
+            return Err(Report::msg(format!(
+            "expected error with code {} to be in category {}, but its name {} does not start with the category name",
+            error_num,
+            tx_kernel_error_category.error_code_name(),
+            error_name
+        )));
+        }
+    }
+
+    Ok(())
 }
 
 fn extract_masm_errors(
@@ -685,4 +702,85 @@ type ErrorName = String;
 struct ExtractedError {
     code: String,
     message: String,
+}
+
+// Later we can extend this with:
+// batch kernel: 0x2_4000..0x2_8000
+// block kernel: 0x2_8000..0x2_c000
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ErrorCategory {
+    TxKernel,
+    NoteScript,
+}
+
+impl ErrorCategory {
+    pub const fn err_code_range(&self) -> Range<u32> {
+        match self {
+            ErrorCategory::TxKernel => 0x2_0000..0x2_4000,
+            ErrorCategory::NoteScript => 0x2_c000..0x3_0000,
+        }
+    }
+
+    pub const fn error_file_name(&self) -> &'static str {
+        match self {
+            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_FILE,
+            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_FILE,
+        }
+    }
+
+    pub const fn array_name(&self) -> &'static str {
+        match self {
+            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_ARRAY_NAME,
+            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_ARRAY_NAME,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum TxKernelErrorCategory {
+    Kernel,
+    Prologue,
+    Epilogue,
+    Tx,
+    Note,
+    Account,
+    ForeignAccount,
+    Faucet,
+    FungibleAsset,
+    NonFugibleAsset,
+    Vault,
+}
+
+impl TxKernelErrorCategory {
+    pub const fn error_code_range(&self) -> Range<u32> {
+        match self {
+            TxKernelErrorCategory::Kernel => 0x2_0000..0x2_0040,
+            TxKernelErrorCategory::Prologue => 0x2_0040..0x2_0080,
+            TxKernelErrorCategory::Epilogue => 0x2_0080..0x2_00c0,
+            TxKernelErrorCategory::Tx => 0x2_00c0..0x2_0100,
+            TxKernelErrorCategory::Note => 0x2_0100..0x2_0140,
+            TxKernelErrorCategory::Account => 0x2_0140..0x2_0180,
+            TxKernelErrorCategory::ForeignAccount => 0x2_0180..0x2_01c0,
+            TxKernelErrorCategory::Faucet => 0x2_01c0..0x2_0200,
+            TxKernelErrorCategory::FungibleAsset => 0x2_0200..0x2_0240,
+            TxKernelErrorCategory::NonFugibleAsset => 0x2_0240..0x2_0280,
+            TxKernelErrorCategory::Vault => 0x2_0280..0x2_02c0,
+        }
+    }
+
+    pub const fn error_code_name(&self) -> &'static str {
+        match self {
+            TxKernelErrorCategory::Kernel => "KERNEL",
+            TxKernelErrorCategory::Prologue => "PROLOGUE",
+            TxKernelErrorCategory::Epilogue => "EPILOGUE",
+            TxKernelErrorCategory::Tx => "TX",
+            TxKernelErrorCategory::Note => "NOTE",
+            TxKernelErrorCategory::Account => "ACCOUNT",
+            TxKernelErrorCategory::ForeignAccount => "FOREIGN_ACCOUNT",
+            TxKernelErrorCategory::Faucet => "FAUCET",
+            TxKernelErrorCategory::FungibleAsset => "FUNGIBLE_ASSET",
+            TxKernelErrorCategory::NonFugibleAsset => "NON_FUNGIBLE_ASSET",
+            TxKernelErrorCategory::Vault => "VAULT",
+        }
+    }
 }
