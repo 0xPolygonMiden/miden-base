@@ -1,16 +1,16 @@
-use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, string::String, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::{AccountCode, AccountId},
-    assembly::Library,
+    assembly::{Assembler, Library},
     block::BlockNumber,
     note::NoteId,
-    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
+    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
     vm::StackOutputs,
-    MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
+    Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
-use vm_processor::{ExecutionOptions, RecAdviceProvider};
+use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
@@ -182,6 +182,70 @@ impl TransactionExecutor {
             account_codes,
         )
     }
+
+    // SCRIPT EXECUTION
+    // --------------------------------------------------------------------------------------------
+
+    /// Executes an arbitrary script against the given account and returns the stack state at the
+    /// end of execution.
+    ///
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction host can not be created from the provided values.
+    /// - If the execution of the provided program fails.
+    #[maybe_async]
+    pub fn execute_program(
+        &self,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        source: &str,
+        assembler: Assembler,
+        advice_inputs: AdviceInputs,
+    ) -> Result<[Felt; 16], TransactionExecutorError> {
+        let tx_inputs =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &[]))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
+        let kernel_lib = TransactionKernel::kernel_as_library();
+
+        let code = prepare_source_code(source);
+        let kernel_assembler = match assembler.clone().with_library(&kernel_lib) {
+            Ok(kernel_assembler) => kernel_assembler,
+            Err(_) => assembler,
+        };
+        let program = kernel_assembler
+            .assemble_program(code)
+            .expect("compilation of the provided code failed");
+        let tx_script = TransactionScript::new(program.clone(), []);
+
+        let tx_args = TransactionArgs::new(Some(tx_script.clone()), None, Default::default());
+
+        let (stack_inputs, advice_inputs_full) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs));
+        let advice_recorder: RecAdviceProvider = advice_inputs_full.into();
+
+        self.mast_store.insert(kernel_lib.mast_forest().clone());
+        self.mast_store.insert(tx_script.mast());
+        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+
+        let mut host = TransactionHost::new(
+            tx_inputs.account().into(),
+            advice_recorder,
+            self.mast_store.clone(),
+            self.authenticator.clone(),
+            self.account_codes.iter().map(|code| code.commitment()).collect(),
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        let mut process = Process::new(program.kernel().clone(), stack_inputs, self.exec_options);
+        let stack_outputs = process
+            .execute(&program, &mut host)
+            .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
+
+        Ok(*stack_outputs)
+    }
 }
 
 // HELPER FUNCTIONS
@@ -243,4 +307,23 @@ fn build_executed_transaction(
         advice_witness,
         tx_progress.into(),
     ))
+}
+
+fn prepare_source_code(source: &str) -> String {
+    let mut import_prologue = String::from("use.kernel::prologue");
+    let mut use_prologue = String::from("\n\texec.prologue::prepare_transaction");
+    let mut result = String::new();
+
+    let mut splitted_source = source.split_inclusive("begin");
+
+    let imports = splitted_source.next().expect("program should have a begin");
+    let body = splitted_source.next().expect("program should have a begin");
+
+    import_prologue.push_str(imports);
+    result.push_str(&import_prologue);
+
+    use_prologue.push_str(body);
+    result.push_str(&use_prologue);
+
+    result
 }
