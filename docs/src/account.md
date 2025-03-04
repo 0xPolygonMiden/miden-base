@@ -11,7 +11,7 @@ In Miden's hybrid UTXO- and account-based model `Account`s enable the creation o
 An `Account` is composed of several core components, illustrated below:
 
 <p style="text-align: center;">
-    <img src="../img/architecture/account/account-definition.png" style="width:30%;" alt="Account diagram"/>
+    <img src="img/account/account-definition.png" style="width:30%;" alt="Account diagram"/>
 </p>
 
 These components are:
