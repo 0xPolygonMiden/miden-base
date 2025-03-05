@@ -82,7 +82,8 @@ impl AccountInterface {
         &self.interfaces
     }
 
-    /// checks if the provided note is compatible with the current [AccountInterface].
+    /// Returns [NoteAccountCompatibility::Maybe] if the provided note is compatible with the
+    /// current [AccountInterface], and [NoteAccountCompatibility::No] otherwise.
     pub fn is_compatible(&self, note: &Note) -> NoteAccountCompatibility {
         if let Some(well_known_note) = WellKnownNote::from_note(note) {
             if well_known_note.is_compatible_with(self) {
@@ -104,13 +105,13 @@ impl From<&Account> for AccountInterface {
         let interfaces = AccountComponentInterface::from_procedures(account.code().procedures());
         let mut auth = Vec::new();
         interfaces.iter().for_each(|interface| {
-            if let AccountComponentInterface::RpoFalcon512(storage_offset) = interface {
+            if let AccountComponentInterface::RpoFalcon512(storage_index) = interface {
                 auth.push(AuthScheme::RpoFalcon512 {
                     pub_key: rpo_falcon512::PublicKey::new(
                         *account
                             .storage()
-                            .get_item(*storage_offset)
-                            .expect("invalid storage offset of the public key"),
+                            .get_item(*storage_index)
+                            .expect("invalid storage index of the public key"),
                     ),
                 })
             }
@@ -138,7 +139,7 @@ pub enum AccountComponentInterface {
     /// Exposes procedures from the
     /// [`RpoFalcon512`][crate::account::auth::RpoFalcon512] module.
     ///
-    /// Internal value holds the storage offset where the public key for the RpoFalcon512
+    /// Internal value holds the storage index where the public key for the RpoFalcon512
     /// authentication scheme is stored.
     RpoFalcon512(u8),
     /// A non-standard, custom interface which exposes the contained procedures.
