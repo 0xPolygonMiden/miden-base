@@ -273,7 +273,6 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
     for masm_file_path in get_masm_files(source_dir).unwrap() {
         // read the MASM file, parse it, and serialize the parsed AST to bytes
         let code = assembler.clone().assemble_program(masm_file_path.clone())?;
-        let code_hash = code.hash().as_bytes();
 
         let bytes = code.to_bytes();
 
@@ -284,16 +283,6 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
         // write the binary MASB to the output dir
         masb_file_path.set_extension("masb");
         fs::write(masb_file_path, bytes).unwrap();
-
-        let mut commitment_file_name = masb_file_name
-            .strip_suffix(".masm")
-            .expect("masm file path should end with .masm extension")
-            .to_string();
-        commitment_file_name.push_str("_commitment");
-        let note_commitments_file_path = target_dir.join(commitment_file_name.clone());
-
-        // write the note commitment to the output dir
-        fs::write(&note_commitments_file_path, code_hash).unwrap();
     }
     Ok(())
 }

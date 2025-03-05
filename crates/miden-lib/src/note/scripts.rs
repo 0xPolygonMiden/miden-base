@@ -33,8 +33,7 @@ pub fn p2id() -> NoteScript {
 
 /// Returns the P2ID (Pay-to-ID) note script commitment.
 pub fn p2id_commitment() -> Digest {
-    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID_commitment"));
-    Digest::try_from(bytes).unwrap()
+    P2ID_SCRIPT.clone().hash()
 }
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script.
@@ -44,8 +43,7 @@ pub fn p2idr() -> NoteScript {
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script commitment.
 pub fn p2idr_commitment() -> Digest {
-    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR_commitment"));
-    Digest::try_from(bytes).unwrap()
+    P2IDR_SCRIPT.clone().hash()
 }
 
 /// Returns the SWAP (Swap note) note script.
@@ -55,6 +53,5 @@ pub fn swap() -> NoteScript {
 
 /// Returns the SWAP (Swap note) note script commitment.
 pub fn swap_commitment() -> Digest {
-    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP_commitment"));
-    Digest::try_from(bytes).unwrap()
+    SWAP_SCRIPT.clone().hash()
 }

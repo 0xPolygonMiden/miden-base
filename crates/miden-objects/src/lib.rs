@@ -34,7 +34,8 @@ pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SI
 
 pub mod assembly {
     pub use assembly::{
-        ast::Module, mast, Assembler, AssemblyError, DefaultSourceManager, KernelLibrary, Library,
+        ast::{Module, ProcedureName, QualifiedProcedureName},
+        mast, Assembler, AssemblyError, DefaultSourceManager, KernelLibrary, Library,
         LibraryNamespace, LibraryPath, SourceManager, Version,
     };
 }
