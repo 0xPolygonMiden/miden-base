@@ -12,7 +12,7 @@ use crate::{
     account::components::{
         basic_fungible_faucet_library, basic_wallet_library, rpo_falcon_512_library,
     },
-    note::WellKnownNote,
+    note::well_known_note::WellKnownNote,
     AuthScheme,
 };
 

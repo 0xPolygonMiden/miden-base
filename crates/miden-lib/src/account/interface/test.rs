@@ -1,12 +1,8 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
-use assembly::{
-    ast::{Module, ModuleKind},
-    DefaultSourceManager,
-};
 use miden_objects::{
     account::{AccountBuilder, AccountComponent, AccountType, StorageSlot},
-    assembly::{Assembler, LibraryPath},
+    assembly::{Assembler, DefaultSourceManager, LibraryPath, Module, ModuleKind},
     asset::{FungibleAsset, NonFungibleAsset, TokenSymbol},
     block::BlockNumber,
     crypto::{
