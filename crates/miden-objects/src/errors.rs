@@ -16,7 +16,7 @@ use super::{
 };
 use crate::{
     account::{
-        AccountCode, AccountIdPrefix, AccountStorage, AccountType, StorageValueName,
+        AccountCode, AccountIdPrefix, AccountStorage, AccountType, AddressType, StorageValueName,
         StorageValueNameError, TemplateTypeError,
     },
     batch::BatchId,
@@ -160,6 +160,32 @@ pub enum AccountIdError {
         BlockNumber::EPOCH_LENGTH_EXPONENT
     )]
     AnchorBlockMustBeEpochBlock,
+    #[error("failed to decode bech32 string into account ID")]
+    Bech32DecodeError(#[source] Bech32Error),
+}
+
+// BECH32 ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum Bech32Error {
+    #[error("failed to decode bech32 string")]
+    DecodeError(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[error("found unknown address type {0} which is not the expected {account_addr} account ID address type",
+      account_addr = AddressType::AccountId as u8
+    )]
+    UnknownAddressType(u8),
+    #[error("expected bech32 data to be of length {expected} but it was of length {actual}")]
+    InvalidDataLength { expected: usize, actual: usize },
+}
+
+// NETWORK ID ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum NetworkIdError {
+    #[error("failed to parse string into a network ID")]
+    NetworkIdParseError(#[source] Box<dyn Error + Send + Sync + 'static>),
 }
 
 // ACCOUNT DELTA ERROR

@@ -19,11 +19,11 @@ const.ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME=0x00020029
 # OUTPUT NOTES PROCEDURES
 # =================================================================================================
 
-#! Copies the entire output note data to the advice map. If no notes were created by a transaction, 
+#! Copies the entire output note data to the advice map. If no notes were created by a transaction,
 #! nothing is copied to the advice map.
 #!
 #! The output note data includes the note id, metadata, recipient, assets hash, number of assets and
-#! a set of assets for each note.  
+#! a set of assets for each note.
 #!
 #! Inputs:
 #!   Operand stack: [OUTPUT_NOTES_COMMITMENT]
@@ -130,12 +130,12 @@ proc.build_output_vault
 
             # read the output note asset from memory
             padw dup.5 mem_loadw
-            # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr, 
+            # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr,
             #     output_vault_root_ptr, num_assets, note_data_ptr, output_notes_end_ptr]
 
             # insert output note asset into output vault
             exec.asset_vault::add_asset dropw
-            # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, 
+            # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
             #     note_data_ptr, output_notes_end_ptr]
 
             # increment assets_start_ptr and asses if we should loop again
@@ -177,7 +177,6 @@ proc.update_account_code
     exec.memory::set_acct_code_commitment dropw
     # => []
 end
-
 
 # ACCOUNT STORAGE UPDATE
 # =================================================================================================
@@ -317,7 +316,7 @@ export.finalize_transaction
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
-    exec.memory::get_input_vault_root exec.memory::get_output_vault_root 
+    exec.memory::get_input_vault_root exec.memory::get_output_vault_root
     assert_eqw.err=ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
