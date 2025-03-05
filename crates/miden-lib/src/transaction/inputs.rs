@@ -1,13 +1,12 @@
 use alloc::vec::Vec;
 
+use super::TransactionKernel;
 use miden_objects::{
     account::{Account, StorageSlot},
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
     Digest, Felt, FieldElement, Word, EMPTY_WORD, WORD_SIZE, ZERO,
 };
-
-use super::TransactionKernel;
 
 // ADVICE INPUTS
 // ================================================================================================
