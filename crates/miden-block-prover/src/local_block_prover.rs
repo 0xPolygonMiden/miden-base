@@ -20,6 +20,7 @@ use crate::errors::ProvenBlockError;
 // ================================================================================================
 
 /// A local prover for blocks, proving a [`ProposedBlock`] and returning a [`ProvenBlock`].
+#[derive(Clone)]
 pub struct LocalBlockProver {}
 
 impl LocalBlockProver {
@@ -182,6 +183,11 @@ fn compute_nullifiers(
     prev_block_header: &BlockHeader,
     block_num: BlockNumber,
 ) -> Result<(Vec<Nullifier>, Digest), ProvenBlockError> {
+    // If no nullifiers were created, the nullifier tree root is unchanged.
+    if created_nullifiers.is_empty() {
+        return Ok((Vec::new(), prev_block_header.nullifier_root()));
+    }
+
     let nullifiers: Vec<Nullifier> = created_nullifiers.keys().copied().collect();
 
     let mut partial_nullifier_tree = PartialNullifierTree::new();
@@ -234,6 +240,11 @@ fn compute_account_root(
     updated_accounts: &mut Vec<(AccountId, AccountUpdateWitness)>,
     prev_block_header: &BlockHeader,
 ) -> Result<Digest, ProvenBlockError> {
+    // If no accounts were updated, the account tree root is unchanged.
+    if updated_accounts.is_empty() {
+        return Ok(prev_block_header.account_root());
+    }
+
     let mut partial_account_tree = PartialMerkleTree::new();
 
     // First reconstruct the current account tree from the provided merkle paths.
@@ -286,7 +297,8 @@ fn compute_block_note_tree(output_note_batches: &[OutputNoteBatch]) -> BlockNote
                     // SAFETY: The proposed block contains at most the max allowed number of
                     // batches and each batch is guaranteed to contain at most
                     // the max allowed number of output notes.
-                    BlockNoteIndex::new(batch_idx, *note_idx_in_batch),
+                    BlockNoteIndex::new(batch_idx, *note_idx_in_batch)
+                        .expect("max batches in block and max notes in batches should be enforced"),
                     note.id(),
                     *note.metadata(),
                 )

@@ -18,25 +18,6 @@ use crate::tests::utils::{
     generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
 };
 
-/// Tests that empty batches produce an error.
-#[test]
-fn proposed_block_fails_on_empty_batches() -> anyhow::Result<()> {
-    let TestSetup { chain, .. } = setup_chain(2);
-
-    let block_inputs = BlockInputs::new(
-        chain.latest_block_header(),
-        chain.latest_chain_mmr(),
-        BTreeMap::default(),
-        BTreeMap::default(),
-        BTreeMap::default(),
-    );
-    let error = ProposedBlock::new(block_inputs, Vec::new()).unwrap_err();
-
-    assert_matches!(error, ProposedBlockError::EmptyBlock);
-
-    Ok(())
-}
-
 /// Tests that too many batches produce an error.
 #[test]
 fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
@@ -176,7 +157,7 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
     let block2 = chain.clone().seal_block(None);
 
     let block_inputs = BlockInputs::new(
-        block2.header(),
+        block2.header().clone(),
         chain_mmr.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -198,7 +179,7 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
     chain_mmr.partial_mmr_mut().add(block2.header().nullifier_root(), true);
 
     let block_inputs = BlockInputs::new(
-        block2.header(),
+        block2.header().clone(),
         chain_mmr.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -229,7 +210,7 @@ fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()>
     // The proposed block references block 2 but the chain MMR only contains block 0 but not
     // block 1 which is referenced by the batch.
     let block_inputs = BlockInputs::new(
-        block2.header(),
+        block2.header().clone(),
         chain_mmr.clone(),
         BTreeMap::default(),
         BTreeMap::default(),

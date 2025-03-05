@@ -2,8 +2,10 @@
 // ================================================================================================
 
 use miden_crypto::dsa::rpo_falcon512::{self, SecretKey};
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
+
+use crate::utils::serde::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+};
 
 /// Types of secret keys used for signing messages
 #[derive(Clone, Debug)]

@@ -91,7 +91,6 @@ end
 # KERNEL DATA
 # =================================================================================================
 
-
 #! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel root and kernel
 #! hash match the sequential hash of all kernels and sequential hash of kernel procedures
 #! respectively.

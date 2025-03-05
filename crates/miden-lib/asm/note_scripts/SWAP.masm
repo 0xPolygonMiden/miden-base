@@ -50,7 +50,7 @@ begin
     # load the ASSET
     mem_loadw
     # => [ASSET]
-    
+
     # pad the stack before call
     padw swapw padw padw swapdw
     # => [ASSET, pad(12)]
@@ -85,7 +85,7 @@ begin
 
     drop drop swap
     # => [tag, execution_hint, ASSET, RECIPIENT]
-    
+
     # we add aux = 0 to the note assuming we don't need it for the second leg of the SWAP
     push.0 swap
     # => [tag, aux, execution_hint, ASSET, RECIPIENT]
@@ -102,7 +102,7 @@ begin
     call.wallet::create_note
     # => [note_idx, pad(15), ASSET]
 
-    swapw dropw movupw.3 
+    swapw dropw movupw.3
     # => [ASSET, note_idx, pad(11)]
 
     # move asset to the note

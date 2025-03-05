@@ -2,8 +2,10 @@ use std::{collections::BTreeMap, vec::Vec};
 
 use anyhow::Context;
 use miden_objects::{
-    account::AccountId, block::ProposedBlock,
-    testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, transaction::ProvenTransaction,
+    account::AccountId,
+    block::{BlockInputs, ProposedBlock},
+    testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    transaction::ProvenTransaction,
 };
 
 use crate::tests::utils::{
@@ -12,6 +14,28 @@ use crate::tests::utils::{
     generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain,
     ProvenTransactionExt, TestSetup,
 };
+
+/// Tests that we can build empty blocks.
+#[test]
+fn proposed_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
+    let TestSetup { chain, .. } = setup_chain(2);
+
+    let block_inputs = BlockInputs::new(
+        chain.latest_block_header(),
+        chain.latest_chain_mmr(),
+        BTreeMap::default(),
+        BTreeMap::default(),
+        BTreeMap::default(),
+    );
+    let block = ProposedBlock::new(block_inputs, Vec::new()).context("failed to propose block")?;
+
+    assert_eq!(block.affected_accounts().count(), 0);
+    assert_eq!(block.output_note_batches().len(), 0);
+    assert_eq!(block.created_nullifiers().len(), 0);
+    assert_eq!(block.batches().len(), 0);
+
+    Ok(())
+}
 
 /// Tests that a proposed block from two batches with one transaction each can be successfully
 /// built.
@@ -48,12 +72,12 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
         proven_tx1.account_update().final_state_hash()
     );
     // Each tx consumes one note.
-    assert_eq!(proposed_block.nullifiers().len(), 2);
+    assert_eq!(proposed_block.created_nullifiers().len(), 2);
     assert!(proposed_block
-        .nullifiers()
+        .created_nullifiers()
         .contains_key(&proven_tx0.input_notes().get_note(0).nullifier()));
     assert!(proposed_block
-        .nullifiers()
+        .created_nullifiers()
         .contains_key(&proven_tx1.input_notes().get_note(0).nullifier()));
 
     // There are two batches in the block...
@@ -184,9 +208,9 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
 
     // We expect both notes to have been authenticated and therefore should be part of the
     // nullifiers of this block.
-    assert_eq!(proposed_block.nullifiers().len(), 2);
-    assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
-    assert!(proposed_block.nullifiers().contains_key(&note1.nullifier()));
+    assert_eq!(proposed_block.created_nullifiers().len(), 2);
+    assert!(proposed_block.created_nullifiers().contains_key(&note0.nullifier()));
+    assert!(proposed_block.created_nullifiers().contains_key(&note1.nullifier()));
     // There are two batches in the block...
     assert_eq!(proposed_block.output_note_batches().len(), 2);
     // ... but none of them create notes.

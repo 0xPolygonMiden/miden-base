@@ -53,7 +53,7 @@ export.get_nonce
 
     syscall.exec_kernel_proc
     # => [nonce, pad(15)]
-    
+
     # clean the stack
     swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [nonce]
@@ -180,7 +180,7 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage commitment.
 #!
-#! Panics if: 
+#! Panics if:
 #! - the index of the item is out of bounds.
 #!
 #! Invocation: exec
@@ -189,7 +189,7 @@ export.set_item
     # => [offset, index, V']
 
     # pad the stack
-    push.0.0 movdn.7 movdn.7 padw padw swapdw 
+    push.0.0 movdn.7 movdn.7 padw padw swapdw
     # => [offset, index, V', pad(10)]
 
     syscall.exec_kernel_proc
@@ -200,7 +200,7 @@ export.set_item
     # => [R', V]
 end
 
-#! Gets a map item from the account storage. 
+#! Gets a map item from the account storage.
 #!
 #! Inputs:  [index, KEY]
 #! Outputs: [VALUE]
@@ -220,7 +220,7 @@ export.get_map_item
     # => [offset, index, KEY]
 
     # pad the stack
-    push.0.0 movdn.7 movdn.7 padw padw swapdw 
+    push.0.0 movdn.7 movdn.7 padw padw swapdw
     # => [offset, index, KEY, pad(10)]
 
     syscall.exec_kernel_proc
@@ -231,7 +231,7 @@ export.get_map_item
     # => [VALUE]
 end
 
-#! Sets a map item in the account storage. 
+#! Sets a map item in the account storage.
 #!
 #! Inputs:  [index, KEY, VALUE]
 #! Outputs: [OLD_MAP_ROOT, OLD_MAP_VALUE]
@@ -320,10 +320,10 @@ end
 #! Outputs: [balance]
 #!
 #! Where:
-#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible 
+#! - faucet_id_{prefix,suffix} are the prefix and suffix felts of the faucet id of the fungible
 #!   asset of interest.
 #! - balance is the vault balance of the fungible asset.
-#! 
+#!
 #! Panics if:
 #! - the asset is not a fungible asset.
 #!
@@ -362,7 +362,7 @@ export.has_non_fungible_asset
     # => [offset, ASSET]
 
     # pad the stack
-    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw 
+    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
     # => [offset, ASSET, pad(11)]
 
     syscall.exec_kernel_proc
@@ -486,7 +486,7 @@ export.::miden::util::account_id::is_non_fungible_faucet
 #!
 #! Where:
 #! - acct_id_{prefix,suffix} are the prefix and suffix felts of an account ID.
-#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to 
+#! - other_acct_id_{prefix,suffix} are the prefix and suffix felts of the other account ID to
 #!   compare against.
 #! - is_id_equal is a boolean indicating whether the account IDs are equal.
 export.::miden::util::account_id::is_equal->is_id_equal

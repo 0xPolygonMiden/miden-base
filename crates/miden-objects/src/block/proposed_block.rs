@@ -3,12 +3,6 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    EMPTY_WORD,
-};
-use vm_processor::{DeserializationError, Digest};
-
 use crate::{
     account::{delta::AccountUpdateDetails, AccountId},
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
@@ -19,7 +13,8 @@ use crate::{
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
-    MAX_BATCHES_PER_BLOCK,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
 };
 
 // PROPOSED BLOCK
@@ -77,7 +72,7 @@ impl ProposedBlock {
     ///
     /// ## Batches
     ///
-    /// - The number of batches is zero or exceeds [`MAX_BATCHES_PER_BLOCK`].
+    /// - The number of batches exceeds [`MAX_BATCHES_PER_BLOCK`].
     /// - There are duplicate batches, i.e. they have the same [`BatchId`].
     /// - The expiration block number of any batch is less than the block number of the currently
     ///   proposed block.
@@ -130,12 +125,8 @@ impl ProposedBlock {
         batches: Vec<ProvenBatch>,
         timestamp: u32,
     ) -> Result<Self, ProposedBlockError> {
-        // Check for empty or duplicate batches.
+        // Check for duplicate and max number of batches.
         // --------------------------------------------------------------------------------------------
-
-        if batches.is_empty() {
-            return Err(ProposedBlockError::EmptyBlock);
-        }
 
         if batches.len() > MAX_BATCHES_PER_BLOCK {
             return Err(ProposedBlockError::TooManyBatches);
@@ -281,7 +272,7 @@ impl ProposedBlock {
     }
 
     /// Returns the map of nullifiers to their proofs from the proposed block.
-    pub fn nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
+    pub fn created_nullifiers(&self) -> &BTreeMap<Nullifier, NullifierWitness> {
         &self.created_nullifiers
     }
 

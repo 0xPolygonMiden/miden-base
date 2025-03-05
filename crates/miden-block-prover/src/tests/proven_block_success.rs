@@ -1,18 +1,19 @@
 use std::{collections::BTreeMap, vec::Vec};
 
 use anyhow::Context;
-use miden_crypto::merkle::LeafIndex;
+use miden_crypto::merkle::{LeafIndex, SimpleSmt, Smt};
 use miden_objects::{
     batch::BatchNoteTree,
-    block::{BlockNoteIndex, BlockNoteTree, ProposedBlock},
+    block::{BlockInputs, BlockNoteIndex, BlockNoteTree, ProposedBlock},
     transaction::InputNoteCommitment,
-    Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
+    Felt, FieldElement, ACCOUNT_TREE_DEPTH, MIN_PROOF_SECURITY_LEVEL,
 };
 use rand::Rng;
 
 use crate::{
     tests::utils::{
-        generate_batch, generate_output_note, generate_tx_with_authenticated_notes,
+        generate_batch, generate_executed_tx_with_authenticated_notes, generate_output_note,
+        generate_tracked_note, generate_tx_with_authenticated_notes,
         generate_tx_with_unauthenticated_notes, generate_untracked_note_with_output_note,
         setup_chain, TestSetup,
     },
@@ -83,7 +84,11 @@ fn proven_block_success() -> anyhow::Result<()> {
 
     let expected_block_note_tree = BlockNoteTree::with_entries(batch0_iter.chain(batch1_iter).map(
         |(batch_idx, note_idx_in_batch, note)| {
-            (BlockNoteIndex::new(batch_idx, note_idx_in_batch), note.id(), *note.metadata())
+            (
+                BlockNoteIndex::new(batch_idx, note_idx_in_batch).unwrap(),
+                note.id(),
+                *note.metadata(),
+            )
         },
     ))
     .unwrap();
@@ -92,7 +97,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // --------------------------------------------------------------------------------------------
 
     let mut expected_nullifier_tree = chain.nullifiers().clone();
-    for nullifier in proposed_block.nullifiers().keys() {
+    for nullifier in proposed_block.created_nullifiers().keys() {
         expected_nullifier_tree.insert(
             nullifier.inner(),
             [Felt::from(proposed_block.block_num()), Felt::ZERO, Felt::ZERO, Felt::ZERO],
@@ -265,10 +270,10 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
 
     // The output note should have been erased, so we expect only the nullifiers of note0, note2 and
     // note3 to be created.
-    assert_eq!(proposed_block.nullifiers().len(), 3);
-    assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
-    assert!(proposed_block.nullifiers().contains_key(&note2.nullifier()));
-    assert!(proposed_block.nullifiers().contains_key(&note3.nullifier()));
+    assert_eq!(proposed_block.created_nullifiers().len(), 3);
+    assert!(proposed_block.created_nullifiers().contains_key(&note0.nullifier()));
+    assert!(proposed_block.created_nullifiers().contains_key(&note2.nullifier()));
+    assert!(proposed_block.created_nullifiers().contains_key(&note3.nullifier()));
 
     // There are two batches in the block.
     assert_eq!(proposed_block.output_note_batches().len(), 2);
@@ -321,6 +326,84 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     expected_block_note_tree.insert_batch_note_subtree(0, batch_tree).unwrap();
 
     assert_eq!(expected_block_note_tree.root(), actual_block_note_tree.root());
+
+    Ok(())
+}
+
+/// Tests that we can build empty blocks.
+#[test]
+fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
+    // Setup a chain with a non-empty nullifier tree by consuming some notes.
+    // --------------------------------------------------------------------------------------------
+
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+
+    let account0 = accounts.remove(&0).unwrap();
+    let account1 = accounts.remove(&1).unwrap();
+
+    // Add notes to the chain we can consume.
+    let note0 = generate_tracked_note(&mut chain, account1.id(), account0.id());
+    let note1 = generate_tracked_note(&mut chain, account0.id(), account1.id());
+    chain.seal_block(None);
+
+    let tx0 =
+        generate_executed_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);
+    let tx1 =
+        generate_executed_tx_with_authenticated_notes(&mut chain, account1.id(), &[note1.id()]);
+
+    chain.apply_executed_transaction(&tx0);
+    chain.apply_executed_transaction(&tx1);
+    let blockx = chain.seal_block(None);
+
+    // Build a block with empty inputs whose account tree and nullifier tree root are not the empty
+    // roots.
+    // If they are the empty roots, we do not run the branches of code that handle empty blocks.
+    // --------------------------------------------------------------------------------------------
+
+    let latest_block_header = chain.latest_block_header();
+    assert_eq!(latest_block_header.hash(), blockx.hash());
+
+    // Sanity check: The account and nullifier tree roots should not be the empty tree roots.
+    assert_ne!(
+        latest_block_header.account_root(),
+        SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().unwrap().root()
+    );
+    assert_ne!(latest_block_header.nullifier_root(), Smt::new().root());
+
+    let (_, empty_chain_mmr) = chain.latest_selective_chain_mmr([]);
+    assert_eq!(empty_chain_mmr.block_headers().count(), 0);
+
+    let block_inputs = BlockInputs::new(
+        latest_block_header.clone(),
+        empty_chain_mmr.clone(),
+        BTreeMap::default(),
+        BTreeMap::default(),
+        BTreeMap::default(),
+    );
+
+    let proposed_block =
+        ProposedBlock::new(block_inputs, Vec::new()).context("failed to propose block")?;
+
+    let proven_block = LocalBlockProver::new(MIN_PROOF_SECURITY_LEVEL)
+        .prove_without_batch_verification(proposed_block)
+        .context("failed to prove proposed block")?;
+
+    // Nothing should be created or updated.
+    assert_eq!(proven_block.updated_accounts().len(), 0);
+    assert_eq!(proven_block.output_note_batches().len(), 0);
+    assert_eq!(proven_block.created_nullifiers().len(), 0);
+    assert!(proven_block.build_output_note_tree().is_empty());
+
+    // Account and nullifier root should match the previous block header's roots, since nothing has
+    // changed.
+    assert_eq!(proven_block.header().account_root(), latest_block_header.account_root());
+    assert_eq!(proven_block.header().nullifier_root(), latest_block_header.nullifier_root());
+    // Block note tree should be the empty root.
+    assert_eq!(proven_block.header().note_root(), BlockNoteTree::empty().root());
+
+    // The previous block header should have been added to the chain.
+    assert_eq!(proven_block.header().chain_root(), chain.block_chain().peaks().hash_peaks());
+    assert_eq!(proven_block.header().block_num(), latest_block_header.block_num() + 1);
 
     Ok(())
 }

@@ -185,7 +185,13 @@ impl PendingObjects {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
                 batch.iter().map(move |(note_index, note)| {
-                    (BlockNoteIndex::new(batch_index, *note_index), note.id(), *note.metadata())
+                    (
+                        BlockNoteIndex::new(batch_index, *note_index).expect(
+                            "max batches in block and max notes in batches should be enforced",
+                        ),
+                        note.id(),
+                        *note.metadata(),
+                    )
                 })
             });
 
@@ -605,7 +611,7 @@ impl MockChain {
         let (account, seed) = if let AccountState::New = account_state {
             let last_block = self.blocks.last().expect("one block should always exist");
             account_builder =
-                account_builder.anchor(AccountIdAnchor::try_from(&last_block.header()).unwrap());
+                account_builder.anchor(AccountIdAnchor::try_from(last_block.header()).unwrap());
 
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {
@@ -687,7 +693,7 @@ impl MockChain {
             if note_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     note_block_num,
-                    self.blocks.get(note_block_num.as_usize()).unwrap().header(),
+                    self.blocks.get(note_block_num.as_usize()).unwrap().header().clone(),
                 );
             }
             input_notes.push(input_note);
@@ -702,7 +708,7 @@ impl MockChain {
             if epoch_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     epoch_block_num,
-                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header(),
+                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header().clone(),
                 );
             }
         }
@@ -717,7 +723,7 @@ impl MockChain {
         TransactionInputs::new(
             account,
             account_seed,
-            block.header(),
+            block.header().clone(),
             mmr,
             InputNotes::new(input_notes).unwrap(),
         )
@@ -761,7 +767,7 @@ impl MockChain {
             self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
 
         let nullifier_proofs =
-            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::produced_nullifiers));
+            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::created_nullifiers));
 
         BlockInputs::new(
             block_reference_block,
@@ -853,7 +859,7 @@ impl MockChain {
             );
 
             let block = ProvenBlock::new_unchecked(
-                header,
+                header.clone(),
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
@@ -865,7 +871,10 @@ impl MockChain {
                 for (note_index, note) in note_batch.iter() {
                     match note {
                         OutputNote::Full(note) => {
-                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index);
+                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index)
+                                .expect(
+                                "max batches in block and max notes in batches should be enforced",
+                            );
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
                                 block.header().block_num(),
@@ -915,7 +924,8 @@ impl MockChain {
     pub fn latest_chain_mmr(&self) -> ChainMmr {
         // We cannot pass the latest block as that would violate the condition in the transaction
         // inputs that the chain length of the mmr must match the number of the reference block.
-        let block_headers = self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1);
+        let block_headers =
+            self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).cloned();
 
         ChainMmr::from_mmr(&self.chain, block_headers).unwrap()
     }
@@ -929,7 +939,7 @@ impl MockChain {
         &self,
         reference_blocks: impl IntoIterator<Item = BlockNumber>,
     ) -> (BlockHeader, ChainMmr) {
-        let latest_block_header = self.latest_block_header();
+        let latest_block_header = self.latest_block_header().clone();
         // Deduplicate block numbers so each header will be included just once. This is required so
         // ChainMmr::from_mmr does not panic.
         let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
@@ -1001,12 +1011,12 @@ impl MockChain {
 
     /// Returns a reference to the latest [`BlockHeader`].
     pub fn latest_block_header(&self) -> BlockHeader {
-        self.blocks[self.chain.forest() - 1].header()
+        self.blocks[self.chain.forest() - 1].header().clone()
     }
 
     /// Gets a reference to [BlockHeader] with `block_number`.
     pub fn block_header(&self, block_number: usize) -> BlockHeader {
-        self.blocks[block_number].header()
+        self.blocks[block_number].header().clone()
     }
 
     /// Gets a reference to the nullifier tree.
