@@ -42,11 +42,7 @@ Executing a transaction always results in a STARK proof.
 
 The [transaction chapter](transaction.md) describes the transaction design and implementation, including an in-depth discussion of how transaction execution happens in the transaction kernel program.
 
-### Limits
-
-[Limits](limits.md) topic describes limits currently enforced in `miden-base` and `miden-node`. 
-
-##### Accounts produce and consume notes to communicate
+#### Accounts produce and consume notes to communicate
 
 ![Architecture core concepts](img/miden-architecture-core-concepts.gif)
 
