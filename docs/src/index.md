@@ -67,7 +67,3 @@ The [Blockchain](blockchain.md) defines how state progresses as aggregated-state
 ##### Operators capture and progress state
 
 ![Architecture state process](img/miden-architecture-state-progress.gif)
-
-### Network
-
-The [Network](network.md) contains the different actors of the Miden protocol. The [network chapter](network.md) describes how different components of the Miden rollup interact with eachother using the Miden protocol.
