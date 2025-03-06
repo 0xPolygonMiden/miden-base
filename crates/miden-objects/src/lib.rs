@@ -38,6 +38,7 @@ pub use vm_core::{
 
 pub mod assembly {
     pub use assembly::{
+        ast::{Module, ModuleKind, ProcedureName, QualifiedProcedureName},
         mast, Assembler, AssemblyError, Compile, DefaultSourceManager, KernelLibrary, Library,
         LibraryNamespace, LibraryPath, SourceManager, Version,
     };

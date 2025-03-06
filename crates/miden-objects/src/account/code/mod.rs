@@ -290,10 +290,7 @@ impl Deserializable for AccountCode {
 
 /// Converts given procedures into field elements
 fn procedures_as_elements(procedures: &[AccountProcedureInfo]) -> Vec<Felt> {
-    procedures
-        .iter()
-        .flat_map(|procedure| <[Felt; 8]>::from(procedure.clone()))
-        .collect()
+    procedures.iter().flat_map(|procedure| <[Felt; 8]>::from(*procedure)).collect()
 }
 
 /// Computes the commitment to the given procedures

@@ -15,6 +15,7 @@ use utils::build_swap_tag;
 
 pub mod scripts;
 pub mod utils;
+pub mod well_known_note;
 
 // STANDARDIZED SCRIPTS
 // ================================================================================================
