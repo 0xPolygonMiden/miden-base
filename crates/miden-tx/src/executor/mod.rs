@@ -6,11 +6,11 @@ use miden_objects::{
     assembly::Library,
     block::BlockNumber,
     note::NoteId,
-    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
+    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
     vm::StackOutputs,
-    MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
+    Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
-use vm_processor::{ExecutionOptions, RecAdviceProvider};
+use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
@@ -181,6 +181,59 @@ impl TransactionExecutor {
             host,
             account_codes,
         )
+    }
+
+    // SCRIPT EXECUTION
+    // --------------------------------------------------------------------------------------------
+
+    /// Executes an arbitrary script against the given account and returns the stack state at the
+    /// end of execution.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction host can not be created from the provided values.
+    /// - If the execution of the provided program fails.
+    #[maybe_async]
+    pub fn execute_program(
+        &self,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        tx_script: TransactionScript,
+        advice_inputs: AdviceInputs,
+    ) -> Result<[Felt; 16], TransactionExecutorError> {
+        let tx_inputs =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &[]))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
+        let tx_args = TransactionArgs::new(Some(tx_script.clone()), None, Default::default());
+
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs));
+        let advice_recorder: RecAdviceProvider = advice_inputs.into();
+
+        // load note script MAST into the MAST store
+        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+
+        let mut host = TransactionHost::new(
+            tx_inputs.account().into(),
+            advice_recorder,
+            self.mast_store.clone(),
+            self.authenticator.clone(),
+            self.account_codes.iter().map(|code| code.commitment()).collect(),
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        let mut process = Process::new(
+            TransactionKernel::executor().kernel().clone(),
+            stack_inputs,
+            self.exec_options,
+        );
+        let stack_outputs = process
+            .execute(&TransactionKernel::executor(), &mut host)
+            .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
+
+        Ok(*stack_outputs)
     }
 }
 

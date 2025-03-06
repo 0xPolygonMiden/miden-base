@@ -34,6 +34,7 @@ const ASM_MIDEN_DIR: &str = "miden";
 const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const SHARED_DIR: &str = "shared";
+const PROGRAM_EXECUTOR_DIR: &str = "program_executor";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
 
@@ -86,6 +87,8 @@ fn main() -> Result<()> {
     // compile transaction kernel
     let mut assembler =
         compile_tx_kernel(&source_dir.join(ASM_TX_KERNEL_DIR), &target_dir.join("kernels"))?;
+
+    compile_executor(&source_dir, &target_dir, &assembler)?;
 
     // compile miden library
     let miden_lib = compile_miden_lib(&source_dir, &target_dir, assembler.clone())?;
@@ -184,6 +187,27 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     }
 
     Ok(assembler)
+}
+
+fn compile_executor(
+    source_dir: &Path,
+    target_dir: &Path,
+    kernel_assembler: &Assembler,
+) -> Result<()> {
+    let shared_path = Path::new(ASM_DIR).join(SHARED_DIR);
+    let kernel_namespace = LibraryNamespace::new("kernel").expect("namespace should be valid");
+
+    let mut executor_assembler = kernel_assembler.clone();
+    // add the shared modules to the kernel lib under the kernel::util namespace
+    executor_assembler.add_modules_from_dir(kernel_namespace.clone(), &shared_path)?;
+    executor_assembler
+        .add_modules_from_dir(kernel_namespace, &source_dir.join(ASM_TX_KERNEL_DIR).join("lib"))?;
+
+    let executor_file_path = source_dir.join(PROGRAM_EXECUTOR_DIR).join("executor.masm").clone();
+    let executor = executor_assembler.assemble_program(executor_file_path)?;
+
+    let masb_file_path = target_dir.join("executor.masb");
+    executor.write_to_file(masb_file_path).into_diagnostic()
 }
 
 /// Generates `kernel_v0.rs` file based on the kernel library

@@ -988,3 +988,51 @@ fn transaction_executor_account_code_using_custom_library() {
     // Account's initial nonce of 1 should have been incremented by 4.
     assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(5));
 }
+
+#[test]
+fn test_execute_program() {
+    let test_module_source = "
+        export.foo
+            push.3.4
+            add
+            swapw dropw
+        end
+    ";
+
+    let assembler = TransactionKernel::assembler();
+    let test_module = Module::parser(assembly::ast::ModuleKind::Library)
+        .parse_str(
+            LibraryPath::new("test::module_1").unwrap(),
+            test_module_source,
+            &assembler.source_manager(),
+        )
+        .unwrap();
+    let assembler = assembler.with_module(test_module).unwrap();
+
+    let source = "
+    use.test::module_1
+    use.std::sys
+    
+    begin
+        push.1.2
+        call.module_1::foo
+        exec.sys::truncate_stack
+    end
+    ";
+
+    let tx_script = TransactionScript::compile(source, [], assembler)
+        .expect("failed to compile the source script");
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+    let account_id = tx_context.account().id();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let advice_inputs = tx_context.tx_args().advice_inputs();
+
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
+
+    let stack_outputs = executor
+        .execute_program(account_id, block_ref, tx_script, advice_inputs.clone())
+        .unwrap();
+
+    assert_eq!(stack_outputs[..3], [Felt::new(7), Felt::new(2), ONE]);
+}

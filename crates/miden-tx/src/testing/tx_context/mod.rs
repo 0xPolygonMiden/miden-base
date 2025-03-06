@@ -51,7 +51,7 @@ impl TransactionContext {
     /// kernel functions (not normally exposed).
     ///
     /// # Errors
-    /// Returns an error if the assembly of execution of the provided code fails.
+    /// Returns an error if the assembly or execution of the provided code fails.
     pub fn execute_code(&self, code: &str) -> Result<Process, ExecutionError> {
         let (stack_inputs, mut advice_inputs) = TransactionKernel::prepare_inputs(
             &self.tx_inputs,
@@ -65,7 +65,12 @@ impl TransactionContext {
         let test_lib = TransactionKernel::kernel_as_library();
         mast_store.insert(test_lib.mast_forest().clone());
 
-        let program = self.assembler.clone().with_debug_mode(true).assemble_program(code).unwrap();
+        let program = self
+            .assembler
+            .clone()
+            .with_debug_mode(true)
+            .assemble_program(code)
+            .expect("compilation of the provided code failed");
         mast_store.insert(program.mast_forest().clone());
 
         for code in &self.foreign_codes {
