@@ -76,8 +76,15 @@ impl LoadBalancerState {
         let total_timeout = Duration::from_secs(config.timeout_secs);
 
         for worker in initial_workers {
-            workers.push(Worker::new(worker, connection_timeout, total_timeout).await?);
+            match Worker::new(worker, connection_timeout, total_timeout).await {
+                Ok(w) => workers.push(w),
+                Err(e) => {
+                    error!("Failed to create worker: {}", e);
+                },
+            }
         }
+
+        info!("Workers created: {:?}", workers);
 
         WORKER_COUNT.set(workers.len() as i64);
         RATE_LIMIT_VIOLATIONS.reset();
