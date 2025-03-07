@@ -107,7 +107,31 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 ## Metrics
 
-The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `.env` file through the `MPS_PROMETHEUS_HOST` and `MPS_PROMETHEUS_PORT` variables.
+The proxy includes a service that can optionally expose metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is controlled by the `enable_metrics` configuration option.
+
+### Enabling Prometheus Metrics
+
+To enable Prometheus metrics, set the `enable_metrics` field to `true`. This can be done via environment variables or command-line arguments.
+
+#### Using Environment Variables
+
+Set the following environment variable:
+
+```bash
+export MPS_ENABLE_METRICS=true
+```
+
+#### Using Command-Line Arguments
+
+Pass the `--enable-metrics` flag when starting the proxy:
+
+```bash
+miden-proving-service start-proxy --enable-metrics [worker1] [worker2] ... [workerN]
+```
+
+When enabled, the Prometheus metrics will be available at the host and port specified by the `prometheus_host` and `prometheus_port` fields in the configuration. By default, these are set to `0.0.0.0` and `9090`, respectively.
+
+If metrics are not enabled, the proxy will log that Prometheus metrics are not enabled.
 
 The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
 
