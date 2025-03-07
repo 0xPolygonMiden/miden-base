@@ -20,7 +20,7 @@
 - [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
 - [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168, #1172).
 - [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
-- Implement `AccountInterface` structure (#1171).
+- Implemented `AccountInterface` structure (#1171).
 - Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#1169).
 - Used `Smt::with_entries` to error on duplicates in `StorageMap::with_entries` (#1167).
 - Implement user-facing bech32 encoding for `AccountId`s (#1185).
@@ -33,6 +33,8 @@
 - [BREAKING] Replace "hash" with "commitment" in `BlockHeader::{prev_hash, chain_root, kernel_root, tx_hash, proof_hash, sub_hash, hash}` (#1209, #1221, #1226).
 - [BREAKING] Incremented minimum supported Rust version to 1.85.
 - [BREAKING] Change advice for Falcon signature verification (#1183).
+- Added `info` log level by default in the proving service (#1200).
+- [BREAKING] Added port check in the proxy service to avoid starting up if the port is in use (#1200).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 
