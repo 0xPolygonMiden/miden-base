@@ -41,6 +41,7 @@ const KERNEL_LIB_BYTES: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
 const KERNEL_MAIN_BYTES: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
+const EXECUTOR_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets//executor.masb"));
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -69,6 +70,11 @@ impl TransactionKernel {
         // TODO: make static
         Program::read_from_bytes(KERNEL_MAIN_BYTES)
             .expect("failed to deserialize transaction kernel runtime")
+    }
+
+    pub fn executor() -> Program {
+        // TODO: make static
+        Program::read_from_bytes(EXECUTOR_BYTES).expect("failed to deserialize executor runtime")
     }
 
     /// Returns [ProgramInfo] for the transaction kernel executable program.
