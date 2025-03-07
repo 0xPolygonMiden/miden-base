@@ -13,7 +13,7 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use super::{
-    placeholder::{PlaceholderTypeRequirement, TEMPLATE_REGISTRY},
+    placeholder::{PlaceholderTypeRequirement, TemplateType, TEMPLATE_REGISTRY},
     InitStorageData, MapEntry, StorageValueName, TemplateRequirementsIter,
 };
 use crate::account::{component::template::AccountComponentTemplateError, StorageMap};
@@ -35,7 +35,7 @@ pub enum WordRepresentation {
     /// time of instantiation. The name is required to identify this template externally.
     Template {
         /// The type associated with this templated word.
-        r#type: String,
+        r#type: TemplateType,
         /// A human-readable identifier for the template.
         name: StorageValueName,
         /// An optional description explaining the purpose of this template.
@@ -58,21 +58,36 @@ pub enum WordRepresentation {
 
 impl WordRepresentation {
     /// Constructs a new `Template` variant.
-    pub fn new_template(
-        r#type: impl Into<String>,
-        name: StorageValueName,
-        description: Option<String>,
-    ) -> Self {
-        WordRepresentation::Template { name, description, r#type: r#type.into() }
+    pub fn new_template(r#type: TemplateType, name: StorageValueName) -> Self {
+        WordRepresentation::Template { name, description: None, r#type }
     }
 
     /// Constructs a new `Value` variant.
     pub fn new_value(
         value: impl Into<[FeltRepresentation; 4]>,
         name: Option<StorageValueName>,
-        description: Option<String>,
     ) -> Self {
-        WordRepresentation::Value { name, description, value: value.into() }
+        WordRepresentation::Value {
+            name,
+            description: None,
+            value: value.into(),
+        }
+    }
+
+    /// Sets the description of the [`WordRepresentation`] and returns `self`.
+    pub fn with_description(self, description: impl Into<String>) -> Self {
+        match self {
+            WordRepresentation::Template { r#type, name, .. } => WordRepresentation::Template {
+                r#type,
+                name,
+                description: Some(description.into()),
+            },
+            WordRepresentation::Value { name, value, .. } => WordRepresentation::Value {
+                name,
+                description: Some(description.into()),
+                value,
+            },
+        }
     }
 
     /// Returns the name associated with the word representation.
@@ -95,10 +110,10 @@ impl WordRepresentation {
     }
 
     /// Returns the type name.
-    pub fn word_type(&self) -> &str {
+    pub fn word_type(&self) -> TemplateType {
         match self {
-            WordRepresentation::Template { r#type, .. } => r#type,
-            WordRepresentation::Value { .. } => "word",
+            WordRepresentation::Template { r#type, .. } => r#type.clone(),
+            WordRepresentation::Value { .. } => TemplateType::native_word(),
         }
     }
 
@@ -122,7 +137,7 @@ impl WordRepresentation {
         placeholder_prefix: StorageValueName,
     ) -> TemplateRequirementsIter<'_> {
         let placeholder_key =
-            placeholder_prefix.with_suffix(self.name().unwrap_or(&StorageValueName::default()));
+            placeholder_prefix.with_suffix(self.name().unwrap_or(&StorageValueName::empty()));
         match self {
             // If it's a template, return the corresponding requirements
             WordRepresentation::Template { description, r#type, .. } => Box::new(iter::once((
@@ -171,8 +186,9 @@ impl WordRepresentation {
                 let mut result = [Felt::ZERO; 4];
 
                 for (index, felt_repr) in value.iter().enumerate() {
-                    let placeholder =
-                        placeholder_prefix.clone().with_suffix(&name.clone().unwrap_or_default());
+                    let placeholder = placeholder_prefix
+                        .clone()
+                        .with_suffix(&name.clone().unwrap_or(StorageValueName::empty()));
                     result[index] = felt_repr.try_build_felt(init_storage_data, placeholder)?;
                 }
                 // SAFETY: result is guaranteed to have all its 4 indices rewritten
@@ -184,7 +200,7 @@ impl WordRepresentation {
     /// Validates that the defined type exists and all the inner felt types exist as well
     pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         // Check that type exists in registry
-        let type_exists = TEMPLATE_REGISTRY.contains_word_type(self.word_type());
+        let type_exists = TEMPLATE_REGISTRY.contains_word_type(&self.word_type());
         if !type_exists {
             return Err(AccountComponentTemplateError::InvalidType(
                 self.word_type().to_string(),
@@ -228,7 +244,7 @@ impl Deserializable for WordRepresentation {
             0 => {
                 let name = StorageValueName::read_from(source)?;
                 let description = Option::<String>::read_from(source)?;
-                let r#type = String::read_from(source)?;
+                let r#type = TemplateType::read_from(source)?;
                 Ok(WordRepresentation::Template { name, description, r#type })
             },
             1 => {
@@ -247,11 +263,7 @@ impl Deserializable for WordRepresentation {
 
 impl From<[FeltRepresentation; 4]> for WordRepresentation {
     fn from(value: [FeltRepresentation; 4]) -> Self {
-        WordRepresentation::new_value(
-            value,
-            Option::<StorageValueName>::None,
-            Option::<String>::None,
-        )
+        WordRepresentation::new_value(value, Option::<StorageValueName>::None)
     }
 }
 
@@ -260,7 +272,6 @@ impl From<[Felt; 4]> for WordRepresentation {
         WordRepresentation::new_value(
             value.map(FeltRepresentation::from),
             Option::<StorageValueName>::None,
-            Option::<String>::None,
         )
     }
 }
@@ -296,7 +307,7 @@ pub enum FeltRepresentation {
     /// further clarify its intended use.
     Template {
         /// The expected type for this felt element.
-        r#type: String,
+        r#type: TemplateType,
         /// A unique name for the felt template.
         name: StorageValueName,
         /// An optional description that explains the purpose of this template.
@@ -306,30 +317,42 @@ pub enum FeltRepresentation {
 
 impl FeltRepresentation {
     /// Creates a new [`FeltRepresentation::Value`] variant.
-    pub fn new_value(
-        value: impl Into<Felt>,
-        name: Option<StorageValueName>,
-        description: Option<String>,
-    ) -> FeltRepresentation {
-        FeltRepresentation::Value { value: value.into(), name, description }
+    pub fn new_value(value: impl Into<Felt>, name: Option<StorageValueName>) -> FeltRepresentation {
+        FeltRepresentation::Value {
+            value: value.into(),
+            name,
+            description: None,
+        }
     }
 
     /// Creates a new [`FeltRepresentation::Template`] variant.
     ///
     /// The name will be used for identification at the moment of instantiating the componentn.
-    pub fn new_template(
-        r#type: impl Into<String>,
-        name: StorageValueName,
-        description: Option<String>,
-    ) -> FeltRepresentation {
-        FeltRepresentation::Template { name, description, r#type: r#type.into() }
+    pub fn new_template(r#type: TemplateType, name: StorageValueName) -> FeltRepresentation {
+        FeltRepresentation::Template { name, description: None, r#type }
+    }
+
+    /// Sets the description of the [`FeltRepresentation`] and returns `self`.
+    pub fn with_description(self, description: impl Into<String>) -> Self {
+        match self {
+            FeltRepresentation::Template { r#type, name, .. } => FeltRepresentation::Template {
+                r#type,
+                name,
+                description: Some(description.into()),
+            },
+            FeltRepresentation::Value { name, value, .. } => FeltRepresentation::Value {
+                name,
+                description: Some(description.into()),
+                value,
+            },
+        }
     }
 
     /// Returns the type name.
-    pub fn felt_type(&self) -> &str {
+    pub fn felt_type(&self) -> TemplateType {
         match self {
-            FeltRepresentation::Template { r#type, .. } => r#type,
-            FeltRepresentation::Value { .. } => "felt",
+            FeltRepresentation::Template { r#type, .. } => r#type.clone(),
+            FeltRepresentation::Value { .. } => TemplateType::native_felt(),
         }
     }
 
@@ -381,7 +404,7 @@ impl FeltRepresentation {
     /// Validates that the defined Felt type exists
     pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         // Check that type exists in registry
-        let type_exists = TEMPLATE_REGISTRY.contains_felt_type(self.felt_type());
+        let type_exists = TEMPLATE_REGISTRY.contains_felt_type(&self.felt_type());
         if !type_exists {
             return Err(AccountComponentTemplateError::InvalidType(
                 self.felt_type().to_string(),
@@ -394,21 +417,13 @@ impl FeltRepresentation {
 
 impl From<Felt> for FeltRepresentation {
     fn from(value: Felt) -> Self {
-        FeltRepresentation::new_value(
-            value,
-            Option::<StorageValueName>::None,
-            Option::<String>::None,
-        )
+        FeltRepresentation::new_value(value, Option::<StorageValueName>::None)
     }
 }
 
 impl Default for FeltRepresentation {
     fn default() -> Self {
-        FeltRepresentation::new_value(
-            Felt::default(),
-            Option::<StorageValueName>::None,
-            Option::<String>::None,
-        )
+        FeltRepresentation::new_value(Felt::default(), Option::<StorageValueName>::None)
     }
 }
 
@@ -439,13 +454,13 @@ impl Deserializable for FeltRepresentation {
                 let name = Option::<StorageValueName>::read_from(source)?;
                 let description = Option::<String>::read_from(source)?;
                 let value = Felt::read_from(source)?;
-                Ok(FeltRepresentation::new_value(value, name, description))
+                Ok(FeltRepresentation::Value { value, name, description })
             },
             1 => {
                 let name = StorageValueName::read_from(source)?;
                 let description = Option::<String>::read_from(source)?;
-                let r#type = String::read_from(source)?;
-                Ok(FeltRepresentation::new_template(r#type, name, description))
+                let r#type = TemplateType::read_from(source)?;
+                Ok(FeltRepresentation::Template { r#type, name, description })
             },
             other => Err(DeserializationError::InvalidValue(format!(
                 "Unknown tag for FeltRepresentation: {}",
@@ -472,12 +487,21 @@ pub struct MapRepresentation {
 
 impl MapRepresentation {
     /// Creates a new `MapRepresentation` from a vector of map entries.
-    pub fn new(
-        entries: Vec<MapEntry>,
-        name: impl Into<StorageValueName>,
-        description: Option<String>,
-    ) -> Self {
-        Self { entries, name: name.into(), description }
+    pub fn new(entries: Vec<MapEntry>, name: impl Into<StorageValueName>) -> Self {
+        Self {
+            entries,
+            name: name.into(),
+            description: None,
+        }
+    }
+
+    /// Sets the description of the [`MapRepresentation`] and returns `self`.
+    pub fn with_description(self, description: impl Into<String>) -> Self {
+        MapRepresentation {
+            name: self.name,
+            entries: self.entries,
+            description: Some(description.into()),
+        }
     }
 
     /// Returns an iterator over all of the storage entries' placeholder keys, alongside their
@@ -552,7 +576,7 @@ impl MapRepresentation {
             entry.value().validate()?;
             if let Ok(key) = entry
                 .key()
-                .try_build_word(&InitStorageData::default(), StorageValueName::default())
+                .try_build_word(&InitStorageData::default(), StorageValueName::empty())
             {
                 let key: Digest = key.into();
                 if !seen_keys.insert(key) {
