@@ -7,13 +7,13 @@ use pingora::{
     services::listening::Service,
 };
 use pingora_proxy::http_proxy_service;
-use tracing::warn;
+use tracing::{info, warn};
 
 use super::ProxyConfig;
 use crate::{
     error::ProvingServiceError,
-    proxy::{LoadBalancer, LoadBalancerState, update_workers::LoadBalancerUpdateService},
-    utils::MIDEN_PROVING_SERVICE,
+    proxy::{update_workers::LoadBalancerUpdateService, LoadBalancer, LoadBalancerState},
+    utils::{check_port_availability, MIDEN_PROVING_SERVICE},
 };
 
 /// Starts the proxy.
@@ -45,10 +45,26 @@ impl StartProxy {
     /// - The server cannot be started.
     #[tracing::instrument(target = MIDEN_PROVING_SERVICE, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
+        // Check if all required ports are available
+        check_port_availability(&self.proxy_config.host, self.proxy_config.port, "Proxy")?;
+        check_port_availability(
+            &self.proxy_config.host,
+            self.proxy_config.workers_update_port,
+            "Workers update",
+        )?;
+
+        if self.proxy_config.metrics_config.enable_metrics {
+            check_port_availability(
+                &self.proxy_config.metrics_config.prometheus_host,
+                self.proxy_config.metrics_config.prometheus_port,
+                "Metrics",
+            )?;
+        }
+
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
         server.bootstrap();
 
-        println!("Starting proxy with workers: {:?}", self.workers);
+        info!("Proxy starting with workers: {:?}", self.workers);
 
         let workers = self
             .workers
@@ -79,6 +95,7 @@ impl StartProxy {
         let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb));
 
         lb.add_tcp(format!("{}:{}", &self.proxy_config.host, self.proxy_config.port).as_str());
+        info!("Proxy listening on {}:{}", &self.proxy_config.host, self.proxy_config.port);
         let logic = lb
             .app_logic_mut()
             .ok_or(ProvingServiceError::PingoraConfigFailed("app logic not found".to_string()))?;
@@ -88,19 +105,28 @@ impl StartProxy {
         http_server_options.h2c = true;
         logic.server_options = Some(http_server_options);
 
-        // Enable Prometheus metrics
-        let mut prometheus_service_http =
-            pingora::services::listening::Service::prometheus_http_service();
-        prometheus_service_http.add_tcp(
-            format!(
-                "{}:{}",
+        // Enable Prometheus metrics if enabled in the configuration
+        if self.proxy_config.metrics_config.enable_metrics {
+            let mut prometheus_service_http =
+                pingora::services::listening::Service::prometheus_http_service();
+            prometheus_service_http.add_tcp(
+                format!(
+                    "{}:{}",
+                    self.proxy_config.metrics_config.prometheus_host,
+                    self.proxy_config.metrics_config.prometheus_port
+                )
+                .as_str(),
+            );
+            server.add_service(prometheus_service_http);
+            tracing::info!(
+                "Prometheus metrics enabled on {}:{}",
                 self.proxy_config.metrics_config.prometheus_host,
                 self.proxy_config.metrics_config.prometheus_port
-            )
-            .as_str(),
-        );
+            );
+        } else {
+            tracing::info!("Prometheus metrics not enabled");
+        }
 
-        server.add_service(prometheus_service_http);
         server.add_service(health_check_service);
         server.add_service(update_workers_service);
         server.add_service(lb);

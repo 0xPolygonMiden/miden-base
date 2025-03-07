@@ -51,6 +51,9 @@ pub(crate) struct ProxyConfig {
 
 #[derive(Debug, Parser)]
 pub(crate) struct MetricsConfig {
+    /// Enable metrics.
+    #[clap(long, default_value = "false", env = "MPS_ENABLE_METRICS")]
+    pub(crate) enable_metrics: bool,
     /// Prometheus metrics host.
     #[clap(long, default_value = "0.0.0.0", env = "MPS_PROMETHEUS_HOST")]
     pub(crate) prometheus_host: String,
