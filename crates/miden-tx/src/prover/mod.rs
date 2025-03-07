@@ -8,7 +8,7 @@ use miden_objects::{
     assembly::Library,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
-use miden_prover::prove;
+use miden_prover::Prover;
 pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
 use winter_maybe_async::*;
@@ -31,7 +31,7 @@ pub trait TransactionProver {
     /// - If the transaction result is corrupt.
     #[maybe_async]
     fn prove(
-        &self,
+        &mut self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError>;
 }
@@ -43,6 +43,7 @@ pub trait TransactionProver {
 ///
 /// Local Transaction Prover implements the [TransactionProver] trait.
 pub struct LocalTransactionProver {
+    prover: Prover,
     mast_store: Arc<TransactionMastStore>,
     proof_options: ProvingOptions,
 }
@@ -51,6 +52,7 @@ impl LocalTransactionProver {
     /// Creates a new [LocalTransactionProver] instance.
     pub fn new(proof_options: ProvingOptions) -> Self {
         Self {
+            prover: Prover::new(),
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options,
         }
@@ -68,6 +70,7 @@ impl LocalTransactionProver {
 impl Default for LocalTransactionProver {
     fn default() -> Self {
         Self {
+            prover: Prover::new(),
             mast_store: Arc::new(TransactionMastStore::new()),
             proof_options: Default::default(),
         }
@@ -78,7 +81,7 @@ impl Default for LocalTransactionProver {
 impl TransactionProver for LocalTransactionProver {
     #[maybe_async]
     fn prove(
-        &self,
+        &mut self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         let TransactionWitness {
@@ -115,7 +118,7 @@ impl TransactionProver for LocalTransactionProver {
         )
         .map_err(TransactionProverError::TransactionHostCreationFailed)?;
 
-        let (stack_outputs, proof) = maybe_await!(prove(
+        let (stack_outputs, proof) = maybe_await!(self.prover.prove(
             &TransactionKernel::main(),
             stack_inputs,
             &mut host,
