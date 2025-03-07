@@ -1,9 +1,14 @@
 use alloc::{
+    boxed::Box,
     collections::BTreeMap,
     string::{String, ToString},
 };
-use core::fmt::{self, Display};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+};
 
+use miden_crypto::dsa::rpo_falcon512::{self};
 use thiserror::Error;
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
@@ -28,7 +33,7 @@ pub static TEMPLATE_REGISTRY: LazyLock<TemplateRegistry> = LazyLock::new(|| {
     registry.register_felt_type::<Felt>();
     registry.register_felt_type::<TokenSymbol>();
     registry.register_word_type::<Word>();
-    registry.register_word_type::<FalconPubKey>();
+    registry.register_word_type::<rpo_falcon512::PublicKey>();
     registry
 });
 
@@ -45,7 +50,7 @@ pub static TEMPLATE_REGISTRY: LazyLock<TemplateRegistry> = LazyLock::new(|| {
 ///
 /// At component instantiation, a map of names to values must be provided to dynamically
 /// replace these placeholders with the instance’s actual values.
-#[derive(Clone, Debug, Default, Ord, PartialOrd, PartialEq, Eq)]
+#[derive(Clone, Debug, Ord, PartialOrd, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(::serde::Deserialize, ::serde::Serialize))]
 #[cfg_attr(feature = "std", serde(transparent))]
 pub struct StorageValueName {
@@ -73,6 +78,11 @@ impl StorageValueName {
             Self::validate_segment(segment)?;
         }
         Ok(Self { fully_qualified_name: base })
+    }
+
+    /// Creates an empty [`StorageValueName`].
+    pub(crate) fn empty() -> Self {
+        StorageValueName { fully_qualified_name: String::default() }
     }
 
     /// Adds a suffix to the storage value name, separated by a period.
@@ -147,14 +157,117 @@ pub enum StorageValueNameError {
 /// unsupported conversions, and cases where a required type is not found in the registry.
 #[derive(Debug, Error)]
 pub enum TemplateTypeError {
-    #[error("failed to parse input `{0}` as `{1}`")]
-    ParseError(String, String),
     #[error("conversion error: {0}")]
     ConversionError(String),
     #[error("felt type ` {0}` not found in the type registry")]
-    FeltTypeNotFound(String),
+    FeltTypeNotFound(TemplateType),
+    #[error("invalid type name `{0}`: {1}")]
+    InvalidTypeName(String, String),
+    #[error("failed to parse input `{input}` as `{template_type}`")]
+    ParseError {
+        input: String,
+        template_type: TemplateType,
+        source: Box<dyn Error + Send + Sync + 'static>,
+    },
     #[error("word type ` {0}` not found in the type registry")]
-    WordTypeNotFound(String),
+    WordTypeNotFound(TemplateType),
+}
+
+impl TemplateTypeError {
+    /// Creates a [`TemplateTypeError::ParseError`].
+    pub fn parse(
+        input: impl Into<String>,
+        template_type: TemplateType,
+        source: impl Error + Send + Sync + 'static,
+    ) -> Self {
+        TemplateTypeError::ParseError {
+            input: input.into(),
+            template_type,
+            source: Box::new(source),
+        }
+    }
+}
+
+// TEMPLATE TYPE
+// ================================================================================================
+
+/// A newtype wrapper around a `String`, representing a template's type identifier.
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[cfg_attr(feature = "std", derive(::serde::Deserialize, ::serde::Serialize))]
+#[cfg_attr(feature = "std", serde(transparent))]
+pub struct TemplateType(String);
+
+impl TemplateType {
+    /// Creates a new [`TemplateType`] from a `String`.
+    ///
+    /// The name must follow a Rust-style namespace format, consisting of one or more segments
+    /// (non-empty, and alphanumerical) separated by double-colon (`::`) delimiters.
+    ///
+    /// # Errors
+    ///
+    /// - If the identifier is empty.
+    /// - If it is composed of one or more segments separated by `::`.
+    /// - If any segment is empty or contains something other than alphanumerical
+    ///   characters/underscores.
+    pub fn new(s: impl Into<String>) -> Result<Self, TemplateTypeError> {
+        let s = s.into();
+        if s.is_empty() {
+            return Err(TemplateTypeError::InvalidTypeName(
+                s.clone(),
+                "template type identifier is empty".to_string(),
+            ));
+        }
+        for segment in s.split("::") {
+            if segment.is_empty() {
+                return Err(TemplateTypeError::InvalidTypeName(
+                    s.clone(),
+                    "empty segment in template type identifier".to_string(),
+                ));
+            }
+            if !segment.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+                return Err(TemplateTypeError::InvalidTypeName(
+                    s.clone(),
+                    format!("segment '{}' contains invalid characters", segment),
+                ));
+            }
+        }
+        Ok(Self(s))
+    }
+
+    /// Returns the [`TemplateType`] for the native [`Felt`] type.
+    pub fn native_felt() -> TemplateType {
+        TemplateType::new("felt").expect("type is well formed")
+    }
+
+    /// Returns the [`TemplateType`] for the native [`Word`] type.
+    pub fn native_word() -> TemplateType {
+        TemplateType::new("word").expect("type is well formed")
+    }
+
+    /// Returns a reference to the inner string.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for TemplateType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serializable for TemplateType {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(self.0.clone())
+    }
+}
+
+impl Deserializable for TemplateType {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let id: String = source.read()?;
+
+        TemplateType::new(id).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
 }
 
 // TEMPLATE REQUIREMENT
@@ -167,8 +280,8 @@ pub enum TemplateTypeError {
 /// dynamic storage values.
 #[derive(Debug)]
 pub struct PlaceholderTypeRequirement {
-    /// The expected type identifier as a string.
-    pub r#type: String,
+    /// The expected type identifier.
+    pub r#type: TemplateType,
     /// An optional description providing additional context.
     pub description: Option<String>,
 }
@@ -179,7 +292,7 @@ pub struct PlaceholderTypeRequirement {
 /// Trait for converting a string into a single `Felt`.
 pub trait TemplateFelt {
     /// Returns the type identifier.
-    fn type_name() -> &'static str;
+    fn type_name() -> TemplateType;
     /// Parses the input string into a `Felt`.
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError>;
 }
@@ -187,56 +300,56 @@ pub trait TemplateFelt {
 /// Trait for converting a string into a single `Word`.
 pub trait TemplateWord {
     /// Returns the type identifier.
-    fn type_name() -> &'static str;
+    fn type_name() -> TemplateType;
     /// Parses the input string into a `Word`.
     fn parse_word(input: &str) -> Result<Word, TemplateTypeError>;
 }
 
-// IMPLEMENTATIONS FOR NATIVE TYPES
+// FELT IMPLS FOR NATIVE TYPES
 // ================================================================================================
 
 impl TemplateFelt for u8 {
-    fn type_name() -> &'static str {
-        "u8"
+    fn type_name() -> TemplateType {
+        TemplateType::new("u8").expect("type is well formed")
     }
 
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
-        let native: u8 = input.parse().map_err(|_| {
-            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
-        })?;
+        let native: u8 = input
+            .parse()
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(native))
     }
 }
 
 impl TemplateFelt for u16 {
-    fn type_name() -> &'static str {
-        "u16"
+    fn type_name() -> TemplateType {
+        TemplateType::new("u16").expect("type is well formed")
     }
 
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
-        let native: u16 = input.parse().map_err(|_| {
-            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
-        })?;
+        let native: u16 = input
+            .parse()
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(native))
     }
 }
 
 impl TemplateFelt for u32 {
-    fn type_name() -> &'static str {
-        "u32"
+    fn type_name() -> TemplateType {
+        TemplateType::new("u32").expect("type is well formed")
     }
 
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
-        let native: u32 = input.parse().map_err(|_| {
-            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
-        })?;
+        let native: u32 = input
+            .parse()
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(native))
     }
 }
 
 impl TemplateFelt for Felt {
-    fn type_name() -> &'static str {
-        "felt"
+    fn type_name() -> TemplateType {
+        TemplateType::new("felt").expect("type is well formed")
     }
 
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
@@ -245,48 +358,56 @@ impl TemplateFelt for Felt {
         } else {
             input.parse::<u64>()
         }
-        .map_err(|_| {
-            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
-        })?;
+        .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Felt::try_from(n).map_err(|_| TemplateTypeError::ConversionError(input.to_string()))
     }
 }
 
 impl TemplateFelt for TokenSymbol {
-    fn type_name() -> &'static str {
-        "tokensymbol"
+    fn type_name() -> TemplateType {
+        TemplateType::new("tokensymbol").expect("type is well formed")
     }
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
-        let token = TokenSymbol::new(input).map_err(|_| {
-            TemplateTypeError::ParseError(input.to_string(), Self::type_name().to_string())
-        })?;
+        let token = TokenSymbol::new(input)
+            .map_err(|err| TemplateTypeError::parse(input.to_string(), Self::type_name(), err))?;
         Ok(Felt::from(token))
     }
 }
 
-// WORD IMPLS
+// WORD IMPLS FOR NATIVE TYPES
 // ================================================================================================
 
+#[derive(Debug, Error)]
+#[error("error parsing word: {0}")]
+struct WordParseError(String);
+
 impl TemplateWord for Word {
-    fn type_name() -> &'static str {
-        "word"
+    fn type_name() -> TemplateType {
+        TemplateType::native_word()
     }
     fn parse_word(input: &str) -> Result<Word, TemplateTypeError> {
-        parse_hex_string_as_word(input).map_err(|e| {
-            TemplateTypeError::ParseError(Self::type_name().to_string(), e.to_string())
+        parse_hex_string_as_word(input).map_err(|err| {
+            TemplateTypeError::parse(
+                Self::type_name().as_str(),
+                Self::type_name(),
+                WordParseError(err.into()),
+            )
         })
     }
 }
 
-#[derive(Debug, Default)]
-pub struct FalconPubKey;
-impl TemplateWord for FalconPubKey {
-    fn type_name() -> &'static str {
-        "auth::rpo_falcon512::pub_key"
+impl TemplateWord for rpo_falcon512::PublicKey {
+    fn type_name() -> TemplateType {
+        TemplateType::new("auth::rpo_falcon512::pub_key").expect("type is well formed")
     }
     fn parse_word(input: &str) -> Result<Word, TemplateTypeError> {
-        parse_hex_string_as_word(input)
-            .map_err(|e| TemplateTypeError::ParseError(input.to_string(), e.to_string()))
+        parse_hex_string_as_word(input).map_err(|err| {
+            TemplateTypeError::parse(
+                input.to_string(),
+                Self::type_name(),
+                WordParseError(err.into()),
+            )
+        })
     }
 }
 
@@ -311,8 +432,8 @@ type TemplateWordConverter = fn(&str) -> Result<Word, TemplateTypeError>;
 /// into their corresponding storage representations.
 #[derive(Clone, Debug, Default)]
 pub struct TemplateRegistry {
-    felt: BTreeMap<String, TemplateFeltConverter>,
-    word: BTreeMap<String, TemplateWordConverter>,
+    felt: BTreeMap<TemplateType, TemplateFeltConverter>,
+    word: BTreeMap<TemplateType, TemplateWordConverter>,
 }
 
 impl TemplateRegistry {
@@ -327,13 +448,13 @@ impl TemplateRegistry {
     /// Registers a `TemplateFelt` converter, to interpret a string as a [`Felt``].
     pub fn register_felt_type<T: TemplateFelt + 'static>(&mut self) {
         let key = T::type_name();
-        self.felt.insert(key.to_string(), T::parse_felt);
+        self.felt.insert(key, T::parse_felt);
     }
 
     /// Registers a `TemplateWord` converter, to interpret a string as a [`Word`].
     pub fn register_word_type<T: TemplateWord + 'static>(&mut self) {
         let key = T::type_name();
-        self.word.insert(key.to_string(), T::parse_word);
+        self.word.insert(key, T::parse_word);
     }
 
     /// Attempts to parse a string into a `Felt` using the registered converter for the given type
@@ -347,11 +468,15 @@ impl TemplateRegistry {
     /// # Errors
     ///
     /// - If the type is not registered or if the conversion fails.
-    pub fn try_parse_felt(&self, type_name: &str, value: &str) -> Result<Felt, TemplateTypeError> {
+    pub fn try_parse_felt(
+        &self,
+        type_name: &TemplateType,
+        value: &str,
+    ) -> Result<Felt, TemplateTypeError> {
         let converter = self
             .felt
             .get(type_name)
-            .ok_or(TemplateTypeError::FeltTypeNotFound(type_name.into()))?;
+            .ok_or(TemplateTypeError::FeltTypeNotFound(type_name.clone()))?;
         converter(value)
     }
 
@@ -366,21 +491,25 @@ impl TemplateRegistry {
     /// # Errors
     ///
     /// - If the type is not registered or if the conversion fails.
-    pub fn try_parse_word(&self, type_name: &str, value: &str) -> Result<Word, TemplateTypeError> {
+    pub fn try_parse_word(
+        &self,
+        type_name: &TemplateType,
+        value: &str,
+    ) -> Result<Word, TemplateTypeError> {
         let converter = self
             .word
             .get(type_name)
-            .ok_or(TemplateTypeError::WordTypeNotFound(type_name.into()))?;
+            .ok_or(TemplateTypeError::WordTypeNotFound(type_name.clone()))?;
         converter(value)
     }
 
     /// Returns `true` if a `TemplateFelt` is registered for the given type.
-    pub fn contains_felt_type(&self, type_name: &str) -> bool {
+    pub fn contains_felt_type(&self, type_name: &TemplateType) -> bool {
         self.felt.contains_key(type_name)
     }
 
     /// Returns `true` if a `TemplateWord` is registered for the given type.
-    pub fn contains_word_type(&self, type_name: &str) -> bool {
+    pub fn contains_word_type(&self, type_name: &TemplateType) -> bool {
         self.word.contains_key(type_name)
     }
 }
