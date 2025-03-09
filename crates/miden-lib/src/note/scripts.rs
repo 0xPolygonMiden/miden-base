@@ -1,8 +1,6 @@
-use miden_objects::{
-    note::NoteScript,
-    utils::{sync::LazyLock, Deserializable},
-    vm::Program,
-};
+use miden_objects::{note::NoteScript, vm::Program};
+
+use crate::{Deserializable, LazyLock};
 
 // Initialize the P2ID note script only once
 static P2ID_SCRIPT: LazyLock<NoteScript> = LazyLock::new(|| {
