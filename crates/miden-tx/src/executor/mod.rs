@@ -225,12 +225,12 @@ impl TransactionExecutor {
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
         let mut process = Process::new(
-            TransactionKernel::executor().kernel().clone(),
+            TransactionKernel::tx_script_main().kernel().clone(),
             stack_inputs,
             self.exec_options,
         );
         let stack_outputs = process
-            .execute(&TransactionKernel::executor(), &mut host)
+            .execute(&TransactionKernel::tx_script_main(), &mut host)
             .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
         Ok(*stack_outputs)

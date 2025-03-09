@@ -26,7 +26,7 @@ type ErrorCategoryMap = BTreeMap<ErrorCategory, Vec<NamedError>>;
 /// Defines whether the build script should generate files in `/src`.
 /// The docs.rs build pipeline has a read-only filesystem, so we have to avoid writing to `src`,
 /// otherwise the docs will fail to build there. Note that writing to `OUT_DIR` is fine.
-const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
+const BUILD_GENERATED_FILES_IN_SRC: bool = true; // option_env!("BUILD_GENERATED_FILES_IN_SRC").is_some();
 
 const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
@@ -34,7 +34,6 @@ const ASM_MIDEN_DIR: &str = "miden";
 const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const SHARED_DIR: &str = "shared";
-const PROGRAM_EXECUTOR_DIR: &str = "program_executor";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
 
@@ -88,8 +87,6 @@ fn main() -> Result<()> {
     let mut assembler =
         compile_tx_kernel(&source_dir.join(ASM_TX_KERNEL_DIR), &target_dir.join("kernels"))?;
 
-    compile_executor(&source_dir, &target_dir, &assembler)?;
-
     // compile miden library
     let miden_lib = compile_miden_lib(&source_dir, &target_dir, assembler.clone())?;
     assembler.add_library(miden_lib)?;
@@ -119,17 +116,24 @@ fn main() -> Result<()> {
 /// Reads the transaction kernel MASM source from the `source_dir`, compiles it, saves the results
 /// to the `target_dir`, and returns an [Assembler] instantiated with the compiled kernel.
 ///
+/// Additionally it compiles the transaction script executor program, see the
+/// [compile_tx_script_main] procedure for details.
+///
 /// `source_dir` is expected to have the following structure:
 ///
-/// - {source_dir}/api.masm         -> defines exported procedures from the transaction kernel.
-/// - {source_dir}/main.masm        -> defines the executable program of the transaction kernel.
-/// - {source_dir}/lib              -> contains common modules used by both api.masm and main.masm.
+/// - {source_dir}/api.masm       -> defines exported procedures from the transaction kernel.
+/// - {source_dir}/main.masm      -> defines the executable program of the transaction kernel.
+/// - {source_dir}/tx_script_main -> defines the executable program of the arbitrary transaction
+///   script.
+/// - {source_dir}/lib            -> contains common modules used by both api.masm and main.masm.
 ///
 /// The compiled files are written as follows:
 ///
-/// - {target_dir}/tx_kernel.masl               -> contains kernel library compiled from api.masm.
-/// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
-/// - src/transaction/procedures/kernel_v0.rs   -> contains the kernel procedures table.
+/// - {target_dir}/tx_kernel.masl             -> contains kernel library compiled from api.masm.
+/// - {target_dir}/tx_kernel.masb             -> contains the executable compiled from main.masm.
+/// - {target_dir}/tx_script_main.masb        -> contains the executable compiled from
+///   tx_script_main.masm.
+/// - src/transaction/procedures/kernel_v0.rs -> contains the kernel procedures table.
 fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
     let shared_path = Path::new(ASM_DIR).join(SHARED_DIR);
     let kernel_namespace = LibraryNamespace::new("kernel").expect("namespace should be valid");
@@ -153,17 +157,20 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 
     let assembler = build_assembler(Some(kernel_lib))?;
 
-    // assemble the kernel program and write it the "tx_kernel.masb" file
+    // assemble the kernel program and write it to the "tx_kernel.masb" file
     let mut main_assembler = assembler.clone();
     // add the shared modules to the kernel lib under the kernel::util namespace
     main_assembler.add_modules_from_dir(kernel_namespace.clone(), &shared_path)?;
     main_assembler.add_modules_from_dir(kernel_namespace, &source_dir.join("lib"))?;
 
-    let main_file_path = source_dir.join("main.masm").clone();
-    let kernel_main = main_assembler.assemble_program(main_file_path)?;
+    let main_file_path = source_dir.join("main.masm");
+    let kernel_main = main_assembler.clone().assemble_program(main_file_path)?;
 
     let masb_file_path = target_dir.join("tx_kernel.masb");
     kernel_main.write_to_file(masb_file_path).into_diagnostic()?;
+
+    // compile the transaction script main program
+    compile_tx_script_main(source_dir, target_dir, main_assembler)?;
 
     #[cfg(any(feature = "testing", test))]
     {
@@ -189,25 +196,20 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     Ok(assembler)
 }
 
-fn compile_executor(
+/// Reads the transaction script executor MASM source from the `source_dir/tx_script_main.masm`,
+/// compiles it and saves the results to the `target_dir` as a `tx_script_main.masb` binary file.
+fn compile_tx_script_main(
     source_dir: &Path,
     target_dir: &Path,
-    kernel_assembler: &Assembler,
+    main_assembler: Assembler,
 ) -> Result<()> {
-    let shared_path = Path::new(ASM_DIR).join(SHARED_DIR);
-    let kernel_namespace = LibraryNamespace::new("kernel").expect("namespace should be valid");
+    // assemble the transaction script executor program and write it to the "tx_script_main.masb"
+    // file.
+    let tx_script_main_file_path = source_dir.join("tx_script_main.masm");
+    let tx_script_main = main_assembler.assemble_program(tx_script_main_file_path)?;
 
-    let mut executor_assembler = kernel_assembler.clone();
-    // add the shared modules to the kernel lib under the kernel::util namespace
-    executor_assembler.add_modules_from_dir(kernel_namespace.clone(), &shared_path)?;
-    executor_assembler
-        .add_modules_from_dir(kernel_namespace, &source_dir.join(ASM_TX_KERNEL_DIR).join("lib"))?;
-
-    let executor_file_path = source_dir.join(PROGRAM_EXECUTOR_DIR).join("executor.masm").clone();
-    let executor = executor_assembler.assemble_program(executor_file_path)?;
-
-    let masb_file_path = target_dir.join("executor.masb");
-    executor.write_to_file(masb_file_path).into_diagnostic()
+    let masb_file_path = target_dir.join("tx_script_main.masb");
+    tx_script_main.write_to_file(masb_file_path).into_diagnostic()
 }
 
 /// Generates `kernel_v0.rs` file based on the kernel library
