@@ -273,7 +273,7 @@ impl AccountComponentMetadata {
             }
         }
 
-        // Check for dupliace storage entry names
+        // Check for duplicate storage entry names
         let mut seen_names = BTreeSet::new();
         for entry in self.storage_entries() {
             entry.validate()?;
@@ -285,7 +285,7 @@ impl AccountComponentMetadata {
             }
         }
 
-        // Check for dupliace storage placeholder names
+        // Check for duplicate storage placeholder names
         let mut seen_placeholder_names = BTreeSet::new();
         for entry in self.storage_entries() {
             for (name, _) in entry.template_requirements() {
