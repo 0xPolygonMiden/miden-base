@@ -1,4 +1,8 @@
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    vec::Vec,
+};
 
 use miden_objects::{
     account::{Account, AccountCode, AccountId, AccountProcedureInfo, AccountType},
@@ -29,7 +33,7 @@ mod test;
 pub struct AccountInterface {
     account_id: AccountId,
     auth: Vec<AuthScheme>,
-    interfaces: Vec<AccountComponentInterface>,
+    components: Vec<AccountComponentInterface>,
 }
 
 impl AccountInterface {
@@ -39,9 +43,9 @@ impl AccountInterface {
     /// Creates a new [`AccountInterface`] instance from the provided account ID, authentication
     /// schemes and account code.
     pub fn new(account_id: AccountId, auth: Vec<AuthScheme>, code: &AccountCode) -> Self {
-        let interfaces = AccountComponentInterface::from_procedures(code.procedures());
+        let components = AccountComponentInterface::from_procedures(code.procedures());
 
-        Self { account_id, auth, interfaces }
+        Self { account_id, auth, components }
     }
 
     // PUBLIC ACCESSORS
@@ -78,13 +82,13 @@ impl AccountInterface {
     }
 
     /// Returns a reference to the set of used component interfaces.
-    pub fn interfaces(&self) -> &Vec<AccountComponentInterface> {
-        &self.interfaces
+    pub fn components(&self) -> &Vec<AccountComponentInterface> {
+        &self.components
     }
 
     /// Returns [NoteAccountCompatibility::Maybe] if the provided note is compatible with the
     /// current [AccountInterface], and [NoteAccountCompatibility::No] otherwise.
-    pub fn is_compatible(&self, note: &Note) -> NoteAccountCompatibility {
+    pub fn is_compatible_with(&self, note: &Note) -> NoteAccountCompatibility {
         if let Some(well_known_note) = WellKnownNote::from_note(note) {
             if well_known_note.is_compatible_with(self) {
                 NoteAccountCompatibility::Maybe
@@ -92,19 +96,43 @@ impl AccountInterface {
                 NoteAccountCompatibility::No
             }
         } else {
-            verify_note_script_compatibility(
-                note.script(),
-                component_proc_digests(self.interfaces()),
-            )
+            verify_note_script_compatibility(note.script(), self.component_procedure_digests())
         }
+    }
+
+    /// Returns a digests vector of all procedures from all account component interfaces.
+    pub(crate) fn component_procedure_digests(&self) -> BTreeSet<Digest> {
+        let mut component_proc_digests = BTreeSet::new();
+        for component in self.components.iter() {
+            match component {
+                AccountComponentInterface::BasicWallet => {
+                    component_proc_digests
+                        .extend(basic_wallet_library().mast_forest().procedure_digests());
+                },
+                AccountComponentInterface::BasicFungibleFaucet => {
+                    component_proc_digests
+                        .extend(basic_fungible_faucet_library().mast_forest().procedure_digests());
+                },
+                AccountComponentInterface::RpoFalcon512(_) => {
+                    component_proc_digests
+                        .extend(rpo_falcon_512_library().mast_forest().procedure_digests());
+                },
+                AccountComponentInterface::Custom(custom_procs) => {
+                    component_proc_digests
+                        .extend(custom_procs.iter().map(|info| *info.mast_root()));
+                },
+            }
+        }
+
+        component_proc_digests
     }
 }
 
 impl From<&Account> for AccountInterface {
     fn from(account: &Account) -> Self {
-        let interfaces = AccountComponentInterface::from_procedures(account.code().procedures());
+        let components = AccountComponentInterface::from_procedures(account.code().procedures());
         let mut auth = Vec::new();
-        interfaces.iter().for_each(|interface| {
+        components.iter().for_each(|interface| {
             if let AccountComponentInterface::RpoFalcon512(storage_index) = interface {
                 auth.push(AuthScheme::RpoFalcon512 {
                     pub_key: rpo_falcon512::PublicKey::new(
@@ -120,7 +148,7 @@ impl From<&Account> for AccountInterface {
         Self {
             account_id: account.id(),
             auth,
-            interfaces,
+            components,
         }
     }
 }
@@ -229,8 +257,6 @@ impl AccountComponentInterface {
 
         component_interface_vec
     }
-
-    // probably it would be convenient to also have `from_components` constructor
 }
 
 // ACCOUNT COMPONENT INTERFACE
@@ -252,34 +278,6 @@ pub enum NoteAccountCompatibility {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Returns a vector of digests of all account component interfaces.
-pub fn component_proc_digests(
-    account_component_interfaces: &[AccountComponentInterface],
-) -> Vec<Digest> {
-    let mut component_proc_digests = Vec::new();
-    for component in account_component_interfaces.iter() {
-        match component {
-            AccountComponentInterface::BasicWallet => {
-                component_proc_digests
-                    .extend(basic_wallet_library().mast_forest().procedure_digests());
-            },
-            AccountComponentInterface::BasicFungibleFaucet => {
-                component_proc_digests
-                    .extend(basic_fungible_faucet_library().mast_forest().procedure_digests());
-            },
-            AccountComponentInterface::RpoFalcon512(_) => {
-                component_proc_digests
-                    .extend(rpo_falcon_512_library().mast_forest().procedure_digests());
-            },
-            AccountComponentInterface::Custom(custom_procs) => {
-                component_proc_digests.extend(custom_procs.iter().map(|info| *info.mast_root()));
-            },
-        }
-    }
-
-    component_proc_digests
-}
-
 /// Verifies that the provided note script is compatible with the target account interfaces.
 ///
 /// This is achieved by checking that at least one execution branch in the note script is compatible
@@ -289,16 +287,13 @@ pub fn component_proc_digests(
 /// from note scripts, while kernel procedures are `sycall`ed.
 fn verify_note_script_compatibility(
     note_script: &NoteScript,
-    account_procedures: Vec<Digest>,
+    account_procedures: BTreeSet<Digest>,
 ) -> NoteAccountCompatibility {
     // collect call branches of the note script
     let branches = collect_call_branches(note_script);
 
     // if none of the branches are compatible with the target account, return a `CheckResult::No`
-    if !branches
-        .iter()
-        .any(|call_targets| call_targets.iter().all(|target| account_procedures.contains(target)))
-    {
+    if !branches.iter().any(|call_targets| call_targets.is_subset(&account_procedures)) {
         return NoteAccountCompatibility::No;
     }
 
@@ -307,8 +302,8 @@ fn verify_note_script_compatibility(
 
 /// Collect call branches by recursively traversing through program execution branches and
 /// accumulating call targets.
-fn collect_call_branches(note_script: &NoteScript) -> Vec<Vec<Digest>> {
-    let mut branches = vec![vec![]];
+fn collect_call_branches(note_script: &NoteScript) -> Vec<BTreeSet<Digest>> {
+    let mut branches = vec![BTreeSet::new()];
 
     let entry_node = note_script.entrypoint();
     recursively_collect_call_branches(entry_node, &mut branches, &note_script.mast());
@@ -318,7 +313,7 @@ fn collect_call_branches(note_script: &NoteScript) -> Vec<Vec<Digest>> {
 /// Generates a list of calls invoked in each execution branch of the provided code block.
 fn recursively_collect_call_branches(
     mast_node_id: MastNodeId,
-    branches: &mut Vec<Vec<Digest>>,
+    branches: &mut Vec<BTreeSet<Digest>>,
     note_script_forest: &Arc<MastForest>,
 ) {
     let mast_node = &note_script_forest[mast_node_id];
@@ -330,14 +325,13 @@ fn recursively_collect_call_branches(
             recursively_collect_call_branches(join_node.second(), branches, note_script_forest);
         },
         MastNode::Split(split_node) => {
-            let current_len = branches.last().expect("at least one execution branch").len();
+            let current_branch = branches.last().expect("at least one execution branch").clone();
             recursively_collect_call_branches(split_node.on_false(), branches, note_script_forest);
 
             // If the previous branch had additional calls we need to create a new branch
-            if branches.last().expect("at least one execution branch").len() > current_len {
-                branches.push(
-                    branches.last().expect("at least one execution branch")[..current_len].to_vec(),
-                );
+            if branches.last().expect("at least one execution branch").len() > current_branch.len()
+            {
+                branches.push(current_branch);
             }
 
             recursively_collect_call_branches(split_node.on_true(), branches, note_script_forest);
@@ -352,7 +346,10 @@ fn recursively_collect_call_branches(
 
             let callee_digest = note_script_forest[call_node.callee()].digest();
 
-            branches.last_mut().expect("at least one execution branch").push(callee_digest);
+            branches
+                .last_mut()
+                .expect("at least one execution branch")
+                .insert(callee_digest);
         },
         MastNode::Dyn(_) => {},
         MastNode::External(_) => {},

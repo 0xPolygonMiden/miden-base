@@ -7,7 +7,7 @@ use miden_objects::{
 use crate::{
     account::{
         components::basic_wallet_library,
-        interface::{component_proc_digests, AccountComponentInterface, AccountInterface},
+        interface::{AccountComponentInterface, AccountInterface},
     },
     note::scripts::{p2id, p2id_commitment, p2idr, p2idr_commitment, swap, swap_commitment},
 };
@@ -62,11 +62,11 @@ impl WellKnownNote {
     /// Returns a boolean value indicating whether this [WellKnownNote] is compatible with the
     /// provided [AccountInterface].
     pub fn is_compatible_with(&self, account_interface: &AccountInterface) -> bool {
-        if account_interface.interfaces().contains(&AccountComponentInterface::BasicWallet) {
+        if account_interface.components().contains(&AccountComponentInterface::BasicWallet) {
             return true;
         }
 
-        let interface_proc_digests = component_proc_digests(account_interface.interfaces());
+        let interface_proc_digests = account_interface.component_procedure_digests();
         match self {
             Self::P2ID | &Self::P2IDR => {
                 // Get the hash of the "receive_asset" procedure and check that this procedure is

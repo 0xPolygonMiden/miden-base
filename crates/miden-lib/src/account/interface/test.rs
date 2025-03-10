@@ -98,24 +98,30 @@ fn test_basic_wallet_default_notes() {
     // Basic wallet
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        wallet_account_interface.is_compatible(&p2id_note)
+        wallet_account_interface.is_compatible_with(&p2id_note)
     );
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        wallet_account_interface.is_compatible(&p2idr_note)
+        wallet_account_interface.is_compatible_with(&p2idr_note)
     );
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        wallet_account_interface.is_compatible(&swap_note)
+        wallet_account_interface.is_compatible_with(&swap_note)
     );
 
     // Basic fungible faucet
-    assert_eq!(NoteAccountCompatibility::No, faucet_account_interface.is_compatible(&p2id_note));
     assert_eq!(
         NoteAccountCompatibility::No,
-        faucet_account_interface.is_compatible(&p2idr_note)
+        faucet_account_interface.is_compatible_with(&p2id_note)
     );
-    assert_eq!(NoteAccountCompatibility::No, faucet_account_interface.is_compatible(&swap_note));
+    assert_eq!(
+        NoteAccountCompatibility::No,
+        faucet_account_interface.is_compatible_with(&p2idr_note)
+    );
+    assert_eq!(
+        NoteAccountCompatibility::No,
+        faucet_account_interface.is_compatible_with(&swap_note)
+    );
 }
 
 /// Checks the compatibility of the basic notes (P2ID, P2IDR and SWAP) against an account with a
@@ -182,13 +188,16 @@ fn test_custom_account_default_note() {
 
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        target_account_interface.is_compatible(&p2id_note)
+        target_account_interface.is_compatible_with(&p2id_note)
     );
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        target_account_interface.is_compatible(&p2idr_note)
+        target_account_interface.is_compatible_with(&p2idr_note)
     );
-    assert_eq!(NoteAccountCompatibility::No, target_account_interface.is_compatible(&swap_note));
+    assert_eq!(
+        NoteAccountCompatibility::No,
+        target_account_interface.is_compatible_with(&swap_note)
+    );
 }
 
 // CUSTOM NOTES
@@ -249,7 +258,7 @@ fn test_basic_wallet_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        wallet_account_interface.is_compatible(&compatible_custom_note)
+        wallet_account_interface.is_compatible_with(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -280,7 +289,7 @@ fn test_basic_wallet_custom_notes() {
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::No,
-        wallet_account_interface.is_compatible(&incompatible_custom_note)
+        wallet_account_interface.is_compatible_with(&incompatible_custom_note)
     );
 }
 
@@ -345,7 +354,7 @@ fn test_basic_fungible_faucet_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        faucet_account_interface.is_compatible(&compatible_custom_note)
+        faucet_account_interface.is_compatible_with(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -378,7 +387,7 @@ fn test_basic_fungible_faucet_custom_notes() {
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::No,
-        faucet_account_interface.is_compatible(&incompatible_custom_note)
+        faucet_account_interface.is_compatible_with(&incompatible_custom_note)
     );
 }
 
@@ -465,7 +474,7 @@ fn test_custom_account_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        target_account_interface.is_compatible(&compatible_custom_note)
+        target_account_interface.is_compatible_with(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -495,7 +504,7 @@ fn test_custom_account_custom_notes() {
     let incompatible_custom_note = Note::new(vault, metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::No,
-        target_account_interface.is_compatible(&incompatible_custom_note)
+        target_account_interface.is_compatible_with(&incompatible_custom_note)
     );
 }
 
@@ -598,7 +607,7 @@ fn test_custom_account_multiple_components_custom_notes() {
     let compatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::Maybe,
-        target_account_interface.is_compatible(&compatible_custom_note)
+        target_account_interface.is_compatible_with(&compatible_custom_note)
     );
 
     let incompatible_source_code = "
@@ -641,7 +650,7 @@ fn test_custom_account_multiple_components_custom_notes() {
     let incompatible_custom_note = Note::new(vault.clone(), metadata, recipient);
     assert_eq!(
         NoteAccountCompatibility::No,
-        target_account_interface.is_compatible(&incompatible_custom_note)
+        target_account_interface.is_compatible_with(&incompatible_custom_note)
     );
 }
 
