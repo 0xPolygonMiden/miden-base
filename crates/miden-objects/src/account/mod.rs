@@ -24,7 +24,7 @@ mod component;
 pub use component::{
     AccountComponent, AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation,
     InitStorageData, MapEntry, MapRepresentation, PlaceholderTypeRequirement, StorageEntry,
-    StorageValueName, StorageValueNameError, TemplateTypeError, WordRepresentation,
+    StorageValueName, StorageValueNameError, TemplateType, TemplateTypeError, WordRepresentation,
 };
 
 pub mod delta;

@@ -1,5 +1,5 @@
 use miden_lib::{
-    errors::tx_kernel_errors::ERR_P2ID_TARGET_ACCT_MISMATCH, note::create_p2id_note,
+    errors::note_script_errors::ERR_P2ID_TARGET_ACCT_MISMATCH, note::create_p2id_note,
     transaction::TransactionKernel,
 };
 use miden_objects::{
