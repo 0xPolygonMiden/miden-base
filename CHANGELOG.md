@@ -26,7 +26,7 @@
 - Implement user-facing bech32 encoding for `AccountId`s (#1185).
 - [BREAKING] Added `InitStorageData::from_toml()`, improved storage entry validations in `AccountComponentMetadata` (#1170).
 - [BREAKING] Rework miden-lib error codes into categories (#1196).
-- Implemented `execute_program` procedure for the `TransactionExecutor` (#1197).
+- Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 
