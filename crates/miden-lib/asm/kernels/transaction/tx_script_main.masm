@@ -6,8 +6,8 @@ use.kernel::prologue
 # ERRORS
 # =================================================================================================
 
-# The transaction script is not specified.
-const.ERR_TX_TRANSACTION_SCRIPT_IS_NOT_SPECIFIED=0x000200C2
+# The transaction script is missing.
+const.ERR_TX_TRANSACTION_SCRIPT_IS_MISSING=0x000200C2
 
 # MAIN
 # =================================================================================================
@@ -45,7 +45,7 @@ proc.main
     # => [TX_SCRIPT_ROOT, tx_script_root_ptr]
 
     # return an error if the transaction script was not specified
-    exec.utils::is_empty_word assertz.err=ERR_TX_TRANSACTION_SCRIPT_IS_NOT_SPECIFIED dropw
+    exec.utils::is_empty_word assertz.err=ERR_TX_TRANSACTION_SCRIPT_IS_MISSING dropw
     # => [tx_script_root_ptr]
 
     # execute the transaction script

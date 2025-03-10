@@ -8,7 +8,7 @@ use miden_objects::{
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    utils::serde::Deserializable,
+    utils::{serde::Deserializable, sync::LazyLock},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, EMPTY_WORD, ZERO,
 };
@@ -37,12 +37,29 @@ mod procedures;
 // CONSTANTS
 // ================================================================================================
 
-const KERNEL_LIB_BYTES: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
-const KERNEL_MAIN_BYTES: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
-const TX_SCRIPT_MAIN_BYTES: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_script_main.masb"));
+// Initialize the kernel library only once
+static KERNEL_LIB: LazyLock<KernelLibrary> = LazyLock::new(|| {
+    let kernel_lib_bytes =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
+    KernelLibrary::read_from_bytes(kernel_lib_bytes)
+        .expect("failed to deserialize transaction kernel library")
+});
+
+// Initialize the kernel main program only once
+static KERNEL_MAIN: LazyLock<Program> = LazyLock::new(|| {
+    let kernel_main_bytes =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
+    Program::read_from_bytes(kernel_main_bytes)
+        .expect("failed to deserialize transaction kernel runtime")
+});
+
+// Initialize the transaction script executor program only once
+static TX_SCRIPT_MAIN: LazyLock<Program> = LazyLock::new(|| {
+    let tx_script_main_bytes =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_script_main.masb"));
+    Program::read_from_bytes(tx_script_main_bytes)
+        .expect("failed to deserialize tx script executor runtime")
+});
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -58,9 +75,7 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn kernel() -> KernelLibrary {
-        // TODO: make this static
-        KernelLibrary::read_from_bytes(KERNEL_LIB_BYTES)
-            .expect("failed to deserialize transaction kernel library")
+        KERNEL_LIB.clone()
     }
 
     /// Returns an AST of the transaction kernel executable program.
@@ -68,15 +83,15 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn main() -> Program {
-        // TODO: make static
-        Program::read_from_bytes(KERNEL_MAIN_BYTES)
-            .expect("failed to deserialize transaction kernel runtime")
+        KERNEL_MAIN.clone()
     }
 
+    /// Returns an AST of the transaction script executor program.
+    ///
+    /// # Panics
+    /// Panics if the transaction kernel source is not well-formed.
     pub fn tx_script_main() -> Program {
-        // TODO: make static
-        Program::read_from_bytes(TX_SCRIPT_MAIN_BYTES)
-            .expect("failed to deserialize tx script executor runtime")
+        TX_SCRIPT_MAIN.clone()
     }
 
     /// Returns [ProgramInfo] for the transaction kernel executable program.

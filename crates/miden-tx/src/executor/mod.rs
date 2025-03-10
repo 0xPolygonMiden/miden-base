@@ -195,7 +195,7 @@ impl TransactionExecutor {
     /// - If the transaction host can not be created from the provided values.
     /// - If the execution of the provided program fails.
     #[maybe_async]
-    pub fn execute_program(
+    pub fn execute_tx_view_script(
         &self,
         account_id: AccountId,
         block_ref: BlockNumber,
@@ -212,7 +212,7 @@ impl TransactionExecutor {
             TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs));
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
-        // load note script MAST into the MAST store
+        // load transaction script MAST into the MAST store
         self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
         let mut host = TransactionHost::new(

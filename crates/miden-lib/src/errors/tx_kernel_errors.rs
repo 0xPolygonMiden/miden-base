@@ -69,8 +69,8 @@ pub const ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME: u32 = 0x20080;
 pub const ERR_TX_INVALID_EXPIRATION_DELTA: u32 = 0x200c0;
 /// Number of output notes in the transaction exceeds the maximum limit of 1024
 pub const ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT: u32 = 0x200c1;
-/// The transaction script is not specified.
-pub const ERR_TX_TRANSACTION_SCRIPT_IS_NOT_SPECIFIED: u32 = 0x200c2;
+/// The transaction script is missing.
+pub const ERR_TX_TRANSACTION_SCRIPT_IS_MISSING: u32 = 0x200c2;
 
 /// Attempted to access note assets from incorrect context
 pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT: u32 = 0x20100;
@@ -232,7 +232,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 86] = [
 
     (ERR_TX_INVALID_EXPIRATION_DELTA, "Transaction expiration block delta must be within 0x1 and 0xFFFF."),
     (ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT, "Number of output notes in the transaction exceeds the maximum limit of 1024"),
-    (ERR_TX_TRANSACTION_SCRIPT_IS_NOT_SPECIFIED, "The transaction script is not specified."),
+    (ERR_TX_TRANSACTION_SCRIPT_IS_MISSING, "The transaction script is missing."),
 
     (ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT, "Attempted to access note assets from incorrect context"),
     (ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT, "Attempted to access note inputs from incorrect context"),

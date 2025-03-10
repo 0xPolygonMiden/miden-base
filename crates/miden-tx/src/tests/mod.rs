@@ -1031,7 +1031,7 @@ fn test_execute_program() {
     let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
 
     let stack_outputs = executor
-        .execute_program(account_id, block_ref, tx_script, advice_inputs.clone())
+        .execute_tx_view_script(account_id, block_ref, tx_script, advice_inputs.clone())
         .unwrap();
 
     assert_eq!(stack_outputs[..3], [Felt::new(7), Felt::new(2), ONE]);
