@@ -15,12 +15,12 @@ use crate::AuthenticationError;
 /// outputs a vector of values to be pushed onto the advice stack. The values are the ones required
 /// for a Falcon signature verification inside the VM and they are:
 ///
-/// 1. The challenge point at which we evaluate the polynomials in the subsequent three
-///    bullet points, i.e. `h`, `s2` and `pi`, to check the product relationship.
+/// 1. The challenge point at which we evaluate the polynomials in the subsequent three bullet
+///    points, i.e. `h`, `s2` and `pi`, to check the product relationship.
 /// 2. The expanded public key represented as the coefficients of a polynomial `h` of degree < 512.
 /// 3. The signature represented as the coefficients of a polynomial `s2` of degree < 512.
-/// 4. The product of the above two polynomials `pi` in the ring of polynomials with coefficients
-///    in the Miden field.
+/// 4. The product of the above two polynomials `pi` in the ring of polynomials with coefficients in
+///    the Miden field.
 /// 5. The nonce represented as 8 field elements.
 ///
 /// # Errors
