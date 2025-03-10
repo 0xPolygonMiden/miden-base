@@ -21,7 +21,7 @@ These components are:
 3. [Storage](#storage)
 4. [Vault](#vault)
 5. [Nonce](#nonce)
-
+ 
 ### ID
 
 > An immutable and unique identifier for the `Account`.
@@ -41,6 +41,23 @@ An `Account` ID is considered invalid if:
 - The anchor epoch exceeds $2^{16}-1$.
 - The least significant 8 bits of the ID are nonzero.
 
+An `Account` ID can be encoded in different formats:
+
+1. **Hexadecimal**:
+   - Example: `0x140fa04a1e61fc100000126ef8f1d6`
+   - Standard encoding for blockchain addresses
+
+1. **Bech32**, [learn more about Bech32 encoding](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki):
+   - Example: `mm1qq2qlgz2reslcyqqqqfxa7836chrjcvk`
+   - **Benefits**:
+     - Built-in error detection via checksum algorithm
+     - Human-readable prefix indicates network type
+     - Less prone to transcription errors
+   - **Structure**:
+     - Human-readable prefix: `mm` (e.g., indicates Mainnet)
+     - Separator: `1`
+     - Data part with integrated checksum
+     
 ### Code
 
 > A collection of functions defining the `Account`’s programmable interface.
