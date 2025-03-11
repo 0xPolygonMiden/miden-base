@@ -54,7 +54,7 @@ An `Account` ID can be encoded in different formats:
      - Human-readable prefix indicates network type
      - Less prone to transcription errors
    - **Structure**:
-     - Human-readable prefix: `mm` (e.g., indicates Mainnet)
+     - Human-readable prefix: `mm` (e.g., indicates **M**iden **M**ainnet)
      - Separator: `1`
      - Data part with integrated checksum
      
