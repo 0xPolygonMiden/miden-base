@@ -1331,6 +1331,179 @@ fn test_fpi_execute_foreign_procedure() {
         .unwrap();
 }
 
+#[test]
+fn test_nested_fpi() {
+    // ====== SECOND FOREIGN ACCOUNT ===============================================================
+    let storage_slots =
+        vec![AccountStorage::mock_item_0().slot, AccountStorage::mock_item_2().slot];
+    let second_foreign_account_code_source = "
+        use.miden::account
+
+        export.get_item_foreign
+            # make this foreign procedure unique to make sure that we invoke the procedure of the 
+            # foreign account, not the native one
+            push.1 drop
+            exec.account::get_item
+
+            # truncate the stack
+            movup.6 movup.6 movup.6 drop drop drop
+        end
+    ";
+
+    let second_foreign_account_component = AccountComponent::compile(
+        second_foreign_account_code_source,
+        TransactionKernel::testing_assembler(),
+        storage_slots,
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let second_foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        .with_component(second_foreign_account_component)
+        .build_existing()
+        .unwrap();
+
+    // ====== FIRST FOREIGN ACCOUNT ================================================================
+    let first_foreign_account_code_source = format!("
+        use.miden::tx
+        use.std::sys
+
+        export.read_first_foreign_storage_slot
+            # get the storage item at index 0
+            # pad the stack for the `execute_foreign_procedure` execution
+            padw padw padw push.0.0
+            # => [pad(14)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item` account procedure
+            push.{get_item_foreign_hash}
+
+            # push the foreign account ID
+            push.{foreign_suffix}.{foreign_prefix}
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+            exec.tx::execute_foreign_procedure
+            # => [STORAGE_VALUE]
+
+            exec.sys::truncate_stack
+        end
+    ", 
+        get_item_foreign_hash = second_foreign_account.code().procedures()[0].mast_root(),
+        foreign_prefix = second_foreign_account.id().prefix().as_felt(),
+        foreign_suffix = second_foreign_account.id().suffix(),
+    );
+
+    let first_foreign_account_component = AccountComponent::compile(
+        first_foreign_account_code_source,
+        TransactionKernel::testing_assembler(),
+        vec![],
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let first_foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        .with_component(first_foreign_account_component)
+        .build_existing()
+        .unwrap();
+
+    // ====== NATIVE ACCOUNT =======================================================================
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        .with_component(
+            AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
+                .unwrap(),
+        )
+        .build_existing()
+        .unwrap();
+
+    let mut mock_chain = MockChain::with_accounts(&[
+        native_account.clone(),
+        first_foreign_account.clone(),
+        second_foreign_account.clone(),
+    ]);
+    mock_chain.seal_block(None);
+    let advice_inputs =
+        get_mock_fpi_adv_inputs(vec![&first_foreign_account, &second_foreign_account], &mock_chain);
+
+    let code = format!(
+        "
+        use.std::sys
+
+        use.miden::tx
+
+        begin
+            # get the storage item at index 0
+            # pad the stack for the `execute_foreign_procedure` execution
+            padw padw padw push.0.0
+            # => [pad(14)]
+
+            # push the index of desired storage item
+            push.0
+
+            # get the hash of the `get_item` account procedure
+            push.{read_first_foreign_storage_slot_hash}
+
+            # push the foreign account ID
+            push.{foreign_suffix}.{foreign_prefix}
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+            exec.tx::execute_foreign_procedure
+            # => [STORAGE_VALUE]
+
+            # assert the correctness of the obtained value
+            push.1.2.3.4 assert_eqw
+            # => []
+
+            exec.sys::truncate_stack
+        end
+        ",
+        foreign_prefix = first_foreign_account.id().prefix().as_felt(),
+        foreign_suffix = first_foreign_account.id().suffix(),
+        read_first_foreign_storage_slot_hash = first_foreign_account.code().procedures()[0].mast_root(),
+    );
+
+    let tx_script = TransactionScript::compile(
+        code,
+        vec![],
+        TransactionKernel::testing_assembler().with_debug_mode(true),
+    )
+    .unwrap();
+
+    let tx_context = mock_chain
+        .build_tx_context(native_account.id(), &[], &[])
+        .advice_inputs(advice_inputs.clone())
+        .tx_script(tx_script)
+        .build();
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None)
+        .with_tracing()
+        .with_debug_mode();
+
+    // load the mast forest of the foreign account's code to be able to create an account procedure
+    // index map and execute the specified foreign procedure
+    executor.load_account_code(first_foreign_account.code());
+    executor.load_account_code(second_foreign_account.code());
+
+    let _executed_transaction = executor
+        .execute_transaction(
+            native_account.id(),
+            block_ref,
+            &note_ids,
+            tx_context.tx_args().clone(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 

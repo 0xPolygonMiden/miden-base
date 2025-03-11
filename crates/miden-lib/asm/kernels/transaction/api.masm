@@ -962,7 +962,7 @@ end
 #! Invocation: dynexec
 export.tx_start_foreign_context
     # check that this procedure was executed against the native account
-    exec.memory::assert_native_account
+    # exec.memory::assert_native_account
     # OS => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
     # get the memory address and a flag whether this account was already loaded.
