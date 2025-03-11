@@ -43,11 +43,7 @@ An `Account` ID is considered invalid if:
 
 An `Account` ID can be encoded in different formats:
 
-1. **Hexadecimal**:
-   - Example: `0x140fa04a1e61fc100000126ef8f1d6`
-   - Standard encoding for blockchain addresses
-
-2. **Bech32**, [learn more about Bech32 encoding](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki):
+1. [**Bech32**](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki) (default):
    - Example: `mm1qq2qlgz2reslcyqqqqfxa7836chrjcvk`
    - **Benefits**:
      - Built-in error detection via checksum algorithm
@@ -57,6 +53,10 @@ An `Account` ID can be encoded in different formats:
      - Human-readable prefix: `mm` (e.g., indicates **M**iden **M**ainnet)
      - Separator: `1`
      - Data part with integrated checksum
+ 
+2. **Hexadecimal** (debugging):
+   - Example: `0x140fa04a1e61fc100000126ef8f1d6`
+   - Standard encoding for blockchain addresses
      
 ### Code
 
