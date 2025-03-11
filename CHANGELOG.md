@@ -34,7 +34,9 @@
 - [BREAKING] Incremented minimum supported Rust version to 1.85.
 - [BREAKING] Change advice for Falcon signature verification (#1183).
 - Added `info` log level by default in the proving service (#1200).
-- [BREAKING] Added port check in the proxy service to avoid starting up if the port is in use (#1200).
+- Made Prometheus metrics optional in the proving service proxy via the `enable_metrics` configuration option (#1200).
+- Improved logging in the proving service proxy for better diagnostics (#1200).
+- Fixed issues with the proving service proxy's signal handling and port binding (#1200).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 
