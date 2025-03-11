@@ -20,10 +20,10 @@ use miden_objects::{
             NON_FUNGIBLE_ASSET_DATA_2,
         },
         note::NoteBuilder,
-        prepare_word,
         storage::prepare_assets,
     },
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    utils::prepare_word,
     vm::AdviceMap,
     FieldElement,
 };

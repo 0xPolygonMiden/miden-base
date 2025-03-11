@@ -19,7 +19,6 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        prepare_word,
         storage::STORAGE_LEAVES_2,
     },
     transaction::TransactionScript,
@@ -28,7 +27,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{Felt, StackInputs, Word, ONE, ZERO};
+use super::{prepare_word, Felt, StackInputs, Word, ONE, ZERO};
 use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
 
 // ACCOUNT CODE TESTS

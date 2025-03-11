@@ -6,12 +6,11 @@ use miden_objects::{
         constants::{
             FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
         },
-        prepare_word,
     },
 };
 use vm_processor::ProcessState;
 
-use super::{Felt, Hasher, Word, ONE};
+use super::{prepare_word, Felt, Hasher, Word, ONE};
 use crate::testing::TransactionContextBuilder;
 
 #[test]

@@ -32,7 +32,6 @@ use miden_objects::{
         account_component::AccountMockComponent,
         account_id::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2},
         constants::NON_FUNGIBLE_ASSET_DATA_2,
-        prepare_word,
         storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes, TransactionScript},
@@ -42,7 +41,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
 
-use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
+use super::{prepare_word, Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
     testing::{MockChain, TransactionContextBuilder},

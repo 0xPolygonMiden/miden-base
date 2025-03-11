@@ -13,7 +13,6 @@ use miden_objects::{
 };
 use utils::build_swap_tag;
 
-mod scripts;
 pub mod utils;
 pub mod well_known_note;
 
@@ -70,7 +69,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     recall_height: BlockNumber,
     rng: &mut R,
 ) -> Result<Note, NoteError> {
-    let note_script = scripts::p2idr();
+    let note_script = well_known_note::p2idr();
 
     let inputs =
         NoteInputs::new(vec![target.suffix(), target.prefix().as_felt(), recall_height.into()])?;
@@ -100,7 +99,7 @@ pub fn create_swap_note<R: FeltRng>(
     aux: Felt,
     rng: &mut R,
 ) -> Result<(Note, NoteDetails), NoteError> {
-    let note_script = scripts::swap();
+    let note_script = well_known_note::swap();
 
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;

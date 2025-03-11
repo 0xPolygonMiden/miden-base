@@ -7,13 +7,13 @@ use miden_lib::{
 use miden_objects::{
     account::AccountId,
     note::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
-    testing::{account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, prepare_word},
+    testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     transaction::TransactionArgs,
     Hasher, WORD_SIZE,
 };
 use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 
-use super::{Felt, Process, ZERO};
+use super::{prepare_word, Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
     testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},

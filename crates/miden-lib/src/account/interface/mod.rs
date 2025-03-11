@@ -1,15 +1,18 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
+    string::String,
     sync::Arc,
     vec::Vec,
 };
+use core::fmt::Display;
 
 use miden_objects::{
     account::{Account, AccountCode, AccountId, AccountProcedureInfo, AccountType},
     assembly::mast::{MastForest, MastNode, MastNodeId},
     crypto::dsa::rpo_falcon512,
-    note::{Note, NoteScript},
-    Digest,
+    note::{Note, NoteScript, PartialNote},
+    utils::prepare_word,
+    Digest, Felt,
 };
 
 use crate::{
@@ -17,6 +20,7 @@ use crate::{
         basic_fungible_faucet_library, basic_wallet_library, rpo_falcon_512_library,
     },
     note::well_known_note::WellKnownNote,
+    transaction::TransactionScriptBuilderError,
     AuthScheme,
 };
 
@@ -96,12 +100,12 @@ impl AccountInterface {
                 NoteAccountCompatibility::No
             }
         } else {
-            verify_note_script_compatibility(note.script(), self.component_procedure_digests())
+            verify_note_script_compatibility(note.script(), self.get_procedure_digests())
         }
     }
 
-    /// Returns a digests vector of all procedures from all account component interfaces.
-    pub(crate) fn component_procedure_digests(&self) -> BTreeSet<Digest> {
+    /// Returns a digests set of all procedures from all account component interfaces.
+    pub(crate) fn get_procedure_digests(&self) -> BTreeSet<Digest> {
         let mut component_proc_digests = BTreeSet::new();
         for component in self.components.iter() {
             match component {
@@ -257,9 +261,120 @@ impl AccountComponentInterface {
 
         component_interface_vec
     }
+
+    /// Returns the script body that sends notes to the recipients.
+    ///
+    /// Errors if:
+    /// - the interface does not support the generation of the standard `send_note` procedure.
+    /// - the sender of the note isn't the account for which the script is being built.
+    /// - the note created by the faucet doesn't contain exactly one asset.
+    /// - a faucet tries to distribute an asset with a different faucet ID.
+    pub(crate) fn send_note_procedure(
+        &self,
+        sender_account_id: AccountId,
+        notes: &[PartialNote],
+    ) -> Result<String, TransactionScriptBuilderError> {
+        let mut body = String::new();
+
+        for partial_note in notes {
+            if partial_note.metadata().sender() != sender_account_id {
+                return Err(TransactionScriptBuilderError::InvalidSenderAccount(
+                    partial_note.metadata().sender(),
+                ));
+            }
+
+            body.push_str(&format!(
+                "
+                    push.{recipient}
+                    push.{execution_hint}
+                    push.{note_type}
+                    push.{aux}
+                    push.{tag}
+                    ",
+                recipient = prepare_word(&partial_note.recipient_digest()),
+                note_type = Felt::from(partial_note.metadata().note_type()),
+                execution_hint = Felt::from(partial_note.metadata().execution_hint()),
+                aux = partial_note.metadata().aux(),
+                tag = Felt::from(partial_note.metadata().tag()),
+            ));
+
+            match self {
+                AccountComponentInterface::BasicFungibleFaucet => {
+                    if partial_note.assets().num_assets() != 1 {
+                        return Err(TransactionScriptBuilderError::FaucetNoteWithoutAsset);
+                    }
+
+                    // SAFETY: We checked that the note contains exactly one asset
+                    let asset =
+                        partial_note.assets().iter().next().expect("note should contain an asset");
+
+                    if asset.faucet_id_prefix() != sender_account_id.prefix() {
+                        return Err(TransactionScriptBuilderError::InvalidAsset(
+                            asset.faucet_id_prefix(),
+                        ));
+                    }
+
+                    body.push_str(&format!(
+                        "
+                        push.{amount}
+                        call.faucet::distribute dropw dropw drop
+                        ",
+                        amount = asset.unwrap_fungible().amount()
+                    ));
+                },
+                AccountComponentInterface::BasicWallet => {
+                    body.push_str(
+                        "
+                        call.wallet::create_note\n",
+                    );
+
+                    for asset in partial_note.assets().iter() {
+                        body.push_str(&format!(
+                            "push.{asset}
+                            call.wallet::move_asset_to_note dropw\n",
+                            asset = prepare_word(&asset.into())
+                        ));
+                    }
+
+                    body.push_str("dropw dropw dropw drop");
+                },
+                _ => return Err(TransactionScriptBuilderError::UnsupportedInterface(self.clone())),
+            }
+        }
+
+        Ok(body)
+    }
+
+    /// Returns a string line with the import of the contract associated with the current
+    /// [AccountComponentInterface].
+    ///
+    /// Errors if:
+    /// - the interface does not support the generation of the standard `send_note` procedure.
+    pub(crate) fn script_includes(&self) -> Result<&str, TransactionScriptBuilderError> {
+        match self {
+            AccountComponentInterface::BasicWallet => {
+                Ok("use.miden::contracts::wallets::basic->wallet\n")
+            },
+            AccountComponentInterface::BasicFungibleFaucet => {
+                Ok("use.miden::contracts::faucets::basic_fungible->faucet\n")
+            },
+            _ => Err(TransactionScriptBuilderError::UnsupportedInterface(self.clone())),
+        }
+    }
 }
 
-// ACCOUNT COMPONENT INTERFACE
+impl Display for AccountComponentInterface {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            AccountComponentInterface::BasicWallet => write!(f, "Basic Wallet"),
+            AccountComponentInterface::BasicFungibleFaucet => write!(f, "Basic Fungible Faucet"),
+            AccountComponentInterface::RpoFalcon512(_) => write!(f, "RPO Falcon512"),
+            AccountComponentInterface::Custom(_) => write!(f, "Custom"),
+        }
+    }
+}
+
+// NOTE ACCOUNT COMPATIBILITY
 // ================================================================================================
 
 /// Describes whether a note is compatible with a specific account.

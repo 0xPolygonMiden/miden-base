@@ -4,8 +4,8 @@ use miden_objects::{
     asset::{Asset, NonFungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::{Note, NoteDetails, NoteType},
-    testing::prepare_word,
     transaction::{OutputNote, TransactionScript},
+    utils::prepare_word,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};

@@ -39,8 +39,8 @@ pub use vm_core::{
 pub mod assembly {
     pub use assembly::{
         ast::{Module, ModuleKind, ProcedureName, QualifiedProcedureName},
-        mast, Assembler, AssemblyError, Compile, DefaultSourceManager, KernelLibrary, Library,
-        LibraryNamespace, LibraryPath, SourceManager, Version,
+        mast, Assembler, AssemblyError, Compile, CompileOptions, DefaultSourceManager,
+        KernelLibrary, Library, LibraryNamespace, LibraryPath, SourceManager, Version,
     };
 }
 
@@ -49,16 +49,24 @@ pub mod crypto {
 }
 
 pub mod utils {
-    use alloc::string::{String, ToString};
+    use alloc::{
+        string::{String, ToString},
+        vec::Vec,
+    };
 
     pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
     pub use vm_core::utils::*;
-    use vm_core::{Felt, StarkField};
+    use vm_core::{Felt, StarkField, Word};
 
     pub mod serde {
         pub use miden_crypto::utils::{
             ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         };
+    }
+
+    /// Converts a word to MASM
+    pub fn prepare_word(word: &Word) -> String {
+        word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
     }
 
     pub const fn parse_hex_string_as_word(hex: &str) -> Result<[Felt; 4], &'static str> {

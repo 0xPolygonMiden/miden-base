@@ -9,10 +9,11 @@ use miden_objects::{
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
     note::{Note, NoteId, NoteTag, NoteType},
-    testing::{account_component::AccountMockComponent, note::NoteBuilder, prepare_word},
+    testing::{account_component::AccountMockComponent, note::NoteBuilder},
     transaction::{
         ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder, TransactionScript,
     },
+    utils::prepare_word,
     vm::ExecutionProof,
     Felt,
 };

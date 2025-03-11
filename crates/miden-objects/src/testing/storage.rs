@@ -4,10 +4,10 @@ use miden_crypto::EMPTY_WORD;
 use vm_core::{Felt, Word};
 use vm_processor::Digest;
 
-use super::prepare_word;
 use crate::{
     account::{AccountStorage, AccountStorageDelta, StorageMap, StorageMapDelta, StorageSlot},
     note::NoteAssets,
+    utils::prepare_word,
     AccountDeltaError,
 };
 

@@ -7,8 +7,8 @@ use miden_lib::{
 use miden_objects::{
     asset::{Asset, FungibleAsset},
     note::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::prepare_word,
     transaction::TransactionScript,
+    utils::prepare_word,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};

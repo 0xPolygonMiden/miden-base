@@ -7,15 +7,13 @@ use miden_objects::{
     asset::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::NoteType,
-    testing::{
-        account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
-        },
-        prepare_word,
+    testing::account_id::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
     },
     transaction::{OutputNote, TransactionScript},
+    utils::prepare_word,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};

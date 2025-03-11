@@ -21,14 +21,13 @@ use miden_objects::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
             NON_FUNGIBLE_ASSET_DATA, NON_FUNGIBLE_ASSET_DATA_2,
         },
-        prepare_word,
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
     FieldElement,
 };
 use vm_processor::{Felt, ProcessState};
 
-use super::ONE;
+use super::{prepare_word, ONE};
 use crate::{assert_execution_error, testing::TransactionContextBuilder};
 
 // FUNGIBLE FAUCET MINT TESTS
