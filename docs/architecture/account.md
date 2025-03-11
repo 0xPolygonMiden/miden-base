@@ -47,7 +47,7 @@ An `Account` ID can be encoded in different formats:
    - Example: `0x140fa04a1e61fc100000126ef8f1d6`
    - Standard encoding for blockchain addresses
 
-1. **Bech32**, [learn more about Bech32 encoding](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki):
+2. **Bech32**, [learn more about Bech32 encoding](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki):
    - Example: `mm1qq2qlgz2reslcyqqqqfxa7836chrjcvk`
    - **Benefits**:
      - Built-in error detection via checksum algorithm
