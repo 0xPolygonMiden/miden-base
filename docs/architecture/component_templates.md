@@ -4,7 +4,7 @@ An account component template provides a general description of an account compo
 
 Specifically, a template specifies a component's **metadata** and its **code**.
 
-Once defined, a component template can be instantiated as account components, which can then be grouped to form the account's `Code`.
+Once defined, a component template can be instantiated as account components, which can then be merged to form the account's `Code`.
 
 ## Component code
 
@@ -22,7 +22,7 @@ The component metadata can be defined using TOML. Below is an example specificat
 
 ```toml
 name = "Fungible Faucet"
-description = "This component displays valid values for component templates"
+description = "This component showcases the component template format, and the different ways of providing valid values to it."
 version = "1.0.0"
 supported-types = ["FungibleFaucet"]
 
@@ -39,7 +39,7 @@ value = [
 
 [[storage]]
 name = "owner_public_key"
-description = "This is a value placeholder"
+description = "This is a value placeholder that will be interpreted as a Falcon public key"
 slot = 1
 type = "auth::rpo_falcon512::pub_key"
 
@@ -51,6 +51,26 @@ values = [
     { key = "0xDE0B1140012A9FD912F18AD9EC85E40F4CB697AE", value = { name = "value_placeholder", description = "This value will be defined at the moment of instantiation", type = "word" } }
 ]
 ```
+
+#### Specifying values and their types
+
+In the TOML format, any value that is one word long can be written as a single value, or as exactly four field elements. In turn, a field element is a number within Miden's finite field. 
+
+A word can be written as a hexadecimal value, and field elements can be written either as hexadecimal or decimal numbers.
+
+In our example, the `token_metadata` single-slot entry is defined as four elements, where the first element is a placeholder, and the second, third and fourth are hardcoded values.
+
+##### Word-long types
+
+Valid word types are `word` (default type) and `auth::rpo_falcon512::pub_key` (represents a Falcon public key). Both can be written and interpreted as hexadecimal strings.
+
+##### Felt-long types
+
+Valid field element types are `u8`, `u16`, `u32`, `felt` (default type) and `tokensymbol`:
+
+- `u8`, `u16` and `u32` values can be parsed as decimal numbers and represent 8-bit, 16-bit and 32-bit unsigned integers
+- `felt` values represent a field element, and can be parsed as decimal or hexadecimal values
+- `tokensymbol` values represent the symbol for basic fungible tokens, and are parsed as strings made of four uppercase characters
 
 #### Header
 
@@ -82,10 +102,8 @@ For a single-slot entry, the following fields are expected:
 - `value` (optional): Contains the initial storage value for this slot. Will be interpreted as a `word` unless another `type` is specified
 - `type` (optional): Describes the expected type for the slot
 
-If no `value` is provided, the entry acts as a placeholder, requiring a value to be passed at instantiation. In this case, specifying a `type` is mandatory to ensure the input is correctly parsed.
+If no `value` is provided, the entry acts as a placeholder, requiring a value to be passed at instantiation. In this case, specifying a `type` is mandatory to ensure the input is correctly parsed. So the rule is that at least one of `value` and `type` has to be specified.
 Valid types for a single-slot value are `word` or `auth::rpo_falcon512::pub_key`.
-
-Note that at least one of `value` and `type` should be specified. 
 
 In the above example, the first and second storage entries are single-slot values.
 
@@ -95,7 +113,7 @@ Multi-slot values are composite values that exceed the size of a single slot (i.
 
 For multi-slot values, the following fields are expected:
 
-- `slots`: Specifies the list of slots that the value comprises
+- `slots`: Specifies the list of contiguous slots that the value comprises
 - `values`: Contains the initial storage value for the specified slots
 
 Placeholders can currently not be defined for multi-slot values.
@@ -106,29 +124,9 @@ Storage maps consist of key-value pairs, where both keys and values are single w
 
 Storage map entries can specify the following fields:
 
-- `slot`: Specifies the slot index in which the value will be placed
-- `values`: Contains a list of map entries, defined by a `key` and `value `
+- `slot`: Specifies the slot index in which the root of the map will be placed
+- `values`: Contains a list of map entries, defined by a `key` and `value`
 
 Storage maps `key`s and `value`s are word-long values, which can be defined as placeholders.
 
 In the example, the third storage entry defines a storage map.
-
-#### Specifying values and their types
-
-In the TOML format, any value that is one word long can be written as a single value, or as exactly four field elements. In turn, a field element is a number within Miden's finite field. 
-
-A word can be written as a hexadecimal value, and field elements can be written either as hexadecimal or decimal numbers.
-
-In our example, the `token_metadata` single-slot entry is defined as four elements, where the first element is a placeholder, and the second, third and fourth are hardcoded values.
-
-##### Word-long types
-
-Valid word-long types are `word` (default type) and `auth::rpo_falcon512::pub_key` (represents a Falcon public key). Both can be parsed as hexadecimal strings.
-
-##### Felt-long types
-
-Valid field element types are `u8`, `u16`, `u32`, `felt` and `tokensymbol`:
-
-- `u8`, `u16` and `u32` values can be parsed as decimal numbers and represent 8-bit, 16-bit and 32-bit values
-- `felt` values represent a field element, and can be parsed as decimal or hexadecimal values
-- `tokensymbol` values represent the symbol for basic fungible tokens, and are parsed as strings made of four uppercase characters
