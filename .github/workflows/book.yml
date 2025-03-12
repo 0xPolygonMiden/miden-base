@@ -6,7 +6,6 @@ on:
   push:
     branches: [main, next]
   pull_request:
-    types: [opened, reopened, synchronize]
 
 jobs:
   check:
@@ -15,9 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # Reuse the setup mdbook steps
-      - &setup_mdbook
-        name: Setup mdbook and extensions
+      - name: Setup mdbook and extensions
         run: |
           # Update Rust and install mdbook, katex, linkcheck and alerts
           rustup update --no-self-update stable
@@ -32,8 +29,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # Reuse the same mdbook setup step using the alias
-      - <<: *setup_mdbook
+      - name: Setup mdbook and extensions
+        run: |
+          # Update Rust and install mdbook, katex, linkcheck and alerts
+          rustup update --no-self-update stable
+          cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
 
       - name: Build book
         run: mdbook build
