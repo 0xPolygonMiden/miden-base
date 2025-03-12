@@ -1,14 +1,9 @@
 # Summary
 
-[Introduction](./index.md)
-
----
-
-# Protocol
-
-- [Account](./account.md)
-- [Note](./note.md)
-- [Asset](./asset.md)
-- [Transaction](./transaction.md)
+- [Introduction](./index.md)
+- [Accounts](./account.md)
+- [Notes](./note.md)
+- [Assets](./asset.md)
+- [Transactions](./transaction.md)
 - [State](./state.md)
 - [Blockchain](./blockchain.md)

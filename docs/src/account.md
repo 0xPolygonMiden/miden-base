@@ -6,15 +6,15 @@ An `Account` represents the primary entity of the protocol. Capable of holding a
 
 In Miden's hybrid UTXO- and account-based model `Account`s enable the creation of expressive smart contracts via a Turing-complete language.
 
-## Account core components
+## Account core elements
 
-An `Account` is composed of several core components, illustrated below:
+An `Account` is composed of several core elements, illustrated below:
 
 <p style="text-align: center;">
     <img src="img/account/account-definition.png" style="width:30%;" alt="Account diagram"/>
 </p>
 
-These components are:
+These elements are:
 
 1. [ID](#id)
 2. [Code](#code)
