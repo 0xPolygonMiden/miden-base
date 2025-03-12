@@ -21,7 +21,7 @@ jobs:
           cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
 
       - name: Build book
-        run: mdbook build
+        run: mdbook build docs
 
   deploy:
     runs-on: ubuntu-latest
@@ -36,7 +36,7 @@ jobs:
           cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
 
       - name: Build book
-        run: mdbook build
+        run: mdbook build docs
 
       - name: Determine deployment path
         id: deployment
