@@ -5,18 +5,34 @@ name: book
 on:
   push:
     branches: [main, next]
+  pull_request:
 
 jobs:
-  deploy:
+  check:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup mdbook and extensions
+      # Reuse the setup mdbook steps
+      - &setup_mdbook
+        name: Setup mdbook and extensions
         run: |
           # Update Rust and install mdbook, katex, linkcheck and alerts
           rustup update --no-self-update stable
           cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
+
+      - name: Build book
+        run: mdbook build
+
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v2
+
+      # Reuse the same mdbook setup step using the alias
+      - <<: *setup_mdbook
 
       - name: Build book
         run: mdbook build

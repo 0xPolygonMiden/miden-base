@@ -2,38 +2,10 @@
 title = "Miden base"
 authors = ["Miden team"]
 description = "Description and core structures for the Miden Rollup protocol"
-src = "src"
-language = "en"
-
-[build]
-build-dir = "book"
-create-missing = true
 
 [output.html]
 git-repository-url = "https://github.com/0xPolygonMiden/miden-base"
 mathjax-support = true
-copy-fonts = true
-
-[output.html.fold]
-enable = true
-level = 0
-
-[output.html.search]
-enable = true
-limit-results = 15
-teaser-word-count = 30
-use-boolean-and = true
-boost-title = 2
-boost-hierarchy = 1
-boost-paragraph = 1
-expand = true
-heading-split-level = 3
-
-[output.html.print]
-enable = true
-
-[preprocessor.links]
-renderer = true
 
 [preprocessor.katex]
 after = ["links"]
