@@ -3,53 +3,53 @@
 name: book
 
 on:
-  push:
-    branches: [main, next]
-  pull_request:
-    types: [opened, reopened, synchronize]
+push:
+branches: [main, next]
+pull_request:
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    # if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v2
+check:
+runs-on: ubuntu-latest
+if: github.event_name == 'pull_request'
+steps:
+- uses: actions/checkout@v2
 
-      # Reuse the setup mdbook steps
-      - &setup_mdbook
-        name: Setup mdbook and extensions
-        run: |
-          # Update Rust and install mdbook, katex, linkcheck and alerts
-          rustup update --no-self-update stable
-          cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
+- name: Setup mdbook and extensions
+run: |
+# Update Rust and install mdbook, katex, linkcheck and alerts
+rustup update --no-self-update stable
+cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
 
-      - name: Build book
-        run: mdbook build
+- name: Build book
+run: mdbook build
 
-  deploy:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v2
+deploy:
+runs-on: ubuntu-latest
+if: github.event_name == 'push'
+steps:
+- uses: actions/checkout@v2
 
-      # Reuse the same mdbook setup step using the alias
-      - <<: *setup_mdbook
+- name: Setup mdbook and extensions
+run: |
+# Update Rust and install mdbook, katex, linkcheck and alerts
+rustup update --no-self-update stable
+cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
 
-      - name: Build book
-        run: mdbook build
+- name: Build book
+run: mdbook build
 
-      - name: Determine deployment path
-        id: deployment
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "path=" >> $GITHUB_OUTPUT
-          else
-            echo "path=next" >> $GITHUB_OUTPUT
-          fi
+- name: Determine deployment path
+id: deployment
+run: |
+if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+echo "path=" >> $GITHUB_OUTPUT
+else
+echo "path=next" >> $GITHUB_OUTPUT
+fi
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./book
-          destination_dir: ${{ steps.deployment.outputs.path }}
+- name: Deploy to GitHub Pages
+uses: peaceiris/actions-gh-pages@v3
+with:
+github_token: ${{ secrets.GITHUB_TOKEN }}
+publish_dir: ./book
+destination_dir: ${{ steps.deployment.outputs.path }}
