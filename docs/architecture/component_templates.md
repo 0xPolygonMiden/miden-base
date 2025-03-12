@@ -116,16 +116,16 @@ Valid types for a single-slot value are `word` or `auth::rpo_falcon512::pub_key`
 
 In the above example, the first and second storage entries are single-slot values.
 
-##### Storage maps
+##### Storage map entries
 
-Storage maps consist of key-value pairs, where both keys and values are single words.
+[Storage maps](accounts.md#storage) consist of key-value pairs, where both keys and values are single words.
 
 Storage map entries can specify the following fields:
 
 - `slot`: Specifies the slot index in which the root of the map will be placed
 - `values`: Contains a list of map entries, defined by a `key` and `value`
 
-Storage maps `key`s and `value`s are word-long values, which can be defined as placeholders.
+Where `key`s and `value`s are word-long values, which can be defined as placeholders.
 
 In the example, the third storage entry defines a storage map.
 
