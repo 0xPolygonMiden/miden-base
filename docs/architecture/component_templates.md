@@ -14,7 +14,7 @@ The component template’s code defines a library of functions that operate on t
 
 The component metadata describes the account component entirely: its name, description, version, and storage layout.
 
-The storage layout can optionally define specific initial values for each of the slots. Alternatively, placeholders can be utilized to identify values that should be provided at the moment of instantiation.
+The storage layout must specify a contiguous list of slot values that starts at index `0`, and can optionally specify initial values for each of the slots. Alternatively, placeholders can be utilized to identify values that should be provided at the moment of instantiation.
 
 ### TOML specification
 
@@ -50,13 +50,22 @@ values = [
     { key = "0x1", value = ["0x0", "249381274", "998123581", "124991023478"] },
     { key = "0xDE0B1140012A9FD912F18AD9EC85E40F4CB697AE", value = { name = "value_placeholder", description = "This value will be defined at the moment of instantiation", type = "word" } }
 ]
+
+[[storage]]
+name = "multislot_entry"
+slots = [3,4]
+values = [
+    ["0x1","0x2","0x3","0x4"],
+    ["50000","60000","70000","80000"]
+]
+
 ```
 
 #### Specifying values and their types
 
 In the TOML format, any value that is one word long can be written as a single value, or as exactly four field elements. In turn, a field element is a number within Miden's finite field. 
 
-A word can be written as a hexadecimal value, and field elements can be written either as hexadecimal or decimal numbers.
+A word can be written as a hexadecimal value, and field elements can be written either as hexadecimal or decimal numbers. In all cases, numbers should be input as strings.
 
 In our example, the `token_metadata` single-slot entry is defined as four elements, where the first element is a placeholder, and the second, third and fourth are hardcoded values.
 
@@ -107,17 +116,6 @@ Valid types for a single-slot value are `word` or `auth::rpo_falcon512::pub_key`
 
 In the above example, the first and second storage entries are single-slot values.
 
-##### Multi-slot value
-
-Multi-slot values are composite values that exceed the size of a single slot (i.e., more than one `word`).
-
-For multi-slot values, the following fields are expected:
-
-- `slots`: Specifies the list of contiguous slots that the value comprises
-- `values`: Contains the initial storage value for the specified slots
-
-Placeholders can currently not be defined for multi-slot values.
-
 ##### Storage maps
 
 Storage maps consist of key-value pairs, where both keys and values are single words.
@@ -130,3 +128,14 @@ Storage map entries can specify the following fields:
 Storage maps `key`s and `value`s are word-long values, which can be defined as placeholders.
 
 In the example, the third storage entry defines a storage map.
+
+##### Multi-slot value
+
+Multi-slot values are composite values that exceed the size of a single slot (i.e., more than one `word`).
+
+For multi-slot values, the following fields are expected:
+
+- `slots`: Specifies the list of contiguous slots that the value comprises
+- `values`: Contains the initial storage value for the specified slots
+
+Placeholders can currently not be defined for multi-slot values. In our example, the fourth entry defines a two-slot value.
