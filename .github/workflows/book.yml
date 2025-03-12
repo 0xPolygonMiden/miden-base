@@ -12,13 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup mdBook and extensions
+      - name: Setup mdbook and extensions
         run: |
-          # Install mdBook, katex, linkcheck and alerts
+          # Update Rust and install mdbook, katex, linkcheck and alerts
           rustup update --no-self-update stable
-          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.25/mdbook-v0.4.25-x86_64-unknown-linux-gnu.tar.gz | tar -xz
-          mv mdbook /usr/local/bin/
-          cargo +stable install mdbook-katex mdbook-linkcheck mdbook-alerts
+          cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
 
       - name: Build book
         run: mdbook build
