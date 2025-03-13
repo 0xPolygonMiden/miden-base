@@ -49,7 +49,7 @@ pub(super) fn extend_advice_inputs(
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_HASH,
-///     KERNEL_ROOT
+///     KERNEL_COMMITMENT
 ///     PROOF_HASH,
 ///     [block_num, version, timestamp, 0],
 ///     NOTE_ROOT,
@@ -76,7 +76,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
     inputs.extend_stack(header.tx_hash());
-    inputs.extend_stack(header.kernel_root());
+    inputs.extend_stack(header.tx_kernel_commitment());
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([
         header.block_num().into(),
@@ -326,5 +326,5 @@ pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_vers
     )]);
 
     // insert kernels root with kernel hashes into the advice map
-    inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
+    inputs.extend_map([(TransactionKernel::kernel_commitment(), kernel_hashes)]);
 }

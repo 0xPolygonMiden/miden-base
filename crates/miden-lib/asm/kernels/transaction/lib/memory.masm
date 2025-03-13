@@ -85,8 +85,8 @@ const.NULLIFIER_ROOT_PTR=812
 # The memory address at which the tx hash is stored
 const.TX_HASH_PTR=816
 
-# The memory address at which the kernel root is stored
-const.KERNEL_ROOT_PTR=820
+# The memory address at which the kernel commitment is stored
+const.KERNEL_COMMITMENT_PTR=820
 
 # The memory address at which the proof hash is stored
 const.PROOF_HASH_PTR=824
@@ -554,15 +554,15 @@ export.get_tx_hash
     padw push.TX_HASH_PTR mem_loadw
 end
 
-#! Returns the kernel root used in the transaction reference block.
+#! Returns the transaction kernel commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [KERNEL_ROOT]
+#! Outputs: [KERNEL_COMMITMENT]
 #!
 #! Where:
-#! - KERNEL_ROOT is an accumulative hash from all kernel hashes.
-export.get_kernel_root
-    padw push.KERNEL_ROOT_PTR mem_loadw
+#! - KERNEL_COMMITMENT is an accumulative hash from all kernel hashes.
+export.get_kernel_commitment
+    padw push.KERNEL_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the proof hash of the transaction reference block.

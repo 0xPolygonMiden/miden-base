@@ -17,7 +17,7 @@ use miden_lib::{
             INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
             INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
-            KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
+            KERNEL_COMMITMENT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
             NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
             NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
             NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
@@ -189,9 +189,9 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), KERNEL_ROOT_PTR),
-        inputs.tx_inputs().block_header().kernel_root().as_elements(),
-        "The kernel root should be stored at the KERNEL_ROOT_PTR"
+        read_root_mem_word(&process.into(), KERNEL_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().tx_kernel_commitment().as_elements(),
+        "The kernel commitment should be stored at the KERNEL_COMMITMENT_PTR"
     );
 
     assert_eq!(

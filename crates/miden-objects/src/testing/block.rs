@@ -24,7 +24,7 @@ impl BlockHeader {
         chain_commitment: Option<Digest>,
         note_root: Option<Digest>,
         accounts: &[Account],
-        kernel_root: Digest,
+        kernel_commitment: Digest,
     ) -> Self {
         let acct_db = SimpleSmt::<ACCOUNT_TREE_DEPTH>::with_leaves(
             accounts
@@ -101,7 +101,7 @@ impl BlockHeader {
             nullifier_root,
             note_root,
             tx_hash,
-            kernel_root,
+            kernel_commitment,
             proof_hash,
             timestamp,
         )

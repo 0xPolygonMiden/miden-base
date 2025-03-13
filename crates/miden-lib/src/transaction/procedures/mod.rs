@@ -42,7 +42,7 @@ impl TransactionKernel {
     }
 
     /// Computes a hash from all kernel hashes.
-    pub fn kernel_root() -> Digest {
+    pub fn kernel_commitment() -> Digest {
         Hasher::hash_elements(&[Self::kernel_hash(0).as_elements()].concat())
     }
 }

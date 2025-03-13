@@ -839,7 +839,7 @@ impl MockChain {
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
 
-            let kernel_root = TransactionKernel::kernel_root();
+            let kernel_commitment = TransactionKernel::kernel_commitment();
 
             // TODO: Set `proof_hash` to the correct value once the kernel is available.
             let proof_hash = Digest::default();
@@ -853,7 +853,7 @@ impl MockChain {
                 nullifier_root,
                 note_root,
                 tx_hash,
-                kernel_root,
+                kernel_commitment,
                 proof_hash,
                 timestamp,
             );

@@ -143,7 +143,7 @@ impl LocalBlockProver {
         // Currently undefined and reserved for future use.
         // See miden-base/1155.
         let version = 0;
-        let kernel_root = TransactionKernel::kernel_root();
+        let kernel_commitment = TransactionKernel::kernel_commitment();
 
         // For now, we're not actually proving the block.
         let proof_hash = Digest::default();
@@ -157,7 +157,7 @@ impl LocalBlockProver {
             new_nullifier_root,
             note_root,
             tx_hash,
-            kernel_root,
+            kernel_commitment,
             proof_hash,
             timestamp,
         );

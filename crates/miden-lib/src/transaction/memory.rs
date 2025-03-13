@@ -125,8 +125,8 @@ pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 812;
 /// The memory address at which the TX hash is stored
 pub const TX_HASH_PTR: MemoryAddress = 816;
 
-/// The memory address at which the kernel root is stored
-pub const KERNEL_ROOT_PTR: MemoryAddress = 820;
+/// The memory address at which the kernel commitment is stored
+pub const KERNEL_COMMITMENT_PTR: MemoryAddress = 820;
 
 /// The memory address at which the proof hash is stored
 pub const PROOF_HASH_PTR: MemoryAddress = 824;
