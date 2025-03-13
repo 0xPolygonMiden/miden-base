@@ -23,7 +23,7 @@ The kernel has a well-defined structure which does the following:
 The transaction kernel program receives two types of inputs: public inputs via the `operand_stack` and private inputs via the `advice_provider`.
 
 - **Operand stack**: Holds the global inputs which serve as a commitment to the data being provided via the advice provider.
-- **Advice provider**: Holds data of the last known block, account, and input note data.
+- **Advice provider**: Holds data of the transaction reference block, account, and input note data.
 
 ## Prologue
 

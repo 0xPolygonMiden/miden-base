@@ -86,7 +86,7 @@ pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 28;
 /// The memory address at which the global inputs section begins.
 pub const GLOBAL_INPUTS_SECTION_OFFSET: MemoryOffset = 400;
 
-/// The memory address at which the latest known block commitment is stored.
+/// The memory address at which the commitment of the transaction's reference block is stored.
 pub const BLOCK_COMMITMENT_PTR: MemoryAddress = 400;
 
 /// The memory address at which the account ID is stored.
