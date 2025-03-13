@@ -56,6 +56,6 @@ jobs:
           rustup update --no-self-update stable
           cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
       - name: Build book
-        run: make book
+        run: mdbook build docs
 
 
