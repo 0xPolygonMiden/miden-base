@@ -549,7 +549,7 @@ end
 #!
 #! Inputs:
 #!   Operand stack: [NOTE_HASH]
-#!   Advice stack: [block_num, BLOCK_SUB_HASH, NOTE_ROOT, note_index]
+#!   Advice stack: [block_num, BLOCK_SUB_COMMITMENT, NOTE_ROOT, note_index]
 #! Outputs:
 #!   Operand stack: []
 #!   Advice stack: []
@@ -557,7 +557,7 @@ end
 #! Where:
 #! - NOTE_HASH is the input note's commitment computed as `hash(NOTE_ID || NOTE_METADATA)`.
 #! - block_num is the leaf position in the MMR chain of the block which created the input note.
-#! - BLOCK_SUB_HASH is the sub_hash of the block which created the input note.
+#! - BLOCK_SUB_COMMITMENT is the sub_commitment of the block which created the input note.
 #! - NOTE_ROOT is the merkle root of the notes tree containing the input note.
 #! - note_index is the input note's position in the notes tree.
 proc.authenticate_note.8
@@ -576,7 +576,7 @@ proc.authenticate_note.8
     # Load and authenticate the NOTE_ROOT
     # ---------------------------------------------------------------------------------------------
 
-    # read data from advice and compute hash(BLOCK_SUB_HASH || NOTE_ROOT)
+    # read data from advice and compute hash(BLOCK_SUB_COMMITMENT || NOTE_ROOT)
     padw padw padw
     adv_pipe hperm
     # => [PERM, COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
@@ -857,7 +857,7 @@ end
 #!      is_authenticated,
 #!      (
 #!        block_num,
-#!        BLOCK_SUB_HASH,
+#!        BLOCK_SUB_COMMITMENT,
 #!        NOTE_ROOT,
 #!      )?
 #!   ]
@@ -880,7 +880,7 @@ end
 #! - is_authenticated is the boolean indicating if the note contains an authentication proof.
 #! - optional values, required if `is_authenticated` is true:
 #!   - block_num is the note's creation block number.
-#!   - BLOCK_SUB_HASH is the block's sub_hash for which the note was created.
+#!   - BLOCK_SUB_COMMITMENT is the block's sub_commitment for which the note was created.
 #!   - NOTE_ROOT is the merkle root of the note's tree.
 proc.process_input_note
     # note details

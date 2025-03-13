@@ -27,8 +27,8 @@ use crate::{
 ///   transition.
 /// - `timestamp` is the time when the block was created, in seconds since UNIX epoch. Current
 ///   representation is sufficient to represent time up to year 2106.
-/// - `sub_hash` is a sequential hash of all fields except the note_root.
-/// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
+/// - `sub_commitment` is a sequential hash of all fields except the note_root.
+/// - `hash` is a 2-to-1 hash of the sub_commitment and the note_root.
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockHeader {
     version: u32,
@@ -42,7 +42,7 @@ pub struct BlockHeader {
     tx_kernel_commitment: Digest,
     proof_commitment: Digest,
     timestamp: u32,
-    sub_hash: Digest,
+    sub_commitment: Digest,
     hash: Digest,
 }
 
@@ -62,8 +62,8 @@ impl BlockHeader {
         proof_commitment: Digest,
         timestamp: u32,
     ) -> Self {
-        // compute block sub hash
-        let sub_hash = Self::compute_sub_hash(
+        // compute block sub commitment
+        let sub_commitment = Self::compute_sub_commitment(
             version,
             prev_block_commitment,
             chain_commitment,
@@ -76,11 +76,11 @@ impl BlockHeader {
             block_num,
         );
 
-        // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the
-        // final hash. This is done to make the note_root easily accessible without having
-        // to unhash the entire header. Having the note_root easily accessible is useful
-        // when authenticating notes.
-        let hash = Hasher::merge(&[sub_hash, note_root]);
+        // The sub commitment is merged with the note_root - hash(sub_commitment, note_root) to
+        // produce the final hash. This is done to make the note_root easily accessible
+        // without having to unhash the entire header. Having the note_root easily
+        // accessible is useful when authenticating notes.
+        let hash = Hasher::merge(&[sub_commitment, note_root]);
 
         Self {
             version,
@@ -94,7 +94,7 @@ impl BlockHeader {
             tx_kernel_commitment,
             proof_commitment,
             timestamp,
-            sub_hash,
+            sub_commitment,
             hash,
         }
     }
@@ -112,12 +112,13 @@ impl BlockHeader {
         self.hash
     }
 
-    /// Returns the sub hash of the block header. The sub hash is a sequential hash of all block
-    /// header fields except the note root. This is used in the block hash computation which is a
-    /// 2-to-1 hash of the sub hash and the note root [hash(sub_hash, note_root)]. This procedure
-    /// is used to make the note root easily accessible without having to unhash the entire header.
-    pub fn sub_hash(&self) -> Digest {
-        self.sub_hash
+    /// Returns the sub commitment of the block header. The sub commitment is a sequential hash of
+    /// all block header fields except the note root. This is used in the block commitment
+    /// computation which is a 2-to-1 hash of the sub commitment and the note root
+    /// [hash(sub_commitment, note_root)]. This procedure is used to make the note root easily
+    /// accessible without having to unhash the entire header.
+    pub fn sub_commitment(&self) -> Digest {
+        self.sub_commitment
     }
 
     /// Returns the commitment to the previous block header.
@@ -192,14 +193,14 @@ impl BlockHeader {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Computes the sub hash of the block header.
+    /// Computes the sub commitment of the block header.
     ///
-    /// The sub hash is computed as a sequential hash of the following fields:
+    /// The sub commitment is computed as a sequential hash of the following fields:
     /// `prev_block_commitment`, `chain_commitment`, `account_root`, `nullifier_root`, `note_root`,
     /// `tx_commitment`, `tx_kernel_commitment`, `proof_commitment`, `version`, `timestamp`,
     /// `block_num` (all fields except the `note_root`).
     #[allow(clippy::too_many_arguments)]
-    fn compute_sub_hash(
+    fn compute_sub_commitment(
         version: u32,
         prev_block_commitment: Digest,
         chain_commitment: Digest,

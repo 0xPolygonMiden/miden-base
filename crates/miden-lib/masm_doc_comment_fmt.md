@@ -132,7 +132,7 @@ Example:
 #!      assets_count,
 #!      (
 #!        block_num,
-#!        BLOCK_SUB_HASH,
+#!        BLOCK_SUB_COMMITMENT,
 #!        NOTE_ROOT,
 #!      )?
 #!   ]

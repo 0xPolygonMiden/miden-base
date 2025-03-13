@@ -215,7 +215,7 @@ fn add_account_to_advice_inputs(
 ///     - The note's asset padded. Prefixed by its length and padded to an even word length.
 ///     - For authenticated notes (determined by the `is_authenticated` flag):
 ///         - The note's authentication path against its block's note tree.
-///         - The block number, sub hash, note root.
+///         - The block number, sub commitment, note root.
 ///         - The note's position in the note tree
 ///
 /// The data above is processed by `prologue::process_input_notes_data`.
@@ -283,7 +283,7 @@ fn add_input_notes_to_advice_inputs(
                         .unwrap(),
                 );
                 note_data.push(proof.location().block_num().into());
-                note_data.extend(note_block_header.sub_hash());
+                note_data.extend(note_block_header.sub_commitment());
                 note_data.extend(note_block_header.note_root());
                 note_data.push(proof.location().node_index_in_block().into());
             },
