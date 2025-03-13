@@ -41,7 +41,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
 
-use super::{prepare_word, Felt, Process, ProcessState, Word, ONE, ZERO};
+use super::{word_to_felts_string, Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
     testing::{MockChain, TransactionContextBuilder},
@@ -79,7 +79,7 @@ fn test_create_note() {
             swapdw dropw dropw
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_felts_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         note_execution_hint = Felt::from(NoteExecutionHint::after_block(23.into()).unwrap()),
         tag = tag,
@@ -166,7 +166,7 @@ fn test_create_note_with_invalid_tag() {
                 dropw dropw
             end
             ",
-            recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
+            recipient = word_to_felts_string(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
             execution_hint_always = Felt::from(NoteExecutionHint::always()),
             PUBLIC_NOTE = NoteType::Public as u8,
             aux = Felt::ZERO,
@@ -200,7 +200,7 @@ fn test_create_note_too_many_notes() {
         end
         ",
         tag = Felt::new(4),
-        recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
+        recipient = word_to_felts_string(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
         execution_hint_always = Felt::from(NoteExecutionHint::always()),
         PUBLIC_NOTE = NoteType::Public as u8,
         aux = Felt::ZERO,
@@ -321,17 +321,17 @@ fn test_get_output_notes_commitment() {
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
         NOTE_EXECUTION_HINT_1 = Felt::from(output_note_1.metadata().execution_hint()),
-        recipient_1 = prepare_word(&output_note_1.recipient().digest()),
+        recipient_1 = word_to_felts_string(&output_note_1.recipient().digest()),
         tag_1 = output_note_1.metadata().tag(),
         aux_1 = output_note_1.metadata().aux(),
-        asset_1 = prepare_word(&Word::from(
+        asset_1 = word_to_felts_string(&Word::from(
             **output_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
-        recipient_2 = prepare_word(&output_note_2.recipient().digest()),
+        recipient_2 = word_to_felts_string(&output_note_2.recipient().digest()),
         NOTE_EXECUTION_HINT_2 = Felt::from(output_note_2.metadata().execution_hint()),
         tag_2 = output_note_2.metadata().tag(),
         aux_2 = output_note_2.metadata().aux(),
-        asset_2 = prepare_word(&Word::from(
+        asset_2 = word_to_felts_string(&Word::from(
             **output_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
     );
@@ -406,11 +406,11 @@ fn test_create_note_and_add_asset() {
             swapdw dropw dropw
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_felts_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         NOTE_EXECUTION_HINT = Felt::from(NoteExecutionHint::always()),
         tag = tag,
-        asset = prepare_word(&asset),
+        asset = word_to_felts_string(&asset),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -486,13 +486,13 @@ fn test_create_note_and_add_multiple_assets() {
             swapdw dropw drop drop drop
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_felts_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
-        asset = prepare_word(&asset),
-        asset_2 = prepare_word(&asset_2),
-        asset_3 = prepare_word(&asset_3),
-        nft = prepare_word(&non_fungible_asset_encoded),
+        asset = word_to_felts_string(&asset),
+        asset_2 = word_to_felts_string(&asset_2),
+        asset_3 = word_to_felts_string(&asset_3),
+        nft = word_to_felts_string(&non_fungible_asset_encoded),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -570,12 +570,12 @@ fn test_create_note_and_add_same_nft_twice() {
             repeat.5 dropw end
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_felts_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         execution_hint_always = Felt::from(NoteExecutionHint::always()),
         aux = Felt::new(0),
         tag = tag,
-        nft = prepare_word(&encoded),
+        nft = word_to_felts_string(&encoded),
     );
 
     let process = tx_context.execute_code(&code);
@@ -642,7 +642,7 @@ fn test_build_recipient_hash() {
         ",
         input_hash = input_hash,
         script_hash = input_note_1.script().clone().hash(),
-        output_serial_no = prepare_word(&output_serial_no),
+        output_serial_no = word_to_felts_string(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
         execution_hint = Felt::from(NoteExecutionHint::after_block(2.into()).unwrap()),

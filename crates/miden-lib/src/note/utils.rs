@@ -5,7 +5,7 @@ use miden_objects::{
     NoteError, Word,
 };
 
-use super::well_known_note;
+use super::well_known_note::WellKnownNote;
 
 /// Creates a [NoteRecipient] for the P2ID note.
 ///
@@ -15,7 +15,7 @@ pub fn build_p2id_recipient(
     target: AccountId,
     serial_num: Word,
 ) -> Result<NoteRecipient, NoteError> {
-    let note_script = well_known_note::p2id();
+    let note_script = WellKnownNote::P2ID.script();
     let note_inputs = NoteInputs::new(vec![target.suffix(), target.prefix().as_felt()])?;
 
     Ok(NoteRecipient::new(serial_num, note_script, note_inputs))

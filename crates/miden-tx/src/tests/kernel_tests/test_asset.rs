@@ -10,7 +10,7 @@ use miden_objects::{
 };
 use vm_processor::ProcessState;
 
-use super::{prepare_word, Felt, Hasher, Word, ONE};
+use super::{word_to_felts_string, Felt, Hasher, Word, ONE};
 use crate::testing::TransactionContextBuilder;
 
 #[test]
@@ -82,7 +82,8 @@ fn test_create_non_fungible_asset_succeeds() {
             swapw dropw
         end
         ",
-        non_fungible_asset_data_hash = prepare_word(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
+        non_fungible_asset_data_hash =
+            word_to_felts_string(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -115,7 +116,7 @@ fn test_validate_non_fungible_asset() {
             swapw dropw
         end
         ",
-        asset = prepare_word(&encoded)
+        asset = word_to_felts_string(&encoded)
     );
 
     let process = &tx_context.execute_code(&code).unwrap();

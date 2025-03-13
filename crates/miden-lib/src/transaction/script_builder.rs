@@ -16,6 +16,10 @@ use crate::{
 
 // TRANSACTION SCRIPT BUILDER
 // ============================================================================================
+
+/// A builder used for generating the transaction scripts based on the available account interfaces.
+///
+/// It could be used for generating scripts for sending notes and authentication.
 pub struct TransactionScriptBuilder {
     /// Metadata about the account for which the script is being built. [AccountInterface]
     /// specifies the account ID, authentication method and the interfaces exposed by this
@@ -29,6 +33,8 @@ pub struct TransactionScriptBuilder {
 }
 
 impl TransactionScriptBuilder {
+    /// Creates a new [TransactionScriptBuilder] from the provided account interface, expiration
+    /// delta and a debug mode flag.
     pub fn new(
         account_interface: AccountInterface,
         expiration_delta: Option<u16>,
@@ -83,8 +89,7 @@ impl TransactionScriptBuilder {
         sections: &[String],
     ) -> Result<TransactionScript, TransactionScriptBuilderError> {
         let script = format!(
-            "{} begin {} {} {} end",
-            self.script_includes()?,
+            "begin {} {} {} end",
             self.script_expiration(),
             sections.join(" "),
             self.script_authentication()
@@ -97,47 +102,13 @@ impl TransactionScriptBuilder {
         Ok(tx_script)
     }
 
-    /// Returns a string with the needed include instructions for the script.
-    fn script_includes(&self) -> Result<String, TransactionScriptBuilderError> {
-        let mut includes = String::new();
-
-        let include_script = if self
-            .account_interface
-            .components()
-            .contains(&AccountComponentInterface::BasicFungibleFaucet)
-        {
-            AccountComponentInterface::BasicFungibleFaucet.script_includes()?
-        } else if self
-            .account_interface
-            .components()
-            .contains(&AccountComponentInterface::BasicWallet)
-        {
-            AccountComponentInterface::BasicWallet.script_includes()?
-        } else {
-            return Err(TransactionScriptBuilderError::UnsupportedAccount);
-        };
-
-        includes.push_str(include_script);
-
-        self.account_interface.auth().iter().for_each(|auth_scheme| match auth_scheme {
-            &AuthScheme::RpoFalcon512 { pub_key: _ } => {
-                includes.push_str("use.miden::contracts::auth::basic->auth_tx\n");
-            },
-        });
-
-        if self.expiration_delta.is_some() {
-            includes.push_str("use.miden::tx\n");
-        }
-
-        Ok(includes)
-    }
-
     /// Returns a string with the authentication procedure call for the script.
     fn script_authentication(&self) -> String {
         let mut auth_script = String::new();
         self.account_interface.auth().iter().for_each(|auth_scheme| match auth_scheme {
             &AuthScheme::RpoFalcon512 { pub_key: _ } => {
-                auth_script.push_str("call.auth_tx::auth_tx_rpo_falcon512\n");
+                auth_script
+                    .push_str("call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512\n");
             },
         });
 
@@ -147,7 +118,7 @@ impl TransactionScriptBuilder {
     /// Returns a string with the expiration delta update procedure call for the script.
     fn script_expiration(&self) -> String {
         if let Some(expiration_delta) = self.expiration_delta {
-            format!("push.{expiration_delta} exec.tx::update_expiration_block_delta\n")
+            format!("push.{expiration_delta} exec.::miden::tx::update_expiration_block_delta\n")
         } else {
             String::new()
         }
@@ -160,10 +131,8 @@ impl TransactionScriptBuilder {
 /// Errors related to building a transaction script.
 #[derive(Debug, Error)]
 pub enum TransactionScriptBuilderError {
-    #[error("invalid asset: {0}")]
-    InvalidAsset(AccountIdPrefix),
-    #[error("pay to id note doesn't contain at least one asset")]
-    P2IDNoteWithoutAsset,
+    #[error("note asset is not issued by this faucet: {0}")]
+    IssuanceFaucetMismatch(AccountIdPrefix),
     #[error("note created by the faucet doesn't contain exactly one asset")]
     FaucetNoteWithoutAsset,
     #[error("invalid transaction script")]

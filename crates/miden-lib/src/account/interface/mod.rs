@@ -11,7 +11,7 @@ use miden_objects::{
     assembly::mast::{MastForest, MastNode, MastNodeId},
     crypto::dsa::rpo_falcon512,
     note::{Note, NoteScript, PartialNote},
-    utils::prepare_word,
+    utils::word_to_felts_string,
     Digest, Felt,
 };
 
@@ -291,7 +291,7 @@ impl AccountComponentInterface {
                     push.{aux}
                     push.{tag}
                     ",
-                recipient = prepare_word(&partial_note.recipient_digest()),
+                recipient = word_to_felts_string(&partial_note.recipient_digest()),
                 note_type = Felt::from(partial_note.metadata().note_type()),
                 execution_hint = Felt::from(partial_note.metadata().execution_hint()),
                 aux = partial_note.metadata().aux(),
@@ -309,7 +309,7 @@ impl AccountComponentInterface {
                         partial_note.assets().iter().next().expect("note should contain an asset");
 
                     if asset.faucet_id_prefix() != sender_account_id.prefix() {
-                        return Err(TransactionScriptBuilderError::InvalidAsset(
+                        return Err(TransactionScriptBuilderError::IssuanceFaucetMismatch(
                             asset.faucet_id_prefix(),
                         ));
                     }
@@ -317,7 +317,7 @@ impl AccountComponentInterface {
                     body.push_str(&format!(
                         "
                         push.{amount}
-                        call.faucet::distribute dropw dropw drop
+                        call.::miden::contracts::faucets::basic_fungible::distribute dropw dropw drop
                         ",
                         amount = asset.unwrap_fungible().amount()
                     ));
@@ -325,14 +325,14 @@ impl AccountComponentInterface {
                 AccountComponentInterface::BasicWallet => {
                     body.push_str(
                         "
-                        call.wallet::create_note\n",
+                        call.::miden::contracts::wallets::basic::create_note\n",
                     );
 
                     for asset in partial_note.assets().iter() {
                         body.push_str(&format!(
                             "push.{asset}
-                            call.wallet::move_asset_to_note dropw\n",
-                            asset = prepare_word(&asset.into())
+                            call.::miden::contracts::wallets::basic::move_asset_to_note dropw\n",
+                            asset = word_to_felts_string(&asset.into())
                         ));
                     }
 
@@ -343,23 +343,6 @@ impl AccountComponentInterface {
         }
 
         Ok(body)
-    }
-
-    /// Returns a string line with the import of the contract associated with the current
-    /// [AccountComponentInterface].
-    ///
-    /// Errors if:
-    /// - the interface does not support the generation of the standard `send_note` procedure.
-    pub(crate) fn script_includes(&self) -> Result<&str, TransactionScriptBuilderError> {
-        match self {
-            AccountComponentInterface::BasicWallet => {
-                Ok("use.miden::contracts::wallets::basic->wallet\n")
-            },
-            AccountComponentInterface::BasicFungibleFaucet => {
-                Ok("use.miden::contracts::faucets::basic_fungible->faucet\n")
-            },
-            _ => Err(TransactionScriptBuilderError::UnsupportedInterface(self.clone())),
-        }
     }
 }
 

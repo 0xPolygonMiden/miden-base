@@ -13,7 +13,7 @@ use miden_objects::{
     transaction::{
         ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder, TransactionScript,
     },
-    utils::prepare_word,
+    utils::word_to_felts_string,
     vm::ExecutionProof,
     Felt,
 };
@@ -86,7 +86,7 @@ pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: 
         dropw dropw dropw dropw dropw
     end
     ",
-        recipient = prepare_word(&output_note.recipient().digest()),
+        recipient = word_to_felts_string(&output_note.recipient().digest()),
         PUBLIC_NOTE = output_note.header().metadata().note_type() as u8,
         aux = output_note.metadata().aux(),
         tag = output_note.metadata().tag(),

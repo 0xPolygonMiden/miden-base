@@ -23,7 +23,7 @@ use miden_objects::{
 };
 use vm_processor::ProcessState;
 
-use super::{prepare_word, Felt, Word, ONE, ZERO};
+use super::{word_to_felts_string, Felt, Word, ONE, ZERO};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_word,
@@ -108,7 +108,7 @@ fn test_has_non_fungible_asset() {
             swap drop
         end
         ",
-        non_fungible_asset_key = prepare_word(&non_fungible_asset.into())
+        non_fungible_asset_key = word_to_felts_string(&non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -144,7 +144,7 @@ fn test_add_fungible_asset_success() {
             swapw dropw
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&add_fungible_asset.into())
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -187,7 +187,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
             call.account::add_asset
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&add_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -223,7 +223,7 @@ fn test_add_non_fungible_asset_success() {
             swapw dropw
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&add_non_fungible_asset.into())
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -261,7 +261,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
             call.account::add_asset
         end
         ",
-        NON_FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
+        NON_FUNGIBLE_ASSET = word_to_felts_string(&non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -299,7 +299,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
             swapw dropw
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&remove_fungible_asset.into())
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -340,7 +340,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
             call.account::remove_asset
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&remove_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -377,7 +377,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
             swapw dropw
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&remove_fungible_asset.into())
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -422,7 +422,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
             call.account::remove_asset
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&non_existent_non_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&non_existent_non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -459,7 +459,7 @@ fn test_remove_non_fungible_asset_success() {
             swapw dropw
         end
         ",
-        FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
+        FUNGIBLE_ASSET = word_to_felts_string(&non_fungible_asset.into())
     );
 
     let process = &tx_context.execute_code(&code).unwrap();

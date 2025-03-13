@@ -23,7 +23,7 @@ use miden_objects::{
         storage::prepare_assets,
     },
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
-    utils::prepare_word,
+    utils::word_to_felts_string,
     vm::AdviceMap,
     FieldElement,
 };
@@ -272,7 +272,7 @@ impl TransactionContextBuilder {
             end
             ",
             PUBLIC_NOTE = NoteType::Public as u8,
-            recipient = prepare_word(&output.recipient().digest()),
+            recipient = word_to_felts_string(&output.recipient().digest()),
             aux = output.metadata().aux(),
             tag = output.metadata().tag(),
             asset = prepare_assets(output.assets())[0],
@@ -346,11 +346,11 @@ impl TransactionContextBuilder {
             end
             ",
             PUBLIC_NOTE = NoteType::Public as u8,
-            recipient0 = prepare_word(&output0.recipient().digest()),
+            recipient0 = word_to_felts_string(&output0.recipient().digest()),
             aux0 = output0.metadata().aux(),
             tag0 = output0.metadata().tag(),
             asset0 = prepare_assets(output0.assets())[0],
-            recipient1 = prepare_word(&output1.recipient().digest()),
+            recipient1 = word_to_felts_string(&output1.recipient().digest()),
             aux1 = output1.metadata().aux(),
             tag1 = output1.metadata().tag(),
             asset1 = prepare_assets(output1.assets())[0],

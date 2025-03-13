@@ -64,8 +64,11 @@ pub mod utils {
         };
     }
 
-    /// Converts a word to MASM
-    pub fn prepare_word(word: &Word) -> String {
+    /// Converts a word into a string which can be used in assembly instructions.
+    ///
+    /// Resulting string essentially consists of the word elements represented as integers and
+    /// separated by dots.
+    pub fn word_to_felts_string(word: &Word) -> String {
         word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
     }
 

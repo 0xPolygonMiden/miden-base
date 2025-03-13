@@ -13,7 +13,7 @@ use miden_objects::{
 };
 use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 
-use super::{prepare_word, Felt, Process, ZERO};
+use super::{word_to_felts_string, Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
     testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},
@@ -115,9 +115,9 @@ fn test_get_vault_data() {
             exec.sys::truncate_stack
         end
         ",
-        note_0_asset_hash = prepare_word(&notes.get_note(0).note().assets().commitment()),
+        note_0_asset_hash = word_to_felts_string(&notes.get_note(0).note().assets().commitment()),
         note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
-        note_1_asset_hash = prepare_word(&notes.get_note(1).note().assets().commitment()),
+        note_1_asset_hash = word_to_felts_string(&notes.get_note(1).note().assets().commitment()),
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
@@ -142,7 +142,7 @@ fn test_get_assets() {
                 # assert the asset is correct
                 dup padw movup.4 mem_loadw push.{asset} assert_eqw push.4 add
                 ",
-                asset = prepare_word(&<[Felt; 4]>::from(*asset))
+                asset = word_to_felts_string(&<[Felt; 4]>::from(*asset))
             );
         }
         code
@@ -252,7 +252,7 @@ fn test_get_inputs() {
                 # assert the input is correct
                 dup padw movup.4 mem_loadw push.{input_word} assert_eqw push.4 add
                 ",
-                input_word = prepare_word(&input_word)
+                input_word = word_to_felts_string(&input_word)
             );
         }
         code

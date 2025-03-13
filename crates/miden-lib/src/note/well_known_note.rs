@@ -36,32 +36,32 @@ static SWAP_SCRIPT: LazyLock<NoteScript> = LazyLock::new(|| {
 });
 
 /// Returns the P2ID (Pay-to-ID) note script.
-pub fn p2id() -> NoteScript {
+fn p2id() -> NoteScript {
     P2ID_SCRIPT.clone()
 }
 
 /// Returns the P2ID (Pay-to-ID) note script commitment.
-pub fn p2id_commitment() -> Digest {
+fn p2id_commitment() -> Digest {
     P2ID_SCRIPT.hash()
 }
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script.
-pub fn p2idr() -> NoteScript {
+fn p2idr() -> NoteScript {
     P2IDR_SCRIPT.clone()
 }
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script commitment.
-pub fn p2idr_commitment() -> Digest {
+fn p2idr_commitment() -> Digest {
     P2IDR_SCRIPT.hash()
 }
 
 /// Returns the SWAP (Swap note) note script.
-pub fn swap() -> NoteScript {
+fn swap() -> NoteScript {
     SWAP_SCRIPT.clone()
 }
 
 /// Returns the SWAP (Swap note) note script commitment.
-pub fn swap_commitment() -> Digest {
+fn swap_commitment() -> Digest {
     SWAP_SCRIPT.hash()
 }
 

@@ -29,7 +29,7 @@ use miden_objects::{
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
-    utils::prepare_word,
+    utils::word_to_felts_string,
     Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
@@ -214,7 +214,7 @@ fn executed_transaction_account_delta_new() {
             NOTETYPE = note_types[i] as u8,
             aux = aux_array[i],
             tag = tags[i],
-            REMOVED_ASSET = prepare_word(&Word::from(removed_assets[i]))
+            REMOVED_ASSET = word_to_felts_string(&Word::from(removed_assets[i]))
         ));
     }
 
@@ -266,9 +266,9 @@ fn executed_transaction_account_delta_new() {
             # => []
         end
     ",
-        UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
-        UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
-        UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
+        UPDATED_SLOT_VALUE = word_to_felts_string(&Word::from(updated_slot_value)),
+        UPDATED_MAP_VALUE = word_to_felts_string(&Word::from(updated_map_value)),
+        UPDATED_MAP_KEY = word_to_felts_string(&Word::from(updated_map_key)),
     );
 
     let tx_script = TransactionScript::compile(
@@ -468,7 +468,7 @@ fn test_send_note_proc() {
 
             call.wallet::move_asset_to_note
             # => [ASSET, note_idx, GARBAGE(11)]\n",
-                ASSET = prepare_word(&asset.into())
+                ASSET = word_to_felts_string(&asset.into())
             ))
         }
 
@@ -728,12 +728,12 @@ fn executed_transaction_output_notes() {
             # => []
         end
     ",
-        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
-        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
-        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
-        REMOVED_ASSET_4 = prepare_word(&Word::from(removed_asset_4)),
-        RECIPIENT2 = prepare_word(&Word::from(expected_output_note_2.recipient().digest())),
-        RECIPIENT3 = prepare_word(&Word::from(expected_output_note_3.recipient().digest())),
+        REMOVED_ASSET_1 = word_to_felts_string(&Word::from(removed_asset_1)),
+        REMOVED_ASSET_2 = word_to_felts_string(&Word::from(removed_asset_2)),
+        REMOVED_ASSET_3 = word_to_felts_string(&Word::from(removed_asset_3)),
+        REMOVED_ASSET_4 = word_to_felts_string(&Word::from(removed_asset_4)),
+        RECIPIENT2 = word_to_felts_string(&Word::from(expected_output_note_2.recipient().digest())),
+        RECIPIENT3 = word_to_felts_string(&Word::from(expected_output_note_3.recipient().digest())),
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
@@ -867,8 +867,8 @@ fn test_tx_script() {
         push.{value} assert_eqw
     end
 ",
-        key = prepare_word(&tx_script_input_key),
-        value = prepare_word(&tx_script_input_value)
+        key = word_to_felts_string(&tx_script_input_key),
+        value = word_to_felts_string(&tx_script_input_value)
     );
 
     let tx_script = TransactionScript::compile(
