@@ -20,7 +20,7 @@ use crate::{
 /// - `account_root` is a commitment to account database.
 /// - `nullifier_root` is a commitment to the nullifier database.
 /// - `note_root` is a commitment to all notes created in the current block.
-/// - `tx_hash` is a commitment to a set of IDs of transactions which affected accounts in the
+/// - `tx_commitment` is a commitment to the set of transaction IDs which affected accounts in the
 ///   block.
 /// - `tx_kernel_commitment` a commitment to all transaction kernels supported by this block.
 /// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
@@ -37,7 +37,7 @@ pub struct BlockHeader {
     account_root: Digest,
     nullifier_root: Digest,
     note_root: Digest,
-    tx_hash: Digest,
+    tx_commitment: Digest,
     tx_kernel_commitment: Digest,
     proof_hash: Digest,
     timestamp: u32,
@@ -56,7 +56,7 @@ impl BlockHeader {
         account_root: Digest,
         nullifier_root: Digest,
         note_root: Digest,
-        tx_hash: Digest,
+        tx_commitment: Digest,
         tx_kernel_commitment: Digest,
         proof_hash: Digest,
         timestamp: u32,
@@ -68,7 +68,7 @@ impl BlockHeader {
             chain_commitment,
             account_root,
             nullifier_root,
-            tx_hash,
+            tx_commitment,
             tx_kernel_commitment,
             proof_hash,
             timestamp,
@@ -89,7 +89,7 @@ impl BlockHeader {
             account_root,
             nullifier_root,
             note_root,
-            tx_hash,
+            tx_commitment,
             tx_kernel_commitment,
             proof_hash,
             timestamp,
@@ -161,8 +161,8 @@ impl BlockHeader {
     /// The commitment is computed as sequential hash of (`transaction_id`, `account_id`) tuples.
     /// This makes it possible for the verifier to link transaction IDs to the accounts which
     /// they were executed against.
-    pub fn tx_hash(&self) -> Digest {
-        self.tx_hash
+    pub fn tx_commitment(&self) -> Digest {
+        self.tx_commitment
     }
 
     /// Returns the transaction kernel commitment.
@@ -195,8 +195,8 @@ impl BlockHeader {
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
     /// `prev_block_commitment`, `chain_commitment`, `account_root`, `nullifier_root`, `note_root`,
-    /// `tx_hash`, `tx_kernel_commitment`, `proof_hash`, `version`, `timestamp`, `block_num` (all
-    /// fields except the `note_root`).
+    /// `tx_commitment`, `tx_kernel_commitment`, `proof_hash`, `version`, `timestamp`, `block_num`
+    /// (all fields except the `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         version: u32,
@@ -204,7 +204,7 @@ impl BlockHeader {
         chain_commitment: Digest,
         account_root: Digest,
         nullifier_root: Digest,
-        tx_hash: Digest,
+        tx_commitment: Digest,
         tx_kernel_commitment: Digest,
         proof_hash: Digest,
         timestamp: u32,
@@ -215,7 +215,7 @@ impl BlockHeader {
         elements.extend_from_slice(chain_commitment.as_elements());
         elements.extend_from_slice(account_root.as_elements());
         elements.extend_from_slice(nullifier_root.as_elements());
-        elements.extend_from_slice(tx_hash.as_elements());
+        elements.extend_from_slice(tx_commitment.as_elements());
         elements.extend_from_slice(tx_kernel_commitment.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
         elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
@@ -249,7 +249,7 @@ impl Serializable for BlockHeader {
         self.account_root.write_into(target);
         self.nullifier_root.write_into(target);
         self.note_root.write_into(target);
-        self.tx_hash.write_into(target);
+        self.tx_commitment.write_into(target);
         self.tx_kernel_commitment.write_into(target);
         self.proof_hash.write_into(target);
         self.timestamp.write_into(target);
@@ -265,7 +265,7 @@ impl Deserializable for BlockHeader {
         let account_root = source.read()?;
         let nullifier_root = source.read()?;
         let note_root = source.read()?;
-        let tx_hash = source.read()?;
+        let tx_commitment = source.read()?;
         let tx_kernel_commitment = source.read()?;
         let proof_hash = source.read()?;
         let timestamp = source.read()?;
@@ -278,7 +278,7 @@ impl Deserializable for BlockHeader {
             account_root,
             nullifier_root,
             note_root,
-            tx_hash,
+            tx_commitment,
             tx_kernel_commitment,
             proof_hash,
             timestamp,

@@ -48,7 +48,7 @@ pub(super) fn extend_advice_inputs(
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
-///     TX_HASH,
+///     TX_COMMITMENT,
 ///     KERNEL_COMMITMENT
 ///     PROOF_HASH,
 ///     [block_num, version, timestamp, 0],
@@ -75,7 +75,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.chain_commitment());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
-    inputs.extend_stack(header.tx_hash());
+    inputs.extend_stack(header.tx_commitment());
     inputs.extend_stack(header.tx_kernel_commitment());
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([

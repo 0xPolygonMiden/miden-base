@@ -122,8 +122,8 @@ pub const ACCT_DB_ROOT_PTR: MemoryAddress = 808;
 /// The memory address at which the nullifier db root is store
 pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 812;
 
-/// The memory address at which the TX hash is stored
-pub const TX_HASH_PTR: MemoryAddress = 816;
+/// The memory address at which the TX commitment is stored
+pub const TX_COMMITMENT_PTR: MemoryAddress = 816;
 
 /// The memory address at which the kernel commitment is stored
 pub const KERNEL_COMMITMENT_PTR: MemoryAddress = 820;

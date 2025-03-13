@@ -22,7 +22,7 @@ use miden_lib::{
             NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
             NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
             NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_COMMITMENT_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
-            TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+            TIMESTAMP_IDX, TX_COMMITMENT_PTR, TX_SCRIPT_ROOT_PTR,
         },
         TransactionKernel,
     },
@@ -183,9 +183,9 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), TX_HASH_PTR),
-        inputs.tx_inputs().block_header().tx_hash().as_elements(),
-        "The TX hash should be stored at the TX_HASH_PTR"
+        read_root_mem_word(&process.into(), TX_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().tx_commitment().as_elements(),
+        "The TX commitment should be stored at the TX_COMMITMENT_PTR"
     );
 
     assert_eq!(

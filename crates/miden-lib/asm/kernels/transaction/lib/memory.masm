@@ -82,8 +82,8 @@ const.ACCT_DB_ROOT_PTR=808
 # The memory address at which the nullifier root is stored
 const.NULLIFIER_ROOT_PTR=812
 
-# The memory address at which the tx hash is stored
-const.TX_HASH_PTR=816
+# The memory address at which the tx commitment is stored
+const.TX_COMMITMENT_PTR=816
 
 # The memory address at which the kernel commitment is stored
 const.KERNEL_COMMITMENT_PTR=820
@@ -543,15 +543,15 @@ export.get_nullifier_db_root
     padw push.NULLIFIER_ROOT_PTR mem_loadw
 end
 
-#! Returns the tx hash of the transaction reference block.
+#! Returns the tx commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [TX_HASH]
+#! Outputs: [TX_COMMITMENT]
 #!
 #! Where:
-#! - TX_HASH is the tx hash of the transaction reference block.
-export.get_tx_hash
-    padw push.TX_HASH_PTR mem_loadw
+#! - TX_COMMITMENT is the tx commitment of the transaction reference block.
+export.get_tx_commitment
+    padw push.TX_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the transaction kernel commitment of the transaction reference block.

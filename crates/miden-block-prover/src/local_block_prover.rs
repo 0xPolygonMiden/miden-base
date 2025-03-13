@@ -78,7 +78,7 @@ impl LocalBlockProver {
 
         let block_num = proposed_block.block_num();
         let timestamp = proposed_block.timestamp();
-        let tx_hash = BlockHeader::compute_tx_commitment(proposed_block.affected_accounts());
+        let tx_commitment = BlockHeader::compute_tx_commitment(proposed_block.affected_accounts());
 
         // Split the proposed block into its parts.
         // --------------------------------------------------------------------------------------------
@@ -156,7 +156,7 @@ impl LocalBlockProver {
             new_account_root,
             new_nullifier_root,
             note_root,
-            tx_hash,
+            tx_commitment,
             kernel_commitment,
             proof_hash,
             timestamp,

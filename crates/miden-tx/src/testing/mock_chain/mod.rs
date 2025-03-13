@@ -835,7 +835,7 @@ impl MockChain {
             let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
                 block.header().timestamp() + TIMESTAMP_STEP_SECS
             });
-            let tx_hash = BlockHeader::compute_tx_commitment(
+            let tx_commitment = BlockHeader::compute_tx_commitment(
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
 
@@ -852,7 +852,7 @@ impl MockChain {
                 account_root,
                 nullifier_root,
                 note_root,
-                tx_hash,
+                tx_commitment,
                 kernel_commitment,
                 proof_hash,
                 timestamp,

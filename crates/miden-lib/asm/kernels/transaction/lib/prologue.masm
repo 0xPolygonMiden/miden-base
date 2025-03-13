@@ -214,7 +214,7 @@ end
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
-#!     TX_HASH,
+#!     TX_COMMITMENT,
 #!     KERNEL_COMMITMENT
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
@@ -229,7 +229,7 @@ end
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
-#! - TX_HASH is the commitment to a set of IDs of transactions which affected accounts in the block.
+#! - TX_COMMITMENT is a commitment to the set of transaction IDs which affected accounts in the block.
 #! - KERNEL_COMMITMENT is the accumulative hash from all kernel hashes.
 #! - PROOF_HASH is the hash of the block's stark proof.
 #! - block_num is the reference block number.
@@ -1101,7 +1101,7 @@ end
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
-#!     TX_HASH,
+#!     TX_COMMITMENT,
 #!     KERNEL_COMMITMENT
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
@@ -1139,7 +1139,7 @@ end
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
-#! - TX_HASH is the commitment to a set of IDs of transactions which affected accounts in the block.
+#! - TX_COMMITMENT is a commitment to the set of transaction IDs which affected accounts in the block.
 #! - PROOF_HASH is the hash of the block's stark proof.
 #! - block_num is the reference block number.
 #! - version is the current protocol version.
