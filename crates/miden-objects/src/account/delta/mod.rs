@@ -341,7 +341,7 @@ mod tests {
                 AccountIdBuilder::new()
                     .account_type(AccountType::NonFungibleFaucet)
                     .storage_mode(AccountStorageMode::Public)
-                    .build_with_rng(&mut rand::thread_rng())
+                    .build_with_rng(&mut rand::rng())
                     .prefix(),
                 vec![6],
             )
@@ -353,7 +353,7 @@ mod tests {
             AccountIdBuilder::new()
                 .account_type(AccountType::FungibleFaucet)
                 .storage_mode(AccountStorageMode::Public)
-                .build_with_rng(&mut rand::thread_rng()),
+                .build_with_rng(&mut rand::rng()),
             10,
         )
         .unwrap()

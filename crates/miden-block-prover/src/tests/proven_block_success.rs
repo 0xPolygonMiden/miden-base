@@ -206,10 +206,10 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     // Use an Rng to randomize the note IDs and therefore their position in the output note batches.
     // This is useful to test that the block note tree is correctly computed no matter at what index
     // the erased note ends up in.
-    let mut rng = rand::thread_rng();
-    let output_note0 = generate_output_note(account0.id(), rng.gen());
-    let output_note2 = generate_output_note(account2.id(), rng.gen());
-    let output_note3 = generate_output_note(account3.id(), rng.gen());
+    let mut rng = rand::rng();
+    let output_note0 = generate_output_note(account0.id(), rng.random());
+    let output_note2 = generate_output_note(account2.id(), rng.random());
+    let output_note3 = generate_output_note(account3.id(), rng.random());
 
     // Create notes that, when consumed, will create the above corresponding output notes.
     let note0 = generate_untracked_note_with_output_note(account0.id(), output_note0.clone());

@@ -447,7 +447,7 @@ pub fn create_multiple_accounts_test(
         AccountType::FungibleFaucet,
         AccountType::NonFungibleFaucet,
     ] {
-        let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
             .account_type(account_type)
             .storage_mode(storage_mode)
             .anchor(
@@ -612,7 +612,7 @@ pub fn create_account_invalid_seed() {
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .anchor(AccountIdAnchor::try_from(&genesis_block_header).unwrap())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
