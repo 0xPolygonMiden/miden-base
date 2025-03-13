@@ -117,7 +117,7 @@ impl ChainMmr {
     /// provided block header is not the next block in the chain).
     pub fn add_block(&mut self, block_header: BlockHeader, track: bool) {
         assert_eq!(block_header.block_num(), self.chain_length());
-        self.mmr.add(block_header.hash(), track);
+        self.mmr.add(block_header.commitment(), track);
     }
 
     // ITERATORS
@@ -127,7 +127,9 @@ impl ChainMmr {
     /// MMR.
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
         self.mmr.inner_nodes(
-            self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
+            self.blocks
+                .values()
+                .map(|block| (block.block_num().as_usize(), block.commitment())),
         )
     }
 
@@ -188,7 +190,7 @@ mod tests {
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = int_to_block_header(i);
-            mmr.add(block_header.hash());
+            mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
         let mut chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
@@ -196,7 +198,7 @@ mod tests {
         // add a new block to the chain MMR, this reduces the number of peaks to 1
         let block_num = 3;
         let bock_header = int_to_block_header(block_num);
-        mmr.add(bock_header.hash());
+        mmr.add(bock_header.commitment());
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
@@ -207,7 +209,7 @@ mod tests {
         // add one more block to the chain MMR, the number of peaks is again 2
         let block_num = 4;
         let bock_header = int_to_block_header(block_num);
-        mmr.add(bock_header.hash());
+        mmr.add(bock_header.commitment());
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
@@ -218,7 +220,7 @@ mod tests {
         // add one more block to the chain MMR, the number of peaks is still 2
         let block_num = 5;
         let bock_header = int_to_block_header(block_num);
-        mmr.add(bock_header.hash());
+        mmr.add(bock_header.commitment());
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
@@ -233,7 +235,7 @@ mod tests {
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = int_to_block_header(i);
-            mmr.add(block_header.hash());
+            mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
         let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();

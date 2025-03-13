@@ -96,7 +96,7 @@ impl TransactionProver for LocalTransactionProver {
         let account = tx_inputs.account();
         let input_notes = tx_inputs.input_notes();
         let block_num = tx_inputs.block_header().block_num();
-        let block_hash = tx_inputs.block_header().hash();
+        let block_commitment = tx_inputs.block_header().commitment();
 
         // execute and prove
         let (stack_inputs, advice_inputs) =
@@ -139,7 +139,7 @@ impl TransactionProver for LocalTransactionProver {
             account.init_hash(),
             tx_outputs.account.hash(),
             block_num,
-            block_hash,
+            block_commitment,
             tx_outputs.expiration_block_num,
             proof,
         )

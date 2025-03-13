@@ -28,7 +28,7 @@ use crate::{
 /// - `timestamp` is the time when the block was created, in seconds since UNIX epoch. Current
 ///   representation is sufficient to represent time up to year 2106.
 /// - `sub_commitment` is a sequential hash of all fields except the note_root.
-/// - `hash` is a 2-to-1 hash of the sub_commitment and the note_root.
+/// - `commitment` is a 2-to-1 hash of the sub_commitment and the note_root.
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockHeader {
     version: u32,
@@ -43,7 +43,7 @@ pub struct BlockHeader {
     proof_commitment: Digest,
     timestamp: u32,
     sub_commitment: Digest,
-    hash: Digest,
+    commitment: Digest,
 }
 
 impl BlockHeader {
@@ -80,7 +80,7 @@ impl BlockHeader {
         // produce the final hash. This is done to make the note_root easily accessible
         // without having to unhash the entire header. Having the note_root easily
         // accessible is useful when authenticating notes.
-        let hash = Hasher::merge(&[sub_commitment, note_root]);
+        let commitment = Hasher::merge(&[sub_commitment, note_root]);
 
         Self {
             version,
@@ -95,7 +95,7 @@ impl BlockHeader {
             proof_commitment,
             timestamp,
             sub_commitment,
-            hash,
+            commitment,
         }
     }
 
@@ -107,9 +107,9 @@ impl BlockHeader {
         self.version
     }
 
-    /// Returns the hash of the block header.
-    pub fn hash(&self) -> Digest {
-        self.hash
+    /// Returns the commitment of the block header.
+    pub fn commitment(&self) -> Digest {
+        self.commitment
     }
 
     /// Returns the sub commitment of the block header. The sub commitment is a sequential hash of

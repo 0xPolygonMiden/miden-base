@@ -86,8 +86,8 @@ pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 28;
 /// The memory address at which the global inputs section begins.
 pub const GLOBAL_INPUTS_SECTION_OFFSET: MemoryOffset = 400;
 
-/// The memory address at which the latest known block hash is stored.
-pub const BLK_HASH_PTR: MemoryAddress = 400;
+/// The memory address at which the latest known block commitment is stored.
+pub const BLOCK_COMMITMENT_PTR: MemoryAddress = 400;
 
 /// The memory address at which the account ID is stored.
 pub const ACCT_ID_PTR: MemoryAddress = 404;

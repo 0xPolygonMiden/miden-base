@@ -46,8 +46,8 @@ const.TX_EXPIRATION_BLOCK_NUM_PTR=28
 # The memory address at which the global inputs section begins.
 const.GLOBAL_INPUTS_SECTION_OFFSET=400
 
-# The memory address at which the latest known block hash is stored.
-const.BLK_HASH_PTR=400
+# The memory address at which the transaction reference block's commitment is stored.
+const.BLOCK_COMMITMENT_PTR=400
 
 # The memory address at which the account ID felts are stored.
 const.ACCT_ID_PTR=404
@@ -308,27 +308,27 @@ end
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
-#! Saves the hash of the reference block to memory.
+#! Sets the commitment of the transaction reference block.
 #!
-#! Inputs:  [BLOCK_HASH]
-#! Outputs: [BLOCK_HASH]
+#! Inputs:  [BLOCK_COMMITMENT]
+#! Outputs: [BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
-export.set_block_hash
-    push.BLK_HASH_PTR
+#! - BLOCK_COMMITMENT is the commitment of the transaction reference block.
+export.set_block_commitment
+    push.BLOCK_COMMITMENT_PTR
     mem_storew
 end
 
-#! Returns the block hash of the reference block.
+#! Returns the block commitment of the reference block.
 #!
 #! Inputs:  []
-#! Outputs: [BLOCK_HASH]
+#! Outputs: [BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
-export.get_block_hash
-    padw push.BLK_HASH_PTR mem_loadw
+#! - BLOCK_COMMITMENT is the commitment of the transaction reference block.
+export.get_block_commitment
+    padw push.BLOCK_COMMITMENT_PTR mem_loadw
 end
 
 #! Sets the account ID.
@@ -472,7 +472,7 @@ end
 #! Outputs: [PREV_BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - PREV_BLOCK_COMMITMENT_PTR is the previous block hash of the transaction reference block.
+#! - PREV_BLOCK_COMMITMENT_PTR is the block commitment of the transaction reference block.
 export.get_prev_block_commitment
     padw push.PREV_BLOCK_COMMITMENT_PTR mem_loadw
 end

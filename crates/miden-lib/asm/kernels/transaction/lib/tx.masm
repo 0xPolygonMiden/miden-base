@@ -87,14 +87,14 @@ const.NOTE_AFTER_ADD_ASSET_EVENT=131086
 # PROCEDURES
 # =================================================================================================
 
-#! Returns the block hash of the reference block to memory.
+#! Returns the block commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [BLOCK_HASH]
+#! Outputs: [BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
-export.memory::get_block_hash
+#! - BLOCK_COMMITMENT is the commitment of the transaction reference block.
+export.memory::get_block_commitment
 
 #! Returns the block number of the last known block at the time of transaction execution.
 #!

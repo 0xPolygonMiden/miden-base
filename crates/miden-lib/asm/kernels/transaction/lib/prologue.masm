@@ -16,8 +16,8 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # ERRORS
 # =================================================================================================
 
-# The provided global inputs do not match the block hash commitment
-const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x00020041
+# The provided global inputs do not match the block commitment
+const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_COMMITMENT=0x00020041
 
 # The provided global inputs do not match the block number commitment
 const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT=0x00020042
@@ -69,11 +69,11 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 
 #! Saves global inputs to memory.
 #!
-#! Inputs:  [BLOCK_HASH, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT, account_id_prefix, account_id_suffix, block_num]
+#! Inputs:  [BLOCK_COMMITMENT, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT, account_id_prefix, account_id_suffix, block_num]
 #! Outputs: [block_num]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the reference block for the transaction execution.
 #! - block_num is the number of the reference block.
 #! - account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the account
 #!   that the transaction is being executed against.
@@ -82,7 +82,7 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 #! - INPUT_NOTES_COMMITMENT is the commitment to the input notes. See the
 #!   `tx_get_input_notes_commitment` kernel procedure for details.
 proc.process_global_inputs
-    exec.memory::set_block_hash dropw
+    exec.memory::set_block_commitment dropw
     exec.memory::set_init_acct_hash dropw
     exec.memory::set_nullifier_commitment dropw
     exec.memory::set_global_acct_id
@@ -205,7 +205,7 @@ end
 # BLOCK DATA
 # =================================================================================================
 
-#! Saves block data to memory and verifies that it matches the BLOCK_HASH public input.
+#! Saves block data to memory and verifies that it matches the BLOCK_COMMITMENT public input.
 #!
 #! Inputs:
 #!   Operand stack: [block_num]
@@ -256,11 +256,11 @@ proc.process_block_data
 
     # merge the note root with the block data digest
     hmerge
-    # => [BLOCK_HASH, block_data_ptr', block_num]
+    # => [BLOCK_COMMITMENT, block_data_ptr', block_num]
 
-    # assert that the block hash matches the hash in global inputs
-    exec.memory::get_block_hash
-    assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT
+    # assert that the block commitment matches the commitment in global inputs
+    exec.memory::get_block_commitment
+    assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_COMMITMENT
     # => [block_data_ptr', block_num]
 
     drop
@@ -302,8 +302,8 @@ proc.process_chain_data
     exec.mmr::unpack
     # => [chain_mmr_ptr]
 
-    # add the current block's hash to the MMR, enabling authentication of notes created in it
-    exec.memory::get_block_hash
+    # add the current block's commitment to the MMR, enabling authentication of notes created in it
+    exec.memory::get_block_commitment
     exec.mmr::add
     # => []
 end
@@ -561,17 +561,17 @@ end
 #! - NOTE_ROOT is the merkle root of the notes tree containing the input note.
 #! - note_index is the input note's position in the notes tree.
 proc.authenticate_note.8
-    # Load the BLOCK_HASH from the CHAIN_MMR
+    # Load the BLOCK_COMMITMENT from the CHAIN_MMR
     # ---------------------------------------------------------------------------------------------
 
     exec.memory::get_chain_mmr_ptr adv_push.1
     # => [block_num, chain_mmr_ptr, NOTE_HASH]
 
     exec.mmr::get
-    # => [BLOCK_HASH, NOTE_HASH]
+    # => [BLOCK_COMMITMENT, NOTE_HASH]
 
     locaddr.0
-    # => [mem_ptr, BLOCK_HASH, NOTE_HASH]
+    # => [mem_ptr, BLOCK_COMMITMENT, NOTE_HASH]
 
     # Load and authenticate the NOTE_ROOT
     # ---------------------------------------------------------------------------------------------
@@ -579,12 +579,12 @@ proc.authenticate_note.8
     # read data from advice and compute hash(BLOCK_SUB_COMMITMENT || NOTE_ROOT)
     padw padw padw
     adv_pipe hperm
-    # => [PERM, COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
+    # => [PERM, COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_HASH]
 
     dropw
-    # => [COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
+    # => [COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_HASH]
 
-    # assert the computed block hash matches
+    # assert the computed block commitment matches
     movup.8 drop movupw.2
     assert_eqw.err=ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR
     # => [PERM, NOTE_HASH]
@@ -1091,7 +1091,7 @@ end
 #!
 #! Inputs:
 #!   Operand stack: [
-#!     BLOCK_HASH,
+#!     BLOCK_COMMITMENT,
 #!     INITIAL_ACCOUNT_HASH,
 #!     INPUT_NOTES_COMMITMENT,
 #!     account_id_prefix, account_id_suffix, block_num,
@@ -1127,7 +1127,7 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the commitment to the reference block of the transaction.
 #! - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the transaction
 #!   is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new

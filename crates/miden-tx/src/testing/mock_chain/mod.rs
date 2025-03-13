@@ -473,7 +473,7 @@ impl MockChain {
 
         ProvenBatch::new_unchecked(
             id,
-            block_header.hash(),
+            block_header.commitment(),
             block_header.block_num(),
             account_updates,
             input_notes,
@@ -829,7 +829,8 @@ impl MockChain {
             let peaks = self.chain.peaks();
             let chain_commitment: Digest = peaks.hash_peaks();
             let account_root = self.accounts.root();
-            let prev_block_commitment = previous.map_or(Digest::default(), |block| block.hash());
+            let prev_block_commitment =
+                previous.map_or(Digest::default(), |block| block.commitment());
             let nullifier_root = self.nullifiers.root();
             let note_root = notes_tree.root();
             let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
@@ -898,7 +899,7 @@ impl MockChain {
             }
 
             self.blocks.push(block.clone());
-            self.chain.add(header.hash());
+            self.chain.add(header.commitment());
             self.reset_pending();
 
             last_block = Some(block);
@@ -948,7 +949,7 @@ impl MockChain {
         let block_headers: Vec<_> = reference_blocks
             .into_iter()
             .map(|block_ref_num| self.block_header(block_ref_num.as_usize()))
-            .filter(|block_header| block_header.hash() != latest_block_header.hash())
+            .filter(|block_header| block_header.commitment() != latest_block_header.commitment())
             .collect();
 
         let chain_mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();

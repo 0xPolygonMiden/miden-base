@@ -39,8 +39,8 @@ pub struct ProvenTransaction {
     /// block.
     block_num: BlockNumber,
 
-    /// The block hash of the last known block at the time the transaction was executed.
-    block_ref: Digest,
+    /// The block commitment of the transaction's reference block.
+    block_commitment: Digest,
 
     /// The block number by which the transaction will expire, as defined by the executed scripts.
     expiration_block_num: BlockNumber,
@@ -85,9 +85,9 @@ impl ProvenTransaction {
         self.block_num
     }
 
-    /// Returns the block reference the transaction was executed against.
-    pub fn block_ref(&self) -> Digest {
-        self.block_ref
+    /// Returns the commitment of the block transaction was executed against.
+    pub fn block_commitment(&self) -> Digest {
+        self.block_commitment
     }
 
     /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
@@ -164,7 +164,7 @@ impl Serializable for ProvenTransaction {
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
         self.block_num.write_into(target);
-        self.block_ref.write_into(target);
+        self.block_commitment.write_into(target);
         self.expiration_block_num.write_into(target);
         self.proof.write_into(target);
     }
@@ -195,7 +195,7 @@ impl Deserializable for ProvenTransaction {
             input_notes,
             output_notes,
             block_num,
-            block_ref,
+            block_commitment: block_ref,
             expiration_block_num,
             proof,
         };
@@ -329,7 +329,7 @@ impl ProvenTransactionBuilder {
             input_notes,
             output_notes,
             block_num: self.block_num,
-            block_ref: self.block_ref,
+            block_commitment: self.block_ref,
             expiration_block_num: self.expiration_block_num,
             proof: self.proof,
         };

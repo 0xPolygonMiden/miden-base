@@ -92,7 +92,7 @@ impl LocalBlockProver {
             prev_block_header,
         ) = proposed_block.into_parts();
 
-        let prev_block_commitment = prev_block_header.hash();
+        let prev_block_commitment = prev_block_header.commitment();
 
         // Compute the root of the block note tree.
         // --------------------------------------------------------------------------------------------

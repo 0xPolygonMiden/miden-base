@@ -28,7 +28,7 @@ pub struct ProposedBatch {
     reference_block_header: BlockHeader,
     /// The chain MMR used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
-    /// - all block hashes referenced by the transactions in the batch.
+    /// - all block commitments referenced by the transactions in the batch.
     chain_mmr: ChainMmr,
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
@@ -173,7 +173,7 @@ impl ProposedBatch {
                 && !chain_mmr.contains_block(tx.block_num())
             {
                 return Err(ProposedBatchError::MissingTransactionBlockReference {
-                    block_reference: tx.block_ref(),
+                    block_reference: tx.block_commitment(),
                     transaction_id: tx.id(),
                 });
             }
@@ -422,7 +422,7 @@ mod tests {
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = BlockHeader::mock(i, None, None, &[], Digest::default());
-            mmr.add(block_header.hash());
+            mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
         let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
@@ -448,7 +448,7 @@ mod tests {
             [2; 32].try_into().expect("failed to create initial account hash");
         let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
         let block_num = reference_block_header.block_num();
-        let block_ref = reference_block_header.hash();
+        let block_ref = reference_block_header.commitment();
         let expiration_block_num = reference_block_header.block_num() + 1;
         let proof = ExecutionProof::new(Proof::new_dummy(), Default::default());
 

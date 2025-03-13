@@ -22,7 +22,7 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 pub struct AccountIdAnchor {
     epoch: u16,
-    block_hash: Digest,
+    block_commitment: Digest,
 }
 
 impl AccountIdAnchor {
@@ -35,18 +35,18 @@ impl AccountIdAnchor {
     /// This anchor should only be used for accounts included in the genesis state, but should not
     /// be used as actual anchors in a running network. The reason is that this anchor has the same
     /// `epoch` as the genesis block will have (epoch `0`). However, the genesis block will have a
-    /// different block_hash than this anchor ([`EMPTY_WORD`]) and so any account ID that would use
-    /// this anchor would be rejected as invalid by the transaction kernel.
+    /// different block_commitment than this anchor ([`EMPTY_WORD`]) and so any account ID that
+    /// would use this anchor would be rejected as invalid by the transaction kernel.
     pub const PRE_GENESIS: Self = Self {
         epoch: 0,
-        block_hash: Digest::new(EMPTY_WORD),
+        block_commitment: Digest::new(EMPTY_WORD),
     };
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [`AccountIdAnchor`] from the provided `anchor_block_number` and
-    /// `anchor_block_hash`.
+    /// `anchor_block_commitment`.
     ///
     /// # Errors
     ///
@@ -54,7 +54,7 @@ impl AccountIdAnchor {
     /// documentation](AccountIdAnchor) for details.
     pub fn new(
         anchor_block_number: BlockNumber,
-        anchor_block_hash: Digest,
+        anchor_block_commitment: Digest,
     ) -> Result<Self, AccountIdError> {
         if anchor_block_number.as_u32() & 0x0000_ffff != 0 {
             return Err(AccountIdError::AnchorBlockMustBeEpochBlock);
@@ -68,28 +68,28 @@ impl AccountIdAnchor {
 
         Ok(Self {
             epoch: anchor_epoch,
-            block_hash: anchor_block_hash,
+            block_commitment: anchor_block_commitment,
         })
     }
 
-    /// Creates a new [`AccountIdAnchor`] from the provided `anchor_epoch` and `anchor_block_hash`
-    /// without validation.
+    /// Creates a new [`AccountIdAnchor`] from the provided `anchor_epoch` and
+    /// `anchor_block_commitment` without validation.
     ///
     /// # Warning
     ///
     /// The caller must ensure validity of the `anchor_epoch`, in particular the correctness of the
-    /// relationship between the `anchor_epoch` and the provided `anchor_block_hash`.
+    /// relationship between the `anchor_epoch` and the provided `anchor_block_commitment`.
     ///
     /// # Panics
     ///
     /// If debug_assertions are enabled (e.g. in debug mode), this function panics if the
     /// `anchor_epoch` is [`u16::MAX`].
-    pub fn new_unchecked(anchor_epoch: u16, anchor_block_hash: Digest) -> Self {
+    pub fn new_unchecked(anchor_epoch: u16, anchor_block_commitment: Digest) -> Self {
         debug_assert_ne!(anchor_epoch, u16::MAX, "anchor epoch cannot be u16::MAX");
 
         Self {
             epoch: anchor_epoch,
-            block_hash: anchor_block_hash,
+            block_commitment: anchor_block_commitment,
         }
     }
 
@@ -101,9 +101,9 @@ impl AccountIdAnchor {
         self.epoch
     }
 
-    /// Returns the block hash of this anchor.
-    pub fn block_hash(self) -> Digest {
-        self.block_hash
+    /// Returns the block commitment of this anchor.
+    pub fn block_commitment(self) -> Digest {
+        self.block_commitment
     }
 }
 
@@ -113,7 +113,7 @@ impl AccountIdAnchor {
 impl TryFrom<&BlockHeader> for AccountIdAnchor {
     type Error = AccountIdError;
 
-    /// Extracts the [`BlockHeader::block_num`] and [`BlockHeader::hash`] from the provided
+    /// Extracts the [`BlockHeader::block_num`] and [`BlockHeader::commitment`] from the provided
     /// `block_header` and tries to convert it to an [`AccountIdAnchor`].
     ///
     /// # Errors
@@ -121,6 +121,6 @@ impl TryFrom<&BlockHeader> for AccountIdAnchor {
     /// Returns an error if any of the anchor constraints are not met. See the [type
     /// documentation](AccountIdAnchor) for details.
     fn try_from(block_header: &BlockHeader) -> Result<Self, Self::Error> {
-        Self::new(block_header.block_num(), block_header.hash())
+        Self::new(block_header.block_num(), block_header.commitment())
     }
 }

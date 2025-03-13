@@ -80,7 +80,7 @@ impl AccountIdV0 {
         storage_commitment: Digest,
     ) -> Result<Self, AccountIdError> {
         let seed_digest =
-            compute_digest(seed, code_commitment, storage_commitment, anchor.block_hash());
+            compute_digest(seed, code_commitment, storage_commitment, anchor.block_commitment());
 
         let mut felts: [Felt; 2] = seed_digest.as_elements()[0..2]
             .try_into()
@@ -155,7 +155,7 @@ impl AccountIdV0 {
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
-        anchor_block_hash: Digest,
+        anchor_block_commitment: Digest,
     ) -> Result<Word, AccountError> {
         crate::account::account_id::seed::compute_account_seed(
             init_seed,
@@ -164,7 +164,7 @@ impl AccountIdV0 {
             version,
             code_commitment,
             storage_commitment,
-            anchor_block_hash,
+            anchor_block_commitment,
         )
     }
 
@@ -547,13 +547,13 @@ pub(crate) fn compute_digest(
     seed: Word,
     code_commitment: Digest,
     storage_commitment: Digest,
-    anchor_block_hash: Digest,
+    anchor_block_commitment: Digest,
 ) -> Digest {
     let mut elements = Vec::with_capacity(16);
     elements.extend(seed);
     elements.extend(*code_commitment);
     elements.extend(*storage_commitment);
-    elements.extend(*anchor_block_hash);
+    elements.extend(*anchor_block_commitment);
     Hasher::hash_elements(&elements)
 }
 
@@ -577,7 +577,7 @@ mod tests {
     fn test_account_id_from_seed_with_epoch() {
         let code_commitment: Digest = Digest::default();
         let storage_commitment: Digest = Digest::default();
-        let anchor_block_hash: Digest = Digest::default();
+        let anchor_block_commitment: Digest = Digest::default();
 
         let seed = AccountIdV0::compute_account_seed(
             [10; 32],
@@ -586,12 +586,12 @@ mod tests {
             AccountIdVersion::Version0,
             code_commitment,
             storage_commitment,
-            anchor_block_hash,
+            anchor_block_commitment,
         )
         .unwrap();
 
         for anchor_epoch in [0, u16::MAX - 1, 5000] {
-            let anchor = AccountIdAnchor::new_unchecked(anchor_epoch, anchor_block_hash);
+            let anchor = AccountIdAnchor::new_unchecked(anchor_epoch, anchor_block_commitment);
             let id = AccountIdV0::new(seed, anchor, code_commitment, storage_commitment).unwrap();
             assert_eq!(id.anchor_epoch(), anchor_epoch, "failed for account ID: {id}");
         }

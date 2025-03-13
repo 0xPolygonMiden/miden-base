@@ -687,8 +687,8 @@ fn test_block_procedures() {
             # get the block data
             exec.tx::get_block_number
             exec.tx::get_block_timestamp
-            exec.tx::get_block_hash
-            # => [BLOCK_HASH, block_timestamp, block_number]
+            exec.tx::get_block_commitment
+            # => [BLOCK_COMMITMENT, block_timestamp, block_number]
 
             # truncate the stack
             swapdw dropw dropw
@@ -699,7 +699,7 @@ fn test_block_procedures() {
 
     assert_eq!(
         process.stack.get_word(0),
-        tx_context.tx_inputs().block_header().hash().as_elements(),
+        tx_context.tx_inputs().block_header().commitment().as_elements(),
         "top word on the stack should be equal to the block header commitment"
     );
 

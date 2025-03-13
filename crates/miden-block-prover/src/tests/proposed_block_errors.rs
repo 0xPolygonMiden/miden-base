@@ -364,7 +364,7 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
         .clone();
     let mut invalid_note_path = original_note_proof.note_path().clone();
     // Add a random hash to the path to make it invalid.
-    invalid_note_path.push(block2.hash());
+    invalid_note_path.push(block2.commitment());
     let invalid_note_proof = NoteInclusionProof::new(
         original_note_proof.location().block_num(),
         original_note_proof.location().node_index_in_block(),

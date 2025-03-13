@@ -121,7 +121,7 @@ impl TransactionKernel {
             account.id(),
             account.init_hash(),
             tx_inputs.input_notes().commitment(),
-            tx_inputs.block_header().hash(),
+            tx_inputs.block_header().commitment(),
             tx_inputs.block_header().block_num(),
         );
 
@@ -154,24 +154,26 @@ impl TransactionKernel {
     ///
     /// ```text
     /// [
-    ///     BLOCK_HASH,
+    ///     BLOCK_COMMITMENT,
     ///     INITIAL_ACCOUNT_HASH,
     ///     INPUT_NOTES_COMMITMENT,
-    ///     acct_id_prefix, acct_id_suffix, block_num
+    ///     account_id_prefix, account_id_suffix, block_num
     /// ]
     /// ```
     ///
     /// Where:
-    /// - BLOCK_HASH, reference block for the transaction execution.
-    /// - block_num, number of the reference block.
-    /// - acct_id, the account that the transaction is being executed against.
-    /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
+    /// - BLOCK_COMMITMENT is the commitment to the reference block of the transaction.
+    /// - block_num is the reference block number.
+    /// - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the
+    ///   transaction is being executed against.
+    /// - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new
+    ///   accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
     pub fn build_input_stack(
         account_id: AccountId,
         init_acct_hash: Digest,
         input_notes_hash: Digest,
-        block_hash: Digest,
+        block_commitment: Digest,
         block_num: BlockNumber,
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
@@ -181,7 +183,7 @@ impl TransactionKernel {
         inputs.push(account_id.prefix().as_felt());
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
-        inputs.extend_from_slice(block_hash.as_elements());
+        inputs.extend_from_slice(block_commitment.as_elements());
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())
             .expect("Invalid stack input")

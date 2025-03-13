@@ -364,7 +364,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     // --------------------------------------------------------------------------------------------
 
     let latest_block_header = chain.latest_block_header();
-    assert_eq!(latest_block_header.hash(), blockx.hash());
+    assert_eq!(latest_block_header.commitment(), blockx.commitment());
 
     // Sanity check: The account and nullifier tree roots should not be the empty tree roots.
     assert_ne!(

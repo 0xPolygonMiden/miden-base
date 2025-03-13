@@ -872,22 +872,22 @@ export.tx_get_output_notes_commitment
     # => [OUTPUT_NOTES_COMMITMENT, pad(12)]
 end
 
-#! Returns the block hash of the reference block.
+#! Returns the block commitment of the reference block.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [BLOCK_HASH, pad(12)]
+#! Outputs: [BLOCK_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the commitment of the transaction reference block.
 #!
 #! Invocation: dynexec
-export.tx_get_block_hash
-    exec.tx::get_block_hash
-    # => [BLOCK_HASH, pad(16)]
+export.tx_get_block_commitment
+    exec.tx::get_block_commitment
+    # => [BLOCK_COMMITMENT, pad(16)]
 
     # truncate the stack
     swapw dropw
-    # => [BLOCK_HASH, pad(12)]
+    # => [BLOCK_COMMITMENT, pad(12)]
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.
