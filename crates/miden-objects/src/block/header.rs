@@ -23,7 +23,8 @@ use crate::{
 /// - `tx_commitment` is a commitment to the set of transaction IDs which affected accounts in the
 ///   block.
 /// - `tx_kernel_commitment` a commitment to all transaction kernels supported by this block.
-/// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
+/// - `proof_commitment` is the commitment of the block's STARK proof attesting to the correct state
+///   transition.
 /// - `timestamp` is the time when the block was created, in seconds since UNIX epoch. Current
 ///   representation is sufficient to represent time up to year 2106.
 /// - `sub_hash` is a sequential hash of all fields except the note_root.
@@ -39,7 +40,7 @@ pub struct BlockHeader {
     note_root: Digest,
     tx_commitment: Digest,
     tx_kernel_commitment: Digest,
-    proof_hash: Digest,
+    proof_commitment: Digest,
     timestamp: u32,
     sub_hash: Digest,
     hash: Digest,
@@ -58,7 +59,7 @@ impl BlockHeader {
         note_root: Digest,
         tx_commitment: Digest,
         tx_kernel_commitment: Digest,
-        proof_hash: Digest,
+        proof_commitment: Digest,
         timestamp: u32,
     ) -> Self {
         // compute block sub hash
@@ -70,7 +71,7 @@ impl BlockHeader {
             nullifier_root,
             tx_commitment,
             tx_kernel_commitment,
-            proof_hash,
+            proof_commitment,
             timestamp,
             block_num,
         );
@@ -91,7 +92,7 @@ impl BlockHeader {
             note_root,
             tx_commitment,
             tx_kernel_commitment,
-            proof_hash,
+            proof_commitment,
             timestamp,
             sub_hash,
             hash,
@@ -173,9 +174,9 @@ impl BlockHeader {
         self.tx_kernel_commitment
     }
 
-    /// Returns the proof hash.
-    pub fn proof_hash(&self) -> Digest {
-        self.proof_hash
+    /// Returns the proof commitment.
+    pub fn proof_commitment(&self) -> Digest {
+        self.proof_commitment
     }
 
     /// Returns the timestamp at which the block was created, in seconds since UNIX epoch.
@@ -195,8 +196,8 @@ impl BlockHeader {
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
     /// `prev_block_commitment`, `chain_commitment`, `account_root`, `nullifier_root`, `note_root`,
-    /// `tx_commitment`, `tx_kernel_commitment`, `proof_hash`, `version`, `timestamp`, `block_num`
-    /// (all fields except the `note_root`).
+    /// `tx_commitment`, `tx_kernel_commitment`, `proof_commitment`, `version`, `timestamp`,
+    /// `block_num` (all fields except the `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         version: u32,
@@ -206,7 +207,7 @@ impl BlockHeader {
         nullifier_root: Digest,
         tx_commitment: Digest,
         tx_kernel_commitment: Digest,
-        proof_hash: Digest,
+        proof_commitment: Digest,
         timestamp: u32,
         block_num: BlockNumber,
     ) -> Digest {
@@ -217,7 +218,7 @@ impl BlockHeader {
         elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(tx_commitment.as_elements());
         elements.extend_from_slice(tx_kernel_commitment.as_elements());
-        elements.extend_from_slice(proof_hash.as_elements());
+        elements.extend_from_slice(proof_commitment.as_elements());
         elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
         Hasher::hash_elements(&elements)
     }
@@ -251,7 +252,7 @@ impl Serializable for BlockHeader {
         self.note_root.write_into(target);
         self.tx_commitment.write_into(target);
         self.tx_kernel_commitment.write_into(target);
-        self.proof_hash.write_into(target);
+        self.proof_commitment.write_into(target);
         self.timestamp.write_into(target);
     }
 }
@@ -267,7 +268,7 @@ impl Deserializable for BlockHeader {
         let note_root = source.read()?;
         let tx_commitment = source.read()?;
         let tx_kernel_commitment = source.read()?;
-        let proof_hash = source.read()?;
+        let proof_commitment = source.read()?;
         let timestamp = source.read()?;
 
         Ok(Self::new(
@@ -280,7 +281,7 @@ impl Deserializable for BlockHeader {
             note_root,
             tx_commitment,
             tx_kernel_commitment,
-            proof_hash,
+            proof_commitment,
             timestamp,
         ))
     }

@@ -146,7 +146,7 @@ impl LocalBlockProver {
         let kernel_commitment = TransactionKernel::kernel_commitment();
 
         // For now, we're not actually proving the block.
-        let proof_hash = Digest::default();
+        let proof_commitment = Digest::default();
 
         let header = BlockHeader::new(
             version,
@@ -158,7 +158,7 @@ impl LocalBlockProver {
             note_root,
             tx_commitment,
             kernel_commitment,
-            proof_hash,
+            proof_commitment,
             timestamp,
         );
 

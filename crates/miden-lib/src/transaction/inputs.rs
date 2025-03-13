@@ -50,7 +50,7 @@ pub(super) fn extend_advice_inputs(
 ///     NULLIFIER_ROOT,
 ///     TX_COMMITMENT,
 ///     KERNEL_COMMITMENT
-///     PROOF_HASH,
+///     PROOF_COMMITMENT,
 ///     [block_num, version, timestamp, 0],
 ///     NOTE_ROOT,
 ///     kernel_version
@@ -77,7 +77,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.nullifier_root());
     inputs.extend_stack(header.tx_commitment());
     inputs.extend_stack(header.tx_kernel_commitment());
-    inputs.extend_stack(header.proof_hash());
+    inputs.extend_stack(header.proof_commitment());
     inputs.extend_stack([
         header.block_num().into(),
         header.version().into(),

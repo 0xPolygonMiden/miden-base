@@ -128,8 +128,8 @@ pub const TX_COMMITMENT_PTR: MemoryAddress = 816;
 /// The memory address at which the kernel commitment is stored
 pub const KERNEL_COMMITMENT_PTR: MemoryAddress = 820;
 
-/// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: MemoryAddress = 824;
+/// The memory address at which the proof commitment is stored
+pub const PROOF_COMMITMENT_PTR: MemoryAddress = 824;
 
 /// The memory address at which the block number is stored
 pub const BLOCK_METADATA_PTR: MemoryAddress = 828;

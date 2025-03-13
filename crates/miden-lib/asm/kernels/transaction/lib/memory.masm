@@ -88,8 +88,8 @@ const.TX_COMMITMENT_PTR=816
 # The memory address at which the kernel commitment is stored
 const.KERNEL_COMMITMENT_PTR=820
 
-# The memory address at which the proof hash is stored
-const.PROOF_HASH_PTR=824
+# The memory address at which the proof commitment is stored
+const.PROOF_COMMITMENT_PTR=824
 
 # The memory address at which the block metadata is stored [block_number, version, timestamp, 0]
 const.BLOCK_METADATA_PTR=828
@@ -565,15 +565,15 @@ export.get_kernel_commitment
     padw push.KERNEL_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the proof hash of the transaction reference block.
+#! Returns the proof commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [PROOF_HASH]
+#! Outputs: [PROOF_COMMITMENT]
 #!
 #! Where:
-#! - PROOF_HASH is the proof hash of the transaction reference block.
-export.get_proof_hash
-    padw push.PROOF_HASH_PTR mem_loadw
+#! - PROOF_COMMITMENT is the proof commitment of the transaction reference block.
+export.get_proof_commitment
+    padw push.PROOF_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the note root of the transaction reference block.

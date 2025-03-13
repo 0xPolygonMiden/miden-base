@@ -49,7 +49,7 @@ impl BlockHeader {
             nullifier_root,
             note_root,
             tx_commitment,
-            proof_hash,
+            proof_commitment,
             timestamp,
         ) = {
             let prev_block_commitment = rand_array::<Felt, 4>().into();
@@ -57,7 +57,7 @@ impl BlockHeader {
             let nullifier_root = rand_array::<Felt, 4>().into();
             let note_root = note_root.unwrap_or(rand_array::<Felt, 4>().into());
             let tx_commitment = rand_array::<Felt, 4>().into();
-            let proof_hash = rand_array::<Felt, 4>().into();
+            let proof_commitment = rand_array::<Felt, 4>().into();
             let timestamp = rand_value();
 
             (
@@ -66,7 +66,7 @@ impl BlockHeader {
                 nullifier_root,
                 note_root,
                 tx_commitment,
-                proof_hash,
+                proof_commitment,
                 timestamp,
             )
         };
@@ -78,7 +78,7 @@ impl BlockHeader {
             nullifier_root,
             note_root,
             tx_commitment,
-            proof_hash,
+            proof_commitment,
             timestamp,
         ) = {
             (
@@ -102,7 +102,7 @@ impl BlockHeader {
             note_root,
             tx_commitment,
             kernel_commitment,
-            proof_hash,
+            proof_commitment,
             timestamp,
         )
     }

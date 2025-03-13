@@ -841,8 +841,8 @@ impl MockChain {
 
             let kernel_commitment = TransactionKernel::kernel_commitment();
 
-            // TODO: Set `proof_hash` to the correct value once the kernel is available.
-            let proof_hash = Digest::default();
+            // TODO: Set `proof_commitment` to the correct value once the kernel is available.
+            let proof_commitment = Digest::default();
 
             let header = BlockHeader::new(
                 version,
@@ -854,7 +854,7 @@ impl MockChain {
                 note_root,
                 tx_commitment,
                 kernel_commitment,
-                proof_hash,
+                proof_commitment,
                 timestamp,
             );
 
