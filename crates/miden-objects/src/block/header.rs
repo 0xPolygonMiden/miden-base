@@ -14,7 +14,7 @@ use crate::{
 /// A block header includes the following fields:
 ///
 /// - `version` specifies the version of the protocol.
-/// - `prev_hash` is the hash of the previous block header.
+/// - `prev_block_commitment` is the hash of the previous block header.
 /// - `block_num` is a unique sequential number of the current block.
 /// - `chain_root` is a commitment to an MMR of the entire chain where each block is a leaf.
 /// - `account_root` is a commitment to account database.
@@ -31,7 +31,7 @@ use crate::{
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockHeader {
     version: u32,
-    prev_hash: Digest,
+    prev_block_commitment: Digest,
     block_num: BlockNumber,
     chain_root: Digest,
     account_root: Digest,
@@ -50,7 +50,7 @@ impl BlockHeader {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         version: u32,
-        prev_hash: Digest,
+        prev_block_commitment: Digest,
         block_num: BlockNumber,
         chain_root: Digest,
         account_root: Digest,
@@ -64,7 +64,7 @@ impl BlockHeader {
         // compute block sub hash
         let sub_hash = Self::compute_sub_hash(
             version,
-            prev_hash,
+            prev_block_commitment,
             chain_root,
             account_root,
             nullifier_root,
@@ -83,7 +83,7 @@ impl BlockHeader {
 
         Self {
             version,
-            prev_hash,
+            prev_block_commitment,
             block_num,
             chain_root,
             account_root,
@@ -119,9 +119,9 @@ impl BlockHeader {
         self.sub_hash
     }
 
-    /// Returns the hash of the previous block header.
-    pub fn prev_hash(&self) -> Digest {
-        self.prev_hash
+    /// Returns the commitment to the previous block header.
+    pub fn prev_block_commitment(&self) -> Digest {
+        self.prev_block_commitment
     }
 
     /// Returns the block number.
@@ -193,13 +193,13 @@ impl BlockHeader {
     /// Computes the sub hash of the block header.
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
-    /// `prev_hash`, `chain_root`, `account_root`, `nullifier_root`, `note_root`, `tx_hash`,
-    /// `kernel_root`, `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the
-    /// `note_root`).
+    /// `prev_block_commitment`, `chain_root`, `account_root`, `nullifier_root`, `note_root`,
+    /// `tx_hash`, `kernel_root`, `proof_hash`, `version`, `timestamp`, `block_num` (all fields
+    /// except the `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         version: u32,
-        prev_hash: Digest,
+        prev_block_commitment: Digest,
         chain_root: Digest,
         account_root: Digest,
         nullifier_root: Digest,
@@ -210,7 +210,7 @@ impl BlockHeader {
         block_num: BlockNumber,
     ) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(32);
-        elements.extend_from_slice(prev_hash.as_elements());
+        elements.extend_from_slice(prev_block_commitment.as_elements());
         elements.extend_from_slice(chain_root.as_elements());
         elements.extend_from_slice(account_root.as_elements());
         elements.extend_from_slice(nullifier_root.as_elements());
@@ -242,7 +242,7 @@ impl BlockHeader {
 impl Serializable for BlockHeader {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.version.write_into(target);
-        self.prev_hash.write_into(target);
+        self.prev_block_commitment.write_into(target);
         self.block_num.write_into(target);
         self.chain_root.write_into(target);
         self.account_root.write_into(target);
@@ -258,7 +258,7 @@ impl Serializable for BlockHeader {
 impl Deserializable for BlockHeader {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let version = source.read()?;
-        let prev_hash = source.read()?;
+        let prev_block_commitment = source.read()?;
         let block_num = source.read()?;
         let chain_root = source.read()?;
         let account_root = source.read()?;
@@ -271,7 +271,7 @@ impl Deserializable for BlockHeader {
 
         Ok(Self::new(
             version,
-            prev_hash,
+            prev_block_commitment,
             block_num,
             chain_root,
             account_root,

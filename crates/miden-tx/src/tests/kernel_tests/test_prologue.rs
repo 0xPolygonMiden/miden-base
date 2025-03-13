@@ -21,7 +21,7 @@ use miden_lib::{
             NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
             NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
             NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
-            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
+            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_COMMITMENT_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
             TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
         },
         TransactionKernel,
@@ -159,9 +159,9 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), PREV_BLOCK_HASH_PTR),
-        inputs.tx_inputs().block_header().prev_hash().as_elements(),
-        "The previous block hash should be stored at the PREV_BLK_HASH_PTR"
+        read_root_mem_word(&process.into(), PREV_BLOCK_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().prev_block_commitment().as_elements(),
+        "The previous block commitment should be stored at the PARENT_BLOCK_COMMITMENT_PTR"
     );
 
     assert_eq!(

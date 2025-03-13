@@ -44,7 +44,7 @@ pub(super) fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
-///     PREVIOUS_BLOCK_HASH,
+///     PARENT_BLOCK_COMMITMENT,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
@@ -71,7 +71,7 @@ fn build_advice_stack(
 
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
-    inputs.extend_stack(header.prev_hash());
+    inputs.extend_stack(header.prev_block_commitment());
     inputs.extend_stack(header.chain_root());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());

@@ -70,8 +70,8 @@ const.TX_SCRIPT_ROOT_PTR=420
 # The memory address at which the block data section begins
 const.BLOCK_DATA_SECTION_OFFSET=800
 
-# The memory address at which the previous block hash is stored
-const.PREV_BLOCK_HASH_PTR=800
+# The memory address at which the previous block commitment is stored
+const.PREV_BLOCK_COMMITMENT_PTR=800
 
 # The memory address at which the chain root is stored
 const.CHAIN_ROOT_PTR=804
@@ -466,15 +466,15 @@ export.get_block_data_ptr
     push.BLOCK_DATA_SECTION_OFFSET
 end
 
-#! Returns the previous block hash of the last known block.
+#! Returns the previous block commitment of the last known block.
 #!
 #! Inputs:  []
-#! Outputs: [PREV_BLOCK_HASH]
+#! Outputs: [PREV_BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - PREV_BLOCK_HASH is the previous block hash of the last known block.
-export.get_prv_blk_hash
-    padw push.PREV_BLOCK_HASH_PTR mem_loadw
+#! - PREV_BLOCK_COMMITMENT_PTR is the previous block hash of the last known block.
+export.get_prev_block_commitment
+    padw push.PREV_BLOCK_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the block number of the last known block.

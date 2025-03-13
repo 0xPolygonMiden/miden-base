@@ -829,7 +829,7 @@ impl MockChain {
             let peaks = self.chain.peaks();
             let chain_root: Digest = peaks.hash_peaks();
             let account_root = self.accounts.root();
-            let prev_hash = previous.map_or(Digest::default(), |block| block.hash());
+            let prev_block_commitment = previous.map_or(Digest::default(), |block| block.hash());
             let nullifier_root = self.nullifiers.root();
             let note_root = notes_tree.root();
             let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
@@ -846,7 +846,7 @@ impl MockChain {
 
             let header = BlockHeader::new(
                 version,
-                prev_hash,
+                prev_block_commitment,
                 BlockNumber::from(current_block_num),
                 chain_root,
                 account_root,

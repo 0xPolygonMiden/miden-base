@@ -43,8 +43,8 @@ impl BlockHeader {
         let account_root = acct_db.root();
 
         #[cfg(not(target_family = "wasm"))]
-        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
-            let prev_hash = rand_array::<Felt, 4>().into();
+        let (prev_block_commitment, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
+            let prev_block_commitment = rand_array::<Felt, 4>().into();
             let chain_root = chain_root.unwrap_or(rand_array::<Felt, 4>().into());
             let nullifier_root = rand_array::<Felt, 4>().into();
             let note_root = note_root.unwrap_or(rand_array::<Felt, 4>().into());
@@ -52,11 +52,11 @@ impl BlockHeader {
             let proof_hash = rand_array::<Felt, 4>().into();
             let timestamp = rand_value();
 
-            (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp)
+            (prev_block_commitment, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp)
         };
 
         #[cfg(target_family = "wasm")]
-        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
+        let (prev_block_commitment, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
             (
                 Default::default(),
                 chain_root.unwrap_or_default(),
@@ -70,7 +70,7 @@ impl BlockHeader {
 
         BlockHeader::new(
             0,
-            prev_hash,
+            prev_block_commitment,
             block_num.into(),
             chain_root,
             account_root,

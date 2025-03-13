@@ -110,8 +110,8 @@ pub const TX_SCRIPT_ROOT_PTR: MemoryAddress = 420;
 /// The memory address at which the block data section begins
 pub const BLOCK_DATA_SECTION_OFFSET: MemoryOffset = 800;
 
-/// The memory address at which the previous block hash is stored
-pub const PREV_BLOCK_HASH_PTR: MemoryAddress = 800;
+/// The memory address at which the previous block commitment is stored
+pub const PREV_BLOCK_COMMITMENT_PTR: MemoryAddress = 800;
 
 /// The memory address at which the chain root is stored
 pub const CHAIN_ROOT_PTR: MemoryAddress = 804;

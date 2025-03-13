@@ -210,7 +210,7 @@ end
 #! Inputs:
 #!   Operand stack: [block_num]
 #!   Advice stack: [
-#!     PREVIOUS_BLOCK_HASH,
+#!     PREV_BLOCK_COMMITMENT,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
@@ -224,7 +224,7 @@ end
 #!   Operand stack: []
 #!
 #! Where:
-#! - PREVIOUS_BLOCK_HASH is the hash of the previous block.
+#! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
 #! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
@@ -1097,7 +1097,7 @@ end
 #!     account_id_prefix, account_id_suffix, block_num,
 #!   ]
 #!   Advice stack: [
-#!     PREVIOUS_BLOCK_HASH,
+#!     PREV_BLOCK_COMMITMENT,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
@@ -1134,7 +1134,7 @@ end
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - KERNEL_ROOT is the accumulative hash from all kernel hashes.
-#! - PREVIOUS_BLOCK_HASH is the hash of the previous block.
+#! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
 #! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been

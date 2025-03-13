@@ -153,7 +153,8 @@ impl ProposedBatch {
         //
         // Note that some block X is only added to the blockchain MMR by block X + 1. This is
         // because block X cannot compute its own block commitment and thus cannot add itself to the
-        // chain. So, more generally, a parent block is added to the blockchain by its child block.
+        // chain. So, more generally, a previous block is added to the blockchain by its child
+        // block.
         //
         // The reference block of a batch may be the latest block in the chain and, as mentioned,
         // block is not yet part of the blockchain MMR, so its inclusion cannot be proven. Since the
