@@ -222,7 +222,7 @@ impl PendingObjects {
 ///       None,
 ///     )
 ///   .unwrap();
-/// mock_chain.seal_block(None);
+/// mock_chain.seal_next_block();
 /// let tx_context = mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build();
 /// let result = tx_context.execute();
 /// ```
