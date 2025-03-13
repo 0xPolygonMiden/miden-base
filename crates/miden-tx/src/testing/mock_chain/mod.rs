@@ -518,8 +518,9 @@ impl MockChain {
 
     /// Adds an existing wallet (nonce == 1) with the specified authentication method and assets.
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder =
-            Account::builder(self.rng.random()).with_component(BasicWallet).with_assets(assets);
+        let account_builder = Account::builder(self.rng.random())
+            .with_component(BasicWallet)
+            .with_assets(assets);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::Exists)
     }

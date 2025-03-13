@@ -751,12 +751,12 @@ fn test_fpi_memory() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -1010,17 +1010,17 @@ fn test_fpi_memory_two_accounts() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_1)
         .build_existing()
         .unwrap();
 
-    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_2)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
                 .unwrap(),
@@ -1214,12 +1214,12 @@ fn test_fpi_execute_foreign_procedure() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),

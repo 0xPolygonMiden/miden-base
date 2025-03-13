@@ -36,7 +36,7 @@ fn grind_account_seed(c: &mut Criterion) {
     group.bench_function("Grind regular public account seed", |bench| {
         bench.iter(|| {
             AccountId::compute_account_seed(
-                rng.gen(),
+                rng.random(),
                 AccountType::RegularAccountImmutableCode,
                 AccountStorageMode::Public,
                 AccountIdVersion::Version0,
