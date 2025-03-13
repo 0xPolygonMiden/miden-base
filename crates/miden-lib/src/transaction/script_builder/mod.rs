@@ -14,6 +14,9 @@ use crate::{
     AuthScheme,
 };
 
+#[cfg(test)]
+mod test;
+
 // TRANSACTION SCRIPT BUILDER
 // ============================================================================================
 
@@ -68,7 +71,7 @@ impl TransactionScriptBuilder {
             AccountComponentInterface::BasicWallet
                 .send_note_procedure(*self.account_interface.id(), output_notes)?
         } else {
-            return Err(TransactionScriptBuilderError::UnsupportedAccount);
+            return Err(TransactionScriptBuilderError::UnsupportedAccountInterface);
         };
 
         self.build_script_with_sections(&[send_note_procedure])
@@ -81,15 +84,15 @@ impl TransactionScriptBuilder {
 
     /// Builds a transaction script with the specified sections.
     ///
-    /// The `sections` parameter is a vector of strings, where each string represents a distinct
-    /// part of the script body. The script includes, authentication, and expiration sections are
+    /// The `sections` parameter is a slice of strings, where each string represents a distinct
+    /// part of the script body. The script authentication and expiration sections are
     /// automatically added to the script.
     fn build_script_with_sections(
         &self,
         sections: &[String],
     ) -> Result<TransactionScript, TransactionScriptBuilderError> {
         let script = format!(
-            "begin {} {} {} end",
+            "begin{}\n{}\n{}\nend",
             self.script_expiration(),
             sections.join(" "),
             self.script_authentication()
@@ -108,7 +111,7 @@ impl TransactionScriptBuilder {
         self.account_interface.auth().iter().for_each(|auth_scheme| match auth_scheme {
             &AuthScheme::RpoFalcon512 { pub_key: _ } => {
                 auth_script
-                    .push_str("call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512\n");
+                    .push_str("\n\tcall.::miden::contracts::auth::basic::auth_tx_rpo_falcon512");
             },
         });
 
@@ -118,7 +121,7 @@ impl TransactionScriptBuilder {
     /// Returns a string with the expiration delta update procedure call for the script.
     fn script_expiration(&self) -> String {
         if let Some(expiration_delta) = self.expiration_delta {
-            format!("push.{expiration_delta} exec.::miden::tx::update_expiration_block_delta\n")
+            format!("\n\tpush.{expiration_delta} exec.::miden::tx::update_expiration_block_delta")
         } else {
             String::new()
         }
@@ -141,6 +144,6 @@ pub enum TransactionScriptBuilderError {
     InvalidSenderAccount(AccountId),
     #[error("{0} interface does not support the generation of the standard send_note script")]
     UnsupportedInterface(AccountComponentInterface),
-    #[error("Account does not contain interfaces which support the send_note script generation")]
-    UnsupportedAccount,
+    #[error("account does not contain the basic fungible faucet or basic wallet interfaces which are needed to support the send_note script generation")]
+    UnsupportedAccountInterface,
 }

@@ -49,10 +49,7 @@ pub mod crypto {
 }
 
 pub mod utils {
-    use alloc::{
-        string::{String, ToString},
-        vec::Vec,
-    };
+    use alloc::string::{String, ToString};
 
     pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
     pub use vm_core::utils::*;
@@ -64,12 +61,18 @@ pub mod utils {
         };
     }
 
-    /// Converts a word into a string which can be used in assembly instructions.
+    /// Converts a word into a string of the word's field elements separated by periods, which can
+    /// be used on a MASM `push` instruction to push the word onto the stack.
     ///
-    /// Resulting string essentially consists of the word elements represented as integers and
-    /// separated by dots.
+    /// # Example
+    ///
+    /// ```
+    /// # use miden_objects::{Word, Felt, utils::word_to_felts_string};
+    /// let word = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+    /// assert_eq!(word_to_felts_string(&word), "1.2.3.4");
+    /// ```
     pub fn word_to_felts_string(word: &Word) -> String {
-        word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
+        format!("{}.{}.{}.{}", word[0], word[1], word[2], word[3])
     }
 
     pub const fn parse_hex_string_as_word(hex: &str) -> Result<[Felt; 4], &'static str> {

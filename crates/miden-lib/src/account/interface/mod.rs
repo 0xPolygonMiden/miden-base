@@ -1,6 +1,6 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
-    string::String,
+    string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
@@ -284,13 +284,7 @@ impl AccountComponentInterface {
             }
 
             body.push_str(&format!(
-                "
-                    push.{recipient}
-                    push.{execution_hint}
-                    push.{note_type}
-                    push.{aux}
-                    push.{tag}
-                    ",
+                "\n\tpush.{recipient}\n\tpush.{execution_hint}\n\tpush.{note_type}\n\tpush.{aux}\n\tpush.{tag}",
                 recipient = word_to_felts_string(&partial_note.recipient_digest()),
                 note_type = Felt::from(partial_note.metadata().note_type()),
                 execution_hint = Felt::from(partial_note.metadata().execution_hint()),
@@ -315,28 +309,21 @@ impl AccountComponentInterface {
                     }
 
                     body.push_str(&format!(
-                        "
-                        push.{amount}
-                        call.::miden::contracts::faucets::basic_fungible::distribute dropw dropw drop
-                        ",
+                        "\n\n\tpush.{amount} call.::miden::contracts::faucets::basic_fungible::distribute dropw dropw drop",
                         amount = asset.unwrap_fungible().amount()
                     ));
                 },
                 AccountComponentInterface::BasicWallet => {
-                    body.push_str(
-                        "
-                        call.::miden::contracts::wallets::basic::create_note\n",
-                    );
+                    body.push_str("\n\tcall.::miden::contracts::wallets::basic::create_note\n");
 
                     for asset in partial_note.assets().iter() {
                         body.push_str(&format!(
-                            "push.{asset}
-                            call.::miden::contracts::wallets::basic::move_asset_to_note dropw\n",
+                            "\n\tpush.{asset}\n\tcall.::miden::contracts::wallets::basic::move_asset_to_note dropw",
                             asset = word_to_felts_string(&asset.into())
                         ));
                     }
 
-                    body.push_str("dropw dropw dropw drop");
+                    body.push_str("\n\tdropw dropw dropw drop");
                 },
                 _ => return Err(TransactionScriptBuilderError::UnsupportedInterface(self.clone())),
             }
@@ -352,7 +339,14 @@ impl Display for AccountComponentInterface {
             AccountComponentInterface::BasicWallet => write!(f, "Basic Wallet"),
             AccountComponentInterface::BasicFungibleFaucet => write!(f, "Basic Fungible Faucet"),
             AccountComponentInterface::RpoFalcon512(_) => write!(f, "RPO Falcon512"),
-            AccountComponentInterface::Custom(_) => write!(f, "Custom"),
+            AccountComponentInterface::Custom(proc_info_vec) => {
+                let result = proc_info_vec
+                    .iter()
+                    .map(|proc_info| proc_info.mast_root().to_hex()[..9].to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "Custom([{}])", result)
+            },
         }
     }
 }
