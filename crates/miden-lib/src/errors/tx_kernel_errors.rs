@@ -69,6 +69,8 @@ pub const ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME: u32 = 0x20080;
 pub const ERR_TX_INVALID_EXPIRATION_DELTA: u32 = 0x200c0;
 /// Number of output notes in the transaction exceeds the maximum limit of 1024
 pub const ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT: u32 = 0x200c1;
+/// The transaction script is missing.
+pub const ERR_TX_TRANSACTION_SCRIPT_IS_MISSING: u32 = 0x200c2;
 
 /// Attempted to access note assets from incorrect context
 pub const ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT: u32 = 0x20100;
@@ -205,7 +207,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x20286;
 /// Failed to remove fungible asset from the asset vault due to the initial value being invalid
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x20287;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 85] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 86] = [
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
@@ -230,6 +232,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 85] = [
 
     (ERR_TX_INVALID_EXPIRATION_DELTA, "Transaction expiration block delta must be within 0x1 and 0xFFFF."),
     (ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT, "Number of output notes in the transaction exceeds the maximum limit of 1024"),
+    (ERR_TX_TRANSACTION_SCRIPT_IS_MISSING, "The transaction script is missing."),
 
     (ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT, "Attempted to access note assets from incorrect context"),
     (ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT, "Attempted to access note inputs from incorrect context"),

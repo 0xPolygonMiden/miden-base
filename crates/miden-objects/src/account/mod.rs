@@ -23,8 +23,8 @@ pub use code::{procedure::AccountProcedureInfo, AccountCode};
 mod component;
 pub use component::{
     AccountComponent, AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation,
-    InitStorageData, MapEntry, PlaceholderTypeRequirement, StorageEntry, StorageValueName,
-    StorageValueNameError, TemplateType, TemplateTypeError, WordRepresentation,
+    InitStorageData, MapEntry, MapRepresentation, PlaceholderTypeRequirement, StorageEntry,
+    StorageValueName, StorageValueNameError, TemplateType, TemplateTypeError, WordRepresentation,
 };
 
 pub mod delta;

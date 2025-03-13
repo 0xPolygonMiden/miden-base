@@ -1316,8 +1316,7 @@ fn test_fpi_execute_foreign_procedure() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let mut executor: TransactionExecutor =
-        TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
+    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
 
     // load the mast forest of the foreign account's code to be able to create an account procedure
     // index map and execute the specified foreign procedure
@@ -1440,7 +1439,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
     assert_eq!(
         read_root_mem_word(&process.into(), foreign_account_data_ptr + NUM_ACCT_PROCEDURES_OFFSET),
         [
-            u16::try_from(foreign_account.code().procedures().len()).unwrap().into(),
+            u16::try_from(foreign_account.code().num_procedures()).unwrap().into(),
             ZERO,
             ZERO,
             ZERO
