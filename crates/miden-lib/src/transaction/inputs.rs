@@ -72,7 +72,7 @@ fn build_advice_stack(
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
     inputs.extend_stack(header.prev_block_commitment());
-    inputs.extend_stack(header.chain_root());
+    inputs.extend_stack(header.chain_commitment());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
     inputs.extend_stack(header.tx_hash());

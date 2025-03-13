@@ -113,10 +113,11 @@ impl LocalBlockProver {
         let new_account_root =
             compute_account_root(&mut account_updated_witnesses, &prev_block_header)?;
 
-        // Insert the previous block header into the block chain MMR to get the new chain root.
+        // Insert the previous block header into the block chain MMR to get the new chain
+        // commitment.
         // --------------------------------------------------------------------------------------------
 
-        let new_chain_root = compute_chain_root(chain_mmr, prev_block_header);
+        let new_chain_commitment = compute_chain_commitment(chain_mmr, prev_block_header);
 
         // Transform the account update witnesses into block account updates.
         // --------------------------------------------------------------------------------------------
@@ -151,7 +152,7 @@ impl LocalBlockProver {
             version,
             prev_block_commitment,
             block_num,
-            new_chain_root,
+            new_chain_commitment,
             new_account_root,
             new_nullifier_root,
             note_root,
@@ -224,8 +225,9 @@ fn compute_nullifiers(
     Ok((nullifiers, partial_nullifier_tree.root()))
 }
 
-/// Adds the commitment of the previous block header to the chain MMR to compute the new chain root.
-fn compute_chain_root(mut chain_mmr: ChainMmr, prev_block_header: BlockHeader) -> Digest {
+/// Adds the commitment of the previous block header to the chain MMR to compute the new chain
+/// commitment.
+fn compute_chain_commitment(mut chain_mmr: ChainMmr, prev_block_header: BlockHeader) -> Digest {
     // SAFETY: This does not panic as long as the block header we're adding is the next one in the
     // chain which is validated as part of constructing a `ProposedBlock`.
     chain_mmr.add_block(prev_block_header, true);

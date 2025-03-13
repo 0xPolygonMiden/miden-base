@@ -73,8 +73,8 @@ const.BLOCK_DATA_SECTION_OFFSET=800
 # The memory address at which the previous block commitment is stored
 const.PREV_BLOCK_COMMITMENT_PTR=800
 
-# The memory address at which the chain root is stored
-const.CHAIN_ROOT_PTR=804
+# The memory address at which the chain commitment is stored
+const.CHAIN_COMMITMENT_PTR=804
 
 # The memory address at which the account root is stored
 const.ACCT_DB_ROOT_PTR=808
@@ -466,35 +466,35 @@ export.get_block_data_ptr
     push.BLOCK_DATA_SECTION_OFFSET
 end
 
-#! Returns the previous block commitment of the last known block.
+#! Returns the previous block commitment of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [PREV_BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - PREV_BLOCK_COMMITMENT_PTR is the previous block hash of the last known block.
+#! - PREV_BLOCK_COMMITMENT_PTR is the previous block hash of the transaction reference block.
 export.get_prev_block_commitment
     padw push.PREV_BLOCK_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the block number of the last known block.
+#! Returns the block number of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [blk_num]
 #!
 #! Where:
-#! - blk_num is the block number of the last known block.
+#! - blk_num is the block number of the transaction reference block.
 export.get_blk_num
     push.BLOCK_METADATA_PTR mem_load
 end
 
-#! Returns the protocol version of the last known block.
+#! Returns the protocol version of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [version]
 #!
 #! Where:
-#! - version is the protocol version of the last known block.
+#! - version is the protocol version of the transaction reference block.
 export.get_blk_version
     padw push.BLOCK_METADATA_PTR mem_loadw drop drop swap drop
 end
@@ -510,51 +510,51 @@ export.get_blk_timestamp
     padw push.BLOCK_METADATA_PTR mem_loadw drop movdn.2 drop drop
 end
 
-#! Returns the chain root of the last known block.
+#! Returns the chain commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [CHAIN_ROOT]
+#! Outputs: [CHAIN_COMMITMENT]
 #!
 #! Where:
-#! - CHAIN_ROOT is the chain root of the last known block.
-export.get_chain_root
-    padw push.CHAIN_ROOT_PTR mem_loadw
+#! - CHAIN_COMMITMENT is the chain commitment of the transaction reference block.
+export.get_chain_commitment
+    padw push.CHAIN_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the account db root of the last known block.
+#! Returns the account db root of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [ACCT_DB_ROOT]
 #!
 #! Where:
-#! - ACCT_DB_ROOT is the account database root of the last known block.
+#! - ACCT_DB_ROOT is the account database root of the transaction reference block.
 export.get_acct_db_root
     padw push.ACCT_DB_ROOT_PTR mem_loadw
 end
 
-#! Returns the nullifier db root of the last known block.
+#! Returns the nullifier db root of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [NULLIFIER_ROOT]
 #!
 #! Where:
-#! - NULLIFIER_ROOT is the nullifier root of the last known block.
+#! - NULLIFIER_ROOT is the nullifier root of the transaction reference block.
 export.get_nullifier_db_root
     padw push.NULLIFIER_ROOT_PTR mem_loadw
 end
 
-#! Returns the tx hash of the last known block.
+#! Returns the tx hash of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [TX_HASH]
 #!
 #! Where:
-#! - TX_HASH is the tx hash of the last known block.
+#! - TX_HASH is the tx hash of the transaction reference block.
 export.get_tx_hash
     padw push.TX_HASH_PTR mem_loadw
 end
 
-#! Returns the kernel root used in the last known block.
+#! Returns the kernel root used in the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [KERNEL_ROOT]
@@ -565,35 +565,35 @@ export.get_kernel_root
     padw push.KERNEL_ROOT_PTR mem_loadw
 end
 
-#! Returns the proof hash of the last known block.
+#! Returns the proof hash of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [PROOF_HASH]
 #!
 #! Where:
-#! - PROOF_HASH is the proof hash of the last known block.
+#! - PROOF_HASH is the proof hash of the transaction reference block.
 export.get_proof_hash
     padw push.PROOF_HASH_PTR mem_loadw
 end
 
-#! Returns the note root of the last known block.
+#! Returns the note root of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [NOTE_ROOT]
 #!
 #! Where:
-#! - NOTE_ROOT is the note root of the last known block.
+#! - NOTE_ROOT is the note root of the transaction reference block.
 export.get_note_root
     padw push.NOTE_ROOT_PTR mem_loadw
 end
 
-#! Sets the note root of the last known block.
+#! Sets the note root of the transaction reference block.
 #!
 #! Inputs:  [NOTE_ROOT]
 #! Outputs: [NOTE_ROOT]
 #!
 #! Where:
-#! - NOTE_ROOT is the note root of the last known block.
+#! - NOTE_ROOT is the note root of the transaction reference block.
 export.set_note_root
     push.NOTE_ROOT_PTR
     mem_storew

@@ -113,8 +113,8 @@ pub const BLOCK_DATA_SECTION_OFFSET: MemoryOffset = 800;
 /// The memory address at which the previous block commitment is stored
 pub const PREV_BLOCK_COMMITMENT_PTR: MemoryAddress = 800;
 
-/// The memory address at which the chain root is stored
-pub const CHAIN_ROOT_PTR: MemoryAddress = 804;
+/// The memory address at which the chain commitment is stored
+pub const CHAIN_COMMITMENT_PTR: MemoryAddress = 804;
 
 /// The memory address at which the state root is stored
 pub const ACCT_DB_ROOT_PTR: MemoryAddress = 808;

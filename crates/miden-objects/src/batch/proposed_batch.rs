@@ -64,8 +64,8 @@ impl ProposedBatch {
     ///   matches the account state before any transactions are executed and B's initial account
     ///   state commitment matches the final account state commitment of A, then A must come before
     ///   B.
-    /// - The chain MMR's hashed peaks must match the reference block's `chain_root` and it must
-    ///   contain all block headers:
+    /// - The chain MMR's hashed peaks must match the reference block's `chain_commitment` and it
+    ///   must contain all block headers:
     ///   - that are referenced by note inclusion proofs in `unauthenticated_note_proofs`.
     ///   - that are referenced by a transaction in the batch.
     /// - The `unauthenticated_note_proofs` should contain [`NoteInclusionProof`]s for any
@@ -97,7 +97,7 @@ impl ProposedBatch {
     /// - The chain MMRs chain length does not match the block header's block number. This means the
     ///   chain MMR should not contain the block header itself as it is added to the MMR in the
     ///   batch kernel.
-    /// - The chain MMRs hashed peaks do not match the block header's chain root.
+    /// - The chain MMRs hashed peaks do not match the block header's chain commitment.
     /// - The reference block of any transaction is not in the chain MMR.
     /// - The note inclusion proof for an unauthenticated note fails to verify.
     /// - The block referenced by a note inclusion proof for an unauthenticated note is missing from
@@ -141,9 +141,9 @@ impl ProposedBatch {
         }
 
         let hashed_peaks = chain_mmr.peaks().hash_peaks();
-        if hashed_peaks != reference_block_header.chain_root() {
+        if hashed_peaks != reference_block_header.chain_commitment() {
             return Err(ProposedBatchError::InconsistentChainRoot {
-                expected: reference_block_header.chain_root(),
+                expected: reference_block_header.chain_commitment(),
                 actual: hashed_peaks,
             });
         }
@@ -163,8 +163,9 @@ impl ProposedBatch {
         // this block's inclusion when including this batch and verifying its ZK proof.
         //
         // Finally, note that we don't verify anything cryptographically here. We have previously
-        // verified that the batch reference block's chain root matches the hashed peaks of the
-        // `ChainMmr`, and so we only have to check if the chain MMR contains the block here.
+        // verified that the batch reference block's chain commitment matches the hashed peaks of
+        // the `ChainMmr`, and so we only have to check if the chain MMR contains the block
+        // here.
         // --------------------------------------------------------------------------------------------
 
         for tx in transactions.iter() {
@@ -426,11 +427,16 @@ mod tests {
         let partial_mmr: PartialMmr = mmr.peaks().into();
         let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
 
-        let chain_root = chain_mmr.peaks().hash_peaks();
+        let chain_commitment = chain_mmr.peaks().hash_peaks();
         let note_root: Word = rand_array();
         let kernel_root: Word = rand_array();
-        let reference_block_header =
-            BlockHeader::mock(3, Some(chain_root), Some(note_root.into()), &[], kernel_root.into());
+        let reference_block_header = BlockHeader::mock(
+            3,
+            Some(chain_commitment),
+            Some(note_root.into()),
+            &[],
+            kernel_root.into(),
+        );
 
         let account_id = AccountId::dummy(
             [1; 15],

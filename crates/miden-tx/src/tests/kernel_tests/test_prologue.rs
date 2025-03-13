@@ -11,7 +11,7 @@ use miden_lib::{
     transaction::{
         memory::{
             MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
-            BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+            BLOCK_NUMBER_IDX, CHAIN_COMMITMENT_PTR, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
             INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
             INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
             INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
@@ -165,9 +165,9 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), CHAIN_ROOT_PTR),
-        inputs.tx_inputs().block_header().chain_root().as_elements(),
-        "The chain root should be stored at the CHAIN_ROOT_PTR"
+        read_root_mem_word(&process.into(), CHAIN_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().chain_commitment().as_elements(),
+        "The chain commitment should be stored at the CHAIN_COMMITMENT_PTR"
     );
 
     assert_eq!(

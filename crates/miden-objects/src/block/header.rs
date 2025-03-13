@@ -16,7 +16,7 @@ use crate::{
 /// - `version` specifies the version of the protocol.
 /// - `prev_block_commitment` is the hash of the previous block header.
 /// - `block_num` is a unique sequential number of the current block.
-/// - `chain_root` is a commitment to an MMR of the entire chain where each block is a leaf.
+/// - `chain_commitment` is a commitment to an MMR of the entire chain where each block is a leaf.
 /// - `account_root` is a commitment to account database.
 /// - `nullifier_root` is a commitment to the nullifier database.
 /// - `note_root` is a commitment to all notes created in the current block.
@@ -33,7 +33,7 @@ pub struct BlockHeader {
     version: u32,
     prev_block_commitment: Digest,
     block_num: BlockNumber,
-    chain_root: Digest,
+    chain_commitment: Digest,
     account_root: Digest,
     nullifier_root: Digest,
     note_root: Digest,
@@ -52,7 +52,7 @@ impl BlockHeader {
         version: u32,
         prev_block_commitment: Digest,
         block_num: BlockNumber,
-        chain_root: Digest,
+        chain_commitment: Digest,
         account_root: Digest,
         nullifier_root: Digest,
         note_root: Digest,
@@ -65,7 +65,7 @@ impl BlockHeader {
         let sub_hash = Self::compute_sub_hash(
             version,
             prev_block_commitment,
-            chain_root,
+            chain_commitment,
             account_root,
             nullifier_root,
             tx_hash,
@@ -85,7 +85,7 @@ impl BlockHeader {
             version,
             prev_block_commitment,
             block_num,
-            chain_root,
+            chain_commitment,
             account_root,
             nullifier_root,
             note_root,
@@ -136,9 +136,9 @@ impl BlockHeader {
         self.block_num.block_epoch()
     }
 
-    /// Returns the chain root.
-    pub fn chain_root(&self) -> Digest {
-        self.chain_root
+    /// Returns the chain commitment.
+    pub fn chain_commitment(&self) -> Digest {
+        self.chain_commitment
     }
 
     /// Returns the account database root.
@@ -193,14 +193,14 @@ impl BlockHeader {
     /// Computes the sub hash of the block header.
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
-    /// `prev_block_commitment`, `chain_root`, `account_root`, `nullifier_root`, `note_root`,
+    /// `prev_block_commitment`, `chain_commitment`, `account_root`, `nullifier_root`, `note_root`,
     /// `tx_hash`, `kernel_root`, `proof_hash`, `version`, `timestamp`, `block_num` (all fields
     /// except the `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         version: u32,
         prev_block_commitment: Digest,
-        chain_root: Digest,
+        chain_commitment: Digest,
         account_root: Digest,
         nullifier_root: Digest,
         tx_hash: Digest,
@@ -211,7 +211,7 @@ impl BlockHeader {
     ) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(32);
         elements.extend_from_slice(prev_block_commitment.as_elements());
-        elements.extend_from_slice(chain_root.as_elements());
+        elements.extend_from_slice(chain_commitment.as_elements());
         elements.extend_from_slice(account_root.as_elements());
         elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(tx_hash.as_elements());
@@ -244,7 +244,7 @@ impl Serializable for BlockHeader {
         self.version.write_into(target);
         self.prev_block_commitment.write_into(target);
         self.block_num.write_into(target);
-        self.chain_root.write_into(target);
+        self.chain_commitment.write_into(target);
         self.account_root.write_into(target);
         self.nullifier_root.write_into(target);
         self.note_root.write_into(target);
@@ -260,7 +260,7 @@ impl Deserializable for BlockHeader {
         let version = source.read()?;
         let prev_block_commitment = source.read()?;
         let block_num = source.read()?;
-        let chain_root = source.read()?;
+        let chain_commitment = source.read()?;
         let account_root = source.read()?;
         let nullifier_root = source.read()?;
         let note_root = source.read()?;
@@ -273,7 +273,7 @@ impl Deserializable for BlockHeader {
             version,
             prev_block_commitment,
             block_num,
-            chain_root,
+            chain_commitment,
             account_root,
             nullifier_root,
             note_root,
@@ -294,12 +294,12 @@ mod tests {
 
     #[test]
     fn test_serde() {
-        let chain_root: Word = rand_array();
+        let chain_commitment: Word = rand_array();
         let note_root: Word = rand_array();
         let kernel_root: Word = rand_array();
         let header = BlockHeader::mock(
             0,
-            Some(chain_root.into()),
+            Some(chain_commitment.into()),
             Some(note_root.into()),
             &[],
             kernel_root.into(),

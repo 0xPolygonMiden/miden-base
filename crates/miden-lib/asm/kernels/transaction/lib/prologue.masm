@@ -297,8 +297,8 @@ proc.process_chain_data
     exec.memory::get_chain_mmr_ptr dup
     # => [chain_mmr_ptr, chain_mmr_ptr]
 
-    # save the MMR peaks to memory and verify it matches the block's CHAIN_ROOT
-    exec.memory::get_chain_root
+    # save the MMR peaks to memory and verify it matches the block's CHAIN_COMMITMENT
+    exec.memory::get_chain_commitment
     exec.mmr::unpack
     # => [chain_mmr_ptr]
 

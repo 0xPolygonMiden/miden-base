@@ -51,9 +51,9 @@ impl TransactionInputs {
             });
         }
 
-        if block_chain.peaks().hash_peaks() != block_header.chain_root() {
-            return Err(TransactionInputError::InconsistentChainRoot {
-                expected: block_header.chain_root(),
+        if block_chain.peaks().hash_peaks() != block_header.chain_commitment() {
+            return Err(TransactionInputError::InconsistentChainCommitment {
+                expected: block_header.chain_commitment(),
                 actual: block_chain.peaks().hash_peaks(),
             });
         }

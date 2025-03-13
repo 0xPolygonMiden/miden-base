@@ -175,7 +175,7 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
     );
 
     // Add an invalid value making the chain length equal to block2's number, but resulting in a
-    // different chain root.
+    // different chain commitment.
     chain_mmr.partial_mmr_mut().add(block2.header().nullifier_root(), true);
 
     let block_inputs = BlockInputs::new(
@@ -187,7 +187,10 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
     );
 
     let error = ProposedBlock::new(block_inputs.clone(), batches.clone()).unwrap_err();
-    assert_matches!(error, ProposedBlockError::ChainRootNotEqualToPreviousBlockChainRoot { .. });
+    assert_matches!(
+        error,
+        ProposedBlockError::ChainRootNotEqualToPreviousBlockChainCommitment { .. }
+    );
 
     Ok(())
 }

@@ -51,7 +51,7 @@ Block data, read from the advice provider, is stored in memory. The block hash i
 
 ### Chain data
 
-Chain root is recomputed and verified against the chain root in the block data section.
+Chain commitment is recomputed and verified against the chain commitment in the block data section.
 
 ### Account data
 

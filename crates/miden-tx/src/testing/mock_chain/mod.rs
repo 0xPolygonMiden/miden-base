@@ -827,7 +827,7 @@ impl MockChain {
             let version = 0;
             let previous = self.blocks.last();
             let peaks = self.chain.peaks();
-            let chain_root: Digest = peaks.hash_peaks();
+            let chain_commitment: Digest = peaks.hash_peaks();
             let account_root = self.accounts.root();
             let prev_block_commitment = previous.map_or(Digest::default(), |block| block.hash());
             let nullifier_root = self.nullifiers.root();
@@ -848,7 +848,7 @@ impl MockChain {
                 version,
                 prev_block_commitment,
                 BlockNumber::from(current_block_num),
-                chain_root,
+                chain_commitment,
                 account_root,
                 nullifier_root,
                 note_root,
