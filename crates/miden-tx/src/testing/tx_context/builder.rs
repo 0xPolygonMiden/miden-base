@@ -638,8 +638,8 @@ impl TransactionContextBuilder {
                     mock_chain.add_pending_note(i);
                 }
 
-                mock_chain.seal_block(None);
-                mock_chain.seal_block(None);
+                mock_chain.seal_next_block();
+                mock_chain.seal_next_block();
 
                 let input_note_ids: Vec<NoteId> =
                     mock_chain.available_notes().iter().map(|n| n.id()).collect();

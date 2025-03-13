@@ -41,14 +41,6 @@ use vm_processor::{
 use super::TransactionContextBuilder;
 use crate::auth::BasicAuthenticator;
 
-// CONSTANTS
-// ================================================================================================
-
-/// Initial timestamp value
-const TIMESTAMP_START_SECS: u32 = 1693348223;
-/// Timestamp increment on each new block
-const TIMESTAMP_STEP_SECS: u32 = 10;
-
 // AUTH
 // ================================================================================================
 
@@ -306,6 +298,17 @@ impl Default for MockChain {
 }
 
 impl MockChain {
+    // CONSTANTS
+    // ----------------------------------------------------------------------------------------
+
+    /// The timestamp of the genesis of the chain, i.e. the timestamp of the first block, unless
+    /// overwritten when calling [`Self::seal_block`]. Chosen as an easily readable number.
+    pub const TIMESTAMP_START_SECS: u32 = 1700000000;
+
+    /// The number of seconds by which a block's timestamp increases over the previous block's
+    /// timestamp, unless overwritten when calling [`Self::seal_block`].
+    pub const TIMESTAMP_STEP_SECS: u32 = 10;
+
     // CONSTRUCTORS
     // ----------------------------------------------------------------------------------------
 
@@ -317,7 +320,7 @@ impl MockChain {
     /// Creates a new `MockChain` with two blocks.
     pub fn new() -> Self {
         let mut chain = MockChain::default();
-        chain.seal_block(None);
+        chain.seal_next_block();
         chain
     }
 
@@ -335,7 +338,7 @@ impl MockChain {
                 },
             );
         }
-        chain.seal_block(None);
+        chain.seal_next_block();
         chain
     }
 
@@ -781,10 +784,22 @@ impl MockChain {
     // MODIFIERS
     // =========================================================================================
 
-    /// Creates the next block or generates blocks up to the input number if specified.
-    /// This will also make all the objects currently pending available for use.
-    /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
-    pub fn seal_block(&mut self, block_num: Option<u32>) -> ProvenBlock {
+    /// Creates the next block in the mock chain.
+    ///
+    /// This will make all the objects currently pending available for use.
+    pub fn seal_next_block(&mut self) -> ProvenBlock {
+        self.seal_block(None, None)
+    }
+
+    /// Creates a new block in the mock chain.
+    ///
+    /// This will make all the objects currently pending available for use.
+    ///
+    /// If `block_num` is `None`, the next block is created, otherwise all blocks from the next
+    /// block up to and including `block_num`.
+    ///
+    /// If a `timestamp` is provided, it will be set on the block with `block_num`.
+    pub fn seal_block(&mut self, block_num: Option<u32>, timestamp: Option<u32>) -> ProvenBlock {
         let next_block_num =
             self.blocks.last().map_or(0, |b| b.header().block_num().child().as_u32());
 
@@ -832,9 +847,24 @@ impl MockChain {
             let prev_hash = previous.map_or(Digest::default(), |block| block.hash());
             let nullifier_root = self.nullifiers.root();
             let note_root = notes_tree.root();
-            let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
-                block.header().timestamp() + TIMESTAMP_STEP_SECS
+
+            let mut block_timestamp = previous.map_or(Self::TIMESTAMP_START_SECS, |block| {
+                block.header().timestamp() + Self::TIMESTAMP_STEP_SECS
             });
+
+            // Overwrite the block timestamp if we're building the target block.
+            if current_block_num == target_block_num {
+                if let Some(provided_timestamp) = timestamp {
+                    if let Some(prev_block) = previous {
+                        assert!(
+                            prev_block.header().timestamp() < provided_timestamp,
+                            "timestamp must increase monotonically"
+                        );
+                    }
+                    block_timestamp = provided_timestamp;
+                }
+            }
+
             let tx_hash = BlockHeader::compute_tx_commitment(
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
@@ -855,7 +885,7 @@ impl MockChain {
                 tx_hash,
                 kernel_root,
                 proof_hash,
-                timestamp,
+                block_timestamp,
             );
 
             let block = ProvenBlock::new_unchecked(
