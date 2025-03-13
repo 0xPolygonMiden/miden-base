@@ -29,7 +29,7 @@ miden-objects = { workspace = true }
 miden-crypto = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
 miden-lib = { workspace = true, features = ["std", "testing"] }
-winterfell = { version = "0.11" }
+winterfell = { version = "0.12" }
 anyhow = { version = "1.0", features = ["std", "backtrace"] }
 miden-tx = { workspace = true, features = ["std", "testing"] }
 assert_matches = { version = "1.5.0" }

@@ -1,4 +1,4 @@
-use rand::{distributions::Standard, Rng};
+use rand::{distr::StandardUniform, Rng};
 
 use crate::{
     account::{AccountId, AccountIdPrefix, AccountType},
@@ -34,7 +34,7 @@ impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
     }
 
     pub fn build(&mut self) -> Result<NonFungibleAssetDetails, AssetError> {
-        let data = (&mut self.rng).sample_iter(Standard).take(5).collect();
+        let data = (&mut self.rng).sample_iter(StandardUniform).take(5).collect();
         NonFungibleAssetDetails::new(self.faucet_id, data)
     }
 }
