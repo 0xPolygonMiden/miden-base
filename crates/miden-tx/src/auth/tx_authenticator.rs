@@ -54,7 +54,7 @@ impl<R: Rng> BasicAuthenticator<R> {
     pub fn new(keys: &[(Word, AuthSecretKey)]) -> BasicAuthenticator<rand::rngs::StdRng> {
         use rand::{rngs::StdRng, SeedableRng};
 
-        let rng = StdRng::from_entropy();
+        let rng = StdRng::from_os_rng();
         BasicAuthenticator::<StdRng>::new_with_rng(keys, rng)
     }
 

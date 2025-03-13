@@ -46,10 +46,10 @@ impl AccountType {
 }
 
 #[cfg(any(feature = "testing", test))]
-impl rand::distributions::Distribution<AccountType> for rand::distributions::Standard {
+impl rand::distr::Distribution<AccountType> for rand::distr::StandardUniform {
     /// Samples a uniformly random [`AccountType`] from the given `rng`.
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountType {
-        match rng.gen_range(0..4) {
+        match rng.random_range(0..4) {
             0 => AccountType::RegularAccountImmutableCode,
             1 => AccountType::RegularAccountUpdatableCode,
             2 => AccountType::FungibleFaucet,
