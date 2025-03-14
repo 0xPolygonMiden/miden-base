@@ -22,13 +22,15 @@ The component metadata can be defined using TOML. Below is an example specificat
 
 ```toml
 name = "Fungible Faucet"
-description = "This component showcases the component template format, and the different ways of providing valid values to it."
+description = "This component showcases the component template format, and the different ways of 
+providing valid values to it."
 version = "1.0.0"
 supported-types = ["FungibleFaucet"]
 
 [[storage]]
 name = "token_metadata"
-description = "Contains metadata about the token associated to the faucet account. The metadata is formed by three fields: max supply, the token symbol and the asset's decimals"
+description = "Contains metadata about the token associated to the faucet account. The metadata
+is formed by three fields: max supply, the token symbol and the asset's decimals"
 slot = 0
 value = [
     { type = "felt", name = "max_supply", description = "Maximum supply of the token in base units" },
@@ -48,7 +50,7 @@ name = "map_storage_entry"
 slot = 2
 values = [
     { key = "0x1", value = ["0x0", "249381274", "998123581", "124991023478"] },
-    { key = "0xDE0B1140012A9FD912F18AD9EC85E40F4CB697AE", value = { name = "value_placeholder", description = "This value will be defined at the moment of instantiation", type = "word" } }
+    { key = "0xDE0B1140012A9FD912F18AD9EC85E40F4CB697AE", value = { name = "value_placeholder", description = "This value will be defined at the moment of instantiation" } }
 ]
 
 [[storage]]
@@ -58,7 +60,6 @@ values = [
     ["0x1","0x2","0x3","0x4"],
     ["50000","60000","70000","80000"]
 ]
-
 ```
 
 #### Specifying values and their types
@@ -69,11 +70,11 @@ A word can be written as a hexadecimal value, and field elements can be written 
 
 In our example, the `token_metadata` single-slot entry is defined as four elements, where the first element is a placeholder, and the second, third and fourth are hardcoded values.
 
-##### Word-long types
+##### Word types
 
 Valid word types are `word` (default type) and `auth::rpo_falcon512::pub_key` (represents a Falcon public key). Both can be written and interpreted as hexadecimal strings.
 
-##### Felt-long types
+##### Felt types
 
 Valid field element types are `u8`, `u16`, `u32`, `felt` (default type) and `tokensymbol`:
 
@@ -125,7 +126,7 @@ Storage map entries can specify the following fields:
 - `slot`: Specifies the slot index in which the root of the map will be placed
 - `values`: Contains a list of map entries, defined by a `key` and `value`
 
-Where `key`s and `value`s are word-long values, which can be defined as placeholders.
+Where `key`s and `value`s are word values, which can be defined as placeholders.
 
 In the example, the third storage entry defines a storage map.
 
