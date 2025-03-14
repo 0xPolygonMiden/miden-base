@@ -32,7 +32,7 @@ fn witness_test_setup() -> WitnessTestSetup {
 
     let note = generate_tracked_note(&mut chain, account1.id(), account0.id());
     // Add note to chain.
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     let tx0 =
         generate_executed_tx_with_authenticated_notes(&mut chain, account0.id(), &[note.id()]);
@@ -48,7 +48,7 @@ fn witness_test_setup() -> WitnessTestSetup {
 
     // Apply the executed tx and seal a block. This invalidates the block inputs we've just fetched.
     chain.apply_executed_transaction(&tx0);
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     let valid_block_inputs = chain.get_block_inputs(&batches);
 

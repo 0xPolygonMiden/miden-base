@@ -14,7 +14,7 @@ use crate::assert_transaction_executor_error;
 #[test]
 fn p2idr_script() {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(3));
+    mock_chain.seal_block(Some(3), None);
 
     // Create assets
     let fungible_asset: Asset = FungibleAsset::mock(100);
@@ -49,7 +49,7 @@ fn p2idr_script() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // --------------------------------------------------------------------------------------------
     // Case "in time": Only the target account can consume the note.
