@@ -1,4 +1,4 @@
-# Asset
+# Assets
 
 An `Asset` is a unit of value that can be transferred from one [account](account.md) to another using [notes](note.md).
 

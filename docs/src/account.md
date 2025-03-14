@@ -1,4 +1,4 @@
-# Account / Smart Contract
+# Accounts / Smart Contracts
 
 An `Account` represents the primary entity of the protocol. Capable of holding assets, storing data, and executing custom code. Each `Account` is a specialized smart contract providing a programmable interface for interacting with its state and assets.
 

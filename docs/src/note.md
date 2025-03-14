@@ -1,4 +1,4 @@
-# Note
+# Notes
 
 A `Note` is the medium through which [Accounts](account.md) communicate. A `Note` holds assets and defines how they can be consumed.
 

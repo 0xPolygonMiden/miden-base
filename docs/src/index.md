@@ -22,19 +22,19 @@ Polygon Miden’s architecture takes the actor model further and combines it wit
 
 Miden uses _accounts_ and _notes_, both of which hold assets. Accounts consume and produce notes during transactions. Transactions describe the account state changes of single accounts.
 
-### Account
+### Accounts
 
 An [Account](account.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. The [account chapter](account.md) describes the design of an account, its storage types, and creating an account.
 
-### Note
+### Notes
 
 A [Note](note.md) is a message that accounts send to each other. A note stores assets and a script that defines how the note can be consumed. The [note chapter](note.md) describes the design, the storage types, and the creation of a note.
 
-### Asset
+### Assets
 
 An [Asset](asset.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. The [asset chapter](asset.md) describes asset issuance, customization, and storage.
 
-### Transaction
+### Transactions
 
 A [Transactions](transaction.md) describe the production and consumption of notes by a single account. 
 
