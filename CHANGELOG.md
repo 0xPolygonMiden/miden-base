@@ -29,6 +29,7 @@
 - [BREAKING] Rework miden-lib error codes into categories (#1196).
 - Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
 - [BREAKING] Moved the `TransactionScriptBuilder` from `miden-client` to `miden-base` (#1206).
+- [BREAKING] Enable timestamp customization on `MockChain::seal_block` (#1208).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

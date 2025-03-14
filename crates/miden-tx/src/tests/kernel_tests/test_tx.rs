@@ -770,7 +770,7 @@ fn test_fpi_memory() {
 
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
     let advice_inputs = get_mock_fpi_adv_inputs(vec![&foreign_account], &mock_chain);
 
     let tx_context = mock_chain
@@ -1034,7 +1034,7 @@ fn test_fpi_memory_two_accounts() {
         foreign_account_1.clone(),
         foreign_account_2.clone(),
     ]);
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
     let advice_inputs =
         get_mock_fpi_adv_inputs(vec![&foreign_account_1, &foreign_account_2], &mock_chain);
 
@@ -1230,7 +1230,7 @@ fn test_fpi_execute_foreign_procedure() {
 
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
     let advice_inputs = get_mock_fpi_adv_inputs(vec![&foreign_account], &mock_chain);
 
     let code = format!(

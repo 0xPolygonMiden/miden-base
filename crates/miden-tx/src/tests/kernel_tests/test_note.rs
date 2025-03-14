@@ -2,22 +2,27 @@ use alloc::{collections::BTreeMap, string::String};
 
 use miden_lib::{
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
-    transaction::memory::CURRENT_INPUT_NOTE_PTR,
+    transaction::{memory::CURRENT_INPUT_NOTE_PTR, TransactionKernel},
 };
 use miden_objects::{
     account::AccountId,
     note::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
-    testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    testing::{account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, note::NoteBuilder},
     transaction::TransactionArgs,
     Hasher, WORD_SIZE,
 };
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
 use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 
 use super::{word_to_masm_push_string, Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
-    testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},
+    testing::{
+        utils::input_note_data_ptr, Auth, MockChain, TransactionContext, TransactionContextBuilder,
+    },
     tests::kernel_tests::read_root_mem_word,
+    TransactionExecutorError,
 };
 
 #[test]
@@ -609,4 +614,71 @@ fn test_build_note_metadata() {
 
         assert_eq!(Word::from(test_metadata), metadata_word, "failed in iteration {iteration}");
     }
+}
+
+/// This serves as a test that setting a custom timestamp on mock chain blocks works.
+#[test]
+pub fn test_timelock() {
+    let mut mock_chain = MockChain::new();
+    let account = mock_chain.add_existing_wallet(Auth::NoAuth, vec![]);
+    const TIMESTAMP_ERROR: u32 = 123;
+
+    let code = format!(
+        "
+      use.miden::note
+      use.miden::tx
+
+      begin
+          # store the note inputs to memory starting at address 0
+          push.0 exec.note::get_inputs
+          # => [num_inputs, inputs_ptr]
+
+          # make sure the number of inputs is 1
+          eq.1 assert.err=789
+          # => [inputs_ptr]
+
+          # read the timestamp at which the note can be consumed
+          mem_load
+          # => [timestamp]
+
+          exec.tx::get_block_timestamp
+          # => [block_timestamp, timestamp]
+
+          # ensure block timestamp is newer than timestamp
+          lte assert.err={TIMESTAMP_ERROR}
+          # => []
+      end"
+    );
+
+    let lock_timestamp = 2_000_000_000;
+    let timelock_note = NoteBuilder::new(account.id(), &mut ChaCha20Rng::from_entropy())
+        .note_inputs([Felt::from(lock_timestamp)])
+        .unwrap()
+        .code(code.clone())
+        .build(&TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
+
+    mock_chain.add_pending_note(timelock_note.clone());
+    mock_chain.seal_block(None, Some(lock_timestamp - 100));
+
+    // Attempt to consume note too early.
+    // ----------------------------------------------------------------------------------------
+    let tx_inputs =
+        mock_chain.get_transaction_inputs(account.clone(), None, &[timelock_note.id()], &[]);
+    let tx_context = TransactionContextBuilder::new(account.clone())
+        .tx_inputs(tx_inputs.clone())
+        .build();
+    let err = tx_context.execute().unwrap_err();
+    let TransactionExecutorError::TransactionProgramExecutionFailed(err) = err else {
+        panic!("unexpected error")
+    };
+    assert_execution_error!(Err::<(), _>(err), TIMESTAMP_ERROR);
+
+    // Consume note where lock timestamp matches the block timestamp.
+    // ----------------------------------------------------------------------------------------
+    mock_chain.seal_block(None, Some(lock_timestamp));
+    let tx_inputs =
+        mock_chain.get_transaction_inputs(account.clone(), None, &[timelock_note.id()], &[]);
+    let tx_context = TransactionContextBuilder::new(account).tx_inputs(tx_inputs).build();
+    tx_context.execute().unwrap();
 }

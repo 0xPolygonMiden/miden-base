@@ -48,7 +48,7 @@ fn p2id_script_multiple_assets() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -75,7 +75,7 @@ fn p2id_script_multiple_assets() {
     // A "malicious" account tries to consume the note, we expect an error (not the correct target)
 
     let malicious_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // Execute the transaction and get the result
     let executed_transaction_2 = mock_chain
@@ -110,7 +110,7 @@ fn prove_consume_note_with_new_account() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -163,7 +163,7 @@ fn prove_consume_multiple_notes() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let tx_context = mock_chain
         .build_tx_context(account.id(), &[note_1.id(), note_2.id()], &[])
@@ -214,7 +214,7 @@ fn test_create_consume_multiple_notes() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let output_note_1 = create_p2id_note(
         account.id(),
