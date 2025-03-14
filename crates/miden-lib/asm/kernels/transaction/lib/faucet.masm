@@ -9,19 +9,19 @@ use.kernel::memory
 # =================================================================================================
 
 # Asset mint operation would cause the new total supply to exceed the maximum allowed asset amount
-const.ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT=0x0002002A
+const.ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT=0x000201c4
 
 # Asset amount to burn can not exceed the existing total supply
-const.ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY=0x0002002B
+const.ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY=0x000201c0
 
 # Failed to mint new non-fungible asset because it was already issued
-const.ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED=0x0002002C
+const.ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED=0x000201c5
 
 # The burn_non_fungible_asset procedure can only be called on a non-fungible faucet
-const.ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET=0x0002002D
+const.ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET=0x000201c1
 
 # Failed to burn non-existent non-fungible asset in the vault
-const.ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND=0x0002002E
+const.ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND=0x000201c6
 
 # FUNGIBLE ASSETS
 # ==================================================================================================
@@ -38,7 +38,7 @@ const.ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND=0x0002002E
 #!
 #! Panics if:
 #! - the transaction is not being executed against a fungible faucet.
-#! - the fungible asset being minted is not associated with the faucet the transaction is being 
+#! - the fungible asset being minted is not associated with the faucet the transaction is being
 #!   executed against.
 #! - the asset is not well formed.
 #! - the total issuance after minting is greater than the maximum amount allowed.
@@ -80,7 +80,7 @@ end
 #!
 #! Panics if:
 #! - the transaction is not being executed against a fungible faucet.
-#! - the fungible asset being burned is not associated with the faucet the transaction is being 
+#! - the fungible asset being burned is not associated with the faucet the transaction is being
 #!   executed against.
 #! - the asset is not well formed.
 #! - the amount being burned is greater than the total input to the transaction.
@@ -139,7 +139,7 @@ end
 #!
 #! Panics if:
 #! - the transaction is not being executed against a non-fungible faucet.
-#! - the non-fungible asset being minted is not associated with the faucet the transaction is being 
+#! - the non-fungible asset being minted is not associated with the faucet the transaction is being
 #!   executed against.
 #! - the non-fungible asset being minted already exists.
 proc.mint_non_fungible_asset
@@ -160,7 +160,7 @@ proc.mint_non_fungible_asset
     exec.account::set_map_item dropw
     # => [OLD_VAL, ASSET]
 
-    # Assert the `OLD_VAL` is an EMPTY_WORD, indicating that the non-fungible asset has not been 
+    # Assert the `OLD_VAL` is an EMPTY_WORD, indicating that the non-fungible asset has not been
     # issued yet. We only need to check OLD_VAL[3] as this is always set to the faucet_id_prefix
     # and can not be 0.
     eq.0 assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED drop drop drop
@@ -182,13 +182,13 @@ end
 #!
 #! Panics if:
 #! - the transaction is not being executed against a non-fungible faucet.
-#! - the non-fungible asset being burned is not associated with the faucet the transaction is being 
+#! - the non-fungible asset being burned is not associated with the faucet the transaction is being
 #!   executed against.
 #! - the non-fungible asset being burned does not exist or was not provided as input to the
 #!   transaction via a note or the accounts vault.
 proc.burn_non_fungible_asset
     # assert that we are executing a transaction against the non-fungible faucet (access checks)
-    exec.account::get_id swap drop exec.account::is_non_fungible_faucet 
+    exec.account::get_id swap drop exec.account::is_non_fungible_faucet
     assert.err=ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET
     # => [ASSET]
 
@@ -208,7 +208,7 @@ proc.burn_non_fungible_asset
     exec.account::set_map_item dropw
     # => [OLD_VAL, ASSET]
 
-    # Assert the `OLD_VAL` is not an EMPTY_WORD, indicating that the non-fungible asset exists. We 
+    # Assert the `OLD_VAL` is not an EMPTY_WORD, indicating that the non-fungible asset exists. We
     # only need to check OLD_VAL[3] as this is always set to the faucet_id_prefix and can not be 0.
     eq.0 not assert.err=ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND drop drop drop
     # => [ASSET]
@@ -218,7 +218,7 @@ proc.burn_non_fungible_asset
     # => [ASSET]
 end
 
-#! Returns a boolean indicating whether the provided non-fungible asset has been already issued by 
+#! Returns a boolean indicating whether the provided non-fungible asset has been already issued by
 #! this faucet.
 #!
 #! Inputs:  [ASSET]
@@ -249,11 +249,11 @@ export.is_non_fungible_asset_issued
     exec.account::get_map_item
     # => [STORED_ASSET]
 
-    # Check whether the `STORED_ASSET` is an EMPTY_WORD, indicating that the non-fungible asset has 
-    # not been issued yet. We only need to check STORED_ASSET[3] as this is always set to the 
-    # faucet_id_prefix and can not be 0 (in reversed stack order it will be top stack element). 
+    # Check whether the `STORED_ASSET` is an EMPTY_WORD, indicating that the non-fungible asset has
+    # not been issued yet. We only need to check STORED_ASSET[3] as this is always set to the
+    # faucet_id_prefix and can not be 0 (in reversed stack order it will be top stack element).
     # Equality of the STORED_ASSET[3] to zero will become a flag that this asset is not issued.
-    neq.0 movdn.3 drop drop drop  
+    neq.0 movdn.3 drop drop drop
     # => [is_issued]
 end
 

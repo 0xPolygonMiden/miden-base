@@ -228,7 +228,7 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
 fn chain_mmr_memory_assertions(process: &Process, prepared_tx: &TransactionContext) {
     // update the chain MMR to point to the block against which this transaction is being executed
     let mut chain_mmr = prepared_tx.tx_inputs().block_chain().clone();
-    chain_mmr.add_block(*prepared_tx.tx_inputs().block_header(), true);
+    chain_mmr.add_block(prepared_tx.tx_inputs().block_header().clone(), true);
 
     assert_eq!(
         read_root_mem_word(&process.into(), CHAIN_MMR_NUM_LEAVES_PTR)[0],
@@ -492,7 +492,7 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
 }
@@ -504,7 +504,7 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 #[test]
 pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(1 << 16));
+    mock_chain.seal_block(Some(1 << 16), None);
 
     // Choose epoch block 1 whose block number is 2^16 as the anchor block.
     // Here the transaction reference block is also the anchor block.
@@ -514,7 +514,7 @@ pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Public)
 }
@@ -559,7 +559,7 @@ fn compute_valid_account_id(
 #[test]
 pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
@@ -583,7 +583,7 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
 #[test]
 pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
@@ -609,7 +609,7 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
 #[test]
 pub fn create_account_invalid_seed() {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 

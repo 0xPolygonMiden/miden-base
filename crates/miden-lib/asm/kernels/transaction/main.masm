@@ -45,11 +45,11 @@ const.EPILOGUE_END=131081
 #! 3. Run the transaction script.
 #! 4. Run the epilogue to compute and validate the final state.
 #!
-#! See `prologue::prepare_transaction` for additional details on the VM's initial state, including 
+#! See `prologue::prepare_transaction` for additional details on the VM's initial state, including
 #! the advice provider.
 #!
 #! Inputs:  [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
-#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 #!
 #! Where:
 #! - BLOCK_HASH is the reference block for the transaction execution.

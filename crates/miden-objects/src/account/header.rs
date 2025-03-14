@@ -1,8 +1,7 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{Deserializable, Serializable};
-
 use super::{hash_account, Account, AccountId, Digest, Felt, ZERO};
+use crate::utils::serde::{Deserializable, Serializable};
 
 // ACCOUNT HEADER
 // ================================================================================================

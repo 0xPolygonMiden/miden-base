@@ -25,16 +25,21 @@ mod errors;
 pub use constants::*;
 pub use errors::{
     AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError,
-    BatchAccountUpdateError, BlockError, ChainMmrError, NoteError, ProposedBatchError,
+    BatchAccountUpdateError, ChainMmrError, NoteError, NullifierTreeError, ProposedBatchError,
     ProposedBlockError, ProvenTransactionError, TransactionInputError, TransactionOutputError,
     TransactionScriptError,
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
-pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
+pub use vm_core::{
+    mast::{MastForest, MastNodeId},
+    prettier::PrettyPrint,
+    Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
+};
 
 pub mod assembly {
     pub use assembly::{
-        mast, Assembler, AssemblyError, DefaultSourceManager, KernelLibrary, Library,
+        ast::{Module, ModuleKind, ProcedureName, QualifiedProcedureName},
+        mast, Assembler, AssemblyError, Compile, DefaultSourceManager, KernelLibrary, Library,
         LibraryNamespace, LibraryPath, SourceManager, Version,
     };
 }

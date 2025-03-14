@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{ByteReader, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
 use super::{AdviceInputs, TransactionArgs, TransactionInputs};
-use crate::account::AccountCode;
+use crate::{
+    account::AccountCode,
+    utils::serde::{ByteReader, Deserializable, DeserializationError, Serializable},
+};
 
 // TRANSACTION WITNESS
 // ================================================================================================

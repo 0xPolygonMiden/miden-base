@@ -1,15 +1,14 @@
 use alloc::string::ToString;
 
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
-};
-
 use crate::{
     batch::BatchNoteTree,
+    crypto::{
+        hash::rpo::RpoDigest,
+        merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
+    },
     note::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
     MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 
@@ -95,6 +94,9 @@ impl Default for BlockNoteTree {
     }
 }
 
+// BLOCK NOTE INDEX
+// ================================================================================================
+
 /// Index of a block note.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockNoteIndex {
@@ -104,15 +106,17 @@ pub struct BlockNoteIndex {
 
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
-    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Result<Self, BlockError> {
-        if note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
-            return Err(BlockError::TooManyNotesInBatch(note_idx_in_batch));
-        }
-        if batch_idx >= MAX_BATCHES_PER_BLOCK {
-            return Err(BlockError::TooManyTransactionBatches(batch_idx));
+    ///
+    /// # Errors
+    ///
+    /// Returns `None` if the batch index is equal to or greater than [`MAX_BATCHES_PER_BLOCK`] or
+    /// if the note index is equal to or greater than [`MAX_OUTPUT_NOTES_PER_BATCH`].
+    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Option<Self> {
+        if batch_idx >= MAX_BATCHES_PER_BLOCK || note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
+            return None;
         }
 
-        Ok(Self { batch_idx, note_idx_in_batch })
+        Some(Self { batch_idx, note_idx_in_batch })
     }
 
     /// Returns the batch index.

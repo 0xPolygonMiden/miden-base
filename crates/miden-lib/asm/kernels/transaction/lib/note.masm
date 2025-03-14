@@ -7,16 +7,16 @@ use.kernel::memory
 # =================================================================================================
 
 # Attempted to access note sender from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT=0x00020031
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT=0x00020102
 
 # Attempted to access note assets from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT=0x00020032
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT=0x00020100
 
 # Attempted to access note inputs from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT=0x00020033
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT=0x00020101
 
 # Number of assets in a note exceed 255
-const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002F
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x00020108
 
 # CONSTANTS
 # =================================================================================================
@@ -34,7 +34,7 @@ const.OUTPUT_NOTE_HASHING_MEM_DIFF=2040
 #! Outputs: [sender_id_prefix, sender_id_suffix]
 #!
 #! Where:
-#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently 
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently
 #!   being processed.
 #!
 #! Panics if:
@@ -54,7 +54,7 @@ export.get_sender
     # => [sender_id_prefix, sender_id_suffix]
 end
 
-#! Returns the number of assets and the assets hash of the note currently being processed. 
+#! Returns the number of assets and the assets hash of the note currently being processed.
 #!
 #! Inputs:  []
 #! Outputs: [ASSETS_HASH, num_assets]

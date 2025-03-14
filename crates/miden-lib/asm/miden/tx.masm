@@ -65,7 +65,7 @@ end
 #! referencing the block at time 5 and still consume the note, while account Y would also be able
 #! to consume the note when referencing the latest block. This is not necessarily a problem in all
 #! cases, but must be taken into consideration by script developers.
-#! 
+#!
 #! If the above is undesired, then one possible countermeasure is to set a transaction expiration
 #! delta. For example, with a delta of 3, the oldest block account X could reference is the one at
 #! time 8. This still allows for consumption by both accounts during a period of time, but shortens
@@ -217,14 +217,14 @@ end
 #!
 #! Invocation: exec
 export.build_recipient_hash
-  padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+    padw hmerge
+    # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
 
-  swapw hmerge
-  # => [MERGE_SCRIPT, INPUT_HASH]
+    swapw hmerge
+    # => [MERGE_SCRIPT, INPUT_HASH]
 
-  swapw hmerge
-  # [RECIPIENT]
+    swapw hmerge
+    # [RECIPIENT]
 end
 
 #! Executes the provided procedure against the foreign account.
@@ -237,9 +237,9 @@ end
 #! Outputs: [<values returned from the foreign procedure>]
 #!
 #! Where:
-#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the 
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the
 #!   foreign account to execute the procedure on.
-#! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the 
+#! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the
 #!   moment of the foreign procedure execution (n = 16 - mem_addr_size - foreign_inputs_len).
 #!
 #! Invocation: exec
@@ -260,7 +260,7 @@ export.execute_foreign_procedure.4
     dropw dropw dropw dropw
     # => [FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
-    # store the foreign procedure root to the first local memory slot and get its absolute memory 
+    # store the foreign procedure root to the first local memory slot and get its absolute memory
     # address
     loc_storew.0 dropw locaddr.0
     # => [foreign_proc_root_ptr, <foreign account inputs>, pad(n)]

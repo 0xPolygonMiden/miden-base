@@ -16,8 +16,8 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        compute_tx_hash, AccountWitness, Block, BlockAccountUpdate, BlockHeader, BlockInputs,
-        BlockNoteIndex, BlockNoteTree, BlockNumber, NoteBatch, NullifierWitness, ProposedBlock,
+        AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
@@ -40,14 +40,6 @@ use vm_processor::{
 
 use super::TransactionContextBuilder;
 use crate::auth::BasicAuthenticator;
-
-// CONSTANTS
-// ================================================================================================
-
-/// Initial timestamp value
-const TIMESTAMP_START_SECS: u32 = 1693348223;
-/// Timestamp increment on each new block
-const TIMESTAMP_STEP_SECS: u32 = 10;
 
 // AUTH
 // ================================================================================================
@@ -157,7 +149,7 @@ struct PendingObjects {
     updated_accounts: Vec<BlockAccountUpdate>,
 
     /// Note batches created in transactions in the block.
-    output_note_batches: Vec<NoteBatch>,
+    output_note_batches: Vec<OutputNoteBatch>,
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,
@@ -184,9 +176,11 @@ impl PendingObjects {
     pub fn build_notes_tree(&self) -> BlockNoteTree {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
-                batch.iter().enumerate().map(move |(note_index, note)| {
+                batch.iter().map(move |(note_index, note)| {
                     (
-                        BlockNoteIndex::new(batch_index, note_index).unwrap(),
+                        BlockNoteIndex::new(batch_index, *note_index).expect(
+                            "max batches in block and max notes in batches should be enforced",
+                        ),
                         note.id(),
                         *note.metadata(),
                     )
@@ -228,7 +222,7 @@ impl PendingObjects {
 ///       None,
 ///     )
 ///   .unwrap();
-/// mock_chain.seal_block(None);
+/// mock_chain.seal_next_block();
 /// let tx_context = mock_chain.build_tx_context(sender.id(), &[note.id()], &[]).build();
 /// let result = tx_context.execute();
 /// ```
@@ -260,7 +254,7 @@ pub struct MockChain {
     chain: Mmr,
 
     /// History of produced blocks.
-    blocks: Vec<Block>,
+    blocks: Vec<ProvenBlock>,
 
     /// Tree containing the latest `Nullifier`'s tree.
     nullifiers: Smt,
@@ -304,6 +298,17 @@ impl Default for MockChain {
 }
 
 impl MockChain {
+    // CONSTANTS
+    // ----------------------------------------------------------------------------------------
+
+    /// The timestamp of the genesis of the chain, i.e. the timestamp of the first block, unless
+    /// overwritten when calling [`Self::seal_block`]. Chosen as an easily readable number.
+    pub const TIMESTAMP_START_SECS: u32 = 1700000000;
+
+    /// The number of seconds by which a block's timestamp increases over the previous block's
+    /// timestamp, unless overwritten when calling [`Self::seal_block`].
+    pub const TIMESTAMP_STEP_SECS: u32 = 10;
+
     // CONSTRUCTORS
     // ----------------------------------------------------------------------------------------
 
@@ -315,7 +320,7 @@ impl MockChain {
     /// Creates a new `MockChain` with two blocks.
     pub fn new() -> Self {
         let mut chain = MockChain::default();
-        chain.seal_block(None);
+        chain.seal_next_block();
         chain
     }
 
@@ -333,7 +338,7 @@ impl MockChain {
                 },
             );
         }
-        chain.seal_block(None);
+        chain.seal_next_block();
         chain
     }
 
@@ -367,7 +372,9 @@ impl MockChain {
 
         // TODO: check that notes are not duplicate
         let output_notes: Vec<OutputNote> = transaction.output_notes().iter().cloned().collect();
-        self.pending_objects.output_note_batches.push(output_notes);
+        self.pending_objects
+            .output_note_batches
+            .push(output_notes.into_iter().enumerate().collect());
         self.pending_objects
             .included_transactions
             .push((transaction.id(), transaction.account_id()));
@@ -378,7 +385,7 @@ impl MockChain {
     /// Adds a public [Note] to the pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_pending_note(&mut self, note: Note) {
-        self.pending_objects.output_note_batches.push(vec![OutputNote::Full(note)]);
+        self.pending_objects.output_note_batches.push(vec![(0, OutputNote::Full(note))]);
     }
 
     /// Adds a P2ID [Note] to the pending objects and returns it.
@@ -463,18 +470,16 @@ impl MockChain {
             id,
             account_updates,
             input_notes,
-            output_notes_tree,
             output_notes,
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
 
-        ProvenBatch::new(
+        ProvenBatch::new_unchecked(
             id,
             block_header.hash(),
             block_header.block_num(),
             account_updates,
             input_notes,
-            output_notes_tree,
             output_notes,
             batch_expiration_block_num,
         )
@@ -609,7 +614,7 @@ impl MockChain {
         let (account, seed) = if let AccountState::New = account_state {
             let last_block = self.blocks.last().expect("one block should always exist");
             account_builder =
-                account_builder.anchor(AccountIdAnchor::try_from(&last_block.header()).unwrap());
+                account_builder.anchor(AccountIdAnchor::try_from(last_block.header()).unwrap());
 
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {
@@ -691,7 +696,7 @@ impl MockChain {
             if note_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     note_block_num,
-                    self.blocks.get(note_block_num.as_usize()).unwrap().header(),
+                    self.blocks.get(note_block_num.as_usize()).unwrap().header().clone(),
                 );
             }
             input_notes.push(input_note);
@@ -706,7 +711,7 @@ impl MockChain {
             if epoch_block_num != block.header().block_num() {
                 block_headers_map.insert(
                     epoch_block_num,
-                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header(),
+                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header().clone(),
                 );
             }
         }
@@ -721,7 +726,7 @@ impl MockChain {
         TransactionInputs::new(
             account,
             account_seed,
-            block.header(),
+            block.header().clone(),
             mmr,
             InputNotes::new(input_notes).unwrap(),
         )
@@ -765,7 +770,7 @@ impl MockChain {
             self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
 
         let nullifier_proofs =
-            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::produced_nullifiers));
+            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::created_nullifiers));
 
         BlockInputs::new(
             block_reference_block,
@@ -779,20 +784,33 @@ impl MockChain {
     // MODIFIERS
     // =========================================================================================
 
-    /// Creates the next block or generates blocks up to the input number if specified.
-    /// This will also make all the objects currently pending available for use.
-    /// If `block_num` is `Some(number)`, blocks will be generated up to `number`.
-    pub fn seal_block(&mut self, block_num: Option<u32>) -> Block {
+    /// Creates the next block in the mock chain.
+    ///
+    /// This will make all the objects currently pending available for use.
+    pub fn seal_next_block(&mut self) -> ProvenBlock {
+        self.seal_block(None, None)
+    }
+
+    /// Creates a new block in the mock chain.
+    ///
+    /// This will make all the objects currently pending available for use.
+    ///
+    /// If `block_num` is `None`, the next block is created, otherwise all blocks from the next
+    /// block up to and including `block_num` will be created.
+    ///
+    /// If a `timestamp` is provided, it will be set on the block with `block_num`.
+    pub fn seal_block(&mut self, block_num: Option<u32>, timestamp: Option<u32>) -> ProvenBlock {
         let next_block_num =
             self.blocks.last().map_or(0, |b| b.header().block_num().child().as_u32());
 
         let target_block_num = block_num.unwrap_or(next_block_num);
 
-        if target_block_num < next_block_num {
-            panic!("Input block number should be higher than the last block number");
-        }
+        assert!(
+            target_block_num >= next_block_num,
+            "target block number must be greater or equal to the number of the next block in the chain"
+        );
 
-        let mut last_block: Option<Block> = None;
+        let mut last_block: Option<ProvenBlock> = None;
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
@@ -830,11 +848,27 @@ impl MockChain {
             let prev_hash = previous.map_or(Digest::default(), |block| block.hash());
             let nullifier_root = self.nullifiers.root();
             let note_root = notes_tree.root();
-            let timestamp = previous.map_or(TIMESTAMP_START_SECS, |block| {
-                block.header().timestamp() + TIMESTAMP_STEP_SECS
+
+            let mut block_timestamp = previous.map_or(Self::TIMESTAMP_START_SECS, |block| {
+                block.header().timestamp() + Self::TIMESTAMP_STEP_SECS
             });
-            let tx_hash =
-                compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
+
+            // Overwrite the block timestamp if we're building the target block.
+            if current_block_num == target_block_num {
+                if let Some(provided_timestamp) = timestamp {
+                    if let Some(prev_block) = previous {
+                        assert!(
+                            provided_timestamp > prev_block.header().timestamp(),
+                            "provided timestamp must be strictly greater than the previous block's timestamp"
+                        );
+                    }
+                    block_timestamp = provided_timestamp;
+                }
+            }
+
+            let tx_hash = BlockHeader::compute_tx_commitment(
+                self.pending_objects.included_transactions.clone().into_iter(),
+            );
 
             let kernel_root = TransactionKernel::kernel_root();
 
@@ -852,25 +886,26 @@ impl MockChain {
                 tx_hash,
                 kernel_root,
                 proof_hash,
-                timestamp,
+                block_timestamp,
             );
 
-            let block = Block::new(
-                header,
+            let block = ProvenBlock::new_unchecked(
+                header.clone(),
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
-            )
-            .unwrap();
+            );
 
             for (batch_index, note_batch) in
                 self.pending_objects.output_note_batches.iter().enumerate()
             {
-                for (note_index, note) in note_batch.iter().enumerate() {
+                for (note_index, note) in note_batch.iter() {
                     match note {
                         OutputNote::Full(note) => {
-                            let block_note_index =
-                                BlockNoteIndex::new(batch_index, note_index).unwrap();
+                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index)
+                                .expect(
+                                "max batches in block and max notes in batches should be enforced",
+                            );
                             let note_path = notes_tree.get_note_path(block_note_index);
                             let note_inclusion_proof = NoteInclusionProof::new(
                                 block.header().block_num(),
@@ -920,7 +955,8 @@ impl MockChain {
     pub fn latest_chain_mmr(&self) -> ChainMmr {
         // We cannot pass the latest block as that would violate the condition in the transaction
         // inputs that the chain length of the mmr must match the number of the reference block.
-        let block_headers = self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1);
+        let block_headers =
+            self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).cloned();
 
         ChainMmr::from_mmr(&self.chain, block_headers).unwrap()
     }
@@ -934,7 +970,7 @@ impl MockChain {
         &self,
         reference_blocks: impl IntoIterator<Item = BlockNumber>,
     ) -> (BlockHeader, ChainMmr) {
-        let latest_block_header = self.latest_block_header();
+        let latest_block_header = self.latest_block_header().clone();
         // Deduplicate block numbers so each header will be included just once. This is required so
         // ChainMmr::from_mmr does not panic.
         let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
@@ -1006,12 +1042,12 @@ impl MockChain {
 
     /// Returns a reference to the latest [`BlockHeader`].
     pub fn latest_block_header(&self) -> BlockHeader {
-        self.blocks[self.chain.forest() - 1].header()
+        self.blocks[self.chain.forest() - 1].header().clone()
     }
 
     /// Gets a reference to [BlockHeader] with `block_number`.
     pub fn block_header(&self, block_number: usize) -> BlockHeader {
-        self.blocks[block_number].header()
+        self.blocks[block_number].header().clone()
     }
 
     /// Gets a reference to the nullifier tree.

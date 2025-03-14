@@ -2,16 +2,40 @@ use std::{collections::BTreeMap, vec::Vec};
 
 use anyhow::Context;
 use miden_objects::{
-    account::AccountId, block::ProposedBlock,
-    testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, transaction::ProvenTransaction,
+    account::AccountId,
+    block::{BlockInputs, ProposedBlock},
+    testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    transaction::ProvenTransaction,
 };
 
 use crate::tests::utils::{
     generate_batch, generate_executed_tx_with_authenticated_notes, generate_fungible_asset,
-    generate_output_note, generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
-    generate_tx_with_unauthenticated_notes, generate_untracked_note,
-    generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
+    generate_tracked_note_with_asset, generate_tx_with_expiration,
+    generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain,
+    ProvenTransactionExt, TestSetup,
 };
+
+/// Tests that we can build empty blocks.
+#[test]
+fn proposed_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
+    let TestSetup { chain, .. } = setup_chain(2);
+
+    let block_inputs = BlockInputs::new(
+        chain.latest_block_header(),
+        chain.latest_chain_mmr(),
+        BTreeMap::default(),
+        BTreeMap::default(),
+        BTreeMap::default(),
+    );
+    let block = ProposedBlock::new(block_inputs, Vec::new()).context("failed to propose block")?;
+
+    assert_eq!(block.affected_accounts().count(), 0);
+    assert_eq!(block.output_note_batches().len(), 0);
+    assert_eq!(block.created_nullifiers().len(), 0);
+    assert_eq!(block.batches().len(), 0);
+
+    Ok(())
+}
 
 /// Tests that a proposed block from two batches with one transaction each can be successfully
 /// built.
@@ -48,16 +72,19 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
         proven_tx1.account_update().final_state_hash()
     );
     // Each tx consumes one note.
-    assert_eq!(proposed_block.nullifiers().len(), 2);
+    assert_eq!(proposed_block.created_nullifiers().len(), 2);
     assert!(proposed_block
-        .nullifiers()
+        .created_nullifiers()
         .contains_key(&proven_tx0.input_notes().get_note(0).nullifier()));
     assert!(proposed_block
-        .nullifiers()
+        .created_nullifiers()
         .contains_key(&proven_tx1.input_notes().get_note(0).nullifier()));
 
-    // No notes were created.
-    assert!(proposed_block.block_note_tree().is_empty());
+    // There are two batches in the block...
+    assert_eq!(proposed_block.output_note_batches().len(), 2);
+    // ... but none of them create notes.
+    assert!(proposed_block.output_note_batches()[0].is_empty());
+    assert!(proposed_block.output_note_batches()[1].is_empty());
 
     Ok(())
 }
@@ -80,7 +107,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
     let note2 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
 
     // Add notes to the chain.
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     // Create three transactions on the same account that build on top of each other.
     // The MockChain only updates the account state when sealing a block, but we don't want the
@@ -94,7 +121,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         &[note0.id()],
     );
     alternative_chain.apply_executed_transaction(&executed_tx0);
-    alternative_chain.seal_block(None);
+    alternative_chain.seal_next_block();
 
     let executed_tx1 = generate_executed_tx_with_authenticated_notes(
         &mut alternative_chain,
@@ -102,7 +129,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         &[note1.id()],
     );
     alternative_chain.apply_executed_transaction(&executed_tx1);
-    alternative_chain.seal_block(None);
+    alternative_chain.seal_next_block();
 
     let executed_tx2 = generate_executed_tx_with_authenticated_notes(
         &mut alternative_chain,
@@ -165,7 +192,7 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
 
     chain.add_pending_note(note0.clone());
     chain.add_pending_note(note1.clone());
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     let batches = [batch0, batch1];
     // This block will use block2 as the reference block.
@@ -181,61 +208,43 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
 
     // We expect both notes to have been authenticated and therefore should be part of the
     // nullifiers of this block.
-    assert_eq!(proposed_block.nullifiers().len(), 2);
-    assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
-    assert!(proposed_block.nullifiers().contains_key(&note1.nullifier()));
+    assert_eq!(proposed_block.created_nullifiers().len(), 2);
+    assert!(proposed_block.created_nullifiers().contains_key(&note0.nullifier()));
+    assert!(proposed_block.created_nullifiers().contains_key(&note1.nullifier()));
+    // There are two batches in the block...
+    assert_eq!(proposed_block.output_note_batches().len(), 2);
+    // ... but none of them create notes.
+    assert!(proposed_block.output_note_batches()[0].is_empty());
+    assert!(proposed_block.output_note_batches()[1].is_empty());
 
     Ok(())
 }
 
-/// Tests that an unauthenticated note is erased when it is created in the same block.
+/// Tests that a batch that expires at the block being proposed is still accepted.
 #[test]
-fn proposed_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
-    let TestSetup { mut chain, mut accounts, .. } = setup_chain(3);
+fn proposed_block_with_batch_at_expiration_limit() -> anyhow::Result<()> {
+    let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
+    let block1_num = chain.block_header(1).block_num();
     let account0 = accounts.remove(&0).unwrap();
     let account1 = accounts.remove(&1).unwrap();
 
-    let output_note = generate_output_note(account0.id(), [10; 32]);
+    let tx0 = generate_tx_with_expiration(&mut chain, account0.id(), block1_num + 5);
+    let tx1 = generate_tx_with_expiration(&mut chain, account1.id(), block1_num + 2);
 
-    let note0 = generate_untracked_note_with_output_note(account0.id(), output_note.clone());
-    // Add note0 to the chain so we can consume it.
-    chain.add_pending_note(note0.clone());
-    chain.seal_block(None);
+    let batch0 = generate_batch(&mut chain, vec![tx0]);
+    let batch1 = generate_batch(&mut chain, vec![tx1]);
 
-    let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);
-    let tx1 =
-        generate_tx_with_unauthenticated_notes(&mut chain, account1.id(), &[output_note.clone()]);
+    // sanity check: batch 1 should expire at block 3.
+    assert_eq!(batch1.batch_expiration_block_num().as_u32(), 3);
 
-    assert_eq!(tx0.input_notes().num_notes(), 1);
-    assert_eq!(tx0.output_notes().num_notes(), 1);
-    assert_eq!(tx1.output_notes().num_notes(), 0);
-    // The unauthenticated note is an input note of the tx.
-    assert_eq!(tx1.input_notes().num_notes(), 1);
+    let _block2 = chain.seal_next_block();
 
-    assert_eq!(
-        tx0.output_notes().get_note(0).id(),
-        tx1.input_notes().get_note(0).header().unwrap().id()
-    );
+    let batches = vec![batch0.clone(), batch1.clone()];
 
-    // These batches will use block1 as the reference block.
-    let batch0 = generate_batch(&mut chain, vec![tx0.clone()]);
-    let batch1 = generate_batch(&mut chain, vec![tx1.clone()]);
-
-    // Sanity check: The batches and contained transactions should have the same input notes.
-    assert_eq!(batch0.input_notes(), tx0.input_notes());
-    assert_eq!(batch1.input_notes(), tx1.input_notes());
-
-    let batches = [batch0, batch1];
-    // This block will use block2 as the reference block.
+    // This block's number is 3 (the previous block is block 2), which means batch 1, which expires
+    // at block 3 (due to tx1) should still be accepted into the block.
     let block_inputs = chain.get_block_inputs(&batches);
-
-    let proposed_block = ProposedBlock::new(block_inputs.clone(), batches.to_vec())
-        .context("failed to build proposed block")?;
-
-    // The output note should have been erased, so we expect only note0's nullifier to be created.
-    assert_eq!(proposed_block.nullifiers().len(), 1);
-    assert!(proposed_block.nullifiers().contains_key(&note0.nullifier()));
-    assert!(proposed_block.block_note_tree().is_empty());
+    ProposedBlock::new(block_inputs.clone(), batches.clone())?;
 
     Ok(())
 }

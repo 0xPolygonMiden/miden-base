@@ -30,13 +30,11 @@ const.ACCOUNT_REMOVE_ASSET_OFFSET=13
 const.ACCOUNT_GET_BALANCE_OFFSET=14
 const.ACCOUNT_HAS_NON_FUNGIBLE_ASSET_OFFSET=15
 
-
 ### Faucet ######################################
 const.FAUCET_MINT_ASSET_OFFSET=16
 const.FAUCET_BURN_ASSET_OFFSET=17
 const.FAUCET_GET_TOTAL_FUNGIBLE_ASSET_ISSUANCE_OFFSET=18
 const.FAUCET_IS_NON_FUNGIBLE_ASSET_ISSUED_OFFSET=19
-
 
 ### Note ########################################
 # assets
@@ -49,9 +47,8 @@ const.NOTE_GET_INPUTS_HASH_OFFSET=23
 const.NOTE_GET_SENDER_OFFSET=24
 const.NOTE_GET_SCRIPT_HASH_OFFSET=25
 
-
 ### Tx ##########################################
-# creation 
+# creation
 const.TX_CREATE_NOTE_OFFSET=26
 
 # io commitments
@@ -70,7 +67,6 @@ const.TX_END_FOREIGN_CONTEXT_OFFSET=33
 # expiration data
 const.TX_GET_EXPIRATION_DELTA_OFFSET=34          # accessor
 const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
-
 
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
@@ -239,7 +235,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_remove_asset` kernel procedure required to get the 
+#! - proc_offset is the offset of the `account_remove_asset` kernel procedure required to get the
 #!   address where this procedure is stored.
 export.account_remove_asset_offset
     push.ACCOUNT_REMOVE_ASSET_OFFSET
@@ -251,7 +247,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_get_balance` kernel procedure required to get the 
+#! - proc_offset is the offset of the `account_get_balance` kernel procedure required to get the
 #!   address where this procedure is stored.
 export.account_get_balance_offset
     push.ACCOUNT_GET_BALANCE_OFFSET
@@ -263,12 +259,11 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_has_non_fungible_asset` kernel procedure required to 
+#! - proc_offset is the offset of the `account_has_non_fungible_asset` kernel procedure required to
 #!   get the address where this procedure is stored.
 export.account_has_non_fungible_asset_offset
     push.ACCOUNT_HAS_NON_FUNGIBLE_ASSET_OFFSET
 end
-
 
 ### FAUCET ######################################
 
@@ -278,7 +273,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `faucet_mint_asset` kernel procedure required to get the 
+#! - proc_offset is the offset of the `faucet_mint_asset` kernel procedure required to get the
 #!   address where this procedure is stored.
 export.faucet_mint_asset_offset
     push.FAUCET_MINT_ASSET_OFFSET
@@ -290,7 +285,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `faucet_burn_asset` kernel procedure required to get the 
+#! - proc_offset is the offset of the `faucet_burn_asset` kernel procedure required to get the
 #!   address where this procedure is stored.
 export.faucet_burn_asset_offset
     push.FAUCET_BURN_ASSET_OFFSET
@@ -302,7 +297,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `faucet_get_total_fungible_asset_issuance` kernel procedure 
+#! - proc_offset is the offset of the `faucet_get_total_fungible_asset_issuance` kernel procedure
 #!   required to get the address where this procedure is stored.
 export.faucet_get_total_fungible_asset_issuance_offset
     push.FAUCET_GET_TOTAL_FUNGIBLE_ASSET_ISSUANCE_OFFSET
@@ -314,7 +309,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `faucet_is_non_fungible_asset_issued` kernel procedure 
+#! - proc_offset is the offset of the `faucet_is_non_fungible_asset_issued` kernel procedure
 #!   required to get the address where this procedure is stored.
 export.faucet_is_non_fungible_asset_issued_offset
     push.FAUCET_IS_NON_FUNGIBLE_ASSET_ISSUED_OFFSET
@@ -394,7 +389,6 @@ export.note_get_script_hash_offset
     push.NOTE_GET_SCRIPT_HASH_OFFSET
 end
 
-
 ### TRANSACTION #################################
 
 #! Returns the offset of the `tx_create_note` kernel procedure.
@@ -415,7 +409,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `tx_get_input_notes_commitment` kernel procedure required to 
+#! - proc_offset is the offset of the `tx_get_input_notes_commitment` kernel procedure required to
 #!   get the address where this procedure is stored.
 export.tx_get_input_notes_commitment_offset
     push.TX_GET_INPUT_NOTES_COMMITMENT_OFFSET
@@ -427,7 +421,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `tx_get_output_notes_commitment` kernel procedure required to 
+#! - proc_offset is the offset of the `tx_get_output_notes_commitment` kernel procedure required to
 #!   get the address where this procedure is stored.
 export.tx_get_output_notes_commitment_offset
     push.TX_GET_OUTPUT_NOTES_COMMITMENT_OFFSET
@@ -439,7 +433,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `tx_get_block_hash` kernel procedure required to get the 
+#! - proc_offset is the offset of the `tx_get_block_hash` kernel procedure required to get the
 #!   address where this procedure is stored.
 export.tx_get_block_hash_offset
     push.TX_GET_BLOCK_HASH_OFFSET
@@ -475,7 +469,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `tx_start_foreign_context` kernel procedure required to get 
+#! - proc_offset is the offset of the `tx_start_foreign_context` kernel procedure required to get
 #!   the address where this procedure is stored.
 export.tx_start_foreign_context_offset
     push.TX_START_FOREIGN_CONTEXT_OFFSET
@@ -499,7 +493,7 @@ end
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `tx_update_expiration_block_num` kernel procedure required to 
+#! - proc_offset is the offset of the `tx_update_expiration_block_num` kernel procedure required to
 #!   get the address where this procedure is stored.
 export.tx_update_expiration_block_num_offset
     push.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET

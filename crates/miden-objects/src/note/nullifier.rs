@@ -80,6 +80,13 @@ impl Nullifier {
     pub fn to_hex(&self) -> String {
         self.0.to_hex()
     }
+
+    #[cfg(any(feature = "testing", test))]
+    pub fn dummy(n: u64) -> Self {
+        use vm_core::FieldElement;
+
+        Self(Digest::new([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(n)]))
+    }
 }
 
 impl Display for Nullifier {

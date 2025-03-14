@@ -17,52 +17,52 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # =================================================================================================
 
 # The provided global inputs do not match the block hash commitment
-const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x00020034
+const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x00020041
 
 # The provided global inputs do not match the block number commitment
-const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT=0x00020134
+const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT=0x00020042
 
 # New account must have an empty vault
-const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020035
+const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020047
 
 # Reserved slot for new fungible faucet is not empty
-const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY=0x00020036
+const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY=0x00020049
 
 # Reserved slot for new fungible faucet has an invalid type
-const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020037
+const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020048
 
 # Reserved slot for non-fungible faucet is not a valid empty SMT
-const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT=0x00020038
+const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT=0x0002004b
 
 # Reserved slot for new non-fungible faucet has an invalid type
-const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x00020039
+const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_INVALID_TYPE=0x0002004a
 
 # Account data provided does not match the commitment recorded on-chain
-const.ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT=0x0002003A
+const.ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT=0x0002004f
 
 # Existing accounts must have a non-zero nonce
-const.ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE=0x0002003B
+const.ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE=0x00020040
 
 # Account IDs provided via global inputs and advice provider do not match
-const.ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER=0x0002003C
+const.ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER=0x00020044
 
 # Reference block MMR and note's authentication MMR must match
-const.ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR=0x0002003D
+const.ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR=0x00020045
 
 # Number of note assets exceeds the maximum limit of 256
-const.ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT=0x0002003E
+const.ERR_PROLOGUE_NUMBER_OF_NOTE_ASSETS_EXCEEDS_LIMIT=0x0002004d
 
 # Provided info about assets of an input does not match its commitment
-const.ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT=0x0002003F
+const.ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT=0x00020050
 
 # Number of input notes exceeds the kernel's maximum limit of 1024
-const.ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT=0x00020040
+const.ERR_PROLOGUE_NUMBER_OF_INPUT_NOTES_EXCEEDS_LIMIT=0x0002004c
 
 # Note commitment computed from the input note data does not match given note commitment
-const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x00020041
+const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x00020043
 
 # New account must have a zero nonce
-const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x0002005B
+const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -90,7 +90,6 @@ end
 
 # KERNEL DATA
 # =================================================================================================
-
 
 #! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel root and kernel
 #! hash match the sequential hash of all kernels and sequential hash of kernel procedures
