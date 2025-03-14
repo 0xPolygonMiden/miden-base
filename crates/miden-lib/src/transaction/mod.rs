@@ -34,9 +34,6 @@ pub use errors::{TransactionEventError, TransactionKernelError, TransactionTrace
 
 mod procedures;
 
-// mod script_builder;
-// pub use script_builder::{TransactionScriptBuilder, TransactionScriptBuilderError};
-
 // CONSTANTS
 // ================================================================================================
 

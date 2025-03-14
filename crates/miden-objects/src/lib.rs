@@ -67,9 +67,9 @@ pub mod utils {
     /// # Example
     ///
     /// ```
-    /// # use miden_objects::{Word, Felt, utils::word_to_felts_string};
+    /// # use miden_objects::{Word, Felt, utils::word_to_masm_push_string};
     /// let word = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    /// assert_eq!(word_to_felts_string(&word), "1.2.3.4");
+    /// assert_eq!(word_to_masm_push_string(&word), "1.2.3.4");
     /// ```
     pub fn word_to_masm_push_string(word: &Word) -> String {
         format!("{}.{}.{}.{}", word[0], word[1], word[2], word[3])
