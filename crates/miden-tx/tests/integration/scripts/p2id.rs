@@ -13,7 +13,7 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
     },
     transaction::{OutputNote, TransactionScript},
-    utils::word_to_felts_string,
+    utils::word_to_masm_push_string,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
@@ -263,15 +263,15 @@ fn test_create_consume_multiple_notes() {
                 dropw dropw dropw dropw
             end
             ",
-        recipient_1 = word_to_felts_string(&output_note_1.recipient().digest()),
+        recipient_1 = word_to_masm_push_string(&output_note_1.recipient().digest()),
         note_type_1 = NoteType::Public as u8,
         tag_1 = Felt::new(output_note_1.metadata().tag().into()),
-        asset_1 = word_to_felts_string(&FungibleAsset::mock(10).into()),
+        asset_1 = word_to_masm_push_string(&FungibleAsset::mock(10).into()),
         note_execution_hint_1 = Felt::from(output_note_1.metadata().execution_hint()),
-        recipient_2 = word_to_felts_string(&output_note_2.recipient().digest()),
+        recipient_2 = word_to_masm_push_string(&output_note_2.recipient().digest()),
         note_type_2 = NoteType::Public as u8,
         tag_2 = Felt::new(output_note_2.metadata().tag().into()),
-        asset_2 = word_to_felts_string(&FungibleAsset::mock(5).into()),
+        asset_2 = word_to_masm_push_string(&FungibleAsset::mock(5).into()),
         note_execution_hint_2 = Felt::from(output_note_2.metadata().execution_hint())
     );
 

@@ -27,7 +27,7 @@ use miden_objects::{
 };
 use vm_processor::{Felt, ProcessState};
 
-use super::{word_to_felts_string, ONE};
+use super::{word_to_masm_push_string, ONE};
 use crate::{assert_execution_error, testing::TransactionContextBuilder};
 
 // FUNGIBLE FAUCET MINT TESTS
@@ -221,8 +221,8 @@ fn test_mint_non_fungible_asset_succeeds() {
             dropw
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset.into()),
-        asset_vault_key = word_to_felts_string(&asset_vault_key),
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into()),
+        asset_vault_key = word_to_masm_push_string(&asset_vault_key),
     );
 
     tx_context.execute_code(&code).unwrap();
@@ -245,7 +245,7 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
             call.account::mint
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset.into())
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -270,7 +270,7 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
             call.account::mint
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset.into())
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -300,7 +300,7 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
             call.account::mint
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset.into())
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -514,8 +514,8 @@ fn test_burn_non_fungible_asset_succeeds() {
             dropw
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset_burnt.into()),
-        burnt_asset_vault_key = word_to_felts_string(&burnt_asset_vault_key),
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset_burnt.into()),
+        burnt_asset_vault_key = word_to_masm_push_string(&burnt_asset_vault_key),
     );
 
     tx_context.execute_code(&code).unwrap();
@@ -544,7 +544,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
             call.account::burn
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset_burnt.into())
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset_burnt.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -570,7 +570,7 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
             call.account::burn
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset_burnt.into())
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset_burnt.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -605,7 +605,7 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
             call.account::burn
         end
         ",
-        non_fungible_asset = word_to_felts_string(&non_fungible_asset_burnt.into())
+        non_fungible_asset = word_to_masm_push_string(&non_fungible_asset_burnt.into())
     );
 
     let process = tx_context.execute_code(&code);
@@ -653,8 +653,8 @@ fn test_is_non_fungible_asset_issued_succeeds() {
             eq.0 assert.err=9999
         end
         ",
-        non_fungible_asset_1 = word_to_felts_string(&non_fungible_asset_1.into()),
-        non_fungible_asset_2 = word_to_felts_string(&non_fungible_asset_2.into()),
+        non_fungible_asset_1 = word_to_masm_push_string(&non_fungible_asset_1.into()),
+        non_fungible_asset_2 = word_to_masm_push_string(&non_fungible_asset_2.into()),
     );
 
     tx_context.execute_code(&code).unwrap();

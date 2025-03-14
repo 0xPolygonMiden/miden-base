@@ -27,7 +27,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{word_to_felts_string, Felt, StackInputs, Word, ONE, ZERO};
+use super::{word_to_masm_push_string, Felt, StackInputs, Word, ONE, ZERO};
 use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
 
 // ACCOUNT CODE TESTS
@@ -258,7 +258,7 @@ fn test_get_item() {
             end
             ",
             item_index = storage_item.index,
-            item_value = word_to_felts_string(&storage_item.slot.value())
+            item_value = word_to_masm_push_string(&storage_item.slot.value())
         );
 
         tx_context.execute_code(&code).unwrap();
@@ -298,7 +298,7 @@ fn test_get_map_item() {
             end
             ",
             item_index = 0,
-            map_key = word_to_felts_string(&key),
+            map_key = word_to_masm_push_string(&key),
         );
 
         let process = &tx_context.execute_code(&code).unwrap();
@@ -414,7 +414,7 @@ fn test_set_item() {
             assert_eqw
         end
         ",
-        new_storage_item = word_to_felts_string(&new_storage_item),
+        new_storage_item = word_to_masm_push_string(&new_storage_item),
         new_storage_item_index = 0,
     );
 
@@ -467,8 +467,8 @@ fn test_set_map_item() {
         end
         ",
         item_index = 0,
-        new_key = word_to_felts_string(&new_key),
-        new_value = word_to_felts_string(&new_value),
+        new_key = word_to_masm_push_string(&new_key),
+        new_value = word_to_masm_push_string(&new_value),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -660,7 +660,7 @@ fn test_get_vault_commitment() {
             assert_eqw
         end
         ",
-        expected_vault_commitment = word_to_felts_string(&account.vault().commitment()),
+        expected_vault_commitment = word_to_masm_push_string(&account.vault().commitment()),
     );
 
     tx_context.execute_code(&code).unwrap();
@@ -708,7 +708,7 @@ fn test_authenticate_procedure() {
                 dropw
             end
             ",
-            root = word_to_felts_string(&root)
+            root = word_to_masm_push_string(&root)
         );
 
         // Execution of this code will return an EventError(UnknownAccountProcedure) for procs

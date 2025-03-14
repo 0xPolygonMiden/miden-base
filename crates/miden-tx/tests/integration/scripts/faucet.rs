@@ -8,7 +8,7 @@ use miden_objects::{
     asset::{Asset, FungibleAsset},
     note::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::TransactionScript,
-    utils::word_to_felts_string,
+    utils::word_to_masm_push_string,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
@@ -62,7 +62,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             end
             ",
         note_type = note_type as u8,
-        recipient = word_to_felts_string(&recipient),
+        recipient = word_to_masm_push_string(&recipient),
         aux = aux,
         tag = u32::from(tag),
         note_execution_hint = Felt::from(note_execution_hint)
@@ -134,7 +134,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
             end
             ",
         note_type = NoteType::Private as u8,
-        recipient = word_to_felts_string(&recipient),
+        recipient = word_to_masm_push_string(&recipient),
     );
 
     let tx_script =

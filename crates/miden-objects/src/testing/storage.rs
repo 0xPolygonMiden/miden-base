@@ -7,7 +7,7 @@ use vm_processor::Digest;
 use crate::{
     account::{AccountStorage, AccountStorageDelta, StorageMap, StorageMapDelta, StorageSlot},
     note::NoteAssets,
-    utils::word_to_felts_string,
+    utils::word_to_masm_push_string,
     AccountDeltaError,
 };
 
@@ -124,7 +124,7 @@ pub fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
     let mut assets = Vec::new();
     for &asset in note_assets.iter() {
         let asset_word: Word = asset.into();
-        let asset_str = word_to_felts_string(&asset_word);
+        let asset_str = word_to_masm_push_string(&asset_word);
         assets.push(asset_str);
     }
     assets

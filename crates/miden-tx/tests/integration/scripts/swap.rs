@@ -5,7 +5,7 @@ use miden_objects::{
     crypto::rand::RpoRandomCoin,
     note::{Note, NoteDetails, NoteType},
     transaction::{OutputNote, TransactionScript},
-    utils::word_to_felts_string,
+    utils::word_to_masm_push_string,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
@@ -41,10 +41,10 @@ pub fn prove_send_swap_note() {
             dropw dropw dropw dropw
         end
         ",
-        recipient = word_to_felts_string(&note.recipient().digest()),
+        recipient = word_to_masm_push_string(&note.recipient().digest()),
         note_type = NoteType::Public as u8,
         tag = Felt::new(note.metadata().tag().into()),
-        asset = word_to_felts_string(&offered_asset.into()),
+        asset = word_to_masm_push_string(&offered_asset.into()),
         note_execution_hint = Felt::from(note.metadata().execution_hint())
     );
 
