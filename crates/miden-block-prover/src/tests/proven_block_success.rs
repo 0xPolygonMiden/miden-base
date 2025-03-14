@@ -50,7 +50,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     chain.add_pending_note(input_note1.clone());
     chain.add_pending_note(input_note2.clone());
     chain.add_pending_note(input_note3.clone());
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[input_note0.id()]);
     let tx1 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[input_note1.id()]);
@@ -220,7 +220,7 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     chain.add_pending_note(note0.clone());
     chain.add_pending_note(note2.clone());
     chain.add_pending_note(note3.clone());
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);
     let tx1 =
@@ -347,7 +347,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     // Add notes to the chain we can consume.
     let note0 = generate_tracked_note(&mut chain, account1.id(), account0.id());
     let note1 = generate_tracked_note(&mut chain, account0.id(), account1.id());
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     let tx0 =
         generate_executed_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);
@@ -356,7 +356,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
 
     chain.apply_executed_transaction(&tx0);
     chain.apply_executed_transaction(&tx1);
-    let blockx = chain.seal_block(None);
+    let blockx = chain.seal_next_block();
 
     // Build a block with empty inputs whose account tree and nullifier tree root are not the empty
     // roots.

@@ -54,7 +54,7 @@ const.EPILOGUE_END=131081
 #!   INPUT_NOTES_COMMITMENT,
 #!   account_id_prefix, account_id_suffix, block_num,
 #! ]
-#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 #!
 #! Where:
 #! - BLOCK_COMMITMENT is the reference block for the transaction execution.

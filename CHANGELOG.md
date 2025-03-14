@@ -28,6 +28,7 @@
 - [BREAKING] Added `InitStorageData::from_toml()`, improved storage entry validations in `AccountComponentMetadata` (#1170).
 - [BREAKING] Rework miden-lib error codes into categories (#1196).
 - Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
+- [BREAKING] Enable timestamp customization on `MockChain::seal_block` (#1208).
 - [BREAKING] Replace "hash" with "commitment" in `BlockHeader::{prev_hash, chain_root, kernel_root, tx_hash, proof_hash, sub_hash, hash}` (#1209).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only

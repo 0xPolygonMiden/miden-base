@@ -107,7 +107,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
     let note2 = generate_tracked_note_with_asset(&mut chain, account0.id(), account1.id(), asset);
 
     // Add notes to the chain.
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     // Create three transactions on the same account that build on top of each other.
     // The MockChain only updates the account state when sealing a block, but we don't want the
@@ -121,7 +121,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         &[note0.id()],
     );
     alternative_chain.apply_executed_transaction(&executed_tx0);
-    alternative_chain.seal_block(None);
+    alternative_chain.seal_next_block();
 
     let executed_tx1 = generate_executed_tx_with_authenticated_notes(
         &mut alternative_chain,
@@ -129,7 +129,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         &[note1.id()],
     );
     alternative_chain.apply_executed_transaction(&executed_tx1);
-    alternative_chain.seal_block(None);
+    alternative_chain.seal_next_block();
 
     let executed_tx2 = generate_executed_tx_with_authenticated_notes(
         &mut alternative_chain,
@@ -192,7 +192,7 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
 
     chain.add_pending_note(note0.clone());
     chain.add_pending_note(note1.clone());
-    chain.seal_block(None);
+    chain.seal_next_block();
 
     let batches = [batch0, batch1];
     // This block will use block2 as the reference block.
@@ -237,7 +237,7 @@ fn proposed_block_with_batch_at_expiration_limit() -> anyhow::Result<()> {
     // sanity check: batch 1 should expire at block 3.
     assert_eq!(batch1.batch_expiration_block_num().as_u32(), 3);
 
-    let _block2 = chain.seal_block(None);
+    let _block2 = chain.seal_next_block();
 
     let batches = vec![batch0.clone(), batch1.clone()];
 

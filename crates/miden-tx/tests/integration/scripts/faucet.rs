@@ -196,7 +196,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let note = get_note_with_fungible_asset_and_script(fungible_asset, note_script);
 
     mock_chain.add_pending_note(note.clone());
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
