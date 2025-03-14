@@ -796,7 +796,7 @@ impl MockChain {
     /// This will make all the objects currently pending available for use.
     ///
     /// If `block_num` is `None`, the next block is created, otherwise all blocks from the next
-    /// block up to and including `block_num`.
+    /// block up to and including `block_num` will be created.
     ///
     /// If a `timestamp` is provided, it will be set on the block with `block_num`.
     pub fn seal_block(&mut self, block_num: Option<u32>, timestamp: Option<u32>) -> ProvenBlock {
@@ -805,9 +805,10 @@ impl MockChain {
 
         let target_block_num = block_num.unwrap_or(next_block_num);
 
-        if target_block_num < next_block_num {
-            panic!("Input block number should be higher than the last block number");
-        }
+        assert!(
+            target_block_num >= next_block_num,
+            "target block number must be greater or equal to the number of the next block in the chain"
+        );
 
         let mut last_block: Option<ProvenBlock> = None;
 
@@ -857,8 +858,8 @@ impl MockChain {
                 if let Some(provided_timestamp) = timestamp {
                     if let Some(prev_block) = previous {
                         assert!(
-                            prev_block.header().timestamp() < provided_timestamp,
-                            "timestamp must increase monotonically"
+                            provided_timestamp > prev_block.header().timestamp(),
+                            "provided timestamp must be strictly greater than the previous block's timestamp"
                         );
                     }
                     block_timestamp = provided_timestamp;
