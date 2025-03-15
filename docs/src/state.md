@@ -25,7 +25,7 @@ The Miden node maintains three databases to describe `State`:
 2. Notes
 3. Nullifiers
 
-![Architecture core concepts](../img/architecture/state/state.png)
+![Architecture core concepts](img/state/state.png)
 
 ### Account database
 
@@ -36,9 +36,9 @@ The accounts database has two main purposes:
 
 This is done using an authenticated data structure, a sparse Merkle tree.
 
-![Architecture core concepts](../img/architecture/state/account-db.png)
+![Architecture core concepts](img/state/account-db.png)
 
-As described in the [accounts section](accounts.md), there are two types of accounts:
+As described in the [accounts section](account.md), there are two types of accounts:
 
 - **Public accounts:** where all account data is stored on-chain.
 - **Private accounts:** where only the commitments to the account is stored on-chain.
@@ -52,7 +52,7 @@ The storage contribution of a public account depends on the amount of data it st
 
 ### Note database
 
-As described in the [notes section](notes.md), there are two types of notes:
+As described in the [notes section](note.md), there are two types of notes:
 
 - **Public notes:** where the entire note content is stored on-chain.
 - **Private notes:** where only the note’s commitment is stored on-chain.
@@ -68,18 +68,18 @@ Using a Merkle Mountain Range (append-only accumulator) is important for two rea
  
 Both of these properties are needed for supporting local transactions using client-side proofs and privacy. In an append-only data structure, witness data does not become stale when the data structure is updated. That means users can generate valid proofs even if they don’t have the latest `State` of this database; so there is no need to query the operator on a constantly changing `State`.
 
-![Architecture core concepts](../img/architecture/state/note-db.png)
+![Architecture core concepts](img/state/note-db.png)
 
 ### Nullifier database
 
-Each [note](notes.md) has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.
+Each [note](note.md) has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.
 
 To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is 0. Since nullifiers are 32 bytes each, the sparse Merkle tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
 
 > **Note**
-> - Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the [note’s nullifier](notes.md#note-nullifier-ensuring-private-consumption), one must know the note’s data.
+> - Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the [note’s nullifier](note.md#note-nullifier-ensuring-private-consumption), one must know the note’s data.
 
-![Architecture core concepts](../img/architecture/state/nullifier-db.png)
+![Architecture core concepts](img/state/nullifier-db.png)
 
 ## Additional information
 
@@ -87,7 +87,7 @@ To prove that a note has not been consumed, the operator must provide a Merkle p
 
 In most blockchains, most smart contracts and decentralized applications (e.g., AAVE, Uniswap) need public shared `State`. Public shared `State` is also available on Miden and can be represented as in the following example:
 
-![Public shared state](../img/architecture/state/public-shared-state.png)
+![Public shared state](img/state/public-shared-state.png)
 
 In this diagram, multiple participants interact with a common, publicly accessible `State`. The figure illustrates how notes are created and consumed:
 

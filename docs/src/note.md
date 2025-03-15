@@ -1,6 +1,6 @@
-# Note
+# Notes
 
-A `Note` is the medium through which [Accounts](accounts.md) communicate. A `Note` holds assets and defines how they can be consumed.
+A `Note` is the medium through which [Accounts](account.md) communicate. A `Note` holds assets and defines how they can be consumed.
 
 ## What is the purpose of a note?
 
@@ -11,7 +11,7 @@ In Miden's hybrid UTXO and account-based model `Note`s represent UTXO's which en
 A `Note` is composed of several core components, illustrated below:
 
 <p style="text-align: center;">
-    <img src="../img/architecture/note/note.png" style="width:30%;" alt="Note diagram"/>
+    <img src="img/note/note.png" style="width:30%;" alt="Note diagram"/>
 </p>
 
 These components are:
@@ -24,15 +24,15 @@ These components are:
 
 ### Assets
 
-> An [asset](assets.md) container for a `Note`.
+> An [asset](asset.md) container for a `Note`.
 
-A `Note` can contain up to 256 different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
+A `Note` can contain from 0 up to 256 different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
 
 ### Script
 
 > The code executed when the `Note` is consumed.
 
-Each `Note` has a script that defines the conditions under which it can be consumed. When accounts consume `Note`s in transactions, `Note` scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making `Note` scripts highly versatile.
+Each `Note` has a script that defines the conditions under which it can be consumed. When accounts consume `Note`s in transactions, `Note` scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making `Note` scripts highly versatile. There is no limit to the amount of code a `Note` can hold.
 
 ### Inputs
 
@@ -54,7 +54,7 @@ The serial number has two main purposes. Firstly by adding some randomness to th
 
 ## Note Lifecycle
 
-![Architecture core concepts](../img/architecture/note/note-life-cycle.png)
+![Architecture core concepts](img/note/note-life-cycle.png)
 
 The `Note` lifecycle proceeds through four primary phases: **creation**, **validation**, **discovery**, and **consumption**. Throughout this process, `Note`s function as secure, privacy-preserving vehicles for asset transfers and logic execution.
 
@@ -67,7 +67,7 @@ Accounts can create `Note`s in a transaction. The `Note` exists if it is include
 
 #### Note storage mode
 
-As with [accounts](accounts.md), `Note`s can be stored either publicly or privately:
+As with [accounts](account.md), `Note`s can be stored either publicly or privately:
 
 - **Public mode:** The `Note` data is stored in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database), making it fully visible on-chain.
 - **Private mode:** Only the `Note`’s hash is stored publicly. The `Note`’s actual data remains off-chain, enhancing privacy.
@@ -103,7 +103,7 @@ hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 
 Only those who know the RECIPIENT’s pre-image can consume the `Note`. For private `Note`s, this ensures an additional layer of control and privacy, as only parties with the correct data can claim the `Note`.
 
-The [transaction prologue](transactions/kernel.md) requires all necessary data to compute the `Note` hash. This setup allows scenario-specific restrictions on who may consume a `Note`.
+The [transaction prologue](transaction.md) requires all necessary data to compute the `Note` hash. This setup allows scenario-specific restrictions on who may consume a `Note`.
 
 For a practical example, refer to the [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm), where the RECIPIENT ensures that only a defined target can consume the swapped asset.
 
@@ -123,4 +123,4 @@ This achieves the following properties:
 
 That means if a `Note` is private and the operator stores only the `Note`'s hash, only those with the `Note` details know if this `Note` has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
 
-![Architecture core concepts](../img/architecture/note/nullifier.png)
+![Architecture core concepts](img/note/nullifier.png)
