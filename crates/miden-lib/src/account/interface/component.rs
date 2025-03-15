@@ -132,16 +132,9 @@ impl AccountComponentInterface {
     ///   - For basic wallet: creating a note, pushing the assets on the stack and moving them to
     ///     the created note.
     ///
-    /// # Errors:
-    /// Returns an error if:
-    /// - the interface does not support the generation of the standard `send_note` procedure.
-    /// - the sender of the note isn't the account for which the script is being built.
-    /// - the note created by the faucet doesn't contain exactly one asset.
-    /// - a faucet tries to distribute an asset with a different faucet ID.
-    ///
     /// # Examples
     ///
-    /// Example script for the [AccountComponentInterface::BasicWallet] with one note:
+    /// Example script for the [`AccountComponentInterface::BasicWallet`] with one note:
     ///
     /// ```masm
     ///     push.{note_information}
@@ -152,7 +145,7 @@ impl AccountComponentInterface {
     ///     dropw dropw dropw drop
     /// ```
     ///
-    /// Example script for the [AccountComponentInterface::BasicFungibleFaucet] with one note:
+    /// Example script for the [`AccountComponentInterface::BasicFungibleFaucet`] with one note:
     ///
     /// ```masm
     ///     push.{note information}
@@ -160,6 +153,13 @@ impl AccountComponentInterface {
     ///     push.{asset amount}
     ///     call.::miden::contracts::faucets::basic_fungible::distribute dropw dropw drop
     /// ```
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - the interface does not support the generation of the standard `send_note` procedure.
+    /// - the sender of the note isn't the account for which the script is being built.
+    /// - the note created by the faucet doesn't contain exactly one asset.
+    /// - a faucet tries to distribute an asset with a different faucet ID.
     pub(crate) fn send_note_body(
         &self,
         sender_account_id: AccountId,
@@ -186,6 +186,7 @@ impl AccountComponentInterface {
                 aux = partial_note.metadata().aux(),
                 tag = Felt::from(partial_note.metadata().tag()),
             ));
+            // stack => [tag, aux, note_type, execution_hint, RECIPIENT]
 
             match self {
                 AccountComponentInterface::BasicFungibleFaucet => {
@@ -208,9 +209,11 @@ impl AccountComponentInterface {
                         call.::miden::contracts::faucets::basic_fungible::distribute dropw dropw drop\n",
                         amount = asset.unwrap_fungible().amount()
                     ));
+                    // stack => [note_idx]
                 },
                 AccountComponentInterface::BasicWallet => {
                     body.push_str("call.::miden::contracts::wallets::basic::create_note\n");
+                    // stack => [note_idx]
 
                     for asset in partial_note.assets().iter() {
                         body.push_str(&format!(
@@ -218,9 +221,11 @@ impl AccountComponentInterface {
                             call.::miden::contracts::wallets::basic::move_asset_to_note dropw\n",
                             asset = word_to_masm_push_string(&asset.into())
                         ));
+                        // stack => [ASSET, note_idx]
                     }
 
                     body.push_str("dropw dropw dropw drop");
+                    // stack => []
                 },
                 _ => return Err(AccountInterfaceError::UnsupportedInterface(self.clone())),
             }

@@ -12,7 +12,7 @@ use miden_objects::{
 use miden_tx::testing::{Auth, MockChain};
 
 /// Tests the execution of the generated send_note transaction script in case the sending account
-/// has the [BasicWallet][wallet] interface.
+/// has the [`BasicWallet`][wallet] interface.
 ///
 /// [wallet]: miden_lib::account::interface::AccountComponentInterface::BasicWallet
 #[test]
@@ -58,7 +58,7 @@ fn test_send_note_script_basic_wallet() {
 }
 
 /// Tests the execution of the generated send_note transaction script in case the sending account
-/// has the [BasicFungibleFaucet][faucet] interface.
+/// has the [`BasicFungibleFaucet`][faucet] interface.
 ///
 /// [faucet]: miden_lib::account::interface::AccountComponentInterface::BasicFungibleFaucet
 #[test]
