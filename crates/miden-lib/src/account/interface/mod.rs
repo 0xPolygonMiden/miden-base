@@ -408,8 +408,8 @@ pub enum AccountInterfaceError {
     InvalidTransactionScript(#[source] TransactionScriptError),
     #[error("invalid sender account: {0}")]
     InvalidSenderAccount(AccountId),
-    #[error("{0} interface does not support the generation of the standard send_note script")]
-    UnsupportedInterface(AccountComponentInterface),
+    #[error("{} interface does not support the generation of the standard send_note script", interface.name())]
+    UnsupportedInterface { interface: AccountComponentInterface },
     #[error("account does not contain the basic fungible faucet or basic wallet interfaces which are needed to support the send_note script generation")]
     UnsupportedAccountInterface,
 }

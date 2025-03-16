@@ -3,7 +3,6 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::fmt::Display;
 
 use miden_objects::{
     account::{AccountId, AccountProcedureInfo},
@@ -42,6 +41,27 @@ pub enum AccountComponentInterface {
 }
 
 impl AccountComponentInterface {
+    /// Returns a string line with the name of the [AccountComponentInterface] enum variant.
+    ///
+    /// In case of a [AccountComponentInterface::Custom] along with the name of the enum variant  
+    /// the vector of shortened hex representations of the used procedures is returned, e.g.
+    /// `Custom([0x6d93447, 0x0bf23d8])`.
+    pub fn name(&self) -> String {
+        match self {
+            AccountComponentInterface::BasicWallet => "Basic Wallet".to_string(),
+            AccountComponentInterface::BasicFungibleFaucet => "Basic Fungible Faucet".to_string(),
+            AccountComponentInterface::RpoFalcon512(_) => "RPO Falcon512".to_string(),
+            AccountComponentInterface::Custom(proc_info_vec) => {
+                let result = proc_info_vec
+                    .iter()
+                    .map(|proc_info| proc_info.mast_root().to_hex()[..9].to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("Custom([{}])", result)
+            },
+        }
+    }
+
     /// Creates a vector of [AccountComponentInterface] instances. This vector specifies the
     /// components which were used to create an account with the provided procedures info array.
     pub fn from_procedures(procedures: &[AccountProcedureInfo]) -> Vec<Self> {
@@ -209,7 +229,7 @@ impl AccountComponentInterface {
                         call.::miden::contracts::faucets::basic_fungible::distribute dropw dropw drop\n",
                         amount = asset.unwrap_fungible().amount()
                     ));
-                    // stack => [note_idx]
+                    // stack => []
                 },
                 AccountComponentInterface::BasicWallet => {
                     body.push_str("call.::miden::contracts::wallets::basic::create_note\n");
@@ -221,34 +241,20 @@ impl AccountComponentInterface {
                             call.::miden::contracts::wallets::basic::move_asset_to_note dropw\n",
                             asset = word_to_masm_push_string(&asset.into())
                         ));
-                        // stack => [ASSET, note_idx]
+                        // stack => [note_idx]
                     }
 
                     body.push_str("dropw dropw dropw drop");
                     // stack => []
                 },
-                _ => return Err(AccountInterfaceError::UnsupportedInterface(self.clone())),
+                _ => {
+                    return Err(AccountInterfaceError::UnsupportedInterface {
+                        interface: self.clone(),
+                    })
+                },
             }
         }
 
         Ok(body)
-    }
-}
-
-impl Display for AccountComponentInterface {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            AccountComponentInterface::BasicWallet => write!(f, "Basic Wallet"),
-            AccountComponentInterface::BasicFungibleFaucet => write!(f, "Basic Fungible Faucet"),
-            AccountComponentInterface::RpoFalcon512(_) => write!(f, "RPO Falcon512"),
-            AccountComponentInterface::Custom(proc_info_vec) => {
-                let result = proc_info_vec
-                    .iter()
-                    .map(|proc_info| proc_info.mast_root().to_hex()[..9].to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                write!(f, "Custom([{}])", result)
-            },
-        }
     }
 }
