@@ -1,27 +1,29 @@
-use alloc::{
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{collections::BTreeSet, string::String, sync::Arc, vec::Vec};
 
 use miden_objects::{
-    account::{Account, AccountCode, AccountId, AccountProcedureInfo, AccountType},
+    account::{Account, AccountCode, AccountId, AccountIdPrefix, AccountType},
     assembly::mast::{MastForest, MastNode, MastNodeId},
     crypto::dsa::rpo_falcon512,
-    note::{Note, NoteScript},
-    Digest,
+    note::{Note, NoteScript, PartialNote},
+    transaction::TransactionScript,
+    Digest, TransactionScriptError,
 };
+use thiserror::Error;
 
 use crate::{
     account::components::{
         basic_fungible_faucet_library, basic_wallet_library, rpo_falcon_512_library,
     },
     note::well_known_note::WellKnownNote,
+    transaction::TransactionKernel,
     AuthScheme,
 };
 
 #[cfg(test)]
 mod test;
+
+mod component;
+pub use component::AccountComponentInterface;
 
 // ACCOUNT INTERFACE
 // ================================================================================================
@@ -36,6 +38,8 @@ pub struct AccountInterface {
     components: Vec<AccountComponentInterface>,
 }
 
+// ------------------------------------------------------------------------------------------------
+/// Constructors and public accessors
 impl AccountInterface {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -96,12 +100,12 @@ impl AccountInterface {
                 NoteAccountCompatibility::No
             }
         } else {
-            verify_note_script_compatibility(note.script(), self.component_procedure_digests())
+            verify_note_script_compatibility(note.script(), self.get_procedure_digests())
         }
     }
 
-    /// Returns a digests vector of all procedures from all account component interfaces.
-    pub(crate) fn component_procedure_digests(&self) -> BTreeSet<Digest> {
+    /// Returns a digests set of all procedures from all account component interfaces.
+    pub(crate) fn get_procedure_digests(&self) -> BTreeSet<Digest> {
         let mut component_proc_digests = BTreeSet::new();
         for component in self.components.iter() {
             match component {
@@ -125,6 +129,146 @@ impl AccountInterface {
         }
 
         component_proc_digests
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+/// Code generation
+impl AccountInterface {
+    /// Builds a simple authentication script for the transaction that doesn't send any notes.
+    ///
+    /// Resulting transaction script is generated from this source:
+    ///
+    /// ```masm
+    /// begin
+    ///     call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+    /// end
+    /// ```
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - the account interface does not have any authentication schemes.
+    pub fn build_auth_script(
+        &self,
+        in_debug_mode: bool,
+    ) -> Result<TransactionScript, AccountInterfaceError> {
+        let auth_script_source = format!("begin\n{}\nend", self.build_tx_authentication_section());
+        let assembler = TransactionKernel::assembler().with_debug_mode(in_debug_mode);
+
+        TransactionScript::compile(auth_script_source, [], assembler)
+            .map_err(AccountInterfaceError::InvalidTransactionScript)
+    }
+
+    /// Returns a transaction script which sends the specified notes using the procedures available
+    /// in the current interface.
+    ///
+    /// Provided `expiration_delta` parameter is used to specify how close to the transaction's
+    /// reference block the transaction must be included into the chain. For example, if the
+    /// transaction's reference block is 100 and transaction expiration delta is 10, the transaction
+    /// can be included into the chain by block 110. If this does not happen, the transaction is
+    /// considered expired and cannot be included into the chain.
+    ///
+    /// Currently only [`AccountComponentInterface::BasicWallet`] and
+    /// [`AccountComponentInterface::BasicFungibleFaucet`] interfaces are supported for the
+    /// `send_note` script creation. Attempt to generate the script using some other interface will
+    /// lead to an error. In case both supported interfaces are available in the account, the script
+    /// will be generated for the [`AccountComponentInterface::BasicFungibleFaucet`] interface.
+    ///
+    /// # Example
+    ///
+    /// Example of the `send_note` script with specified expiration delta, one output note and
+    /// RpoFalcon512 authentication:
+    ///
+    /// ```masm
+    /// begin
+    ///     push.{expiration_delta} exec.::miden::tx::update_expiration_block_delta
+    ///
+    ///     push.{note information}
+    ///
+    ///     push.{asset amount}
+    ///     call.::miden::contracts::faucets::basic_fungible::distribute dropw dropw drop
+    ///
+    ///     call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+    /// end
+    /// ```
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - the available interfaces does not support the generation of the standard `send_note`
+    ///   procedure.
+    /// - the sender of the note isn't the account for which the script is being built.
+    /// - the note created by the faucet doesn't contain exactly one asset.
+    /// - a faucet tries to distribute an asset with a different faucet ID.
+    ///
+    /// [wallet]: miden_lib::account::interface::AccountComponentInterface::BasicWallet
+    /// [faucet]: miden_lib::account::interface::AccountComponentInterface::BasicFungibleFaucet
+    pub fn build_send_notes_script(
+        &self,
+        output_notes: &[PartialNote],
+        expiration_delta: Option<u16>,
+        in_debug_mode: bool,
+    ) -> Result<TransactionScript, AccountInterfaceError> {
+        let note_creation_source = self.build_create_notes_section(output_notes)?;
+
+        let script = format!(
+            "begin\n{}\n{}\n{}\nend",
+            self.build_set_tx_expiration_section(expiration_delta),
+            note_creation_source,
+            self.build_tx_authentication_section()
+        );
+
+        let assembler = TransactionKernel::assembler().with_debug_mode(in_debug_mode);
+        let tx_script = TransactionScript::compile(script, [], assembler)
+            .map_err(AccountInterfaceError::InvalidTransactionScript)?;
+
+        Ok(tx_script)
+    }
+
+    /// Returns a string with the authentication procedure call for the script.
+    fn build_tx_authentication_section(&self) -> String {
+        let mut auth_script = String::new();
+        self.auth().iter().for_each(|auth_scheme| match auth_scheme {
+            &AuthScheme::RpoFalcon512 { pub_key: _ } => {
+                auth_script
+                    .push_str("call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512\n");
+            },
+        });
+
+        auth_script
+    }
+
+    /// Generates a note creation code required for the `send_note` transaction script.
+    ///
+    /// For the example of the resulting code see [AccountComponentInterface::send_note_body]
+    /// description.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - the available interfaces does not support the generation of the standard `send_note`
+    ///   procedure.
+    /// - the sender of the note isn't the account for which the script is being built.
+    /// - the note created by the faucet doesn't contain exactly one asset.
+    /// - a faucet tries to distribute an asset with a different faucet ID.
+    fn build_create_notes_section(
+        &self,
+        output_notes: &[PartialNote],
+    ) -> Result<String, AccountInterfaceError> {
+        if self.components().contains(&AccountComponentInterface::BasicFungibleFaucet) {
+            AccountComponentInterface::BasicFungibleFaucet.send_note_body(*self.id(), output_notes)
+        } else if self.components().contains(&AccountComponentInterface::BasicWallet) {
+            AccountComponentInterface::BasicWallet.send_note_body(*self.id(), output_notes)
+        } else {
+            return Err(AccountInterfaceError::UnsupportedAccountInterface);
+        }
+    }
+
+    /// Returns a string with the expiration delta update procedure call for the script.
+    fn build_set_tx_expiration_section(&self, expiration_delta: Option<u16>) -> String {
+        if let Some(expiration_delta) = expiration_delta {
+            format!("push.{expiration_delta} exec.::miden::tx::update_expiration_block_delta\n")
+        } else {
+            String::new()
+        }
     }
 }
 
@@ -153,113 +297,7 @@ impl From<&Account> for AccountInterface {
     }
 }
 
-// ACCOUNT COMPONENT INTERFACE
-// ================================================================================================
-
-/// The enum holding all possible account interfaces which could be loaded to some account.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AccountComponentInterface {
-    /// Exposes procedures from the [`BasicWallet`][crate::account::wallets::BasicWallet] module.
-    BasicWallet,
-    /// Exposes procedures from the
-    /// [`BasicFungibleFaucet`][crate::account::faucets::BasicFungibleFaucet] module.
-    BasicFungibleFaucet,
-    /// Exposes procedures from the
-    /// [`RpoFalcon512`][crate::account::auth::RpoFalcon512] module.
-    ///
-    /// Internal value holds the storage index where the public key for the RpoFalcon512
-    /// authentication scheme is stored.
-    RpoFalcon512(u8),
-    /// A non-standard, custom interface which exposes the contained procedures.
-    ///
-    /// Custom interface holds procedures which are not part of some standard interface which is
-    /// used by this account. Each custom interface holds procedures with the same storage offset.
-    Custom(Vec<AccountProcedureInfo>),
-}
-
-impl AccountComponentInterface {
-    /// Creates a vector of [AccountComponentInterface] instances. This vector specifies the
-    /// components which were used to create an account with the provided procedures info array.
-    pub fn from_procedures(procedures: &[AccountProcedureInfo]) -> Vec<Self> {
-        let mut component_interface_vec = Vec::new();
-
-        let mut procedures: BTreeMap<_, _> = procedures
-            .iter()
-            .map(|procedure_info| (*procedure_info.mast_root(), procedure_info))
-            .collect();
-
-        // Basic Wallet
-        // ------------------------------------------------------------------------------------------------
-
-        if basic_wallet_library()
-            .mast_forest()
-            .procedure_digests()
-            .all(|proc_digest| procedures.contains_key(&proc_digest))
-        {
-            basic_wallet_library().mast_forest().procedure_digests().for_each(
-                |component_procedure| {
-                    procedures.remove(&component_procedure);
-                },
-            );
-
-            component_interface_vec.push(AccountComponentInterface::BasicWallet);
-        }
-
-        // Basic Fungible Faucet
-        // ------------------------------------------------------------------------------------------------
-
-        if basic_fungible_faucet_library()
-            .mast_forest()
-            .procedure_digests()
-            .all(|proc_digest| procedures.contains_key(&proc_digest))
-        {
-            basic_fungible_faucet_library().mast_forest().procedure_digests().for_each(
-                |component_procedure| {
-                    procedures.remove(&component_procedure);
-                },
-            );
-
-            component_interface_vec.push(AccountComponentInterface::BasicFungibleFaucet);
-        }
-
-        // RPO Falcon 512
-        // ------------------------------------------------------------------------------------------------
-
-        let rpo_falcon_proc = rpo_falcon_512_library()
-            .mast_forest()
-            .procedure_digests()
-            .next()
-            .expect("rpo falcon 512 component should export exactly one procedure");
-
-        if let Some(proc_info) = procedures.remove(&rpo_falcon_proc) {
-            component_interface_vec
-                .push(AccountComponentInterface::RpoFalcon512(proc_info.storage_offset()));
-        }
-
-        // Custom interfaces
-        // ------------------------------------------------------------------------------------------------
-
-        let mut custom_interface_procs_map = BTreeMap::<u8, Vec<AccountProcedureInfo>>::new();
-        procedures.into_iter().for_each(|(_, proc_info)| {
-            match custom_interface_procs_map.get_mut(&proc_info.storage_offset()) {
-                Some(proc_vec) => proc_vec.push(*proc_info),
-                None => {
-                    custom_interface_procs_map.insert(proc_info.storage_offset(), vec![*proc_info]);
-                },
-            }
-        });
-
-        if !custom_interface_procs_map.is_empty() {
-            for proc_vec in custom_interface_procs_map.into_values() {
-                component_interface_vec.push(AccountComponentInterface::Custom(proc_vec));
-            }
-        }
-
-        component_interface_vec
-    }
-}
-
-// ACCOUNT COMPONENT INTERFACE
+// NOTE ACCOUNT COMPATIBILITY
 // ================================================================================================
 
 /// Describes whether a note is compatible with a specific account.
@@ -354,4 +392,24 @@ fn recursively_collect_call_branches(
         MastNode::Dyn(_) => {},
         MastNode::External(_) => {},
     }
+}
+
+// ACCOUNT INTERFACE ERROR
+// ============================================================================================
+
+/// Account interface related errors.
+#[derive(Debug, Error)]
+pub enum AccountInterfaceError {
+    #[error("note asset is not issued by this faucet: {0}")]
+    IssuanceFaucetMismatch(AccountIdPrefix),
+    #[error("note created by the basic fungible faucet doesn't contain exactly one asset")]
+    FaucetNoteWithoutAsset,
+    #[error("invalid transaction script")]
+    InvalidTransactionScript(#[source] TransactionScriptError),
+    #[error("invalid sender account: {0}")]
+    InvalidSenderAccount(AccountId),
+    #[error("{} interface does not support the generation of the standard send_note script", interface.name())]
+    UnsupportedInterface { interface: AccountComponentInterface },
+    #[error("account does not contain the basic fungible faucet or basic wallet interfaces which are needed to support the send_note script generation")]
+    UnsupportedAccountInterface,
 }

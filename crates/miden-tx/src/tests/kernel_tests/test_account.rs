@@ -19,7 +19,6 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        prepare_word,
         storage::STORAGE_LEAVES_2,
     },
     transaction::TransactionScript,
@@ -28,7 +27,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{Felt, StackInputs, Word, ONE, ZERO};
+use super::{word_to_masm_push_string, Felt, StackInputs, Word, ONE, ZERO};
 use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
 
 // ACCOUNT CODE TESTS
@@ -259,7 +258,7 @@ fn test_get_item() {
             end
             ",
             item_index = storage_item.index,
-            item_value = prepare_word(&storage_item.slot.value())
+            item_value = word_to_masm_push_string(&storage_item.slot.value())
         );
 
         tx_context.execute_code(&code).unwrap();
@@ -299,7 +298,7 @@ fn test_get_map_item() {
             end
             ",
             item_index = 0,
-            map_key = prepare_word(&key),
+            map_key = word_to_masm_push_string(&key),
         );
 
         let process = &tx_context.execute_code(&code).unwrap();
@@ -415,7 +414,7 @@ fn test_set_item() {
             assert_eqw
         end
         ",
-        new_storage_item = prepare_word(&new_storage_item),
+        new_storage_item = word_to_masm_push_string(&new_storage_item),
         new_storage_item_index = 0,
     );
 
@@ -468,8 +467,8 @@ fn test_set_map_item() {
         end
         ",
         item_index = 0,
-        new_key = prepare_word(&new_key),
-        new_value = prepare_word(&new_value),
+        new_key = word_to_masm_push_string(&new_key),
+        new_value = word_to_masm_push_string(&new_value),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -661,7 +660,7 @@ fn test_get_vault_commitment() {
             assert_eqw
         end
         ",
-        expected_vault_commitment = prepare_word(&account.vault().commitment()),
+        expected_vault_commitment = word_to_masm_push_string(&account.vault().commitment()),
     );
 
     tx_context.execute_code(&code).unwrap();
@@ -709,7 +708,7 @@ fn test_authenticate_procedure() {
                 dropw
             end
             ",
-            root = prepare_word(&root)
+            root = word_to_masm_push_string(&root)
         );
 
         // Execution of this code will return an EventError(UnknownAccountProcedure) for procs

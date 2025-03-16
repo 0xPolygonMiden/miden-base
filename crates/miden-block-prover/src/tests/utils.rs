@@ -9,10 +9,11 @@ use miden_objects::{
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
     note::{Note, NoteId, NoteTag, NoteType},
-    testing::{account_component::AccountMockComponent, note::NoteBuilder, prepare_word},
+    testing::{account_component::AccountMockComponent, note::NoteBuilder},
     transaction::{
         ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder, TransactionScript,
     },
+    utils::word_to_masm_push_string,
     vm::ExecutionProof,
     Felt,
 };
@@ -85,7 +86,7 @@ pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: 
         dropw dropw dropw dropw dropw
     end
     ",
-        recipient = prepare_word(&output_note.recipient().digest()),
+        recipient = word_to_masm_push_string(&output_note.recipient().digest()),
         PUBLIC_NOTE = output_note.header().metadata().note_type() as u8,
         aux = output_note.metadata().aux(),
         tag = output_note.metadata().tag(),
