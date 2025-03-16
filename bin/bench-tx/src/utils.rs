@@ -20,7 +20,7 @@ use super::{read_to_string, write, Benchmark, Path};
 // ================================================================================================
 
 // Copied from miden_objects::testing::account_id.
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 = 0x00aa00000000bc200000bc000000de00;
+pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET: u128 = 0x00aa00000000bc200000bc000000de00;
 pub const ACCOUNT_ID_SENDER: u128 = 0x00fa00000000bb800000cc000000de00;
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "

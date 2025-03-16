@@ -2,7 +2,7 @@ use miden_objects::{
     account::AccountId,
     asset::NonFungibleAsset,
     testing::{
-        account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         constants::{
             FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
         },
@@ -17,7 +17,7 @@ use crate::testing::TransactionContextBuilder;
 #[test]
 fn test_create_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         ONE,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
@@ -44,7 +44,7 @@ fn test_create_fungible_asset_succeeds() {
     let process = &tx_context.execute_code(&code).unwrap();
     let process_state: ProcessState = process.into();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
     assert_eq!(
         process_state.get_stack_word(0),
         Word::from([

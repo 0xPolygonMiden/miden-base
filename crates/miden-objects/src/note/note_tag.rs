@@ -116,7 +116,7 @@ impl NoteTag {
             },
             NoteExecutionMode::Network => {
                 if !account_id.is_public() {
-                    Err(NoteError::NetworkExecutionRequiresOnChainAccount)
+                    Err(NoteError::NetworkExecutionRequiresPublicAccount)
                 } else {
                     let prefix_id: u64 = account_id.prefix().into();
 
@@ -315,52 +315,53 @@ mod tests {
         account::AccountId,
         note::NoteType,
         testing::account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+            ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_SENDER, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2, ACCOUNT_ID_SENDER,
         },
         NoteError,
     };
 
     #[test]
     fn test_from_account_id() {
-        let off_chain_accounts = [
+        let private_accounts = [
             AccountId::try_from(ACCOUNT_ID_SENDER).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PRIVATE_SENDER).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET).unwrap(),
         ];
-        let on_chain_accounts = [
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap(),
+        let public_accounts = [
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1).unwrap(),
         ];
 
-        for off_chain in off_chain_accounts {
+        for account_id in private_accounts {
             assert_matches!(
-                NoteTag::from_account_id(off_chain, NoteExecutionMode::Network).unwrap_err(),
-                NoteError::NetworkExecutionRequiresOnChainAccount,
-                "Tag generation must fail if network execution and off-chain account ID are mixed"
+                NoteTag::from_account_id(account_id, NoteExecutionMode::Network).unwrap_err(),
+                NoteError::NetworkExecutionRequiresPublicAccount,
+                "Tag generation must fail if network execution and private account ID are mixed"
             )
         }
 
-        for on_chain in on_chain_accounts {
-            let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Network)
-                .expect("tag generation must work with network execution and on-chain account ID");
+        for account_id in public_accounts {
+            let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Network)
+                .expect("tag generation must work with network execution and public account ID");
             assert!(tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Network);
 
@@ -376,9 +377,9 @@ mod tests {
             );
         }
 
-        for off_chain in off_chain_accounts {
-            let tag = NoteTag::from_account_id(off_chain, NoteExecutionMode::Local)
-                .expect("tag generation must work with local execution and off-chain account ID");
+        for account_id in private_accounts {
+            let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
+                .expect("tag generation must work with local execution and private account ID");
             assert!(!tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
@@ -390,9 +391,9 @@ mod tests {
                 .expect("local execution should support encrypted notes");
         }
 
-        for on_chain in on_chain_accounts {
-            let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Local)
-                .expect("Tag generation must work with local execution and on-chain account ID");
+        for account_id in public_accounts {
+            let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
+                .expect("Tag generation must work with local execution and public account ID");
             assert!(!tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
@@ -407,48 +408,48 @@ mod tests {
 
     #[test]
     fn test_from_account_id_values() {
-        // Off-Chain Account ID with the following bit pattern in the first and second byte:
+        // Private Account ID with the following bit pattern in the first and second byte:
         // 0b11001100_01010101
         //   ^^^^^^^^ ^^^^^^  <- these are the 14 bits used in the tag.
-        const OFF_CHAIN_INT: u128 = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN
+        const PRIVATE_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE
             | 0x0055_0000_0000_0000_0000_0000_0000_0000;
-        let off_chain = AccountId::try_from(OFF_CHAIN_INT).unwrap();
+        let private_account_id = AccountId::try_from(PRIVATE_ACCOUNT_INT).unwrap();
 
-        // Expected off-chain tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
-        let expected_off_chain_local_tag = NoteTag(0b11110011_00010101_00000000_00000000);
+        // Expected private tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
+        let expected_private_local_tag = NoteTag(0b11110011_00010101_00000000_00000000);
 
-        // On-Chain Account ID with the following bit pattern in the first and second byte:
+        // Public Account ID with the following bit pattern in the first and second byte:
         // 0b10101010_01010101_11001100_01110111
         //   ^^^^^^^^ ^^^^^^^^ ^^^^^^^^ ^^^^^^  <- 30 bits of the network tag.
         //   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
-        let on_chain_int = ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN
+        const PUBLIC_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE
             | 0x0055_cc77_0000_0000_0000_0000_0000_0000;
-        let on_chain = AccountId::try_from(on_chain_int).unwrap();
+        let public_account_id = AccountId::try_from(PUBLIC_ACCOUNT_INT).unwrap();
 
-        // Expected on-chain tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
-        let expected_on_chain_local_tag = NoteTag(0b11101010_10010101_00000000_00000000);
+        // Expected public tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
+        let expected_public_local_tag = NoteTag(0b11101010_10010101_00000000_00000000);
 
-        // Expected on-chain tag with leading 00 tag bits for network execution.
-        let expected_on_chain_network_tag = NoteTag(0b00101010_10010101_01110011_00011101);
+        // Expected public tag with leading 00 tag bits for network execution.
+        let expected_public_network_tag = NoteTag(0b00101010_10010101_01110011_00011101);
 
         assert_eq!(
-            NoteTag::from_account_id(on_chain, NoteExecutionMode::Network).unwrap(),
-            expected_on_chain_network_tag,
+            NoteTag::from_account_id(public_account_id, NoteExecutionMode::Network).unwrap(),
+            expected_public_network_tag,
         );
         assert_matches!(
-            NoteTag::from_account_id(off_chain, NoteExecutionMode::Network),
-            Err(NoteError::NetworkExecutionRequiresOnChainAccount)
+            NoteTag::from_account_id(private_account_id, NoteExecutionMode::Network),
+            Err(NoteError::NetworkExecutionRequiresPublicAccount)
         );
 
         assert_eq!(
-            NoteTag::from_account_id(off_chain, NoteExecutionMode::Local).unwrap(),
-            expected_off_chain_local_tag,
+            NoteTag::from_account_id(private_account_id, NoteExecutionMode::Local).unwrap(),
+            expected_private_local_tag,
         );
 
         // We expect the 16th most significant bit to be cut off.
         assert_eq!(
-            NoteTag::from_account_id(on_chain, NoteExecutionMode::Local).unwrap(),
-            expected_on_chain_local_tag,
+            NoteTag::from_account_id(public_account_id, NoteExecutionMode::Local).unwrap(),
+            expected_public_local_tag,
         );
     }
 

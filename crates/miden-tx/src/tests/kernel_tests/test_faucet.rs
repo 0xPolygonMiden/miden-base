@@ -14,8 +14,8 @@ use miden_objects::{
     asset::{FungibleAsset, NonFungibleAsset},
     testing::{
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1,
+            ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1,
         },
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
@@ -37,13 +37,13 @@ use crate::{assert_execution_error, testing::TransactionContextBuilder};
 #[test]
 fn test_mint_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         ONE,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
 
     let code = format!(
         "
@@ -93,7 +93,7 @@ fn test_mint_fungible_asset_succeeds() {
 fn test_mint_fungible_asset_fails_not_faucet_account() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
 
     let code = format!(
         "
@@ -119,7 +119,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 fn test_mint_fungible_asset_inconsistent_faucet_id() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
     let code = format!(
         "
         use.kernel::prologue
@@ -143,13 +143,13 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 #[test]
 fn test_mint_fungible_asset_fails_saturate_max_amount() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         Felt::ONE,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
     let code = format!(
         "
         use.kernel::prologue
@@ -315,14 +315,14 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 #[test]
 fn test_burn_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1,
         ONE,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .with_mock_notes_preserved()
     .build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
 
     let code = format!(
         "
@@ -374,7 +374,7 @@ fn test_burn_fungible_asset_succeeds() {
 fn test_burn_fungible_asset_fails_not_faucet_account() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
 
     let code = format!(
         "
@@ -399,13 +399,13 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 #[test]
 fn test_burn_fungible_asset_inconsistent_faucet_id() {
     let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         ONE,
         false,
     )
     .build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
 
     let code = format!(
         "
@@ -430,13 +430,13 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 #[test]
 fn test_burn_fungible_asset_insufficient_input_amount() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1,
         ONE,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
 
     let code = format!(
         "
@@ -588,7 +588,7 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     // Run code from a different non-fungible asset issuer
     let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1,
         ONE,
         false,
     )
@@ -667,7 +667,7 @@ fn test_is_non_fungible_asset_issued_succeeds() {
 #[test]
 fn test_get_total_issuance_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         ONE,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )

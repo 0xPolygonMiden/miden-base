@@ -4,7 +4,7 @@ use anyhow::Context;
 use miden_objects::{
     account::AccountId,
     block::{BlockInputs, ProposedBlock},
-    testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
     transaction::ProvenTransaction,
 };
 
@@ -96,7 +96,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
     let asset = generate_fungible_asset(
         100,
-        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+        AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap(),
     );
 
     let account0 = accounts.remove(&0).unwrap();

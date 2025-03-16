@@ -290,7 +290,7 @@ mod tests {
         },
         asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
         testing::account_id::{
-            AccountIdBuilder, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            AccountIdBuilder, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
         },
         ONE, ZERO,
     };
@@ -369,7 +369,7 @@ mod tests {
         // Account
 
         let account_id =
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE).unwrap();
 
         let asset_vault = AssetVault::mock();
         assert_eq!(asset_vault.to_bytes().len(), asset_vault.get_size_hint());

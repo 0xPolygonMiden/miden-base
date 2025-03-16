@@ -117,14 +117,14 @@ impl ProvenTransaction {
             let is_new_account = self.account_update.init_state_hash() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
-                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
+                    return Err(ProvenTransactionError::PublicAccountMissingDetails(
                         self.account_id(),
                     ))
                 },
                 AccountUpdateDetails::New(ref account) => {
                     if !is_new_account {
                         return Err(
-                            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
+                            ProvenTransactionError::ExistingPublicAccountRequiresDeltaDetails(
                                 self.account_id(),
                             ),
                         );
@@ -144,14 +144,14 @@ impl ProvenTransaction {
                 },
                 AccountUpdateDetails::Delta(_) => {
                     if is_new_account {
-                        return Err(ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
+                        return Err(ProvenTransactionError::NewPublicAccountRequiresFullDetails(
                             self.account_id(),
                         ));
                     }
                 },
             }
         } else if !self.account_update.is_private() {
-            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id()));
+            return Err(ProvenTransactionError::PrivateAccountWithDetails(self.account_id()));
         }
 
         Ok(self)
@@ -303,7 +303,7 @@ impl ProvenTransactionBuilder {
     ///
     /// # Errors
     ///
-    /// An error will be returned if an on-chain account is used without provided on-chain detail.
+    /// An error will be returned if a public account is used without provided on-chain detail.
     /// Or if the account details, i.e. account ID and final hash, don't match the transaction.
     pub fn build(self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let input_notes =
@@ -555,7 +555,7 @@ mod tests {
             StorageMapDelta,
         },
         block::BlockNumber,
-        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         transaction::{ProvenTransactionBuilder, TxAccountUpdate},
         utils::Serializable,
         Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
@@ -590,7 +590,7 @@ mod tests {
             AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
         let details = AccountUpdateDetails::Delta(delta);
         TxAccountUpdate::new(
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,
@@ -619,7 +619,7 @@ mod tests {
         let details_size = details.get_size_hint();
 
         let err = TxAccountUpdate::new(
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,

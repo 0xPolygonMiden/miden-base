@@ -30,7 +30,7 @@ use miden_objects::{
     },
     testing::{
         account_component::AccountMockComponent,
-        account_id::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2},
+        account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2},
         constants::NON_FUNGIBLE_ASSET_DATA_2,
         prepare_word,
         storage::STORAGE_LEAVES_2,
@@ -371,7 +371,7 @@ fn test_get_output_notes_commitment() {
 fn test_create_note_and_add_asset() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
     let tag = Felt::new(4);
@@ -434,8 +434,8 @@ fn test_create_note_and_add_asset() {
 fn test_create_note_and_add_multiple_assets() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let faucet_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+    let faucet = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
+    let faucet_2 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);

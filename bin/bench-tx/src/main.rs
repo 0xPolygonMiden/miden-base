@@ -20,7 +20,7 @@ use vm_processor::ONE;
 mod utils;
 use utils::{
     get_account_with_basic_authenticated_wallet, get_new_pk_and_authenticator,
-    write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER,
+    write_bench_results_to_json, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_SENDER,
     DEFAULT_AUTH_SCRIPT,
 };
 pub enum Benchmark {
@@ -86,7 +86,7 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
 pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     // Create assets
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
 
     // Create sender and target account
