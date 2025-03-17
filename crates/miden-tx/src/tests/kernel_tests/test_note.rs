@@ -650,7 +650,7 @@ pub fn test_timelock() {
     );
 
     let lock_timestamp = 2_000_000_000;
-    let timelock_note = NoteBuilder::new(account.id(), &mut ChaCha20Rng::from_entropy())
+    let timelock_note = NoteBuilder::new(account.id(), &mut ChaCha20Rng::from_os_rng())
         .note_inputs([Felt::from(lock_timestamp)])
         .unwrap()
         .code(code.clone())
