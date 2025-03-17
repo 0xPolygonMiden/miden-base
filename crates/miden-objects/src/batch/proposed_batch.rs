@@ -429,13 +429,13 @@ mod tests {
 
         let chain_commitment = chain_mmr.peaks().hash_peaks();
         let note_root: Word = rand_array();
-        let kernel_commitment: Word = rand_array();
+        let tx_kernel_commitment: Word = rand_array();
         let reference_block_header = BlockHeader::mock(
             3,
             Some(chain_commitment),
             Some(note_root.into()),
             &[],
-            kernel_commitment.into(),
+            tx_kernel_commitment.into(),
         );
 
         let account_id = AccountId::dummy(

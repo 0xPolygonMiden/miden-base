@@ -871,7 +871,7 @@ impl MockChain {
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
 
-            let kernel_commitment = TransactionKernel::kernel_commitment();
+            let tx_kernel_commitment = TransactionKernel::kernel_commitment();
 
             // TODO: Set `proof_commitment` to the correct value once the kernel is available.
             let proof_commitment = Digest::default();
@@ -885,7 +885,7 @@ impl MockChain {
                 nullifier_root,
                 note_root,
                 tx_commitment,
-                kernel_commitment,
+                tx_kernel_commitment,
                 proof_commitment,
                 block_timestamp,
             );

@@ -86,7 +86,7 @@ const.NULLIFIER_ROOT_PTR=812
 const.TX_COMMITMENT_PTR=816
 
 # The memory address at which the kernel commitment is stored
-const.KERNEL_COMMITMENT_PTR=820
+const.TX_KERNEL_COMMITMENT_PTR=820
 
 # The memory address at which the proof commitment is stored
 const.PROOF_COMMITMENT_PTR=824
@@ -557,12 +557,12 @@ end
 #! Returns the transaction kernel commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [KERNEL_COMMITMENT]
+#! Outputs: [TX_KERNEL_COMMITMENT]
 #!
 #! Where:
-#! - KERNEL_COMMITMENT is an accumulative hash from all kernel hashes.
-export.get_kernel_commitment
-    padw push.KERNEL_COMMITMENT_PTR mem_loadw
+#! - TX_KERNEL_COMMITMENT is an accumulative hash from all kernel hashes.
+export.get_tx_kernel_commitment
+    padw push.TX_KERNEL_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the proof commitment of the transaction reference block.

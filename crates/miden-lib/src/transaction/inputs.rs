@@ -49,7 +49,7 @@ pub(super) fn extend_advice_inputs(
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_COMMITMENT,
-///     KERNEL_COMMITMENT
+///     TX_KERNEL_COMMITMENT
 ///     PROOF_COMMITMENT,
 ///     [block_num, version, timestamp, 0],
 ///     NOTE_ROOT,
