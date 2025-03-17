@@ -16,8 +16,8 @@ pub enum ProvingServiceError {
     PingoraConfigFailed(String),
     #[error("failed to parse int: {0}")]
     ParseError(#[from] std::num::ParseIntError),
-    #[error("port {0} is already in use: {1}")]
-    PortAlreadyInUse(u16, String),
+    #[error("port {1} is already in use: {0}")]
+    PortAlreadyInUse(#[source] std::io::Error, u16),
 }
 
 impl From<ProvingServiceError> for String {

@@ -57,7 +57,7 @@ impl StartProxy {
             check_port_availability(
                 &self.proxy_config.metrics_config.prometheus_host,
                 self.proxy_config.metrics_config.prometheus_port,
-                "Metrics",
+                "Prometheus metrics server",
             )?;
         }
 
@@ -119,7 +119,7 @@ impl StartProxy {
             );
             server.add_service(prometheus_service_http);
             tracing::info!(
-                "Prometheus metrics enabled on {}:{}",
+                "Prometheus metrics enabled, serving metrics on {}:{}",
                 self.proxy_config.metrics_config.prometheus_host,
                 self.proxy_config.metrics_config.prometheus_port
             );

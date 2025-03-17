@@ -167,9 +167,7 @@ pub fn check_port_availability(
         },
         Err(e) => {
             // Port is already in use, log an error and return an error
-            let error_msg = format!("{} port {} is already in use: {}", port_name, port, e);
-            tracing::error!("{}", error_msg);
-            Err(ProvingServiceError::PortAlreadyInUse(port, e.to_string()))
+            Err(ProvingServiceError::PortAlreadyInUse(e, port))
         },
     }
 }
