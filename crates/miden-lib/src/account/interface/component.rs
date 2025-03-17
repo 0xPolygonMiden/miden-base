@@ -244,7 +244,7 @@ impl AccountComponentInterface {
                         // stack => [note_idx]
                     }
 
-                    body.push_str("dropw dropw dropw drop");
+                    body.push_str("dropw dropw dropw drop\n");
                     // stack => []
                 },
                 _ => {
