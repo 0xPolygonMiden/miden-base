@@ -330,7 +330,8 @@ impl TransactionKernel {
     ///   (if set during transaction execution).
     ///
     /// The actual data describing the new account state and output notes is expected to be located
-    /// in the provided advice map under keys `OUTPUT_NOTES_COMMITMENT` and `FINAL_ACCOUNT_COMMITMENT`.
+    /// in the provided advice map under keys `OUTPUT_NOTES_COMMITMENT` and
+    /// `FINAL_ACCOUNT_COMMITMENT`.
     pub fn from_transaction_parts(
         stack: &StackOutputs,
         adv_map: &AdviceMap,
