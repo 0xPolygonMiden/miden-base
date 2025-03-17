@@ -19,13 +19,13 @@ const NULLIFIER_PREFIX_SHIFT: u8 = 48;
 ///
 /// A note's nullifier is computed as:
 ///
-/// > hash(serial_num, script_hash, input_hash, asset_hash).
+/// > hash(serial_num, script_hash, input_commitment, asset_hash).
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique nullifier.
 /// - We cannot derive a note's hash from its nullifier, or a note's nullifier from its hash.
 /// - To compute the nullifier we must know all components of the note: serial_num, script_hash,
-///   input_hash and asset_hash.
+///   input_commitment and asset_hash.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nullifier(Digest);
 

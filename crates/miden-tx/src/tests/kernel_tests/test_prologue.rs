@@ -14,7 +14,7 @@ use miden_lib::{
             BLOCK_NUMBER_IDX, CHAIN_COMMITMENT_PTR, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
             INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
             INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
-            INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
+            INPUT_NOTE_INPUTS_COMMITMENT_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
             INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
             NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
@@ -364,9 +364,9 @@ fn input_notes_memory_assertions(
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, INPUT_NOTE_INPUTS_HASH_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_INPUTS_COMMITMENT_OFFSET),
             note.inputs().commitment().as_elements(),
-            "note input hash should be stored at the correct offset"
+            "note input commitment should be stored at the correct offset"
         );
 
         assert_eq!(

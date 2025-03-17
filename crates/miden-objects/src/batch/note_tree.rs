@@ -5,7 +5,7 @@ use crate::{
         hash::rpo::RpoDigest,
         merkle::{LeafIndex, MerkleError, SimpleSmt},
     },
-    note::{compute_note_hash, NoteId, NoteMetadata},
+    note::{compute_note_commitment, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
 };
@@ -28,7 +28,7 @@ impl BatchNoteTree {
     ) -> Result<Self, MerkleError> {
         let leaves = entries
             .into_iter()
-            .map(|(note_id, metadata)| compute_note_hash(note_id, metadata).into());
+            .map(|(note_id, metadata)| compute_note_commitment(note_id, metadata).into());
 
         SimpleSmt::with_contiguous_leaves(leaves).map(Self)
     }

@@ -597,7 +597,7 @@ fn test_build_recipient_hash() {
     let tag = 8888;
     let single_input = 2;
     let inputs = NoteInputs::new(vec![Felt::new(single_input)]).unwrap();
-    let input_hash = inputs.commitment();
+    let input_commitment = inputs.commitment();
 
     let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
@@ -617,12 +617,12 @@ fn test_build_recipient_hash() {
             padw
 
             # input
-            push.{input_hash}
+            push.{input_commitment}
             # SCRIPT_HASH
             push.{script_hash}
             # SERIAL_NUM
             push.{output_serial_no}
-            # => [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH, pad(4)]
+            # => [SERIAL_NUM, SCRIPT_HASH, INPUT_COMMITMENT, pad(4)]
 
             call.build_recipient_hash
             # => [RECIPIENT, pad(12)]
@@ -640,7 +640,6 @@ fn test_build_recipient_hash() {
             dropw dropw dropw dropw dropw
         end
         ",
-        input_hash = input_hash,
         script_hash = input_note_1.script().clone().hash(),
         output_serial_no = word_to_masm_push_string(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,

@@ -62,7 +62,7 @@ pub fn prove_send_swap_note() {
 
     let sender_account = mock_chain.apply_executed_transaction(&create_swap_note_tx);
 
-    assert!(create_swap_note_tx.output_notes().iter().any(|n| n.hash() == note.hash()));
+    assert!(create_swap_note_tx.output_notes().iter().any(|n| n.commitment() == note.hash()));
     assert_eq!(sender_account.vault().assets().count(), 0); // Offered asset should be gone
     let swap_output_note = create_swap_note_tx.output_notes().iter().next().unwrap();
     assert_eq!(swap_output_note.assets().unwrap().iter().next().unwrap(), &offered_asset);

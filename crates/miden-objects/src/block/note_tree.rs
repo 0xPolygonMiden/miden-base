@@ -6,7 +6,7 @@ use crate::{
         hash::rpo::RpoDigest,
         merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
     },
-    note::{compute_note_hash, NoteId, NoteMetadata},
+    note::{compute_note_commitment, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
     MAX_OUTPUT_NOTES_PER_BLOCK,
@@ -37,7 +37,10 @@ impl BlockNoteTree {
         entries: impl IntoIterator<Item = (BlockNoteIndex, NoteId, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
         let leaves = entries.into_iter().map(|(index, note_id, metadata)| {
-            (index.leaf_index_value() as u64, compute_note_hash(note_id, &metadata).into())
+            (
+                index.leaf_index_value() as u64,
+                compute_note_commitment(note_id, &metadata).into(),
+            )
         });
 
         SimpleSmt::with_leaves(leaves).map(Self)

@@ -624,7 +624,7 @@ end
 #!   Advice stack: [
 #!      SERIAL_NUMBER,
 #!      SCRIPT_ROOT,
-#!      INPUTS_HASH,
+#!      INPUTS_COMMITMENT,
 #!      ASSETS_HASH,
 #!   ]
 #! Outputs:
@@ -635,9 +635,9 @@ end
 #! - note_ptr is the memory location for the input note.
 #! - SERIAL_NUMBER is the note's serial.
 #! - SCRIPT_ROOT is the note's script root.
-#! - INPUTS_HASH is the sequential hash of the padded note's inputs.
+#! - INPUTS_COMMITMENT is the sequential hash of the padded note's inputs.
 #! - ASSETS_HASH is the sequential hash of the padded note's assets.
-#! - NULLIFIER is the result of `hash(SERIAL_NUMBER || SCRIPT_ROOT || INPUTS_HASH || ASSETS_HASH)`.
+#! - NULLIFIER is the result of `hash(SERIAL_NUMBER || SCRIPT_ROOT || INPUTS_COMMITMENT || ASSETS_HASH)`.
 proc.process_input_note_details
     exec.memory::get_input_note_core_ptr
     # => [note_data_ptr]
@@ -832,8 +832,8 @@ proc.compute_input_note_id
     dup.4 exec.memory::get_input_note_script_root hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
-    # compute RECIPIENT: hash(MERGE_SCRIPT || INPUT_HASH)
-    dup.4 exec.memory::get_input_note_inputs_hash hmerge
+    # compute RECIPIENT: hash(MERGE_SCRIPT || INPUT_COMMITMENT)
+    dup.4 exec.memory::get_input_note_inputs_commitment hmerge
     # => [RECIPIENT, note_ptr]
 
     # compute NOTE_ID: hash(RECIPIENT || ASSET_HASH)
@@ -853,7 +853,7 @@ end
 #!   Advice stack: [
 #!      SERIAL_NUMBER,
 #!      SCRIPT_ROOT,
-#!      INPUTS_HASH,
+#!      INPUTS_COMMITMENT,
 #!      ASSETS_HASH,
 #!      ARGS,
 #!      NOTE_METADATA,
@@ -876,7 +876,7 @@ end
 #!   notes.
 #! - SERIAL_NUMBER is the note's serial.
 #! - SCRIPT_ROOT is the note's script root.
-#! - INPUTS_HASH is the sequential hash of the padded note's inputs.
+#! - INPUTS_COMMITMENT is the sequential hash of the padded note's inputs.
 #! - ASSETS_HASH is the sequential hash of the padded note's assets.
 #! - NOTE_METADATA is the note's metadata.
 #! - ARGS is the user arguments passed to the note.

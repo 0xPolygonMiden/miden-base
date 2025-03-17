@@ -87,14 +87,14 @@ end
 #! Returns the commitment to the note's inputs.
 #!
 #! Inputs:  []
-#! Outputs: [NOTE_INPUTS_HASH]
+#! Outputs: [NOTE_INPUTS_COMMITMENT]
 #!
 #! Where:
-#! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
+#! - NOTE_INPUTS_COMMITMENT is the note inputs commitment of the note currently being processed.
 #!
 #! Panics if:
 #! - the note is not being processed.
-export.get_note_inputs_hash
+export.get_note_inputs_commitment
     exec.memory::get_current_input_note_ptr
     # => [ptr]
 
@@ -104,8 +104,8 @@ export.get_note_inputs_hash
     dup neq.0 assert.err=ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT
     # => [ptr]
 
-    exec.memory::get_input_note_inputs_hash
-    # => [NOTE_INPUTS_HASH]
+    exec.memory::get_input_note_inputs_commitment
+    # => [NOTE_INPUTS_COMMITMENT]
 end
 
 #! Move the current input note pointer to the next note and returns the pointer value.
@@ -232,7 +232,7 @@ end
 #!
 #! The note ID is computed as follows:
 #! - we define, recipient =
-#!       hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+#!       hash(hash(hash(serial_num, [0; 4]), script_hash), input_commitment)
 #! - we then compute the output note ID as:
 #!       hash(recipient, assets_hash)
 #!

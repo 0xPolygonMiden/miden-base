@@ -734,22 +734,22 @@ export.note_get_serial_number
     # => [SERIAL_NUMBER, pad(12)]
 end
 
-#! Returns the current note's inputs hash.
+#! Returns the current note's inputs commitment.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [NOTE_INPUTS_HASH, pad(12)]
+#! Outputs: [NOTE_INPUTS_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - NOTE_INPUTS_HASH is the current note's inputs hash.
+#! - NOTE_INPUTS_COMMITMENT is the current note's inputs commitment.
 #!
 #! Invocation: dynexec
-export.note_get_inputs_hash
-    exec.note::get_note_inputs_hash
-    # => [NOTE_INPUTS_HASH, pad(16)]
+export.note_get_inputs_commitment
+    exec.note::get_note_inputs_commitment
+    # => [NOTE_INPUTS_COMMITMENT, pad(16)]
 
     # truncate the stack
     swapw dropw
-    # => [NOTE_INPUTS_HASH, pad(12)]
+    # => [NOTE_INPUTS_COMMITMENT, pad(12)]
 end
 
 #! Returns the sender of the note currently being processed.
