@@ -35,9 +35,7 @@ use miden_objects::{
     block::{BlockHeader, BlockNumber},
     testing::{
         account_component::AccountMockComponent,
-        account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        },
+        account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET},
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
     },
     transaction::{TransactionArgs, TransactionScript},
@@ -564,7 +562,7 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     let account = Account::mock_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         ZERO,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
         TransactionKernel::assembler().with_debug_mode(true),
@@ -588,7 +586,7 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     let account = Account::mock_non_fungible_faucet(
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET,
         ZERO,
         false,
         TransactionKernel::assembler().with_debug_mode(true),

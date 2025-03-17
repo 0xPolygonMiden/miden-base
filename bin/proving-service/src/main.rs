@@ -33,7 +33,7 @@ mod test {
         note::NoteType,
         testing::{
             account_code::DEFAULT_AUTH_SCRIPT,
-            account_id::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
+            account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_SENDER},
         },
         transaction::{ProvenTransaction, TransactionScript, TransactionWitness},
     };
@@ -81,7 +81,7 @@ mod test {
         let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
 
         let fungible_asset_1: Asset =
-            FungibleAsset::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap(), 100)
+            FungibleAsset::new(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET.try_into().unwrap(), 100)
                 .unwrap()
                 .into();
         let note_1 = mock_chain

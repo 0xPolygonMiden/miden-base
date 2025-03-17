@@ -125,7 +125,7 @@ mod log {
             storage_mode: AccountStorageMode,
         ) -> Self {
             log::info!(
-                "Generating new account seed [digest={}, seed={} type={:?} onchain={:?}]",
+                "Generating new account seed [digest={}, seed={} type={:?} storage_mode={:?}]",
                 digest_hex(digest),
                 word_hex(seed),
                 account_type,

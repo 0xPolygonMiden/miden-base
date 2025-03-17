@@ -15,9 +15,9 @@ use miden_objects::{
     testing::{
         account_component::AccountMockComponent,
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
         storage::STORAGE_LEAVES_2,
     },
@@ -69,10 +69,10 @@ pub fn test_account_type() {
     ];
 
     let test_cases = [
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+        ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
     ];
 
     for (procedure, expected_type) in procedures {
@@ -119,28 +119,28 @@ pub fn test_account_type() {
 #[test]
 pub fn test_account_validate_id() -> anyhow::Result<()> {
     let test_cases = [
-        (ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, None),
-        (ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, None),
-        (ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, None),
-        (ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, None),
+        (ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE, None),
+        (ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, None),
+        (ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, None),
+        (ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, None),
         (
             // Set version to a non-zero value (10).
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN | (0x0a << 64),
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0x0a << 64),
             Some(ERR_ACCOUNT_ID_UNKNOWN_VERSION),
         ),
         (
             // Set epoch to u16::MAX.
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN | (0xffff << 48),
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET | (0xffff << 48),
             Some(ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX),
         ),
         (
             // Set storage mode to an unknown value (0b01).
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN | (0b01 << (64 + 6)),
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0b01 << (64 + 6)),
             Some(ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE),
         ),
         (
             // Set lower 8 bits to a non-zero value (1).
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN | 1,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET | 1,
             Some(ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO),
         ),
     ];
@@ -193,10 +193,10 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
 #[test]
 fn test_is_faucet_procedure() {
     let test_cases = [
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+        ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
     ];
 
     for account_id in test_cases.iter() {

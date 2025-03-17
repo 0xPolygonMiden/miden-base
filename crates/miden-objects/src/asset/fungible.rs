@@ -247,20 +247,20 @@ mod tests {
     use crate::{
         account::AccountId,
         testing::account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3,
         },
     };
 
     #[test]
     fn test_fungible_asset_serde() {
         for fungible_account_id in [
-            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+            ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3,
         ] {
             let account_id = AccountId::try_from(fungible_account_id).unwrap();
             let fungible_asset = FungibleAsset::new(account_id, 10).unwrap();
@@ -270,14 +270,14 @@ mod tests {
             );
         }
 
-        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+        let account_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3).unwrap();
         let asset = FungibleAsset::new(account_id, 50).unwrap();
         let mut asset_bytes = asset.to_bytes();
         assert_eq!(asset_bytes.len(), asset.get_size_hint());
         assert_eq!(asset.get_size_hint(), FungibleAsset::SERIALIZED_SIZE);
 
         let non_fungible_faucet_id =
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+            AccountId::try_from(ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET).unwrap();
 
         // Set invalid Faucet ID.
         asset_bytes[0..15].copy_from_slice(&non_fungible_faucet_id.to_bytes());

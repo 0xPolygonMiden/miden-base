@@ -8,9 +8,9 @@ use miden_objects::{
     crypto::rand::RpoRandomCoin,
     note::NoteType,
     testing::account_id::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+        ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2, ACCOUNT_ID_SENDER,
     },
     transaction::{OutputNote, TransactionScript},
     utils::word_to_masm_push_string,
@@ -29,7 +29,7 @@ fn p2id_script_multiple_assets() {
     // Create assets
     let fungible_asset_1: Asset = FungibleAsset::mock(123);
     let fungible_asset_2: Asset =
-        FungibleAsset::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap(), 456)
+        FungibleAsset::new(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2.try_into().unwrap(), 456)
             .unwrap()
             .into();
 
@@ -189,7 +189,7 @@ fn test_create_consume_multiple_notes() {
     let mut account =
         mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
 
-    let input_note_faucet_id = ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN.try_into().unwrap();
+    let input_note_faucet_id = ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET.try_into().unwrap();
     let input_note_asset_1: Asset = FungibleAsset::new(input_note_faucet_id, 11).unwrap().into();
 
     let input_note_asset_2: Asset = FungibleAsset::new(input_note_faucet_id, 100).unwrap().into();
@@ -206,7 +206,7 @@ fn test_create_consume_multiple_notes() {
 
     let input_note_2 = mock_chain
         .add_p2id_note(
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
             account.id(),
             &[input_note_asset_2],
             NoteType::Private,
@@ -218,7 +218,7 @@ fn test_create_consume_multiple_notes() {
 
     let output_note_1 = create_p2id_note(
         account.id(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
         vec![FungibleAsset::mock(10)],
         NoteType::Public,
         Felt::new(0),
@@ -228,7 +228,7 @@ fn test_create_consume_multiple_notes() {
 
     let output_note_2 = create_p2id_note(
         account.id(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
         vec![FungibleAsset::mock(5)],
         NoteType::Public,
         Felt::new(0),

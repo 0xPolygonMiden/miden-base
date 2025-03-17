@@ -7,7 +7,7 @@ use miden_lib::{
 use miden_objects::{
     account::AccountId,
     note::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
-    testing::{account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, note::NoteBuilder},
+    testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
     transaction::TransactionArgs,
     Hasher, WORD_SIZE,
 };
@@ -561,8 +561,7 @@ fn test_build_note_metadata() {
         .with_mock_notes_preserved()
         .build();
     let sender = tx_context.account().id();
-    let receiver =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+    let receiver = AccountId::try_from(ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE).unwrap();
 
     let test_metadata1 = NoteMetadata::new(
         sender,
