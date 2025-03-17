@@ -53,10 +53,13 @@ An `Account` ID can be encoded in different formats:
      - Human-readable prefix: `mm` (e.g., indicates **M**iden **M**ainnet)
      - Separator: `1`
      - Data part with integrated checksum
+
+> **Info**
+> - We strongly recommend encoding account ID's using Bech32 for all user-facing applications
  
 2. **Hexadecimal** (debugging):
    - Example: `0x140fa04a1e61fc100000126ef8f1d6`
-   - Standard encoding for blockchain addresses
+   - Frequenty used encoding for blockchain addresses
      
 ### Code
 
