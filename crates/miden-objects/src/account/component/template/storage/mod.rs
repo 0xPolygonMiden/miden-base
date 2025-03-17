@@ -462,7 +462,7 @@ mod tests {
         slot = 1
         value = [
             { type = "felt", name = "max_supply", description = "Maximum supply of the token in base units" }, # placeholder
-            { type = "tokensymbol", value = "TST" }, # hardcoded non-felt type
+            { type = "token_symbol", value = "TST" }, # hardcoded non-felt type
             { type = "u8", name = "decimals", description = "Number of decimal places" }, # placeholder
             { value = "0" }, 
         ]
