@@ -1,10 +1,11 @@
 use alloc::{
-    collections::{btree_map::Entry, BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, btree_map::Entry},
     sync::Arc,
     vec::Vec,
 };
 
 use crate::{
+    MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BATCH,
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker},
     block::{BlockHeader, BlockNumber},
@@ -12,7 +13,6 @@ use crate::{
     note::{NoteId, NoteInclusionProof},
     transaction::{ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 
 /// A proposed batch of transactions with all necessary data to validate it.
@@ -411,9 +411,9 @@ mod tests {
 
     use super::*;
     use crate::{
+        Digest, Word,
         account::{AccountIdVersion, AccountStorageMode, AccountType},
         transaction::ProvenTransactionBuilder,
-        Digest, Word,
     };
 
     #[test]

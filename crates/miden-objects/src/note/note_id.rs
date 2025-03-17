@@ -3,8 +3,8 @@ use core::fmt::Display;
 
 use super::{Digest, Felt, Hasher, NoteDetails, Word};
 use crate::utils::{
-    serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     HexParseError,
+    serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // NOTE ID

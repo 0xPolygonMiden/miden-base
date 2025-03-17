@@ -132,7 +132,7 @@ impl AccountStorage {
             slots_len: self.slots.len() as u8,
             index,
         })? {
-            StorageSlot::Map(ref map) => Ok(map.get_value(&Digest::from(key))),
+            StorageSlot::Map(map) => Ok(map.get_value(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
         }
     }
@@ -313,7 +313,7 @@ impl Deserializable for AccountStorage {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_slots_commitment, AccountStorage, Deserializable, Serializable, StorageMap, Word,
+        AccountStorage, Deserializable, Serializable, StorageMap, Word, build_slots_commitment,
     };
     use crate::account::StorageSlot;
 

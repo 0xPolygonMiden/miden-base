@@ -1,6 +1,6 @@
-use miden_lib::{account::wallets::create_basic_wallet, AuthScheme};
-use miden_objects::{crypto::dsa::rpo_falcon512::SecretKey, Word};
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use miden_lib::{AuthScheme, account::wallets::create_basic_wallet};
+use miden_objects::{Word, crypto::dsa::rpo_falcon512::SecretKey};
+use rand_chacha::{ChaCha20Rng, rand_core::SeedableRng};
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]

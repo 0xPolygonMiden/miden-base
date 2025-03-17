@@ -1,12 +1,12 @@
 use miden_lib::{note::create_swap_note, transaction::TransactionKernel};
 use miden_objects::{
+    Felt,
     account::AccountId,
     asset::{Asset, NonFungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::{Note, NoteDetails, NoteType},
     transaction::{OutputNote, TransactionScript},
     utils::word_to_masm_push_string,
-    Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
 

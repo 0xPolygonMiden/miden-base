@@ -1,7 +1,7 @@
 // NOTE EXECUTION HINT
 // ================================================================================================
 
-use crate::{block::BlockNumber, Felt, NoteError};
+use crate::{Felt, NoteError, block::BlockNumber};
 
 /// Specifies the conditions under which a note is ready to be consumed.
 /// These conditions are meant to be encoded in the note script as well.
@@ -37,8 +37,8 @@ pub enum NoteExecutionHint {
     ///   round of 1024 blocks.
     /// - Then we define the length of a slot within the round also using powers of 2. For example,
     ///   slot_len = 7 is a slot of 128 blocks.
-    /// - Lastly, the offset specifies the index of the slot within the round - i.e., 0 is the
-    ///   first slot, 1 is the second slot etc.
+    /// - Lastly, the offset specifies the index of the slot within the round - i.e., 0 is the first
+    ///   slot, 1 is the second slot etc.
     ///
     /// For example: { round_len: 10, slot_len: 7, slot_offset: 1 } means that the note can
     /// be executed in any second 128 block slot of a 1024 block round. These would be blocks
@@ -317,7 +317,7 @@ mod tests {
         assert!(on_block_slot.can_be_consumed(1279.into()).unwrap()); // Block 1279 is in the slot 1152..1279
         assert!(on_block_slot.can_be_consumed(2176.into()).unwrap()); // Block 2176 is in the slot 2176..2303
         assert!(!on_block_slot.can_be_consumed(2175.into()).unwrap()); // Block 1279 is in the slot
-                                                                       // 2176..2303
+        // 2176..2303
     }
 
     #[test]

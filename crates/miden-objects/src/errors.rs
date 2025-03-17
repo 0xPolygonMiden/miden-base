@@ -1,20 +1,22 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::error::Error;
 
-use assembly::{diagnostics::reporting::PrintDiagnostic, Report};
+use assembly::{Report, diagnostics::reporting::PrintDiagnostic};
 use miden_crypto::utils::HexParseError;
 use thiserror::Error;
-use vm_core::{mast::MastForestError, Felt, FieldElement};
+use vm_core::{Felt, FieldElement, mast::MastForestError};
 use vm_processor::DeserializationError;
 
 use super::{
+    Digest, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH, Word,
     account::AccountId,
     asset::{FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     note::NoteId,
-    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 use crate::{
+    ACCOUNT_UPDATE_MAX_SIZE, MAX_ACCOUNTS_PER_BATCH, MAX_INPUT_NOTES_PER_BATCH,
+    MAX_INPUT_NOTES_PER_TX, MAX_INPUTS_PER_NOTE, MAX_OUTPUT_NOTES_PER_TX,
     account::{
         AccountCode, AccountIdPrefix, AccountStorage, AccountType, AddressType, StorageValueName,
         StorageValueNameError, TemplateTypeError,
@@ -23,8 +25,6 @@ use crate::{
     block::BlockNumber,
     note::{NoteAssets, NoteExecutionHint, NoteTag, NoteType, Nullifier},
     transaction::TransactionId,
-    ACCOUNT_UPDATE_MAX_SIZE, MAX_ACCOUNTS_PER_BATCH, MAX_INPUTS_PER_NOTE,
-    MAX_INPUT_NOTES_PER_BATCH, MAX_INPUT_NOTES_PER_TX, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // ACCOUNT COMPONENT TEMPLATE ERROR
@@ -103,7 +103,9 @@ pub enum AccountError {
     HeaderDataIncorrectLength { actual: usize, expected: usize },
     #[error("new account nonce {new} is less than the current nonce {current}")]
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
-    #[error("digest of the seed has {actual} trailing zeroes but must have at least {expected} trailing zeroes")]
+    #[error(
+        "digest of the seed has {actual} trailing zeroes but must have at least {expected} trailing zeroes"
+    )]
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     #[error("storage slot at index {0} is not of type map")]
     StorageSlotNotMap(u8),
@@ -121,7 +123,9 @@ pub enum AccountError {
         "procedure which does not access storage (storage size = 0) has non-zero storage offset"
     )]
     PureProcedureWithStorageOffset,
-    #[error("account component at index {component_index} is incompatible with account of type {account_type}")]
+    #[error(
+        "account component at index {component_index} is incompatible with account of type {account_type}"
+    )]
     UnsupportedComponentForAccountType {
         account_type: AccountType,
         component_index: usize,
@@ -197,13 +201,17 @@ pub enum AccountDeltaError {
     StorageSlotUsedAsDifferentTypes(u8),
     #[error("non fungible vault can neither be added nor removed twice")]
     DuplicateNonFungibleVaultUpdate(NonFungibleAsset),
-    #[error("fungible asset issued by faucet {faucet_id} has delta {delta} which overflows when added to current value {current}")]
+    #[error(
+        "fungible asset issued by faucet {faucet_id} has delta {delta} which overflows when added to current value {current}"
+    )]
     FungibleAssetDeltaOverflow {
         faucet_id: AccountId,
         current: i64,
         delta: i64,
     },
-    #[error("account update of type `{left_update_type}` cannot be merged with account update of type `{right_update_type}`")]
+    #[error(
+        "account update of type `{left_update_type}` cannot be merged with account update of type `{right_update_type}`"
+    )]
     IncompatibleAccountUpdates {
         left_update_type: &'static str,
         right_update_type: &'static str,
@@ -224,13 +232,17 @@ pub enum AccountDeltaError {
 
 #[derive(Debug, Error)]
 pub enum BatchAccountUpdateError {
-    #[error("account update for account {expected_account_id} cannot be merged with update from transaction {transaction} which was executed against account {actual_account_id}")]
+    #[error(
+        "account update for account {expected_account_id} cannot be merged with update from transaction {transaction} which was executed against account {actual_account_id}"
+    )]
     AccountUpdateIdMismatch {
         transaction: TransactionId,
         expected_account_id: AccountId,
         actual_account_id: AccountId,
     },
-    #[error("final state commitment in account update from transaction {0} does not match initial state of current update")]
+    #[error(
+        "final state commitment in account update from transaction {0} does not match initial state of current update"
+    )]
     AccountUpdateInitialStateMismatch(TransactionId),
     #[error("failed to merge account delta from transaction {0}")]
     TransactionUpdateMergeError(TransactionId, #[source] AccountDeltaError),
@@ -252,7 +264,9 @@ pub enum AssetError {
       hex = vm_core::utils::to_hex(Felt::elements_as_bytes(.0))
     )]
     FungibleAssetExpectedZero(Word),
-    #[error("cannot add fungible asset with issuer {other_issuer} to fungible asset with issuer {original_issuer}")]
+    #[error(
+        "cannot add fungible asset with issuer {other_issuer} to fungible asset with issuer {original_issuer}"
+    )]
     FungibleAssetInconsistentFaucetIds {
         original_issuer: AccountId,
         other_issuer: AccountId,
@@ -405,14 +419,18 @@ pub enum TransactionInputError {
     AnchorBlockHeaderNotProvidedForNewAccount(u16),
     #[error("transaction input note with nullifier {0} is a duplicate")]
     DuplicateInputNote(Nullifier),
-    #[error("ID {expected} of the new account does not match the ID {actual} computed from the provided seed")]
+    #[error(
+        "ID {expected} of the new account does not match the ID {actual} computed from the provided seed"
+    )]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
     #[error("chain mmr has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
     },
-    #[error("chain mmr has commitment {actual} which does not match the block header's chain commitment {expected}")]
+    #[error(
+        "chain mmr has commitment {actual} which does not match the block header's chain commitment {expected}"
+    )]
     InconsistentChainCommitment { expected: Digest, actual: Digest },
     #[error("block in which input note with id {0} was created is not in chain mmr")]
     InputNoteBlockNotInChainMmr(NoteId),
@@ -437,11 +455,15 @@ pub enum TransactionOutputError {
     FinalAccountHashMissingInAdviceMap,
     #[error("failed to parse final account header")]
     FinalAccountHeaderParseFailure(#[source] AccountError),
-    #[error("output notes commitment {expected} from kernel does not match computed commitment {actual}")]
+    #[error(
+        "output notes commitment {expected} from kernel does not match computed commitment {actual}"
+    )]
     OutputNotesCommitmentInconsistent { expected: Digest, actual: Digest },
     #[error("transaction kernel output stack is invalid: {0}")]
     OutputStackInvalid(String),
-    #[error("total number of output notes is {0} which exceeds the maximum of {MAX_OUTPUT_NOTES_PER_TX}")]
+    #[error(
+        "total number of output notes is {0} which exceeds the maximum of {MAX_OUTPUT_NOTES_PER_TX}"
+    )]
     TooManyOutputNotes(usize),
 }
 
@@ -450,12 +472,16 @@ pub enum TransactionOutputError {
 
 #[derive(Debug, Error)]
 pub enum ProvenTransactionError {
-    #[error("proven transaction's final account hash {tx_final_hash} and account details hash {details_hash} must match")]
+    #[error(
+        "proven transaction's final account hash {tx_final_hash} and account details hash {details_hash} must match"
+    )]
     AccountFinalHashMismatch {
         tx_final_hash: Digest,
         details_hash: Digest,
     },
-    #[error("proven transaction's final account ID {tx_account_id} and account details id {details_account_id} must match")]
+    #[error(
+        "proven transaction's final account ID {tx_account_id} and account details id {details_account_id} must match"
+    )]
     AccountIdMismatch {
         tx_account_id: AccountId,
         details_account_id: AccountId,
@@ -475,7 +501,7 @@ pub enum ProvenTransactionError {
     #[error("failed to construct output notes for proven transaction")]
     OutputNotesError(TransactionOutputError),
     #[error(
-      "account update of size {update_size} for account {account_id} exceeds maximum update size of {ACCOUNT_UPDATE_MAX_SIZE}",
+        "account update of size {update_size} for account {account_id} exceeds maximum update size of {ACCOUNT_UPDATE_MAX_SIZE}"
     )]
     AccountUpdateSizeLimitExceeded {
         account_id: AccountId,
@@ -499,11 +525,13 @@ pub enum ProposedBatchError {
     TooManyOutputNotes(usize),
 
     #[error(
-      "transaction batch has {0} account updates but at most {MAX_ACCOUNTS_PER_BATCH} are allowed"
+        "transaction batch has {0} account updates but at most {MAX_ACCOUNTS_PER_BATCH} are allowed"
     )]
     TooManyAccountUpdates(usize),
 
-    #[error("transaction {transaction_id} expires at block number {transaction_expiration_num} which is not greater than the number of the batch's reference block {reference_block_num}")]
+    #[error(
+        "transaction {transaction_id} expires at block number {transaction_expiration_num} which is not greater than the number of the batch's reference block {reference_block_num}"
+    )]
     ExpiredTransaction {
         transaction_id: TransactionId,
         transaction_expiration_num: BlockNumber,
@@ -516,14 +544,18 @@ pub enum ProposedBatchError {
     #[error("transaction {transaction_id} appears twice in the proposed batch input")]
     DuplicateTransaction { transaction_id: TransactionId },
 
-    #[error("transaction {second_transaction_id} consumes the note with nullifier {note_nullifier} that is also consumed by another transaction {first_transaction_id} in the batch")]
+    #[error(
+        "transaction {second_transaction_id} consumes the note with nullifier {note_nullifier} that is also consumed by another transaction {first_transaction_id} in the batch"
+    )]
     DuplicateInputNote {
         note_nullifier: Nullifier,
         first_transaction_id: TransactionId,
         second_transaction_id: TransactionId,
     },
 
-    #[error("transaction {second_transaction_id} creates the note with id {note_id} that is also created by another transaction {first_transaction_id} in the batch")]
+    #[error(
+        "transaction {second_transaction_id} creates the note with id {note_id} that is also created by another transaction {first_transaction_id} in the batch"
+    )]
     DuplicateOutputNote {
         note_id: NoteId,
         first_transaction_id: TransactionId,
@@ -543,7 +575,9 @@ pub enum ProposedBatchError {
         source: BatchAccountUpdateError,
     },
 
-    #[error("unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
+    #[error(
+        "unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr"
+    )]
     UnauthenticatedInputNoteBlockNotInChainMmr {
         block_number: BlockNumber,
         note_id: NoteId,
@@ -567,7 +601,9 @@ pub enum ProposedBatchError {
     #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
     InconsistentChainRoot { expected: Digest, actual: Digest },
 
-    #[error("block {block_reference} referenced by transaction {transaction_id} is not in the chain mmr")]
+    #[error(
+        "block {block_reference} referenced by transaction {transaction_id} is not in the chain mmr"
+    )]
     MissingTransactionBlockReference {
         block_reference: Digest,
         transaction_id: TransactionId,
@@ -585,7 +621,9 @@ pub enum ProposedBlockError {
     #[error("block must contain at most {MAX_BATCHES_PER_BLOCK} transaction batches")]
     TooManyBatches,
 
-    #[error("batch {batch_id} expired at block {batch_expiration_block_num} but the current block number is {current_block_num}")]
+    #[error(
+        "batch {batch_id} expired at block {batch_expiration_block_num} but the current block number is {current_block_num}"
+    )]
     ExpiredBatch {
         batch_id: BatchId,
         batch_expiration_block_num: BlockNumber,
@@ -595,27 +633,35 @@ pub enum ProposedBlockError {
     #[error("batch {batch_id} appears twice in the block inputs")]
     DuplicateBatch { batch_id: BatchId },
 
-    #[error("batch {second_batch_id} consumes the note with nullifier {note_nullifier} that is also consumed by another batch {first_batch_id} in the block")]
+    #[error(
+        "batch {second_batch_id} consumes the note with nullifier {note_nullifier} that is also consumed by another batch {first_batch_id} in the block"
+    )]
     DuplicateInputNote {
         note_nullifier: Nullifier,
         first_batch_id: BatchId,
         second_batch_id: BatchId,
     },
 
-    #[error("batch {second_batch_id} creates the note with ID {note_id} that is also created by another batch {first_batch_id} in the block")]
+    #[error(
+        "batch {second_batch_id} creates the note with ID {note_id} that is also created by another batch {first_batch_id} in the block"
+    )]
     DuplicateOutputNote {
         note_id: NoteId,
         first_batch_id: BatchId,
         second_batch_id: BatchId,
     },
 
-    #[error("timestamp {provided_timestamp} does not increase monotonically compared to timestamp {previous_timestamp} from the previous block header")]
+    #[error(
+        "timestamp {provided_timestamp} does not increase monotonically compared to timestamp {previous_timestamp} from the previous block header"
+    )]
     TimestampDoesNotIncreaseMonotonically {
         provided_timestamp: u32,
         previous_timestamp: u32,
     },
 
-    #[error("account {account_id} is updated from the same initial state commitment {initial_state_commitment} by multiple conflicting batches with IDs {first_batch_id} and {second_batch_id}")]
+    #[error(
+        "account {account_id} is updated from the same initial state commitment {initial_state_commitment} by multiple conflicting batches with IDs {first_batch_id} and {second_batch_id}"
+    )]
     ConflictingBatchesUpdateSameAccount {
         account_id: AccountId,
         initial_state_commitment: Digest,
@@ -623,20 +669,26 @@ pub enum ProposedBlockError {
         second_batch_id: BatchId,
     },
 
-    #[error("chain mmr has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block")]
+    #[error(
+        "chain mmr has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block"
+    )]
     ChainLengthNotEqualToPreviousBlockNumber {
         chain_length: BlockNumber,
         prev_block_num: BlockNumber,
     },
 
-    #[error("chain mmr has commitment {chain_commitment} which does not match the chain commitment {prev_block_chain_commitment} of the previous block {prev_block_num}")]
+    #[error(
+        "chain mmr has commitment {chain_commitment} which does not match the chain commitment {prev_block_chain_commitment} of the previous block {prev_block_num}"
+    )]
     ChainRootNotEqualToPreviousBlockChainCommitment {
         chain_commitment: Digest,
         prev_block_chain_commitment: Digest,
         prev_block_num: BlockNumber,
     },
 
-    #[error("chain mmr is missing block {reference_block_num} referenced by batch {batch_id} in the block")]
+    #[error(
+        "chain mmr is missing block {reference_block_num} referenced by batch {batch_id} in the block"
+    )]
     BatchReferenceBlockMissingFromChain {
         reference_block_num: BlockNumber,
         batch_id: BatchId,
@@ -649,7 +701,9 @@ pub enum ProposedBlockError {
         output_hash: Digest,
     },
 
-    #[error("failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr")]
+    #[error(
+        "failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr"
+    )]
     UnauthenticatedInputNoteBlockNotInChainMmr {
         block_number: BlockNumber,
         note_id: NoteId,
@@ -664,13 +718,17 @@ pub enum ProposedBlockError {
         source: MerkleError,
     },
 
-    #[error("unauthenticated note with nullifier {nullifier} was not created in the same block and no inclusion proof to authenticate it was provided")]
+    #[error(
+        "unauthenticated note with nullifier {nullifier} was not created in the same block and no inclusion proof to authenticate it was provided"
+    )]
     UnauthenticatedNoteConsumed { nullifier: Nullifier },
 
     #[error("block inputs do not contain a proof of inclusion for account {0}")]
     MissingAccountWitness(AccountId),
 
-    #[error("account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}")]
+    #[error(
+        "account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}"
+    )]
     InconsistentAccountStateTransition {
         account_id: AccountId,
         state_commitment: Digest,

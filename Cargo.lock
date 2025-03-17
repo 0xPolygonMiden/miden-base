@@ -1778,7 +1778,7 @@ dependencies = [
 [[package]]
 name = "miden-air"
 version = "0.13.0"
-source = "git+https://github.com/lambdaclass/miden-vm?branch=santiagopittella-update-rand-dep#cc0faadb38e0297bc1ff5fc17f7c6d2b9c88e3c7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=next#55440896e92e8162dde6435d1647dd425026254d"
 dependencies = [
  "miden-core",
  "thiserror 2.0.11",
@@ -1789,7 +1789,7 @@ dependencies = [
 [[package]]
 name = "miden-assembly"
 version = "0.13.0"
-source = "git+https://github.com/lambdaclass/miden-vm?branch=santiagopittella-update-rand-dep#cc0faadb38e0297bc1ff5fc17f7c6d2b9c88e3c7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=next#55440896e92e8162dde6435d1647dd425026254d"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1834,7 +1834,7 @@ dependencies = [
 [[package]]
 name = "miden-core"
 version = "0.13.0"
-source = "git+https://github.com/lambdaclass/miden-vm?branch=santiagopittella-update-rand-dep#cc0faadb38e0297bc1ff5fc17f7c6d2b9c88e3c7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=next#55440896e92e8162dde6435d1647dd425026254d"
 dependencies = [
  "lock_api",
  "loom",
@@ -1853,7 +1853,8 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.14.0"
-source = "git+https://github.com/lambdaclass/crypto?branch=santiagopittella-update-rand-dep#9cbdb32291804c0ddeefe177adb202c27a9ec350"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d521a9d5fa949d60e4029e55ff1da892561b298ed636afb5f71d0dde0925bf57"
 dependencies = [
  "blake3",
  "cc",
@@ -1965,7 +1966,7 @@ dependencies = [
 [[package]]
 name = "miden-processor"
 version = "0.13.0"
-source = "git+https://github.com/lambdaclass/miden-vm?branch=santiagopittella-update-rand-dep#cc0faadb38e0297bc1ff5fc17f7c6d2b9c88e3c7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=next#55440896e92e8162dde6435d1647dd425026254d"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1977,7 +1978,7 @@ dependencies = [
 [[package]]
 name = "miden-prover"
 version = "0.13.0"
-source = "git+https://github.com/lambdaclass/miden-vm?branch=santiagopittella-update-rand-dep#cc0faadb38e0297bc1ff5fc17f7c6d2b9c88e3c7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=next#55440896e92e8162dde6435d1647dd425026254d"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -2051,7 +2052,7 @@ dependencies = [
 [[package]]
 name = "miden-stdlib"
 version = "0.13.0"
-source = "git+https://github.com/lambdaclass/miden-vm?branch=santiagopittella-update-rand-dep#cc0faadb38e0297bc1ff5fc17f7c6d2b9c88e3c7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=next#55440896e92e8162dde6435d1647dd425026254d"
 dependencies = [
  "miden-assembly",
 ]
@@ -2095,7 +2096,7 @@ dependencies = [
 [[package]]
 name = "miden-verifier"
 version = "0.13.0"
-source = "git+https://github.com/lambdaclass/miden-vm?branch=santiagopittella-update-rand-dep#cc0faadb38e0297bc1ff5fc17f7c6d2b9c88e3c7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=next#55440896e92e8162dde6435d1647dd425026254d"
 dependencies = [
  "miden-air",
  "miden-core",

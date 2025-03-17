@@ -7,7 +7,7 @@ use std::{
 use async_trait::async_trait;
 use bytes::Bytes;
 use metrics::{
-    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS, REQUEST_COUNT,
+    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMIT_VIOLATIONS, RATE_LIMITED_REQUESTS, REQUEST_COUNT,
     REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
     WORKER_REQUEST_COUNT,
 };
@@ -16,25 +16,25 @@ use pingora::{
     lb::Backend,
     prelude::*,
     protocols::Digest,
-    upstreams::peer::{Peer, ALPN},
+    upstreams::peer::{ALPN, Peer},
 };
-use pingora_core::{upstreams::peer::HttpPeer, Result};
+use pingora_core::{Result, upstreams::peer::HttpPeer};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
-use tracing::{error, info, info_span, warn, Span};
+use tracing::{Span, error, info, info_span, warn};
 use uuid::Uuid;
 use worker::Worker;
 
 use crate::{
     commands::{
-        update_workers::{Action, UpdateWorkers},
         ProxyConfig,
+        update_workers::{Action, UpdateWorkers},
     },
     error::ProvingServiceError,
     utils::{
-        create_queue_full_response, create_response_with_error_message,
-        create_too_many_requests_response, MIDEN_PROVING_SERVICE,
+        MIDEN_PROVING_SERVICE, create_queue_full_response, create_response_with_error_message,
+        create_too_many_requests_response,
     },
 };
 

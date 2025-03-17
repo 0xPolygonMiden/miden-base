@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use super::{hash_account, Account, AccountId, Digest, Felt, ZERO};
+use super::{Account, AccountId, Digest, Felt, ZERO, hash_account};
 use crate::utils::serde::{Deserializable, Serializable};
 
 // ACCOUNT HEADER
@@ -163,13 +163,13 @@ impl Deserializable for AccountHeader {
 #[cfg(test)]
 mod tests {
     use vm_core::{
-        utils::{Deserializable, Serializable},
         Felt,
+        utils::{Deserializable, Serializable},
     };
 
     use super::AccountHeader;
     use crate::{
-        account::{tests::build_account, StorageSlot},
+        account::{StorageSlot, tests::build_account},
         asset::FungibleAsset,
     };
 

@@ -1,11 +1,11 @@
 use alloc::{sync::Arc, vec::Vec};
 
-use assembly::{ast::Module, Assembler, Library, LibraryPath};
+use assembly::{Assembler, Library, LibraryPath, ast::Module};
 
 use crate::{
+    AccountError,
     account::{AccountComponent, StorageSlot},
     testing::account_code::MOCK_ACCOUNT_CODE,
-    AccountError,
 };
 
 // ACCOUNT COMPONENT ASSEMBLY CODE

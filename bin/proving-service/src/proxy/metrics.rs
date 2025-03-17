@@ -1,8 +1,8 @@
 use std::sync::LazyLock;
 
 use prometheus::{
-    register_histogram, register_int_counter, register_int_counter_vec, register_int_gauge,
-    Histogram, IntCounter, IntCounterVec, IntGauge,
+    Histogram, IntCounter, IntCounterVec, IntGauge, register_histogram, register_int_counter,
+    register_int_counter_vec, register_int_gauge,
 };
 
 // SAFETY: The `unwrap` calls here are safe because:

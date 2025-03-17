@@ -6,11 +6,12 @@ use alloc::{
 };
 
 use ::assembly::{
-    ast::{Module, ModuleKind},
     LibraryPath,
+    ast::{Module, ModuleKind},
 };
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    Felt, MIN_PROOF_SECURITY_LEVEL, Word,
     account::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
     assembly::DefaultSourceManager,
     asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
@@ -30,21 +31,20 @@ use miden_objects::{
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
     utils::word_to_masm_push_string,
-    Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
-    utils::{Deserializable, Serializable},
     Digest, MemAdviceProvider, ONE,
+    utils::{Deserializable, Serializable},
 };
 
 use super::{
     LocalTransactionProver, TransactionExecutor, TransactionHost, TransactionProver,
     TransactionVerifier,
 };
-use crate::{testing::TransactionContextBuilder, TransactionMastStore};
+use crate::{TransactionMastStore, testing::TransactionContextBuilder};
 
 mod kernel_tests;
 
@@ -333,22 +333,26 @@ fn executed_transaction_account_delta_new() {
         .cloned()
         .collect::<Vec<_>>();
 
-    assert!(executed_transaction
-        .account_delta()
-        .vault()
-        .added_assets()
-        .all(|x| added_assets.contains(&x)));
+    assert!(
+        executed_transaction
+            .account_delta()
+            .vault()
+            .added_assets()
+            .all(|x| added_assets.contains(&x))
+    );
     assert_eq!(
         added_assets.len(),
         executed_transaction.account_delta().vault().added_assets().count()
     );
 
     // assert that removed assets are tracked
-    assert!(executed_transaction
-        .account_delta()
-        .vault()
-        .removed_assets()
-        .all(|x| removed_assets.contains(&x)));
+    assert!(
+        executed_transaction
+            .account_delta()
+            .vault()
+            .removed_assets()
+            .all(|x| removed_assets.contains(&x))
+    );
     assert_eq!(
         removed_assets.len(),
         executed_transaction.account_delta().vault().removed_assets().count()
@@ -545,11 +549,13 @@ fn test_send_note_proc() {
         // vault delta
         // --------------------------------------------------------------------------------------------
         // assert that removed assets are tracked
-        assert!(executed_transaction
-            .account_delta()
-            .vault()
-            .removed_assets()
-            .all(|x| removed_assets.contains(&x)));
+        assert!(
+            executed_transaction
+                .account_delta()
+                .vault()
+                .removed_assets()
+                .all(|x| removed_assets.contains(&x))
+        );
         assert_eq!(
             removed_assets.len(),
             executed_transaction.account_delta().vault().removed_assets().count()

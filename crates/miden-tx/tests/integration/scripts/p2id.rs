@@ -3,6 +3,7 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
+    Felt,
     account::Account,
     asset::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
@@ -14,7 +15,6 @@ use miden_objects::{
     },
     transaction::{OutputNote, TransactionScript},
     utils::word_to_masm_push_string,
-    Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
 

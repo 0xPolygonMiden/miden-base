@@ -1,7 +1,7 @@
 use crate::{
+    AccountError, Digest, Felt, Hasher, Word, ZERO,
     asset::AssetVault,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
 mod account_id;
@@ -18,7 +18,7 @@ mod builder;
 pub use builder::AccountBuilder;
 
 pub mod code;
-pub use code::{procedure::AccountProcedureInfo, AccountCode};
+pub use code::{AccountCode, procedure::AccountProcedureInfo};
 
 mod component;
 pub use component::{
@@ -174,11 +174,7 @@ impl Account {
     /// the initial account state (and the initial state itself), are provided to the VM via the
     /// advice provider.
     pub fn init_hash(&self) -> Digest {
-        if self.is_new() {
-            Digest::default()
-        } else {
-            self.hash()
-        }
+        if self.is_new() { Digest::default() } else { self.hash() }
     }
 
     /// Returns unique identifier of this account.
@@ -388,8 +384,8 @@ mod tests {
     use assembly::Assembler;
     use assert_matches::assert_matches;
     use miden_crypto::{
-        utils::{Deserializable, Serializable},
         Felt, Word,
+        utils::{Deserializable, Serializable},
     };
     use vm_processor::Digest;
 
@@ -398,6 +394,7 @@ mod tests {
         AccountVaultDelta,
     };
     use crate::{
+        AccountError,
         account::{
             Account, AccountComponent, AccountType, StorageMap, StorageMapDelta, StorageSlot,
         },
@@ -406,7 +403,6 @@ mod tests {
             account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
             storage::AccountStorageDeltaBuilder,
         },
-        AccountError,
     };
 
     #[test]

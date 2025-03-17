@@ -5,9 +5,9 @@ use super::{
     FungibleAsset, NonFungibleAsset, Serializable,
 };
 use crate::{
+    AssetVaultError, Digest,
     account::{AccountId, AccountVaultDelta, NonFungibleDeltaAction},
     crypto::merkle::Smt,
-    AssetVaultError, Digest,
 };
 // ASSET VAULT
 // ================================================================================================
@@ -214,7 +214,7 @@ impl AssetVault {
         // fetch the asset from the vault.
         let mut current = match self.asset_tree.get_value(&asset.vault_key().into()) {
             current if current == Smt::EMPTY_VALUE => {
-                return Err(AssetVaultError::FungibleAssetNotFound(asset))
+                return Err(AssetVaultError::FungibleAssetNotFound(asset));
             },
             current => FungibleAsset::new_unchecked(current),
         };

@@ -310,8 +310,8 @@ mod tests {
 
     use super::{AccountCode, Deserializable, Serializable};
     use crate::{
-        account::{code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot},
         AccountError,
+        account::{AccountComponent, AccountType, StorageSlot, code::build_procedure_commitment},
     };
 
     #[test]

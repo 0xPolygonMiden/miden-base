@@ -9,10 +9,9 @@ use miden_objects::{
 };
 
 use crate::tests::utils::{
-    generate_batch, generate_executed_tx_with_authenticated_notes, generate_fungible_asset,
-    generate_tracked_note_with_asset, generate_tx_with_expiration,
+    ProvenTransactionExt, TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
+    generate_fungible_asset, generate_tracked_note_with_asset, generate_tx_with_expiration,
     generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain,
-    ProvenTransactionExt, TestSetup,
 };
 
 /// Tests that we can build empty blocks.
@@ -73,12 +72,16 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
     );
     // Each tx consumes one note.
     assert_eq!(proposed_block.created_nullifiers().len(), 2);
-    assert!(proposed_block
-        .created_nullifiers()
-        .contains_key(&proven_tx0.input_notes().get_note(0).nullifier()));
-    assert!(proposed_block
-        .created_nullifiers()
-        .contains_key(&proven_tx1.input_notes().get_note(0).nullifier()));
+    assert!(
+        proposed_block
+            .created_nullifiers()
+            .contains_key(&proven_tx0.input_notes().get_note(0).nullifier())
+    );
+    assert!(
+        proposed_block
+            .created_nullifiers()
+            .contains_key(&proven_tx1.input_notes().get_note(0).nullifier())
+    );
 
     // There are two batches in the block...
     assert_eq!(proposed_block.output_note_batches().len(), 2);

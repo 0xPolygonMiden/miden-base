@@ -31,16 +31,17 @@ pub use errors::{
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{
+    EMPTY_WORD, Felt, FieldElement, ONE, StarkField, WORD_SIZE, Word, ZERO,
     mast::{MastForest, MastNodeId},
     prettier::PrettyPrint,
-    Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 pub mod assembly {
     pub use assembly::{
+        Assembler, AssemblyError, Compile, CompileOptions, DefaultSourceManager, KernelLibrary,
+        Library, LibraryNamespace, LibraryPath, SourceManager, Version,
         ast::{Module, ModuleKind, ProcedureName, QualifiedProcedureName},
-        mast, Assembler, AssemblyError, Compile, CompileOptions, DefaultSourceManager,
-        KernelLibrary, Library, LibraryNamespace, LibraryPath, SourceManager, Version,
+        mast,
     };
 }
 
@@ -51,7 +52,7 @@ pub mod crypto {
 pub mod utils {
     use alloc::string::{String, ToString};
 
-    pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
+    pub use miden_crypto::utils::{HexParseError, bytes_to_hex_string, collections, hex_to_bytes};
     pub use vm_core::utils::*;
     use vm_core::{Felt, StarkField, Word};
 
@@ -209,6 +210,6 @@ pub mod utils {
 
 pub mod vm {
     pub use miden_verifier::ExecutionProof;
-    pub use vm_core::{sys_events::SystemEvent, AdviceMap, Program, ProgramInfo};
+    pub use vm_core::{AdviceMap, Program, ProgramInfo, sys_events::SystemEvent};
     pub use vm_processor::{AdviceInputs, RowIndex, StackInputs, StackOutputs};
 }

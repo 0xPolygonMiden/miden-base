@@ -1,6 +1,7 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
+    Digest, EMPTY_WORD, Felt, TransactionOutputError, ZERO,
     account::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     block::BlockNumber,
@@ -10,7 +11,6 @@ use miden_objects::{
     },
     utils::{serde::Deserializable, sync::LazyLock},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, EMPTY_WORD, ZERO,
 };
 use miden_stdlib::StdLibrary;
 use outputs::EXPIRATION_BLOCK_ELEMENT_IDX;
@@ -26,7 +26,7 @@ mod inputs;
 
 mod outputs;
 pub use outputs::{
-    parse_final_account_header, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
+    FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX, parse_final_account_header,
 };
 
 mod errors;

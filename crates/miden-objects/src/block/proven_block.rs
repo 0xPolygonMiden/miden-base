@@ -1,12 +1,12 @@
 use alloc::vec::Vec;
 
 use crate::{
+    Digest,
     account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
     transaction::{OutputNote, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest,
 };
 
 // PROVEN BLOCK

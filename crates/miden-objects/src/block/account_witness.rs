@@ -1,4 +1,4 @@
-use crate::{crypto::merkle::MerklePath, Digest};
+use crate::{Digest, crypto::merkle::MerklePath};
 
 // ACCOUNT WITNESS
 // ================================================================================================

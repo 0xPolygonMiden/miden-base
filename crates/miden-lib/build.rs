@@ -10,9 +10,9 @@ use std::{
 };
 
 use assembly::{
+    Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, Report,
     diagnostics::{IntoDiagnostic, Result, WrapErr},
     utils::Serializable,
-    Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, Report,
 };
 use regex::Regex;
 use walkdir::WalkDir;
@@ -546,7 +546,10 @@ fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
     let mut error_codes = BTreeMap::new();
     for (error_name, error) in errors.iter() {
         if let Some(existing_error_name) = error_codes.get(&error.code) {
-            return Err(Report::msg(format!("Transaction kernel error code 0x{} is used multiple times; Non-exhaustive list: ERR_{existing_error_name}, ERR_{error_name}", error.code)));
+            return Err(Report::msg(format!(
+                "Transaction kernel error code 0x{} is used multiple times; Non-exhaustive list: ERR_{existing_error_name}, ERR_{error_name}",
+                error.code
+            )));
         }
 
         error_codes.insert(error.code.clone(), error_name);
@@ -599,11 +602,11 @@ fn validate_error_category(
 
         if !error_name.starts_with(tx_kernel_error_category.category_name()) {
             return Err(Report::msg(format!(
-            "expected error with code {} to be in category {}, but its name {} does not start with the category name",
-            error_num,
-            tx_kernel_error_category.category_name(),
-            error_name
-        )));
+                "expected error with code {} to be in category {}, but its name {} does not start with the category name",
+                error_num,
+                tx_kernel_error_category.category_name(),
+                error_name
+            )));
         }
     }
 
@@ -636,13 +639,17 @@ fn extract_masm_errors(
         let error_message = match capture.name("message") {
             Some(message) => message.as_str().trim().to_owned(),
             None => {
-                return Err(Report::msg(format!("error message for constant ERR_{error_name} not found; add a comment above the constant to add an error message")));
+                return Err(Report::msg(format!(
+                    "error message for constant ERR_{error_name} not found; add a comment above the constant to add an error message"
+                )));
             },
         };
 
         if let Some(ExtractedError { code: existing_error_code, .. }) = errors.get(&error_name) {
             if existing_error_code != &error_code {
-                return Err(Report::msg(format!("Transaction kernel error constant ERR_{error_name} is already defined elsewhere but its error code is different")));
+                return Err(Report::msg(format!(
+                    "Transaction kernel error constant ERR_{error_name} is already defined elsewhere but its error code is different"
+                )));
             }
         }
 

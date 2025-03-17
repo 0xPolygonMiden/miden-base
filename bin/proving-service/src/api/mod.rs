@@ -1,7 +1,7 @@
 use miden_block_prover::LocalBlockProver;
 use miden_objects::{
-    batch::ProposedBatch, block::ProposedBlock, transaction::TransactionWitness,
-    utils::Serializable, MIN_PROOF_SECURITY_LEVEL,
+    MIN_PROOF_SECURITY_LEVEL, batch::ProposedBatch, block::ProposedBlock,
+    transaction::TransactionWitness, utils::Serializable,
 };
 use miden_tx::{LocalTransactionProver, TransactionProver};
 use miden_tx_batch_prover::LocalBatchProver;
@@ -12,8 +12,8 @@ use tracing::instrument;
 use crate::{
     commands::worker::ProverTypeSupport,
     generated::{
-        api_server::{Api as ProverApi, ApiServer},
         ProofType, ProvingRequest, ProvingResponse,
+        api_server::{Api as ProverApi, ApiServer},
     },
     utils::MIDEN_PROVING_SERVICE,
 };

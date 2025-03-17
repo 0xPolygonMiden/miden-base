@@ -6,21 +6,21 @@ use core::fmt;
 use std::collections::BTreeMap;
 
 use serde::{
-    de::{value::MapAccessDeserializer, Error, SeqAccess, Visitor},
-    ser::SerializeStruct,
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{Error, SeqAccess, Visitor, value::MapAccessDeserializer},
+    ser::SerializeStruct,
 };
 use thiserror::Error;
 use vm_core::Felt;
 
 use super::{
-    placeholder::TemplateType, FeltRepresentation, InitStorageData, MapEntry, MapRepresentation,
-    StorageEntry, StorageValueNameError, WordRepresentation,
+    FeltRepresentation, InitStorageData, MapEntry, MapRepresentation, StorageEntry,
+    StorageValueNameError, WordRepresentation, placeholder::TemplateType,
 };
 use crate::{
     account::{
-        component::template::storage::placeholder::{TemplateFelt, TEMPLATE_REGISTRY},
         AccountComponentMetadata, StorageValueName,
+        component::template::storage::placeholder::{TEMPLATE_REGISTRY, TemplateFelt},
     },
     errors::AccountComponentTemplateError,
     utils::parse_hex_string_as_word,

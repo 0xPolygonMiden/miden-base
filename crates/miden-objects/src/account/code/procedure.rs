@@ -2,8 +2,8 @@ use alloc::string::ToString;
 
 use super::{Digest, Felt};
 use crate::{
-    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AccountError, FieldElement,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // ACCOUNT PROCEDURE INFO

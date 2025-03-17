@@ -1,8 +1,8 @@
 use miden_objects::{
+    NoteError, Word,
     account::AccountId,
     asset::Asset,
     note::{NoteExecutionMode, NoteInputs, NoteRecipient, NoteTag, NoteType},
-    NoteError, Word,
 };
 
 use super::well_known_note::WellKnownNote;

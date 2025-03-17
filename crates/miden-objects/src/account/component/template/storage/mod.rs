@@ -2,8 +2,8 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{iter, ops::Range};
 
 use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, FieldElement,
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use vm_processor::DeserializationError;
 
@@ -323,23 +323,23 @@ mod tests {
     use assembly::Assembler;
     use semver::Version;
     use vm_core::{
-        utils::{Deserializable, Serializable},
         Felt, FieldElement, Word,
+        utils::{Deserializable, Serializable},
     };
 
     use crate::{
+        AccountError,
         account::{
-            component::template::{
-                storage::placeholder::TemplateType, AccountComponentMetadata, InitStorageData,
-                MapEntry, MapRepresentation, StorageValueName,
-            },
             AccountComponent, AccountComponentTemplate, AccountType, FeltRepresentation,
             StorageEntry, StorageSlot, TemplateTypeError, WordRepresentation,
+            component::template::{
+                AccountComponentMetadata, InitStorageData, MapEntry, MapRepresentation,
+                StorageValueName, storage::placeholder::TemplateType,
+            },
         },
         digest,
         errors::AccountComponentTemplateError,
         testing::account_code::CODE,
-        AccountError,
     };
 
     #[test]

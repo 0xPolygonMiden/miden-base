@@ -6,10 +6,10 @@ use miden_crypto::merkle::InnerNodeInfo;
 
 use super::{Digest, Felt, Word};
 use crate::{
+    MastForest, MastNodeId, TransactionScriptError,
     note::{NoteDetails, NoteId},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::{AdviceInputs, AdviceMap, Program},
-    MastForest, MastNodeId, TransactionScriptError,
 };
 
 // TRANSACTION ARGS
@@ -270,8 +270,8 @@ impl Deserializable for TransactionScript {
 #[cfg(test)]
 mod tests {
     use vm_core::{
-        utils::{Deserializable, Serializable},
         AdviceMap,
+        utils::{Deserializable, Serializable},
     };
 
     use crate::transaction::TransactionArgs;

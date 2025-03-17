@@ -2,20 +2,20 @@ use std::{collections::BTreeMap, vec::Vec};
 
 use assert_matches::assert_matches;
 use miden_objects::{
+    MAX_BATCHES_PER_BLOCK, ProposedBlockError,
     account::AccountId,
     block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
     note::NoteInclusionProof,
     testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
     transaction::ProvenTransaction,
-    ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
 
 use crate::tests::utils::{
-    generate_account, generate_batch, generate_executed_tx_with_authenticated_notes,
-    generate_fungible_asset, generate_output_note, generate_tracked_note,
-    generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
+    ProvenTransactionExt, TestSetup, generate_account, generate_batch,
+    generate_executed_tx_with_authenticated_notes, generate_fungible_asset, generate_output_note,
+    generate_tracked_note, generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
     generate_tx_with_expiration, generate_tx_with_unauthenticated_notes, generate_untracked_note,
-    generate_untracked_note_with_output_note, setup_chain, ProvenTransactionExt, TestSetup,
+    generate_untracked_note_with_output_note, setup_chain,
 };
 
 /// Tests that too many batches produce an error.
@@ -309,8 +309,8 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
 /// Also tests that an error is produced if the block that the note inclusion proof references is
 /// not in the chain MMR.
 #[test]
-fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_block(
-) -> anyhow::Result<()> {
+fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_block()
+-> anyhow::Result<()> {
     let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
 
     let account0 = accounts.remove(&0).unwrap();

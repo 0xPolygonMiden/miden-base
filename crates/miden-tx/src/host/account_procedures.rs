@@ -1,8 +1,8 @@
 use alloc::string::ToString;
 
 use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_OFFSET, CURRENT_ACCOUNT_DATA_PTR},
     TransactionKernelError,
+    memory::{ACCT_CODE_COMMITMENT_OFFSET, CURRENT_ACCOUNT_DATA_PTR},
 };
 use miden_objects::account::{AccountCode, AccountProcedureInfo};
 

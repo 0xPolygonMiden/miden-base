@@ -3,7 +3,7 @@ use std::time::Duration;
 use pingora::lb::Backend;
 use tonic::transport::Channel;
 use tonic_health::pb::{
-    health_check_response::ServingStatus, health_client::HealthClient, HealthCheckRequest,
+    HealthCheckRequest, health_check_response::ServingStatus, health_client::HealthClient,
 };
 use tracing::error;
 

@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
+    Digest, EMPTY_WORD, Felt, FieldElement, WORD_SIZE, Word, ZERO,
     account::{Account, StorageSlot},
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
-    Digest, Felt, FieldElement, Word, EMPTY_WORD, WORD_SIZE, ZERO,
 };
 
 use super::TransactionKernel;

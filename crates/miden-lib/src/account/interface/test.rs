@@ -1,6 +1,7 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
+    AccountError, Digest, Felt, ONE, ZERO,
     account::{AccountBuilder, AccountComponent, AccountType, StorageSlot},
     assembly::{Assembler, DefaultSourceManager, LibraryPath, Module, ModuleKind},
     asset::{FungibleAsset, NonFungibleAsset, TokenSymbol},
@@ -17,7 +18,6 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2,
     },
-    AccountError, Digest, Felt, ONE, ZERO,
 };
 
 use crate::{

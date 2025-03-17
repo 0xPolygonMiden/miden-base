@@ -1,10 +1,10 @@
 use alloc::collections::BTreeMap;
 
 use crate::{
+    ChainMmrError,
     block::{BlockHeader, BlockNumber},
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     utils::serde::{Deserializable, Serializable},
-    ChainMmrError,
 };
 
 // CHAIN MMR
@@ -178,10 +178,10 @@ mod tests {
 
     use super::ChainMmr;
     use crate::{
+        Digest,
         alloc::vec::Vec,
         block::{BlockHeader, BlockNumber},
         crypto::merkle::{Mmr, PartialMmr},
-        Digest,
     };
 
     #[test]

@@ -7,7 +7,7 @@ use crate::{
     account::StorageMapDelta,
     crypto::{
         hash::rpo::RpoDigest,
-        merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
+        merkle::{InnerNodeInfo, LeafIndex, SMT_DEPTH, Smt, SmtLeaf, SmtProof},
     },
 };
 
@@ -140,9 +140,9 @@ impl Deserializable for StorageMap {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use miden_crypto::{hash::rpo::RpoDigest, merkle::MerkleError, Felt};
+    use miden_crypto::{Felt, hash::rpo::RpoDigest, merkle::MerkleError};
 
-    use super::{Deserializable, Serializable, StorageMap, Word, EMPTY_STORAGE_MAP_ROOT};
+    use super::{Deserializable, EMPTY_STORAGE_MAP_ROOT, Serializable, StorageMap, Word};
 
     #[test]
     fn account_storage_serialization() {

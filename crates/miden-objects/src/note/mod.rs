@@ -1,12 +1,12 @@
 use core::ops::Deref;
 
 use miden_crypto::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Word,
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use vm_processor::DeserializationError;
 
-use crate::{account::AccountId, Digest, Felt, Hasher, NoteError, WORD_SIZE, ZERO};
+use crate::{Digest, Felt, Hasher, NoteError, WORD_SIZE, ZERO, account::AccountId};
 
 mod assets;
 pub use assets::NoteAssets;
@@ -15,7 +15,7 @@ mod details;
 pub use details::NoteDetails;
 
 mod header;
-pub use header::{compute_note_hash, NoteHeader};
+pub use header::{NoteHeader, compute_note_hash};
 
 mod inputs;
 pub use inputs::NoteInputs;

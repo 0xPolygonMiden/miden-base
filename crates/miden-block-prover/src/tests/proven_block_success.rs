@@ -3,21 +3,21 @@ use std::{collections::BTreeMap, vec::Vec};
 use anyhow::Context;
 use miden_crypto::merkle::{LeafIndex, SimpleSmt, Smt};
 use miden_objects::{
+    ACCOUNT_TREE_DEPTH, Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
     batch::BatchNoteTree,
     block::{BlockInputs, BlockNoteIndex, BlockNoteTree, ProposedBlock},
     transaction::InputNoteCommitment,
-    Felt, FieldElement, ACCOUNT_TREE_DEPTH, MIN_PROOF_SECURITY_LEVEL,
 };
 use rand::Rng;
 
 use crate::{
-    tests::utils::{
-        generate_batch, generate_executed_tx_with_authenticated_notes, generate_output_note,
-        generate_tracked_note, generate_tx_with_authenticated_notes,
-        generate_tx_with_unauthenticated_notes, generate_untracked_note_with_output_note,
-        setup_chain, TestSetup,
-    },
     LocalBlockProver,
+    tests::utils::{
+        TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
+        generate_output_note, generate_tracked_note, generate_tx_with_authenticated_notes,
+        generate_tx_with_unauthenticated_notes, generate_untracked_note_with_output_note,
+        setup_chain,
+    },
 };
 
 /// Tests the outputs of a proven block with transactions that consume notes, create output notes

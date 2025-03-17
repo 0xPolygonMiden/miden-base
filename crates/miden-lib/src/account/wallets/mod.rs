@@ -1,10 +1,10 @@
 use alloc::string::ToString;
 
 use miden_objects::{
+    AccountError, Word,
     account::{
         Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode, AccountType,
     },
-    AccountError, Word,
 };
 
 use super::AuthScheme;
@@ -85,10 +85,10 @@ pub fn create_basic_wallet(
 #[cfg(test)]
 mod tests {
 
-    use miden_objects::{block::BlockHeader, crypto::dsa::rpo_falcon512, digest, ONE};
+    use miden_objects::{ONE, block::BlockHeader, crypto::dsa::rpo_falcon512, digest};
     use vm_processor::utils::{Deserializable, Serializable};
 
-    use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
+    use super::{Account, AccountStorageMode, AccountType, AuthScheme, create_basic_wallet};
 
     #[test]
     fn test_create_basic_wallet() {

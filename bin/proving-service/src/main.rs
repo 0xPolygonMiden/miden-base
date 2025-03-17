@@ -47,7 +47,7 @@ mod test {
     use crate::{
         api::ProverRpcApi,
         commands::worker::ProverTypeSupport,
-        generated::{api_client::ApiClient, api_server::ApiServer, ProofType, ProvingRequest},
+        generated::{ProofType, ProvingRequest, api_client::ApiClient, api_server::ApiServer},
     };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

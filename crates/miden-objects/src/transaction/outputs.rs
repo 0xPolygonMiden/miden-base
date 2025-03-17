@@ -2,11 +2,11 @@ use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 use core::fmt::Debug;
 
 use crate::{
+    Digest, Felt, Hasher, MAX_OUTPUT_NOTES_PER_TX, TransactionOutputError, Word,
     account::AccountHeader,
     block::BlockNumber,
-    note::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
+    note::{Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote, compute_note_hash},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
 // TRANSACTION OUTPUTS
 // ================================================================================================

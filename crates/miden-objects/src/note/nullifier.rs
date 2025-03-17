@@ -3,9 +3,9 @@ use core::fmt::{Debug, Display, Formatter};
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher,
-    NoteDetails, Serializable, Word, WORD_SIZE, ZERO,
+    NoteDetails, Serializable, WORD_SIZE, Word, ZERO,
 };
-use crate::utils::{hex_to_bytes, HexParseError};
+use crate::utils::{HexParseError, hex_to_bytes};
 
 // CONSTANTS
 // ================================================================================================

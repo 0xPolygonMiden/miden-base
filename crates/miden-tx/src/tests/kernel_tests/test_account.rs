@@ -27,8 +27,8 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{word_to_masm_push_string, Felt, StackInputs, Word, ONE, ZERO};
-use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
+use super::{Felt, ONE, StackInputs, Word, ZERO, word_to_masm_push_string};
+use crate::testing::{TransactionContextBuilder, executor::CodeExecutor};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
