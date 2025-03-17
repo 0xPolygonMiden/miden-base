@@ -204,21 +204,21 @@ export.add_asset_to_note
     # => [ASSET, note_idx]
 end
 
-#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_ROOT, and inputs commitment
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_COMMITMENT, and inputs commitment
 #!
-#! Inputs: [SERIAL_NUM, SCRIPT_ROOT, INPUT_COMMITMENT]
+#! Inputs: [SERIAL_NUM, SCRIPT_COMMITMENT, INPUT_COMMITMENT]
 #! Outputs: [RECIPIENT]
 #!
 #! Where:
 #! - SERIAL_NUM is the serial number of the recipient.
-#! - SCRIPT_ROOT is the commitment of the note script.
+#! - SCRIPT_COMMITMENT is the commitment of the note script.
 #! - INPUT_COMMITMENT is the commitment of the note inputs.
 #! - RECIPIENT is the recipient of the note.
 #!
 #! Invocation: exec
 export.build_recipient_hash
     padw hmerge
-    # => [SERIAL_NUM_HASH, SCRIPT_ROOT, INPUT_COMMITMENT]
+    # => [SERIAL_NUM_HASH, SCRIPT_COMMITMENT, INPUT_COMMITMENT]
 
     swapw hmerge
     # => [MERGE_SCRIPT, INPUT_COMMITMENT]

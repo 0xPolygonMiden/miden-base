@@ -279,7 +279,7 @@ fn test_get_inputs() {
             # => []
 
             exec.note_internal::prepare_note
-            # => [NOTE_SCRIPT_ROOT, NOTE_ARGS]
+            # => [NOTE_SCRIPT_COMMITMENT, NOTE_ARGS]
 
             # drop the note inputs
             dropw dropw
@@ -388,9 +388,9 @@ fn note_setup_stack_assertions(process: &Process, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
-    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().root();
-    note_script_root.reverse();
-    expected_stack[..4].copy_from_slice(&note_script_root);
+    let mut note_script_commitment = *inputs.input_notes().get_note(0).note().script().commitment();
+    note_script_commitment.reverse();
+    expected_stack[..4].copy_from_slice(&note_script_commitment);
 
     // assert that the stack contains the note inputs at the end of execution
     assert_eq!(process.stack.trace_state(), expected_stack)
@@ -530,19 +530,19 @@ fn test_get_inputs_hash() {
 }
 
 #[test]
-fn test_get_current_script_root() {
+fn test_get_current_script_commitment() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
 
-    // calling get_script_root should return script root
+    // calling get_script_commitment should return script root
     let code = "
     use.kernel::prologue
     use.miden::note
 
     begin
         exec.prologue::prepare_transaction
-        exec.note::get_script_root
+        exec.note::get_script_commitment
 
         # truncate the stack
         swapw dropw
@@ -551,8 +551,8 @@ fn test_get_current_script_root() {
 
     let process = tx_context.execute_code(code).unwrap();
 
-    let script_root = tx_context.input_notes().get_note(0).note().script().root();
-    assert_eq!(process.stack.get_word(0), script_root.as_elements());
+    let script_commitment = tx_context.input_notes().get_note(0).note().script().commitment();
+    assert_eq!(process.stack.get_word(0), script_commitment.as_elements());
 }
 
 #[test]

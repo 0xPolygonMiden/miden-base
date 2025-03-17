@@ -59,7 +59,7 @@ pub(super) fn extend_advice_inputs(
 ///     ACCOUNT_STORAGE_COMMITMENT,
 ///     ACCOUNT_CODE_COMMITMENT,
 ///     number_of_input_notes,
-///     TX_SCRIPT_ROOT,
+///     TX_SCRIPT_COMMITMENT,
 /// ]
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
@@ -246,7 +246,7 @@ fn add_input_notes_to_advice_inputs(
 
         // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
         note_data.extend(recipient.serial_num());
-        note_data.extend(*recipient.script().root());
+        note_data.extend(*recipient.script().commitment());
         note_data.extend(*recipient.inputs().commitment());
         note_data.extend(*assets.commitment());
 

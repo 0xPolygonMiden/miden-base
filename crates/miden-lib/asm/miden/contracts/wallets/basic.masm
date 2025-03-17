@@ -46,7 +46,7 @@ end
 #! - note_type is the note's storage type
 #! - execution_hint is the note's execution hint
 #! - RECIPIENT is the recipient of the note, i.e.,
-#!   hash(hash(hash(serial_num, [0; 4]), script_root), input_commitment)
+#!   hash(hash(hash(serial_num, [0; 4]), script_commitment), input_commitment)
 #!
 #! Invocation: call
 export.create_note

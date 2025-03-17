@@ -91,7 +91,7 @@ Example:
 #! Inputs: [single_value, SOME_WORD]
 ```
 
-Variable, which represents a memory address, should have a `_ptr` suffix in its name. For example, `note_script_root_ptr`.
+Variable, which represents a memory address, should have a `_ptr` suffix in its name. For example, `note_script_commitment_ptr`.
 
 It is strongly not recommended to use a single-letter names for variables, with just an exception for the loop indexes (i.e. `i`). So, for example, instead of `H` a proper `HASH` or even more expanded version like `INIT_HASH` should be used.
 

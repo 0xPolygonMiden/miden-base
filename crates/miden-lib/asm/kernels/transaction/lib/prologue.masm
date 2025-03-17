@@ -623,7 +623,7 @@ end
 #!   Operand stack: [note_ptr]
 #!   Advice stack: [
 #!      SERIAL_NUMBER,
-#!      SCRIPT_ROOT,
+#!      SCRIPT_COMMITMENT,
 #!      INPUTS_COMMITMENT,
 #!      ASSETS_HASH,
 #!   ]
@@ -634,10 +634,10 @@ end
 #! Where:
 #! - note_ptr is the memory location for the input note.
 #! - SERIAL_NUMBER is the note's serial.
-#! - SCRIPT_ROOT is the note's script root.
+#! - SCRIPT_COMMITMENT is the note's script root.
 #! - INPUTS_COMMITMENT is the sequential hash of the padded note's inputs.
 #! - ASSETS_HASH is the sequential hash of the padded note's assets.
-#! - NULLIFIER is the result of `hash(SERIAL_NUMBER || SCRIPT_ROOT || INPUTS_COMMITMENT || ASSETS_HASH)`.
+#! - NULLIFIER is the result of `hash(SERIAL_NUMBER || SCRIPT_COMMITMENT || INPUTS_COMMITMENT || ASSETS_HASH)`.
 proc.process_input_note_details
     exec.memory::get_input_note_core_ptr
     # => [note_data_ptr]
@@ -828,8 +828,8 @@ proc.compute_input_note_id
     dup exec.memory::get_input_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
 
-    # compute MERGE_SCRIPT: hash(SERIAL_HASH || SCRIPT_ROOT)
-    dup.4 exec.memory::get_input_note_script_root hmerge
+    # compute MERGE_SCRIPT: hash(SERIAL_HASH || SCRIPT_COMMITMENT)
+    dup.4 exec.memory::get_input_note_script_commitment hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
     # compute RECIPIENT: hash(MERGE_SCRIPT || INPUT_COMMITMENT)
@@ -852,7 +852,7 @@ end
 #!   Operand stack: [idx, HASHER_CAPACITY]
 #!   Advice stack: [
 #!      SERIAL_NUMBER,
-#!      SCRIPT_ROOT,
+#!      SCRIPT_COMMITMENT,
 #!      INPUTS_COMMITMENT,
 #!      ASSETS_HASH,
 #!      ARGS,
@@ -875,7 +875,7 @@ end
 #! - HASHER_CAPACITY is the state of the hasher capacity word, with the commitment to the previous
 #!   notes.
 #! - SERIAL_NUMBER is the note's serial.
-#! - SCRIPT_ROOT is the note's script root.
+#! - SCRIPT_COMMITMENT is the note's script root.
 #! - INPUTS_COMMITMENT is the sequential hash of the padded note's inputs.
 #! - ASSETS_HASH is the sequential hash of the padded note's assets.
 #! - NOTE_METADATA is the note's metadata.
@@ -1068,20 +1068,20 @@ end
 #!
 #! Inputs:
 #!   Operand stack: []
-#!   Advice stack: [TX_SCRIPT_ROOT]
+#!   Advice stack: [TX_SCRIPT_COMMITMENT]
 #! Outputs:
 #!   Operand stack: []
 #!   Advice stack: []
 #!
 #! Where:
-#! - TX_SCRIPT_ROOT is the transaction's script root.
-proc.process_tx_script_root
+#! - TX_SCRIPT_COMMITMENT is the transaction's script root.
+proc.process_tx_script_commitment
     # read the transaction script root from the advice stack
     adv_loadw
-    # => [TX_SCRIPT_ROOT]
+    # => [TX_SCRIPT_COMMITMENT]
 
     # store the transaction script root in memory
-    exec.memory::set_tx_script_root dropw
+    exec.memory::set_tx_script_commitment dropw
     # => []
 end
 
@@ -1117,7 +1117,7 @@ end
 #!     ACCOUNT_STORAGE_COMMITMENT,
 #!     ACCOUNT_CODE_COMMITMENT,
 #!     number_of_input_notes,
-#!     TX_SCRIPT_ROOT,
+#!     TX_SCRIPT_COMMITMENT,
 #!   ]
 #!   Advice map: {
 #!      CHAIN_MMR_HASH: [MMR_PEAKS],
@@ -1159,7 +1159,7 @@ end
 #! - ACCOUNT_PROCEDURE_DATA is the vector of the account's procedure data.
 #! - ACCOUNT_STORAGE_SLOT_DATA is the vector of the account's storage slot data.
 #! - number_of_input_notes is the number of input notes.
-#! - TX_SCRIPT_ROOT is the transaction's script root.
+#! - TX_SCRIPT_COMMITMENT is the transaction's script root.
 #! - MMR_PEAKS is the MMR peak data, see process_chain_data.
 #! - NOTE_DATA is the input notes' details, for format see prologue::process_input_note.
 #!
@@ -1176,7 +1176,7 @@ export.prepare_transaction
     exec.process_chain_data
     exec.process_account_data
     exec.process_input_notes_data
-    exec.process_tx_script_root
+    exec.process_tx_script_commitment
     # => []
 
     push.MAX_BLOCK_NUM exec.memory::set_expiration_block_num
