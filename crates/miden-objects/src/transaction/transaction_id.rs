@@ -13,7 +13,8 @@ use crate::utils::serde::{
 ///
 /// Transaction ID is computed as:
 ///
-/// hash(init_account_commitment, final_account_commitment, input_notes_hash, output_notes_hash)
+/// hash(init_account_commitment, final_account_commitment, input_notes_commitment,
+/// output_notes_commitment)
 ///
 /// This achieves the following properties:
 /// - Transactions are identical if and only if they have the same ID.
@@ -26,14 +27,14 @@ impl TransactionId {
     pub fn new(
         init_account_commitment: Digest,
         final_account_commitment: Digest,
-        input_notes_hash: Digest,
-        output_notes_hash: Digest,
+        input_notes_commitment: Digest,
+        output_notes_commitment: Digest,
     ) -> Self {
         let mut elements = [ZERO; 4 * WORD_SIZE];
         elements[..4].copy_from_slice(init_account_commitment.as_elements());
         elements[4..8].copy_from_slice(final_account_commitment.as_elements());
-        elements[8..12].copy_from_slice(input_notes_hash.as_elements());
-        elements[12..].copy_from_slice(output_notes_hash.as_elements());
+        elements[8..12].copy_from_slice(input_notes_commitment.as_elements());
+        elements[12..].copy_from_slice(output_notes_commitment.as_elements());
         Self(Hasher::hash_elements(&elements))
     }
 

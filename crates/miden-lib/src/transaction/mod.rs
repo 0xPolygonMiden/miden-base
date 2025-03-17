@@ -172,7 +172,7 @@ impl TransactionKernel {
     pub fn build_input_stack(
         account_id: AccountId,
         init_account_commitment: Digest,
-        input_notes_hash: Digest,
+        input_notes_commitment: Digest,
         block_commitment: Digest,
         block_num: BlockNumber,
     ) -> StackInputs {
@@ -181,7 +181,7 @@ impl TransactionKernel {
         inputs.push(Felt::from(block_num));
         inputs.push(account_id.suffix());
         inputs.push(account_id.prefix().as_felt());
-        inputs.extend(input_notes_hash);
+        inputs.extend(input_notes_commitment);
         inputs.extend_from_slice(init_account_commitment.as_elements());
         inputs.extend_from_slice(block_commitment.as_elements());
         StackInputs::new(inputs)
@@ -247,13 +247,13 @@ impl TransactionKernel {
     /// - expiration_block_num is the block number at which the transaction will expire.
     pub fn build_output_stack(
         final_account_commitment: Digest,
-        output_notes_hash: Digest,
+        output_notes_commitment: Digest,
         expiration_block_num: BlockNumber,
     ) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
         outputs.push(Felt::from(expiration_block_num));
         outputs.extend(final_account_commitment);
-        outputs.extend(output_notes_hash);
+        outputs.extend(output_notes_commitment);
         outputs.reverse();
         StackOutputs::new(outputs)
             .map_err(|e| e.to_string())
@@ -281,7 +281,7 @@ impl TransactionKernel {
     pub fn parse_output_stack(
         stack: &StackOutputs,
     ) -> Result<(Digest, Digest, BlockNumber), TransactionOutputError> {
-        let output_notes_hash = stack
+        let output_notes_commitment = stack
             .get_stack_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX * 4)
             .expect("first word missing")
             .into();
@@ -309,7 +309,7 @@ impl TransactionKernel {
             ));
         }
 
-        Ok((final_account_commitment, output_notes_hash, expiration_block_num))
+        Ok((final_account_commitment, output_notes_commitment, expiration_block_num))
     }
 
     // TRANSACTION OUTPUT PARSER
@@ -336,7 +336,7 @@ impl TransactionKernel {
         adv_map: &AdviceMap,
         output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
-        let (final_account_commitment, output_notes_hash, expiration_block_num) =
+        let (final_account_commitment, output_notes_commitment, expiration_block_num) =
             Self::parse_output_stack(stack)?;
 
         // parse final account state
@@ -348,10 +348,10 @@ impl TransactionKernel {
 
         // validate output notes
         let output_notes = OutputNotes::new(output_notes)?;
-        if output_notes_hash != output_notes.commitment() {
+        if output_notes_commitment != output_notes.commitment() {
             return Err(TransactionOutputError::OutputNotesCommitmentInconsistent {
                 actual: output_notes.commitment(),
-                expected: output_notes_hash,
+                expected: output_notes_commitment,
             });
         }
 

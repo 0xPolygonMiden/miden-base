@@ -256,7 +256,7 @@ fn test_get_output_notes_commitment() {
     let output_note_2 = Note::new(assets, metadata, recipient);
 
     // compute expected output notes commitment
-    let expected_output_notes_hash = OutputNotes::new(vec![
+    let expected_output_notes_commitment = OutputNotes::new(vec![
         OutputNote::Full(output_note_1.clone()),
         OutputNote::Full(output_note_2.clone()),
     ])
@@ -363,7 +363,7 @@ fn test_get_output_notes_commitment() {
         "Validate the output note 1 metadata",
     );
 
-    assert_eq!(process_state.get_stack_word(0), *expected_output_notes_hash);
+    assert_eq!(process_state.get_stack_word(0), *expected_output_notes_commitment);
 }
 
 #[test]
