@@ -69,7 +69,12 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 
 #! Saves global inputs to memory.
 #!
-#! Inputs:  [BLOCK_COMMITMENT, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT, account_id_prefix, account_id_suffix, block_num]
+#! Inputs: [
+#!   BLOCK_COMMITMENT,
+#!   INITIAL_ACCOUNT_HASH,
+#!   INPUT_NOTES_COMMITMENT,
+#!   account_id_prefix, account_id_suffix, block_num
+#! ]
 #! Outputs: [block_num]
 #!
 #! Where:
