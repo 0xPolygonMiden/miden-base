@@ -112,11 +112,12 @@ impl BlockHeader {
         self.commitment
     }
 
-    /// Returns the sub commitment of the block header. The sub commitment is a sequential hash of
-    /// all block header fields except the note root. This is used in the block commitment
-    /// computation which is a 2-to-1 hash of the sub commitment and the note root
-    /// [hash(sub_commitment, note_root)]. This procedure is used to make the note root easily
-    /// accessible without having to unhash the entire header.
+    /// Returns the sub commitment of the block header.
+    ///
+    /// The sub commitment is a sequential hash of all block header fields except the note root.
+    /// This is used in the block commitment computation which is a 2-to-1 hash of the sub
+    /// commitment and the note root [hash(sub_commitment, note_root)]. This procedure is used to
+    /// make the note root easily accessible without having to unhash the entire header.
     pub fn sub_commitment(&self) -> Digest {
         self.sub_commitment
     }
