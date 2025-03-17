@@ -29,8 +29,8 @@ pub const ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS: u32 = 0x20000;
 
 /// Existing accounts must have a non-zero nonce
 pub const ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE: u32 = 0x20040;
-/// The provided global inputs do not match the block hash commitment
-pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT: u32 = 0x20041;
+/// The provided global inputs do not match the block commitment
+pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_COMMITMENT: u32 = 0x20041;
 /// The provided global inputs do not match the block number commitment
 pub const ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT: u32 = 0x20042;
 /// Note commitment computed from the input note data does not match given note commitment
@@ -93,8 +93,8 @@ pub const ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT: u32 = 0x20108;
 /// The note's tag must fit into a u32 so the 32 most significant bits must be zero.
 pub const ERR_NOTE_TAG_MUST_BE_U32: u32 = 0x20109;
 
-/// Anchor block hash must not be empty
-pub const ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY: u32 = 0x20140;
+/// Anchor block commitment must not be empty
+pub const ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY: u32 = 0x20140;
 /// Computed account code commitment does not match recorded account code commitment
 pub const ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH: u32 = 0x20141;
 /// Account code must be updatable for it to be possible to set new code
@@ -121,8 +121,8 @@ pub const ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS: u32 = 0x2014b;
 pub const ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE: u32 = 0x2014c;
 /// Failed to read an account map item from a non-map storage slot
 pub const ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT: u32 = 0x2014d;
-/// ID of the new account does not match the ID computed from the seed and anchor block hash
-pub const ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH: u32 = 0x2014e;
+/// ID of the new account does not match the ID computed from the seed and anchor block commitment
+pub const ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH: u32 = 0x2014e;
 /// Failed to write an account map item to a non-map storage slot
 pub const ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 0x2014f;
 /// Failed to write an account value item to a non-value storage slot
@@ -211,7 +211,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 86] = [
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
-    (ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT, "The provided global inputs do not match the block hash commitment"),
+    (ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_COMMITMENT, "The provided global inputs do not match the block commitment"),
     (ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT, "The provided global inputs do not match the block number commitment"),
     (ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH, "Note commitment computed from the input note data does not match given note commitment"),
     (ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER, "Account IDs provided via global inputs and advice provider do not match"),
@@ -245,7 +245,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 86] = [
     (ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT, "Number of assets in a note exceed 255"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag must fit into a u32 so the 32 most significant bits must be zero."),
 
-    (ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY, "Anchor block hash must not be empty"),
+    (ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY, "Anchor block commitment must not be empty"),
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
     (ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX, "Epoch must be less than u16::MAX (0xffff)."),
@@ -259,7 +259,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 86] = [
     (ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS, "Provided procedure index is out of bounds"),
     (ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE, "Account procedure is not part of the account code"),
     (ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT, "Failed to read an account map item from a non-map storage slot"),
-    (ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH, "ID of the new account does not match the ID computed from the seed and anchor block hash"),
+    (ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH, "ID of the new account does not match the ID computed from the seed and anchor block commitment"),
     (ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Failed to write an account map item to a non-map storage slot"),
     (ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT, "Failed to write an account value item to a non-value storage slot"),
     (ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH, "Computed account storage commitment does not match recorded account storage commitment"),

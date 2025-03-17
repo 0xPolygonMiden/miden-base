@@ -51,9 +51,9 @@ impl TransactionInputs {
             });
         }
 
-        if block_chain.peaks().hash_peaks() != block_header.chain_root() {
-            return Err(TransactionInputError::InconsistentChainRoot {
-                expected: block_header.chain_root(),
+        if block_chain.peaks().hash_peaks() != block_header.chain_commitment() {
+            return Err(TransactionInputError::InconsistentChainCommitment {
+                expected: block_header.chain_commitment(),
                 actual: block_chain.peaks().hash_peaks(),
             });
         }
@@ -492,8 +492,8 @@ pub fn validate_account_seed(
         (true, Some(seed)) => {
             let anchor_block_number = BlockNumber::from_epoch(account.id().anchor_epoch());
 
-            let anchor_block_hash = if block_header.block_num() == anchor_block_number {
-                block_header.hash()
+            let anchor_block_commitment = if block_header.block_num() == anchor_block_number {
+                block_header.commitment()
             } else {
                 let anchor_block_header =
                     block_chain.get_block(anchor_block_number).ok_or_else(|| {
@@ -501,10 +501,10 @@ pub fn validate_account_seed(
                             account.id().anchor_epoch(),
                         )
                     })?;
-                anchor_block_header.hash()
+                anchor_block_header.commitment()
             };
 
-            let anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash)
+            let anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_commitment)
                 .map_err(TransactionInputError::InvalidAccountIdSeed)?;
 
             let account_id = AccountId::new(

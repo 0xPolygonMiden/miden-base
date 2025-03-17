@@ -16,11 +16,11 @@ const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x0002014a
 # Account code must be updatable for it to be possible to set new code
 const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020142
 
-# Anchor block hash must not be empty
-const.ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY=0x00020140
+# Anchor block commitment must not be empty
+const.ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY=0x00020140
 
-# ID of the new account does not match the ID computed from the seed and anchor block hash
-const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH=0x0002014e
+# ID of the new account does not match the ID computed from the seed and anchor block commitment
+const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH=0x0002014e
 
 # Failed to write an account value item to a non-value storage slot
 const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020150
@@ -744,17 +744,17 @@ end
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. Retrieve the anchor block hash by computing the block number of the anchor block and
+#! 1. Retrieve the anchor block commitment by computing the block number of the anchor block and
 #!    retrieving it from the chain mmr.
-#! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
+#! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_COMMITMENT).
 #! 3. Assert the two least significant elements of the digest are equal to the account ID of the
 #!    account the transaction is being executed against.
 #!
 #! Inputs:  []
 #! Outputs: []
 export.validate_seed
-    # Load the block hash of the anchor block from the chain mmr.
-    # This is the block hash to which the account ID is anchored and is derived from.
+    # Load the block commitment of the anchor block from the chain mmr.
+    # This is the block commitment to which the account ID is anchored and is derived from.
     # ---------------------------------------------------------------------------------------------
 
     # prepare the advice map key for the seed for later
@@ -769,43 +769,43 @@ export.validate_seed
     # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.mmr::get
-    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_prefix, account_id_suffix]
+    # => [ANCHOR_BLOCK_COMMITMENT, 0, 0, account_id_prefix, account_id_suffix]
 
-    # assert that the anchor block hash is not the empty word
-    padw eqw not assert.err=ERR_ACCOUNT_ANCHOR_BLOCK_HASH_MUST_NOT_BE_EMPTY dropw
-    # => [ANCHOR_BLOCK_HASH, 0, 0, account_id_prefix, account_id_suffix]
+    # assert that the anchor block commitment is not the empty word
+    padw eqw not assert.err=ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY dropw
+    # => [ANCHOR_BLOCK_COMMITMENT, 0, 0, account_id_prefix, account_id_suffix]
 
-    # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_HASH).
+    # Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_COMMITMENT).
     # ---------------------------------------------------------------------------------------------
 
     # prepare advice push_mapval
     swapw
-    # => [0, 0, account_id_prefix, account_id_suffix, ANCHOR_BLOCK_HASH]
+    # => [0, 0, account_id_prefix, account_id_suffix, ANCHOR_BLOCK_COMMITMENT]
 
     # populate first four elements of the rate with the account ID seed
     adv.push_mapval adv_loadw
-    # => [SEED, ANCHOR_BLOCK_HASH]
+    # => [SEED, ANCHOR_BLOCK_COMMITMENT]
 
     # pad capacity element of hasher
     padw swapw
-    # => [SEED, 0, 0, 0, 0, ANCHOR_BLOCK_HASH]
+    # => [SEED, 0, 0, 0, 0, ANCHOR_BLOCK_COMMITMENT]
 
     # populate last four elements of the hasher rate with the code commitment
     exec.memory::get_acct_code_commitment
-    # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0, ANCHOR_BLOCK_HASH]
+    # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0, ANCHOR_BLOCK_COMMITMENT]
 
     # perform first permutation of seed and code_commitment (from advice stack)
     # perm(seed, code_commitment)
     hperm
-    # => [RATE, RATE, PERM, ANCHOR_BLOCK_HASH]
+    # => [RATE, RATE, PERM, ANCHOR_BLOCK_COMMITMENT]
 
     # clear rate elements
     dropw dropw
-    # => [PERM, ANCHOR_BLOCK_HASH]
+    # => [PERM, ANCHOR_BLOCK_COMMITMENT]
 
     # perform second permutation perm(storage_commitment, 0, 0, 0, 0)
     swapw exec.memory::get_acct_storage_commitment swapw
-    # => [ANCHOR_BLOCK_HASH, STORAGE_COMMITMENT, PERM]
+    # => [ANCHOR_BLOCK_COMMITMENT, STORAGE_COMMITMENT, PERM]
 
     hperm
     # => [RATE, RATE, CAP]
@@ -833,7 +833,7 @@ export.validate_seed
     # => [hashed_account_id_prefix, hashed_account_id_suffix, account_id_prefix, account_id_suffix]
 
     # assert the account ID matches the account ID of the new account
-    exec.is_id_equal assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH
+    exec.is_id_equal assert.err=ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH
     # => []
 end
 

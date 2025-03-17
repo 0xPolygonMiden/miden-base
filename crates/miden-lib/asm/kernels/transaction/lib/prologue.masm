@@ -16,8 +16,8 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # ERRORS
 # =================================================================================================
 
-# The provided global inputs do not match the block hash commitment
-const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT=0x00020041
+# The provided global inputs do not match the block commitment
+const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_COMMITMENT=0x00020041
 
 # The provided global inputs do not match the block number commitment
 const.ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_NUMBER_COMMITMENT=0x00020042
@@ -69,11 +69,16 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 
 #! Saves global inputs to memory.
 #!
-#! Inputs:  [BLOCK_HASH, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT, account_id_prefix, account_id_suffix, block_num]
+#! Inputs: [
+#!   BLOCK_COMMITMENT,
+#!   INITIAL_ACCOUNT_HASH,
+#!   INPUT_NOTES_COMMITMENT,
+#!   account_id_prefix, account_id_suffix, block_num
+#! ]
 #! Outputs: [block_num]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the reference block for the transaction execution.
 #! - block_num is the number of the reference block.
 #! - account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the account
 #!   that the transaction is being executed against.
@@ -82,7 +87,7 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 #! - INPUT_NOTES_COMMITMENT is the commitment to the input notes. See the
 #!   `tx_get_input_notes_commitment` kernel procedure for details.
 proc.process_global_inputs
-    exec.memory::set_block_hash dropw
+    exec.memory::set_block_commitment dropw
     exec.memory::set_init_acct_hash dropw
     exec.memory::set_nullifier_commitment dropw
     exec.memory::set_global_acct_id
@@ -91,7 +96,7 @@ end
 # KERNEL DATA
 # =================================================================================================
 
-#! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel root and kernel
+#! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel commitment and kernel
 #! hash match the sequential hash of all kernels and sequential hash of kernel procedures
 #! respectively.
 #!
@@ -99,7 +104,7 @@ end
 #!   Operand stack: []
 #!   Advice stack:  [kernel_version]
 #!   Advice map: {
-#!     KERNEL_ROOT: [KERNEL_HASHES]
+#!     TX_KERNEL_COMMITMENT: [KERNEL_HASHES]
 #!     KERNEL_HASH: [KERNEL_PROCEDURE_HASHES]
 #!   }
 #! Outputs:
@@ -109,7 +114,7 @@ end
 #! Where:
 #! - kernel_version is the index of the desired kernel in the array of all kernels available for the
 #!   current transaction.
-#! - KERNEL_ROOT is the accumulative hash from all kernel hashes.
+#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel hashes.
 #! - [KERNEL_HASHES] is the array of each kernel hash.
 #! - [KERNEL_PROCEDURE_HASHES] is the array of procedure hashes of the current kernel.
 proc.process_kernel_data
@@ -118,40 +123,40 @@ proc.process_kernel_data
     # OS => [kernel_version]
     # AS => []
 
-    # load the kernel root from the memory
-    exec.memory::get_kernel_root
-    # OS => [KERNEL_ROOT, kernel_version]
+    # load the tx kernel commitment from memory
+    exec.memory::get_tx_kernel_commitment
+    # OS => [TX_KERNEL_COMMITMENT, kernel_version]
     # AS => []
 
     # push the kernel hashes from the advice map to the advice stack
     adv.push_mapvaln
-    # OS => [KERNEL_ROOT, kernel_version]
+    # OS => [TX_KERNEL_COMMITMENT, kernel_version]
     # AS => [len_felts, [KERNEL_HASHES]]
 
     # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the
     # number of Words from it
     adv_push.1 div.4
-    # OS => [len_words, KERNEL_ROOT, kernel_version]
+    # OS => [len_words, TX_KERNEL_COMMITMENT, kernel_version]
     # AS => [[KERNEL_HASHES]]
 
     # get the pointer to the memory where kernel hashes will be stored
     # Note: for now we use the same address for kernel hash and for kernel procedures since there is
     # only one kernel and its hash will be overwritten by the procedures anyway.
     exec.memory::get_kernel_procedures_ptr swap
-    # OS => [len_words, kernel_mem_ptr, KERNEL_ROOT, kernel_version]
+    # OS => [len_words, kernel_mem_ptr, TX_KERNEL_COMMITMENT, kernel_version]
     # AS => [[KERNEL_HASHES]]
 
     # store the kernel hashes in memory
     exec.mem::pipe_words_to_memory
-    # OS => [C, B, A, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
+    # OS => [C, B, A, kernel_mem_ptr', TX_KERNEL_COMMITMENT, kernel_version]
     # AS => []
 
     # extract the resulting hash
     exec.rpo::squeeze_digest
-    # OS => [SEQ_HASH, kernel_mem_ptr', KERNEL_ROOT, kernel_version]
+    # OS => [SEQ_HASH, kernel_mem_ptr', TX_KERNEL_COMMITMENT, kernel_version]
     # AS => []
 
-    # assert that sequential hash matches the precomputed kernel root
+    # assert that sequential hash matches the precomputed kernel commitment
     movup.4 drop assert_eqw
     # OS => [kernel_version]
     # AS => []
@@ -205,18 +210,18 @@ end
 # BLOCK DATA
 # =================================================================================================
 
-#! Saves block data to memory and verifies that it matches the BLOCK_HASH public input.
+#! Saves block data to memory and verifies that it matches the BLOCK_COMMITMENT public input.
 #!
 #! Inputs:
 #!   Operand stack: [block_num]
 #!   Advice stack: [
-#!     PREVIOUS_BLOCK_HASH,
+#!     PREV_BLOCK_COMMITMENT,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
-#!     TX_HASH,
-#!     KERNEL_ROOT
-#!     PROOF_HASH,
+#!     TX_COMMITMENT,
+#!     TX_KERNEL_COMMITMENT
+#!     PROOF_COMMITMENT,
 #!     [block_num, version, timestamp, 0],
 #!     NOTE_ROOT,
 #!   ]
@@ -224,14 +229,14 @@ end
 #!   Operand stack: []
 #!
 #! Where:
-#! - PREVIOUS_BLOCK_HASH is the hash of the previous block.
+#! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
 #! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
-#! - TX_HASH is the commitment to a set of IDs of transactions which affected accounts in the block.
-#! - KERNEL_ROOT is the accumulative hash from all kernel hashes.
-#! - PROOF_HASH is the hash of the block's stark proof.
+#! - TX_COMMITMENT is a commitment to the set of transaction IDs which affected accounts in the block.
+#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel hashes.
+#! - PROOF_COMMITMENT is the commitment of the block's STARK proof attesting to the correct state transition.
 #! - block_num is the reference block number.
 #! - version is the current protocol version.
 #! - timestamp is the current timestamp.
@@ -256,11 +261,11 @@ proc.process_block_data
 
     # merge the note root with the block data digest
     hmerge
-    # => [BLOCK_HASH, block_data_ptr', block_num]
+    # => [BLOCK_COMMITMENT, block_data_ptr', block_num]
 
-    # assert that the block hash matches the hash in global inputs
-    exec.memory::get_block_hash
-    assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_HASH_COMMITMENT
+    # assert that the block commitment matches the commitment in global inputs
+    exec.memory::get_block_commitment
+    assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_PROVIDED_DO_NOT_MATCH_BLOCK_COMMITMENT
     # => [block_data_ptr', block_num]
 
     drop
@@ -297,13 +302,13 @@ proc.process_chain_data
     exec.memory::get_chain_mmr_ptr dup
     # => [chain_mmr_ptr, chain_mmr_ptr]
 
-    # save the MMR peaks to memory and verify it matches the block's CHAIN_ROOT
-    exec.memory::get_chain_root
+    # save the MMR peaks to memory and verify it matches the block's CHAIN_COMMITMENT
+    exec.memory::get_chain_commitment
     exec.mmr::unpack
     # => [chain_mmr_ptr]
 
-    # add the current block's hash to the MMR, enabling authentication of notes created in it
-    exec.memory::get_block_hash
+    # add the current block's commitment to the MMR, enabling authentication of notes created in it
+    exec.memory::get_block_commitment
     exec.mmr::add
     # => []
 end
@@ -549,7 +554,7 @@ end
 #!
 #! Inputs:
 #!   Operand stack: [NOTE_HASH]
-#!   Advice stack: [block_num, BLOCK_SUB_HASH, NOTE_ROOT, note_index]
+#!   Advice stack: [block_num, BLOCK_SUB_COMMITMENT, NOTE_ROOT, note_index]
 #! Outputs:
 #!   Operand stack: []
 #!   Advice stack: []
@@ -557,34 +562,34 @@ end
 #! Where:
 #! - NOTE_HASH is the input note's commitment computed as `hash(NOTE_ID || NOTE_METADATA)`.
 #! - block_num is the leaf position in the MMR chain of the block which created the input note.
-#! - BLOCK_SUB_HASH is the sub_hash of the block which created the input note.
+#! - BLOCK_SUB_COMMITMENT is the sub_commitment of the block which created the input note.
 #! - NOTE_ROOT is the merkle root of the notes tree containing the input note.
 #! - note_index is the input note's position in the notes tree.
 proc.authenticate_note.8
-    # Load the BLOCK_HASH from the CHAIN_MMR
+    # Load the BLOCK_COMMITMENT from the CHAIN_MMR
     # ---------------------------------------------------------------------------------------------
 
     exec.memory::get_chain_mmr_ptr adv_push.1
     # => [block_num, chain_mmr_ptr, NOTE_HASH]
 
     exec.mmr::get
-    # => [BLOCK_HASH, NOTE_HASH]
+    # => [BLOCK_COMMITMENT, NOTE_HASH]
 
     locaddr.0
-    # => [mem_ptr, BLOCK_HASH, NOTE_HASH]
+    # => [mem_ptr, BLOCK_COMMITMENT, NOTE_HASH]
 
     # Load and authenticate the NOTE_ROOT
     # ---------------------------------------------------------------------------------------------
 
-    # read data from advice and compute hash(BLOCK_SUB_HASH || NOTE_ROOT)
+    # read data from advice and compute hash(BLOCK_SUB_COMMITMENT || NOTE_ROOT)
     padw padw padw
     adv_pipe hperm
-    # => [PERM, COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
+    # => [PERM, COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_HASH]
 
     dropw
-    # => [COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
+    # => [COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_HASH]
 
-    # assert the computed block hash matches
+    # assert the computed block commitment matches
     movup.8 drop movupw.2
     assert_eqw.err=ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR
     # => [PERM, NOTE_HASH]
@@ -857,7 +862,7 @@ end
 #!      is_authenticated,
 #!      (
 #!        block_num,
-#!        BLOCK_SUB_HASH,
+#!        BLOCK_SUB_COMMITMENT,
 #!        NOTE_ROOT,
 #!      )?
 #!   ]
@@ -880,7 +885,7 @@ end
 #! - is_authenticated is the boolean indicating if the note contains an authentication proof.
 #! - optional values, required if `is_authenticated` is true:
 #!   - block_num is the note's creation block number.
-#!   - BLOCK_SUB_HASH is the block's sub_hash for which the note was created.
+#!   - BLOCK_SUB_COMMITMENT is the block's sub_commitment for which the note was created.
 #!   - NOTE_ROOT is the merkle root of the note's tree.
 proc.process_input_note
     # note details
@@ -1091,19 +1096,19 @@ end
 #!
 #! Inputs:
 #!   Operand stack: [
-#!     BLOCK_HASH,
+#!     BLOCK_COMMITMENT,
 #!     INITIAL_ACCOUNT_HASH,
 #!     INPUT_NOTES_COMMITMENT,
 #!     account_id_prefix, account_id_suffix, block_num,
 #!   ]
 #!   Advice stack: [
-#!     PREVIOUS_BLOCK_HASH,
+#!     PREV_BLOCK_COMMITMENT,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
-#!     TX_HASH,
-#!     KERNEL_ROOT
-#!     PROOF_HASH,
+#!     TX_COMMITMENT,
+#!     TX_KERNEL_COMMITMENT
+#!     PROOF_COMMITMENT,
 #!     [block_num, version, timestamp, 0],
 #!     NOTE_ROOT,
 #!     kernel_version
@@ -1117,7 +1122,7 @@ end
 #!   Advice map: {
 #!      CHAIN_MMR_HASH: [MMR_PEAKS],
 #!      INPUT_NOTES_COMMITMENT: [NOTE_DATA],
-#!      KERNEL_ROOT: [KERNEL_HASHES],
+#!      TX_KERNEL_COMMITMENT: [KERNEL_HASHES],
 #!      KERNEL_HASH: [KERNEL_PROCEDURE_HASHES],
 #!      ACCOUNT_CODE_COMMITMENT: [ACCOUNT_PROCEDURE_DATA],
 #!      ACCOUNT_STORAGE_COMMITMENT: [ACCOUNT_STORAGE_SLOT_DATA],
@@ -1127,20 +1132,20 @@ end
 #!   Advice stack: []
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the commitment to the reference block of the transaction.
 #! - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the transaction
 #!   is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-#! - KERNEL_ROOT is the accumulative hash from all kernel hashes.
-#! - PREVIOUS_BLOCK_HASH is the hash of the previous block.
+#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel hashes.
+#! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
 #! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
-#! - TX_HASH is the commitment to a set of IDs of transactions which affected accounts in the block.
-#! - PROOF_HASH is the hash of the block's stark proof.
+#! - TX_COMMITMENT is a commitment to the set of transaction IDs which affected accounts in the block.
+#! - PROOF_COMMITMENT is the commitment of the block's STARK proof attesting to the correct state transition.
 #! - block_num is the reference block number.
 #! - version is the current protocol version.
 #! - timestamp is the current timestamp.

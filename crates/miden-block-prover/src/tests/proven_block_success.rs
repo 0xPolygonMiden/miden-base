@@ -120,7 +120,7 @@ fn proven_block_success() -> anyhow::Result<()> {
         .prove_without_batch_verification(proposed_block)
         .context("failed to prove proposed block")?;
 
-    // Check tree/chain roots against expected values.
+    // Check tree/chain commitments against expected values.
     // --------------------------------------------------------------------------------------------
 
     assert_eq!(proven_block.header().nullifier_root(), expected_nullifier_tree.root());
@@ -128,9 +128,12 @@ fn proven_block_success() -> anyhow::Result<()> {
 
     // The Mmr in MockChain adds a new block after it is sealed, so at this point the chain contains
     // block2 and has length 3.
-    // This means the chain root of the mock chain must match the chain root of the ChainMmr with
-    // chain length 2 when the prev block (block2) is added.
-    assert_eq!(proven_block.header().chain_root(), chain.block_chain().peaks().hash_peaks());
+    // This means the chain commitment of the mock chain must match the chain commitment of the
+    // ChainMmr with chain length 2 when the prev block (block2) is added.
+    assert_eq!(
+        proven_block.header().chain_commitment(),
+        chain.block_chain().peaks().hash_peaks()
+    );
 
     assert_eq!(proven_block.header().note_root(), expected_block_note_tree.root());
     // Assert that the block note tree can be reconstructed.
@@ -361,7 +364,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     // --------------------------------------------------------------------------------------------
 
     let latest_block_header = chain.latest_block_header();
-    assert_eq!(latest_block_header.hash(), blockx.hash());
+    assert_eq!(latest_block_header.commitment(), blockx.commitment());
 
     // Sanity check: The account and nullifier tree roots should not be the empty tree roots.
     assert_ne!(
@@ -402,7 +405,10 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     assert_eq!(proven_block.header().note_root(), BlockNoteTree::empty().root());
 
     // The previous block header should have been added to the chain.
-    assert_eq!(proven_block.header().chain_root(), chain.block_chain().peaks().hash_peaks());
+    assert_eq!(
+        proven_block.header().chain_commitment(),
+        chain.block_chain().peaks().hash_peaks()
+    );
     assert_eq!(proven_block.header().block_num(), latest_block_header.block_num() + 1);
 
     Ok(())

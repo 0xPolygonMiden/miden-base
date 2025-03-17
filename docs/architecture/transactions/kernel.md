@@ -23,7 +23,7 @@ The kernel has a well-defined structure which does the following:
 The transaction kernel program receives two types of inputs: public inputs via the `operand_stack` and private inputs via the `advice_provider`.
 
 - **Operand stack**: Holds the global inputs which serve as a commitment to the data being provided via the advice provider.
-- **Advice provider**: Holds data of the last known block, account, and input note data.
+- **Advice provider**: Holds data of the transaction reference block, account, and input note data.
 
 ## Prologue
 
@@ -43,15 +43,15 @@ Tracks variables used internally by the transaction kernel.
 
 ### Global inputs
 
-Stored in pre-defined memory slots. Global inputs include the block hash, account ID, initial account hash, and nullifier commitment.
+Stored in pre-defined memory slots. Global inputs include the block commitment, account ID, initial account hash, and nullifier commitment.
 
 ### Block data
 
-Block data, read from the advice provider, is stored in memory. The block hash is computed and verified against the global inputs.
+Block data, read from the advice provider, is stored in memory. The block commitment is computed and verified against the global inputs.
 
 ### Chain data
 
-Chain root is recomputed and verified against the chain root in the block data section.
+Chain commitment is recomputed and verified against the chain commitment in the block data section.
 
 ### Account data
 

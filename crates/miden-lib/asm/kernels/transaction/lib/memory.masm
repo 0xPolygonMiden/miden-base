@@ -46,8 +46,8 @@ const.TX_EXPIRATION_BLOCK_NUM_PTR=28
 # The memory address at which the global inputs section begins.
 const.GLOBAL_INPUTS_SECTION_OFFSET=400
 
-# The memory address at which the latest known block hash is stored.
-const.BLK_HASH_PTR=400
+# The memory address at which the transaction reference block's commitment is stored.
+const.BLOCK_COMMITMENT_PTR=400
 
 # The memory address at which the account ID felts are stored.
 const.ACCT_ID_PTR=404
@@ -70,11 +70,11 @@ const.TX_SCRIPT_ROOT_PTR=420
 # The memory address at which the block data section begins
 const.BLOCK_DATA_SECTION_OFFSET=800
 
-# The memory address at which the previous block hash is stored
-const.PREV_BLOCK_HASH_PTR=800
+# The memory address at which the previous block commitment is stored
+const.PREV_BLOCK_COMMITMENT_PTR=800
 
-# The memory address at which the chain root is stored
-const.CHAIN_ROOT_PTR=804
+# The memory address at which the chain commitment is stored
+const.CHAIN_COMMITMENT_PTR=804
 
 # The memory address at which the account root is stored
 const.ACCT_DB_ROOT_PTR=808
@@ -82,14 +82,14 @@ const.ACCT_DB_ROOT_PTR=808
 # The memory address at which the nullifier root is stored
 const.NULLIFIER_ROOT_PTR=812
 
-# The memory address at which the tx hash is stored
-const.TX_HASH_PTR=816
+# The memory address at which the tx commitment is stored
+const.TX_COMMITMENT_PTR=816
 
-# The memory address at which the kernel root is stored
-const.KERNEL_ROOT_PTR=820
+# The memory address at which the kernel commitment is stored
+const.TX_KERNEL_COMMITMENT_PTR=820
 
-# The memory address at which the proof hash is stored
-const.PROOF_HASH_PTR=824
+# The memory address at which the proof commitment is stored
+const.PROOF_COMMITMENT_PTR=824
 
 # The memory address at which the block metadata is stored [block_number, version, timestamp, 0]
 const.BLOCK_METADATA_PTR=828
@@ -308,27 +308,27 @@ end
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
-#! Saves the hash of the reference block to memory.
+#! Sets the commitment of the transaction reference block.
 #!
-#! Inputs:  [BLOCK_HASH]
-#! Outputs: [BLOCK_HASH]
+#! Inputs:  [BLOCK_COMMITMENT]
+#! Outputs: [BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
-export.set_block_hash
-    push.BLK_HASH_PTR
+#! - BLOCK_COMMITMENT is the commitment of the transaction reference block.
+export.set_block_commitment
+    push.BLOCK_COMMITMENT_PTR
     mem_storew
 end
 
-#! Returns the block hash of the reference block.
+#! Returns the block commitment of the reference block.
 #!
 #! Inputs:  []
-#! Outputs: [BLOCK_HASH]
+#! Outputs: [BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
-export.get_block_hash
-    padw push.BLK_HASH_PTR mem_loadw
+#! - BLOCK_COMMITMENT is the commitment of the transaction reference block.
+export.get_block_commitment
+    padw push.BLOCK_COMMITMENT_PTR mem_loadw
 end
 
 #! Sets the account ID.
@@ -466,35 +466,35 @@ export.get_block_data_ptr
     push.BLOCK_DATA_SECTION_OFFSET
 end
 
-#! Returns the previous block hash of the last known block.
+#! Returns the previous block commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [PREV_BLOCK_HASH]
+#! Outputs: [PREV_BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - PREV_BLOCK_HASH is the previous block hash of the last known block.
-export.get_prv_blk_hash
-    padw push.PREV_BLOCK_HASH_PTR mem_loadw
+#! - PREV_BLOCK_COMMITMENT_PTR is the block commitment of the transaction reference block.
+export.get_prev_block_commitment
+    padw push.PREV_BLOCK_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the block number of the last known block.
+#! Returns the block number of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [blk_num]
 #!
 #! Where:
-#! - blk_num is the block number of the last known block.
+#! - blk_num is the block number of the transaction reference block.
 export.get_blk_num
     push.BLOCK_METADATA_PTR mem_load
 end
 
-#! Returns the protocol version of the last known block.
+#! Returns the protocol version of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [version]
 #!
 #! Where:
-#! - version is the protocol version of the last known block.
+#! - version is the protocol version of the transaction reference block.
 export.get_blk_version
     padw push.BLOCK_METADATA_PTR mem_loadw drop drop swap drop
 end
@@ -510,90 +510,90 @@ export.get_blk_timestamp
     padw push.BLOCK_METADATA_PTR mem_loadw drop movdn.2 drop drop
 end
 
-#! Returns the chain root of the last known block.
+#! Returns the chain commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [CHAIN_ROOT]
+#! Outputs: [CHAIN_COMMITMENT]
 #!
 #! Where:
-#! - CHAIN_ROOT is the chain root of the last known block.
-export.get_chain_root
-    padw push.CHAIN_ROOT_PTR mem_loadw
+#! - CHAIN_COMMITMENT is the chain commitment of the transaction reference block.
+export.get_chain_commitment
+    padw push.CHAIN_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the account db root of the last known block.
+#! Returns the account db root of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [ACCT_DB_ROOT]
 #!
 #! Where:
-#! - ACCT_DB_ROOT is the account database root of the last known block.
+#! - ACCT_DB_ROOT is the account database root of the transaction reference block.
 export.get_acct_db_root
     padw push.ACCT_DB_ROOT_PTR mem_loadw
 end
 
-#! Returns the nullifier db root of the last known block.
+#! Returns the nullifier db root of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [NULLIFIER_ROOT]
 #!
 #! Where:
-#! - NULLIFIER_ROOT is the nullifier root of the last known block.
+#! - NULLIFIER_ROOT is the nullifier root of the transaction reference block.
 export.get_nullifier_db_root
     padw push.NULLIFIER_ROOT_PTR mem_loadw
 end
 
-#! Returns the tx hash of the last known block.
+#! Returns the tx commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [TX_HASH]
+#! Outputs: [TX_COMMITMENT]
 #!
 #! Where:
-#! - TX_HASH is the tx hash of the last known block.
-export.get_tx_hash
-    padw push.TX_HASH_PTR mem_loadw
+#! - TX_COMMITMENT is the tx commitment of the transaction reference block.
+export.get_tx_commitment
+    padw push.TX_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the kernel root used in the last known block.
+#! Returns the transaction kernel commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [KERNEL_ROOT]
+#! Outputs: [TX_KERNEL_COMMITMENT]
 #!
 #! Where:
-#! - KERNEL_ROOT is an accumulative hash from all kernel hashes.
-export.get_kernel_root
-    padw push.KERNEL_ROOT_PTR mem_loadw
+#! - TX_KERNEL_COMMITMENT is an accumulative hash from all kernel hashes.
+export.get_tx_kernel_commitment
+    padw push.TX_KERNEL_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the proof hash of the last known block.
+#! Returns the proof commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [PROOF_HASH]
+#! Outputs: [PROOF_COMMITMENT]
 #!
 #! Where:
-#! - PROOF_HASH is the proof hash of the last known block.
-export.get_proof_hash
-    padw push.PROOF_HASH_PTR mem_loadw
+#! - PROOF_COMMITMENT is the proof commitment of the transaction reference block.
+export.get_proof_commitment
+    padw push.PROOF_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the note root of the last known block.
+#! Returns the note root of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [NOTE_ROOT]
 #!
 #! Where:
-#! - NOTE_ROOT is the note root of the last known block.
+#! - NOTE_ROOT is the note root of the transaction reference block.
 export.get_note_root
     padw push.NOTE_ROOT_PTR mem_loadw
 end
 
-#! Sets the note root of the last known block.
+#! Sets the note root of the transaction reference block.
 #!
 #! Inputs:  [NOTE_ROOT]
 #! Outputs: [NOTE_ROOT]
 #!
 #! Where:
-#! - NOTE_ROOT is the note root of the last known block.
+#! - NOTE_ROOT is the note root of the transaction reference block.
 export.set_note_root
     push.NOTE_ROOT_PTR
     mem_storew

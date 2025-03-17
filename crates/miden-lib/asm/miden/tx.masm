@@ -1,12 +1,12 @@
 use.miden::kernel_proc_offsets
 
-#! Returns the block number of the last known block at the time of transaction execution.
+#! Returns the block number of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [num]
 #!
 #! Where:
-#! - num is the last known block number.
+#! - num is the transaction reference block number.
 #!
 #! Invocation: exec
 export.get_block_number
@@ -25,29 +25,29 @@ export.get_block_number
     # => [num]
 end
 
-#! Returns the block hash of the reference block.
+#! Returns the block commitment of the transaction reference block.
 #!
 #! Inputs:  []
-#! Outputs: [BLOCK_HASH]
+#! Outputs: [BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - BLOCK_HASH, reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the commitment to the reference block of the transaction.
 #!
 #! Invocation: exec
-export.get_block_hash
+export.get_block_commitment
     # pad the stack
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::tx_get_block_hash_offset
+    exec.kernel_proc_offsets::tx_get_block_commitment_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [BLOCK_HASH, pad(12)]
+    # => [BLOCK_COMMITMENT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [BLOCK_HASH]
+    # => [BLOCK_COMMITMENT]
 end
 
 #! Returns the timestamp of the reference block for this transaction.

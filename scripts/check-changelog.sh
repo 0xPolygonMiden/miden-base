@@ -1,7 +1,7 @@
 #!/bin/bash
 set -uo pipefail
 
-CHANGELOG_FILE="${1:-CHANGELOG.md}"
+CHANGELOG_FILE="CHANGELOG.md"
 
 if [ "${NO_CHANGELOG_LABEL}" = "true" ]; then
     # 'no changelog' set, so finish successfully
@@ -17,5 +17,5 @@ that are trivial / explicitly stated not to require a changelog entry."
         exit 1
     fi
 
-    echo "The \"CHANGELOG.md\" file has been updated."
+    echo "The ${CHANGELOG_FILE} file has been updated."
 fi

@@ -265,7 +265,7 @@ impl ProvenTransactionExt for ProvenTransaction {
             executed_tx.initial_account().init_hash(),
             executed_tx.final_account().hash(),
             block_reference.block_num(),
-            block_reference.hash(),
+            block_reference.commitment(),
             executed_tx.expiration_block_num(),
             ExecutionProof::new(Proof::new_dummy(), Default::default()),
         )

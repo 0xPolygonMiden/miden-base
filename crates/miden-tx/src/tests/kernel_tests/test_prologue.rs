@@ -4,25 +4,26 @@ use anyhow::Context;
 use miden_lib::{
     account::wallets::BasicWallet,
     errors::tx_kernel_errors::{
-        ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH,
+        ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH,
         ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
         ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
     },
     transaction::{
         memory::{
-            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
-            BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLOCK_COMMITMENT_PTR, BLOCK_METADATA_PTR,
+            BLOCK_NUMBER_IDX, CHAIN_COMMITMENT_PTR, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
             INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
             INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
             INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
             INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
-            KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
+            NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
             NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
             NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
             NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
-            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
-            TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_COMMITMENT_PTR, PROOF_COMMITMENT_PTR,
+            PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_COMMITMENT_PTR, TX_KERNEL_COMMITMENT_PTR,
+            TX_SCRIPT_ROOT_PTR,
         },
         TransactionKernel,
     },
@@ -108,9 +109,9 @@ fn test_transaction_prologue() {
 
 fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_word(&process.into(), BLK_HASH_PTR),
-        inputs.tx_inputs().block_header().hash().as_elements(),
-        "The block hash should be stored at the BLK_HASH_PTR"
+        read_root_mem_word(&process.into(), BLOCK_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().commitment().as_elements(),
+        "The block commitment should be stored at the BLOCK_COMMITMENT_PTR"
     );
 
     assert_eq!(
@@ -151,21 +152,21 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
 
 fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_word(&process.into(), BLK_HASH_PTR),
-        inputs.tx_inputs().block_header().hash().as_elements(),
-        "The block hash should be stored at the BLK_HASH_PTR"
+        read_root_mem_word(&process.into(), BLOCK_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().commitment().as_elements(),
+        "The block commitment should be stored at the BLOCK_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), PREV_BLOCK_HASH_PTR),
-        inputs.tx_inputs().block_header().prev_hash().as_elements(),
-        "The previous block hash should be stored at the PREV_BLK_HASH_PTR"
+        read_root_mem_word(&process.into(), PREV_BLOCK_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().prev_block_commitment().as_elements(),
+        "The previous block commitment should be stored at the PARENT_BLOCK_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), CHAIN_ROOT_PTR),
-        inputs.tx_inputs().block_header().chain_root().as_elements(),
-        "The chain root should be stored at the CHAIN_ROOT_PTR"
+        read_root_mem_word(&process.into(), CHAIN_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().chain_commitment().as_elements(),
+        "The chain commitment should be stored at the CHAIN_COMMITMENT_PTR"
     );
 
     assert_eq!(
@@ -181,21 +182,21 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), TX_HASH_PTR),
-        inputs.tx_inputs().block_header().tx_hash().as_elements(),
-        "The TX hash should be stored at the TX_HASH_PTR"
+        read_root_mem_word(&process.into(), TX_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().tx_commitment().as_elements(),
+        "The TX commitment should be stored at the TX_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), KERNEL_ROOT_PTR),
-        inputs.tx_inputs().block_header().kernel_root().as_elements(),
-        "The kernel root should be stored at the KERNEL_ROOT_PTR"
+        read_root_mem_word(&process.into(), TX_KERNEL_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().tx_kernel_commitment().as_elements(),
+        "The kernel commitment should be stored at the TX_KERNEL_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), PROOF_HASH_PTR),
-        inputs.tx_inputs().block_header().proof_hash().as_elements(),
-        "The proof hash should be stored at the PROOF_HASH_PTR"
+        read_root_mem_word(&process.into(), PROOF_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().proof_commitment().as_elements(),
+        "The proof commitment should be stored at the PROOF_COMMITMENT_PTR"
     );
 
     assert_eq!(
@@ -531,7 +532,7 @@ fn compute_valid_account_id(
         AccountIdVersion::Version0,
         account.code().commitment(),
         account.storage().commitment(),
-        anchor_block_header.hash(),
+        anchor_block_header.commitment(),
     )
     .unwrap();
 
@@ -641,7 +642,7 @@ pub fn create_account_invalid_seed() {
 
     let result = tx_context.execute_code(code);
 
-    assert_execution_error!(result, ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH)
+    assert_execution_error!(result, ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH)
 }
 
 #[test]

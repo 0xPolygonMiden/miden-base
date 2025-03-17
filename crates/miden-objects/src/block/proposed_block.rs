@@ -64,7 +64,8 @@ impl ProposedBlock {
     /// timestamp.
     ///
     /// This checks most of the constraints of a block and computes most of the data structure
-    /// updates except for the more expensive tree updates (nullifier, account and chain root).
+    /// updates except for the more expensive tree updates (nullifier, account and chain
+    /// commitment).
     ///
     /// # Errors
     ///
@@ -81,8 +82,8 @@ impl ProposedBlock {
     ///
     /// - The length of the [`ChainMmr`] in the block inputs is not equal to the previous block
     ///   header in the block inputs.
-    /// - The [`ChainMmr`]'s chain root is not equal to the [`BlockHeader::chain_root`] of the
-    ///   previous block header.
+    /// - The [`ChainMmr`]'s chain commitment is not equal to the [`BlockHeader::chain_commitment`]
+    ///   of the previous block header.
     ///
     /// ## Notes
     ///
@@ -453,7 +454,7 @@ fn remove_erased_nullifiers(
 /// - the chain length of the chain MMR is equal to the block number of the previous block header,
 ///   i.e. the chain MMR's latest block is the previous' blocks reference block. The previous block
 ///   header will be added to the chain MMR as part of constructing the current block.
-/// - the root of the chain MMR is equivalent to the chain root of the previous block header.
+/// - the root of the chain MMR is equivalent to the chain commitment of the previous block header.
 fn check_reference_block_chain_mmr_consistency(
     chain_mmr: &ChainMmr,
     prev_block_header: &BlockHeader,
@@ -467,11 +468,11 @@ fn check_reference_block_chain_mmr_consistency(
         });
     }
 
-    let chain_root = chain_mmr.peaks().hash_peaks();
-    if chain_root != prev_block_header.chain_root() {
-        return Err(ProposedBlockError::ChainRootNotEqualToPreviousBlockChainRoot {
-            chain_root,
-            prev_block_chain_root: prev_block_header.chain_root(),
+    let chain_commitment = chain_mmr.peaks().hash_peaks();
+    if chain_commitment != prev_block_header.chain_commitment() {
+        return Err(ProposedBlockError::ChainRootNotEqualToPreviousBlockChainCommitment {
+            chain_commitment,
+            prev_block_chain_commitment: prev_block_header.chain_commitment(),
             prev_block_num: prev_block_header.block_num(),
         });
     }

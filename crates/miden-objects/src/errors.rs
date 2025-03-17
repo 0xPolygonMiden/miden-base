@@ -412,8 +412,8 @@ pub enum TransactionInputError {
         expected: BlockNumber,
         actual: BlockNumber,
     },
-    #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
-    InconsistentChainRoot { expected: Digest, actual: Digest },
+    #[error("chain mmr has commitment {actual} which does not match the block header's chain commitment {expected}")]
+    InconsistentChainCommitment { expected: Digest, actual: Digest },
     #[error("block in which input note with id {0} was created is not in chain mmr")]
     InputNoteBlockNotInChainMmr(NoteId),
     #[error("input note with id {0} was not created in block {1}")]
@@ -629,10 +629,10 @@ pub enum ProposedBlockError {
         prev_block_num: BlockNumber,
     },
 
-    #[error("chain mmr has root {chain_root} which does not match the chain root {prev_block_chain_root} of the previous block {prev_block_num}")]
-    ChainRootNotEqualToPreviousBlockChainRoot {
-        chain_root: Digest,
-        prev_block_chain_root: Digest,
+    #[error("chain mmr has commitment {chain_commitment} which does not match the chain commitment {prev_block_chain_commitment} of the previous block {prev_block_num}")]
+    ChainRootNotEqualToPreviousBlockChainCommitment {
+        chain_commitment: Digest,
+        prev_block_chain_commitment: Digest,
         prev_block_num: BlockNumber,
     },
 

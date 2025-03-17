@@ -65,7 +65,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     digest!("0x16cb840dc9131e2fd2b3e83b8d796eb466722ae36f29f27b4b053f1bee2ed473"),
     // tx_get_output_notes_commitment
     digest!("0x0c241940512d130ad36c70c4e946285cb5841f2655c4fe12df001cb834256a29"),
-    // tx_get_block_hash
+    // tx_get_block_commitment
     digest!("0xe474b491a64d222397fcf83ee5db7b048061988e5e83ce99b91bae6fd75a3522"),
     // tx_get_block_number
     digest!("0x297797dff54b8108dd2df254b95d43895d3f917ab10399efc62adaf861c905ae"),

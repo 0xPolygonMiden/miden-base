@@ -37,10 +37,10 @@ pub struct ProvenTransaction {
     ///
     /// This is not needed for proving the transaction, but it is useful for the node to lookup the
     /// block.
-    block_num: BlockNumber,
+    ref_block_num: BlockNumber,
 
-    /// The block hash of the last known block at the time the transaction was executed.
-    block_ref: Digest,
+    /// The block commitment of the transaction's reference block.
+    ref_block_commitment: Digest,
 
     /// The block number by which the transaction will expire, as defined by the executed scripts.
     expiration_block_num: BlockNumber,
@@ -81,13 +81,13 @@ impl ProvenTransaction {
     }
 
     /// Returns the number of the reference block the transaction was executed against.
-    pub fn block_num(&self) -> BlockNumber {
-        self.block_num
+    pub fn ref_block_num(&self) -> BlockNumber {
+        self.ref_block_num
     }
 
-    /// Returns the block reference the transaction was executed against.
-    pub fn block_ref(&self) -> Digest {
-        self.block_ref
+    /// Returns the commitment of the block transaction was executed against.
+    pub fn ref_block_commitment(&self) -> Digest {
+        self.ref_block_commitment
     }
 
     /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
@@ -163,8 +163,8 @@ impl Serializable for ProvenTransaction {
         self.account_update.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
-        self.block_num.write_into(target);
-        self.block_ref.write_into(target);
+        self.ref_block_num.write_into(target);
+        self.ref_block_commitment.write_into(target);
         self.expiration_block_num.write_into(target);
         self.proof.write_into(target);
     }
@@ -177,8 +177,8 @@ impl Deserializable for ProvenTransaction {
         let input_notes = <InputNotes<InputNoteCommitment>>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
 
-        let block_num = BlockNumber::read_from(source)?;
-        let block_ref = Digest::read_from(source)?;
+        let ref_block_num = BlockNumber::read_from(source)?;
+        let ref_block_commitment = Digest::read_from(source)?;
         let expiration_block_num = BlockNumber::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
@@ -194,8 +194,8 @@ impl Deserializable for ProvenTransaction {
             account_update,
             input_notes,
             output_notes,
-            block_num,
-            block_ref,
+            ref_block_num,
+            ref_block_commitment,
             expiration_block_num,
             proof,
         };
@@ -231,10 +231,10 @@ pub struct ProvenTransactionBuilder {
     output_notes: Vec<OutputNote>,
 
     /// [`BlockNumber`] of the transaction's reference block.
-    block_num: BlockNumber,
+    ref_block_num: BlockNumber,
 
     /// Block [Digest] of the transaction's reference block.
-    block_ref: Digest,
+    ref_block_commitment: Digest,
 
     /// The block number by which the transaction will expire, as defined by the executed scripts.
     expiration_block_num: BlockNumber,
@@ -252,8 +252,8 @@ impl ProvenTransactionBuilder {
         account_id: AccountId,
         initial_account_hash: Digest,
         final_account_hash: Digest,
-        block_num: BlockNumber,
-        block_ref: Digest,
+        ref_block_num: BlockNumber,
+        ref_block_commitment: Digest,
         expiration_block_num: BlockNumber,
         proof: ExecutionProof,
     ) -> Self {
@@ -264,8 +264,8 @@ impl ProvenTransactionBuilder {
             account_update_details: AccountUpdateDetails::Private,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
-            block_num,
-            block_ref,
+            ref_block_num,
+            ref_block_commitment,
             expiration_block_num,
             proof,
         }
@@ -328,8 +328,8 @@ impl ProvenTransactionBuilder {
             account_update,
             input_notes,
             output_notes,
-            block_num: self.block_num,
-            block_ref: self.block_ref,
+            ref_block_num: self.ref_block_num,
+            ref_block_commitment: self.ref_block_commitment,
             expiration_block_num: self.expiration_block_num,
             proof: self.proof,
         };
@@ -643,8 +643,8 @@ mod tests {
         let initial_account_hash =
             [2; 32].try_into().expect("failed to create initial account hash");
         let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
-        let block_num = BlockNumber::from(1);
-        let block_ref = Digest::default();
+        let ref_block_num = BlockNumber::from(1);
+        let ref_block_commitment = Digest::default();
         let expiration_block_num = BlockNumber::from(2);
         let proof = ExecutionProof::new(Proof::new_dummy(), Default::default());
 
@@ -652,8 +652,8 @@ mod tests {
             account_id,
             initial_account_hash,
             final_account_hash,
-            block_num,
-            block_ref,
+            ref_block_num,
+            ref_block_commitment,
             expiration_block_num,
             proof,
         )

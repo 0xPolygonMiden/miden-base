@@ -44,13 +44,13 @@ pub(super) fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
-///     PREVIOUS_BLOCK_HASH,
+///     PARENT_BLOCK_COMMITMENT,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
-///     TX_HASH,
-///     KERNEL_ROOT
-///     PROOF_HASH,
+///     TX_COMMITMENT,
+///     TX_KERNEL_COMMITMENT
+///     PROOF_COMMITMENT,
 ///     [block_num, version, timestamp, 0],
 ///     NOTE_ROOT,
 ///     kernel_version
@@ -71,13 +71,13 @@ fn build_advice_stack(
 
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
-    inputs.extend_stack(header.prev_hash());
-    inputs.extend_stack(header.chain_root());
+    inputs.extend_stack(header.prev_block_commitment());
+    inputs.extend_stack(header.chain_commitment());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
-    inputs.extend_stack(header.tx_hash());
-    inputs.extend_stack(header.kernel_root());
-    inputs.extend_stack(header.proof_hash());
+    inputs.extend_stack(header.tx_commitment());
+    inputs.extend_stack(header.tx_kernel_commitment());
+    inputs.extend_stack(header.proof_commitment());
     inputs.extend_stack([
         header.block_num().into(),
         header.version().into(),
@@ -215,7 +215,7 @@ fn add_account_to_advice_inputs(
 ///     - The note's asset padded. Prefixed by its length and padded to an even word length.
 ///     - For authenticated notes (determined by the `is_authenticated` flag):
 ///         - The note's authentication path against its block's note tree.
-///         - The block number, sub hash, note root.
+///         - The block number, sub commitment, note root.
 ///         - The note's position in the note tree
 ///
 /// The data above is processed by `prologue::process_input_notes_data`.
@@ -283,7 +283,7 @@ fn add_input_notes_to_advice_inputs(
                         .unwrap(),
                 );
                 note_data.push(proof.location().block_num().into());
-                note_data.extend(note_block_header.sub_hash());
+                note_data.extend(note_block_header.sub_commitment());
                 note_data.extend(note_block_header.note_root());
                 note_data.push(proof.location().node_index_in_block().into());
             },
@@ -326,5 +326,5 @@ pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_vers
     )]);
 
     // insert kernels root with kernel hashes into the advice map
-    inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
+    inputs.extend_map([(TransactionKernel::kernel_commitment(), kernel_hashes)]);
 }

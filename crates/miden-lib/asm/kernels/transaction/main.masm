@@ -48,11 +48,17 @@ const.EPILOGUE_END=131081
 #! See `prologue::prepare_transaction` for additional details on the VM's initial state, including
 #! the advice provider.
 #!
-#! Inputs:  [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Inputs: [
+#!   BLOCK_COMMITMENT,
+#!   INITIAL_ACCOUNT_HASH,
+#!   INPUT_NOTES_COMMITMENT,
+#!   account_id_prefix, account_id_suffix, block_num,
+#! ]
 #! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
 #!
 #! Where:
-#! - BLOCK_HASH is the reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the reference block for the transaction execution.
+#! - block_num is the reference block number.
 #! - account_id is the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.

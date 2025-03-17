@@ -56,7 +56,7 @@ const.TX_GET_INPUT_NOTES_COMMITMENT_OFFSET=27
 const.TX_GET_OUTPUT_NOTES_COMMITMENT_OFFSET=28
 
 # block info
-const.TX_GET_BLOCK_HASH_OFFSET=29
+const.TX_GET_BLOCK_COMMITMENT_OFFSET=29
 const.TX_GET_BLOCK_NUMBER_OFFSET=30
 const.TX_GET_BLOCK_TIMESTAMP_OFFSET=31
 
@@ -427,16 +427,16 @@ export.tx_get_output_notes_commitment_offset
     push.TX_GET_OUTPUT_NOTES_COMMITMENT_OFFSET
 end
 
-#! Returns the offset of the `tx_get_block_hash` kernel procedure.
+#! Returns the offset of the `tx_get_block_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `tx_get_block_hash` kernel procedure required to get the
+#! - proc_offset is the offset of the `tx_get_block_commitment` kernel procedure required to get the
 #!   address where this procedure is stored.
-export.tx_get_block_hash_offset
-    push.TX_GET_BLOCK_HASH_OFFSET
+export.tx_get_block_commitment_offset
+    push.TX_GET_BLOCK_COMMITMENT_OFFSET
 end
 
 #! Returns the offset of the `tx_get_block_number` kernel procedure.

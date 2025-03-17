@@ -445,7 +445,7 @@ impl MockChain {
         let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
 
         let (batch_reference_block, chain_mmr) =
-            self.get_batch_inputs(transactions.iter().map(|tx| tx.block_num()));
+            self.get_batch_inputs(transactions.iter().map(|tx| tx.ref_block_num()));
 
         // TODO: Get the actual proofs as part of get_batch_inputs.
         let unauthenticated_note_proofs = BTreeMap::new();
@@ -476,7 +476,7 @@ impl MockChain {
 
         ProvenBatch::new_unchecked(
             id,
-            block_header.hash(),
+            block_header.commitment(),
             block_header.block_num(),
             account_updates,
             input_notes,
@@ -843,9 +843,10 @@ impl MockChain {
             let version = 0;
             let previous = self.blocks.last();
             let peaks = self.chain.peaks();
-            let chain_root: Digest = peaks.hash_peaks();
+            let chain_commitment: Digest = peaks.hash_peaks();
             let account_root = self.accounts.root();
-            let prev_hash = previous.map_or(Digest::default(), |block| block.hash());
+            let prev_block_commitment =
+                previous.map_or(Digest::default(), |block| block.commitment());
             let nullifier_root = self.nullifiers.root();
             let note_root = notes_tree.root();
 
@@ -866,26 +867,26 @@ impl MockChain {
                 }
             }
 
-            let tx_hash = BlockHeader::compute_tx_commitment(
+            let tx_commitment = BlockHeader::compute_tx_commitment(
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
 
-            let kernel_root = TransactionKernel::kernel_root();
+            let tx_kernel_commitment = TransactionKernel::kernel_commitment();
 
-            // TODO: Set `proof_hash` to the correct value once the kernel is available.
-            let proof_hash = Digest::default();
+            // TODO: Set `proof_commitment` to the correct value once the kernel is available.
+            let proof_commitment = Digest::default();
 
             let header = BlockHeader::new(
                 version,
-                prev_hash,
+                prev_block_commitment,
                 BlockNumber::from(current_block_num),
-                chain_root,
+                chain_commitment,
                 account_root,
                 nullifier_root,
                 note_root,
-                tx_hash,
-                kernel_root,
-                proof_hash,
+                tx_commitment,
+                tx_kernel_commitment,
+                proof_commitment,
                 block_timestamp,
             );
 
@@ -929,7 +930,7 @@ impl MockChain {
             }
 
             self.blocks.push(block.clone());
-            self.chain.add(header.hash());
+            self.chain.add(header.commitment());
             self.reset_pending();
 
             last_block = Some(block);
@@ -979,7 +980,7 @@ impl MockChain {
         let block_headers: Vec<_> = reference_blocks
             .into_iter()
             .map(|block_ref_num| self.block_header(block_ref_num.as_usize()))
-            .filter(|block_header| block_header.hash() != latest_block_header.hash())
+            .filter(|block_header| block_header.commitment() != latest_block_header.commitment())
             .collect();
 
         let chain_mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();

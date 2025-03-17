@@ -65,9 +65,9 @@ impl ProvenBlock {
         }
     }
 
-    /// Returns a commitment to this block.
-    pub fn hash(&self) -> Digest {
-        self.header.hash()
+    /// Returns the commitment to this block.
+    pub fn commitment(&self) -> Digest {
+        self.header.commitment()
     }
 
     /// Returns the header of this block.

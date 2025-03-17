@@ -157,7 +157,7 @@ impl ProverRpcApi {
         let proven_block = prover.prove(proposed_block).map_err(internal_error)?;
 
         // Record the commitment of the block in the current tracing span
-        let block_id = proven_block.hash();
+        let block_id = proven_block.commitment();
 
         tracing::Span::current().record("id", tracing::field::display(&block_id));
 

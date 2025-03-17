@@ -17,7 +17,7 @@ pub struct MockProvenTxBuilder {
     account_id: AccountId,
     initial_account_commitment: Digest,
     final_account_commitment: Digest,
-    block_reference: Option<Digest>,
+    ref_block_commitment: Option<Digest>,
     expiration_block_num: BlockNumber,
     output_notes: Option<Vec<OutputNote>>,
     input_notes: Option<Vec<InputNote>>,
@@ -36,7 +36,7 @@ impl MockProvenTxBuilder {
             account_id,
             initial_account_commitment,
             final_account_commitment,
-            block_reference: None,
+            ref_block_commitment: None,
             expiration_block_num: BlockNumber::from(u32::MAX),
             output_notes: None,
             input_notes: None,
@@ -85,8 +85,8 @@ impl MockProvenTxBuilder {
 
     /// Sets the transaction's block reference.
     #[must_use]
-    pub fn block_reference(mut self, block_reference: Digest) -> Self {
-        self.block_reference = Some(block_reference);
+    pub fn ref_block_commitment(mut self, ref_block_commitment: Digest) -> Self {
+        self.ref_block_commitment = Some(ref_block_commitment);
 
         self
     }
@@ -98,7 +98,7 @@ impl MockProvenTxBuilder {
             self.initial_account_commitment,
             self.final_account_commitment,
             BlockNumber::from(0),
-            self.block_reference.unwrap_or_default(),
+            self.ref_block_commitment.unwrap_or_default(),
             self.expiration_block_num,
             ExecutionProof::new(Proof::new_dummy(), Default::default()),
         )

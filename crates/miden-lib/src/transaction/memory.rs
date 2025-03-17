@@ -86,8 +86,8 @@ pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 28;
 /// The memory address at which the global inputs section begins.
 pub const GLOBAL_INPUTS_SECTION_OFFSET: MemoryOffset = 400;
 
-/// The memory address at which the latest known block hash is stored.
-pub const BLK_HASH_PTR: MemoryAddress = 400;
+/// The memory address at which the commitment of the transaction's reference block is stored.
+pub const BLOCK_COMMITMENT_PTR: MemoryAddress = 400;
 
 /// The memory address at which the account ID is stored.
 pub const ACCT_ID_PTR: MemoryAddress = 404;
@@ -110,11 +110,11 @@ pub const TX_SCRIPT_ROOT_PTR: MemoryAddress = 420;
 /// The memory address at which the block data section begins
 pub const BLOCK_DATA_SECTION_OFFSET: MemoryOffset = 800;
 
-/// The memory address at which the previous block hash is stored
-pub const PREV_BLOCK_HASH_PTR: MemoryAddress = 800;
+/// The memory address at which the previous block commitment is stored
+pub const PREV_BLOCK_COMMITMENT_PTR: MemoryAddress = 800;
 
-/// The memory address at which the chain root is stored
-pub const CHAIN_ROOT_PTR: MemoryAddress = 804;
+/// The memory address at which the chain commitment is stored
+pub const CHAIN_COMMITMENT_PTR: MemoryAddress = 804;
 
 /// The memory address at which the state root is stored
 pub const ACCT_DB_ROOT_PTR: MemoryAddress = 808;
@@ -122,14 +122,14 @@ pub const ACCT_DB_ROOT_PTR: MemoryAddress = 808;
 /// The memory address at which the nullifier db root is store
 pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 812;
 
-/// The memory address at which the TX hash is stored
-pub const TX_HASH_PTR: MemoryAddress = 816;
+/// The memory address at which the TX commitment is stored
+pub const TX_COMMITMENT_PTR: MemoryAddress = 816;
 
-/// The memory address at which the kernel root is stored
-pub const KERNEL_ROOT_PTR: MemoryAddress = 820;
+/// The memory address at which the transaction kernel commitment is stored
+pub const TX_KERNEL_COMMITMENT_PTR: MemoryAddress = 820;
 
-/// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: MemoryAddress = 824;
+/// The memory address at which the proof commitment is stored
+pub const PROOF_COMMITMENT_PTR: MemoryAddress = 824;
 
 /// The memory address at which the block number is stored
 pub const BLOCK_METADATA_PTR: MemoryAddress = 828;
