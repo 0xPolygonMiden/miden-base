@@ -445,7 +445,7 @@ impl MockChain {
         let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
 
         let (batch_reference_block, chain_mmr) =
-            self.get_batch_inputs(transactions.iter().map(|tx| tx.block_num()));
+            self.get_batch_inputs(transactions.iter().map(|tx| tx.ref_block_num()));
 
         // TODO: Get the actual proofs as part of get_batch_inputs.
         let unauthenticated_note_proofs = BTreeMap::new();

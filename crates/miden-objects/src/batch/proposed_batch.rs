@@ -169,11 +169,11 @@ impl ProposedBatch {
         // --------------------------------------------------------------------------------------------
 
         for tx in transactions.iter() {
-            if reference_block_header.block_num() != tx.block_num()
-                && !chain_mmr.contains_block(tx.block_num())
+            if reference_block_header.block_num() != tx.ref_block_num()
+                && !chain_mmr.contains_block(tx.ref_block_num())
             {
                 return Err(ProposedBatchError::MissingTransactionBlockReference {
-                    block_reference: tx.block_commitment(),
+                    block_reference: tx.ref_block_commitment(),
                     transaction_id: tx.id(),
                 });
             }
