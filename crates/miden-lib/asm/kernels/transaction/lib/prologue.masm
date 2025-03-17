@@ -553,14 +553,14 @@ end
 #!   created in.
 #!
 #! Inputs:
-#!   Operand stack: [NOTE_HASH]
+#!   Operand stack: [NOTE_COMMITMENT]
 #!   Advice stack: [block_num, BLOCK_SUB_COMMITMENT, NOTE_ROOT, note_index]
 #! Outputs:
 #!   Operand stack: []
 #!   Advice stack: []
 #!
 #! Where:
-#! - NOTE_HASH is the input note's commitment computed as `hash(NOTE_ID || NOTE_METADATA)`.
+#! - NOTE_COMMITMENT is the input note's commitment computed as `hash(NOTE_ID || NOTE_METADATA)`.
 #! - block_num is the leaf position in the MMR chain of the block which created the input note.
 #! - BLOCK_SUB_COMMITMENT is the sub_commitment of the block which created the input note.
 #! - NOTE_ROOT is the merkle root of the notes tree containing the input note.
@@ -570,13 +570,13 @@ proc.authenticate_note.8
     # ---------------------------------------------------------------------------------------------
 
     exec.memory::get_chain_mmr_ptr adv_push.1
-    # => [block_num, chain_mmr_ptr, NOTE_HASH]
+    # => [block_num, chain_mmr_ptr, NOTE_COMMITMENT]
 
     exec.mmr::get
-    # => [BLOCK_COMMITMENT, NOTE_HASH]
+    # => [BLOCK_COMMITMENT, NOTE_COMMITMENT]
 
     locaddr.0
-    # => [mem_ptr, BLOCK_COMMITMENT, NOTE_HASH]
+    # => [mem_ptr, BLOCK_COMMITMENT, NOTE_COMMITMENT]
 
     # Load and authenticate the NOTE_ROOT
     # ---------------------------------------------------------------------------------------------
@@ -584,34 +584,34 @@ proc.authenticate_note.8
     # read data from advice and compute hash(BLOCK_SUB_COMMITMENT || NOTE_ROOT)
     padw padw padw
     adv_pipe hperm
-    # => [PERM, COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_HASH]
+    # => [PERM, COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_COMMITMENT]
 
     dropw
-    # => [COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_HASH]
+    # => [COMPUTED_BLOCK_COMMITMENT, PERM, mem_ptr', BLOCK_COMMITMENT, NOTE_COMMITMENT]
 
     # assert the computed block commitment matches
     movup.8 drop movupw.2
     assert_eqw.err=ERR_PROLOGUE_MISMATCH_OF_REFERENCE_BLOCK_MMR_AND_NOTE_AUTHENTICATION_MMR
-    # => [PERM, NOTE_HASH]
+    # => [PERM, NOTE_COMMITMENT]
 
-    # Authenticate the NOTE_HASH
+    # Authenticate the NOTE_COMMITMENT
     # ---------------------------------------------------------------------------------------------
 
     # load the note root from memory
     loc_loadw.4 swapw
-    # => [NOTE_HASH, NOTE_ROOT]
+    # => [NOTE_COMMITMENT, NOTE_ROOT]
 
     # load the index of the note
     adv_push.1 movdn.4
-    # => [NOTE_HASH, note_index, NOTE_ROOT]
+    # => [NOTE_COMMITMENT, note_index, NOTE_ROOT]
 
     # get the depth of the note tree
     exec.constants::get_note_tree_depth movdn.4
-    # => [NOTE_HASH, depth, note_index, NOTE_ROOT]
+    # => [NOTE_COMMITMENT, depth, note_index, NOTE_ROOT]
 
-    # verify the note hash
+    # verify the note commitment
     mtree_verify
-    # => [NOTE_HASH, depth, note_index, NOTE_ROOT]
+    # => [NOTE_COMMITMENT, depth, note_index, NOTE_ROOT]
 
     dropw drop drop dropw
     # => []
@@ -659,8 +659,8 @@ end
 #! - The note's ARGS are not authenticated, these are optional arguments the user can provide when
 #!   consuming the note.
 #! - The note's metadata is authenticated, so the data is returned in the stack. The value is used
-#!   to compute the NOTE_HASH as `hash(NOTE_ID || NOTE_METADATA)`, which is the leaf value of the
-#!   note's tree in the contained in the block header. The NOTE_HASH is either verified by this
+#!   to compute the NOTE_COMMITMENT as `hash(NOTE_ID || NOTE_METADATA)`, which is the leaf value of the
+#!   note's tree in the contained in the block header. The NOTE_COMMITMENT is either verified by this
 #!   kernel, or delayed to be verified by another kernel (e.g. block or batch kernels).
 #!
 #! Inputs:
@@ -933,15 +933,15 @@ proc.process_input_note
     # note authentication
     # ---------------------------------------------------------------------------------------------
 
-    # NOTE_HASH: `hash(NOTE_ID || NOTE_METADATA)`
+    # NOTE_COMMITMENT: `hash(NOTE_ID || NOTE_METADATA)`
     swapw hmerge
-    # => [NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
+    # => [NOTE_COMMITMENT, NULLIFIER, HASHER_CAPACITY]
 
     adv_push.1
-    # => [is_authenticated, NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
+    # => [is_authenticated, NOTE_COMMITMENT, NULLIFIER, HASHER_CAPACITY]
 
     if.true
-        # => [NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
+        # => [NOTE_COMMITMENT, NULLIFIER, HASHER_CAPACITY]
 
         exec.authenticate_note
         # => [NULLIFIER, HASHER_CAPACITY]
@@ -949,7 +949,7 @@ proc.process_input_note
         padw
         # => [EMPTY_WORD, NULLIFIER, HASHER_CAPACITY]
     end
-    # => [EMPTY_WORD_OR_NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
+    # => [EMPTY_WORD_OR_NOTE_COMMITMENT, NULLIFIER, HASHER_CAPACITY]
 
     # update the input note commitment
     hperm
@@ -959,7 +959,7 @@ end
 #! Process the input notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
 #! processed its hash and nullifier are computed. The transaction input notes commitment is
-#! computed via a sequential hash of all (NULLIFIER, EMPTY_WORD_NOTE_HASH) pairs for all input
+#! computed via a sequential hash of all (NULLIFIER, EMPTY_WORD_NOTE_COMMITMENT) pairs for all input
 #! notes.
 #!
 #! Inputs:

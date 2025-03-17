@@ -399,7 +399,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
             .build()?;
 
     // Use some random hash as the final state commitment of tx2.
-    let final_state_commitment = mock_note(10).hash();
+    let final_state_commitment = mock_note(10).commitment();
     let tx2 =
         MockProvenTxBuilder::with_account(account1.id(), account1.hash(), final_state_commitment)
             .ref_block_commitment(block1.commitment())

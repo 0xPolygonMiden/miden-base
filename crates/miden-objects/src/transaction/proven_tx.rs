@@ -511,7 +511,7 @@ impl ToInputNoteCommitments for InputNoteCommitment {
         self.nullifier
     }
 
-    fn note_hash(&self) -> Option<Digest> {
+    fn note_commitment(&self) -> Option<Digest> {
         self.header.map(|header| header.commitment())
     }
 }

@@ -132,7 +132,7 @@ export.memory::get_input_notes_commitment
 #! Outputs: [COM]
 #!
 #! Where:
-#! - COM is the output notes hash.
+#! - COM is the output notes commitment.
 export.note::compute_output_notes_commitment->get_output_notes_commitment
 
 #! Increments the number of output notes by one. Returns the index of the next note to be created.

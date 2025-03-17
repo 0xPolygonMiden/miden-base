@@ -93,7 +93,7 @@ impl ProposedBlock {
     /// - The union of all input notes across all batches contain duplicates.
     /// - The union of all output notes across all batches contain duplicates.
     /// - There is an unauthenticated input note and an output note with the same note ID but their
-    ///   note hashes are different (i.e. their metadata is different).
+    ///   note commitments are different (i.e. their metadata is different).
     /// - There is a note inclusion proof for an unauthenticated note whose referenced block is not
     ///   in the [`ChainMmr`].
     /// - The note inclusion proof for an unauthenticated is invalid.

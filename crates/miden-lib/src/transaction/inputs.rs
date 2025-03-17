@@ -279,7 +279,10 @@ fn add_input_notes_to_advice_inputs(
                 inputs.extend_merkle_store(
                     proof
                         .note_path()
-                        .inner_nodes(proof.location().node_index_in_block().into(), note.hash())
+                        .inner_nodes(
+                            proof.location().node_index_in_block().into(),
+                            note.commitment(),
+                        )
                         .unwrap(),
                 );
                 note_data.push(proof.location().block_num().into());

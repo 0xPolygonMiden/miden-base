@@ -59,7 +59,7 @@ Reads data from the advice provider, stores it in memory, and computes the accou
 
 ### Input note data
 
-Processes input notes by reading data from advice providers and storing it in memory. It computes the note's hash and nullifier, forming a transaction nullifier commitment.
+Processes input notes by reading data from advice providers and storing it in memory. It computes the note's commitment and nullifier, forming a transaction nullifier commitment.
 
 > **Info**
 > - Note data is required for computing the nullifier (e.g., the [note script](../notes.md#main-script) and serial number).

@@ -531,9 +531,9 @@ pub enum ProposedBatchError {
     },
 
     #[error(
-        "note hashes mismatch for note {id}: (input: {input_commitment}, output: {output_commitment})"
+        "note commitment mismatch for note {id}: (input: {input_commitment}, output: {output_commitment})"
     )]
-    NoteCommitmentsMismatch {
+    NoteCommitmentMismatch {
         id: NoteId,
         input_commitment: Digest,
         output_commitment: Digest,
@@ -645,7 +645,7 @@ pub enum ProposedBlockError {
     },
 
     #[error("note commitment mismatch for note {id}: (input: {input_commitment}, output: {output_commitment})")]
-    NoteCommitmentsMismatch {
+    NoteCommitmentMismatch {
         id: NoteId,
         input_commitment: Digest,
         output_commitment: Digest,

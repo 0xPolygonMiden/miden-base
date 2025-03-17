@@ -285,10 +285,10 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         };
 
         let note_index = proof.location().node_index_in_block().into();
-        let note_hash = note_header.commitment();
+        let note_commitment = note_header.commitment();
         proof
             .note_path()
-            .verify(note_index, note_hash, &note_block_header.note_root())
+            .verify(note_index, note_commitment, &note_block_header.note_root())
             .map_err(|source| {
                 InputOutputNoteTrackerError::UnauthenticatedNoteAuthenticationFailed {
                     note_id: note_header.id(),
@@ -359,7 +359,7 @@ impl From<InputOutputNoteTrackerError<BatchId>> for ProposedBlockError {
                 id,
                 input_commitment,
                 output_commitment,
-            } => ProposedBlockError::NoteCommitmentsMismatch {
+            } => ProposedBlockError::NoteCommitmentMismatch {
                 id,
                 input_commitment,
                 output_commitment,
@@ -409,7 +409,7 @@ impl From<InputOutputNoteTrackerError<TransactionId>> for ProposedBatchError {
                 id,
                 input_commitment,
                 output_commitment,
-            } => ProposedBatchError::NoteCommitmentsMismatch {
+            } => ProposedBatchError::NoteCommitmentMismatch {
                 id,
                 input_commitment,
                 output_commitment,

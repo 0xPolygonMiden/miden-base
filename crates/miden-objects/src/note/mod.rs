@@ -156,7 +156,7 @@ impl Note {
     ///
     /// This value is used primarily for authenticating notes consumed when the are consumed
     /// in a transaction.
-    pub fn hash(&self) -> Digest {
+    pub fn commitment(&self) -> Digest {
         self.header.commitment()
     }
 }

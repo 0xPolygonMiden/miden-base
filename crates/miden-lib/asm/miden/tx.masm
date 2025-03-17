@@ -120,14 +120,14 @@ export.get_input_notes_commitment
     # => [INPUT_NOTES_COMMITMENT]
 end
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
+#! Returns the output notes commitment. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
 #! Inputs:  [0, 0, 0, 0]
 #! Outputs: [COMMITMENT]
 #!
 #! Where:
-#! - COMMITMENT is the output notes hash.
+#! - COMMITMENT is the output notes commitment.
 #!
 #! Invocation: exec
 export.get_output_notes_commitment

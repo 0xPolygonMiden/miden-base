@@ -255,7 +255,7 @@ fn test_get_output_notes_commitment() {
     let recipient = NoteRecipient::new(output_serial_no_2, input_note_2.script().clone(), inputs);
     let output_note_2 = Note::new(assets, metadata, recipient);
 
-    // compute expected output notes hash
+    // compute expected output notes commitment
     let expected_output_notes_hash = OutputNotes::new(vec![
         OutputNote::Full(output_note_1.clone()),
         OutputNote::Full(output_note_2.clone()),
@@ -310,7 +310,7 @@ fn test_get_output_notes_commitment() {
             dropw drop
             # => []
 
-            # compute the output notes hash
+            # compute the output notes commitment
             exec.tx::get_output_notes_commitment
             # => [COM]
 
