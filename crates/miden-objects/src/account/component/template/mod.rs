@@ -474,7 +474,7 @@ mod tests {
             slot = 0
             values = [
                 { key = "0x1", value = [{type = "felt", name = "test"}, "0x1", "0x2", "0x3"] },
-                { key = "0x2", value = ["0x1", "0x2", "0x3", {type = "tokensymbol", name = "test"}] }
+                { key = "0x2", value = ["0x1", "0x2", "0x3", {type = "token_symbol", name = "test"}] }
             ]
         "#;
 

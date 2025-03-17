@@ -365,7 +365,7 @@ impl TemplateFelt for Felt {
 
 impl TemplateFelt for TokenSymbol {
     fn type_name() -> TemplateType {
-        TemplateType::new("tokensymbol").expect("type is well formed")
+        TemplateType::new("token_symbol").expect("type is well formed")
     }
     fn parse_felt(input: &str) -> Result<Felt, TemplateTypeError> {
         let token = TokenSymbol::new(input)

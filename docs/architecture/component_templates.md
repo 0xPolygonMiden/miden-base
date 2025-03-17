@@ -34,7 +34,7 @@ is formed by three fields: max supply, the token symbol and the asset's decimals
 slot = 0
 value = [
     { type = "felt", name = "max_supply", description = "Maximum supply of the token in base units" },
-    { type = "tokensymbol", value = "TST" },
+    { type = "token_symbol", value = "TST" },
     { type = "u8", name = "decimals", description = "Number of decimal places for converting to absolute units", value = "10" },
     { value = "0x0" }
 ]
@@ -76,11 +76,11 @@ Valid word types are `word` (default type) and `auth::rpo_falcon512::pub_key` (r
 
 ##### Felt types
 
-Valid field element types are `u8`, `u16`, `u32`, `felt` (default type) and `tokensymbol`:
+Valid field element types are `u8`, `u16`, `u32`, `felt` (default type) and `token_symbol`:
 
 - `u8`, `u16` and `u32` values can be parsed as decimal numbers and represent 8-bit, 16-bit and 32-bit unsigned integers
 - `felt` values represent a field element, and can be parsed as decimal or hexadecimal values
-- `tokensymbol` values represent the symbol for basic fungible tokens, and are parsed as strings made of four uppercase characters
+- `token_symbol` values represent the symbol for basic fungible tokens, and are parsed as strings made of four uppercase characters
 
 #### Header
 
