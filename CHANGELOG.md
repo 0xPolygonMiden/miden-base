@@ -28,6 +28,7 @@
 - [BREAKING] Added `InitStorageData::from_toml()`, improved storage entry validations in `AccountComponentMetadata` (#1170).
 - [BREAKING] Rework miden-lib error codes into categories (#1196).
 - Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
+- [BREAKING] Moved the `TransactionScriptBuilder` from `miden-client` to `miden-base` (#1206).
 - [BREAKING] Enable timestamp customization on `MockChain::seal_block` (#1208).
 - [BREAKING] Renamed constants and comments: `OnChain` -> `Public` and `OffChain` -> `Private` (#1218).
 

@@ -7,15 +7,13 @@ use miden_objects::{
     asset::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::NoteType,
-    testing::{
-        account_id::{
-            ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2, ACCOUNT_ID_SENDER,
-        },
-        prepare_word,
+    testing::account_id::{
+        ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2, ACCOUNT_ID_SENDER,
     },
     transaction::{OutputNote, TransactionScript},
+    utils::word_to_masm_push_string,
     Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
@@ -265,15 +263,15 @@ fn test_create_consume_multiple_notes() {
                 dropw dropw dropw dropw
             end
             ",
-        recipient_1 = prepare_word(&output_note_1.recipient().digest()),
+        recipient_1 = word_to_masm_push_string(&output_note_1.recipient().digest()),
         note_type_1 = NoteType::Public as u8,
         tag_1 = Felt::new(output_note_1.metadata().tag().into()),
-        asset_1 = prepare_word(&FungibleAsset::mock(10).into()),
+        asset_1 = word_to_masm_push_string(&FungibleAsset::mock(10).into()),
         note_execution_hint_1 = Felt::from(output_note_1.metadata().execution_hint()),
-        recipient_2 = prepare_word(&output_note_2.recipient().digest()),
+        recipient_2 = word_to_masm_push_string(&output_note_2.recipient().digest()),
         note_type_2 = NoteType::Public as u8,
         tag_2 = Felt::new(output_note_2.metadata().tag().into()),
-        asset_2 = prepare_word(&FungibleAsset::mock(5).into()),
+        asset_2 = word_to_masm_push_string(&FungibleAsset::mock(5).into()),
         note_execution_hint_2 = Felt::from(output_note_2.metadata().execution_hint())
     );
 
