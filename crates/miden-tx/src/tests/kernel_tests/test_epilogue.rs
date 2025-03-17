@@ -6,7 +6,7 @@ use miden_lib::{
         ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_TX_INVALID_EXPIRATION_DELTA,
     },
     transaction::{
-        memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
+        memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_COMMITMENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
         TransactionKernel,
     },
 };
@@ -126,9 +126,11 @@ fn test_compute_output_note_id() {
             note.assets().commitment().as_elements(),
             read_root_mem_word(
                 &process.into(),
-                OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + OUTPUT_NOTE_ASSET_HASH_OFFSET
+                OUTPUT_NOTE_SECTION_OFFSET
+                    + i * NOTE_MEM_SIZE
+                    + OUTPUT_NOTE_ASSET_COMMITMENT_OFFSET
             ),
-            "ASSET_HASH didn't match expected value",
+            "ASSET_COMMITMENT didn't match expected value",
         );
 
         assert_eq!(

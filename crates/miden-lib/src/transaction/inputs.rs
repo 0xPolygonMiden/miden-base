@@ -208,7 +208,7 @@ fn add_account_to_advice_inputs(
 /// The advice provider is populated with:
 ///
 /// - For each note:
-///     - The note's details (serial number, script root, and its input / assets hash).
+///     - The note's details (serial number, script root, and its input / assets commitment).
 ///     - The note's private arguments.
 ///     - The note's public metadata.
 ///     - The note's public inputs data. Prefixed by its length and padded to an even word length.
@@ -246,7 +246,7 @@ fn add_input_notes_to_advice_inputs(
 
         // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
         note_data.extend(recipient.serial_num());
-        note_data.extend(*recipient.script().hash());
+        note_data.extend(*recipient.script().root());
         note_data.extend(*recipient.inputs().commitment());
         note_data.extend(*assets.commitment());
 

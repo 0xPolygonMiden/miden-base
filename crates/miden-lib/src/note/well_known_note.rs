@@ -42,7 +42,7 @@ fn p2id() -> NoteScript {
 
 /// Returns the P2ID (Pay-to-ID) note script commitment.
 fn p2id_commitment() -> Digest {
-    P2ID_SCRIPT.hash()
+    P2ID_SCRIPT.root()
 }
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script.
@@ -52,7 +52,7 @@ fn p2idr() -> NoteScript {
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script commitment.
 fn p2idr_commitment() -> Digest {
-    P2IDR_SCRIPT.hash()
+    P2IDR_SCRIPT.root()
 }
 
 /// Returns the SWAP (Swap note) note script.
@@ -62,7 +62,7 @@ fn swap() -> NoteScript {
 
 /// Returns the SWAP (Swap note) note script commitment.
 fn swap_commitment() -> Digest {
-    SWAP_SCRIPT.hash()
+    SWAP_SCRIPT.root()
 }
 
 // WELL KNOWN NOTE
@@ -79,7 +79,7 @@ impl WellKnownNote {
     /// Returns a [WellKnownNote] instance based on the note script of the provided [Note]. Returns
     /// `None` if the provided note is not a basic well-known note.
     pub fn from_note(note: &Note) -> Option<Self> {
-        let note_script_commitment = note.script().hash();
+        let note_script_commitment = note.script().root();
 
         if note_script_commitment == p2id_commitment() {
             return Some(Self::P2ID);

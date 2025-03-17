@@ -70,7 +70,7 @@ impl NoteScript {
     // --------------------------------------------------------------------------------------------
 
     /// Returns MAST root of this note script.
-    pub fn hash(&self) -> Digest {
+    pub fn root(&self) -> Digest {
         self.mast[self.entrypoint].digest()
     }
 

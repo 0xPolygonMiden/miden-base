@@ -17,7 +17,7 @@ use super::{
 ///
 /// Recipient is computed as:
 ///
-/// > hash(hash(hash(serial_num, [0; 4]), script_hash), input_commitment)
+/// > hash(hash(hash(serial_num, [0; 4]), script_root), input_commitment)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoteRecipient {
     serial_num: Word,
@@ -61,7 +61,7 @@ impl NoteRecipient {
     pub fn to_elements(&self) -> Vec<Felt> {
         let mut result = Vec::with_capacity(12);
         result.extend(self.inputs.commitment());
-        result.extend(self.script.hash());
+        result.extend(self.script.root());
         result.extend(self.serial_num);
         result
     }
@@ -69,7 +69,7 @@ impl NoteRecipient {
 
 fn compute_recipient_digest(serial_num: Word, script: &NoteScript, inputs: &NoteInputs) -> Digest {
     let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
-    let merge_script = Hasher::merge(&[serial_num_hash, script.hash()]);
+    let merge_script = Hasher::merge(&[serial_num_hash, script.root()]);
     Hasher::merge(&[merge_script, inputs.commitment()])
 }
 

@@ -57,9 +57,9 @@ impl OutputNoteBuilder {
                 return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
             }
             let inputs_commitment = Digest::new([data[0], data[1], data[2], data[3]]);
-            let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
+            let script_root = Digest::new([data[4], data[5], data[6], data[7]]);
             let serial_num = [data[8], data[9], data[10], data[11]];
-            let script_data = adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
+            let script_data = adv_provider.get_mapped_values(&script_root).unwrap_or(&[]);
 
             let inputs_data = adv_provider.get_mapped_values(&inputs_commitment);
             let inputs = match inputs_data {

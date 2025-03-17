@@ -618,11 +618,11 @@ fn test_build_recipient_hash() {
 
             # input
             push.{input_commitment}
-            # SCRIPT_HASH
-            push.{script_hash}
+            # SCRIPT_ROOT
+            push.{script_root}
             # SERIAL_NUM
             push.{output_serial_no}
-            # => [SERIAL_NUM, SCRIPT_HASH, INPUT_COMMITMENT, pad(4)]
+            # => [SERIAL_NUM, SCRIPT_ROOT, INPUT_COMMITMENT, pad(4)]
 
             call.build_recipient_hash
             # => [RECIPIENT, pad(12)]
@@ -640,7 +640,7 @@ fn test_build_recipient_hash() {
             dropw dropw dropw dropw dropw
         end
         ",
-        script_hash = input_note_1.script().clone().hash(),
+        script_root = input_note_1.script().clone().root(),
         output_serial_no = word_to_masm_push_string(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,

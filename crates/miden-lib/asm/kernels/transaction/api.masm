@@ -657,14 +657,14 @@ end
 
 ### NOTE ########################################
 
-#! Returns the number of assets and the assets hash of the note currently being processed.
+#! Returns the number of assets and the assets commitment of the note currently being processed.
 #!
 #! Inputs:  [pad(16)]
 #! Outputs: [ASSETS_HASH, num_assets, pad(11)]
 #!
 #! Where:
 #! - num_assets is the number of assets in the note currently being processed.
-#! - ASSETS_HASH is the assets hash of the note currently being processed.
+#! - ASSETS_HASH is the assets commitment of the note currently being processed.
 #!
 #! Panics if:
 #! - a note is not being processed.
@@ -774,25 +774,25 @@ export.note_get_sender
     # => [sender_id_prefix, sender_id_suffix, pad(14)]
 end
 
-#! Returns the script hash of the note currently being processed.
+#! Returns the script root of the note currently being processed.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [SCRIPT_HASH, pad(12)]
+#! Outputs: [script_root, pad(12)]
 #!
 #! Where:
-#! - SCRIPT_HASH is the script hash of the note currently being processed.
+#! - SCRIPT_ROOT is the script root of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is not being processed.
 #!
 #! Invocation: dynexec
-export.note_get_script_hash
-    exec.note::get_script_hash
-    # => [SCRIPT_HASH, pad(16)]
+export.note_get_script_root
+    exec.note::get_script_root
+    # => [SCRIPT_ROOT, pad(16)]
 
     # truncate the stack
     swapw dropw
-    # => [SCRIPT_HASH, pad(12)]
+    # => [SCRIPT_ROOT, pad(12)]
 end
 
 ### TRANSACTION #################################

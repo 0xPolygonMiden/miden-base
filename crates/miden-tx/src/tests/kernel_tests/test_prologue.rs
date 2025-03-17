@@ -359,8 +359,8 @@ fn input_notes_memory_assertions(
 
         assert_eq!(
             read_note_element(process, note_idx, INPUT_NOTE_SCRIPT_ROOT_OFFSET),
-            note.script().hash().as_elements(),
-            "note script hash should be stored at the correct offset"
+            note.script().root().as_elements(),
+            "note script root should be stored at the correct offset"
         );
 
         assert_eq!(
@@ -372,7 +372,7 @@ fn input_notes_memory_assertions(
         assert_eq!(
             read_note_element(process, note_idx, INPUT_NOTE_ASSETS_HASH_OFFSET),
             note.assets().commitment().as_elements(),
-            "note asset hash should be stored at the correct offset"
+            "note asset commitment should be stored at the correct offset"
         );
 
         assert_eq!(

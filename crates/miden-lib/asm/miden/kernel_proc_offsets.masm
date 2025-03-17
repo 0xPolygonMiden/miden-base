@@ -45,7 +45,7 @@ const.NOTE_ADD_ASSET_OFFSET=21                   # mutator
 const.NOTE_GET_SERIAL_NUMBER_OFFSET=22
 const.NOTE_GET_INPUTS_COMMITMENT_OFFSET=23
 const.NOTE_GET_SENDER_OFFSET=24
-const.NOTE_GET_SCRIPT_HASH_OFFSET=25
+const.NOTE_GET_SCRIPT_ROOT_OFFSET=25
 
 ### Tx ##########################################
 # creation
@@ -377,16 +377,16 @@ export.note_get_sender_offset
     push.NOTE_GET_SENDER_OFFSET
 end
 
-#! Returns the offset of the `note_get_script_hash` kernel procedure.
+#! Returns the offset of the `note_get_script_root` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `note_get_script_hash` kernel procedure required to get the
+#! - proc_offset is the offset of the `note_get_script_root` kernel procedure required to get the
 #!   address where this procedure is stored.
-export.note_get_script_hash_offset
-    push.NOTE_GET_SCRIPT_HASH_OFFSET
+export.note_get_script_root_offset
+    push.NOTE_GET_SCRIPT_ROOT_OFFSET
 end
 
 ### TRANSACTION #################################

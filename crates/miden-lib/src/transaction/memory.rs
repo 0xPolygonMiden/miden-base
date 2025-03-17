@@ -340,6 +340,6 @@ pub const OUTPUT_NOTE_CORE_DATA_SIZE: MemSize = 16;
 pub const OUTPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const OUTPUT_NOTE_METADATA_OFFSET: MemoryOffset = 4;
 pub const OUTPUT_NOTE_RECIPIENT_OFFSET: MemoryOffset = 8;
-pub const OUTPUT_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 12;
+pub const OUTPUT_NOTE_ASSET_COMMITMENT_OFFSET: MemoryOffset = 12;
 pub const OUTPUT_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 16;
 pub const OUTPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 20;

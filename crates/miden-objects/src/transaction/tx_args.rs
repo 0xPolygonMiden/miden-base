@@ -100,10 +100,10 @@ impl TransactionArgs {
     ///
     /// The advice inputs' map is extended with the following keys:
     ///
-    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num).
+    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num).
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
     ///   adding ONE to its most significant element.
-    /// - script_hash |-> script.
+    /// - script_root |-> script.
     pub fn add_expected_output_note<T: Deref<Target = NoteDetails>>(&mut self, note: &T) {
         let recipient = note.recipient();
         let inputs = note.inputs();
@@ -113,7 +113,7 @@ impl TransactionArgs {
         let new_elements = [
             (recipient.digest(), recipient.to_elements()),
             (inputs.commitment(), inputs.format_for_advice()),
-            (script.hash(), script_encoded),
+            (script.root(), script_encoded),
         ];
 
         self.advice_inputs.extend_map(new_elements);
@@ -123,10 +123,10 @@ impl TransactionArgs {
     ///
     /// The advice inputs' map is extended with the following keys:
     ///
-    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
+    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num)
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
     ///   adding ONE to its most significant element.
-    /// - script_hash |-> script
+    /// - script_root |-> script
     pub fn extend_expected_output_notes<T, L>(&mut self, notes: L)
     where
         L: IntoIterator<Item = T>,

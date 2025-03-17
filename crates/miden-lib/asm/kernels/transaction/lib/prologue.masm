@@ -755,12 +755,12 @@ proc.process_note_assets
     # => [PERM, PERM, PERM, assets_ptr+8n, note_ptr, counter+2n, rounded_num_assets]
 
     exec.rpo::squeeze_digest
-    # => [ASSET_HASH_COMPUTED, assets_ptr+8n, note_ptr, counter+2n, rounded_num_assets]
+    # => [ASSET_COMMITMENT_COMPUTED, assets_ptr+8n, note_ptr, counter+2n, rounded_num_assets]
 
     swapw drop movdn.2 drop drop
-    # => [note_ptr, ASSET_HASH_COMPUTED]
+    # => [note_ptr, ASSET_COMMITMENT_COMPUTED]
 
-    # VERIFY: computed ASSET_HASH matches the provided hash
+    # VERIFY: computed ASSET_COMMITMENT matches the provided hash
     exec.memory::get_input_note_assets_hash
     assert_eqw.err=ERR_PROLOGUE_PROVIDED_INPUT_ASSETS_INFO_DOES_NOT_MATCH_ITS_COMMITMENT
     # => []
@@ -822,13 +822,13 @@ end
 #!
 #! Where:
 #! - note_ptr is the memory location for the input note.
-#! - NOTE_ID is the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
+#! - NOTE_ID is the note's id, i.e. `hash(RECIPIENT || ASSET_COMMITMENT)`.
 proc.compute_input_note_id
     # compute SERIAL_HASH: hash(SERIAL_NUMBER || EMPTY_WORD)
     dup exec.memory::get_input_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
 
-    # compute MERGE_SCRIPT: hash(SERIAL_HASH || SCRIPT_HASH)
+    # compute MERGE_SCRIPT: hash(SERIAL_HASH || SCRIPT_ROOT)
     dup.4 exec.memory::get_input_note_script_root hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
@@ -836,7 +836,7 @@ proc.compute_input_note_id
     dup.4 exec.memory::get_input_note_inputs_commitment hmerge
     # => [RECIPIENT, note_ptr]
 
-    # compute NOTE_ID: hash(RECIPIENT || ASSET_HASH)
+    # compute NOTE_ID: hash(RECIPIENT || ASSET_COMMITMENT)
     movup.4 exec.memory::get_input_note_assets_hash hmerge
     # => [NOTE_ID]
 end

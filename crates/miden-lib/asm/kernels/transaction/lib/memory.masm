@@ -1104,11 +1104,11 @@ end
 #! Returns the script root of an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
-#! Outputs: [SCRIPT_HASH]
+#! Outputs: [SCRIPT_ROOT]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - SCRIPT_HASH is the script root of the input note.
+#! - SCRIPT_ROOT is the script root of the input note.
 export.get_input_note_script_root
     padw
     movup.4 push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
@@ -1234,14 +1234,14 @@ export.get_input_note_assets_ptr
     push.INPUT_NOTE_ASSETS_OFFSET add
 end
 
-#! Returns the assets hash for the input note located at the specified memory address.
+#! Returns the assets commitment for the input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
-#! Outputs: [ASSET_HASH]
+#! Outputs: [ASSET_COMMITMENT]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - ASSET_HASH is the sequential hash of the padded assets of an input note.
+#! - ASSET_COMMITMENT is the sequential hash of the padded assets of an input note.
 export.get_input_note_assets_hash
     padw
     movup.4 push.INPUT_NOTE_ASSETS_HASH_OFFSET add
@@ -1405,14 +1405,14 @@ export.get_output_note_asset_data_ptr
     push.OUTPUT_NOTE_ASSETS_OFFSET add
 end
 
-#! Sets the output note assets hash.
+#! Sets the output note assets commitment.
 #!
-#! Inputs:  [output_note_data_ptr, ASSET_HASH]
-#! Outputs: [ASSET_HASH]
+#! Inputs:  [output_note_data_ptr, ASSET_COMMITMENT]
+#! Outputs: [ASSET_COMMITMENT]
 #!
 #! Where:
 #! - output_note_data_ptr is the memory address at which the output note data begins.
-#! - ASSET_HASH is the sequential hash of the padded assets of an output note.
+#! - ASSET_COMMITMENT is the sequential hash of the padded assets of an output note.
 export.set_output_note_assets_hash
     push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add
     mem_storew
