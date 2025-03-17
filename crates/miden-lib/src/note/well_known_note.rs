@@ -1,16 +1,69 @@
 use miden_objects::{
     assembly::{ProcedureName, QualifiedProcedureName},
     note::{Note, NoteScript},
+    utils::{sync::LazyLock, Deserializable},
+    vm::Program,
     Digest,
 };
 
-use crate::{
-    account::{
-        components::basic_wallet_library,
-        interface::{AccountComponentInterface, AccountInterface},
-    },
-    note::scripts::{p2id, p2id_commitment, p2idr, p2idr_commitment, swap, swap_commitment},
+use crate::account::{
+    components::basic_wallet_library,
+    interface::{AccountComponentInterface, AccountInterface},
 };
+
+// WELL KNOWN NOTE SCRIPTS
+// ================================================================================================
+
+// Initialize the P2ID note script only once
+static P2ID_SCRIPT: LazyLock<NoteScript> = LazyLock::new(|| {
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
+    let program = Program::read_from_bytes(bytes).expect("Shipped P2ID script is well-formed");
+    NoteScript::new(program)
+});
+
+// Initialize the P2IDR note script only once
+static P2IDR_SCRIPT: LazyLock<NoteScript> = LazyLock::new(|| {
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
+    let program = Program::read_from_bytes(bytes).expect("Shipped P2IDR script is well-formed");
+    NoteScript::new(program)
+});
+
+// Initialize the SWAP note script only once
+static SWAP_SCRIPT: LazyLock<NoteScript> = LazyLock::new(|| {
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
+    let program = Program::read_from_bytes(bytes).expect("Shipped SWAP script is well-formed");
+    NoteScript::new(program)
+});
+
+/// Returns the P2ID (Pay-to-ID) note script.
+fn p2id() -> NoteScript {
+    P2ID_SCRIPT.clone()
+}
+
+/// Returns the P2ID (Pay-to-ID) note script commitment.
+fn p2id_commitment() -> Digest {
+    P2ID_SCRIPT.hash()
+}
+
+/// Returns the P2IDR (Pay-to-ID with recall) note script.
+fn p2idr() -> NoteScript {
+    P2IDR_SCRIPT.clone()
+}
+
+/// Returns the P2IDR (Pay-to-ID with recall) note script commitment.
+fn p2idr_commitment() -> Digest {
+    P2IDR_SCRIPT.hash()
+}
+
+/// Returns the SWAP (Swap note) note script.
+fn swap() -> NoteScript {
+    SWAP_SCRIPT.clone()
+}
+
+/// Returns the SWAP (Swap note) note script commitment.
+fn swap_commitment() -> Digest {
+    SWAP_SCRIPT.hash()
+}
 
 // WELL KNOWN NOTE
 // ================================================================================================
@@ -66,7 +119,7 @@ impl WellKnownNote {
             return true;
         }
 
-        let interface_proc_digests = account_interface.component_procedure_digests();
+        let interface_proc_digests = account_interface.get_procedure_digests();
         match self {
             Self::P2ID | &Self::P2IDR => {
                 // Get the hash of the "receive_asset" procedure and check that this procedure is

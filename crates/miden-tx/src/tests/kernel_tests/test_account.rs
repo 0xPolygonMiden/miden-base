@@ -15,11 +15,10 @@ use miden_objects::{
     testing::{
         account_component::AccountMockComponent,
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
-        prepare_word,
         storage::STORAGE_LEAVES_2,
     },
     transaction::TransactionScript,
@@ -28,7 +27,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{Felt, StackInputs, Word, ONE, ZERO};
+use super::{word_to_masm_push_string, Felt, StackInputs, Word, ONE, ZERO};
 use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
 
 // ACCOUNT CODE TESTS
@@ -70,10 +69,10 @@ pub fn test_account_type() {
     ];
 
     let test_cases = [
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+        ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
     ];
 
     for (procedure, expected_type) in procedures {
@@ -120,28 +119,28 @@ pub fn test_account_type() {
 #[test]
 pub fn test_account_validate_id() -> anyhow::Result<()> {
     let test_cases = [
-        (ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, None),
-        (ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, None),
-        (ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, None),
-        (ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, None),
+        (ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE, None),
+        (ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, None),
+        (ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, None),
+        (ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, None),
         (
             // Set version to a non-zero value (10).
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN | (0x0a << 64),
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0x0a << 64),
             Some(ERR_ACCOUNT_ID_UNKNOWN_VERSION),
         ),
         (
             // Set epoch to u16::MAX.
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN | (0xffff << 48),
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET | (0xffff << 48),
             Some(ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX),
         ),
         (
             // Set storage mode to an unknown value (0b01).
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN | (0b01 << (64 + 6)),
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0b01 << (64 + 6)),
             Some(ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE),
         ),
         (
             // Set lower 8 bits to a non-zero value (1).
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN | 1,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET | 1,
             Some(ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO),
         ),
     ];
@@ -194,10 +193,10 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
 #[test]
 fn test_is_faucet_procedure() {
     let test_cases = [
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+        ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
     ];
 
     for account_id in test_cases.iter() {
@@ -259,7 +258,7 @@ fn test_get_item() {
             end
             ",
             item_index = storage_item.index,
-            item_value = prepare_word(&storage_item.slot.value())
+            item_value = word_to_masm_push_string(&storage_item.slot.value())
         );
 
         tx_context.execute_code(&code).unwrap();
@@ -299,7 +298,7 @@ fn test_get_map_item() {
             end
             ",
             item_index = 0,
-            map_key = prepare_word(&key),
+            map_key = word_to_masm_push_string(&key),
         );
 
         let process = &tx_context.execute_code(&code).unwrap();
@@ -415,7 +414,7 @@ fn test_set_item() {
             assert_eqw
         end
         ",
-        new_storage_item = prepare_word(&new_storage_item),
+        new_storage_item = word_to_masm_push_string(&new_storage_item),
         new_storage_item_index = 0,
     );
 
@@ -468,8 +467,8 @@ fn test_set_map_item() {
         end
         ",
         item_index = 0,
-        new_key = prepare_word(&new_key),
-        new_value = prepare_word(&new_value),
+        new_key = word_to_masm_push_string(&new_key),
+        new_value = word_to_masm_push_string(&new_value),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -661,7 +660,7 @@ fn test_get_vault_commitment() {
             assert_eqw
         end
         ",
-        expected_vault_commitment = prepare_word(&account.vault().commitment()),
+        expected_vault_commitment = word_to_masm_push_string(&account.vault().commitment()),
     );
 
     tx_context.execute_code(&code).unwrap();
@@ -709,7 +708,7 @@ fn test_authenticate_procedure() {
                 dropw
             end
             ",
-            root = prepare_word(&root)
+            root = word_to_masm_push_string(&root)
         );
 
         // Execution of this code will return an EventError(UnknownAccountProcedure) for procs

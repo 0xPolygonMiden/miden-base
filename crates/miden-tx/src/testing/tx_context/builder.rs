@@ -11,19 +11,19 @@ use miden_objects::{
     note::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3, ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_SENDER,
         },
         constants::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
         },
         note::NoteBuilder,
-        prepare_word,
         storage::prepare_assets,
     },
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    utils::word_to_masm_push_string,
     vm::AdviceMap,
     FieldElement,
 };
@@ -102,7 +102,7 @@ impl TransactionContextBuilder {
     pub fn with_standard_account(nonce: Felt) -> Self {
         // Build standard account with normal assembler because the testing one already contains it
         let account = Account::mock(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
             nonce,
             TransactionKernel::testing_assembler(),
         );
@@ -272,7 +272,7 @@ impl TransactionContextBuilder {
             end
             ",
             PUBLIC_NOTE = NoteType::Public as u8,
-            recipient = prepare_word(&output.recipient().digest()),
+            recipient = word_to_masm_push_string(&output.recipient().digest()),
             aux = output.metadata().aux(),
             tag = output.metadata().tag(),
             asset = prepare_assets(output.assets())[0],
@@ -346,11 +346,11 @@ impl TransactionContextBuilder {
             end
             ",
             PUBLIC_NOTE = NoteType::Public as u8,
-            recipient0 = prepare_word(&output0.recipient().digest()),
+            recipient0 = word_to_masm_push_string(&output0.recipient().digest()),
             aux0 = output0.metadata().aux(),
             tag0 = output0.metadata().tag(),
             asset0 = prepare_assets(output0.assets())[0],
-            recipient1 = prepare_word(&output1.recipient().digest()),
+            recipient1 = word_to_masm_push_string(&output1.recipient().digest()),
             aux1 = output1.metadata().aux(),
             tag1 = output1.metadata().tag(),
             asset1 = prepare_assets(output1.assets())[0],
@@ -431,9 +431,9 @@ impl TransactionContextBuilder {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
         let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3).unwrap();
 
         // ASSETS
         // --------------------------------------------------------------------------------------------
@@ -466,9 +466,9 @@ impl TransactionContextBuilder {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
         let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3).unwrap();
 
         // ASSETS
         // --------------------------------------------------------------------------------------------
@@ -504,9 +504,9 @@ impl TransactionContextBuilder {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
         let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3).unwrap();
 
         // ASSETS
         // --------------------------------------------------------------------------------------------
@@ -546,9 +546,9 @@ impl TransactionContextBuilder {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
         let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3).unwrap();
 
         // ASSETS
         // --------------------------------------------------------------------------------------------
@@ -586,9 +586,9 @@ impl TransactionContextBuilder {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
         let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3).unwrap();
 
         // ASSETS
         // --------------------------------------------------------------------------------------------

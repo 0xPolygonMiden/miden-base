@@ -14,8 +14,8 @@ use miden_objects::{
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::account_id::{
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2,
     },
     AccountError, Digest, Felt, ONE, ZERO,
 };
@@ -62,8 +62,8 @@ fn test_basic_wallet_default_notes() {
     let faucet_account_interface = AccountInterface::from(&faucet_account);
 
     let p2id_note = create_p2id_note(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
         vec![FungibleAsset::mock(10)],
         NoteType::Public,
         Default::default(),
@@ -72,8 +72,8 @@ fn test_basic_wallet_default_notes() {
     .unwrap();
 
     let p2idr_note = create_p2idr_note(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
         vec![FungibleAsset::mock(10)],
         NoteType::Public,
         Default::default(),
@@ -86,7 +86,7 @@ fn test_basic_wallet_default_notes() {
     let requested_asset = NonFungibleAsset::mock(&[1, 2, 3, 4]);
 
     let (swap_note, _) = create_swap_note(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
         offered_asset,
         requested_asset,
         NoteType::Public,
@@ -153,8 +153,8 @@ fn test_custom_account_default_note() {
     let target_account_interface = AccountInterface::from(&target_account);
 
     let p2id_note = create_p2id_note(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
         vec![FungibleAsset::mock(10)],
         NoteType::Public,
         Default::default(),
@@ -163,8 +163,8 @@ fn test_custom_account_default_note() {
     .unwrap();
 
     let p2idr_note = create_p2idr_note(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
         vec![FungibleAsset::mock(10)],
         NoteType::Public,
         Default::default(),
@@ -177,7 +177,7 @@ fn test_custom_account_default_note() {
     let requested_asset = NonFungibleAsset::mock(&[1, 2, 3, 4]);
 
     let (swap_note, _) = create_swap_note(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
         offered_asset,
         requested_asset,
         NoteType::Public,
@@ -213,8 +213,7 @@ fn test_basic_wallet_custom_notes() {
         .expect("failed to create wallet account");
     let wallet_account_interface = AccountInterface::from(&wallet_account);
 
-    let sender_account_id =
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap();
+    let sender_account_id = ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap();
     let serial_num =
         RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
     let tag = NoteTag::from_account_id(wallet_account.id(), NoteExecutionMode::Local).unwrap();
@@ -311,8 +310,7 @@ fn test_basic_fungible_faucet_custom_notes() {
         .expect("failed to create wallet account");
     let faucet_account_interface = AccountInterface::from(&faucet_account);
 
-    let sender_account_id =
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap();
+    let sender_account_id = ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap();
     let serial_num =
         RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
     let tag = NoteTag::from_account_id(faucet_account.id(), NoteExecutionMode::Local).unwrap();

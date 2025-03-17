@@ -538,20 +538,20 @@ mod tests {
         },
         errors::Bech32Error,
         testing::account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_SENDER,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
     };
 
     #[test]
     fn test_account_id_wrapper_conversion_roundtrip() {
         for (idx, account_id) in [
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_OFF_CHAIN_SENDER,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_SENDER,
         ]
         .into_iter()
         .enumerate()
@@ -579,11 +579,11 @@ mod tests {
             NetworkId::Custom(Hrp::parse(longest_possible_hrp).unwrap()),
         ] {
             for (idx, account_id) in [
-                ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-                ACCOUNT_ID_OFF_CHAIN_SENDER,
+                ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+                ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+                ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+                ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+                ACCOUNT_ID_PRIVATE_SENDER,
             ]
             .into_iter()
             .enumerate()
@@ -616,7 +616,7 @@ mod tests {
     #[test]
     fn bech32_invalid_checksum() {
         let network_id = NetworkId::Mainnet;
-        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let account_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
 
         let bech32_string = account_id.to_bech32(network_id);
         let mut invalid_bech32_1 = bech32_string.clone();
@@ -633,7 +633,7 @@ mod tests {
 
     #[test]
     fn bech32_invalid_address_type() {
-        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let account_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
         let mut id_bytes = account_id.to_bytes();
 
         // Set invalid address type.
@@ -651,7 +651,7 @@ mod tests {
 
     #[test]
     fn bech32_invalid_other_checksum() {
-        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let account_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
         let mut id_bytes = account_id.to_bytes();
         id_bytes.insert(0, AddressType::AccountId as u8);
 
@@ -670,7 +670,7 @@ mod tests {
 
     #[test]
     fn bech32_invalid_length() {
-        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let account_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
         let mut id_bytes = account_id.to_bytes();
         id_bytes.insert(0, AddressType::AccountId as u8);
         // Add one byte to make the length invalid.

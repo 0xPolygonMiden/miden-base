@@ -224,13 +224,13 @@ mod tests {
     use crate::{
         account::AccountId,
         asset::{Asset, FungibleAsset},
-        testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
+        testing::account_id::ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET,
         Digest,
     };
 
     #[test]
     fn add_asset() {
-        let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let faucet_id = AccountId::try_from(ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET).unwrap();
 
         let asset1 = Asset::Fungible(FungibleAsset::new(faucet_id, 100).unwrap());
         let asset2 = Asset::Fungible(FungibleAsset::new(faucet_id, 50).unwrap());

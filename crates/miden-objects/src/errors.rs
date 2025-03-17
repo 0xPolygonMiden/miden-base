@@ -334,8 +334,8 @@ pub enum NoteError {
         node_index_in_block: u16,
         highest_index: usize,
     },
-    #[error("note network execution requires account stored on chain")]
-    NetworkExecutionRequiresOnChainAccount,
+    #[error("note network execution requires public accounts")]
+    NetworkExecutionRequiresPublicAccount,
     #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
     #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]
@@ -462,16 +462,16 @@ pub enum ProvenTransactionError {
     },
     #[error("failed to construct input notes for proven transaction")]
     InputNotesError(TransactionInputError),
-    #[error("off-chain account {0} should not have account details")]
-    OffChainAccountWithDetails(AccountId),
-    #[error("on-chain account {0} is missing its account details")]
-    OnChainAccountMissingDetails(AccountId),
-    #[error("new on-chain account {0} is missing its account details")]
-    NewOnChainAccountRequiresFullDetails(AccountId),
+    #[error("private account {0} should not have account details")]
+    PrivateAccountWithDetails(AccountId),
+    #[error("public account {0} is missing its account details")]
+    PublicAccountMissingDetails(AccountId),
+    #[error("new public account {0} is missing its account details")]
+    NewPublicAccountRequiresFullDetails(AccountId),
     #[error(
-        "existing on-chain account {0} should only provide delta updates instead of full details"
+        "existing public account {0} should only provide delta updates instead of full details"
     )]
-    ExistingOnChainAccountRequiresDeltaDetails(AccountId),
+    ExistingPublicAccountRequiresDeltaDetails(AccountId),
     #[error("failed to construct output notes for proven transaction")]
     OutputNotesError(TransactionOutputError),
     #[error(

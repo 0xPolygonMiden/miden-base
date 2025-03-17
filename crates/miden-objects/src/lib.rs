@@ -39,8 +39,8 @@ pub use vm_core::{
 pub mod assembly {
     pub use assembly::{
         ast::{Module, ModuleKind, ProcedureName, QualifiedProcedureName},
-        mast, Assembler, AssemblyError, Compile, DefaultSourceManager, KernelLibrary, Library,
-        LibraryNamespace, LibraryPath, SourceManager, Version,
+        mast, Assembler, AssemblyError, Compile, CompileOptions, DefaultSourceManager,
+        KernelLibrary, Library, LibraryNamespace, LibraryPath, SourceManager, Version,
     };
 }
 
@@ -53,12 +53,26 @@ pub mod utils {
 
     pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
     pub use vm_core::utils::*;
-    use vm_core::{Felt, StarkField};
+    use vm_core::{Felt, StarkField, Word};
 
     pub mod serde {
         pub use miden_crypto::utils::{
             ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         };
+    }
+
+    /// Converts a word into a string of the word's field elements separated by periods, which can
+    /// be used on a MASM `push` instruction to push the word onto the stack.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use miden_objects::{Word, Felt, utils::word_to_masm_push_string};
+    /// let word = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+    /// assert_eq!(word_to_masm_push_string(&word), "1.2.3.4");
+    /// ```
+    pub fn word_to_masm_push_string(word: &Word) -> String {
+        format!("{}.{}.{}.{}", word[0], word[1], word[2], word[3])
     }
 
     pub const fn parse_hex_string_as_word(hex: &str) -> Result<[Felt; 4], &'static str> {

@@ -8,8 +8,8 @@ use crate::{
     testing::{
         account_component::AccountMockComponent,
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
         },
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
@@ -103,20 +103,20 @@ impl AssetVault {
     ///
     /// The ids of the assets added to the vault are defined by the following constants:
     ///
-    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
-    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
-    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
-    /// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
+    /// - ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET
+    /// - ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1
+    /// - ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2
+    /// - ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET
     pub fn mock() -> Self {
-        let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
+        let faucet_id: AccountId = ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET.try_into().unwrap();
         let fungible_asset =
             Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-        let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
+        let faucet_id_1: AccountId = ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1.try_into().unwrap();
         let fungible_asset_1 =
             Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-        let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
+        let faucet_id_2: AccountId = ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2.try_into().unwrap();
         let fungible_asset_2 =
             Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
 

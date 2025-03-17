@@ -5,7 +5,7 @@ use miden_objects::{
     account::AccountId,
     block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
     note::NoteInclusionProof,
-    testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
     transaction::ProvenTransaction,
     ProposedBlockError, MAX_BATCHES_PER_BLOCK,
 };
@@ -571,7 +571,7 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
     let TestSetup { mut chain, mut accounts, .. } = setup_chain(2);
     let asset = generate_fungible_asset(
         100,
-        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+        AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap(),
     );
 
     let account0 = accounts.remove(&0).unwrap();
