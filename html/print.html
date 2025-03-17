@@ -1,0 +1,1304 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The Miden protocol</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Description and core structures for the Miden Rollup protocol">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Miden protocol</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/0xPolygonMiden/miden-base" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<h1 id="miden-architecture-overview"><a class="header" href="#miden-architecture-overview">Miden architecture overview</a></h1>
+<p>Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction execution.</p>
+<p>In traditional blockchains, state and transactions must be transparent to be verifiable. This is necessary for block production and execution.</p>
+<p>However, user generated zero-knowledge proofs allow state transitions, e.g. transactions, to be verifiable without being transparent.</p>
+<h2 id="miden-design-goals"><a class="header" href="#miden-design-goals">Miden design goals</a></h2>
+<ul>
+<li>High throughput: The ability to process a high number of transactions (state changes) over a given time interval.</li>
+<li>Privacy: The ability to keep data known to one’s self and anonymous while processing and/or storing it.</li>
+<li>Asset safety: Maintaining a low risk of mistakes or malicious behavior leading to asset loss.</li>
+</ul>
+<h2 id="actor-model"><a class="header" href="#actor-model">Actor model</a></h2>
+<p>The <a href="https://en.wikipedia.org/wiki/Actor_model">actor model</a> inspires Polygon Miden’s execution model. This is a well-known computational design paradigm in concurrent systems. In the actor model, actors are state machines responsible for maintaining their own state. In the context of Polygon Miden, each account is an actor. Actors communicate with each other by exchanging messages asynchronously. One actor can send a message to another, but it is up to the recipient to apply the requested change to their state.</p>
+<p>Polygon Miden’s architecture takes the actor model further and combines it with zero-knowledge proofs. Now, actors not only maintain and update their own state, but they can also prove the validity of their own state transitions to the rest of the network. This ability to independently prove state transitions enables local smart contract execution, private smart contracts, and much more. And it is quite unique in the rollup space. Normally only centralized entities - sequencer or prover - create zero-knowledge proofs, not the users.</p>
+<h2 id="core-concepts"><a class="header" href="#core-concepts">Core concepts</a></h2>
+<p>Miden uses <em>accounts</em> and <em>notes</em>, both of which hold assets. Accounts consume and produce notes during transactions. Transactions describe the account state changes of single accounts.</p>
+<h3 id="accounts"><a class="header" href="#accounts">Accounts</a></h3>
+<p>An <a href="account.html">Account</a> can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. The <a href="account.html">account chapter</a> describes the design of an account, its storage types, and creating an account.</p>
+<h3 id="notes"><a class="header" href="#notes">Notes</a></h3>
+<p>A <a href="note.html">Note</a> is a message that accounts send to each other. A note stores assets and a script that defines how the note can be consumed. The <a href="note.html">note chapter</a> describes the design, the storage types, and the creation of a note.</p>
+<h3 id="assets"><a class="header" href="#assets">Assets</a></h3>
+<p>An <a href="asset.html">Asset</a> can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. The <a href="asset.html">asset chapter</a> describes asset issuance, customization, and storage.</p>
+<h3 id="transactions"><a class="header" href="#transactions">Transactions</a></h3>
+<p>A <a href="transaction.html">Transactions</a> describe the production and consumption of notes by a single account.</p>
+<p>Executing a transaction always results in a STARK proof.</p>
+<p>The <a href="transaction.html">transaction chapter</a> describes the transaction design and implementation, including an in-depth discussion of how transaction execution happens in the transaction kernel program.</p>
+<h4 id="accounts-produce-and-consume-notes-to-communicate"><a class="header" href="#accounts-produce-and-consume-notes-to-communicate">Accounts produce and consume notes to communicate</a></h4>
+<p><img src="img/miden-architecture-core-concepts.gif" alt="Architecture core concepts" /></p>
+<h2 id="state-and-execution"><a class="header" href="#state-and-execution">State and execution</a></h2>
+<p>The actor-based execution model requires a radically different approach to recording the system's state. Actors and the messages they exchange must be treated as first-class citizens. Polygon Miden addresses this by combining the state models of account-based systems like Ethereum and UTXO-based systems like Bitcoin and Zcash.</p>
+<p>Miden's state model captures the individual states of all accounts and notes, and the execution model describes state progress in a sequence of blocks.</p>
+<h3 id="state-model"><a class="header" href="#state-model">State model</a></h3>
+<p><a href="state.html">State</a> describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored on-chain and off-chain. This chapter describes the three different state databases in Miden.</p>
+<h3 id="blockchain"><a class="header" href="#blockchain">Blockchain</a></h3>
+<p>The <a href="blockchain.html">Blockchain</a> defines how state progresses as aggregated-state-updates in batches, blocks, and epochs. The <a href="blockchain.html">blockchain chapter</a> describes the execution model and how blocks are built.</p>
+<h5 id="operators-capture-and-progress-state"><a class="header" href="#operators-capture-and-progress-state">Operators capture and progress state</a></h5>
+<p><img src="img/miden-architecture-state-progress.gif" alt="Architecture state process" /></p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<h1 id="accounts--smart-contracts"><a class="header" href="#accounts--smart-contracts">Accounts / Smart Contracts</a></h1>
+<p>An <code>Account</code> represents the primary entity of the protocol. Capable of holding assets, storing data, and executing custom code. Each <code>Account</code> is a specialized smart contract providing a programmable interface for interacting with its state and assets.</p>
+<h2 id="what-is-the-purpose-of-an-account"><a class="header" href="#what-is-the-purpose-of-an-account">What is the purpose of an account?</a></h2>
+<p>In Miden's hybrid UTXO- and account-based model <code>Account</code>s enable the creation of expressive smart contracts via a Turing-complete language.</p>
+<h2 id="account-core-elements"><a class="header" href="#account-core-elements">Account core elements</a></h2>
+<p>An <code>Account</code> is composed of several core elements, illustrated below:</p>
+<p style="text-align: center;">
+    <img src="img/account/account-definition.png" style="width:30%;" alt="Account diagram"/>
+</p>
+<p>These elements are:</p>
+<ol>
+<li><a href="account.html#id">ID</a></li>
+<li><a href="account.html#code">Code</a></li>
+<li><a href="account.html#storage">Storage</a></li>
+<li><a href="account.html#vault">Vault</a></li>
+<li><a href="account.html#nonce">Nonce</a></li>
+</ol>
+<h3 id="id"><a class="header" href="#id">ID</a></h3>
+<blockquote>
+<p>An immutable and unique identifier for the <code>Account</code>.</p>
+</blockquote>
+<p>A 120-bit long number represents the <code>Account</code> ID. This identifier is structured to encapsulate specific account metadata while preventing precomputed attack vectors (e.g., rainbow table attacks).</p>
+<p>The ID is generated by hashing a user-generated random seed together with commitments to the initial code and storage of the <code>Account</code> and the anchor block. The anchor block refers to specific blockchain epoch block in which the account is created. The resulting 256-bit long hash is then manipulated and shortened to 120-bit. Manipulation includes encoding the <a href="account.html#account-type">account type</a>, <a href="account.html#account-storage-mode">account storage mode</a>, the version of the <code>Account</code> ID scheme, and the anchor block.</p>
+<p>Account type, storage mode, and version are included in the ID, to ensure these properties can be determined without additional computation. Anyone can immediately tell those properties by just looking at the ID in bit representation.</p>
+<p>Also, the ID generation process ensures that an attacker cannot precompute an ID before the anchor block's commitment is available. This significantly mitigates the risk of ID hijacking, where an adversary might attempt to claim assets sent to an unregistered ID.
+By anchoring the ID to a recent epoch block, the window for potential attacks is minimized, reinforcing the security of asset transfers and account registration.</p>
+<p>An <code>Account</code> ID is considered invalid if:</p>
+<ul>
+<li>The metadata (storage mode, type, or version) does not match any recognized values.</li>
+<li>The anchor epoch exceeds <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8974em;vertical-align:-0.0833em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">16</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>.</li>
+<li>The least significant 8 bits of the ID are nonzero.</li>
+</ul>
+<p>An <code>Account</code> ID can be encoded in different formats:</p>
+<ol>
+<li><a href="https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki"><strong>Bech32</strong></a> (default):
+<ul>
+<li>Example: <code>mm1qq2qlgz2reslcyqqqqfxa7836chrjcvk</code></li>
+<li><strong>Benefits</strong>:
+<ul>
+<li>Built-in error detection via checksum algorithm</li>
+<li>Human-readable prefix indicates network type</li>
+<li>Less prone to transcription errors</li>
+</ul>
+</li>
+<li><strong>Structure</strong>:
+<ul>
+<li>Human-readable prefix: <code>mm</code> (e.g., indicates <strong>M</strong>iden <strong>M</strong>ainnet)</li>
+<li>Separator: <code>1</code></li>
+<li>Data part with integrated checksum</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p><strong>Info</strong></p>
+<ul>
+<li>We strongly recommend encoding account ID's using Bech32 for all user-facing applications</li>
+</ul>
+</blockquote>
+<ol start="2">
+<li><strong>Hexadecimal</strong> (debugging):
+<ul>
+<li>Example: <code>0x140fa04a1e61fc100000126ef8f1d6</code></li>
+<li>Frequenty used encoding for blockchain addresses</li>
+</ul>
+</li>
+</ol>
+<h3 id="code"><a class="header" href="#code">Code</a></h3>
+<blockquote>
+<p>A collection of functions defining the <code>Account</code>’s programmable interface.</p>
+</blockquote>
+<p>Every Miden <code>Account</code> is essentially a smart contract. The <code>Code</code> component defines the account’s functions, which can be invoked through both <a href="note.html#script">Note scripts</a> and <a href="transaction.html#inputs">transaction scripts</a>. Key characteristics include:</p>
+<ul>
+<li><strong>Mutable access:</strong> Only the <code>Account</code>’s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.</li>
+<li><strong>Function commitment:</strong> Each function can be called by its <a href="https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html">MAST</a> root. The root represents the underlying code tree as a 32-byte commitment. This ensures integrity, i.e., the caller calls what he expects.</li>
+<li><strong>Note creation:</strong> <code>Account</code> functions can generate new notes.</li>
+</ul>
+<h3 id="storage"><a class="header" href="#storage">Storage</a></h3>
+<blockquote>
+<p>A flexible, arbitrary data store within the <code>Account</code>.</p>
+</blockquote>
+<p>The <a href="https://docs.rs/miden-objects/latest/miden_objects/account/struct.AccountStorage.html">storage</a> is divided into a maximum of 255 indexed <a href="https://docs.rs/miden-objects/latest/miden_objects/account/enum.StorageSlot.html">storage slots</a>. Each slot can either store a 32-byte value or serve as a pointer to a key-value store with large amounts capacity.</p>
+<ul>
+<li><strong><code>StorageSlot::Value</code>:</strong> Contains 32 bytes of arbitrary data.</li>
+<li><strong><code>StorageSlot::Map</code>:</strong> Contains a <a href="https://docs.rs/miden-objects/latest/miden_objects/account/struct.StorageMap.html">StorageMap</a>, a key-value store where both keys and values are 32 bytes. The slot's value is a commitment to the entire map.</li>
+</ul>
+<h3 id="vault"><a class="header" href="#vault">Vault</a></h3>
+<blockquote>
+<p>A collection of <a href="asset.html">assets</a> stored by the <code>Account</code>.</p>
+</blockquote>
+<p>Large amounts of fungible and non-fungible assets can be stored in the <code>Account</code>s vault.</p>
+<h3 id="nonce"><a class="header" href="#nonce">Nonce</a></h3>
+<blockquote>
+<p>A counter incremented with each state update to the <code>Account</code>.</p>
+</blockquote>
+<p>The nonce enforces ordering and prevents replay attacks. It must strictly increase with every <code>Account</code> state update. The increment must be less than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">32</span></span></span></span></span></span></span></span></span></span></span></span> but always greater than the previous nonce, ensuring a well-defined sequence of state changes.</p>
+<p>If a smart contract function should be callable by other users, it must increment the <code>Account</code>'s nonce. Otherwise, only the contract owner—i.e., the party possessing the contract's key—can execute the function.</p>
+<h2 id="account-lifecycle"><a class="header" href="#account-lifecycle">Account lifecycle</a></h2>
+<p>Throughout its lifetime, an <code>Account</code> progresses through various phases:</p>
+<ul>
+<li><strong>Creation and Deployment:</strong> Initialization of the <code>Account</code> on the network.</li>
+<li><strong>Active Operation:</strong> Continuous state updates via <code>Account</code> functions that modify the storage, nonce, and vault.</li>
+<li><strong>Termination or Deactivation:</strong> Optional, depending on the contract’s design and governance model.</li>
+</ul>
+<h3 id="account-creation"><a class="header" href="#account-creation">Account creation</a></h3>
+<p>For an <code>Account</code> to be recognized by the network, it must exist in the <a href="state.html#account-database">account database</a> maintained by Miden node(s).</p>
+<p>However, a user can locally create a new <code>Account</code> ID before it’s recognized network-wide. The typical process might be:</p>
+<ol>
+<li>Alice generates a new <code>Account</code> ID locally (according to the desired <code>Account</code> type) using the Miden client.</li>
+<li>The Miden client checks with a Miden node to ensure the ID does not already exist.</li>
+<li>Alice shares the new ID with Bob (for example, to receive assets).</li>
+<li>Bob executes a transaction, creating a note containing assets for Alice.</li>
+<li>Alice consumes Bob’s note in her own transaction to claim the asset.</li>
+<li>Depending on the <code>Account</code>’s storage mode and transaction type, the operator receives the new <code>Account</code> ID and, if all conditions are met, includes it in the <code>Account</code> database.</li>
+</ol>
+<h2 id="additional-information"><a class="header" href="#additional-information">Additional information</a></h2>
+<h3 id="account-type"><a class="header" href="#account-type">Account type</a></h3>
+<p>There are two main categories of <code>Account</code>s in Miden: <strong>basic accounts</strong> and <strong>faucets</strong>.</p>
+<ul>
+<li>
+<p><strong>Basic Accounts:</strong>
+Basic Accounts may be either mutable or immutable:</p>
+<ul>
+<li><em>Mutable:</em> Code can be changed after deployment.</li>
+<li><em>Immutable:</em> Code cannot be changed once deployed.</li>
+</ul>
+</li>
+<li>
+<p><strong>Faucets:</strong>
+Faucets are always immutable and can be specialized by the type of assets they issue:</p>
+<ul>
+<li><em>Fungible Faucet:</em> Can issue fungible <a href="asset.html">assets</a>.</li>
+<li><em>Non-fungible Faucet:</em> Can issue non-fungible <a href="asset.html">assets</a>.</li>
+</ul>
+</li>
+</ul>
+<p>Type and mutability are encoded in the two most significant bits of the <code>Account</code>'s <a href="account.html#id">ID</a>.</p>
+<h3 id="account-storage-mode"><a class="header" href="#account-storage-mode">Account storage mode</a></h3>
+<p>Users can choose whether their <code>Account</code>s are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the <code>Account</code>s <a href="account.html#id">ID</a>:</p>
+<ul>
+<li>
+<p><strong>Public <code>Account</code>s:</strong>
+The <code>Account</code>’s state is stored on-chain, similar to how <code>Account</code>s are stored in public blockchains like Ethereum. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be public.</p>
+</li>
+<li>
+<p><strong>Private <code>Account</code>s:</strong>
+Only a commitment (hash) to the <code>Account</code>’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their <code>Account</code>. To interact with a private <code>Account</code>, a user must have knowledge of its interface.</p>
+</li>
+</ul>
+<p>The storage mode is chosen during <code>Account</code> creation, it cannot be changed later.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<h1 id="notes-1"><a class="header" href="#notes-1">Notes</a></h1>
+<p>A <code>Note</code> is the medium through which <a href="account.html">Accounts</a> communicate. A <code>Note</code> holds assets and defines how they can be consumed.</p>
+<h2 id="what-is-the-purpose-of-a-note"><a class="header" href="#what-is-the-purpose-of-a-note">What is the purpose of a note?</a></h2>
+<p>In Miden's hybrid UTXO and account-based model <code>Note</code>s represent UTXO's which enable parallel transaction execution and privacy through asynchronous local <code>Note</code> production and consumption.</p>
+<h2 id="note-core-components"><a class="header" href="#note-core-components">Note core components</a></h2>
+<p>A <code>Note</code> is composed of several core components, illustrated below:</p>
+<p style="text-align: center;">
+    <img src="img/note/note.png" style="width:30%;" alt="Note diagram"/>
+</p>
+<p>These components are:</p>
+<ol>
+<li><a href="note.html#assets">Assets</a></li>
+<li><a href="note.html#script">Script</a></li>
+<li><a href="note.html#inputs">Inputs</a></li>
+<li><a href="note.html#serial-number">Serial number</a></li>
+<li><a href="note.html#metadata">Metadata</a></li>
+</ol>
+<h3 id="assets-1"><a class="header" href="#assets-1">Assets</a></h3>
+<blockquote>
+<p>An <a href="asset.html">asset</a> container for a <code>Note</code>.</p>
+</blockquote>
+<p>A <code>Note</code> can contain from 0 up to 256 different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.</p>
+<h3 id="script"><a class="header" href="#script">Script</a></h3>
+<blockquote>
+<p>The code executed when the <code>Note</code> is consumed.</p>
+</blockquote>
+<p>Each <code>Note</code> has a script that defines the conditions under which it can be consumed. When accounts consume <code>Note</code>s in transactions, <code>Note</code> scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making <code>Note</code> scripts highly versatile. There is no limit to the amount of code a <code>Note</code> can hold.</p>
+<h3 id="inputs"><a class="header" href="#inputs">Inputs</a></h3>
+<blockquote>
+<p>Arguments passed to the <code>Note</code> script during execution.</p>
+</blockquote>
+<p>A <code>Note</code> can have up to 128 input values, which adds up to a maximum of 1 KB of data. The <code>Note</code> script can access these inputs. They can convey arbitrary parameters for <code>Note</code> consumption.</p>
+<h3 id="serial-number"><a class="header" href="#serial-number">Serial number</a></h3>
+<blockquote>
+<p>A unique and immutable identifier for the <code>Note</code>.</p>
+</blockquote>
+<p>The serial number has two main purposes. Firstly by adding some randomness to the <code>Note</code> it ensures it's uniqueness, secondly in private <code>Note</code>s it helps prevent linkability between the <code>Note</code>'s hash and its nullifier. The serial number should be a random 32 bytes number chosen by the user. If leaked, the <code>Note</code>’s nullifier can be easily computed, potentially compromising privacy.</p>
+<h3 id="metadata"><a class="header" href="#metadata">Metadata</a></h3>
+<blockquote>
+<p>Additional <code>Note</code> information.</p>
+</blockquote>
+<p><code>Note</code>s include metadata such as the sender’s account ID and a <a href="note.html#note-discovery">tag</a> that aids in discovery. Regardless of <a href="note.html#note-storage-mode">storage mode</a>, these metadata fields remain public.</p>
+<h2 id="note-lifecycle"><a class="header" href="#note-lifecycle">Note Lifecycle</a></h2>
+<p><img src="img/note/note-life-cycle.png" alt="Architecture core concepts" /></p>
+<p>The <code>Note</code> lifecycle proceeds through four primary phases: <strong>creation</strong>, <strong>validation</strong>, <strong>discovery</strong>, and <strong>consumption</strong>. Throughout this process, <code>Note</code>s function as secure, privacy-preserving vehicles for asset transfers and logic execution.</p>
+<h3 id="note-creation"><a class="header" href="#note-creation">Note creation</a></h3>
+<p>Accounts can create <code>Note</code>s in a transaction. The <code>Note</code> exists if it is included in the global <code>Note</code>s DB.</p>
+<ul>
+<li><strong>Users:</strong> Executing local or network transactions.</li>
+<li><strong>Miden operators:</strong> Facilitating on-chain actions, e.g. such as executing user <code>Note</code>s against a DEX or other contracts.</li>
+</ul>
+<h4 id="note-storage-mode"><a class="header" href="#note-storage-mode">Note storage mode</a></h4>
+<p>As with <a href="account.html">accounts</a>, <code>Note</code>s can be stored either publicly or privately:</p>
+<ul>
+<li><strong>Public mode:</strong> The <code>Note</code> data is stored in the <a href="https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database">note database</a>, making it fully visible on-chain.</li>
+<li><strong>Private mode:</strong> Only the <code>Note</code>’s hash is stored publicly. The <code>Note</code>’s actual data remains off-chain, enhancing privacy.</li>
+</ul>
+<h3 id="note-validation"><a class="header" href="#note-validation">Note validation</a></h3>
+<p>Once created, a <code>Note</code> must be validated by a Miden operator. Validation involves checking the transaction proof that produced the <code>Note</code> to ensure it meets all protocol requirements.</p>
+<p>After validation <code>Note</code>s become “live” and eligible for consumption. If creation and consumption happens within the same block, there is no entry in the Notes DB. All other notes, are being added either as a commitment or fully public.</p>
+<h3 id="note-discovery"><a class="header" href="#note-discovery">Note discovery</a></h3>
+<p>Clients often need to find specific <code>Note</code>s of interest. Miden allows clients to query the <code>Note</code> database using <code>Note</code> tags. These lightweight, 32-bit data fields serve as best-effort filters, enabling quick lookups for <code>Note</code>s related to particular use cases, scripts, or account prefixes.</p>
+<p>Using <code>Note</code> tags strikes a balance between privacy and efficiency. Without tags, querying a specific <code>Note</code> ID reveals a user’s interest to the operator. Conversely, downloading and filtering all registered <code>Note</code>s locally is highly inefficient. Tags allow users to adjust their level of privacy by choosing how broadly or narrowly they define their search criteria, letting them find the right balance between revealing too much information and incurring excessive computational overhead.</p>
+<h3 id="note-consumption"><a class="header" href="#note-consumption">Note consumption</a></h3>
+<p>To consume a <code>Note</code>, the consumer must know its data, including the inputs needed to compute the nullifier. Consumption occurs as part of a transaction. Upon successful consumption a nullifier is generated for the consumed <code>Note</code>s.</p>
+<p>Upon successful verification of the transaction:</p>
+<ol>
+<li>The Miden operator records the <code>Note</code>’s nullifier as “consumed” in the nullifier database.</li>
+<li>The <code>Note</code>’s one-time claim is thus extinguished, preventing reuse.</li>
+</ol>
+<h4 id="note-recipient-restricting-consumption"><a class="header" href="#note-recipient-restricting-consumption">Note recipient restricting consumption</a></h4>
+<p>Consumption of a <code>Note</code> can be restricted to certain accounts or entities. For instance, the P2ID and P2IDR <code>Note</code> scripts target a specific account ID. Alternatively, Miden defines a RECIPIENT (represented as 32 bytes) computed as:</p>
+<pre><code class="language-arduino">hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+</code></pre>
+<p>Only those who know the RECIPIENT’s pre-image can consume the <code>Note</code>. For private <code>Note</code>s, this ensures an additional layer of control and privacy, as only parties with the correct data can claim the <code>Note</code>.</p>
+<p>The <a href="transaction.html">transaction prologue</a> requires all necessary data to compute the <code>Note</code> hash. This setup allows scenario-specific restrictions on who may consume a <code>Note</code>.</p>
+<p>For a practical example, refer to the <a href="https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm">SWAP note script</a>, where the RECIPIENT ensures that only a defined target can consume the swapped asset.</p>
+<h4 id="note-nullifier-ensuring-private-consumption"><a class="header" href="#note-nullifier-ensuring-private-consumption">Note nullifier ensuring private consumption</a></h4>
+<p>The <code>Note</code> nullifier, computed as:</p>
+<pre><code class="language-arduino">hash(serial_num, script_hash, input_hash, vault_hash)
+</code></pre>
+<p>This achieves the following properties:</p>
+<ul>
+<li>Every <code>Note</code> can be reduced to a single unique nullifier.</li>
+<li>One cannot derive a <code>Note</code>'s hash from its nullifier.</li>
+<li>To compute the nullifier, one must know all components of the <code>Note</code>: serial_num, script_hash, input_hash, and vault_hash.</li>
+</ul>
+<p>That means if a <code>Note</code> is private and the operator stores only the <code>Note</code>'s hash, only those with the <code>Note</code> details know if this <code>Note</code> has been consumed already. Zcash first <a href="https://zcash.github.io/orchard/design/nullifiers.html#nullifiers">introduced</a> this approach.</p>
+<p><img src="img/note/nullifier.png" alt="Architecture core concepts" /></p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<h1 id="assets-2"><a class="header" href="#assets-2">Assets</a></h1>
+<p>An <code>Asset</code> is a unit of value that can be transferred from one <a href="account.html">account</a> to another using <a href="note.html">notes</a>.</p>
+<h2 id="what-is-the-purpose-of-an-asset"><a class="header" href="#what-is-the-purpose-of-an-asset">What is the purpose of an asset?</a></h2>
+<p>In Miden, <code>Asset</code>s serve as the primary means of expressing and transferring value between <a href="account.html">accounts</a> through <a href="note.html">notes</a>. They are designed with four key principles in mind:</p>
+<ol>
+<li>
+<p><strong>Parallelizable exchange:</strong><br />
+By managing ownership and transfers directly at the account level instead of relying on global structures like ERC20 contracts, accounts can exchange <code>Asset</code>s concurrently, boosting scalability and efficiency.</p>
+</li>
+<li>
+<p><strong>Self-sovereign ownership:</strong><br />
+<code>Asset</code>s are stored in the accounts directly. This ensures that users retain complete control over their <code>Asset</code>s.</p>
+</li>
+<li>
+<p><strong>Censorship resistance:</strong><br />
+Users can transact freely and privately with no single contract or entity controlling <code>Asset</code> transfers. This reduces the risk of censored transactions, resulting in a more open and resilient system.</p>
+</li>
+<li>
+<p><strong>Flexible fee payment:</strong><br />
+Unlike protocols that require a specific base <code>Asset</code> for fees, Miden allows users to pay fees in any supported <code>Asset</code>. This flexibility simplifies the user experience.</p>
+</li>
+</ol>
+<h2 id="native-asset"><a class="header" href="#native-asset">Native asset</a></h2>
+<blockquote>
+<p>All data structures following the Miden asset model that can be exchanged.</p>
+</blockquote>
+<p>Native <code>Asset</code>s adhere to the Miden <code>Asset</code> model (encoding, issuance, storage). Every native <code>Asset</code> is encoded using 32 bytes, including both the <a href="account.html#id">ID</a> of the issuing account and the <code>Asset</code> details.</p>
+<h3 id="issuance"><a class="header" href="#issuance">Issuance</a></h3>
+<blockquote>
+<p><strong>Info</strong></p>
+<ul>
+<li>Only <a href="account.html#account-type">faucet</a> accounts can issue assets.</li>
+</ul>
+</blockquote>
+<p>Faucets can issue either fungible or non-fungible <code>Asset</code>s as defined at account creation. The faucet's code specifies the <code>Asset</code> minting conditions: i.e., how, when, and by whom these <code>Asset</code>s can be minted. Once minted, they can be transferred to other accounts using notes.</p>
+<p><img src="img/asset/asset-issuance.png" alt="Architecture core concepts" /></p>
+<h3 id="type"><a class="header" href="#type">Type</a></h3>
+<h4 id="fungible-asset"><a class="header" href="#fungible-asset">Fungible asset</a></h4>
+<p>Fungible <code>Asset</code>s are encoded with the amount and the <code>faucet_id</code> of the issuing faucet. The amount is always 2^{63} - 1 or smaller, representing the maximum supply for any fungible <code>Asset</code>. Examples include ETH and various stablecoins (e.g., DAI, USDT, USDC).</p>
+<h4 id="non-fungible-asset"><a class="header" href="#non-fungible-asset">Non-fungible asset</a></h4>
+<p>Non-fungible <code>Asset</code>s are encoded by hashing the <code>Asset</code> data into 32 bytes and placing the <code>faucet_id</code> as the second element. Examples include NFTs like a DevCon ticket.</p>
+<h3 id="storage-1"><a class="header" href="#storage-1">Storage</a></h3>
+<p><a href="account.html">Accounts</a> and <a href="note.html">notes</a> have vaults used to store <code>Asset</code>s. Accounts use a sparse Merkle tree as a vault while notes use a simple list. This enables an account to store a practically unlimited number of assets while a note can only store 255 assets.</p>
+<p><img src="img/asset/asset-storage.png" alt="Architecture core concepts" /></p>
+<h3 id="burning"><a class="header" href="#burning">Burning</a></h3>
+<p><code>Asset</code>s in Miden can be burned through various methods, such as rendering them unspendable by storing them in an unconsumable note, or sending them back to their original faucet for burning using it's dedicated function.</p>
+<h2 id="alternative-asset-models"><a class="header" href="#alternative-asset-models">Alternative asset models</a></h2>
+<blockquote>
+<p>All data structures not following the Miden asset model that can be exchanged.</p>
+</blockquote>
+<p>Miden is flexible enough to support other <code>Asset</code> models. For example, developers can replicate Ethereum’s ERC20 pattern, where fungible <code>Asset</code> ownership is recorded in a single account. To transact, users send a note to that account, triggering updates in the global hashmap state.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<h1 id="transactions-1"><a class="header" href="#transactions-1">Transactions</a></h1>
+<p>A <code>Transaction</code> in Miden is the state transition of a single account. A <code>Transaction</code> takes as input a single <a href="account.html">account</a> and zero or more <a href="note.html">notes</a>, and outputs the same account with an updated state, together with zero or more notes. <code>Transaction</code>s in Miden are Miden VM programs, their execution resulting in the generation of a zero-knowledge proof.</p>
+<p>Miden's <code>Transaction</code> model aims for the following:</p>
+<ul>
+<li><strong>Parallel transaction execution</strong>: Accounts can update their state independently from each other and in parallel.</li>
+<li><strong>Private transaction execution</strong>: Client-side <code>Transaction</code> proving allows the network to verify <code>Transaction</code>s validity with zero knowledge.</li>
+</ul>
+<p><img src="img/transaction/transaction-diagram.png" alt="Transaction diagram" /></p>
+<p>Compared to most blockchains, where a <code>Transaction</code> typically involves more than one account (e.g., sender and receiver), a <code>Transaction</code> in Miden involves a single account. To illustrate, Alice sends 5 ETH to Bob. In Miden, sending 5 ETH from Alice to Bob takes two <code>Transaction</code>s, one in which Alice creates a note containing 5 ETH and one in which Bob consumes that note and receives the 5 ETH. This model removes the need for a global lock on the blockchain's state, enabling Miden to process <code>Transaction</code>s in parallel.</p>
+<p>Currently the protocol limits the number of notes that can be consumed and produced in a transaction to 1000 each, which means that in a single <code>Transaction</code> an application could serve up to 2000 different user requests like deposits or withdrawals into/from a pool.</p>
+<p>A simple transaction currently takes about 1-2 seconds on a MacBook Pro. It takes around <code>90K</code> cycles to create the proof, as of now the signature verification step is the dominant cost.</p>
+<h2 id="transaction-lifecycle"><a class="header" href="#transaction-lifecycle">Transaction lifecycle</a></h2>
+<p>Every <code>Transaction</code> describes the process of an account changing its state. This process is described as a Miden VM program, resulting in the generation of a zero-knowledge proof. <code>Transaction</code>s are being executed in a specified sequence, in which several notes and a transaction script can interact with an account.</p>
+<p><img src="img/transaction/transaction-program.png" alt="Transaction execution flow" /></p>
+<h3 id="inputs-1"><a class="header" href="#inputs-1">Inputs</a></h3>
+<p>A <code>Transaction</code> requires several inputs:</p>
+<ul>
+<li><strong>Account</strong>: A <code>Transaction</code> is always executed against a single account. The executor must have complete knowledge of the account's state.</li>
+<li><strong>Notes</strong>: A <code>Transaction</code> can consume and output up to <code>1024</code> notes. The executor must have complete knowledge of the note data, including note inputs, before consumption. For private notes, the data cannot be fetched from the blockchain and must be received through an off-chain channel.</li>
+<li><strong>Blockchain state</strong>: The current reference block and information about the notes database used to authenticate notes to be consumed must be retrieved from the Miden operator before execution. Usually, notes to be consumed in a <code>Transaction</code> must have been created before the reference block.</li>
+<li><strong>Transaction script (optional)</strong>: The <code>Transaction</code> script is code defined by the executor. And like note scripts, they can invoke account methods, e.g., sign a transaction. There is no limit to the amount of code a <code>Transaction</code> script can hold.</li>
+<li><strong>Transaction arguments (optional)</strong>: For every note, the executor can inject transaction arguments that are present at runtime. If the note script — and therefore the note creator — allows, the note script can read those arguments to allow dynamic execution. See below for an example.</li>
+<li><strong>Foreign account data (optional)</strong>: Any foreign account data accessed during a <code>Transaction</code>, whether private or public, must be available beforehand. There is no need to know the full account storage, but the data necessary for the <code>Transaction</code>, e.g., the key/value pair that is read and the corresponding storage root.</li>
+</ul>
+<h3 id="flow"><a class="header" href="#flow">Flow</a></h3>
+<ol>
+<li><strong>Prologue</strong>
+Executes at the beginning of a transaction. It validates on-chain commitments against the provided data. This is to ensure that the transaction executes against a valid on-chain recorded state of the account and to be consumed notes. Notes to be consumed must be registered on-chain — except for <a href="note.html">erasable notes</a> which can be consumed without block inclusion.</li>
+<li><strong>Note processing</strong>
+Notes are executed sequentially against the account, following a sequence defined by the executor. To execute a note means processing the note script that calls methods exposed on the account interface. Notes must be consumed fully, which means that all assets must be transferred into the account or into other created notes. <a href="note.html#script">Note scripts</a> can invoke the account interface during execution. They can push assets into the account's vault, create new notes, set a transaction expiration, and read from or write to the account’s storage. Any method they call must be explicitly exposed by the account interface. Note scripts can also invoke methods of foreign accounts to read their state.</li>
+<li><strong>Transaction script processing</strong>
+<code>Transaction</code> scripts are an optional piece of code defined by the executor which interacts with account methods after all notes have been executed. For example, <code>Transaction</code> scripts can be used to sign the <code>Transaction</code> (e.g., sign the transaction by incrementing the nonce of the account, without which, the transaction would fail), to mint tokens from a faucet, create notes, or modify account storage. <code>Transaction</code> scripts can also invoke methods of foreign accounts to read their state.</li>
+<li><strong>Epilogue</strong>
+Completes the execution, resulting in an updated account state and a generated zero-knowledge proof. The validity of the resulting state change is checked. The account's <code>Nonce</code> must have been incremented, which is how the entire transaction is authenticated. Also, the net sum of all involved assets must be <code>0</code> (if the account is not a faucet).</li>
+</ol>
+<p>The proof together with the corresponding data needed for verification and updates of the global state can then be submitted and processed by the network.</p>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<p>To illustrate the <code>Transaction</code> protocol, we provide two examples for a basic <code>Transaction</code>. We will use references to the existing Miden <code>Transaction</code> kernel — the reference implementation of the protocol — and to the methods in Miden Assembly.</p>
+<h3 id="creating-a-p2id-note"><a class="header" href="#creating-a-p2id-note">Creating a P2ID note</a></h3>
+<p>Let's assume account A wants to create a P2ID note. P2ID notes are pay-to-ID notes that can only be consumed by a specified target account ID. Note creators can provide the target account ID using the <a href="note.html#inputs">note inputs</a>.</p>
+<p>In this example, account A uses the basic wallet and the authentication component provided by <code>miden-lib</code>. The basic wallet component defines the methods <code>wallets::basic::create_note</code> and <code>wallets::basic::move_asset_to_note</code> to create notes with assets, and <code>wallets::basic::receive_asset</code> to receive assets. The authentication component exposes <code>auth::basic::auth_tx_rpo_falcon512</code> which allows for signing a transaction. Some account methods like <code>account::get_id</code> are always exposed.</p>
+<p>The executor inputs to the Miden VM a <code>Transaction</code> script in which he places on the stack the data (tag, aux, note_type, execution_hint, RECIPIENT) of the note(s) that he wants to create using <code>wallets::basic::create_note</code> during the said <code>Transaction</code>. The <a href="https://github.com/0xPolygonMiden/miden-base/blob/main/crates/miden-objects/src/note/recipient.rs"><code>NoteRecipient</code></a> is a value that describes under which condition a note can be consumed and is built using a <code>serial_number</code>, the <code>note_script</code> (in this case P2ID script) and the <code>note_inputs</code>. The Miden VM will execute the <code>Transaction</code> script and create the note(s). After having been created, the executor can use <code>wallets::basic::move_asset_to_note</code> to move assets from the account's vault to the notes vault.</p>
+<p>After finalizing the <code>Transaction</code> the updated state and created note(s) can now be submitted to the Miden operator to be recorded on-chain.</p>
+<h3 id="consuming-a-p2id-note"><a class="header" href="#consuming-a-p2id-note">Consuming a P2ID note</a></h3>
+<p>Let's now assume that account A wants to consume a P2ID note to receive the assets contained in that note.</p>
+<p>To start the transaction process, the executor fetches and prepares all the input data to the <code>Transaction</code>. First, it retrieves blockchain data, like global inputs and block data of the most recent block. This information is needed to authenticate the native account's state and that the P2ID note exists on-chain. Then it loads the full account and note data, to start the <code>Transaction</code> execution.</p>
+<p>In the transaction's prologue the data is being authenticated by re-hashing the provided values and comparing them to the blockchain's data (this is how private data can be used and verified during the execution of transaction without actually revealing it to the network).</p>
+<p>Then the P2ID note script is being executed. The script starts by reading the note inputs <code>note::get_inputs</code> — in our case the account ID of the intended target account. It checks if the provided target account ID equals the account ID of the executing account. This is the first time the note invokes a method exposed by the <code>Transaction</code> kernel, <code>account::get_id</code>.</p>
+<p>If the check passes, the note script pushes the assets it holds into the account's vault. For every asset the note contains, the script calls the <code>wallets::basic::receive_asset</code> method exposed by the account's wallet component. The <code>wallets::basic::receive_asset</code> procedure calls <code>account::add_asset</code>, which cannot be called from the note itself. This allows accounts to control what functionality to expose, e.g. whether the account supports receiving assets or not, and the note cannot bypass that.</p>
+<p>After the assets are stored in the account's vault, the transaction script is being executed. The script calls <code>auth::basic::auth_tx_rpo_falcon512</code> which is explicitly exposed in the account interface. The method is used to verify a provided signature against a public key stored in the account's storage and a commitment to this specific transaction. If the signature can be verified, the method increments the nonce.</p>
+<p>The Epilogue finalizes the transaction by computing the final account hash, asserting the nonce increment and checking that no assets were created or destroyed in the transaction — that means the net sum of all assets must stay the same.</p>
+<h2 id="transaction-types"><a class="header" href="#transaction-types">Transaction types</a></h2>
+<p>There are two types of <code>Transaction</code>s in Miden: <strong>local transactions</strong> and <strong>network transactions</strong> [not yet implemented].</p>
+<h3 id="local-transaction"><a class="header" href="#local-transaction">Local transaction</a></h3>
+<p>Users transition their account's state locally using the Miden VM and generate a <code>Transaction</code> proof that can be verified by the network, which we call <strong>client-side proving</strong>. The network then only has to verify the proof and to change the global parts of the state to apply the state transition.</p>
+<p>They are useful, because:</p>
+<ol>
+<li>They enable privacy as neither the account state nor account code are needed to verify the zero-knowledge proof. Public inputs are only commitments and block information that are stored on-chain.</li>
+<li>They are cheaper (i.e., lower in fees) as the execution of the state transition and the generation of the zero-knowledge proof are already made by the users. Hence <strong>privacy is the cheaper option on Miden</strong>.</li>
+<li>They allow arbitrarily complex computation to be done. The proof size doesn't grow linearly with the complexity of the computation. Hence there is no gas limit for client-side proving.</li>
+</ol>
+<p>Client-side proving or local transactions on low-power devices can be slow, but Miden offers a pragmatic alternative: <strong>delegated proving</strong>. Instead of waiting for complex computations to finish on your device, you can hand off proof generation to a service, ensuring a consistent 1-2 second proving time, even on mobile.</p>
+<h3 id="network-transaction"><a class="header" href="#network-transaction">Network transaction</a></h3>
+<p>The Miden operator executes the <code>Transaction</code> and generates the proof. Miden uses network <code>Transaction</code>s for smart contracts with public shared state. This type of <code>Transaction</code> is quite similar to the ones in traditional blockchains (e.g., Ethereum).</p>
+<p>They are useful, because:</p>
+<ol>
+<li>For public shared state of smart contracts. Network <code>Transaction</code>s allow orchestrated state changes of public smart contracts without race conditions.</li>
+<li>Smart contracts should be able to be executed autonomously, ensuring liveness. Local <code>Transaction</code>s require a user to execute and prove, but in some cases a smart contract should be able to execute when certain conditions are met.</li>
+<li>Clients may not have sufficient resources to generate zero-knowledge proofs.</li>
+</ol>
+<p>The ability to facilitate both, local and network <code>Transaction</code>s, <strong>is one of the differentiating factors of Miden</strong> compared to other blockchains. Local <code>Transaction</code> execution and proving can happen in parallel as for most <code>Transaction</code>s there is no need for public state changes. This increases the network's throughput tremendously and provides privacy. Network <code>Transaction</code>s on the other hand enable autonomous smart contracts and public shared state.</p>
+<hr />
+<blockquote>
+<p><strong>Good to know</strong></p>
+<ul>
+<li>
+<p>Usually, notes that are consumed in a <code>Transaction</code> must be recorded on-chain in order for the <code>Transaction</code> to succeed. However, Miden supports <strong>erasable notes</strong> which are notes that can be consumed in a <code>Transaction</code> before being registered on-chain. For example, one can build a sub-second order book by allowing its traders to build faster transactions that depend on each other and are being validated or erased in batches.</p>
+</li>
+<li>
+<p>There is no nullifier check during a <code>Transaction</code>. Nullifiers are checked by the Miden operator during <code>Transaction</code> verification. So at the local level, there is "double spending." If a note was already spent, i.e. there exists a nullifier for that note, the block producer would never include the <code>Transaction</code> as it would make the block invalid.</p>
+</li>
+<li>
+<p>One of the main reasons for separating execution and proving steps is to allow <em>stateless provers</em>; i.e., the executed <code>Transaction</code> has all the data it needs to re-execute and prove a <code>Transaction</code> without database access. This supports easier proof-generation distribution.</p>
+</li>
+<li>
+<p>Not all <code>Transaction</code>s require notes. For example, the owner of a faucet can mint new tokens using only a <code>Transaction</code> script, without interacting with external notes.</p>
+</li>
+<li>
+<p>In Miden executors can choose arbitrary reference blocks to execute against their state. Hence it is possible to set <code>Transaction</code> expiration heights and in doing so, to define a block height until a <code>Transaction</code> should be included into a block. If the <code>Transaction</code> is expired, the resulting account state change is not valid and the <code>Transaction</code> cannot be verified anymore.</p>
+</li>
+<li>
+<p>Note and <code>Transaction</code> scripts can read the state of foreign accounts during execution. This is called foreign procedure invocation. For example, the price of an asset for the <strong>Swap</strong> script might depend on a certain value stored in the oracle account.</p>
+</li>
+<li>
+<p>An example of the right usage of <code>Transaction</code> arguments is the consumption of a <strong>Swap</strong> note. Those notes allow asset exchange based on predefined conditions. Example:</p>
+<ul>
+<li>The note's consumption condition is defined as "anyone can consume this note to take <code>X</code> units of asset A if they simultaneously create a note sending Y units of asset B back to the creator." If an executor wants to buy only a fraction <code>(X-m)</code> of asset A, they provide this amount via transaction arguments. The executor would provide the value <code>m</code>. The note script then enforces the correct transfer:
+<ul>
+<li>A new note is created returning <code>Y-((m*Y)/X)</code> of asset B to the sender.</li>
+<li>A second note is created, holding the remaining <code>(X-m)</code> of asset A for future consumption.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>When executing a <code>Transaction</code> the max number of VM cycles is <strong><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span></strong>.</p>
+</li>
+</ul>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<h1 id="state"><a class="header" href="#state">State</a></h1>
+<p>The <code>State</code> describes the current condition of all accounts, notes, nullifiers and their statuses. Reflecting the “current reality” of the protocol at any given time.</p>
+<h2 id="what-is-the-purpose-of-the-miden-state-model"><a class="header" href="#what-is-the-purpose-of-the-miden-state-model">What is the purpose of the Miden state model?</a></h2>
+<p>By employing a concurrent <code>State</code> model with local execution and proving, Miden achieves three primary properties: preserving privacy, supporting parallel transactions, and reducing state-bloat by minimizing on-chain data storage.</p>
+<p>Miden’s <code>State</code> model focuses on:</p>
+<ul>
+<li>
+<p><strong>Concurrency:</strong><br />
+Multiple transactions can be processed concurrently by distinct actors using local transaction execution which improves throughput and efficiency.</p>
+</li>
+<li>
+<p><strong>Flexible data storage:</strong><br />
+Users can store data privately on their own devices or within the network. This approach reduces reliance on the network for data availability, helps maintain user sovereignty, and minimizes unnecessary on-chain storage.</p>
+</li>
+<li>
+<p><strong>Privacy:</strong><br />
+By using notes and nullifiers, Miden ensures that value transfers remain confidential. Zero-knowledge proofs allow users to prove correctness without revealing sensitive information.</p>
+</li>
+</ul>
+<h2 id="state-model-components"><a class="header" href="#state-model-components">State model components</a></h2>
+<p>The Miden node maintains three databases to describe <code>State</code>:</p>
+<ol>
+<li>Accounts</li>
+<li>Notes</li>
+<li>Nullifiers</li>
+</ol>
+<p><img src="img/state/state.png" alt="Architecture core concepts" /></p>
+<h3 id="account-database"><a class="header" href="#account-database">Account database</a></h3>
+<p>The accounts database has two main purposes:</p>
+<ol>
+<li>Track state commitments of all accounts</li>
+<li>Store account data for public accounts</li>
+</ol>
+<p>This is done using an authenticated data structure, a sparse Merkle tree.</p>
+<p><img src="img/state/account-db.png" alt="Architecture core concepts" /></p>
+<p>As described in the <a href="account.html">accounts section</a>, there are two types of accounts:</p>
+<ul>
+<li><strong>Public accounts:</strong> where all account data is stored on-chain.</li>
+<li><strong>Private accounts:</strong> where only the commitments to the account is stored on-chain.</li>
+</ul>
+<p>Private accounts significantly reduce storage overhead. A private account contributes only 40 bytes to the global <code>State</code> (15 bytes for the account ID + 32 bytes for the account commitment + 4 bytes for the block number). For example, 1 billion private accounts take up only 47.47 GB of <code>State</code>.</p>
+<p>The storage contribution of a public account depends on the amount of data it stores.</p>
+<blockquote>
+<p><strong>Warning</strong></p>
+<ul>
+<li>In Miden, when the user is the custodian of their account <code>State</code> (in the case of a private account), losing this <code>State</code> amounts to losing their funds, similar to losing a private key.</li>
+</ul>
+</blockquote>
+<h3 id="note-database"><a class="header" href="#note-database">Note database</a></h3>
+<p>As described in the <a href="note.html">notes section</a>, there are two types of notes:</p>
+<ul>
+<li><strong>Public notes:</strong> where the entire note content is stored on-chain.</li>
+<li><strong>Private notes:</strong> where only the note’s commitment is stored on-chain.</li>
+</ul>
+<p>Private notes greatly reduce storage requirements and thus result in lower fees. At high throughput (e.g., 1K TPS), the note database could grow by about 1TB/year. However, only unconsumed public notes and enough information to construct membership proofs must be stored explicitly. Private notes, as well as consumed public notes, can be discarded. This solves the issue of infinitely growing note databases.</p>
+<p>Notes are recorded in an append-only accumulator, a <a href="https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md">Merkle Mountain Range</a>.</p>
+<p>Using a Merkle Mountain Range (append-only accumulator) is important for two reasons:</p>
+<ol>
+<li>Membership witnesses (that a note exists in the database) against such an accumulator needs to be updated very infrequently.</li>
+<li>Old membership witnesses can be extended to a new accumulator value, but this extension does not need to be done by the original witness holder.</li>
+</ol>
+<p>Both of these properties are needed for supporting local transactions using client-side proofs and privacy. In an append-only data structure, witness data does not become stale when the data structure is updated. That means users can generate valid proofs even if they don’t have the latest <code>State</code> of this database; so there is no need to query the operator on a constantly changing <code>State</code>.</p>
+<p><img src="img/state/note-db.png" alt="Architecture core concepts" /></p>
+<h3 id="nullifier-database"><a class="header" href="#nullifier-database">Nullifier database</a></h3>
+<p>Each <a href="note.html">note</a> has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.</p>
+<p>To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is 0. Since nullifiers are 32 bytes each, the sparse Merkle tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<ul>
+<li>Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the <a href="note.html#note-nullifier-ensuring-private-consumption">note’s nullifier</a>, one must know the note’s data.</li>
+</ul>
+</blockquote>
+<p><img src="img/state/nullifier-db.png" alt="Architecture core concepts" /></p>
+<h2 id="additional-information-1"><a class="header" href="#additional-information-1">Additional information</a></h2>
+<h3 id="public-shared-state"><a class="header" href="#public-shared-state">Public shared state</a></h3>
+<p>In most blockchains, most smart contracts and decentralized applications (e.g., AAVE, Uniswap) need public shared <code>State</code>. Public shared <code>State</code> is also available on Miden and can be represented as in the following example:</p>
+<p><img src="img/state/public-shared-state.png" alt="Public shared state" /></p>
+<p>In this diagram, multiple participants interact with a common, publicly accessible <code>State</code>. The figure illustrates how notes are created and consumed:</p>
+<ol>
+<li>
+<p><strong>Independent Transactions Creating Notes (tx1 &amp; tx2):</strong><br />
+Two separate users (Acc1 and Acc2) execute transactions independently:</p>
+<ul>
+<li><strong>tx1</strong> produces <strong>note 1</strong></li>
+<li><strong>tx2</strong> produces <strong>note 2</strong></li>
+</ul>
+<p>These transactions occur in parallel and do not rely on each other, allowing concurrent processing without contention.</p>
+</li>
+<li>
+<p><strong>Sequencing and Consuming Notes (tx3):</strong><br />
+The Miden node executes tx3 against the shared account, consuming <strong>notes 1 &amp; 2</strong> and producing <strong>notes 3 &amp; 4</strong>. tx3 is a network transaction executed by the Miden operator. It merges independent contributions into a unified <code>State</code> update.</p>
+</li>
+<li>
+<p><strong>Further Independent Transactions (tx4 &amp; tx5):</strong><br />
+After the shared <code>State</code> is updated:</p>
+<ul>
+<li><strong>tx4</strong> consumes <strong>note 4</strong></li>
+<li><strong>tx5</strong> consumes <strong>note 5</strong></li>
+</ul>
+<p>Both users can now interact with notes generated by the public account, continuing the cycle of <code>State</code> evolution.</p>
+</li>
+</ol>
+<h3 id="state-bloat-minimization"><a class="header" href="#state-bloat-minimization">State bloat minimization</a></h3>
+<p>Miden nodes do not need to know the entire <code>State</code> to verify or produce new blocks. Rather than storing the full <code>State</code> data with the nodes, users keep their data locally, and the rollup stores only commitments to that data. While some contracts must remain publicly visible, this approach minimizes <code>State</code> bloat. Furthermore the Miden rollup can discard non-required data after certain conditions have been met.</p>
+<p>This ensures that the account and note databases remain manageable, even under sustained high usage.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<h1 id="blockchain-1"><a class="header" href="#blockchain-1">Blockchain</a></h1>
+<p>The Miden blockchain protocol describes how the <a href="state.html">state</a> progresses through <code>Block</code>s, which are containers that aggregate account state changes and their proofs, together with created and consumed notes. <code>Block</code>s represent the delta of the global state between two time periods, and each is accompanied by a corresponding proof that attests to the correctness of all state transitions it contains. The current global state can be derived by applying all the <code>Block</code>s to the genesis state.</p>
+<p>Miden's blockchain protocol aims for the following:</p>
+<ul>
+<li><strong>Proven transactions</strong>: All included transactions have already been proven and verified when they reach the block.</li>
+<li><strong>Fast genesis syncing</strong>: New nodes can efficiently sync to the tip of the chain.</li>
+</ul>
+<p style="text-align: center;">
+    <img src="img/blockchain/execution.png" style="width:70%;" alt="Execution diagram"/>
+</p>
+<h2 id="batch-production"><a class="header" href="#batch-production">Batch production</a></h2>
+<p>To reduce the required space on the blockchain, transaction proofs are not directly put into blocks. First, they are batched together by verifying them in the batch producer. The purpose of the batch producer is to generate a single proof that some number of proven transactions have been verified. This involves recursively verifying individual transaction proofs inside the Miden VM. As with any program that runs in the Miden VM, there is a proof of correct execution running the Miden verifier to verify transaction proofs. This results into a single batch proof.</p>
+<p style="text-align: center;">
+    <img src="img/blockchain/batching.png" style="width:50%;" alt="Batch diagram"/>
+</p>
+<p>The batch producer aggregates transactions sequentially by verifying that their proofs and state transitions are correct. More specifically, the batch producer ensures:</p>
+<ol>
+<li><strong>Ordering of transactions</strong>: If several transactions within the same batch affect a single account, the correct ordering must be enforced. For example, if <code>Tx1</code> and <code>Tx2</code> both describe state changes of account <code>A</code>, then the batch kernel must verify them in the order: <code>A -&gt; Tx1 -&gt; A' -&gt; Tx2 -&gt; A''</code>.</li>
+<li><strong>Uniqueness of notes in a single batch</strong>: The batch producer must ensure the uniqueness of all notes across transactions in the batch. This will prevent the situation where duplicate notes, which would share identical nullifiers, are created. Only one such duplicate note could later be consumed, as the nullifier will be marked as spent after the first consumption. It also checks for double spends in the set of consumed notes, even though the real double spent check only happens at the block production level.</li>
+<li><strong>Expiration windows</strong>: It is possible to set an expiration window for transactions, which in turn sets an expiration window for the entire batch. For instance, if transaction <code>Tx1</code> expires at block <code>8</code> and transaction <code>Tx2</code> expires at block <code>5</code>, then the batch expiration will be set to the minimum of all transaction expirations, which is <code>5</code>.</li>
+<li><strong>Note erasure of erasable notes</strong>: Erasable notes don't exist in the Notes DB. They are unauthenticated. Accounts can still consume unauthenticated notes to consume those notes faster, they don't have to wait for notes being included into a block. If creation and consumption of an erasable note happens in the same batch, the batch producer erases this note.</li>
+</ol>
+<h2 id="block-production"><a class="header" href="#block-production">Block production</a></h2>
+<p>To create a <code>Block</code>, multiple batches and their respective proofs are aggregated. <code>Block</code> production is not parallelizable and must be performed by the Miden operator. In the future, several Miden operators may compete for <code>Block</code> production. The schema used for <code>Block</code> production is similar to that in batch production—recursive verification. Multiple batch proofs are aggregated into a single <code>Block</code> proof.</p>
+<p>The block producer ensures:</p>
+<ol>
+<li><strong>Account DB integrity</strong>: The Block <code>N+1</code> Account DB commitment must be authenticated against all previous and resulting account commitments across transactions, ensuring valid state transitions and preventing execution on stale states.</li>
+<li><strong>Nullifier DB integrity</strong>: Nullifiers of newly created notes are added to the Nullifier DB. The Block <code>N+1</code> Nullifier DB commitment must be authenticated against all new nullifiers to guarantee completeness.</li>
+<li><strong>Block hash references</strong>: Check that all block hashes references by batches are in the chain.</li>
+<li><strong>Double-spend prevention</strong>: Each consumed note’s nullifier is checked against prior consumption. The Block <code>N</code> Nullifier DB commitment is authenticated against all provided nullifiers for consumed notes, ensuring no nullifier is reused.</li>
+<li><strong>Global note uniqueness</strong>: All created and consumed notes must be unique across batches.</li>
+<li><strong>Batch expiration</strong>: The block height of the created block must be smaller or equal than the lowest batch expiration.</li>
+<li><strong>Block time increase</strong>: The block timestamp must increase monotonically from the previous block.</li>
+<li><strong>Note erasure of erasable notes</strong>: If an erasable note is created and consumed in different batches, it is erased now. If, however, an erasable note is consumed but not created within the block, the batch it contains is rejected. The Miden operator's mempool should preemptively filter such transactions.</li>
+</ol>
+<p>In final <code>Block</code> contains:</p>
+<ul>
+<li>The commitments to the current global <a href="state.html">state</a>.</li>
+<li>The newly created nullifiers.</li>
+<li>The commitments to newly created notes.</li>
+<li>The new state commitments for affected private accounts.</li>
+<li>The full states for all affected public accounts and newly created notes.</li>
+</ul>
+<p>The <code>Block</code> proof attests to the correct state transition from the previous <code>Block</code> commitment to the next, and therefore to the change in Miden's global state.</p>
+<p style="text-align: center;">
+    <img src="img/blockchain/block.png" style="width:90%;" alt="Block diagram"/>
+</p>
+<blockquote>
+<p><strong>Tip: Block Contents</strong></p>
+<ul>
+<li><strong>State updates</strong>: Contains only the hashes of updated elements. For example, for each updated account, a tuple is recorded as <code>([account id], [new account hash])</code>.</li>
+<li><strong>ZK Proof</strong>: This proof attests that, given a state commitment from the previous <code>Block</code>, a set of valid batches was executed that resulted in the new state commitment.</li>
+<li>The <code>Block</code> also includes the full account and note data for public accounts and notes. For example, if account <code>123</code> is a public account that has been updated, you would see a record in the <strong>state updates</strong> section as <code>(123, 0x456..)</code>, and the full new state of this account (which should hash to <code>0x456..</code>) would be included in a separate section.</li>
+</ul>
+</blockquote>
+<h2 id="verifying-blocks"><a class="header" href="#verifying-blocks">Verifying blocks</a></h2>
+<p>To verify that a <code>Block</code> corresponds to a valid global state transition, the following steps must be performed:</p>
+<ol>
+<li>Compute the hashes of public accounts and note states.</li>
+<li>Ensure that these hashes match the records in the <strong>state updates</strong> section.</li>
+<li>Verify the included <code>Block</code> proof using the following public inputs and output:
+<ul>
+<li><strong>Input</strong>: Previous <code>Block</code> commitment.</li>
+<li><strong>Input</strong>: Set of batch commitments.</li>
+<li><strong>Output</strong>: Current <code>Block</code> commitment.</li>
+</ul>
+</li>
+</ol>
+<p>These steps can be performed by any verifier (e.g., a contract on Ethereum, Polygon AggLayer, or a decentralized network of Miden nodes).</p>
+<h2 id="syncing-from-genesis"><a class="header" href="#syncing-from-genesis">Syncing from genesis</a></h2>
+<p>Nodes can sync efficiently from genesis to the tip of the chain through a multi-step process:</p>
+<ol>
+<li>Download historical <code>Block</code>s from genesis to the present.</li>
+<li>Verify zero-knowledge proofs for all <code>Block</code>s.</li>
+<li>Retrieve current state data (accounts, notes, and nullifiers).</li>
+<li>Validate that the downloaded state matches the latest <code>Block</code>'s state commitment.</li>
+</ol>
+<p>This approach enables fast blockchain syncing by verifying <code>Block</code> proofs rather than re-executing individual transactions, resulting in exponentially faster performance. Consequently, state sync is dominated by the time needed to download the data.</p>
+<h2 id="consensus-and-decentralization"><a class="header" href="#consensus-and-decentralization">Consensus and decentralization</a></h2>
+<p>Miden will start as a centralized L2 on the Ethereum network. Over time, Miden will decentralize, but this part of the protocol, especially consensus is not yet set.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            MathJax.Hub.Register.StartupHook('End', function() {
+                window.setTimeout(window.print, 100);
+            });
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
