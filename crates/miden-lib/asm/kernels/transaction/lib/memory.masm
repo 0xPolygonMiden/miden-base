@@ -560,7 +560,7 @@ end
 #! Outputs: [TX_KERNEL_COMMITMENT]
 #!
 #! Where:
-#! - TX_KERNEL_COMMITMENT is an accumulative hash from all kernel hashes.
+#! - TX_KERNEL_COMMITMENT is an accumulative hash from all kernel commitments.
 export.get_tx_kernel_commitment
     padw push.TX_KERNEL_COMMITMENT_PTR mem_loadw
 end

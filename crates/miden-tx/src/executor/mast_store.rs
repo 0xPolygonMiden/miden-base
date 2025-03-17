@@ -92,7 +92,7 @@ impl TransactionMastStore {
 // ================================================================================================
 
 impl MastForestStore for TransactionMastStore {
-    fn get(&self, procedure_hash: &Digest) -> Option<Arc<MastForest>> {
-        self.mast_forests.read().get(procedure_hash).cloned()
+    fn get(&self, procedure_root: &Digest) -> Option<Arc<MastForest>> {
+        self.mast_forests.read().get(procedure_root).cloned()
     }
 }

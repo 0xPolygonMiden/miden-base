@@ -910,7 +910,7 @@ export.save_account_storage_data
 end
 
 #! Saves account procedure data into memory and validates that the code commitment matches the
-#! sequential procedure hash.
+#! sequential procedure root.
 #!
 #! Inputs:
 #!   Operand stack: [CODE_COMMITMENT]

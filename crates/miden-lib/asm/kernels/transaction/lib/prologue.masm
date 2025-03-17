@@ -96,7 +96,7 @@ end
 # KERNEL DATA
 # =================================================================================================
 
-#! Saves the procedure hashes of the chosen kernel to memory. Verifies that kernel commitment and kernel
+#! Saves the procedure roots of the chosen kernel to memory. Verifies that kernel commitment and kernel
 #! hash match the sequential hash of all kernels and sequential hash of kernel procedures
 #! respectively.
 #!
@@ -104,8 +104,8 @@ end
 #!   Operand stack: []
 #!   Advice stack:  [kernel_version]
 #!   Advice map: {
-#!     TX_KERNEL_COMMITMENT: [KERNEL_HASHES]
-#!     KERNEL_HASH: [KERNEL_PROCEDURE_HASHES]
+#!     TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS]
+#!     KERNEL_COMMITMENT: [KERNEL_PROCEDURE_ROOTS]
 #!   }
 #! Outputs:
 #!   Operand stack: []
@@ -114,9 +114,9 @@ end
 #! Where:
 #! - kernel_version is the index of the desired kernel in the array of all kernels available for the
 #!   current transaction.
-#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel hashes.
-#! - [KERNEL_HASHES] is the array of each kernel hash.
-#! - [KERNEL_PROCEDURE_HASHES] is the array of procedure hashes of the current kernel.
+#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.
+#! - [KERNEL_COMMITMENTS] is the array of each kernel commitment.
+#! - [KERNEL_PROCEDURE_ROOTS] is the array of procedure roots of the current kernel.
 proc.process_kernel_data
     # move the kernel offset to the operand stack
     adv_push.1
@@ -128,25 +128,25 @@ proc.process_kernel_data
     # OS => [TX_KERNEL_COMMITMENT, kernel_version]
     # AS => []
 
-    # push the kernel hashes from the advice map to the advice stack
+    # push the kernel commitments from the advice map to the advice stack
     adv.push_mapvaln
     # OS => [TX_KERNEL_COMMITMENT, kernel_version]
-    # AS => [len_felts, [KERNEL_HASHES]]
+    # AS => [len_felts, [KERNEL_COMMITMENTS]]
 
-    # move the number of felt elements in the [KERNEL_HASHES] array to the stack and get the
+    # move the number of felt elements in the [KERNEL_COMMITMENTS] array to the stack and get the
     # number of Words from it
     adv_push.1 div.4
     # OS => [len_words, TX_KERNEL_COMMITMENT, kernel_version]
-    # AS => [[KERNEL_HASHES]]
+    # AS => [[KERNEL_COMMITMENTS]]
 
-    # get the pointer to the memory where kernel hashes will be stored
-    # Note: for now we use the same address for kernel hash and for kernel procedures since there is
+    # get the pointer to the memory where kernel commitments will be stored
+    # Note: for now we use the same address for kernel commitment and for kernel procedures since there is
     # only one kernel and its hash will be overwritten by the procedures anyway.
     exec.memory::get_kernel_procedures_ptr swap
     # OS => [len_words, kernel_mem_ptr, TX_KERNEL_COMMITMENT, kernel_version]
-    # AS => [[KERNEL_HASHES]]
+    # AS => [[KERNEL_COMMITMENTS]]
 
-    # store the kernel hashes in memory
+    # store the kernel commitments in memory
     exec.mem::pipe_words_to_memory
     # OS => [C, B, A, kernel_mem_ptr', TX_KERNEL_COMMITMENT, kernel_version]
     # AS => []
@@ -167,38 +167,38 @@ proc.process_kernel_data
     # AS => []
 
     padw movup.4 mem_loadw
-    # OS => [KERNEL_HASH]
+    # OS => [KERNEL_COMMITMENT]
     # AS => []
 
-    # push the procedure hashes of the chosen kernel from the advice map to the advice stack
+    # push the procedure roots of the chosen kernel from the advice map to the advice stack
     adv.push_mapvaln
-    # OS => [KERNEL_HASH]
+    # OS => [KERNEL_COMMITMENT]
     # AS => [len_felts, [PROC_HASHES]]
 
     # move the number of felt elements in the [PROC_HASHES] array to the stack and get the
     # number of Words from it
     adv_push.1 div.4
-    # OS => [len_words, KERNEL_HASH]
+    # OS => [len_words, KERNEL_COMMITMENT]
     # AS => [[PROC_HASHES]]
 
     # store the number of the procedures of the chosen kernel to the memory
     dup exec.memory::set_num_kernel_procedures
-    # OS => [len_words, KERNEL_HASH]
+    # OS => [len_words, KERNEL_COMMITMENT]
     # AS => [[PROC_HASHES]]
 
     # get the pointer to the memory where hashes of the kernel procedures will be stored
     exec.memory::get_kernel_procedures_ptr swap
-    # OS => [len_words, kernel_procs_ptr, KERNEL_HASH]
+    # OS => [len_words, kernel_procs_ptr, KERNEL_COMMITMENT]
     # AS => [[PROC_HASHES]]
 
     # store the kernel procedures to the memory
     exec.mem::pipe_words_to_memory
-    # OS => [C, B, A, kernel_procs_ptr', KERNEL_HASH]
+    # OS => [C, B, A, kernel_procs_ptr', KERNEL_COMMITMENT]
     # AS => []
 
     # extract the resulting hash
     exec.rpo::squeeze_digest
-    # OS => [SEQ_HASH, kernel_procs_ptr', KERNEL_HASH]
+    # OS => [SEQ_HASH, kernel_procs_ptr', KERNEL_COMMITMENT]
     # AS => []
 
     # assert that the precomputed hash matches the computed one
@@ -235,7 +235,7 @@ end
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
 #! - TX_COMMITMENT is a commitment to the set of transaction IDs which affected accounts in the block.
-#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel hashes.
+#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.
 #! - PROOF_COMMITMENT is the commitment of the block's STARK proof attesting to the correct state transition.
 #! - block_num is the reference block number.
 #! - version is the current protocol version.
@@ -1122,8 +1122,8 @@ end
 #!   Advice map: {
 #!      CHAIN_MMR_HASH: [MMR_PEAKS],
 #!      INPUT_NOTES_COMMITMENT: [NOTE_DATA],
-#!      TX_KERNEL_COMMITMENT: [KERNEL_HASHES],
-#!      KERNEL_HASH: [KERNEL_PROCEDURE_HASHES],
+#!      TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS],
+#!      KERNEL_COMMITMENT: [KERNEL_PROCEDURE_ROOTS],
 #!      ACCOUNT_CODE_COMMITMENT: [ACCOUNT_PROCEDURE_DATA],
 #!      ACCOUNT_STORAGE_COMMITMENT: [ACCOUNT_STORAGE_SLOT_DATA],
 #!   }
@@ -1138,7 +1138,7 @@ end
 #! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel hashes.
+#! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.
 #! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
 #! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.

@@ -5,7 +5,7 @@ use miden_objects::{Digest, Felt, Hasher};
 
 use super::TransactionKernel;
 
-// Include kernel v0 procedure hashes generated in build.rs
+// Include kernel v0 procedure roots generated in build.rs
 #[rustfmt::skip]
 mod kernel_v0;
 
@@ -37,12 +37,12 @@ impl TransactionKernel {
 
     /// Computes the accumulative hash of all procedures of the kernel specified by the
     /// `kernel_version`.
-    pub fn kernel_hash(kernel_version: u8) -> Digest {
+    pub fn commitment(kernel_version: u8) -> Digest {
         Hasher::hash_elements(&Self::procedures_as_elements(kernel_version))
     }
 
-    /// Computes a hash from all kernel hashes.
+    /// Computes a hash from all kernel commitments.
     pub fn kernel_commitment() -> Digest {
-        Hasher::hash_elements(&[Self::kernel_hash(0).as_elements()].concat())
+        Hasher::hash_elements(&[Self::commitment(0).as_elements()].concat())
     }
 }
