@@ -104,7 +104,7 @@ end
 #!   Operand stack: []
 #!   Advice stack:  [kernel_version]
 #!   Advice map: {
-#!     TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS]
+#!     TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS],
 #!     KERNEL_COMMITMENT: [KERNEL_PROCEDURE_COMMITMENTS]
 #!   }
 #! Outputs:
