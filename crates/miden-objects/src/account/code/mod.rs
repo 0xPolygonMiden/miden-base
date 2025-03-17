@@ -179,7 +179,7 @@ impl AccountCode {
     }
 
     /// Returns an iterator over the procedure MAST roots of this account code.
-    pub fn procedure_roots(&self) -> impl Iterator<Item = Digest> + '_ {
+    pub fn procedure_commitments(&self) -> impl Iterator<Item = Digest> + '_ {
         self.procedures().iter().map(|procedure| *procedure.mast_root())
     }
 

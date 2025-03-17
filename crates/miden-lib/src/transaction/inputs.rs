@@ -309,7 +309,7 @@ fn add_input_notes_to_advice_inputs(
 ///
 /// Inserts the following entries into the advice map:
 /// - The accumulative hash of all kernels |-> array of each kernel commitment.
-/// - The hash of the selected kernel |-> array of the kernel's procedure roots.
+/// - The hash of the selected kernel |-> array of the kernel's procedure commitments.
 pub fn add_kernel_commitments_to_advice_inputs(inputs: &mut AdviceInputs, kernel_version: u8) {
     let mut kernel_commitments: Vec<Felt> =
         Vec::with_capacity(TransactionKernel::NUM_VERSIONS * WORD_SIZE);
@@ -318,7 +318,7 @@ pub fn add_kernel_commitments_to_advice_inputs(inputs: &mut AdviceInputs, kernel
             .extend_from_slice(TransactionKernel::commitment(version as u8).as_elements());
     }
 
-    // insert the selected kernel commitment with its procedure roots into the advice map
+    // insert the selected kernel commitment with its procedure commitments into the advice map
     inputs.extend_map([(
         Digest::new(
             kernel_commitments[kernel_version as usize..kernel_version as usize + WORD_SIZE]

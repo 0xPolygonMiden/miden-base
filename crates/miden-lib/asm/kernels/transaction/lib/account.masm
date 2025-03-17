@@ -715,7 +715,7 @@ export.get_procedure_info
     # => [PROC_ROOT, storage_offset, storage_size]
 end
 
-#! Verifies that the procedure root is part of the account code.
+#! Verifies that the procedure commitment is part of the account code.
 #!
 #! Inputs:  [PROC_ROOT]
 #! Outputs: [storage_offset, storage_size]
@@ -726,7 +726,7 @@ end
 #! - storage_size is the number of storage slots the procedure is allowed to access.
 #!
 #! Panics if:
-#! - the procedure root is not part of the account code.
+#! - the procedure commitment is not part of the account code.
 export.authenticate_procedure
     # load procedure index
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
@@ -910,7 +910,7 @@ export.save_account_storage_data
 end
 
 #! Saves account procedure data into memory and validates that the code commitment matches the
-#! sequential procedure root.
+#! sequential procedure commitment.
 #!
 #! Inputs:
 #!   Operand stack: [CODE_COMMITMENT]

@@ -96,7 +96,7 @@ end
 # KERNEL DATA
 # =================================================================================================
 
-#! Saves the procedure roots of the chosen kernel to memory. Verifies that kernel commitment and kernel
+#! Saves the procedure commitments of the chosen kernel to memory. Verifies that kernel commitment and kernel
 #! hash match the sequential hash of all kernels and sequential hash of kernel procedures
 #! respectively.
 #!
@@ -105,7 +105,7 @@ end
 #!   Advice stack:  [kernel_version]
 #!   Advice map: {
 #!     TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS]
-#!     KERNEL_COMMITMENT: [KERNEL_PROCEDURE_ROOTS]
+#!     KERNEL_COMMITMENT: [KERNEL_PROCEDURE_COMMITMENTS]
 #!   }
 #! Outputs:
 #!   Operand stack: []
@@ -116,7 +116,7 @@ end
 #!   current transaction.
 #! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.
 #! - [KERNEL_COMMITMENTS] is the array of each kernel commitment.
-#! - [KERNEL_PROCEDURE_ROOTS] is the array of procedure roots of the current kernel.
+#! - [KERNEL_PROCEDURE_COMMITMENTS] is the array of procedure commitments of the current kernel.
 proc.process_kernel_data
     # move the kernel offset to the operand stack
     adv_push.1
@@ -170,7 +170,7 @@ proc.process_kernel_data
     # OS => [KERNEL_COMMITMENT]
     # AS => []
 
-    # push the procedure roots of the chosen kernel from the advice map to the advice stack
+    # push the procedure commitments of the chosen kernel from the advice map to the advice stack
     adv.push_mapvaln
     # OS => [KERNEL_COMMITMENT]
     # AS => [len_felts, [PROC_HASHES]]
@@ -1123,7 +1123,7 @@ end
 #!      CHAIN_MMR_HASH: [MMR_PEAKS],
 #!      INPUT_NOTES_COMMITMENT: [NOTE_DATA],
 #!      TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS],
-#!      KERNEL_COMMITMENT: [KERNEL_PROCEDURE_ROOTS],
+#!      KERNEL_COMMITMENT: [KERNEL_PROCEDURE_COMMITMENTS],
 #!      ACCOUNT_CODE_COMMITMENT: [ACCOUNT_PROCEDURE_DATA],
 #!      ACCOUNT_STORAGE_COMMITMENT: [ACCOUNT_STORAGE_SLOT_DATA],
 #!   }
