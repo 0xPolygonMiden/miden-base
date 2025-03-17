@@ -78,7 +78,7 @@ impl AccountCode {
                 .map_err(AccountError::AccountComponentMastForestMergeError)?;
 
         let mut procedures = Vec::new();
-        let mut proc_root_set = BTreeSet::new();
+        let mut proc_commitment_set = BTreeSet::new();
 
         // Slot 0 is globally reserved for faucet accounts so the accessible slots begin at 1 if
         // there is a faucet component present.
@@ -93,7 +93,7 @@ impl AccountCode {
                     // since storage offsets/sizes are set per MAST root. Setting them again for
                     // procedures where the offset has already been inserted would cause that
                     // procedure of the earlier component to write to the wrong slot.
-                    if !proc_root_set.insert(proc_mast_root) {
+                    if !proc_commitment_set.insert(proc_mast_root) {
                         return Err(AccountError::AccountComponentDuplicateProcedureRoot(
                             proc_mast_root,
                         ));
