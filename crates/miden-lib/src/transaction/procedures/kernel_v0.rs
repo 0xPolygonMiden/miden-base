@@ -29,7 +29,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     digest!("0xc00e1cd25d6a412624d8f69ec74630688868a56e1c7ad94125ef3eb0da80acd6"),
     // account_set_map_item
     digest!("0x8391236934b8353ffc13c6ea6fc61db30d1ac65406fafa0a1ba9153ef3d35c6c"),
-    // account_get_vault_commitment
+    // account_get_vault_root
     digest!("0x814bb6069c9b62fb40597f49547c9ae88603dd9a28f86e9ef0e54e8fc094a92e"),
     // account_add_asset
     digest!("0xbdebb57af4389e79dcf94529225e0e94053958814624f9731a29d984426e39d0"),

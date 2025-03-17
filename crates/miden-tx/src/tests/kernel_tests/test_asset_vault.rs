@@ -157,7 +157,7 @@ fn test_add_fungible_asset_success() {
 
     assert_eq!(
         read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
-        *account_vault.commitment()
+        *account_vault.root()
     );
 }
 
@@ -236,7 +236,7 @@ fn test_add_non_fungible_asset_success() {
 
     assert_eq!(
         read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
-        *account_vault.commitment()
+        *account_vault.root()
     );
 }
 
@@ -312,7 +312,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
     assert_eq!(
         read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
-        *account_vault.commitment()
+        *account_vault.root()
     );
 }
 
@@ -390,7 +390,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 
     assert_eq!(
         read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
-        *account_vault.commitment()
+        *account_vault.root()
     );
 }
 
@@ -472,6 +472,6 @@ fn test_remove_non_fungible_asset_success() {
 
     assert_eq!(
         read_root_mem_word(&process_state, memory::NATIVE_ACCT_VAULT_ROOT_PTR),
-        *account_vault.commitment()
+        *account_vault.root()
     );
 }

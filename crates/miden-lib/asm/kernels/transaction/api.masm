@@ -374,20 +374,20 @@ end
 #! Returns a commitment to the account vault the transaction is being executed against.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [VAULT_COMMITMENT, pad(12)]
+#! Outputs: [VAULT_ROOT, pad(12)]
 #!
 #! Where:
-#! - VAULT_COMMITMENT is the commitment to the account vault.
+#! - VAULT_ROOT is the commitment to the account vault.
 #!
 #! Invocation: dynexec
-export.account_get_vault_commitment
+export.account_get_vault_root
     # fetch the account vault root
     exec.memory::get_acct_vault_root
-    # => [VAULT_COMMITMENT, pad(16)]
+    # => [VAULT_ROOT, pad(16)]
 
     # truncate the stack
     swapw dropw
-    # => [VAULT_COMMITMENT, pad(12)]
+    # => [VAULT_ROOT, pad(12)]
 end
 
 #! Add the specified asset to the vault.

@@ -642,7 +642,7 @@ fn test_account_component_storage_offset() {
 // ================================================================================================
 
 #[test]
-fn test_get_vault_commitment() {
+fn test_get_vault_root() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let account = tx_context.account();
@@ -655,12 +655,12 @@ fn test_get_vault_commitment() {
             exec.prologue::prepare_transaction
 
             # push the new storage item onto the stack
-            exec.account::get_vault_commitment
-            push.{expected_vault_commitment}
+            exec.account::get_vault_root
+            push.{expected_vault_root}
             assert_eqw
         end
         ",
-        expected_vault_commitment = word_to_masm_push_string(&account.vault().commitment()),
+        expected_vault_root = word_to_masm_push_string(&account.vault().root()),
     );
 
     tx_context.execute_code(&code).unwrap();

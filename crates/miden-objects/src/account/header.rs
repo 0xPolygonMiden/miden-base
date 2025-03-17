@@ -93,7 +93,7 @@ impl AccountHeader {
     /// ```text
     /// [
     ///     [account_id_suffix, account_id_prefix, 0, account_nonce]
-    ///     [VAULT_COMMITMENT]
+    ///     [VAULT_ROOT]
     ///     [STORAGE_COMMITMENT]
     ///     [CODE_COMMITMENT]
     /// ]
@@ -121,7 +121,7 @@ impl From<&Account> for AccountHeader {
         Self {
             id: account.id(),
             nonce: account.nonce(),
-            vault_root: account.vault().commitment(),
+            vault_root: account.vault().root(),
             storage_commitment: account.storage().commitment(),
             code_commitment: account.code().commitment(),
         }

@@ -258,8 +258,8 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
 
     assert_eq!(
         read_root_mem_word(&process.into(), NATIVE_ACCT_VAULT_ROOT_PTR),
-        inputs.account().vault().commitment().as_elements(),
-        "The account vault root commitment should be stored at NATIVE_ACCT_VAULT_ROOT_PTR"
+        inputs.account().vault().root().as_elements(),
+        "The account vault root should be stored at NATIVE_ACCT_VAULT_ROOT_PTR"
     );
 
     assert_eq!(

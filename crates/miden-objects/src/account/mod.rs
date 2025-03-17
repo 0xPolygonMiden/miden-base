@@ -158,7 +158,7 @@ impl Account {
         hash_account(
             self.id,
             self.nonce,
-            self.vault.commitment(),
+            self.vault.root(),
             self.storage.commitment(),
             self.code.commitment(),
         )

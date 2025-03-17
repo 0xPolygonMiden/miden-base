@@ -99,7 +99,7 @@ fn build_advice_stack(
         ZERO,
         account.nonce(),
     ]);
-    inputs.extend_stack(account.vault().commitment());
+    inputs.extend_stack(account.vault().root());
     inputs.extend_stack(account.storage().commitment());
     inputs.extend_stack(account.code().commitment());
 

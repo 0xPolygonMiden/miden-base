@@ -439,26 +439,26 @@ end
 #! Returns a commitment to the account vault.
 #!
 #! Inputs:  []
-#! Outputs: [COM]
+#! Outputs: [VAULT_ROOT]
 #!
 #! Where:
-#! - COM is a commitment to the account vault.
+#! - VAULT_ROOT is a commitment to the account vault.
 #!
 #! Invocation: exec
-export.get_vault_commitment
+export.get_vault_root
     # pad the stack for syscall invocation
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::account_get_vault_commitment_offset
+    exec.kernel_proc_offsets::account_get_vault_root_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [COM, pad(12)]
+    # => [VAULT_ROOT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [COM]
+    # => [VAULT_ROOT]
 end
 
 #! Returns a boolean indicating whether the account is a fungible faucet.

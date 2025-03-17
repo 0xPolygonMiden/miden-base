@@ -1390,7 +1390,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
 
     assert_eq!(
         read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_VAULT_ROOT_OFFSET),
-        foreign_account.vault().commitment().as_elements(),
+        foreign_account.vault().root().as_elements(),
     );
 
     assert_eq!(
