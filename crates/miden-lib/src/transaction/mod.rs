@@ -264,12 +264,12 @@ impl TransactionKernel {
     ///
     /// The data on the stack is expected to be arranged as follows:
     ///
-    /// Stack: [CNC, FAH, tx_expiration_block_num]
+    /// Stack: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT, tx_expiration_block_num]
     ///
     /// Where:
-    /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account commitment of the account that the transaction is being executed
-    ///   against.
+    /// - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes.
+    /// - FINAL_ACCOUNT_COMMITMENT is the final account commitment of the account that the
+    ///   transaction is being executed against.
     /// - tx_expiration_block_num is the block height at which the transaction will become expired,
     ///   defined by the sum of the execution block ref and the transaction's block expiration delta
     ///   (if set during transaction execution).
@@ -319,18 +319,18 @@ impl TransactionKernel {
     ///
     /// The output stack is expected to be arrange as follows:
     ///
-    /// Stack: [CNC, FAH, tx_expiration_block_num]
+    /// Stack: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT, tx_expiration_block_num]
     ///
     /// Where:
-    /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account commitment of the account that the transaction is being executed
-    ///   against.
+    /// - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes.
+    /// - FINAL_ACCOUNT_COMMITMENT is the final account commitment of the account that the
+    ///   transaction is being executed against.
     /// - tx_expiration_block_num is the block height at which the transaction will become expired,
     ///   defined by the sum of the execution block ref and the transaction's block expiration delta
     ///   (if set during transaction execution).
     ///
     /// The actual data describing the new account state and output notes is expected to be located
-    /// in the provided advice map under keys CNC and FAH.
+    /// in the provided advice map under keys `OUTPUT_NOTES_COMMITMENT` and `FINAL_ACCOUNT_COMMITMENT`.
     pub fn from_transaction_parts(
         stack: &StackOutputs,
         adv_map: &AdviceMap,
