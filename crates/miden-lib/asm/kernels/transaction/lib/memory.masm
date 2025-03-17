@@ -52,8 +52,8 @@ const.BLOCK_COMMITMENT_PTR=400
 # The memory address at which the account ID felts are stored.
 const.ACCT_ID_PTR=404
 
-# The memory address at which the initial account hash is stored.
-const.INIT_ACCT_HASH_PTR=408
+# The memory address at which the initial account commitment is stored.
+const.INIT_ACCOUNT_COMMITMENT_PTR=408
 
 # The memory address at which the input notes commitment is stored.
 const.INPUT_NOTES_COMMITMENT_PTR=412
@@ -359,27 +359,27 @@ export.get_global_acct_id
     drop drop
 end
 
-#! Sets the initial account hash.
+#! Sets the initial account commitment.
 #!
-#! Inputs:  [INIT_ACCT_HASH]
-#! Outputs: [INIT_ACCT_HASH]
+#! Inputs:  [INIT_ACCOUNT_COMMITMENT]
+#! Outputs: [INIT_ACCOUNT_COMMITMENT]
 #!
 #! Where:
-#! - INIT_ACCT_HASH is the initial account hash.
-export.set_init_acct_hash
-    push.INIT_ACCT_HASH_PTR
+#! - INIT_ACCOUNT_COMMITMENT is the initial account commitment.
+export.set_init_account_commitment
+    push.INIT_ACCOUNT_COMMITMENT_PTR
     mem_storew
 end
 
-#! Returns the initial account hash.
+#! Returns the initial account commitment.
 #!
 #! Inputs:  []
-#! Outputs: [INIT_ACCT_HASH]
+#! Outputs: [INIT_ACCOUNT_COMMITMENT]
 #!
 #! Where:
-#! - INIT_ACCT_HASH is the initial account hash.
-export.get_init_acct_hash
-    padw push.INIT_ACCT_HASH_PTR mem_loadw
+#! - INIT_ACCOUNT_COMMITMENT is the initial account commitment.
+export.get_init_account_commitment
+    padw push.INIT_ACCOUNT_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the input notes commitment.

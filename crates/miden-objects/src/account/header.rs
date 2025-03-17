@@ -46,12 +46,13 @@ impl AccountHeader {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-    /// Returns hash of this account.
+
+    /// Returns the commitment of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
-    /// code_commitment). Computing the account hash requires 2 permutations of the hash
+    /// The commitment of an account is computed as hash(id, nonce, vault_root, storage_commitment,
+    /// code_commitment). Computing the account commitment requires 2 permutations of the hash
     /// function.
-    pub fn hash(&self) -> Digest {
+    pub fn commitment(&self) -> Digest {
         hash_account(
             self.id,
             self.nonce,

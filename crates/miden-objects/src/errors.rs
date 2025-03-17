@@ -433,7 +433,7 @@ pub enum TransactionInputError {
 pub enum TransactionOutputError {
     #[error("transaction output note with id {0} is a duplicate")]
     DuplicateOutputNote(NoteId),
-    #[error("final account hash is not in the advice map")]
+    #[error("final account commitment is not in the advice map")]
     FinalAccountHashMissingInAdviceMap,
     #[error("failed to parse final account header")]
     FinalAccountHeaderParseFailure(#[source] AccountError),
@@ -450,10 +450,10 @@ pub enum TransactionOutputError {
 
 #[derive(Debug, Error)]
 pub enum ProvenTransactionError {
-    #[error("proven transaction's final account hash {tx_final_hash} and account details hash {details_hash} must match")]
-    AccountFinalHashMismatch {
-        tx_final_hash: Digest,
-        details_hash: Digest,
+    #[error("proven transaction's final account commitment {tx_final_commitment} and account details commitment {details_commitment} must match")]
+    AccountFinalCommitmentMismatch {
+        tx_final_commitment: Digest,
+        details_commitment: Digest,
     },
     #[error("proven transaction's final account ID {tx_account_id} and account details id {details_account_id} must match")]
     AccountIdMismatch {

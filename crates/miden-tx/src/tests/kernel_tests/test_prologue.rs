@@ -12,9 +12,9 @@ use miden_lib::{
         memory::{
             MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLOCK_COMMITMENT_PTR, BLOCK_METADATA_PTR,
             BLOCK_NUMBER_IDX, CHAIN_COMMITMENT_PTR, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
-            INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
-            INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
-            INPUT_NOTE_INPUTS_COMMITMENT_OFFSET, INPUT_NOTE_METADATA_OFFSET,
+            INIT_ACCT_COMMITMENT_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR,
+            INPUT_NOTE_ARGS_OFFSET, INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET,
+            INPUT_NOTE_ID_OFFSET, INPUT_NOTE_INPUTS_COMMITMENT_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
             INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
             NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
@@ -126,9 +126,9 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), INIT_ACCT_HASH_PTR),
-        inputs.account().hash().as_elements(),
-        "The account commitment should be stored at the ACCT_HASH_PTR"
+        read_root_mem_word(&process.into(), INIT_ACCT_COMMITMENT_PTR),
+        inputs.account().commitment().as_elements(),
+        "The account commitment should be stored at the INIT_ACCT_COMMITMENT_PTR"
     );
 
     assert_eq!(

@@ -65,11 +65,11 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
     assert_eq!(updated_accounts[&account1.id()].transactions(), &[proven_tx1.id()]);
     assert_eq!(
         updated_accounts[&account0.id()].final_state_commitment(),
-        proven_tx0.account_update().final_state_hash()
+        proven_tx0.account_update().final_state_commitment()
     );
     assert_eq!(
         updated_accounts[&account1.id()].final_state_commitment(),
-        proven_tx1.account_update().final_state_hash()
+        proven_tx1.account_update().final_state_commitment()
     );
     // Each tx consumes one note.
     assert_eq!(proposed_block.created_nullifiers().len(), 2);
@@ -161,9 +161,12 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
     assert_eq!(*account_id, account1.id());
     assert_eq!(
         account_update.initial_state_commitment(),
-        tx0.account_update().init_state_hash()
+        tx0.account_update().initial_state_commitment()
     );
-    assert_eq!(account_update.final_state_commitment(), tx2.account_update().final_state_hash());
+    assert_eq!(
+        account_update.final_state_commitment(),
+        tx2.account_update().final_state_commitment()
+    );
     // The transactions that affected the account are in chronological order.
     assert_eq!(account_update.transactions(), [tx0.id(), tx1.id(), tx2.id()]);
     assert!(account_update.details().is_private());

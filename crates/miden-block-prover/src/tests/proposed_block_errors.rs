@@ -531,7 +531,7 @@ fn proposed_block_fails_on_conflicting_transactions_updating_same_account() -> a
       first_batch_id,
       second_batch_id
     } if account_id == account1.id() &&
-      initial_state_commitment == account1.init_hash() &&
+      initial_state_commitment == account1.init_commitment() &&
       first_batch_id == batch0.id() &&
       second_batch_id == batch1.id()
     );
@@ -636,8 +636,8 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
       state_commitment,
       remaining_state_commitments
     } if account_id == account1.id() &&
-      state_commitment == executed_tx0.final_account().hash() &&
-      remaining_state_commitments == [executed_tx2.initial_account().hash()]
+      state_commitment == executed_tx0.final_account().commitment() &&
+      remaining_state_commitments == [executed_tx2.initial_account().commitment()]
     );
 
     Ok(())

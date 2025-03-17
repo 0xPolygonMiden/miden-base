@@ -72,42 +72,42 @@ end
 
 ### ACCOUNT #####################################
 
-#! Returns the initial account hash.
+#! Returns the initial account commitment.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [INIT_HASH, pad(12)]
+#! Outputs: [INIT_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - INIT_HASH is the initial account hash.
+#! - INIT_COMMITMENT is the initial account commitment.
 #!
 #! Invocation: dynexec
-export.account_get_initial_hash
-    # get the initial account hash
-    exec.account::get_initial_hash
-    # => [INIT_HASH, pad(16)]
+export.account_get_initial_commitment
+    # get the initial account commitment
+    exec.account::get_initial_commitment
+    # => [INIT_COMMITMENT, pad(16)]
 
     # truncate the stack
     swapw dropw
-    # => [INIT_HASH, pad(12)]
+    # => [INIT_COMMITMENT, pad(12)]
 end
 
-#! Computes and returns the account hash from account data stored in memory.
+#! Computes and returns the account commitment from account data stored in memory.
 #!
 #! Inputs:  [pad(16)]
-#! Outputs: [ACCT_HASH, pad(12)]
+#! Outputs: [ACCOUNT_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - ACCT_HASH is the hash of the account data.
+#! - ACCOUNT_COMMITMENT is the commitment of the account data.
 #!
 #! Invocation: dynexec
-export.account_get_current_hash
-    # get the current account hash
-    exec.account::get_current_hash
-    # => [ACCT_HASH, pad(16)]
+export.account_get_current_commitment
+    # get the current account commitment
+    exec.account::get_current_commitment
+    # => [ACCOUNT_COMMITMENT, pad(16)]
 
     # truncate the stack
     swapw dropw
-    # => [ACCT_HASH, pad(12)]
+    # => [ACCOUNT_COMMITMENT, pad(12)]
 end
 
 #! Returns the account ID.
@@ -181,7 +181,7 @@ end
 #! Outputs: [CODE_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - CODE_COMMITMENT is the hash of the account code.
+#! - CODE_COMMITMENT is the commitment of the account code.
 #!
 #! Invocation: dynexec
 export.account_get_code_commitment
@@ -204,7 +204,7 @@ end
 #! Outputs: [STORAGE_COMMITMENT, pad(12)]
 #!
 #! Where:
-#! - STORAGE_COMMITMENT is the hash of the account storage.
+#! - STORAGE_COMMITMENT is the commitment of the account storage.
 #!
 #! Invocation: dynexec
 export.account_get_storage_commitment

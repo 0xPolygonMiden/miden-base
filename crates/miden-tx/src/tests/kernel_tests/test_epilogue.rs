@@ -75,7 +75,7 @@ fn test_epilogue() {
 
     let mut expected_stack = Vec::with_capacity(16);
     expected_stack.extend(output_notes.commitment().as_elements().iter().rev());
-    expected_stack.extend(final_account.hash().as_elements().iter().rev());
+    expected_stack.extend(final_account.commitment().as_elements().iter().rev());
     expected_stack.push(Felt::from(u32::MAX)); // Value for tx expiration block number
     expected_stack.extend((9..16).map(|_| ZERO));
 

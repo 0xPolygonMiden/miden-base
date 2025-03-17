@@ -149,12 +149,12 @@ impl Account {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns hash of this account.
+    /// Returns the commitment of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
-    /// code_commitment). Computing the account hash requires 2 permutations of the hash
+    /// The commitment of an account is computed as hash(id, nonce, vault_root, storage_commitment,
+    /// code_commitment). Computing the account commitment requires 2 permutations of the hash
     /// function.
-    pub fn hash(&self) -> Digest {
+    pub fn commitment(&self) -> Digest {
         hash_account(
             self.id,
             self.nonce,
@@ -164,20 +164,20 @@ impl Account {
         )
     }
 
-    /// Returns hash of this account as used for the initial account state hash in transaction
-    /// proofs.
+    /// Returns the commitment of this account as used for the initial account state commitment in
+    /// transaction proofs.
     ///
-    /// For existing accounts, this is exactly the same as [Account::hash()], however, for new
+    /// For existing accounts, this is exactly the same as [Account::commitment()], however, for new
     /// accounts this value is set to [crate::EMPTY_WORD]. This is because when a transaction is
     /// executed against a new account, public input for the initial account state is set to
-    /// [crate::EMPTY_WORD] to distinguish new accounts from existing accounts. The actual hash of
-    /// the initial account state (and the initial state itself), are provided to the VM via the
-    /// advice provider.
-    pub fn init_hash(&self) -> Digest {
+    /// [crate::EMPTY_WORD] to distinguish new accounts from existing accounts. The actual
+    /// commitment of the initial account state (and the initial state itself), are provided to
+    /// the VM via the advice provider.
+    pub fn init_commitment(&self) -> Digest {
         if self.is_new() {
             Digest::default()
         } else {
-            self.hash()
+            self.commitment()
         }
     }
 
@@ -343,7 +343,7 @@ impl Deserializable for Account {
 /// code commitment.
 ///
 /// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
-/// code_commitment). Computing the account hash requires 2 permutations of the hash function.
+/// code_commitment). Computing the account commitment requires 2 permutations of the hash function.
 pub fn hash_account(
     id: AccountId,
     nonce: Felt,

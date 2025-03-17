@@ -231,18 +231,18 @@ end
 # =================================================================================================
 
 #! Finalizes the transaction by performing the following steps:
-#! - computes the final account hash.
+#! - computes the final account commitment.
 #! - if the account has changed, assert that the final account nonce is greater than the initial
 #!   account nonce.
 #! - computes the output notes commitment.
 #! - asserts that the input and output vault roots are equal.
 #!
 #! Inputs:  []
-#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT, tx_expiration_block_num]
 #!
 #! Where:
 #! - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes.
-#! - FINAL_ACCOUNT_HASH is the final account hash.
+#! - FINAL_ACCOUNT_COMMITMENT is the final account commitment.
 #! - tx_expiration_block_num is the transaction expiration block number.
 export.finalize_transaction
     # make sure that the context was switched back to the native account
@@ -256,69 +256,69 @@ export.finalize_transaction
     exec.update_account_storage_commitment
     # => []
 
-    # get the initial account hash
-    exec.memory::get_init_acct_hash
-    # => [INIT_ACCT_HASH]
+    # get the initial account commitment
+    exec.memory::get_init_account_commitment
+    # => [INIT_ACCOUNT_COMMITMENT]
 
     # get the offset for the end of the account data section
     exec.memory::get_core_acct_data_end_ptr
-    # => [acct_data_end_ptr, INIT_ACCT_HASH]
+    # => [acct_data_end_ptr, INIT_ACCOUNT_COMMITMENT]
 
     # get the offset for the start of the account data section
     exec.memory::get_current_account_data_ptr
-    # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
+    # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCOUNT_COMMITMENT]
 
-    # compute the final account hash
-    exec.account::get_current_hash
-    # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
+    # compute the final account commitment
+    exec.account::get_current_commitment
+    # => [FINAL_ACCOUNT_COMMITMENT, acct_data_ptr, acct_data_end_ptr, INIT_ACCOUNT_COMMITMENT]
 
     # insert final account data into the advice map
     adv.insert_mem
-    # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
+    # => [FINAL_ACCOUNT_COMMITMENT, acct_data_ptr, acct_data_end_ptr, INIT_ACCOUNT_COMMITMENT]
 
     # drop account data section pointers
     movup.4 drop movup.4 drop
-    # => [FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
+    # => [FINAL_ACCOUNT_COMMITMENT, INIT_ACCOUNT_COMMITMENT]
 
     # check if the account has changed
     eqw not
-    # => [has_acct_changed, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
+    # => [has_acct_changed, FINAL_ACCOUNT_COMMITMENT, INIT_ACCOUNT_COMMITMENT]
 
     # if the account has changed then apply nonce checks
     if.true
         # get initial nonce from memory
         exec.memory::get_init_nonce
-        # => [init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
+        # => [init_nonce, FINAL_ACCOUNT_COMMITMENT, INIT_ACCOUNT_COMMITMENT]
 
         # get current nonce from memory
         exec.memory::get_acct_nonce
-        # => [current_nonce, init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
+        # => [current_nonce, init_nonce, FINAL_ACCOUNT_COMMITMENT, INIT_ACCOUNT_COMMITMENT]
 
         # assert that initial nonce is less than current nonce
         lt assert.err=ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE
-        # => [FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
+        # => [FINAL_ACCOUNT_COMMITMENT, INIT_ACCOUNT_COMMITMENT]
     end
 
-    # drop initial account hash
+    # drop initial account commitment
     swapw dropw
-    # => [FINAL_ACCOUNT_HASH]
+    # => [FINAL_ACCOUNT_COMMITMENT]
 
     # build the output vault
     exec.build_output_vault
-    # => [FINAL_ACCOUNT_HASH]
+    # => [FINAL_ACCOUNT_COMMITMENT]
 
     # compute output notes commitment
     exec.note::compute_output_notes_commitment
-    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT]
 
     # copy output note data to the advice map
     exec.copy_output_notes_to_advice_map
-    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT]
 
     # assert no net creation or destruction of assets over the transaction
     exec.memory::get_input_vault_root exec.memory::get_output_vault_root
     assert_eqw.err=ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME
-    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT]
 
     exec.memory::get_expiration_block_num movdn.8
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH, tx_expiration_block_num]

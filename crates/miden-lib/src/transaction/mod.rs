@@ -26,7 +26,7 @@ mod inputs;
 
 mod outputs;
 pub use outputs::{
-    parse_final_account_header, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
+    parse_final_account_header, FINAL_ACCOUNT_COMMITMENT_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
 };
 
 mod errors;
@@ -119,7 +119,7 @@ impl TransactionKernel {
 
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            account.init_hash(),
+            account.init_commitment(),
             tx_inputs.input_notes().commitment(),
             tx_inputs.block_header().commitment(),
             tx_inputs.block_header().block_num(),
@@ -155,7 +155,7 @@ impl TransactionKernel {
     /// ```text
     /// [
     ///     BLOCK_COMMITMENT,
-    ///     INITIAL_ACCOUNT_HASH,
+    ///     INITIAL_ACCOUNT_COMMITMENT,
     ///     INPUT_NOTES_COMMITMENT,
     ///     account_id_prefix, account_id_suffix, block_num
     /// ]
@@ -166,12 +166,12 @@ impl TransactionKernel {
     /// - block_num is the reference block number.
     /// - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the
     ///   transaction is being executed against.
-    /// - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new
-    ///   accounts.
+    /// - INITIAL_ACCOUNT_COMMITMENT is the account state prior to the transaction, EMPTY_WORD for
+    ///   new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
     pub fn build_input_stack(
         account_id: AccountId,
-        init_acct_hash: Digest,
+        init_account_commitment: Digest,
         input_notes_hash: Digest,
         block_commitment: Digest,
         block_num: BlockNumber,
@@ -182,7 +182,7 @@ impl TransactionKernel {
         inputs.push(account_id.suffix());
         inputs.push(account_id.prefix().as_felt());
         inputs.extend(input_notes_hash);
-        inputs.extend_from_slice(init_acct_hash.as_elements());
+        inputs.extend_from_slice(init_account_commitment.as_elements());
         inputs.extend_from_slice(block_commitment.as_elements());
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())
@@ -224,7 +224,7 @@ impl TransactionKernel {
         // Extend the advice inputs with Merkle store data
         advice_inputs.extend_merkle_store(
             // The prefix is the index in the account tree.
-            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.hash())?,
+            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.commitment())?,
         );
 
         Ok(())
@@ -237,22 +237,22 @@ impl TransactionKernel {
     /// [
     ///     expiration_block_num,
     ///     OUTPUT_NOTES_COMMITMENT,
-    ///     FINAL_ACCOUNT_HASH,
+    ///     FINAL_ACCOUNT_COMMITMENT,
     /// ]
     /// ```
     ///
     /// Where:
     /// - OUTPUT_NOTES_COMMITMENT is a commitment to the output notes.
-    /// - FINAL_ACCOUNT_HASH is a hash of the account's final state.
+    /// - FINAL_ACCOUNT_COMMITMENT is a hash of the account's final state.
     /// - expiration_block_num is the block number at which the transaction will expire.
     pub fn build_output_stack(
-        final_acct_hash: Digest,
+        final_account_commitment: Digest,
         output_notes_hash: Digest,
         expiration_block_num: BlockNumber,
     ) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
         outputs.push(Felt::from(expiration_block_num));
-        outputs.extend(final_acct_hash);
+        outputs.extend(final_account_commitment);
         outputs.extend(output_notes_hash);
         outputs.reverse();
         StackOutputs::new(outputs)
@@ -268,7 +268,7 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being executed
+    /// - FAH is the final account commitment of the account that the transaction is being executed
     ///   against.
     /// - tx_expiration_block_num is the block height at which the transaction will become expired,
     ///   defined by the sum of the execution block ref and the transaction's block expiration delta
@@ -286,8 +286,8 @@ impl TransactionKernel {
             .expect("first word missing")
             .into();
 
-        let final_account_hash = stack
-            .get_stack_word(FINAL_ACCOUNT_HASH_WORD_IDX * 4)
+        let final_account_commitment = stack
+            .get_stack_word(FINAL_ACCOUNT_COMMITMENT_WORD_IDX * 4)
             .expect("second word missing")
             .into();
 
@@ -309,7 +309,7 @@ impl TransactionKernel {
             ));
         }
 
-        Ok((final_account_hash, output_notes_hash, expiration_block_num))
+        Ok((final_account_commitment, output_notes_hash, expiration_block_num))
     }
 
     // TRANSACTION OUTPUT PARSER
@@ -323,7 +323,7 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being executed
+    /// - FAH is the final account commitment of the account that the transaction is being executed
     ///   against.
     /// - tx_expiration_block_num is the block height at which the transaction will become expired,
     ///   defined by the sum of the execution block ref and the transaction's block expiration delta
@@ -336,12 +336,12 @@ impl TransactionKernel {
         adv_map: &AdviceMap,
         output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
-        let (final_acct_hash, output_notes_hash, expiration_block_num) =
+        let (final_account_commitment, output_notes_hash, expiration_block_num) =
             Self::parse_output_stack(stack)?;
 
         // parse final account state
         let final_account_data = adv_map
-            .get(&final_acct_hash)
+            .get(&final_account_commitment)
             .ok_or(TransactionOutputError::FinalAccountHashMissingInAdviceMap)?;
         let account = parse_final_account_header(final_account_data)
             .map_err(TransactionOutputError::FinalAccountHeaderParseFailure)?;

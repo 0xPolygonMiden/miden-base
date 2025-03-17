@@ -71,7 +71,7 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 #!
 #! Inputs: [
 #!   BLOCK_COMMITMENT,
-#!   INITIAL_ACCOUNT_HASH,
+#!   INITIAL_ACCOUNT_COMMITMENT,
 #!   INPUT_NOTES_COMMITMENT,
 #!   account_id_prefix, account_id_suffix, block_num
 #! ]
@@ -82,13 +82,13 @@ const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 #! - block_num is the number of the reference block.
 #! - account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the account
 #!   that the transaction is being executed against.
-#! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new
+#! - INITIAL_ACCOUNT_COMMITMENT is the account state prior to the transaction, EMPTY_WORD for new
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT is the commitment to the input notes. See the
 #!   `tx_get_input_notes_commitment` kernel procedure for details.
 proc.process_global_inputs
     exec.memory::set_block_commitment dropw
-    exec.memory::set_init_acct_hash dropw
+    exec.memory::set_init_account_commitment dropw
     exec.memory::set_nullifier_commitment dropw
     exec.memory::set_global_acct_id
 end
@@ -432,9 +432,9 @@ end
 #! This procedure will:
 #! - Read the account data from the advice stack.
 #! - Save it to memory.
-#! - For new accounts, signaled by having a INITIAL_ACCOUNT_HASH set to EMPTY_WORD as a global
+#! - For new accounts, signaled by having a INITIAL_ACCOUNT_COMMITMENT set to EMPTY_WORD as a global
 #!   input, validate the account's id and initial state.
-#! - For existing accounts, verify the INITIAL_ACCOUNT_HASH commitment matches the provided data,
+#! - For existing accounts, verify the INITIAL_ACCOUNT_COMMITMENT commitment matches the provided data,
 #!   and the account nonce is not zero.
 #!
 #! Inputs:
@@ -472,65 +472,65 @@ proc.process_account_data
     adv_pipe hperm
     adv_pipe hperm
     exec.rpo::squeeze_digest
-    # => [ACCT_HASH, acct_data_ptr']
+    # => [ACCOUNT_COMMITMENT, acct_data_ptr']
 
     movup.4 drop
-    # => [ACCT_HASH]
+    # => [ACCOUNT_COMMITMENT]
 
     # assert the account ID matches the account ID in global inputs
     exec.memory::get_global_acct_id
     exec.memory::get_account_id
     exec.account::is_id_equal assert.err=ERR_PROLOGUE_MISMATCH_OF_ACCOUNT_IDS_FROM_GLOBAL_INPUTS_AND_ADVICE_PROVIDER
-    # => [ACCT_HASH]
+    # => [ACCOUNT_COMMITMENT]
 
     # store a copy of the initial nonce in global inputs
     exec.memory::get_acct_nonce
     exec.memory::set_init_nonce
-    # => [ACCT_HASH]
+    # => [ACCOUNT_COMMITMENT]
 
     # validates and stores account storage slots in memory.
     exec.memory::get_acct_storage_commitment
     exec.account::save_account_storage_data
-    # => [ACCT_HASH]
+    # => [ACCOUNT_COMMITMENT]
 
     # set the new account code commitment to the initial account code root
     # this is used for managing code commitment updates
     exec.memory::get_acct_code_commitment
     exec.memory::set_new_acct_code_commitment
-    # => [ACCOUNT_CODE_COMMITMENT, ACCT_HASH]
+    # => [ACCOUNT_CODE_COMMITMENT, ACCOUNT_COMMITMENT]
 
     # validates and stores account procedures in memory.
     exec.account::save_account_procedure_data
-    # => [ACCT_HASH]
+    # => [ACCOUNT_COMMITMENT]
 
     # copy the initial account vault hash to the input vault hash to support transaction asset
     # invariant checking
     exec.memory::get_acct_vault_root exec.memory::set_input_vault_root dropw
-    # => [ACCT_HASH]
+    # => [ACCOUNT_COMMITMENT]
 
     # Validate the account
     # ---------------------------------------------------------------------------------------------
 
-    # It is a new account if the global input INITIAL_ACCOUNT_HASH was set to EMPTY_WORD.
-    padw exec.memory::get_init_acct_hash eqw
-    # => [is_new, INITIAL_ACCOUNT_HASH, EMPTY_WORD, ACCT_HASH]
+    # It is a new account if the global input INITIAL_ACCOUNT_COMMITMENT was set to EMPTY_WORD.
+    padw exec.memory::get_init_account_commitment eqw
+    # => [is_new, INITIAL_ACCOUNT_COMMITMENT, EMPTY_WORD, ACCOUNT_COMMITMENT]
 
     # clean the stack
     movdn.8 dropw dropw
-    # => [is_new, ACCT_HASH]
+    # => [is_new, ACCOUNT_COMMITMENT]
 
     # process conditional logic depending on whether the account is new or existing
     if.true
-        # set the initial account hash
-        exec.memory::set_init_acct_hash dropw
+        # set the initial account commitment
+        exec.memory::set_init_account_commitment dropw
         # => []
 
         # validate the new account
         exec.validate_new_account
         # => []
     else
-        # assert that the existing account hash matches the hash in global inputs
-        exec.memory::get_init_acct_hash
+        # assert that the existing account commitment matches the hash in global inputs
+        exec.memory::get_init_account_commitment
         assert_eqw.err=ERR_PROLOGUE_PROVIDED_ACCOUNT_DATA_DOES_NOT_MATCH_ON_CHAIN_COMMITMENT
         # => []
 
@@ -1097,7 +1097,7 @@ end
 #! Inputs:
 #!   Operand stack: [
 #!     BLOCK_COMMITMENT,
-#!     INITIAL_ACCOUNT_HASH,
+#!     INITIAL_ACCOUNT_COMMITMENT,
 #!     INPUT_NOTES_COMMITMENT,
 #!     account_id_prefix, account_id_suffix, block_num,
 #!   ]
@@ -1135,7 +1135,7 @@ end
 #! - BLOCK_COMMITMENT is the commitment to the reference block of the transaction.
 #! - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the transaction
 #!   is being executed against.
-#! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new
+#! - INITIAL_ACCOUNT_COMMITMENT is the account state prior to the transaction, EMPTY_WORD for new
 #!   accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.

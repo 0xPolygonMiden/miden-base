@@ -33,7 +33,7 @@ A block produced by the Miden node looks something like this:
 ![Architecture core concepts](../img/architecture/execution/block.png)
 
 > **Tip: Block contents**
-> - **State updates** only contain the hashes of changes. For example, for each updated account, we record a tuple `([account id], [new account hash])`.
+> - **State updates** only contain the hashes of changes. For example, for each updated account, we record a tuple `([account id], [new account commitment])`.
 > - **ZK Proof** attests that, given a state commitment from the previous block, there was a sequence of valid transactions executed that resulted in the new state commitment, and the output also included state updates.
 > - The block also contains full account and note data for public accounts and notes. For example, if account `123` is an updated public account which, in the **state updates** section we'd see a records for it as `(123, 0x456..)`. The full new state of this account (which should hash to `0x456..`) would be included in a separate section.
 

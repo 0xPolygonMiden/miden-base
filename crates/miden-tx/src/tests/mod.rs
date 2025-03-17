@@ -113,7 +113,10 @@ fn transaction_executor_witness() {
     )
     .unwrap();
 
-    assert_eq!(executed_transaction.final_account().hash(), tx_outputs.account.hash());
+    assert_eq!(
+        executed_transaction.final_account().commitment(),
+        tx_outputs.account.commitment()
+    );
     assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);
 }
 

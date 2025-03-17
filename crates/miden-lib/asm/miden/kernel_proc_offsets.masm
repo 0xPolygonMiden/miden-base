@@ -2,9 +2,9 @@
 # -------------------------------------------------------------------------------------------------
 
 ### Account #####################################
-# Entire account hash
-const.ACCOUNT_GET_INITIAL_HASH_OFFSET=0
-const.ACCOUNT_GET_CURRENT_HASH_OFFSET=1
+# Entire account commitment
+const.ACCOUNT_GET_INITIAL_COMMITMENT_OFFSET=0
+const.ACCOUNT_GET_CURRENT_COMMITMENT_OFFSET=1
 
 # ID
 const.ACCOUNT_GET_ID_OFFSET=2
@@ -73,28 +73,28 @@ const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 
 ### ACCOUNT #####################################
 
-#! Returns the offset of the `account_get_initial_hash` kernel procedure.
+#! Returns the offset of the `account_get_initial_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_get_initial_hash` kernel procedure required to get
+#! - proc_offset is the offset of the `account_get_initial_commitment` kernel procedure required to get
 #!   the address where this procedure is stored.
-export.account_get_initial_hash_offset
-    push.ACCOUNT_GET_INITIAL_HASH_OFFSET
+export.account_get_initial_commitment_offset
+    push.ACCOUNT_GET_INITIAL_COMMITMENT_OFFSET
 end
 
-#! Returns the offset of the `account_get_current_hash` kernel procedure.
+#! Returns the offset of the `account_get_current_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_get_current_hash` kernel procedure required to get
+#! - proc_offset is the offset of the `account_get_current_commitment` kernel procedure required to get
 #!   the address where this procedure is stored.
-export.account_get_current_hash_offset
-    push.ACCOUNT_GET_CURRENT_HASH_OFFSET
+export.account_get_current_commitment_offset
+    push.ACCOUNT_GET_CURRENT_COMMITMENT_OFFSET
 end
 
 #! Returns the offset of the `account_get_id` kernel procedure.

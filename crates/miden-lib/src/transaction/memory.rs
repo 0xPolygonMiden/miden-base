@@ -92,8 +92,8 @@ pub const BLOCK_COMMITMENT_PTR: MemoryAddress = 400;
 /// The memory address at which the account ID is stored.
 pub const ACCT_ID_PTR: MemoryAddress = 404;
 
-/// The memory address at which the initial account hash is stored.
-pub const INIT_ACCT_HASH_PTR: MemoryAddress = 408;
+/// The memory address at which the initial account commitment is stored.
+pub const INIT_ACCT_COMMITMENT_PTR: MemoryAddress = 408;
 
 /// The memory address at which the input notes commitment is stored.
 pub const INPUT_NOTES_COMMITMENT_PTR: MemoryAddress = 412;

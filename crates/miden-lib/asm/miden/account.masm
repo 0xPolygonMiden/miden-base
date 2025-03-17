@@ -59,54 +59,54 @@ export.get_nonce
     # => [nonce]
 end
 
-#! Returns the initial account hash.
+#! Returns the initial account commitment.
 #!
 #! Inputs:  []
-#! Outputs: [INIT_HASH]
+#! Outputs: [INIT_COMMITMENT]
 #!
 #! Where:
-#! - INIT_HASH is the initial account hash.
+#! - INIT_COMMITMENT is the initial account commitment.
 #!
 #! Invocation: exec
-export.get_initial_hash
+export.get_initial_commitment
     # pad the stack
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::account_get_initial_hash_offset
+    exec.kernel_proc_offsets::account_get_initial_commitment_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [INIT_HASH, pad(12)]
+    # => [INIT_COMMITMENT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [INIT_HASH]
+    # => [INIT_COMMITMENT]
 end
 
-#! Computes and returns the account hash from account data stored in memory.
+#! Computes and returns the account commitment from account data stored in memory.
 #!
 #! Inputs:  []
-#! Outputs: [ACCT_HASH]
+#! Outputs: [ACCOUNT_COMMITMENT]
 #!
 #! Where:
-#! - ACCT_HASH is the hash of the account data.
+#! - ACCOUNT_COMMITMENT is the commitment of the account data.
 #!
 #! Invocation: exec
-export.get_current_hash
+export.get_current_commitment
     # pad the stack
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::account_get_current_hash_offset
+    exec.kernel_proc_offsets::account_get_current_commitment_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [ACCT_HASH, pad(12)]
+    # => [ACCOUNT_COMMITMENT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [ACCT_HASH]
+    # => [ACCOUNT_COMMITMENT]
 end
 
 #! Increments the account nonce by the provided value.
@@ -270,7 +270,7 @@ end
 #! Outputs: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_COMMITMENT is the hash of the account code.
+#! - CODE_COMMITMENT is the commitment of the account code.
 #!
 #! Invocation: exec
 export.get_code_commitment
@@ -295,7 +295,7 @@ end
 #! Outputs: [STORAGE_COMMITMENT]
 #!
 #! Where:
-#! - STORAGE_COMMITMENT is the hash of the account storage.
+#! - STORAGE_COMMITMENT is the commitment of the account storage.
 #!
 #! Invocation: exec
 export.get_storage_commitment

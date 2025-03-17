@@ -43,8 +43,8 @@ impl BatchAccountUpdate {
     pub fn from_transaction(transaction: &ProvenTransaction) -> Self {
         Self {
             account_id: transaction.account_id(),
-            initial_state_commitment: transaction.account_update().init_state_hash(),
-            final_state_commitment: transaction.account_update().final_state_hash(),
+            initial_state_commitment: transaction.account_update().initial_state_commitment(),
+            final_state_commitment: transaction.account_update().final_state_commitment(),
             transactions: vec![transaction.id()],
             details: transaction.account_update().details().clone(),
         }
@@ -112,14 +112,14 @@ impl BatchAccountUpdate {
             });
         }
 
-        if self.final_state_commitment != tx.account_update().init_state_hash() {
+        if self.final_state_commitment != tx.account_update().initial_state_commitment() {
             return Err(BatchAccountUpdateError::AccountUpdateInitialStateMismatch(tx.id()));
         }
 
         self.details = self.details.clone().merge(tx.account_update().details().clone()).map_err(
             |source_err| BatchAccountUpdateError::TransactionUpdateMergeError(tx.id(), source_err),
         )?;
-        self.final_state_commitment = tx.account_update().final_state_hash();
+        self.final_state_commitment = tx.account_update().final_state_commitment();
         self.transactions.push(tx.id());
 
         Ok(())

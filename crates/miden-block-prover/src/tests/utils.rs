@@ -262,8 +262,8 @@ impl ProvenTransactionExt for ProvenTransaction {
 
         ProvenTransactionBuilder::new(
             executed_tx.account_id(),
-            executed_tx.initial_account().init_hash(),
-            executed_tx.final_account().hash(),
+            executed_tx.initial_account().init_commitment(),
+            executed_tx.final_account().commitment(),
             block_reference.block_num(),
             block_reference.commitment(),
             executed_tx.expiration_block_num(),
