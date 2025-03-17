@@ -116,6 +116,6 @@ Finalizes the transaction:
 
 The transaction kernel program outputs:
 
-1. The transaction script root.
+1. The transaction's expiration block number. The transaction can only be included in a block whose number is equal or lower than this expiration block number.
 2. A commitment of all newly created output notes.
 3. The account commitment in its new state.

@@ -774,13 +774,13 @@ export.note_get_sender
     # => [sender_id_prefix, sender_id_suffix, pad(14)]
 end
 
-#! Returns the script root of the note currently being processed.
+#! Returns the script commitment of the note currently being processed.
 #!
 #! Inputs:  [pad(16)]
 #! Outputs: [script_commitment, pad(12)]
 #!
 #! Where:
-#! - SCRIPT_COMMITMENT is the script root of the note currently being processed.
+#! - SCRIPT_COMMITMENT is the script commitment of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is not being processed.

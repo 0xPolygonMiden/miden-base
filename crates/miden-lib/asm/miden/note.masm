@@ -226,13 +226,13 @@ export.compute_inputs_hash
     # => [HASH]
 end
 
-#! Returns the script root of the note currently being processed.
+#! Returns the script commitment of the note currently being processed.
 #!
 #! Inputs:  []
 #! Outputs: [SCRIPT_COMMITMENT]
 #!
 #! Where:
-#! - SCRIPT_COMMITMENT is the script root of the note currently being processed.
+#! - SCRIPT_COMMITMENT is the script commitment of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is being processed.

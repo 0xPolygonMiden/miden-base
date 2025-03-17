@@ -138,7 +138,7 @@ proc.main.1
     push.4103684209 drop
     trace.TX_SCRIPT_PROCESSING_START
 
-    # get the memory address of the transaction script root and load it to the stack
+    # get the memory address of the transaction script commitment and load it to the stack
     exec.memory::get_tx_script_commitment_ptr
     padw dup.4 mem_loadw
     # => [TX_SCRIPT_COMMITMENT, tx_script_commitment_ptr]
@@ -155,7 +155,7 @@ proc.main.1
         dropw dropw dropw dropw
         # => []
     else
-        # drop the pointer to the empty transaction script root
+        # drop the pointer to the empty transaction script commitment
         drop
         # => []
     end

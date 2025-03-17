@@ -387,7 +387,7 @@ fn test_note_script_and_note_args() {
 fn note_setup_stack_assertions(process: &Process, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
-    // replace the top four elements with the tx script root
+    // replace the top four elements with the tx script commitment
     let mut note_script_commitment = *inputs.input_notes().get_note(0).note().script().commitment();
     note_script_commitment.reverse();
     expected_stack[..4].copy_from_slice(&note_script_commitment);
@@ -535,7 +535,7 @@ fn test_get_current_script_commitment() {
         .with_mock_notes_preserved()
         .build();
 
-    // calling get_script_commitment should return script root
+    // calling get_script_commitment should return script commitment
     let code = "
     use.kernel::prologue
     use.miden::note

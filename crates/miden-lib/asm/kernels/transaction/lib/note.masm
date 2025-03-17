@@ -142,13 +142,13 @@ end
 
 #! Prepares a note for execution.
 #!
-#! Loads the note's script root address and args onto the stack.
+#! Loads the note's script commitment address and args onto the stack.
 #!
 #! Inputs:  []
 #! Outputs: [note_script_commitment_ptr, NOTE_ARGS]
 #!
 #! Where:
-#! - note_script_commitment_ptr, the memory address where note's script root is stored.
+#! - note_script_commitment_ptr, the memory address where note's script commitment is stored.
 #! - NOTE_ARGS, the note's arguments.
 export.prepare_note
     exec.memory::get_current_input_note_ptr
@@ -339,7 +339,7 @@ export.get_serial_number
     # => [SERIAL_NUMBER, ...]
 end
 
-#! Returns the script root of the note currently being processed.
+#! Returns the script commitment of the note currently being processed.
 #!
 #! Inputs:  []
 #! Outputs: [SCRIPT_COMMITMENT]

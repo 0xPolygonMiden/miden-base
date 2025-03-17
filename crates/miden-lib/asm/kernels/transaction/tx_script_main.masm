@@ -45,7 +45,7 @@ proc.main
     # Script Processing
     # ---------------------------------------------------------------------------------------------
 
-    # get the memory address of the transaction script root and load it to the stack
+    # get the memory address of the transaction script commitment and load it to the stack
     exec.memory::get_tx_script_commitment_ptr
     padw dup.4 mem_loadw
     # => [TX_SCRIPT_COMMITMENT, tx_script_commitment_ptr]

@@ -429,24 +429,24 @@ export.set_init_nonce
     push.INIT_NONCE_PTR mem_store
 end
 
-#! Returns a memory address of the transaction script root.
+#! Returns a memory address of the transaction script commitment.
 #!
 #! Inputs:  []
 #! Outputs: [tx_script_commitment_ptr]
 #!
 #! Where:
-#! - tx_script_commitment_ptr is the pointer to the memory where transaction script root is stored.
+#! - tx_script_commitment_ptr is the pointer to the memory where transaction script commitment is stored.
 export.get_tx_script_commitment_ptr
     push.TX_SCRIPT_COMMITMENT_PTR
 end
 
-#! Sets the transaction script root.
+#! Sets the transaction script commitment.
 #!
 #! Inputs:  [TX_SCRIPT_COMMITMENT]
 #! Outputs: [TX_SCRIPT_COMMITMENT]
 #!
 #! Where:
-#! - TX_SCRIPT_COMMITMENT is the transaction script root.
+#! - TX_SCRIPT_COMMITMENT is the transaction script commitment.
 export.set_tx_script_commitment
     push.TX_SCRIPT_COMMITMENT_PTR
     mem_storew
@@ -1101,28 +1101,28 @@ export.get_input_note_core_ptr
     push.INPUT_NOTE_CORE_DATA_OFFSET add
 end
 
-#! Returns the script root of an input note located at the specified memory address.
+#! Returns the script commitment of an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
 #! Outputs: [SCRIPT_COMMITMENT]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - SCRIPT_COMMITMENT is the script root of the input note.
+#! - SCRIPT_COMMITMENT is the script commitment of the input note.
 export.get_input_note_script_commitment
     padw
     movup.4 push.INPUT_NOTE_SCRIPT_COMMITMENT_OFFSET add
     mem_loadw
 end
 
-#! Returns the memory address of the script root of an input note.
+#! Returns the memory address of the script commitment of an input note.
 #!
 #! Inputs:  [note_ptr]
 #! Outputs: [script_commitment_ptr]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - script_commitment_ptr is the memory address where script root of the input note is stored.
+#! - script_commitment_ptr is the memory address where script commitment of the input note is stored.
 export.get_input_note_script_commitment_ptr
     push.INPUT_NOTE_SCRIPT_COMMITMENT_OFFSET add
 end
