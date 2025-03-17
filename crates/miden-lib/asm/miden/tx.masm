@@ -124,10 +124,10 @@ end
 #! tuples over all output notes.
 #!
 #! Inputs:  [0, 0, 0, 0]
-#! Outputs: [COMMITMENT]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT]
 #!
 #! Where:
-#! - COMMITMENT is the output notes commitment.
+#! - OUTPUT_NOTES_COMMITMENT is the output notes commitment.
 #!
 #! Invocation: exec
 export.get_output_notes_commitment
@@ -139,11 +139,11 @@ export.get_output_notes_commitment
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [COMMITMENT, pad(12)]
+    # => [OUTPUT_NOTES_COMMITMENT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [COMMITMENT]
+    # => [OUTPUT_NOTES_COMMITMENT]
 end
 
 #! Creates a new note and returns the index of the note.

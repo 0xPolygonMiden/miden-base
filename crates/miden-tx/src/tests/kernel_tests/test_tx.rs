@@ -312,11 +312,11 @@ fn test_get_output_notes_commitment() {
 
             # compute the output notes commitment
             exec.tx::get_output_notes_commitment
-            # => [COM]
+            # => [OUTPUT_NOTES_COMMITMENT]
 
             # truncate the stack
             exec.sys::truncate_stack
-            # => [COM]
+            # => [OUTPUT_NOTES_COMMITMENT]
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
