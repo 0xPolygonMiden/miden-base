@@ -32,6 +32,7 @@
 - [BREAKING] Enable timestamp customization on `MockChain::seal_block` (#1208).
 - [BREAKING] Renamed constants and comments: `OnChain` -> `Public` and `OffChain` -> `Private` (#1218).
 - [BREAKING] Replace "hash" with "commitment" in `BlockHeader::{prev_hash, chain_root, kernel_root, tx_hash, proof_hash, sub_hash, hash}` (#1209, #1221, #1226).
+- Enabled nested FPI calls (#1227).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 
