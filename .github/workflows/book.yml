@@ -4,7 +4,7 @@ name: book
 
 on:
   push:
-    branches: [main, next]
+    branches: [main]
 
 jobs:
   deploy:
