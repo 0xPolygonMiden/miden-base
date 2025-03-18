@@ -14,4 +14,3 @@ after = ["links"]
 [preprocessor.alerts]
 
 [output.linkcheck]
-warning-policy = "ignore"
