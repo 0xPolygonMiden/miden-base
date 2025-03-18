@@ -100,6 +100,7 @@ impl BatchAccountUpdate {
     /// - The merging transaction's initial state commitment does not match the final state
     ///   commitment of the current update.
     /// - If the underlying [`AccountUpdateDetails::merge`] fails.
+    #[allow(clippy::result_large_err)]
     pub fn merge_proven_tx(
         &mut self,
         tx: &ProvenTransaction,

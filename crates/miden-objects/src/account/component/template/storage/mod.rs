@@ -89,7 +89,7 @@ impl StorageEntry {
     ) -> Self {
         StorageEntry::MultiSlot {
             name: name.into(),
-            description: description.map(Into::into),
+            description,
             slots,
             values,
         }
@@ -115,7 +115,7 @@ impl StorageEntry {
     /// Returns an iterator over all of the storage entries's value names, alongside their
     /// expected type.
     pub fn template_requirements(&self) -> TemplateRequirementsIter {
-        let requirements = match self {
+        match self {
             StorageEntry::Value { word_entry, .. } => {
                 word_entry.template_requirements(StorageValueName::empty())
             },
@@ -125,9 +125,7 @@ impl StorageEntry {
                     word.iter().flat_map(move |f| f.template_requirements(name.clone()))
                 }))
             },
-        };
-
-        requirements
+        }
     }
 
     /// Attempts to convert the storage entry into a list of [`StorageSlot`].

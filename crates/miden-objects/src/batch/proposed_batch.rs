@@ -110,6 +110,7 @@ impl ProposedBatch {
     /// - There are duplicate transactions.
     /// - If any transaction's expiration block number is less than or equal to the batch's
     ///   reference block.
+    #[allow(clippy::result_large_err)]
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         reference_block_header: BlockHeader,
