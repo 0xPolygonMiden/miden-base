@@ -2,10 +2,13 @@
 title = "The Miden protocol"
 authors = ["Miden team"]
 description = "Description and core structures for the Miden Rollup protocol"
+multilingual = false
+language = "en"
 
 [output.html]
 git-repository-url = "https://github.com/0xPolygonMiden/miden-base"
-mathjax-support = true
+no-section-label = true
+
 
 [preprocessor.katex]
 after = ["links"]
@@ -13,4 +16,3 @@ after = ["links"]
 [preprocessor.alerts]
 
 [output.linkcheck]
-warning-policy = "ignore"

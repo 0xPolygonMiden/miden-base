@@ -24,30 +24,35 @@ These components are:
 
 ### Assets
 
+> [!Note]
 > An [asset](asset.md) container for a `Note`.
 
 A `Note` can contain from 0 up to 256 different assets. These assets represent fungible or non-fungible tokens, enabling flexible asset transfers.
 
 ### Script
 
+> [!Note]
 > The code executed when the `Note` is consumed.
 
 Each `Note` has a script that defines the conditions under which it can be consumed. When accounts consume `Note`s in transactions, `Note` scripts call the account’s interface functions. This enables all sorts of operations beyond simple asset transfers. The Miden VM’s Turing completeness allows for arbitrary logic, making `Note` scripts highly versatile. There is no limit to the amount of code a `Note` can hold.
 
 ### Inputs
 
+> [!Note]
 > Arguments passed to the `Note` script during execution.
 
 A `Note` can have up to 128 input values, which adds up to a maximum of 1 KB of data. The `Note` script can access these inputs. They can convey arbitrary parameters for `Note` consumption. 
 
 ### Serial number
 
+> [!Note]
 > A unique and immutable identifier for the `Note`.
 
 The serial number has two main purposes. Firstly by adding some randomness to the `Note` it ensures it's uniqueness, secondly in private `Note`s it helps prevent linkability between the `Note`'s hash and its nullifier. The serial number should be a random 32 bytes number chosen by the user. If leaked, the `Note`’s nullifier can be easily computed, potentially compromising privacy.
 
 ### Metadata
 
+> [!Note]
 > Additional `Note` information.
 
 `Note`s include metadata such as the sender’s account ID and a [tag](#note-discovery) that aids in discovery. Regardless of [storage mode](#note-storage-mode), these metadata fields remain public.

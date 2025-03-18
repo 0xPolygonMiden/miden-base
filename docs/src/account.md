@@ -24,6 +24,7 @@ These elements are:
  
 ### ID
 
+> [!Note]
 > An immutable and unique identifier for the `Account`.
 
 A 120-bit long number represents the `Account` ID. This identifier is structured to encapsulate specific account metadata while preventing precomputed attack vectors (e.g., rainbow table attacks).
@@ -63,6 +64,7 @@ An `Account` ID can be encoded in different formats:
      
 ### Code
 
+> [!Note]
 > A collection of functions defining the `Account`’s programmable interface.
 
 Every Miden `Account` is essentially a smart contract. The `Code` component defines the account’s functions, which can be invoked through both [Note scripts](note.md#script) and [transaction scripts](transaction.md#inputs). Key characteristics include:
@@ -73,6 +75,7 @@ Every Miden `Account` is essentially a smart contract. The `Code` component defi
 
 ### Storage
 
+> [!Note]
 > A flexible, arbitrary data store within the `Account`.
 
 The [storage](https://docs.rs/miden-objects/latest/miden_objects/account/struct.AccountStorage.html) is divided into a maximum of 255 indexed [storage slots](https://docs.rs/miden-objects/latest/miden_objects/account/enum.StorageSlot.html). Each slot can either store a 32-byte value or serve as a pointer to a key-value store with large amounts capacity.
@@ -82,12 +85,14 @@ The [storage](https://docs.rs/miden-objects/latest/miden_objects/account/struct.
 
 ### Vault
 
+> [!Note]
 > A collection of [assets](asset.md) stored by the `Account`.
 
 Large amounts of fungible and non-fungible assets can be stored in the `Account`s vault.
 
 ### Nonce
 
+> [!Note]
 > A counter incremented with each state update to the `Account`.
 
 The nonce enforces ordering and prevents replay attacks. It must strictly increase with every `Account` state update. The increment must be less than $2^{32}$ but always greater than the previous nonce, ensuring a well-defined sequence of state changes.

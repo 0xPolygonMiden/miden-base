@@ -20,14 +20,15 @@ In Miden, `Asset`s serve as the primary means of expressing and transferring val
 
 ## Native asset
 
+> [!Note]
 > All data structures following the Miden asset model that can be exchanged.
 
 Native `Asset`s adhere to the Miden `Asset` model (encoding, issuance, storage). Every native `Asset` is encoded using 32 bytes, including both the [ID](account.md#id) of the issuing account and the `Asset` details.
 
 ### Issuance
 
-> **Info**
-> - Only [faucet](account.md#account-type) accounts can issue assets.
+> [!Note]
+> Only [faucet](account.md#account-type) accounts can issue assets.
 
 Faucets can issue either fungible or non-fungible `Asset`s as defined at account creation. The faucet's code specifies the `Asset` minting conditions: i.e., how, when, and by whom these `Asset`s can be minted. Once minted, they can be transferred to other accounts using notes.
 
@@ -55,6 +56,7 @@ Non-fungible `Asset`s are encoded by hashing the `Asset` data into 32 bytes and 
 
 ## Alternative asset models
 
+> [!Note]
 > All data structures not following the Miden asset model that can be exchanged.
 
 Miden is flexible enough to support other `Asset` models. For example, developers can replicate Ethereum’s ERC20 pattern, where fungible `Asset` ownership is recorded in a single account. To transact, users send a note to that account, triggering updates in the global hashmap state.
