@@ -7,6 +7,8 @@ language = "en"
 
 [output.html]
 git-repository-url = "https://github.com/0xPolygonMiden/miden-base"
+no-section-label = true
+
 
 [preprocessor.katex]
 after = ["links"]
