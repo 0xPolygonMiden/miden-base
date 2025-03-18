@@ -47,8 +47,8 @@ Private accounts significantly reduce storage overhead. A private account contri
 
 The storage contribution of a public account depends on the amount of data it stores.
 
-> **Warning**
-> - In Miden, when the user is the custodian of their account `State` (in the case of a private account), losing this `State` amounts to losing their funds, similar to losing a private key.
+> [!Warning]
+> In Miden, when the user is the custodian of their account `State` (in the case of a private account), losing this `State` amounts to losing their funds, similar to losing a private key.
 
 ### Note database
 
@@ -76,8 +76,8 @@ Each [note](note.md) has an associated nullifier which enables the tracking of w
 
 To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is 0. Since nullifiers are 32 bytes each, the sparse Merkle tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
 
-> **Note**
-> - Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the [note’s nullifier](note.md#note-nullifier-ensuring-private-consumption), one must know the note’s data.
+> [!Note]
+> Nullifiers in Miden break linkability between privately stored notes and their consumption details. To know the [note’s nullifier](note.md#note-nullifier-ensuring-private-consumption), one must know the note’s data.
 
 ![Architecture core concepts](img/state/nullifier-db.png)
 

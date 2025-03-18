@@ -54,8 +54,9 @@ The `Block` proof attests to the correct state transition from the previous `Blo
     <img src="img/blockchain/block.png" style="width:90%;" alt="Block diagram"/>
 </p>
 
-> **Tip: Block Contents**
+> [!Tip]
 >
+> **Block Contents:**
 > - **State updates**: Contains only the hashes of updated elements. For example, for each updated account, a tuple is recorded as `([account id], [new account hash])`.
 > - **ZK Proof**: This proof attests that, given a state commitment from the previous `Block`, a set of valid batches was executed that resulted in the new state commitment.
 > - The `Block` also includes the full account and note data for public accounts and notes. For example, if account `123` is a public account that has been updated, you would see a record in the **state updates** section as `(123, 0x456..)`, and the full new state of this account (which should hash to `0x456..`) would be included in a separate section.

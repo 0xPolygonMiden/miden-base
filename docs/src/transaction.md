@@ -105,7 +105,7 @@ The ability to facilitate both, local and network `Transaction`s, **is one of th
 
 ---
 
-> **Good to know**
+> [!Tip]
 >
 > - Usually, notes that are consumed in a `Transaction` must be recorded on-chain in order for the `Transaction` to succeed. However, Miden supports **erasable notes** which are notes that can be consumed in a `Transaction` before being registered on-chain. For example, one can build a sub-second order book by allowing its traders to build faster transactions that depend on each other and are being validated or erased in batches.
 >
