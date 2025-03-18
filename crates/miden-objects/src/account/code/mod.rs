@@ -323,10 +323,10 @@ mod tests {
     }
 
     #[test]
-    fn test_account_code_procedure_commitment() {
+    fn test_account_code_procedure_root() {
         let code = AccountCode::mock();
-        let procedure_commitment = build_procedure_commitment(code.procedures());
-        assert_eq!(procedure_commitment, code.commitment())
+        let procedure_root = build_procedure_commitment(code.procedures());
+        assert_eq!(procedure_root, code.commitment())
     }
 
     #[test]

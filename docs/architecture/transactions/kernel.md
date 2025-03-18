@@ -14,7 +14,7 @@ The kernel has a well-defined structure which does the following:
 1. The [prologue](#prologue) prepares the transaction for processing by parsing the transaction data and setting up the root context.
 2. Note processing executes the note processing loop which consumes each `InputNote` and invokes the note script of each note.
 3. Transaction script processing executes the optional transaction script.
-4. The [epilogue](#epilogue) finalizes the transaction by computing the output notes commitment, the final account hash, asserting asset invariant conditions, and asserting the nonce rules are upheld.
+4. The [epilogue](#epilogue) finalizes the transaction by computing the output notes commitment, the final account commitment, asserting asset invariant conditions, and asserting the nonce rules are upheld.
 
 ![Transaction program](../../img/architecture/transaction/transaction-program.png)
 
@@ -43,7 +43,7 @@ Tracks variables used internally by the transaction kernel.
 
 ### Global inputs
 
-Stored in pre-defined memory slots. Global inputs include the block commitment, account ID, initial account hash, and nullifier commitment.
+Stored in pre-defined memory slots. Global inputs include the block commitment, account ID, initial account commitment, and nullifier commitment.
 
 ### Block data
 
@@ -55,11 +55,11 @@ Chain commitment is recomputed and verified against the chain commitment in the 
 
 ### Account data
 
-Reads data from the advice provider, stores it in memory, and computes the account hash. The hash is validated against global inputs. For new accounts, initial account hash and validation steps are applied.
+Reads data from the advice provider, stores it in memory, and computes the account commitment. The hash is validated against global inputs. For new accounts, initial account commitment and validation steps are applied.
 
 ### Input note data
 
-Processes input notes by reading data from advice providers and storing it in memory. It computes the note's hash and nullifier, forming a transaction nullifier commitment.
+Processes input notes by reading data from advice providers and storing it in memory. It computes the note's commitment and nullifier, forming a transaction nullifier commitment.
 
 > **Info**
 > - Note data is required for computing the nullifier (e.g., the [note script](../notes.md#main-script) and serial number).
@@ -107,7 +107,7 @@ end
 
 Finalizes the transaction:
 
-1. Computes the final account hash.
+1. Computes the final account commitment.
 2. Asserts that the final account nonce is greater than the initial nonce if the account has changed.
 3. Computes the output notes commitment.
 4. Asserts that input and output vault roots are equal (except for special accounts like faucets).
@@ -116,6 +116,6 @@ Finalizes the transaction:
 
 The transaction kernel program outputs:
 
-1. The transaction script root.
+1. The transaction's expiration block number. The transaction can only be included in a block whose number is equal or lower than this expiration block number.
 2. A commitment of all newly created output notes.
-3. The account hash in its new state.
+3. The account commitment in its new state.

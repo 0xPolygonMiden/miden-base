@@ -244,13 +244,13 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
             // Check if the notes with the same ID have differing hashes.
             // This could happen if the metadata of the notes is different, which we consider an
             // error.
-            let input_hash = input_note_header.hash();
-            let output_hash = output_note.hash();
-            if output_hash != input_hash {
-                return Err(InputOutputNoteTrackerError::NoteHashesMismatch {
+            let input_commitment = input_note_header.commitment();
+            let output_commitment = output_note.commitment();
+            if output_commitment != input_commitment {
+                return Err(InputOutputNoteTrackerError::NoteCommitmentMismatch {
                     id,
-                    input_hash,
-                    output_hash,
+                    input_commitment,
+                    output_commitment,
                 });
             }
 
@@ -285,10 +285,10 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         };
 
         let note_index = proof.location().node_index_in_block().into();
-        let note_hash = note_header.hash();
+        let note_commitment = note_header.commitment();
         proof
             .note_path()
-            .verify(note_index, note_hash, &note_block_header.note_root())
+            .verify(note_index, note_commitment, &note_block_header.note_root())
             .map_err(|source| {
                 InputOutputNoteTrackerError::UnauthenticatedNoteAuthenticationFailed {
                     note_id: note_header.id(),
@@ -318,10 +318,10 @@ enum InputOutputNoteTrackerError<ContainerId: Copy> {
         first_container_id: ContainerId,
         second_container_id: ContainerId,
     },
-    NoteHashesMismatch {
+    NoteCommitmentMismatch {
         id: NoteId,
-        input_hash: Digest,
-        output_hash: Digest,
+        input_commitment: Digest,
+        output_commitment: Digest,
     },
     UnauthenticatedInputNoteBlockNotInChainMmr {
         block_number: BlockNumber,
@@ -355,8 +355,14 @@ impl From<InputOutputNoteTrackerError<BatchId>> for ProposedBlockError {
                 first_batch_id: first_container_id,
                 second_batch_id: second_container_id,
             },
-            InputOutputNoteTrackerError::NoteHashesMismatch { id, input_hash, output_hash } => {
-                ProposedBlockError::NoteHashesMismatch { id, input_hash, output_hash }
+            InputOutputNoteTrackerError::NoteCommitmentMismatch {
+                id,
+                input_commitment,
+                output_commitment,
+            } => ProposedBlockError::NoteCommitmentMismatch {
+                id,
+                input_commitment,
+                output_commitment,
             },
             InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
                 block_number,
@@ -399,8 +405,14 @@ impl From<InputOutputNoteTrackerError<TransactionId>> for ProposedBatchError {
                 first_transaction_id: first_container_id,
                 second_transaction_id: second_container_id,
             },
-            InputOutputNoteTrackerError::NoteHashesMismatch { id, input_hash, output_hash } => {
-                ProposedBatchError::NoteHashesMismatch { id, input_hash, output_hash }
+            InputOutputNoteTrackerError::NoteCommitmentMismatch {
+                id,
+                input_commitment,
+                output_commitment,
+            } => ProposedBatchError::NoteCommitmentMismatch {
+                id,
+                input_commitment,
+                output_commitment,
             },
             InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
                 block_number,

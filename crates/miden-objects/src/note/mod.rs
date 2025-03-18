@@ -15,7 +15,7 @@ mod details;
 pub use details::NoteDetails;
 
 mod header;
-pub use header::{compute_note_hash, NoteHeader};
+pub use header::{compute_note_commitment, NoteHeader};
 
 mod inputs;
 pub use inputs::NoteInputs;
@@ -156,8 +156,8 @@ impl Note {
     ///
     /// This value is used primarily for authenticating notes consumed when the are consumed
     /// in a transaction.
-    pub fn hash(&self) -> Digest {
-        self.header.hash()
+    pub fn commitment(&self) -> Digest {
+        self.header.commitment()
     }
 }
 

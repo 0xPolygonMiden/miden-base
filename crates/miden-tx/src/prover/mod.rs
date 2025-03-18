@@ -136,8 +136,8 @@ impl TransactionProver for LocalTransactionProver {
 
         let builder = ProvenTransactionBuilder::new(
             account.id(),
-            account.init_hash(),
-            tx_outputs.account.hash(),
+            account.init_commitment(),
+            tx_outputs.account.commitment(),
             ref_block_num,
             ref_block_commitment,
             tx_outputs.expiration_block_num,

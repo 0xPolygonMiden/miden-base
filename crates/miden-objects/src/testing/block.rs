@@ -34,7 +34,7 @@ impl BlockHeader {
                         None
                     } else {
                         let felt_id: Felt = acct.id().prefix().into();
-                        Some((felt_id.as_int(), *acct.hash()))
+                        Some((felt_id.as_int(), *acct.commitment()))
                     }
                 })
                 .collect::<Vec<_>>(),

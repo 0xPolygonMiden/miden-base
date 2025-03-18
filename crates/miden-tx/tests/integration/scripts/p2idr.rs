@@ -68,7 +68,10 @@ fn p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(executed_transaction_1.final_account().hash(), target_account_after.hash());
+    assert_eq!(
+        executed_transaction_1.final_account().commitment(),
+        target_account_after.commitment()
+    );
 
     // CONSTRUCT AND EXECUTE TX (Failure - Sender Account tries to consume too early)
     let executed_transaction_2 = mock_chain

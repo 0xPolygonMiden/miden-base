@@ -114,7 +114,8 @@ impl ProvenTransaction {
         if self.account_id().is_public() {
             self.account_update.validate()?;
 
-            let is_new_account = self.account_update.init_state_hash() == Digest::default();
+            let is_new_account =
+                self.account_update.initial_state_commitment() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
                     return Err(ProvenTransactionError::PublicAccountMissingDetails(
@@ -135,10 +136,10 @@ impl ProvenTransaction {
                             details_account_id: account.id(),
                         });
                     }
-                    if account.hash() != self.account_update.final_state_hash() {
-                        return Err(ProvenTransactionError::AccountFinalHashMismatch {
-                            tx_final_hash: self.account_update.final_state_hash(),
-                            details_hash: account.hash(),
+                    if account.commitment() != self.account_update.final_state_commitment() {
+                        return Err(ProvenTransactionError::AccountFinalCommitmentMismatch {
+                            tx_final_commitment: self.account_update.final_state_commitment(),
+                            details_commitment: account.commitment(),
                         });
                     }
                 },
@@ -183,8 +184,8 @@ impl Deserializable for ProvenTransaction {
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
-            account_update.init_state_hash(),
-            account_update.final_state_hash(),
+            account_update.initial_state_commitment(),
+            account_update.final_state_commitment(),
             input_notes.commitment(),
             output_notes.commitment(),
         );
@@ -215,11 +216,11 @@ pub struct ProvenTransactionBuilder {
     /// ID of the account that the transaction was executed against.
     account_id: AccountId,
 
-    /// The hash of the account before the transaction was executed.
-    initial_account_hash: Digest,
+    /// The commitment of the account before the transaction was executed.
+    initial_account_commitment: Digest,
 
-    /// The hash of the account after the transaction was executed.
-    final_account_hash: Digest,
+    /// The commitment of the account after the transaction was executed.
+    final_account_commitment: Digest,
 
     /// State changes to the account due to the transaction.
     account_update_details: AccountUpdateDetails,
@@ -250,8 +251,8 @@ impl ProvenTransactionBuilder {
     /// Returns a [ProvenTransactionBuilder] used to build a [ProvenTransaction].
     pub fn new(
         account_id: AccountId,
-        initial_account_hash: Digest,
-        final_account_hash: Digest,
+        initial_account_commitment: Digest,
+        final_account_commitment: Digest,
         ref_block_num: BlockNumber,
         ref_block_commitment: Digest,
         expiration_block_num: BlockNumber,
@@ -259,8 +260,8 @@ impl ProvenTransactionBuilder {
     ) -> Self {
         Self {
             account_id,
-            initial_account_hash,
-            final_account_hash,
+            initial_account_commitment,
+            final_account_commitment,
             account_update_details: AccountUpdateDetails::Private,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
@@ -311,15 +312,15 @@ impl ProvenTransactionBuilder {
         let output_notes = OutputNotes::new(self.output_notes)
             .map_err(ProvenTransactionError::OutputNotesError)?;
         let id = TransactionId::new(
-            self.initial_account_hash,
-            self.final_account_hash,
+            self.initial_account_commitment,
+            self.final_account_commitment,
             input_notes.commitment(),
             output_notes.commitment(),
         );
         let account_update = TxAccountUpdate::new(
             self.account_id,
-            self.initial_account_hash,
-            self.final_account_hash,
+            self.initial_account_commitment,
+            self.final_account_commitment,
             self.account_update_details,
         );
 
@@ -347,13 +348,13 @@ pub struct TxAccountUpdate {
     /// ID of the account updated by a transaction.
     account_id: AccountId,
 
-    /// The hash of the account before a transaction was executed.
+    /// The commitment of the account before a transaction was executed.
     ///
     /// Set to `Digest::default()` for new accounts.
-    init_state_hash: Digest,
+    init_state_commitment: Digest,
 
-    /// The hash of the account state after a transaction was executed.
-    final_state_hash: Digest,
+    /// The commitment of the account state after a transaction was executed.
+    final_state_commitment: Digest,
 
     /// A set of changes which can be applied the account's state prior to the transaction to
     /// get the account state after the transaction. For private accounts this is set to
@@ -365,14 +366,14 @@ impl TxAccountUpdate {
     /// Returns a new [TxAccountUpdate] instantiated from the specified components.
     pub const fn new(
         account_id: AccountId,
-        init_state_hash: Digest,
-        final_state_hash: Digest,
+        init_state_commitment: Digest,
+        final_state_commitment: Digest,
         details: AccountUpdateDetails,
     ) -> Self {
         Self {
             account_id,
-            init_state_hash,
-            final_state_hash,
+            init_state_commitment,
+            final_state_commitment,
             details,
         }
     }
@@ -382,14 +383,14 @@ impl TxAccountUpdate {
         self.account_id
     }
 
-    /// Returns the hash of the account's initial state.
-    pub fn init_state_hash(&self) -> Digest {
-        self.init_state_hash
+    /// Returns the commitment of the account's initial state.
+    pub fn initial_state_commitment(&self) -> Digest {
+        self.init_state_commitment
     }
 
-    /// Returns the hash of the account's after a transaction was executed.
-    pub fn final_state_hash(&self) -> Digest {
-        self.final_state_hash
+    /// Returns the commitment of the account's after a transaction was executed.
+    pub fn final_state_commitment(&self) -> Digest {
+        self.final_state_commitment
     }
 
     /// Returns the description of the updates for public accounts.
@@ -424,8 +425,8 @@ impl TxAccountUpdate {
 impl Serializable for TxAccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.account_id.write_into(target);
-        self.init_state_hash.write_into(target);
-        self.final_state_hash.write_into(target);
+        self.init_state_commitment.write_into(target);
+        self.final_state_commitment.write_into(target);
         self.details.write_into(target);
     }
 }
@@ -434,8 +435,8 @@ impl Deserializable for TxAccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
             account_id: AccountId::read_from(source)?,
-            init_state_hash: Digest::read_from(source)?,
-            final_state_hash: Digest::read_from(source)?,
+            init_state_commitment: Digest::read_from(source)?,
+            final_state_commitment: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
         })
     }
@@ -511,8 +512,8 @@ impl ToInputNoteCommitments for InputNoteCommitment {
         self.nullifier
     }
 
-    fn note_hash(&self) -> Option<Digest> {
-        self.header.map(|header| header.hash())
+    fn note_commitment(&self) -> Option<Digest> {
+        self.header.map(|header| header.commitment())
     }
 }
 
@@ -640,9 +641,10 @@ mod tests {
             AccountType::FungibleFaucet,
             AccountStorageMode::Private,
         );
-        let initial_account_hash =
-            [2; 32].try_into().expect("failed to create initial account hash");
-        let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
+        let initial_account_commitment =
+            [2; 32].try_into().expect("failed to create initial account commitment");
+        let final_account_commitment =
+            [3; 32].try_into().expect("failed to create final account commitment");
         let ref_block_num = BlockNumber::from(1);
         let ref_block_commitment = Digest::default();
         let expiration_block_num = BlockNumber::from(2);
@@ -650,8 +652,8 @@ mod tests {
 
         let tx = ProvenTransactionBuilder::new(
             account_id,
-            initial_account_hash,
-            final_account_hash,
+            initial_account_commitment,
+            final_account_commitment,
             ref_block_num,
             ref_block_commitment,
             expiration_block_num,

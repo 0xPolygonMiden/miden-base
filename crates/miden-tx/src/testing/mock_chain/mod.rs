@@ -358,7 +358,7 @@ impl MockChain {
 
         let block_account_update = BlockAccountUpdate::new(
             transaction.account_id(),
-            account.hash(),
+            account.commitment(),
             account_update_details,
             vec![transaction.id()],
         );
@@ -623,7 +623,8 @@ impl MockChain {
 
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-        self.accounts.insert(LeafIndex::from(account.id()), Word::from(account.hash()));
+        self.accounts
+            .insert(LeafIndex::from(account.id()), Word::from(account.commitment()));
 
         account
     }
@@ -633,7 +634,7 @@ impl MockChain {
     pub fn add_pending_account(&mut self, account: Account) {
         self.pending_objects.updated_accounts.push(BlockAccountUpdate::new(
             account.id(),
-            account.hash(),
+            account.commitment(),
             AccountUpdateDetails::New(account),
             vec![],
         ));

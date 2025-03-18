@@ -23,7 +23,7 @@ const.ERR_TX_TRANSACTION_SCRIPT_IS_MISSING=0x000200C2
 #!
 #! Inputs: [
 #!   BLOCK_COMMITMENT,
-#!   INITIAL_ACCOUNT_HASH,
+#!   INITIAL_ACCOUNT_COMMITMENT,
 #!   INPUT_NOTES_COMMITMENT,
 #!   account_id_prefix, account_id_suffix, block_num,
 #! ]
@@ -33,7 +33,7 @@ const.ERR_TX_TRANSACTION_SCRIPT_IS_MISSING=0x000200C2
 #! - BLOCK_COMMITMENT is the reference block for the transaction execution.
 #! - block_num is the reference block number.
 #! - account_id is the account that the transaction is being executed against.
-#! - INITIAL_ACCOUNT_HASH is the account state prior to the transaction, EMPTY_WORD for new accounts.
+#! - INITIAL_ACCOUNT_COMMITMENT is the account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 proc.main
     # Prologue

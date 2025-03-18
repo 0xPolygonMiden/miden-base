@@ -12,8 +12,9 @@ use crate::errors::TransactionHostError;
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
 
-/// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known procedures
-/// of account interfaces for all accounts expected to be invoked during transaction execution.
+/// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known
+/// procedures of account interfaces for all accounts expected to be invoked during transaction
+/// execution.
 pub struct AccountProcedureIndexMap(BTreeMap<Digest, BTreeMap<Digest, u8>>);
 
 impl AccountProcedureIndexMap {

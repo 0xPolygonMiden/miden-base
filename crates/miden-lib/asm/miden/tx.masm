@@ -120,14 +120,14 @@ export.get_input_notes_commitment
     # => [INPUT_NOTES_COMMITMENT]
 end
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
+#! Returns the output notes commitment. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
 #! Inputs:  [0, 0, 0, 0]
-#! Outputs: [COMMITMENT]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT]
 #!
 #! Where:
-#! - COMMITMENT is the output notes hash.
+#! - OUTPUT_NOTES_COMMITMENT is the output notes commitment.
 #!
 #! Invocation: exec
 export.get_output_notes_commitment
@@ -139,11 +139,11 @@ export.get_output_notes_commitment
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [COMMITMENT, pad(12)]
+    # => [OUTPUT_NOTES_COMMITMENT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [COMMITMENT]
+    # => [OUTPUT_NOTES_COMMITMENT]
 end
 
 #! Creates a new note and returns the index of the note.
@@ -204,24 +204,24 @@ export.add_asset_to_note
     # => [ASSET, note_idx]
 end
 
-#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_ROOT, and inputs commitment
 #!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
+#! Inputs: [SERIAL_NUM, SCRIPT_ROOT, INPUT_COMMITMENT]
 #! Outputs: [RECIPIENT]
 #!
 #! Where:
 #! - SERIAL_NUM is the serial number of the recipient.
-#! - SCRIPT_HASH is the commitment of the note script.
-#! - INPUT_HASH is the commitment of the note inputs.
+#! - SCRIPT_ROOT is the commitment of the note script.
+#! - INPUT_COMMITMENT is the commitment of the note inputs.
 #! - RECIPIENT is the recipient of the note.
 #!
 #! Invocation: exec
 export.build_recipient_hash
     padw hmerge
-    # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+    # => [SERIAL_NUM_HASH, SCRIPT_ROOT, INPUT_COMMITMENT]
 
     swapw hmerge
-    # => [MERGE_SCRIPT, INPUT_HASH]
+    # => [MERGE_SCRIPT, INPUT_COMMITMENT]
 
     swapw hmerge
     # [RECIPIENT]

@@ -7,9 +7,9 @@ use miden_objects::{digest, Digest};
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
 pub const KERNEL0_PROCEDURES: [Digest; 36] = [
-    // account_get_initial_hash
+    // account_get_initial_commitment
     digest!("0x920898348bacd6d98a399301eb308478fd32b32eab019a5a6ef7a6b44abb61f6"),
-    // account_get_current_hash
+    // account_get_current_commitment
     digest!("0x69f2e0b681498846c049d298ae9833649061eeca6552363396d470a49c3e9890"),
     // account_get_id
     digest!("0x0fe7d10d95c529eaec3f0672dd716105c8c5d0ab52e63adaa5c176844bb94a38"),
@@ -29,7 +29,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     digest!("0xc00e1cd25d6a412624d8f69ec74630688868a56e1c7ad94125ef3eb0da80acd6"),
     // account_set_map_item
     digest!("0x8391236934b8353ffc13c6ea6fc61db30d1ac65406fafa0a1ba9153ef3d35c6c"),
-    // account_get_vault_commitment
+    // account_get_vault_root
     digest!("0x814bb6069c9b62fb40597f49547c9ae88603dd9a28f86e9ef0e54e8fc094a92e"),
     // account_add_asset
     digest!("0xbdebb57af4389e79dcf94529225e0e94053958814624f9731a29d984426e39d0"),
@@ -53,11 +53,11 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     digest!("0x2785bb643703ca8215f646c0e6a356f7c8eff9991d9ca0aae5d3b87d0a63ffad"),
     // note_get_serial_number
     digest!("0x59b3ea650232049bb333867841012c3694bd557fa199cd65655c0006edccc3ab"),
-    // note_get_inputs_hash
+    // note_get_inputs_commitment
     digest!("0x9d4af62050a2024dbd9e1967f2ba9b81f7801e8eb704494498904d3affd74a55"),
     // note_get_sender
     digest!("0x01172024b89517e5da80121cedfa6c19dd2ace0fe4d09a8cde6605103fe62952"),
-    // note_get_script_hash
+    // note_get_script_root
     digest!("0x66fb188ca538d9f8bc6fd1aedbd19336bf6e3a1c0ae67b5f725cbc9cb4f7867f"),
     // tx_create_note
     digest!("0x3c8757885c515be9429d44113766faa5ee9036162fbf238c557615c37c53aa30"),

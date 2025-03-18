@@ -74,14 +74,16 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
     let block2 = chain.seal_next_block();
 
     let note = mock_note(40);
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .output_notes(vec![OutputNote::Full(note.clone())])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .output_notes(vec![OutputNote::Full(note.clone())])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note.clone()])
+            .build()?;
 
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
@@ -104,14 +106,16 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
     let block1 = chain.block_header(1);
 
     let note = mock_note(50);
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note.clone()])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note.clone()])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note.clone()])
+            .build()?;
 
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
@@ -142,14 +146,16 @@ fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
     let block1 = chain.block_header(1);
     let block2 = chain.seal_next_block();
 
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .authenticated_notes(vec![note.clone()])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .authenticated_notes(vec![note.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .authenticated_notes(vec![note.clone()])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .authenticated_notes(vec![note.clone()])
+            .build()?;
 
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
@@ -180,14 +186,16 @@ fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
     let block1 = chain.block_header(1);
     let block2 = chain.seal_next_block();
 
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note.clone()])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .authenticated_notes(vec![note.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note.clone()])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .authenticated_notes(vec![note.clone()])
+            .build()?;
 
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
@@ -217,14 +225,16 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
     let block1 = chain.block_header(1);
 
     let note0 = mock_output_note(50);
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .output_notes(vec![note0.clone()])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .output_notes(vec![note0.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .output_notes(vec![note0.clone()])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .output_notes(vec![note0.clone()])
+            .build()?;
 
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
@@ -258,10 +268,11 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let block4 = chain.seal_next_block();
 
     // Consume the authenticated note as an unauthenticated one in the transaction.
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block3.commitment())
-        .unauthenticated_notes(vec![note1.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block3.commitment())
+            .unauthenticated_notes(vec![note1.clone()])
+            .build()?;
 
     let input_note0 = chain.available_notes_map().get(&note0.id()).expect("note not found");
     let note_inclusion_proof0 = input_note0.proof().expect("note should be of type authenticated");
@@ -360,14 +371,16 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
     let block2 = chain.seal_next_block();
 
     let note0 = mock_note(50);
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .output_notes(vec![OutputNote::Full(note0.clone())])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .authenticated_notes(vec![note.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .output_notes(vec![OutputNote::Full(note0.clone())])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .authenticated_notes(vec![note.clone()])
+            .build()?;
 
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
@@ -392,18 +405,24 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
 
     // Use some random hash as the initial state commitment of tx1.
     let initial_state_commitment = Digest::default();
-    let tx1 =
-        MockProvenTxBuilder::with_account(account1.id(), initial_state_commitment, account1.hash())
-            .ref_block_commitment(block1.commitment())
-            .output_notes(vec![mock_output_note(0)])
-            .build()?;
+    let tx1 = MockProvenTxBuilder::with_account(
+        account1.id(),
+        initial_state_commitment,
+        account1.commitment(),
+    )
+    .ref_block_commitment(block1.commitment())
+    .output_notes(vec![mock_output_note(0)])
+    .build()?;
 
     // Use some random hash as the final state commitment of tx2.
-    let final_state_commitment = mock_note(10).hash();
-    let tx2 =
-        MockProvenTxBuilder::with_account(account1.id(), account1.hash(), final_state_commitment)
-            .ref_block_commitment(block1.commitment())
-            .build()?;
+    let final_state_commitment = mock_note(10).commitment();
+    let tx2 = MockProvenTxBuilder::with_account(
+        account1.id(),
+        account1.commitment(),
+        final_state_commitment,
+    )
+    .ref_block_commitment(block1.commitment())
+    .build()?;
 
     // Success: Transactions are correctly ordered.
     let batch = ProposedBatch::new(
@@ -461,16 +480,18 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
     let note4 = mock_note(90);
     let note5 = mock_note(100);
 
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note1.clone(), note5.clone()])
-        .output_notes(vec![note0.clone()])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note4.clone()])
-        .output_notes(vec![OutputNote::Full(note1.clone()), note2.clone(), note3.clone()])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note1.clone(), note5.clone()])
+            .output_notes(vec![note0.clone()])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note4.clone()])
+            .output_notes(vec![OutputNote::Full(note1.clone()), note2.clone(), note3.clone()])
+            .build()?;
 
     let batch = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
@@ -507,16 +528,18 @@ fn batch_expiration() -> anyhow::Result<()> {
     let TestSetup { chain, account1, account2 } = setup_chain();
     let block1 = chain.block_header(1);
 
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .expiration_block_num(BlockNumber::from(35))
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .expiration_block_num(BlockNumber::from(35))
+            .build()?;
     // This transaction has the smallest valid expiration block num that allows it to still be
     // included in the batch.
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .expiration_block_num(block1.block_num() + 1)
-        .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .expiration_block_num(block1.block_num() + 1)
+            .build()?;
 
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
@@ -536,10 +559,11 @@ fn duplicate_transaction() -> anyhow::Result<()> {
     let TestSetup { chain, account1, .. } = setup_chain();
     let block1 = chain.block_header(1);
 
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .expiration_block_num(BlockNumber::from(35))
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .expiration_block_num(BlockNumber::from(35))
+            .build()?;
 
     let error = ProposedBatch::new(
         [tx1.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
@@ -565,16 +589,18 @@ fn circular_note_dependency() -> anyhow::Result<()> {
     let note_x = mock_note(20);
     let note_y = mock_note(30);
 
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note_x.clone()])
-        .output_notes(vec![OutputNote::Full(note_y.clone())])
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .unauthenticated_notes(vec![note_y.clone()])
-        .output_notes(vec![OutputNote::Full(note_x.clone())])
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note_x.clone()])
+            .output_notes(vec![OutputNote::Full(note_y.clone())])
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .unauthenticated_notes(vec![note_y.clone()])
+            .output_notes(vec![OutputNote::Full(note_x.clone())])
+            .build()?;
 
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
@@ -596,14 +622,16 @@ fn expired_transaction() -> anyhow::Result<()> {
     let block1 = chain.block_header(1);
 
     // This transaction expired at the batch's reference block.
-    let tx1 = MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.hash())
-        .ref_block_commitment(block1.commitment())
-        .expiration_block_num(block1.block_num())
-        .build()?;
-    let tx2 = MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.hash())
-        .ref_block_commitment(block1.commitment())
-        .expiration_block_num(block1.block_num() + 3)
-        .build()?;
+    let tx1 =
+        MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
+            .ref_block_commitment(block1.commitment())
+            .expiration_block_num(block1.block_num())
+            .build()?;
+    let tx2 =
+        MockProvenTxBuilder::with_account(account2.id(), Digest::default(), account2.commitment())
+            .ref_block_commitment(block1.commitment())
+            .expiration_block_num(block1.block_num() + 3)
+            .build()?;
 
     let error = ProposedBatch::new(
         [tx1.clone(), tx2].into_iter().map(Arc::new).collect(),

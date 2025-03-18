@@ -14,16 +14,16 @@ use crate::utils::{
 ///
 /// Note ID is computed as:
 ///
-/// > hash(recipient, asset_hash),
+/// > hash(recipient, asset_commitment),
 ///
 /// where `recipient` is defined as:
 ///
-/// > hash(hash(hash(serial_num, ZERO), script_hash), input_hash)
+/// > hash(hash(hash(serial_num, ZERO), script_root), input_commitment)
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique ID.
 /// - To compute a note ID, we do not need to know the note's serial_num. Knowing the hash of the
-///   serial_num (as well as script hash, input hash, and note assets) is sufficient.
+///   serial_num (as well as script root, input commitment, and note assets) is sufficient.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NoteId(Digest);
 

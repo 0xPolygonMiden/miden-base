@@ -52,8 +52,8 @@ const.BLOCK_COMMITMENT_PTR=400
 # The memory address at which the account ID felts are stored.
 const.ACCT_ID_PTR=404
 
-# The memory address at which the initial account hash is stored.
-const.INIT_ACCT_HASH_PTR=408
+# The memory address at which the initial account commitment is stored.
+const.INIT_ACCOUNT_COMMITMENT_PTR=408
 
 # The memory address at which the input notes commitment is stored.
 const.INPUT_NOTES_COMMITMENT_PTR=412
@@ -164,7 +164,7 @@ const.INPUT_NOTE_ID_OFFSET=0
 const.INPUT_NOTE_CORE_DATA_OFFSET=4
 const.INPUT_NOTE_SERIAL_NUM_OFFSET=4
 const.INPUT_NOTE_SCRIPT_ROOT_OFFSET=8
-const.INPUT_NOTE_INPUTS_HASH_OFFSET=12
+const.INPUT_NOTE_INPUTS_COMMITMENT_OFFSET=12
 const.INPUT_NOTE_ASSETS_HASH_OFFSET=16
 const.INPUT_NOTE_METADATA_OFFSET=20
 const.INPUT_NOTE_ARGS_OFFSET=24
@@ -359,27 +359,27 @@ export.get_global_acct_id
     drop drop
 end
 
-#! Sets the initial account hash.
+#! Sets the initial account commitment.
 #!
-#! Inputs:  [INIT_ACCT_HASH]
-#! Outputs: [INIT_ACCT_HASH]
+#! Inputs:  [INIT_ACCOUNT_COMMITMENT]
+#! Outputs: [INIT_ACCOUNT_COMMITMENT]
 #!
 #! Where:
-#! - INIT_ACCT_HASH is the initial account hash.
-export.set_init_acct_hash
-    push.INIT_ACCT_HASH_PTR
+#! - INIT_ACCOUNT_COMMITMENT is the initial account commitment.
+export.set_init_account_commitment
+    push.INIT_ACCOUNT_COMMITMENT_PTR
     mem_storew
 end
 
-#! Returns the initial account hash.
+#! Returns the initial account commitment.
 #!
 #! Inputs:  []
-#! Outputs: [INIT_ACCT_HASH]
+#! Outputs: [INIT_ACCOUNT_COMMITMENT]
 #!
 #! Where:
-#! - INIT_ACCT_HASH is the initial account hash.
-export.get_init_acct_hash
-    padw push.INIT_ACCT_HASH_PTR mem_loadw
+#! - INIT_ACCOUNT_COMMITMENT is the initial account commitment.
+export.get_init_account_commitment
+    padw push.INIT_ACCOUNT_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the input notes commitment.
@@ -560,7 +560,7 @@ end
 #! Outputs: [TX_KERNEL_COMMITMENT]
 #!
 #! Where:
-#! - TX_KERNEL_COMMITMENT is an accumulative hash from all kernel hashes.
+#! - TX_KERNEL_COMMITMENT is an accumulative hash from all kernel commitments.
 export.get_tx_kernel_commitment
     padw push.TX_KERNEL_COMMITMENT_PTR mem_loadw
 end
@@ -1104,11 +1104,11 @@ end
 #! Returns the script root of an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
-#! Outputs: [SCRIPT_HASH]
+#! Outputs: [SCRIPT_ROOT]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - SCRIPT_HASH is the script root of the input note.
+#! - SCRIPT_ROOT is the script root of the input note.
 export.get_input_note_script_root
     padw
     movup.4 push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
@@ -1127,17 +1127,17 @@ export.get_input_note_script_root_ptr
     push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
 end
 
-#! Returns the inputs hash of an input note located at the specified memory address.
+#! Returns the inputs commitment of an input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
-#! Outputs: [INPUTS_HASH]
+#! Outputs: [INPUTS_COMMITMENT]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - INPUTS_HASH is the inputs hash of the input note.
-export.get_input_note_inputs_hash
+#! - INPUTS_COMMITMENT is the inputs commitment of the input note.
+export.get_input_note_inputs_commitment
     padw
-    movup.4 push.INPUT_NOTE_INPUTS_HASH_OFFSET add
+    movup.4 push.INPUT_NOTE_INPUTS_COMMITMENT_OFFSET add
     mem_loadw
 end
 
@@ -1234,14 +1234,14 @@ export.get_input_note_assets_ptr
     push.INPUT_NOTE_ASSETS_OFFSET add
 end
 
-#! Returns the assets hash for the input note located at the specified memory address.
+#! Returns the assets commitment for the input note located at the specified memory address.
 #!
 #! Inputs:  [note_ptr]
-#! Outputs: [ASSET_HASH]
+#! Outputs: [ASSET_COMMITMENT]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
-#! - ASSET_HASH is the sequential hash of the padded assets of an input note.
+#! - ASSET_COMMITMENT is the sequential hash of the padded assets of an input note.
 export.get_input_note_assets_hash
     padw
     movup.4 push.INPUT_NOTE_ASSETS_HASH_OFFSET add
@@ -1405,14 +1405,14 @@ export.get_output_note_asset_data_ptr
     push.OUTPUT_NOTE_ASSETS_OFFSET add
 end
 
-#! Sets the output note assets hash.
+#! Sets the output note assets commitment.
 #!
-#! Inputs:  [output_note_data_ptr, ASSET_HASH]
-#! Outputs: [ASSET_HASH]
+#! Inputs:  [output_note_data_ptr, ASSET_COMMITMENT]
+#! Outputs: [ASSET_COMMITMENT]
 #!
 #! Where:
 #! - output_note_data_ptr is the memory address at which the output note data begins.
-#! - ASSET_HASH is the sequential hash of the padded assets of an output note.
+#! - ASSET_COMMITMENT is the sequential hash of the padded assets of an output note.
 export.set_output_note_assets_hash
     push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add
     mem_storew

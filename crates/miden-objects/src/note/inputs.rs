@@ -20,7 +20,7 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct NoteInputs {
     values: Vec<Felt>,
-    hash: Digest,
+    commitment: Digest,
 }
 
 impl NoteInputs {
@@ -44,7 +44,7 @@ impl NoteInputs {
 
     /// Returns a commitment to these inputs.
     pub fn commitment(&self) -> Digest {
-        self.hash
+        self.commitment
     }
 
     /// Returns the number of input values.
@@ -87,7 +87,7 @@ impl Default for NoteInputs {
 
 impl PartialEq for NoteInputs {
     fn eq(&self, other: &Self) -> bool {
-        let NoteInputs { values: inputs, hash: _ } = self;
+        let NoteInputs { values: inputs, commitment: _ } = self;
         inputs == &other.values
     }
 }
@@ -128,12 +128,12 @@ fn pad_inputs(inputs: &[Felt]) -> Vec<Felt> {
 
 /// Pad `values` and returns a new `NoteInputs`.
 fn pad_and_build(values: Vec<Felt>) -> NoteInputs {
-    let hash = {
+    let commitment = {
         let padded_values = pad_inputs(&values);
         Hasher::hash_elements(&padded_values)
     };
 
-    NoteInputs { values, hash }
+    NoteInputs { values, commitment }
 }
 
 // SERIALIZATION
@@ -141,7 +141,7 @@ fn pad_and_build(values: Vec<Felt>) -> NoteInputs {
 
 impl Serializable for NoteInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let NoteInputs { values, hash: _hash } = self;
+        let NoteInputs { values, commitment: _commitment } = self;
         target.write_u8(values.len().try_into().expect("inputs len is not a u8 value"));
         target.write_many(values);
     }

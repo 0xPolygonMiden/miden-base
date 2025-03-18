@@ -255,8 +255,8 @@ fn test_get_output_notes_commitment() {
     let recipient = NoteRecipient::new(output_serial_no_2, input_note_2.script().clone(), inputs);
     let output_note_2 = Note::new(assets, metadata, recipient);
 
-    // compute expected output notes hash
-    let expected_output_notes_hash = OutputNotes::new(vec![
+    // compute expected output notes commitment
+    let expected_output_notes_commitment = OutputNotes::new(vec![
         OutputNote::Full(output_note_1.clone()),
         OutputNote::Full(output_note_2.clone()),
     ])
@@ -310,13 +310,13 @@ fn test_get_output_notes_commitment() {
             dropw drop
             # => []
 
-            # compute the output notes hash
+            # compute the output notes commitment
             exec.tx::get_output_notes_commitment
-            # => [COM]
+            # => [OUTPUT_NOTES_COMMITMENT]
 
             # truncate the stack
             exec.sys::truncate_stack
-            # => [COM]
+            # => [OUTPUT_NOTES_COMMITMENT]
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
@@ -363,7 +363,7 @@ fn test_get_output_notes_commitment() {
         "Validate the output note 1 metadata",
     );
 
-    assert_eq!(process_state.get_stack_word(0), *expected_output_notes_hash);
+    assert_eq!(process_state.get_stack_word(0), *expected_output_notes_commitment);
 }
 
 #[test]
@@ -597,7 +597,7 @@ fn test_build_recipient_hash() {
     let tag = 8888;
     let single_input = 2;
     let inputs = NoteInputs::new(vec![Felt::new(single_input)]).unwrap();
-    let input_hash = inputs.commitment();
+    let input_commitment = inputs.commitment();
 
     let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
@@ -617,12 +617,12 @@ fn test_build_recipient_hash() {
             padw
 
             # input
-            push.{input_hash}
-            # SCRIPT_HASH
-            push.{script_hash}
+            push.{input_commitment}
+            # SCRIPT_ROOT
+            push.{script_root}
             # SERIAL_NUM
             push.{output_serial_no}
-            # => [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH, pad(4)]
+            # => [SERIAL_NUM, SCRIPT_ROOT, INPUT_COMMITMENT, pad(4)]
 
             call.build_recipient_hash
             # => [RECIPIENT, pad(12)]
@@ -640,8 +640,7 @@ fn test_build_recipient_hash() {
             dropw dropw dropw dropw dropw
         end
         ",
-        input_hash = input_hash,
-        script_hash = input_note_1.script().clone().hash(),
+        script_root = input_note_1.script().clone().commitment(),
         output_serial_no = word_to_masm_push_string(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -1391,7 +1390,7 @@ fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &P
 
     assert_eq!(
         read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_VAULT_ROOT_OFFSET),
-        foreign_account.vault().commitment().as_elements(),
+        foreign_account.vault().root().as_elements(),
     );
 
     assert_eq!(

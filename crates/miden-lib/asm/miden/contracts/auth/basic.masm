@@ -15,25 +15,25 @@ const.PUBLIC_KEY_SLOT=0
 export.auth_tx_rpo_falcon512
     # Get commitments to output notes
     exec.tx::get_output_notes_commitment
-    # => [OUTPUT_NOTES_HASH, pad(16)]
+    # => [OUTPUT_NOTES_COMMITMENT, pad(16)]
 
     exec.tx::get_input_notes_commitment
-    # => [INPUT_NOTES_COMMITMENT, OUTPUT_NOTES_HASH, pad(16)]
+    # => [INPUT_NOTES_COMMITMENT, OUTPUT_NOTES_COMMITMENT, pad(16)]
 
     # Get current nonce of the account and pad
     exec.account::get_nonce push.0.0.0
-    # => [0, 0, 0, nonce, INPUT_NOTES_HASH, OUTPUT_NOTES_HASH, pad(16)]
+    # => [0, 0, 0, nonce, INPUT_NOTES_HASH, OUTPUT_NOTES_COMMITMENT, pad(16)]
 
     # Get current AccountID and pad
     exec.account::get_id push.0.0
     # => [0, 0, account_id_prefix, account_id_suffix,
     #     0, 0, 0, nonce,
     #     INPUT_NOTES_HASH,
-    #     OUTPUT_NOTES_HASH,
+    #     OUTPUT_NOTES_COMMITMENT,
     #     pad(16)]
 
     # Compute the message to be signed
-    # MESSAGE = h(OUTPUT_NOTES_HASH, h(INPUT_NOTES_HASH, h(0, 0, account_id_prefix, account_id_suffix, 0, 0, 0, nonce)))
+    # MESSAGE = h(OUTPUT_NOTES_COMMITMENT, h(INPUT_NOTES_HASH, h(0, 0, account_id_prefix, account_id_suffix, 0, 0, 0, nonce)))
     hmerge hmerge hmerge
     # => [MESSAGE, pad(16)]
 

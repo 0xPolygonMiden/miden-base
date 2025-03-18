@@ -44,8 +44,8 @@ impl AssetVault {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a commitment to this vault.
-    pub fn commitment(&self) -> Digest {
+    /// Returns the tree root of this vault.
+    pub fn root(&self) -> Digest {
         self.asset_tree.root()
     }
 

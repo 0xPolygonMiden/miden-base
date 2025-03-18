@@ -103,7 +103,7 @@ fn test_get_vault_data() {
             exec.note::get_assets_info
 
             # assert the assets data is correct
-            push.{note_0_asset_hash} assert_eqw
+            push.{note_0_asset_commitment} assert_eqw
             push.{note_0_num_assets} assert_eq
 
             # increment current input note pointer
@@ -113,17 +113,17 @@ fn test_get_vault_data() {
             exec.note::get_assets_info
 
             # assert the assets data is correct
-            push.{note_1_asset_hash} assert_eqw
+            push.{note_1_asset_commitment} assert_eqw
             push.{note_1_num_assets} assert_eq
 
             # truncate the stack
             exec.sys::truncate_stack
         end
         ",
-        note_0_asset_hash =
+        note_0_asset_commitment =
             word_to_masm_push_string(&notes.get_note(0).note().assets().commitment()),
         note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
-        note_1_asset_hash =
+        note_1_asset_commitment =
             word_to_masm_push_string(&notes.get_note(1).note().assets().commitment()),
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
@@ -388,7 +388,7 @@ fn note_setup_stack_assertions(process: &Process, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
-    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().hash();
+    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().commitment();
     note_script_root.reverse();
     expected_stack[..4].copy_from_slice(&note_script_root);
 
@@ -530,19 +530,19 @@ fn test_get_inputs_hash() {
 }
 
 #[test]
-fn test_get_current_script_hash() {
+fn test_get_current_script_root() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
 
-    // calling get_script_hash should return script hash
+    // calling get_script_root should return script root
     let code = "
     use.kernel::prologue
     use.miden::note
 
     begin
         exec.prologue::prepare_transaction
-        exec.note::get_script_hash
+        exec.note::get_script_root
 
         # truncate the stack
         swapw dropw
@@ -551,8 +551,8 @@ fn test_get_current_script_hash() {
 
     let process = tx_context.execute_code(code).unwrap();
 
-    let script_hash = tx_context.input_notes().get_note(0).note().script().hash();
-    assert_eq!(process.stack.get_word(0), script_hash.as_elements());
+    let script_root = tx_context.input_notes().get_note(0).note().script().commitment();
+    assert_eq!(process.stack.get_word(0), script_root.as_elements());
 }
 
 #[test]

@@ -68,7 +68,10 @@ fn p2id_script_multiple_assets() {
         Felt::new(2),
     );
 
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    assert_eq!(
+        executed_transaction.final_account().commitment(),
+        target_account_after.commitment()
+    );
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
@@ -130,7 +133,10 @@ fn prove_consume_note_with_new_account() {
         Felt::new(1),
     );
 
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    assert_eq!(
+        executed_transaction.final_account().commitment(),
+        target_account_after.commitment()
+    );
     prove_and_verify_transaction(executed_transaction).unwrap();
 }
 

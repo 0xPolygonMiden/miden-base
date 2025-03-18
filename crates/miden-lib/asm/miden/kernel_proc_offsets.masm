@@ -2,9 +2,9 @@
 # -------------------------------------------------------------------------------------------------
 
 ### Account #####################################
-# Entire account hash
-const.ACCOUNT_GET_INITIAL_HASH_OFFSET=0
-const.ACCOUNT_GET_CURRENT_HASH_OFFSET=1
+# Entire account commitment
+const.ACCOUNT_GET_INITIAL_COMMITMENT_OFFSET=0
+const.ACCOUNT_GET_CURRENT_COMMITMENT_OFFSET=1
 
 # ID
 const.ACCOUNT_GET_ID_OFFSET=2
@@ -24,7 +24,7 @@ const.ACCOUNT_GET_MAP_ITEM_OFFSET=9
 const.ACCOUNT_SET_MAP_ITEM_OFFSET=10
 
 # Vault
-const.ACCOUNT_GET_VAULT_COMMITMENT_OFFSET=11
+const.ACCOUNT_GET_VAULT_ROOT_OFFSET=11
 const.ACCOUNT_ADD_ASSET_OFFSET=12
 const.ACCOUNT_REMOVE_ASSET_OFFSET=13
 const.ACCOUNT_GET_BALANCE_OFFSET=14
@@ -43,9 +43,9 @@ const.NOTE_ADD_ASSET_OFFSET=21                   # mutator
 
 # note parameters
 const.NOTE_GET_SERIAL_NUMBER_OFFSET=22
-const.NOTE_GET_INPUTS_HASH_OFFSET=23
+const.NOTE_GET_INPUTS_COMMITMENT_OFFSET=23
 const.NOTE_GET_SENDER_OFFSET=24
-const.NOTE_GET_SCRIPT_HASH_OFFSET=25
+const.NOTE_GET_SCRIPT_ROOT_OFFSET=25
 
 ### Tx ##########################################
 # creation
@@ -73,28 +73,28 @@ const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 
 ### ACCOUNT #####################################
 
-#! Returns the offset of the `account_get_initial_hash` kernel procedure.
+#! Returns the offset of the `account_get_initial_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_get_initial_hash` kernel procedure required to get
+#! - proc_offset is the offset of the `account_get_initial_commitment` kernel procedure required to get
 #!   the address where this procedure is stored.
-export.account_get_initial_hash_offset
-    push.ACCOUNT_GET_INITIAL_HASH_OFFSET
+export.account_get_initial_commitment_offset
+    push.ACCOUNT_GET_INITIAL_COMMITMENT_OFFSET
 end
 
-#! Returns the offset of the `account_get_current_hash` kernel procedure.
+#! Returns the offset of the `account_get_current_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_get_current_hash` kernel procedure required to get
+#! - proc_offset is the offset of the `account_get_current_commitment` kernel procedure required to get
 #!   the address where this procedure is stored.
-export.account_get_current_hash_offset
-    push.ACCOUNT_GET_CURRENT_HASH_OFFSET
+export.account_get_current_commitment_offset
+    push.ACCOUNT_GET_CURRENT_COMMITMENT_OFFSET
 end
 
 #! Returns the offset of the `account_get_id` kernel procedure.
@@ -205,16 +205,16 @@ export.account_set_map_item_offset
     push.ACCOUNT_SET_MAP_ITEM_OFFSET
 end
 
-#! Returns the offset of the `account_get_vault_commitment` kernel procedure.
+#! Returns the offset of the `account_get_vault_root` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `account_get_vault_commitment` kernel procedure required to
+#! - proc_offset is the offset of the `account_get_vault_root` kernel procedure required to
 #!   get the address where this procedure is stored.
-export.account_get_vault_commitment_offset
-    push.ACCOUNT_GET_VAULT_COMMITMENT_OFFSET
+export.account_get_vault_root_offset
+    push.ACCOUNT_GET_VAULT_ROOT_OFFSET
 end
 
 #! Returns the offset of the `account_add_asset` kernel procedure.
@@ -353,16 +353,16 @@ export.note_get_serial_number_offset
     push.NOTE_GET_SERIAL_NUMBER_OFFSET
 end
 
-#! Returns the offset of the `note_get_inputs_hash` kernel procedure.
+#! Returns the offset of the `note_get_inputs_commitment` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `note_get_inputs_hash` kernel procedure required to get the
+#! - proc_offset is the offset of the `note_get_inputs_commitment` kernel procedure required to get the
 #!   address where this procedure is stored.
-export.note_get_inputs_hash_offset
-    push.NOTE_GET_INPUTS_HASH_OFFSET
+export.note_get_inputs_commitment_offset
+    push.NOTE_GET_INPUTS_COMMITMENT_OFFSET
 end
 
 #! Returns the offset of the `note_get_sender` kernel procedure.
@@ -377,16 +377,16 @@ export.note_get_sender_offset
     push.NOTE_GET_SENDER_OFFSET
 end
 
-#! Returns the offset of the `note_get_script_hash` kernel procedure.
+#! Returns the offset of the `note_get_script_root` kernel procedure.
 #!
 #! Inputs:  []
 #! Outputs: [proc_offset]
 #!
 #! Where:
-#! - proc_offset is the offset of the `note_get_script_hash` kernel procedure required to get the
+#! - proc_offset is the offset of the `note_get_script_root` kernel procedure required to get the
 #!   address where this procedure is stored.
-export.note_get_script_hash_offset
-    push.NOTE_GET_SCRIPT_HASH_OFFSET
+export.note_get_script_root_offset
+    push.NOTE_GET_SCRIPT_ROOT_OFFSET
 end
 
 ### TRANSACTION #################################

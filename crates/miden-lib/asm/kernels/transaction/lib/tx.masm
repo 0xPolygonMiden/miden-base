@@ -129,10 +129,10 @@ export.memory::get_input_notes_commitment
 #! (note_id, note_metadata) tuples over all output notes.
 #!
 #! Inputs:  []
-#! Outputs: [COM]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT]
 #!
 #! Where:
-#! - COM is the output notes hash.
+#! - OUTPUT_NOTES_COMMITMENT is the output notes commitment.
 export.note::compute_output_notes_commitment->get_output_notes_commitment
 
 #! Increments the number of output notes by one. Returns the index of the next note to be created.

@@ -4,7 +4,9 @@ use core::fmt::Debug;
 use crate::{
     account::AccountHeader,
     block::BlockNumber,
-    note::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
+    note::{
+        compute_note_commitment, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote,
+    },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -230,8 +232,8 @@ impl OutputNote {
     /// Returns a commitment to the note and its metadata.
     ///
     /// > hash(NOTE_ID || NOTE_METADATA)
-    pub fn hash(&self) -> Digest {
-        compute_note_hash(self.id(), self.metadata())
+    pub fn commitment(&self) -> Digest {
+        compute_note_commitment(self.id(), self.metadata())
     }
 }
 

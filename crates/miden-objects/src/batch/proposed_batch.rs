@@ -444,9 +444,10 @@ mod tests {
             AccountType::FungibleFaucet,
             AccountStorageMode::Private,
         );
-        let initial_account_hash =
-            [2; 32].try_into().expect("failed to create initial account hash");
-        let final_account_hash = [3; 32].try_into().expect("failed to create final account hash");
+        let initial_account_commitment =
+            [2; 32].try_into().expect("failed to create initial account commitment");
+        let final_account_commitment =
+            [3; 32].try_into().expect("failed to create final account commitment");
         let block_num = reference_block_header.block_num();
         let block_ref = reference_block_header.commitment();
         let expiration_block_num = reference_block_header.block_num() + 1;
@@ -454,8 +455,8 @@ mod tests {
 
         let tx = ProvenTransactionBuilder::new(
             account_id,
-            initial_account_hash,
-            final_account_hash,
+            initial_account_commitment,
+            final_account_commitment,
             block_num,
             block_ref,
             expiration_block_num,
