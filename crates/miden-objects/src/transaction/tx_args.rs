@@ -235,8 +235,8 @@ impl TransactionScript {
         self.mast.clone()
     }
 
-    /// Returns a reference to the code hash.
-    pub fn hash(&self) -> Digest {
+    /// Returns a MAST root of this transaction script.
+    pub fn root(&self) -> Digest {
         self.mast[self.entrypoint].digest()
     }
 

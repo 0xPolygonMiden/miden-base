@@ -145,7 +145,7 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
 
     assert_eq!(
         read_root_mem_word(&process.into(), TX_SCRIPT_ROOT_PTR),
-        *inputs.tx_args().tx_script().as_ref().unwrap().hash(),
+        *inputs.tx_args().tx_script().as_ref().unwrap().root(),
         "The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR"
     );
 }
