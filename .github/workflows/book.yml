@@ -21,18 +21,14 @@ jobs:
       - name: Build book
         run: mdbook build docs
 
-      - name: Determine deployment path
-        id: deployment
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "path=" >> $GITHUB_OUTPUT
-          else
-            echo "path=next" >> $GITHUB_OUTPUT
-          fi
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "docs/book"
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/book
-          destination_dir: ${{ steps.deployment.outputs.path }}
+        id: deployment
+        uses: actions/deploy-pages@v4
