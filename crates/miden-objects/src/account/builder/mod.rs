@@ -345,7 +345,7 @@ mod tests {
         assert_eq!(account.id(), computed_id);
 
         // The merged code should have one procedure from each library.
-        assert_eq!(account.code.procedure_commitments().count(), 2);
+        assert_eq!(account.code.procedure_roots().count(), 2);
 
         let foo_root = CUSTOM_LIBRARY1.mast_forest()
             [CUSTOM_LIBRARY1.get_export_node_id(CUSTOM_LIBRARY1.exports().next().unwrap())]

@@ -206,9 +206,9 @@ impl<A: AdviceProvider> TransactionHost<A> {
         Ok(())
     }
 
-    /// Loads the index of the procedure commitment onto the advice stack.
+    /// Loads the index of the procedure root onto the advice stack.
     ///
-    /// Expected stack state: [PROC_COMMITMENT, ...]
+    /// Expected stack state: [PROC_ROOT, ...]
     fn on_account_push_procedure_index(
         &mut self,
         process: ProcessState,

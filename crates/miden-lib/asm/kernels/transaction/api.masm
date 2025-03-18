@@ -1088,7 +1088,7 @@ end
 #!   `miden/kernel_proc_offsets.masm` file.
 #! - procedure_inputs are inputs of the procedure to be executed, which is specified by the
 #!   procedure_offset. Note that the length of this inputs cannot exceed 15 elements, since the
-#!   first element on the stack will be occupied by the memory pointer to the procedure commitment.
+#!   first element on the stack will be occupied by the memory pointer to the procedure root.
 #! - procedure_outputs are the outputs of the procedure to be executed.
 #!
 #! Panics if:

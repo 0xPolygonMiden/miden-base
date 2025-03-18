@@ -233,7 +233,7 @@ end
 #! than 15 elements back. Otherwise exceeding elements will not be provided to the procedure and
 #! will not be returned from it.
 #!
-#! Inputs:  [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_COMMITMENT, <foreign account inputs>, pad(n)]
+#! Inputs:  [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 #! Outputs: [<values returned from the foreign procedure>]
 #!
 #! Where:
@@ -246,24 +246,24 @@ end
 export.execute_foreign_procedure.4
     # get the start_foreign_context procedure offset
     push.0 movup.2 movup.2 exec.kernel_proc_offsets::tx_start_foreign_context_offset
-    # => [offset, foreign_account_id_prefix, foreign_account_id_suffix, 0, FOREIGN_PROC_COMMITMENT, <foreign account inputs>, pad(n)]
+    # => [offset, foreign_account_id_prefix, foreign_account_id_suffix, 0, FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
     # pad the stack before the syscall
     padw swapw padw padw swapdw
-    # => [offset, foreign_account_id_prefix, foreign_account_id_suffix, pad(13), FOREIGN_PROC_COMMITMENT, <foreign account inputs>, pad(n)]
+    # => [offset, foreign_account_id_prefix, foreign_account_id_suffix, pad(13), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
     # load the foreign account to the memory
     syscall.exec_kernel_proc
-    # => [pad(16), FOREIGN_PROC_COMMITMENT, <foreign account inputs>, pad(n)]
+    # => [pad(16), FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
     # prepare the stack for the dyncall
     dropw dropw dropw dropw
-    # => [FOREIGN_PROC_COMMITMENT, <foreign account inputs>, pad(n)]
+    # => [FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
-    # store the foreign procedure commitment to the first local memory slot and get its absolute memory
+    # store the foreign procedure root to the first local memory slot and get its absolute memory
     # address
     loc_storew.0 dropw locaddr.0
-    # => [foreign_proc_commitment_ptr, <foreign account inputs>, pad(n)]
+    # => [foreign_proc_root_ptr, <foreign account inputs>, pad(n)]
 
     # execute the foreign procedure
     dyncall

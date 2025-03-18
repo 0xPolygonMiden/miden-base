@@ -12,7 +12,7 @@ use crate::errors::TransactionHostError;
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
 
-/// A map of maps { acct_code_commitment |-> { proc_commitment |-> proc_index } } for all known
+/// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known
 /// procedures of account interfaces for all accounts expected to be invoked during transaction
 /// execution.
 pub struct AccountProcedureIndexMap(BTreeMap<Digest, BTreeMap<Digest, u8>>);
@@ -56,14 +56,14 @@ impl AccountProcedureIndexMap {
                 .expect("current account code commitment was not initialized")
         };
 
-        let proc_commitment = process.get_stack_word(0).into();
+        let proc_root = process.get_stack_word(0).into();
 
         self.0
             .get(&code_commitment.into())
             .ok_or(TransactionKernelError::UnknownCodeCommitment(code_commitment.into()))?
-            .get(&proc_commitment)
+            .get(&proc_root)
             .cloned()
-            .ok_or(TransactionKernelError::UnknownAccountProcedure(proc_commitment))
+            .ok_or(TransactionKernelError::UnknownAccountProcedure(proc_root))
     }
 }
 

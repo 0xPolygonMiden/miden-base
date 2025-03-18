@@ -805,7 +805,7 @@ fn test_fpi_memory() {
 
             # push the foreign account ID
             push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, pad(11)]
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE_1]
@@ -858,7 +858,7 @@ fn test_fpi_memory() {
 
             # push the foreign account ID
             push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, MAP_ITEM_KEY, pad(10)]
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
             exec.tx::execute_foreign_procedure
             # => [MAP_VALUE]
@@ -912,7 +912,7 @@ fn test_fpi_memory() {
 
             # push the foreign account ID
             push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, pad(14)]
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure dropw
             # => []
@@ -930,7 +930,7 @@ fn test_fpi_memory() {
 
             # push the foreign account ID
             push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, pad(14)]
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
 
@@ -1075,7 +1075,7 @@ fn test_fpi_memory_two_accounts() {
 
             # push the foreign account ID
             push.{foreign_1_suffix}.{foreign_1_prefix}
-            # => [foreign_account_1_id_prefix, foreign_account_1_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, pad(14)]
+            # => [foreign_account_1_id_prefix, foreign_account_1_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure dropw
             # => []
@@ -1093,7 +1093,7 @@ fn test_fpi_memory_two_accounts() {
 
             # push the foreign account ID
             push.{foreign_2_suffix}.{foreign_2_prefix}
-            # => [foreign_account_2_id_prefix, foreign_account_2_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, pad(14)]
+            # => [foreign_account_2_id_prefix, foreign_account_2_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure dropw
             # => []
@@ -1111,7 +1111,7 @@ fn test_fpi_memory_two_accounts() {
 
             # push the foreign account ID
             push.{foreign_1_suffix}.{foreign_1_prefix}
-            # => [foreign_account_1_id_prefix, foreign_account_1_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, pad(14)]
+            # => [foreign_account_1_id_prefix, foreign_account_1_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
 
@@ -1252,7 +1252,7 @@ fn test_fpi_execute_foreign_procedure() {
 
             # push the foreign account ID
             push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, pad(14)]
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
 
             exec.tx::execute_foreign_procedure
             # => [STORAGE_VALUE]
@@ -1277,7 +1277,7 @@ fn test_fpi_execute_foreign_procedure() {
 
             # push the foreign account ID
             push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_COMMITMENT, storage_item_index, MAP_ITEM_KEY, pad(10)]
+            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
 
             exec.tx::execute_foreign_procedure
             # => [MAP_VALUE]

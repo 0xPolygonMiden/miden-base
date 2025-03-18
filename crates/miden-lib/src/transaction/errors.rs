@@ -47,7 +47,7 @@ pub enum TransactionKernelError {
     MissingNoteInputs,
     #[error("note input data in advice provider contains fewer elements ({actual}) than specified ({specified}) by its inputs length")]
     TooFewElementsForNoteInputs { specified: u64, actual: u64 },
-    #[error("account procedure with procedure commitment {0} is not in the advice provider")]
+    #[error("account procedure with procedure root {0} is not in the advice provider")]
     UnknownAccountProcedure(Digest),
     #[error("code commitment {0} is not in the advice provider")]
     UnknownCodeCommitment(Digest),
