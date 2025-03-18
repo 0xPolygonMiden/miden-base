@@ -40,7 +40,7 @@ fn p2id() -> NoteScript {
     P2ID_SCRIPT.clone()
 }
 
-/// Returns the P2ID (Pay-to-ID) note script commitment.
+/// Returns the P2ID (Pay-to-ID) note script root.
 fn p2id_commitment() -> Digest {
     P2ID_SCRIPT.commitment()
 }
@@ -50,7 +50,7 @@ fn p2idr() -> NoteScript {
     P2IDR_SCRIPT.clone()
 }
 
-/// Returns the P2IDR (Pay-to-ID with recall) note script commitment.
+/// Returns the P2IDR (Pay-to-ID with recall) note script root.
 fn p2idr_commitment() -> Digest {
     P2IDR_SCRIPT.commitment()
 }
@@ -60,7 +60,7 @@ fn swap() -> NoteScript {
     SWAP_SCRIPT.clone()
 }
 
-/// Returns the SWAP (Swap note) note script commitment.
+/// Returns the SWAP (Swap note) note script root.
 fn swap_commitment() -> Digest {
     SWAP_SCRIPT.commitment()
 }
@@ -79,15 +79,15 @@ impl WellKnownNote {
     /// Returns a [WellKnownNote] instance based on the note script of the provided [Note]. Returns
     /// `None` if the provided note is not a basic well-known note.
     pub fn from_note(note: &Note) -> Option<Self> {
-        let note_script_commitment = note.script().commitment();
+        let note_script_root = note.script().commitment();
 
-        if note_script_commitment == p2id_commitment() {
+        if note_script_root == p2id_commitment() {
             return Some(Self::P2ID);
         }
-        if note_script_commitment == p2idr_commitment() {
+        if note_script_root == p2idr_commitment() {
             return Some(Self::P2IDR);
         }
-        if note_script_commitment == swap_commitment() {
+        if note_script_root == swap_commitment() {
             return Some(Self::SWAP);
         }
 
@@ -103,8 +103,8 @@ impl WellKnownNote {
         }
     }
 
-    /// Returns the script commitment of the current [WellKnownNote] instance.
-    pub fn script_commitment(&self) -> Digest {
+    /// Returns the script root of the current [WellKnownNote] instance.
+    pub fn script_root(&self) -> Digest {
         match self {
             Self::P2ID => p2id_commitment(),
             Self::P2IDR => p2idr_commitment(),

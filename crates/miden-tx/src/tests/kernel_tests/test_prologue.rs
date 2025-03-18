@@ -16,14 +16,14 @@ use miden_lib::{
             INPUT_NOTE_ARGS_OFFSET, INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET,
             INPUT_NOTE_ID_OFFSET, INPUT_NOTE_INPUTS_COMMITMENT_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
-            INPUT_NOTE_SCRIPT_COMMITMENT_OFFSET, INPUT_NOTE_SECTION_PTR,
-            INPUT_NOTE_SERIAL_NUM_OFFSET, NATIVE_ACCT_CODE_COMMITMENT_PTR,
-            NATIVE_ACCT_ID_AND_NONCE_PTR, NATIVE_ACCT_PROCEDURES_SECTION_PTR,
-            NATIVE_ACCT_STORAGE_COMMITMENT_PTR, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
-            NATIVE_ACCT_VAULT_ROOT_PTR, NATIVE_NUM_ACCT_PROCEDURES_PTR,
-            NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
-            PREV_BLOCK_COMMITMENT_PTR, PROOF_COMMITMENT_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
-            TX_COMMITMENT_PTR, TX_KERNEL_COMMITMENT_PTR, TX_SCRIPT_COMMITMENT_PTR,
+            INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
+            NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
+            NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
+            NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
+            NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
+            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_COMMITMENT_PTR, PROOF_COMMITMENT_PTR,
+            PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_COMMITMENT_PTR, TX_KERNEL_COMMITMENT_PTR,
+            TX_SCRIPT_ROOT_PTR,
         },
         TransactionKernel,
     },
@@ -144,9 +144,9 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), TX_SCRIPT_COMMITMENT_PTR),
+        read_root_mem_word(&process.into(), TX_SCRIPT_ROOT_PTR),
         *inputs.tx_args().tx_script().as_ref().unwrap().hash(),
-        "The transaction script commitment should be stored at the TX_SCRIPT_COMMITMENT_PTR"
+        "The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR"
     );
 }
 
@@ -358,9 +358,9 @@ fn input_notes_memory_assertions(
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, INPUT_NOTE_SCRIPT_COMMITMENT_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_SCRIPT_ROOT_OFFSET),
             note.script().commitment().as_elements(),
-            "note script commitment should be stored at the correct offset"
+            "note script root should be stored at the correct offset"
         );
 
         assert_eq!(

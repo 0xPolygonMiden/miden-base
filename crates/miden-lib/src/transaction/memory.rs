@@ -102,7 +102,7 @@ pub const INPUT_NOTES_COMMITMENT_PTR: MemoryAddress = 412;
 pub const INIT_NONCE_PTR: MemoryAddress = 416;
 
 /// The memory address at which the transaction script mast root is store
-pub const TX_SCRIPT_COMMITMENT_PTR: MemoryAddress = 420;
+pub const TX_SCRIPT_ROOT_PTR: MemoryAddress = 420;
 
 // BLOCK DATA
 // ------------------------------------------------------------------------------------------------
@@ -301,7 +301,7 @@ pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_PTR;
 /// The offsets at which data of an input note is stored relative to the start of its data segment.
 pub const INPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const INPUT_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 4;
-pub const INPUT_NOTE_SCRIPT_COMMITMENT_OFFSET: MemoryOffset = 8;
+pub const INPUT_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 8;
 pub const INPUT_NOTE_INPUTS_COMMITMENT_OFFSET: MemoryOffset = 12;
 pub const INPUT_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 16;
 pub const INPUT_NOTE_METADATA_OFFSET: MemoryOffset = 20;

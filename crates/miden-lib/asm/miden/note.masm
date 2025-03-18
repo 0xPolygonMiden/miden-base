@@ -226,32 +226,32 @@ export.compute_inputs_hash
     # => [HASH]
 end
 
-#! Returns the script commitment of the note currently being processed.
+#! Returns the script root of the note currently being processed.
 #!
 #! Inputs:  []
-#! Outputs: [SCRIPT_COMMITMENT]
+#! Outputs: [SCRIPT_ROOT]
 #!
 #! Where:
-#! - SCRIPT_COMMITMENT is the script commitment of the note currently being processed.
+#! - SCRIPT_ROOT is the script root of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is being processed.
 #!
 #! Invocation: exec
-export.get_script_commitment
+export.get_script_root
     # pad the stack
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::note_get_script_commitment_offset
+    exec.kernel_proc_offsets::note_get_script_root_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [SCRIPT_COMMITMENT, pad(12)]
+    # => [SCRIPT_ROOT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [SCRIPT_COMMITMENT]
+    # => [SCRIPT_ROOT]
 end
 
 #! Returns the max allowed number of input values per note.

@@ -44,7 +44,7 @@ export.basic::auth_tx_rpo_falcon512
 #! - note_type is the type of the note that holds the asset.
 #! - execution_hint is the execution hint of the note that holds the asset.
 #! - RECIPIENT is the recipient of the asset, i.e.,
-#!   hash(hash(hash(serial_num, [0; 4]), script_commitment), input_commitment).
+#!   hash(hash(hash(serial_num, [0; 4]), script_root), input_commitment).
 #! - note_idx is the index of the output note.
 #!   This cannot directly be accessed from another context.
 #!

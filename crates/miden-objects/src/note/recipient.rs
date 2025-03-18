@@ -17,7 +17,7 @@ use super::{
 ///
 /// Recipient is computed as:
 ///
-/// > hash(hash(hash(serial_num, [0; 4]), script_commitment), input_commitment)
+/// > hash(hash(hash(serial_num, [0; 4]), script_root), input_commitment)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoteRecipient {
     serial_num: Word,

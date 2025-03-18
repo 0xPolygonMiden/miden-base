@@ -59,7 +59,7 @@ pub(super) fn extend_advice_inputs(
 ///     ACCOUNT_STORAGE_COMMITMENT,
 ///     ACCOUNT_CODE_COMMITMENT,
 ///     number_of_input_notes,
-///     TX_SCRIPT_COMMITMENT,
+///     TX_SCRIPT_ROOT,
 /// ]
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
@@ -106,7 +106,7 @@ fn build_advice_stack(
     // push the number of input notes onto the stack
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
 
-    // push tx_script commitment onto the stack
+    // push tx_script root onto the stack
     inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.hash()));
 }
 
@@ -208,7 +208,7 @@ fn add_account_to_advice_inputs(
 /// The advice provider is populated with:
 ///
 /// - For each note:
-///     - The note's details (serial number, script commitment, and its input / assets commitment).
+///     - The note's details (serial number, script root, and its input / assets commitment).
 ///     - The note's private arguments.
 ///     - The note's public metadata.
 ///     - The note's public inputs data. Prefixed by its length and padded to an even word length.

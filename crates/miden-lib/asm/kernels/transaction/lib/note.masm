@@ -142,13 +142,13 @@ end
 
 #! Prepares a note for execution.
 #!
-#! Loads the note's script commitment address and args onto the stack.
+#! Loads the note's script root address and args onto the stack.
 #!
 #! Inputs:  []
-#! Outputs: [note_script_commitment_ptr, NOTE_ARGS]
+#! Outputs: [note_script_root_ptr, NOTE_ARGS]
 #!
 #! Where:
-#! - note_script_commitment_ptr, the memory address where note's script commitment is stored.
+#! - note_script_root_ptr, the memory address where note's script root is stored.
 #! - NOTE_ARGS, the note's arguments.
 export.prepare_note
     exec.memory::get_current_input_note_ptr
@@ -157,8 +157,8 @@ export.prepare_note
     dup exec.memory::get_input_note_args movup.4
     # => [note_ptr, NOTE_ARGS]
 
-    exec.memory::get_input_note_script_commitment_ptr
-    # => [note_script_commitment_ptr, NOTE_ARGS]
+    exec.memory::get_input_note_script_root_ptr
+    # => [note_script_root_ptr, NOTE_ARGS]
 end
 
 # OUTPUT NOTE PROCEDURES
@@ -232,7 +232,7 @@ end
 #!
 #! The note ID is computed as follows:
 #! - we define, recipient =
-#!       hash(hash(hash(serial_num, [0; 4]), script_commitment), input_commitment)
+#!       hash(hash(hash(serial_num, [0; 4]), script_root), input_commitment)
 #! - we then compute the output note ID as:
 #!       hash(recipient, assets_hash)
 #!
@@ -339,20 +339,20 @@ export.get_serial_number
     # => [SERIAL_NUMBER, ...]
 end
 
-#! Returns the script commitment of the note currently being processed.
+#! Returns the script root of the note currently being processed.
 #!
 #! Inputs:  []
-#! Outputs: [SCRIPT_COMMITMENT]
+#! Outputs: [SCRIPT_ROOT]
 #!
 #! Where:
-#! - SCRIPT_COMMITMENT is the serial number of the note currently being processed.
+#! - SCRIPT_ROOT is the serial number of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is being processed.
-export.get_script_commitment
+export.get_script_root
     exec.memory::get_current_input_note_ptr
     # => [note_ptr]
 
-    exec.memory::get_input_note_script_commitment
-    # => [SCRIPT_COMMITMENT]
+    exec.memory::get_input_note_script_root
+    # => [SCRIPT_ROOT]
 end
