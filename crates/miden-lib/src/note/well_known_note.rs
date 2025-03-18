@@ -41,8 +41,8 @@ fn p2id() -> NoteScript {
 }
 
 /// Returns the P2ID (Pay-to-ID) note script root.
-fn p2id_commitment() -> Digest {
-    P2ID_SCRIPT.commitment()
+fn p2id_root() -> Digest {
+    P2ID_SCRIPT.root()
 }
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script.
@@ -51,8 +51,8 @@ fn p2idr() -> NoteScript {
 }
 
 /// Returns the P2IDR (Pay-to-ID with recall) note script root.
-fn p2idr_commitment() -> Digest {
-    P2IDR_SCRIPT.commitment()
+fn p2idr_root() -> Digest {
+    P2IDR_SCRIPT.root()
 }
 
 /// Returns the SWAP (Swap note) note script.
@@ -61,8 +61,8 @@ fn swap() -> NoteScript {
 }
 
 /// Returns the SWAP (Swap note) note script root.
-fn swap_commitment() -> Digest {
-    SWAP_SCRIPT.commitment()
+fn swap_root() -> Digest {
+    SWAP_SCRIPT.root()
 }
 
 // WELL KNOWN NOTE
@@ -79,15 +79,15 @@ impl WellKnownNote {
     /// Returns a [WellKnownNote] instance based on the note script of the provided [Note]. Returns
     /// `None` if the provided note is not a basic well-known note.
     pub fn from_note(note: &Note) -> Option<Self> {
-        let note_script_root = note.script().commitment();
+        let note_script_root = note.script().root();
 
-        if note_script_root == p2id_commitment() {
+        if note_script_root == p2id_root() {
             return Some(Self::P2ID);
         }
-        if note_script_root == p2idr_commitment() {
+        if note_script_root == p2idr_root() {
             return Some(Self::P2IDR);
         }
-        if note_script_root == swap_commitment() {
+        if note_script_root == swap_root() {
             return Some(Self::SWAP);
         }
 
@@ -106,9 +106,9 @@ impl WellKnownNote {
     /// Returns the script root of the current [WellKnownNote] instance.
     pub fn script_root(&self) -> Digest {
         match self {
-            Self::P2ID => p2id_commitment(),
-            Self::P2IDR => p2idr_commitment(),
-            Self::SWAP => swap_commitment(),
+            Self::P2ID => p2id_root(),
+            Self::P2IDR => p2idr_root(),
+            Self::SWAP => swap_root(),
         }
     }
 

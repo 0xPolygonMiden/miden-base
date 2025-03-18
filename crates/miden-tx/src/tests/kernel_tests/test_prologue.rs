@@ -359,7 +359,7 @@ fn input_notes_memory_assertions(
 
         assert_eq!(
             read_note_element(process, note_idx, INPUT_NOTE_SCRIPT_ROOT_OFFSET),
-            note.script().commitment().as_elements(),
+            note.script().root().as_elements(),
             "note script root should be stored at the correct offset"
         );
 

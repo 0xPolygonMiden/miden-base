@@ -107,7 +107,7 @@ impl Debug for Nullifier {
 impl From<&NoteDetails> for Nullifier {
     fn from(note: &NoteDetails) -> Self {
         Self::new(
-            note.script().commitment(),
+            note.script().root(),
             note.inputs().commitment(),
             note.assets().commitment(),
             note.serial_num(),

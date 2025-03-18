@@ -388,7 +388,7 @@ fn note_setup_stack_assertions(process: &Process, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
-    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().commitment();
+    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().root();
     note_script_root.reverse();
     expected_stack[..4].copy_from_slice(&note_script_root);
 
@@ -551,7 +551,7 @@ fn test_get_current_script_root() {
 
     let process = tx_context.execute_code(code).unwrap();
 
-    let script_root = tx_context.input_notes().get_note(0).note().script().commitment();
+    let script_root = tx_context.input_notes().get_note(0).note().script().root();
     assert_eq!(process.stack.get_word(0), script_root.as_elements());
 }
 

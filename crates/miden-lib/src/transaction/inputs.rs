@@ -246,7 +246,7 @@ fn add_input_notes_to_advice_inputs(
 
         // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
         note_data.extend(recipient.serial_num());
-        note_data.extend(*recipient.script().commitment());
+        note_data.extend(*recipient.script().root());
         note_data.extend(*recipient.inputs().commitment());
         note_data.extend(*assets.commitment());
 

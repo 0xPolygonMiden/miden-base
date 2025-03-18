@@ -69,8 +69,8 @@ impl NoteScript {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the commitment of this note script.
-    pub fn commitment(&self) -> Digest {
+    /// Returns the commitment of this note script (i.e., the script's MAST root).
+    pub fn root(&self) -> Digest {
         self.mast[self.entrypoint].digest()
     }
 
