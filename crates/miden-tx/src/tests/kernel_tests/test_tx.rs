@@ -640,7 +640,7 @@ fn test_build_recipient_hash() {
             dropw dropw dropw dropw dropw
         end
         ",
-        script_root = input_note_1.script().clone().commitment(),
+        script_root = input_note_1.script().clone().root(),
         output_serial_no = word_to_masm_push_string(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,

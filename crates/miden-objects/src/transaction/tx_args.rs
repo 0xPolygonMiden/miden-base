@@ -113,7 +113,7 @@ impl TransactionArgs {
         let new_elements = [
             (recipient.digest(), recipient.to_elements()),
             (inputs.commitment(), inputs.format_for_advice()),
-            (script.commitment(), script_encoded),
+            (script.root(), script_encoded),
         ];
 
         self.advice_inputs.extend_map(new_elements);
@@ -235,8 +235,8 @@ impl TransactionScript {
         self.mast.clone()
     }
 
-    /// Returns a reference to the code hash.
-    pub fn hash(&self) -> Digest {
+    /// Returns the commitment of this transaction script (i.e., the script's MAST root).
+    pub fn root(&self) -> Digest {
         self.mast[self.entrypoint].digest()
     }
 

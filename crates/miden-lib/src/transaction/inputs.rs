@@ -107,7 +107,7 @@ fn build_advice_stack(
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
 
     // push tx_script root onto the stack
-    inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.hash()));
+    inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.root()));
 }
 
 // CHAIN MMR INJECTOR
@@ -246,7 +246,7 @@ fn add_input_notes_to_advice_inputs(
 
         // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
         note_data.extend(recipient.serial_num());
-        note_data.extend(*recipient.script().commitment());
+        note_data.extend(*recipient.script().root());
         note_data.extend(*recipient.inputs().commitment());
         note_data.extend(*assets.commitment());
 
