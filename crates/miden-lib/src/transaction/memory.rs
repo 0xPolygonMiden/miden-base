@@ -16,12 +16,12 @@ pub type StorageSlot = u8;
 //
 // | Section           | Start address, pointer (word pointer) | End address, pointer (word pointer) | Comment                                     |
 // | ----------------- | :-----------------------------------: | :---------------------------------: | ------------------------------------------- |
-// | Bookkeeping       | 0 (0)                                 | 31 (7)                              |                                             |
+// | Bookkeeping       | 0 (0)                                 | 287 (71)                            |                                             |
 // | Global inputs     | 400 (100)                             | 423 (105)                           |                                             |
 // | Block header      | 800 (200)                             | 835 (208)                           |                                             |
 // | Chain MMR         | 1_200 (300)                           | 1_331? (332?)                       |                                             |
 // | Kernel data       | 1_600 (400)                           | 1_739 (434)                         | 34 procedures in total, 4 elements each     |
-// | Accounts data     | 8_192 (2048)                          | 532_479 (133_119)                   | 64 foreign accounts max, 8192 elements each |
+// | Accounts data     | 8_192 (2048)                          | 532_479 (133_119)                   | 64 accounts max, 8192 elements each         |
 // | Input notes       | 4_194_304 (1_048_576)                 | ?                                   |                                             |
 // | Output notes      | 16_777_216 (4_194_304)                | ?                                   |                                             |
 
@@ -65,20 +65,32 @@ pub const CURRENT_INPUT_NOTE_PTR: MemoryAddress = 4;
 /// The memory address at which the number of output notes is stored.
 pub const NUM_OUTPUT_NOTES_PTR: MemoryAddress = 8;
 
-/// The memory address at which the input vault root is stored
+/// The memory address at which the input vault root is stored.
 pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 12;
 
-/// The memory address at which the output vault root is stored
+/// The memory address at which the output vault root is stored.
 pub const OUTPUT_VAULT_ROOT_PTR: MemoryAddress = 16;
 
-/// The memory address at which the pointer to the data of the currently accessing account is stored
-pub const CURRENT_ACCOUNT_DATA_PTR: MemoryAddress = 20;
-
 /// The memory address at which the native account's new code commitment is stored.
-pub const NEW_CODE_ROOT_PTR: MemoryAddress = 24;
+pub const NEW_CODE_ROOT_PTR: MemoryAddress = 20;
 
 /// The memory address at which the transaction expiration block number is stored.
-pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 28;
+pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 24;
+
+/// The memory address at which the pointer to the stack element containing the pointer to the
+/// currently accessing account data is stored.
+///
+/// The stack starts at the address `32`. Stack has a length of `64` elements meaning that the
+/// maximum depth of FPI calls is `63` — the first slot is always occupied by the native account
+/// data pointer.
+///
+/// ```text
+/// ┌──────────────┬────────────────┬───────────────────┬─────┬────────────────────┐
+/// │ STACK LENGTH │ NATIVE ACCOUNT │ FOREIGN ACCOUNT 1 │ ... │ FOREIGN ACCOUNT 63 │
+/// ├──────────────┼────────────────┼───────────────────┼─────┼────────────────────┤
+///  28             32               36                        284
+/// ```
+pub const ACCOUNT_DATA_STACK_TOP_POINTER: MemoryAddress = 28;
 
 // GLOBAL INPUTS
 // ------------------------------------------------------------------------------------------------

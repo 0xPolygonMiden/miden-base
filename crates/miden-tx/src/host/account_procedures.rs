@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 
 use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_OFFSET, CURRENT_ACCOUNT_DATA_PTR},
+    memory::{ACCOUNT_DATA_STACK_TOP_POINTER, ACCT_CODE_COMMITMENT_OFFSET},
     TransactionKernelError,
 };
 use miden_objects::account::{AccountCode, AccountProcedureInfo};
@@ -46,8 +46,17 @@ impl AccountProcedureIndexMap {
     pub fn get_proc_index(&self, process: &ProcessState) -> Result<u8, TransactionKernelError> {
         // get current account code commitment
         let code_commitment = {
+            let account_data_stack_top_ptr = process
+                .get_mem_value(process.ctx(), ACCOUNT_DATA_STACK_TOP_POINTER)
+                .expect("Account data stack top pointer was not initialized")
+                .as_int();
             let curr_data_ptr = process
-                .get_mem_value(process.ctx(), CURRENT_ACCOUNT_DATA_PTR)
+                .get_mem_value(
+                    process.ctx(),
+                    account_data_stack_top_ptr
+                        .try_into()
+                        .expect("Account data stack top pointer is greater than u32::MAX"),
+                )
                 .expect("Current account pointer was not initialized")
                 .as_int();
             process

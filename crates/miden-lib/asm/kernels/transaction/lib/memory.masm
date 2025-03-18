@@ -10,13 +10,19 @@ const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x00020108
 # The current account is not native
 const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020148
 
+# Depth of the nested FPI calls exceeded 64
+const.ERR_ACCOUNT_DATA_STACK_OVERFLOW=0x00020155
+
+# Attempt to end foreign context, but we already in native context
+const.ERR_ACCOUNT_DATA_STACK_UNDERFLOW=0x00020156
+
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
 
 # BOOK KEEPING
 # -------------------------------------------------------------------------------------------------
 
-# The memory address at which the transaction vault root is stored
+# The memory address at which the transaction vault root is stored.
 const.TX_VAULT_ROOT_PTR=0
 
 # The memory address at which a pointer to the input note being executed is stored.
@@ -25,20 +31,32 @@ const.CURRENT_INPUT_NOTE_PTR=4
 # The memory address at which the number of output notes is stored.
 const.NUM_OUTPUT_NOTES_PTR=8
 
-# The memory address at which the input vault root is stored
+# The memory address at which the input vault root is stored.
 const.INPUT_VAULT_ROOT_PTR=12
 
-# The memory address at which the output vault root is stored
+# The memory address at which the output vault root is stored.
 const.OUTPUT_VAULT_ROOT_PTR=16
 
-# The memory address at which the pointer to the data of the currently accessing account is stored
-const.CURRENT_ACCOUNT_DATA_PTR=20
-
 # The memory address at which the native account's new code commitment is stored.
-const.NEW_CODE_ROOT_PTR=24
+const.NEW_CODE_ROOT_PTR=20
 
 # The memory address at which the absolute expiration block number is stored.
-const.TX_EXPIRATION_BLOCK_NUM_PTR=28
+const.TX_EXPIRATION_BLOCK_NUM_PTR=24
+
+# The memory address at which the current length of the account data pointers stack is stored.
+# const.CURRENT_ACCOUNT_DATA_STACK_LEN_PTR=28;
+
+# TODO: improve the doc comment
+#
+# The memory address at which the pointer to the stack element containing the pointer to the 
+# currently accessing account data is stored.
+const.ACCOUNT_DATA_STACK_TOP_POINTER=28
+
+# Pointer to the first element on the account data stack.
+const.MIN_ACCOUNT_DATA_STACK_PTR=32
+
+# Pointer to the last element on the account data stack.
+const.MAX_ACCOUNT_DATA_STACK_PTR=284
 
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
@@ -677,8 +695,22 @@ end
 #! Inputs:  []
 #! Outputs: []
 export.set_current_account_data_ptr_to_native_account
-    push.NATIVE_ACCOUNT_DATA_PTR
-    push.CURRENT_ACCOUNT_DATA_PTR mem_store
+    # push.NATIVE_ACCOUNT_DATA_PTR
+    # push.CURRENT_ACCOUNT_DATA_PTR mem_store
+
+    # get the pointer to the first stack element where pointer to the native account data should be 
+    # stored
+    push.ACCOUNT_DATA_STACK_TOP_POINTER dup add.4
+    # => [native_acct_stack_ptr, stack_top_ptr]
+
+    # store the native account data pointer (8192) into the first stack element at address 32.
+    push.NATIVE_ACCOUNT_DATA_PTR dup.1 mem_store
+    # => [native_acct_stack_ptr, stack_top_ptr]
+
+    # store the pointer to the first account data stack element (32) at the account data stack top 
+    # pointer (28).
+    swap mem_store
+    # => []
 end
 
 #! Returns the memory pointer of the current account data.
@@ -687,20 +719,59 @@ end
 #! Outputs: [ptr]
 #!
 #! Where:
-#! - ptr is the memory address at which the account data begins.
+#! - ptr is the memory address at which the data of the currently used account begins.
 export.get_current_account_data_ptr
-    push.CURRENT_ACCOUNT_DATA_PTR mem_load
+    push.ACCOUNT_DATA_STACK_TOP_POINTER mem_load
+    # => [account_stack_top_pointer]
+
+    mem_load
+    # => [current_account_data_ptr]
 end
 
-#! Sets the memory pointer of the current account data to the provided value.
+#! Adds the pointer to the account data stack.
+#!
+#! It is done by writing the pointer to the element next to the stack top and moving the top pointer
+#! to it.
 #!
 #! Inputs:  [curr_account_data_ptr]
 #! Outputs: []
 #!
 #! Where:
-#! - curr_account_data_ptr is the memory pointer to the currently accessing account data.
-export.set_current_account_data_ptr
-    push.CURRENT_ACCOUNT_DATA_PTR mem_store
+#! - curr_account_data_ptr is the memory address
+#!
+#! Panics if:
+#! - the account data stack is full, containing 64 accounts total.
+export.add_ptr_to_account_data_stack
+    # check that the account data stack is not full
+    push.ACCOUNT_DATA_STACK_TOP_POINTER mem_load dup push.MAX_ACCOUNT_DATA_STACK_PTR
+    lt assert.err=ERR_ACCOUNT_DATA_STACK_OVERFLOW
+    # => [account_data_stack_top_ptr, curr_account_data_ptr]
+
+    add.1 dup movdn.2 mem_store
+    # => [account_data_stack_top_ptr+1]
+
+    push.ACCOUNT_DATA_STACK_TOP_POINTER mem_store
+    # => []
+end
+
+#! Removes the pointer from the account data stack.
+#!
+#! It is done simply by moving the stack top pointer one element back.
+#!
+#! Inputs:  []
+#! Outputs: []
+#!
+#! Panics if:
+#! - the account data stack contains only native account.
+export.remove_ptr_from_account_data_stack
+    # check that the account data stack still has foreign accounts data
+    push.ACCOUNT_DATA_STACK_TOP_POINTER mem_load dup push.MIN_ACCOUNT_DATA_STACK_PTR
+    gt assert.err=ERR_ACCOUNT_DATA_STACK_UNDERFLOW
+    # => [account_data_stack_top_ptr]
+
+    # move the account data stack pointer one element back and store it as the top pointer
+    sub.1 push.ACCOUNT_DATA_STACK_TOP_POINTER mem_store
+    # => []
 end
 
 #! Asserts that current account data pointer matches the data pointer of the native account (2048).
@@ -713,7 +784,7 @@ end
 #! Panics if:
 #! - the current account data pointer is not equal to native account data pointer (2048).
 export.assert_native_account
-    push.CURRENT_ACCOUNT_DATA_PTR mem_load
+    exec.get_current_account_data_ptr
     push.NATIVE_ACCOUNT_DATA_PTR
     assert_eq.err=ERR_ACCOUNT_IS_NOT_NATIVE
 end

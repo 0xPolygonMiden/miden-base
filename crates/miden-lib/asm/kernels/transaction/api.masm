@@ -32,6 +32,9 @@ const.ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUC
 # Provided kernel procedure offset is out of bounds
 const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020000
 
+# Creation of the foreign context using native account is forbidden
+const.ERR_ACCOUNT_FOREIGN_CONTEXT_WITH_NATIVE_ACCOUNT=0x00020157
+
 # EVENTS
 # =================================================================================================
 
@@ -957,23 +960,24 @@ end
 #!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0].
 #!
 #! Panics if:
-#! - the current context is not a native context.
+#! - foreign context is created against the native account.
 #!
 #! Invocation: dynexec
 export.tx_start_foreign_context
-    # check that this procedure was executed against the native account
-    # exec.memory::assert_native_account
-    # OS => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
+    # check that the provided foreign account is not the native account.
+    dup.1 dup.1 exec.memory::get_native_account_id exec.account::is_id_equal
+    assertz.err=ERR_ACCOUNT_FOREIGN_CONTEXT_WITH_NATIVE_ACCOUNT
+    # => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
     # get the memory address and a flag whether this account was already loaded.
     exec.account::get_foreign_account_ptr
     # OS => [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
     if.true
-        exec.memory::set_current_account_data_ptr drop drop
+        exec.memory::add_ptr_to_account_data_stack drop drop
         # OS => [pad(16)]
     else
-        exec.memory::set_current_account_data_ptr
+        exec.memory::add_ptr_to_account_data_stack
         # OS => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
         # construct the word with account ID to load the core account data from the advice map
@@ -1038,7 +1042,7 @@ end
 #!
 #! Invocation: dynexec
 export.tx_end_foreign_context
-    exec.memory::set_current_account_data_ptr_to_native_account
+    exec.memory::remove_ptr_from_account_data_stack
     # => [pad(16)]
 end
 
