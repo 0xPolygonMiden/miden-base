@@ -1,18 +1,19 @@
-use opentelemetry::{trace::TracerProvider as _, KeyValue};
+use std::net::TcpListener;
+
+use opentelemetry::{KeyValue, trace::TracerProvider as _};
 use opentelemetry_sdk::{
-    runtime,
+    Resource, runtime,
     trace::{RandomIdGenerator, Sampler, TracerProvider},
-    Resource,
 };
 use opentelemetry_semantic_conventions::{
-    resource::{SERVICE_NAME, SERVICE_VERSION},
     SCHEMA_URL,
+    resource::{SERVICE_NAME, SERVICE_VERSION},
 };
-use pingora::{http::ResponseHeader, protocols::http::ServerSession, Error, ErrorType};
+use pingora::{Error, ErrorType, http::ResponseHeader, protocols::http::ServerSession};
 use pingora_proxy::Session;
-use tracing_subscriber::{layer::SubscriberExt, Registry};
+use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
 
-use crate::proxy::metrics::QUEUE_DROP_COUNT;
+use crate::{error::ProvingServiceError, proxy::metrics::QUEUE_DROP_COUNT};
 
 pub const MIDEN_PROVING_SERVICE: &str = "miden-proving-service";
 
@@ -83,7 +84,7 @@ pub(crate) fn setup_tracing() -> Result<(), String> {
 
     let subscriber = Registry::default()
         .with(telemetry)
-        .with(tracing_subscriber::filter::EnvFilter::from_default_env())
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .with(tracing_subscriber::fmt::layer());
 
     tracing::subscriber::set_global_default(subscriber)
@@ -142,4 +143,33 @@ pub async fn create_response_with_error_message(
     session.set_keepalive(None);
     session.write_response_header(Box::new(header)).await?;
     Ok(true)
+}
+
+/// Checks if a port is available for use.
+///
+/// # Arguments
+/// * `host` - The host to bind to.
+/// * `port` - The port to check.
+/// * `port_name` - A descriptive name for the port (for logging purposes).
+///
+/// # Returns
+/// * `Ok(())` if the port is available.
+/// * `Err(ProvingServiceError::PortAlreadyInUse)` if the port is already in use.
+pub fn check_port_availability(
+    host: &str,
+    port: u16,
+    port_name: &str,
+) -> Result<(), ProvingServiceError> {
+    let addr = format!("{}:{}", host, port);
+    match TcpListener::bind(&addr) {
+        Ok(_) => {
+            // Port is available, we can proceed
+            tracing::info!("Port {} is available for {}", port, port_name);
+            Ok(())
+        },
+        Err(e) => {
+            // Port is already in use, log an error and return an error
+            Err(ProvingServiceError::PortAlreadyInUse(e, port))
+        },
+    }
 }

@@ -3,6 +3,7 @@ use vm_core::FieldElement;
 
 use super::constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA};
 use crate::{
+    Felt, ZERO,
     account::{Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot},
     asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     testing::{
@@ -13,7 +14,6 @@ use crate::{
         },
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
-    Felt, ZERO,
 };
 
 // MOCK ACCOUNT

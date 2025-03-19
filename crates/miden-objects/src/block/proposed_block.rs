@@ -4,17 +4,17 @@ use alloc::{
 };
 
 use crate::{
-    account::{delta::AccountUpdateDetails, AccountId},
+    Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
+    account::{AccountId, delta::AccountUpdateDetails},
     batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
     block::{
-        block_inputs::BlockInputs, AccountUpdateWitness, AccountWitness, BlockHeader, BlockNumber,
-        NullifierWitness, OutputNoteBatch,
+        AccountUpdateWitness, AccountWitness, BlockHeader, BlockNumber, NullifierWitness,
+        OutputNoteBatch, block_inputs::BlockInputs,
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
 };
 
 // PROPOSED BLOCK
@@ -559,7 +559,11 @@ fn compute_batch_output_notes(
         if let Some((_batch_id, output_note)) =
             block_output_notes.remove(&original_output_note.id())
         {
-            debug_assert_eq!(_batch_id, batch.id(), "batch that contained the note originally is no longer the batch that contains it according to the provided map");
+            debug_assert_eq!(
+                _batch_id,
+                batch.id(),
+                "batch that contained the note originally is no longer the batch that contains it according to the provided map"
+            );
             batch_output_notes.push((note_idx, output_note));
         }
     }

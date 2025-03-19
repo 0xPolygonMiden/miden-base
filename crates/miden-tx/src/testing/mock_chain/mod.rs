@@ -6,12 +6,13 @@ use alloc::{
 use miden_lib::{
     account::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
     note::{create_p2id_note, create_p2idr_note},
-    transaction::{memory, TransactionKernel},
+    transaction::{TransactionKernel, memory},
 };
 use miden_objects::{
+    ACCOUNT_TREE_DEPTH, AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
-        delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
-        AccountId, AccountIdAnchor, AccountType, AuthSecretKey,
+        Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
+        AccountType, AuthSecretKey, delta::AccountUpdateDetails,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
@@ -29,13 +30,12 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
         ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
     },
-    AccountError, NoteError, ProposedBatchError, ProposedBlockError, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
-    crypto::{RpoRandomCoin, SimpleSmt},
     Digest, Felt, Word, ZERO,
+    crypto::{RpoRandomCoin, SimpleSmt},
 };
 
 use super::TransactionContextBuilder;
@@ -511,15 +511,16 @@ impl MockChain {
 
     /// Adds a new wallet with the specified authentication method and assets.
     pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder = AccountBuilder::new(self.rng.gen()).with_component(BasicWallet);
+        let account_builder = AccountBuilder::new(self.rng.random()).with_component(BasicWallet);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::New)
     }
 
     /// Adds an existing wallet (nonce == 1) with the specified authentication method and assets.
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder =
-            Account::builder(self.rng.gen()).with_component(BasicWallet).with_assets(assets);
+        let account_builder = Account::builder(self.rng.random())
+            .with_component(BasicWallet)
+            .with_assets(assets);
 
         self.add_from_account_builder(auth_method, account_builder, AccountState::Exists)
     }
@@ -531,7 +532,7 @@ impl MockChain {
         token_symbol: &str,
         max_supply: u64,
     ) -> MockFungibleFaucet {
-        let account_builder = AccountBuilder::new(self.rng.gen())
+        let account_builder = AccountBuilder::new(self.rng.random())
             .account_type(AccountType::FungibleFaucet)
             .with_component(
                 BasicFungibleFaucet::new(
@@ -557,7 +558,7 @@ impl MockChain {
         max_supply: u64,
         total_issuance: Option<u64>,
     ) -> MockFungibleFaucet {
-        let mut account_builder = AccountBuilder::new(self.rng.gen())
+        let mut account_builder = AccountBuilder::new(self.rng.random())
             .with_component(
                 BasicFungibleFaucet::new(
                     TokenSymbol::new(token_symbol).unwrap(),

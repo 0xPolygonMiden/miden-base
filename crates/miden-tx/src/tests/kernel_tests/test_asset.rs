@@ -10,7 +10,7 @@ use miden_objects::{
 };
 use vm_processor::ProcessState;
 
-use super::{word_to_masm_push_string, Felt, Hasher, Word, ONE};
+use super::{Felt, Hasher, ONE, Word, word_to_masm_push_string};
 use crate::testing::TransactionContextBuilder;
 
 #[test]

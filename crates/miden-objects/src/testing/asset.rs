@@ -1,12 +1,12 @@
-use rand::{distributions::Standard, Rng};
+use rand::{Rng, distr::StandardUniform};
 
 use crate::{
+    AssetError,
     account::{AccountId, AccountIdPrefix, AccountType},
     asset::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     testing::account_id::{
         ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET,
     },
-    AssetError,
 };
 
 /// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multiplied
@@ -34,7 +34,7 @@ impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
     }
 
     pub fn build(&mut self) -> Result<NonFungibleAssetDetails, AssetError> {
-        let data = (&mut self.rng).sample_iter(Standard).take(5).collect();
+        let data = (&mut self.rng).sample_iter(StandardUniform).take(5).collect();
         NonFungibleAssetDetails::new(self.faucet_id, data)
     }
 }

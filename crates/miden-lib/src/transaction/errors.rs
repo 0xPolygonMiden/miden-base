@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::error::Error;
 
-use miden_objects::{note::NoteMetadata, AccountDeltaError, AssetError, Digest, Felt, NoteError};
+use miden_objects::{AccountDeltaError, AssetError, Digest, Felt, NoteError, note::NoteMetadata};
 use thiserror::Error;
 
 // TRANSACTION KERNEL ERROR
@@ -17,8 +17,14 @@ pub enum TransactionKernelError {
     FailedToAddAssetToNote(#[source] NoteError),
     #[error("note input data has hash {actual} but expected hash {expected}")]
     InvalidNoteInputs { expected: Digest, actual: Digest },
-    #[error("storage slot index {actual} is invalid, must be smaller than the number of account storage slots {max}")]
+    #[error(
+        "storage slot index {actual} is invalid, must be smaller than the number of account storage slots {max}"
+    )]
     InvalidStorageSlotIndex { max: u64, actual: u64 },
+    #[error("failed to push element {0} to advice stack")]
+    FailedToPushAdviceStack(Felt),
+    #[error("failed to generate signature: {0}")]
+    FailedSignatureGeneration(&'static str),
     #[error("asset data extracted from the stack by event handler `{handler}` is not well formed")]
     MalformedAssetInEventHandler {
         handler: &'static str,
@@ -30,7 +36,9 @@ pub enum TransactionKernelError {
     MalformedNoteInputs(#[source] NoteError),
     #[error("note metadata created by the event handler is not well formed")]
     MalformedNoteMetadata(#[source] NoteError),
-    #[error("note script data `{data:?}` extracted from the advice map by the event handler is not well formed")]
+    #[error(
+        "note script data `{data:?}` extracted from the advice map by the event handler is not well formed"
+    )]
     MalformedNoteScript {
         data: Vec<Felt>,
         // This is always a DeserializationError, but we can't import it directly here without
@@ -41,11 +49,15 @@ pub enum TransactionKernelError {
     MalformedRecipientData(Vec<Felt>),
     #[error("cannot add asset to note with index {0}, note does not exist in the advice provider")]
     MissingNote(u64),
-    #[error("public note with metadata {0:?} and recipient digest {1} is missing details in the advice provider")]
+    #[error(
+        "public note with metadata {0:?} and recipient digest {1} is missing details in the advice provider"
+    )]
     PublicNoteMissingDetails(NoteMetadata, Digest),
     #[error("public note has incomplete inputs in the advice provider")]
     MissingNoteInputs,
-    #[error("note input data in advice provider contains fewer elements ({actual}) than specified ({specified}) by its inputs length")]
+    #[error(
+        "note input data in advice provider contains fewer elements ({actual}) than specified ({specified}) by its inputs length"
+    )]
     TooFewElementsForNoteInputs { specified: u64, actual: u64 },
     #[error("account procedure with procedure root {0} is not in the advice provider")]
     UnknownAccountProcedure(Digest),

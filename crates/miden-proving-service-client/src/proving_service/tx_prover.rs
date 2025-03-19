@@ -13,11 +13,11 @@ use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
 use crate::{
+    RemoteProverError,
     proving_service::{
         generated,
         generated::{ProofType, ProvingRequest, ProvingResponse},
     },
-    RemoteProverError,
 };
 
 // REMOTE TRANSACTION PROVER

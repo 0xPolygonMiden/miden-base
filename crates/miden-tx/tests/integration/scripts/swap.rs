@@ -1,12 +1,12 @@
 use miden_lib::{note::create_swap_note, transaction::TransactionKernel};
 use miden_objects::{
+    Felt,
     account::AccountId,
     asset::{Asset, NonFungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::{Note, NoteDetails, NoteType},
     transaction::{OutputNote, TransactionScript},
     utils::word_to_masm_push_string,
-    Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
 
@@ -62,10 +62,12 @@ pub fn prove_send_swap_note() {
 
     let sender_account = mock_chain.apply_executed_transaction(&create_swap_note_tx);
 
-    assert!(create_swap_note_tx
-        .output_notes()
-        .iter()
-        .any(|n| n.commitment() == note.commitment()));
+    assert!(
+        create_swap_note_tx
+            .output_notes()
+            .iter()
+            .any(|n| n.commitment() == note.commitment())
+    );
     assert_eq!(sender_account.vault().assets().count(), 0); // Offered asset should be gone
     let swap_output_note = create_swap_note_tx.output_notes().iter().next().unwrap();
     assert_eq!(swap_output_note.assets().unwrap().iter().next().unwrap(), &offered_asset);

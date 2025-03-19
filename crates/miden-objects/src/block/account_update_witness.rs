@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
 use crate::{
+    Digest,
     account::delta::AccountUpdateDetails,
     crypto::merkle::MerklePath,
     transaction::TransactionId,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest,
 };
 
 /// This type encapsulates essentially three components:

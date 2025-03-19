@@ -1,22 +1,27 @@
 use alloc::vec::Vec;
 
-use miden_objects::crypto::dsa::rpo_falcon512::{self, Polynomial};
+use miden_objects::{
+    Hasher,
+    crypto::dsa::rpo_falcon512::{self, Polynomial},
+};
 use rand::Rng;
 use vm_processor::{Felt, Word};
 
 use crate::AuthenticationError;
 
-/// Retrieves a falcon signature over a message.
+/// Retrieves a Falcon signature over a message.
 ///
 /// Gets as input a [Word] containing a secret key, and a [Word] representing a message and
 /// outputs a vector of values to be pushed onto the advice stack. The values are the ones required
 /// for a Falcon signature verification inside the VM and they are:
 ///
-/// 1. The nonce represented as 8 field elements.
-/// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
-/// 3. The signature represented as the coefficients of a polynomial of degree < 512.
-/// 4. The product of the above two polynomials in the ring of polynomials with coefficients in the
-///    Miden field.
+/// 1. The challenge point at which we evaluate the polynomials in the subsequent three bullet
+///    points, i.e. `h`, `s2` and `pi`, to check the product relationship.
+/// 2. The expanded public key represented as the coefficients of a polynomial `h` of degree < 512.
+/// 3. The signature represented as the coefficients of a polynomial `s2` of degree < 512.
+/// 4. The product of the above two polynomials `pi` in the ring of polynomials with coefficients in
+///    the Miden field.
+/// 5. The nonce represented as 8 field elements.
 ///
 /// # Errors
 /// Will return an error if either:
@@ -41,13 +46,24 @@ pub fn get_falcon_signature<R: Rng>(
     // we need to compute the product of the expanded key and the signature polynomial in
     // the ring of polynomials with coefficients in the Miden field.
     let pi = Polynomial::mul_modulo_p(&h, s2);
-    // We now push the nonce, the expanded key, the signature polynomial, and the product of the
-    // expanded key and the signature polynomial to the advice stack.
-    let mut result: Vec<Felt> = nonce.to_elements().to_vec();
 
-    result.extend(h.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-    result.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-    result.extend(pi.iter().map(|a| Felt::new(*a)));
+    // We now push the expanded key, the signature polynomial, and the product of the
+    // expanded key and the signature polynomial to the advice stack. We also push
+    // the challenge point at which the previous polynomials will be evaluated.
+    // Finally, we push the nonce needed for the hash-to-point algorithm.
+
+    let mut polynomials: Vec<Felt> =
+        h.coefficients.iter().map(|a| Felt::from(a.value() as u32)).collect();
+    polynomials.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
+    polynomials.extend(pi.iter().map(|a| Felt::new(*a)));
+
+    let digest_polynomials = Hasher::hash_elements(&polynomials);
+    let challenge = (digest_polynomials[0], digest_polynomials[1]);
+
+    let mut result: Vec<Felt> = vec![challenge.0, challenge.1];
+    result.extend_from_slice(&polynomials);
+    result.extend_from_slice(&nonce.to_elements());
+
     result.reverse();
     Ok(result)
 }

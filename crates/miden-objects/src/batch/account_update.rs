@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
 use crate::{
-    account::{delta::AccountUpdateDetails, AccountId},
+    Digest,
+    account::{AccountId, delta::AccountUpdateDetails},
     errors::BatchAccountUpdateError,
     transaction::{ProvenTransaction, TransactionId},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest,
 };
 
 // BATCH ACCOUNT UPDATE

@@ -1,9 +1,9 @@
 use crate::{
+    Digest, EMPTY_WORD, Felt, FieldElement, Word,
     block::{BlockNumber, NullifierWitness},
     crypto::merkle::PartialSmt,
     errors::NullifierTreeError,
     note::Nullifier,
-    Digest, Felt, FieldElement, Word, EMPTY_WORD,
 };
 
 /// The partial sparse merkle tree containing the nullifiers of consumed notes.

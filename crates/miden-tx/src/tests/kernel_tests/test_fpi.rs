@@ -6,16 +6,17 @@ use miden_lib::{
         ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT, ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED,
     },
     transaction::{
+        TransactionKernel,
         memory::{
             ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
             ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
             ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, NATIVE_ACCOUNT_DATA_PTR,
             NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
         },
-        TransactionKernel,
     },
 };
 use miden_objects::{
+    ACCOUNT_TREE_DEPTH,
     account::{
         Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
         StorageSlot,
@@ -23,7 +24,6 @@ use miden_objects::{
     crypto::merkle::{LeafIndex, MerklePath},
     testing::{account_component::AccountMockComponent, storage::STORAGE_LEAVES_2},
     transaction::TransactionScript,
-    ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -31,10 +31,9 @@ use vm_processor::AdviceInputs;
 
 use super::{Process, Word, ZERO};
 use crate::{
-    assert_execution_error,
+    TransactionExecutor, TransactionExecutorError, assert_execution_error,
     testing::MockChain,
     tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
-    TransactionExecutor, TransactionExecutorError,
 };
 
 // SIMPLE FPI TESTS
@@ -77,12 +76,12 @@ fn test_fpi_memory() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -336,17 +335,17 @@ fn test_fpi_memory_two_accounts() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_1)
         .build_existing()
         .unwrap();
 
-    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_2)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
                 .unwrap(),
@@ -540,12 +539,12 @@ fn test_fpi_execute_foreign_procedure() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),
@@ -706,7 +705,7 @@ fn test_nested_fpi_cyclic_invocation() {
     .unwrap()
     .with_supports_all_types();
 
-    let second_foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let second_foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(second_foreign_account_component)
         .build_existing()
         .unwrap();
@@ -763,13 +762,13 @@ fn test_nested_fpi_cyclic_invocation() {
     .unwrap()
     .with_supports_all_types();
 
-    let first_foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let first_foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(first_foreign_account_component)
         .build_existing()
         .unwrap();
 
     // ------ NATIVE ACCOUNT ---------------------------------------------------------------
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),
@@ -920,7 +919,7 @@ fn test_nested_fpi_stack_overflow() {
         .unwrap()
         .with_supports_all_types();
 
-        let last_foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        let last_foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
             .with_component(last_foreign_account_component)
             .build_existing()
             .unwrap();
@@ -969,7 +968,7 @@ fn test_nested_fpi_stack_overflow() {
             .unwrap()
             .with_supports_all_types();
 
-            let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+            let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
                 .with_component(foreign_account_component)
                 .build_existing()
                 .unwrap();
@@ -978,7 +977,7 @@ fn test_nested_fpi_stack_overflow() {
         }
 
         // ------ NATIVE ACCOUNT ---------------------------------------------------------------
-        let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
             .with_component(
                 AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                     .unwrap(),
@@ -1112,13 +1111,13 @@ fn test_nested_fpi_native_account_invocation() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
     // ------ NATIVE ACCOUNT ---------------------------------------------------------------
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),

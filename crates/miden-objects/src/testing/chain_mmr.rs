@@ -1,6 +1,6 @@
 use miden_crypto::merkle::{Mmr, PartialMmr};
 
-use crate::{block::BlockHeader, transaction::ChainMmr, ChainMmrError};
+use crate::{ChainMmrError, block::BlockHeader, transaction::ChainMmr};
 
 impl ChainMmr {
     /// Converts the [`Mmr`] into a [`ChainMmr`] by selectively copying all leaves that are in the

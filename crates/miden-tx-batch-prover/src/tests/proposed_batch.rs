@@ -5,16 +5,16 @@ use anyhow::Context;
 use miden_crypto::merkle::MerkleError;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    BatchAccountUpdateError, ProposedBatchError,
     account::{Account, AccountId},
     batch::ProposedBatch,
     block::BlockNumber,
     note::{Note, NoteType},
     testing::{account_id::AccountIdBuilder, note::NoteBuilder},
     transaction::{ChainMmr, InputNote, InputNoteCommitment, OutputNote},
-    BatchAccountUpdateError, ProposedBatchError,
 };
 use miden_tx::testing::{Auth, MockChain};
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::{SeedableRng, rngs::SmallRng};
 use vm_core::assert_matches;
 use vm_processor::Digest;
 
@@ -344,10 +344,12 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     // We expect the unauthenticated input note to have become an authenticated one,
     // meaning it is part of the input note commitment.
     assert_eq!(batch.input_notes().num_notes(), 1);
-    assert!(batch
-        .input_notes()
-        .iter()
-        .any(|commitment| commitment == &InputNoteCommitment::from(input_note1)));
+    assert!(
+        batch
+            .input_notes()
+            .iter()
+            .any(|commitment| commitment == &InputNoteCommitment::from(input_note1))
+    );
     assert_eq!(batch.output_notes().len(), 0);
 
     Ok(())

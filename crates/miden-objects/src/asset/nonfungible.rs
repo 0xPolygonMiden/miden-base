@@ -3,8 +3,8 @@ use core::fmt;
 
 use super::{AccountIdPrefix, AccountType, Asset, AssetError, Felt, Hasher, Word};
 use crate::{
-    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest, FieldElement, WORD_SIZE,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 /// Position of the faucet_id inside the [`NonFungibleAsset`] word.

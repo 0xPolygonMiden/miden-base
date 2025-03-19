@@ -4,12 +4,12 @@ use vm_core::FieldElement;
 use vm_processor::Digest;
 
 use crate::{
+    AccountError, Felt, Word,
     account::{
         Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdV0,
         AccountIdVersion, AccountStorage, AccountStorageMode, AccountType,
     },
     asset::AssetVault,
-    AccountError, Felt, Word,
 };
 
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by

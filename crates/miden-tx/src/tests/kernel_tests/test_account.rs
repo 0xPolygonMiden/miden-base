@@ -27,8 +27,8 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{word_to_masm_push_string, Felt, StackInputs, Word, ONE, ZERO};
-use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
+use super::{Felt, ONE, StackInputs, Word, ZERO, word_to_masm_push_string};
+use crate::testing::{TransactionContextBuilder, executor::CodeExecutor};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
@@ -267,7 +267,7 @@ fn test_get_item() {
 
 #[test]
 fn test_get_map_item() {
-    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -428,7 +428,7 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -577,7 +577,7 @@ fn test_account_component_storage_offset() {
     .unwrap()
     .with_supported_type(AccountType::RegularAccountUpdatableCode);
 
-    let mut account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let mut account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(component1)
         .with_component(component2)
         .build_existing()

@@ -11,6 +11,7 @@ use miden_lib::{
     },
 };
 use miden_objects::{
+    FieldElement,
     account::AccountId,
     asset::NonFungibleAsset,
     note::{
@@ -22,10 +23,9 @@ use miden_objects::{
         constants::NON_FUNGIBLE_ASSET_DATA_2,
     },
     transaction::{OutputNote, OutputNotes},
-    FieldElement,
 };
 
-use super::{word_to_masm_push_string, Felt, ProcessState, Word, ONE, ZERO};
+use super::{Felt, ONE, ProcessState, Word, ZERO, word_to_masm_push_string};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_word,

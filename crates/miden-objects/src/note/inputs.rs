@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 
 use crate::{
+    Digest, Felt, Hasher, MAX_INPUTS_PER_NOTE, WORD_SIZE, ZERO,
     errors::NoteError,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest, Felt, Hasher, MAX_INPUTS_PER_NOTE, WORD_SIZE, ZERO,
 };
 
 // NOTE INPUTS
