@@ -1214,12 +1214,12 @@ fn test_fpi_execute_foreign_procedure() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().random())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),
@@ -1302,12 +1302,33 @@ fn test_fpi_execute_foreign_procedure() {
 
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
-        .foreign_account_codes(vec![foreign_account.code().clone()])
         .advice_inputs(advice_inputs.clone())
         .tx_script(tx_script)
         .build();
 
-    let _executed_transaction = tx_context.execute().map_err(|e| e.to_string()).unwrap();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
+
+    // load the mast forest of the foreign account's code to be able to create an account procedure
+    // index map and execute the specified foreign procedure
+    executor.load_account_code(foreign_account.code());
+
+    let _executed_transaction = executor
+        .execute_transaction(
+            native_account.id(),
+            block_ref,
+            &note_ids,
+            tx_context.tx_args().clone(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
 }
 
 // HELPER FUNCTIONS

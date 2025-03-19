@@ -123,6 +123,7 @@ impl TransactionContext {
     pub fn get_mast_store(&self) -> Arc<TransactionMastStore> {
         let mast_forest_store = TransactionMastStore::new();
         mast_forest_store.load_transaction_code(self.tx_inputs(), &self.tx_args);
+        mast_forest_store.load_account_code(self.account().code());
         for foreign_code in self.foreign_codes.iter() {
             mast_forest_store.insert(foreign_code.mast());
         }

@@ -9,27 +9,21 @@ use ::assembly::{
     ast::{Module, ModuleKind},
     LibraryPath,
 };
-use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
+use miden_lib::{account::wallets::BasicWallet, transaction::TransactionKernel, utils::word_to_masm_push_string};
 use miden_objects::{
-    account::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
-    assembly::DefaultSourceManager,
-    asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
-    note::{
+    account::{Account, AccountBuilder, AccountComponent, AccountStorage, StorageSlot}, assembly::DefaultSourceManager, asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset}, note::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
-    },
-    testing::{
+    }, testing::{
         account_component::AccountMockComponent,
         account_id::{
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE, ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         note::DEFAULT_NOTE_CODE,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
-    },
-    transaction::{InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionScript},
-    Felt, Word, MIN_PROOF_SECURITY_LEVEL,
+    }, transaction::{InputNote, InputNotes, OutputNote, ProvenTransaction, TransactionArgs, TransactionScript}, Felt, FieldElement, Word, MIN_PROOF_SECURITY_LEVEL
 };
 use miden_prover::ProvingOptions;
 use rand::{Rng, SeedableRng};
@@ -517,14 +511,12 @@ fn test_send_note_proc() {
 #[test]
 #[allow(clippy::arc_with_non_send_sync)]
 fn executed_transaction_output_notes() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .with_mock_notes_preserved_with_account_vault_delta()
-        .build();
-
-    let account_id = tx_context.tx_inputs().account().id();
-    let mast_store = tx_context.get_mast_store();
-    let executor =
-        TransactionExecutor::new(Arc::new(tx_context.clone()), mast_store, None).with_debug_mode();
+    let executor_account = Account::mock(
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
+        Felt::ONE,
+        TransactionKernel::testing_assembler(),
+    );
+    let account_id = executor_account.id();
 
     // removed assets
     let removed_asset_1 = FungibleAsset::mock(FUNGIBLE_ASSET_AMOUNT / 2);
@@ -710,25 +702,18 @@ fn executed_transaction_output_notes() {
         TransactionKernel::testing_assembler_with_mock_account().with_debug_mode(true),
     )
     .unwrap();
-    let mut tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
-
-    tx_args.add_expected_output_note(&expected_output_note_2);
-    tx_args.add_expected_output_note(&expected_output_note_3);
-
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let notes = tx_context.tx_inputs().input_notes().iter().cloned().collect::<Vec<_>>();
 
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
 
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, InputNotes::new(notes).unwrap(), tx_args)
-        .unwrap();
+    let tx_context = TransactionContextBuilder::new(executor_account)
+        .with_mock_notes_preserved_with_account_vault_delta()
+        .tx_script(tx_script)
+        .expected_notes(vec![OutputNote::Full(expected_output_note_2.clone()), OutputNote::Full(expected_output_note_3.clone())])
+        .build();
+
+    let executed_transaction = tx_context.execute().unwrap();
 
     // output notes
     // --------------------------------------------------------------------------------------------
@@ -897,7 +882,7 @@ fn transaction_executor_account_code_using_custom_library() {
         .build_existing()
         .unwrap();
 
-    let tx_context = TransactionContextBuilder::new(native_account).build();
+    let tx_context = TransactionContextBuilder::new(native_account.clone()).build();
 
     let tx_script = TransactionScript::compile(
         tx_script_src,
@@ -920,7 +905,8 @@ fn transaction_executor_account_code_using_custom_library() {
     // Load the external library into the executor to make it available during transaction
     // execution.
     mast_forest.insert(external_library.mast_forest().clone());
-
+    mast_forest.load_transaction_code(tx_context.tx_inputs(), &tx_args);
+    mast_forest.load_account_code(native_account.code());
     let executor = TransactionExecutor::new(Arc::new(tx_context), mast_forest, None);
 
     let executed_tx = executor
@@ -966,7 +952,7 @@ fn test_execute_program() {
     let tx_script = TransactionScript::compile(source, [], assembler)
         .expect("failed to compile the source script");
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).tx_script(tx_script.clone()).build();
     let account_id = tx_context.account().id();
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let advice_inputs = tx_context.tx_args().advice_inputs().clone();
