@@ -72,9 +72,9 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     // tx_get_block_timestamp
     digest!("0x786863e6dbcd5026619afd3831b7dcbf824cda54950b0e0724ebf9d9370ec723"),
     // tx_start_foreign_context
-    digest!("0x56be2bed7d7c9a21a6c26383e586ecb0d65afed2b662ad7ab7246162e5c01fa3"),
+    digest!("0x06878c1c18e1c3d32966f5f634d3fb6aeb278031eda4d82b1e6486ee95c3aab5"),
     // tx_end_foreign_context
-    digest!("0xc7f8665baf9fa71191860633ad3b58cc2b39e83e89342b26e36124920d2403ec"),
+    digest!("0x90a107168d81c1c0c23890e61fb7910a64b4711afd0bf8c3098d74737e4853ba"),
     // tx_get_expiration_delta
     digest!("0x756352beed1624a42d4540c434a4faa986d6d9d08ef8437699d9086fcd9ad9e7"),
     // tx_update_expiration_block_num

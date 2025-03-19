@@ -61,8 +61,8 @@ const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020181
 # Maximum allowed number of foreign account to be loaded (64) was exceeded.
 const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020183
 
-# Provided foreign account ID is equal to the native account ID.
-const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020180
+# Creation of a foreign context against the native account is forbidden
+const.ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT=0x00020180
 
 # State of the current foreign account is invalid.
 const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020182
@@ -1056,8 +1056,8 @@ export.get_foreign_account_ptr
     # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
     # check that foreign account ID is not equal to the native account ID
-    dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_equal not
-    assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
+    dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_equal
+    assertz.err=ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT
 
     # get the initial account data pointer
     exec.memory::get_native_account_data_ptr

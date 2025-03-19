@@ -1,14 +1,17 @@
 use alloc::vec::Vec;
 use std::string::ToString;
 
-use miden_lib::transaction::{
-    memory::{
-        ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
-        ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
-        ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, NATIVE_ACCOUNT_DATA_PTR,
-        NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
+use miden_lib::{
+    errors::tx_kernel_errors::ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED,
+    transaction::{
+        memory::{
+            ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
+            ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
+            ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, NATIVE_ACCOUNT_DATA_PTR,
+            NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
+        },
+        TransactionKernel,
     },
-    TransactionKernel,
 };
 use miden_objects::{
     account::{
@@ -26,9 +29,10 @@ use vm_processor::AdviceInputs;
 
 use super::{Process, Word, ZERO};
 use crate::{
+    assert_execution_error,
     testing::MockChain,
     tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
-    TransactionExecutor,
+    TransactionExecutor, TransactionExecutorError,
 };
 
 // SIMPLE FPI TESTS
@@ -839,40 +843,199 @@ fn test_simple_nested_fpi() {
         .unwrap();
 }
 
+/// Test that code will panic in attempt to create more than 63 foreign accounts.
+///
+/// Attempt to create a 64th foreign account first triggers the assert during the account data
+/// loading, but we have an additional assert during the account stack push just in case.
 #[test]
 fn test_nested_fpi_stack_overflow() {
-    let mut foreign_accounts = Vec::new();
+    std::thread::Builder::new().stack_size(10 * 1_048_576).spawn(||{
+        let mut foreign_accounts = Vec::new();
 
-    for foreign_account_index in 0..65 {
-        let foreign_account_code_source = format!("
-            use.miden::account
+        let last_foreign_account_code_source = "
+                use.miden::account
 
-            export.get_item_foreign_{foreign_account_index}
-                # make this foreign procedure unique to make sure that we invoke the procedure of the 
-                # foreign account, not the native one
-                push.1 drop
-                exec.account::get_item
+                export.get_item_foreign
+                    # make this foreign procedure unique to make sure that we invoke the procedure 
+                    # of the foreign account, not the native one
+                    push.1 drop
 
-                # return the first element of the resulting word
-                drop drop drop
-            end
-        ");
+                    # push the index of desired storage item
+                    push.0
 
-        let foreign_account_component = AccountComponent::compile(
-            foreign_account_code_source,
+                    exec.account::get_item
+
+                    # return the first element of the resulting word
+                    drop drop drop
+
+                    # make sure that the resulting value equals 1
+                    assert
+                end
+        ";
+
+        let storage_slots = vec![AccountStorage::mock_item_0().slot];
+        let last_foreign_account_component = AccountComponent::compile(
+            last_foreign_account_code_source,
             TransactionKernel::testing_assembler(),
-            vec![],
+            storage_slots,
         )
         .unwrap()
         .with_supports_all_types();
 
-        let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
-            .with_component(foreign_account_component)
+        let last_foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+            .with_component(last_foreign_account_component)
             .build_existing()
             .unwrap();
 
-        foreign_accounts.push(foreign_account)
-    }
+        foreign_accounts.push(last_foreign_account);
+
+        for foreign_account_index in 0..63 {
+            let next_account = foreign_accounts.last().unwrap();
+
+            let foreign_account_code_source = format!("
+                use.miden::tx
+                use.std::sys
+
+                export.read_first_foreign_storage_slot_{foreign_account_index}
+                    # get the storage item at index 0
+                    # pad the stack for the `execute_foreign_procedure` execution
+                    padw padw padw push.0.0
+                    # => [pad(14)]
+
+                    # push the index of desired storage item
+                    push.0
+
+                    # get the hash of the `get_item` account procedure
+                    push.{next_account_proc_hash}
+
+                    # push the foreign account ID
+                    push.{next_foreign_suffix}.{next_foreign_prefix}
+                    # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+                    exec.tx::execute_foreign_procedure
+                    # => [storage_value]
+
+                    exec.sys::truncate_stack
+                end
+            ", 
+                next_account_proc_hash = next_account.code().procedures()[0].mast_root(),
+                next_foreign_suffix = next_account.id().suffix(),
+                next_foreign_prefix = next_account.id().prefix().as_felt(),
+            );
+
+            let foreign_account_component = AccountComponent::compile(
+                foreign_account_code_source,
+                TransactionKernel::testing_assembler(),
+                vec![],
+            )
+            .unwrap()
+            .with_supports_all_types();
+
+            let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+                .with_component(foreign_account_component)
+                .build_existing()
+                .unwrap();
+
+            foreign_accounts.push(foreign_account)
+        }
+
+        // ------ NATIVE ACCOUNT ---------------------------------------------------------------
+        let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+            .with_component(
+                AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
+                    .unwrap(),
+            )
+            .build_existing()
+            .unwrap();
+
+        let mut mock_chain = MockChain::with_accounts(&[
+            vec![native_account.clone()], foreign_accounts.clone()
+        ].concat());
+
+        mock_chain.seal_block(None, None);
+
+        let advice_inputs =
+            get_mock_fpi_adv_inputs(foreign_accounts.iter().collect::<Vec<&Account>>(), &mock_chain);
+
+        let code = format!(
+            "
+            use.std::sys
+
+            use.miden::tx
+
+            begin
+                # get the storage item at index 0
+                # pad the stack for the `execute_foreign_procedure` execution
+                padw padw padw push.0.0
+                # => [pad(14)]
+
+                # push the index of desired storage item
+                push.0
+
+                # get the hash of the `get_item` account procedure
+                push.{foreign_account_proc_hash}
+
+                # push the foreign account ID
+                push.{foreign_suffix}.{foreign_prefix}
+                # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
+
+                exec.tx::execute_foreign_procedure
+                # => [storage_value]
+
+                exec.sys::truncate_stack
+            end
+            ",
+            foreign_account_proc_hash = foreign_accounts.last().unwrap().code().procedures()[0].mast_root(),
+            foreign_prefix = foreign_accounts.last().unwrap().id().prefix().as_felt(),
+            foreign_suffix = foreign_accounts.last().unwrap().id().suffix(),
+        );
+
+        let tx_script = TransactionScript::compile(
+            code,
+            vec![],
+            TransactionKernel::testing_assembler().with_debug_mode(true),
+        )
+        .unwrap();
+
+        let tx_context = mock_chain
+            .build_tx_context(native_account.id(), &[], &[])
+            .advice_inputs(advice_inputs.clone())
+            .tx_script(tx_script)
+            .build();
+
+        let block_ref = tx_context.tx_inputs().block_header().block_num();
+        let note_ids = tx_context
+            .tx_inputs()
+            .input_notes()
+            .iter()
+            .map(|note| note.id())
+            .collect::<Vec<_>>();
+
+        let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None)
+            .with_tracing()
+            .with_debug_mode();
+
+        // load the mast forest of the foreign account's code to be able to create an account procedure
+        // index map and execute the specified foreign procedure
+        for foreign_account in foreign_accounts {
+            executor.load_account_code(foreign_account.code());
+        }
+
+        let err = executor
+            .execute_transaction(
+                native_account.id(),
+                block_ref,
+                &note_ids,
+                tx_context.tx_args().clone(),
+            ).unwrap_err();
+
+        let TransactionExecutorError::TransactionProgramExecutionFailed(err) = err else {
+            panic!("unexpected error")
+        };
+
+        // executed_transaction.unwrap();
+        assert_execution_error!(Err::<(), _>(err), ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED);
+    }).expect("tread panic external").join().expect("tread panic internal");
 }
 
 // HELPER FUNCTIONS
