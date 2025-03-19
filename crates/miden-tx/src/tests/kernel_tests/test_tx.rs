@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use std::string::{String, ToString};
+use std::string::String;
 
 use miden_lib::{
     errors::tx_kernel_errors::{
@@ -16,6 +16,7 @@ use miden_lib::{
             OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
         },
     },
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     ACCOUNT_TREE_DEPTH, FieldElement,
@@ -41,9 +42,9 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
 
-use super::{Felt, ONE, Process, ProcessState, Word, ZERO, word_to_masm_push_string};
+use super::{Felt, ONE, Process, ProcessState, Word, ZERO};
 use crate::{
-    TransactionExecutor, assert_execution_error,
+    assert_execution_error,
     testing::{MockChain, TransactionContextBuilder},
     tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
 };
@@ -1299,35 +1300,16 @@ fn test_fpi_execute_foreign_procedure() {
     let tx_script =
         TransactionScript::compile(code, vec![], TransactionKernel::testing_assembler()).unwrap();
 
+    // load the mast forest of the foreign account's code to be able to create an account procedure
+    // index map and execute the specified foreign procedure
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
         .advice_inputs(advice_inputs.clone())
+        .foreign_account_codes(vec![foreign_account.code().clone()])
         .tx_script(tx_script)
         .build();
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
-
-    // load the mast forest of the foreign account's code to be able to create an account procedure
-    // index map and execute the specified foreign procedure
-    executor.load_account_code(foreign_account.code());
-
-    let _executed_transaction = executor
-        .execute_transaction(
-            native_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
-        .map_err(|e| e.to_string())
-        .unwrap();
+    tx_context.execute().unwrap();
 }
 
 // HELPER FUNCTIONS

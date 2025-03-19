@@ -33,6 +33,7 @@
 - [BREAKING] Replace "hash" with "commitment" in `BlockHeader::{prev_hash, chain_root, kernel_root, tx_hash, proof_hash, sub_hash, hash}` (#1209, #1221, #1226).
 - [BREAKING] Incremented minimum supported Rust version to 1.85.
 - [BREAKING] Change advice for Falcon signature verification (#1183).
+- [BREAKING] Split `DataStore` API and refactored `TransactionExecutor` API (#1229).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

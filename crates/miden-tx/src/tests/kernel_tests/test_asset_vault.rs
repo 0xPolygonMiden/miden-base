@@ -8,6 +8,7 @@ use miden_lib::{
         ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND,
     },
     transaction::memory,
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     AssetVaultError,
@@ -23,7 +24,7 @@ use miden_objects::{
 };
 use vm_processor::ProcessState;
 
-use super::{Felt, ONE, Word, ZERO, word_to_masm_push_string};
+use super::{Felt, ONE, Word, ZERO};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_word,
