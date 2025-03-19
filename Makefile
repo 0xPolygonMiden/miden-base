@@ -61,12 +61,12 @@ doc: ## Generates & checks documentation
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	$(BUILD_GENERATED_FILES_IN_SRC) $(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
+	$(BUILD_GENERATED_FILES_IN_SRC) $(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
 
 
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
-	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing --filter-expr "not test(prove)"
 
 
 .PHONY: test-dev
@@ -81,7 +81,7 @@ test-docs: ## Run documentation tests
 
 .PHONY: test-prove
 test-prove: ## Run `prove` tests (tests which use the Miden prover)
-	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
+	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-dev --features concurrent,testing --filter-expr "test(prove)"
 
 
 .PHONY: test
