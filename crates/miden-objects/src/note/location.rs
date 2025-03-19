@@ -2,8 +2,8 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, Serializable,
 };
 use crate::{
-    block::BlockNumber, crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK,
-    MAX_OUTPUT_NOTES_PER_BATCH,
+    MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH, block::BlockNumber,
+    crypto::merkle::MerklePath,
 };
 
 /// Contains information about the location of a note.

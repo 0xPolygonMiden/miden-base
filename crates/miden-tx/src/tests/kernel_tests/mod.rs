@@ -9,7 +9,7 @@ use miden_lib::{
     utils::word_to_masm_push_string,
 };
 use miden_objects::{
-    note::Note, testing::storage::prepare_assets, vm::StackInputs, Felt, Hasher, Word, ONE, ZERO,
+    Felt, Hasher, ONE, Word, ZERO, note::Note, testing::storage::prepare_assets, vm::StackInputs,
 };
 use vm_processor::{ContextId, Process, ProcessState};
 

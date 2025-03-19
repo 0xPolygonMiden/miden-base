@@ -3,6 +3,7 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
+    Felt,
     account::Account,
     asset::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
@@ -13,7 +14,6 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2, ACCOUNT_ID_SENDER,
     },
     transaction::{OutputNote, TransactionScript},
-    Felt,
 };
 use miden_tx::{
     testing::{Auth, MockChain},

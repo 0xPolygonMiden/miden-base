@@ -8,7 +8,7 @@ extern crate alloc;
 extern crate std;
 
 use miden_objects::{
-    assembly::{mast::MastForest, Library},
+    assembly::{Library, mast::MastForest},
     utils::{serde::Deserializable, sync::LazyLock},
 };
 

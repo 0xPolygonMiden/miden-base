@@ -1,6 +1,6 @@
 use core::fmt;
 use std::{
-    fs::{read_to_string, write, File},
+    fs::{File, read_to_string, write},
     io::Write,
     path::Path,
     sync::Arc,
@@ -8,21 +8,21 @@ use std::{
 
 use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
+    Felt,
     account::{AccountId, AccountStorageMode, AccountType},
     asset::{Asset, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::NoteType,
     transaction::{TransactionArgs, TransactionMeasurements, TransactionScript},
-    Felt,
 };
-use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
+use miden_tx::{TransactionExecutor, testing::TransactionContextBuilder};
 use vm_processor::ONE;
 
 mod utils;
 use utils::{
+    ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
     get_account_with_basic_authenticated_wallet, get_new_pk_and_authenticator,
-    write_bench_results_to_json, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_SENDER,
-    DEFAULT_AUTH_SCRIPT,
+    write_bench_results_to_json,
 };
 pub enum Benchmark {
     Simple,

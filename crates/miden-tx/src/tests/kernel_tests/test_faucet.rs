@@ -11,6 +11,7 @@ use miden_lib::{
     utils::word_to_masm_push_string,
 };
 use miden_objects::{
+    FieldElement,
     account::AccountId,
     asset::{FungibleAsset, NonFungibleAsset},
     testing::{
@@ -24,11 +25,9 @@ use miden_objects::{
         },
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
-    FieldElement,
 };
-use vm_processor::{Felt, ProcessState};
+use vm_processor::{Felt, ONE, ProcessState};
 
-use super::ONE;
 use crate::{assert_execution_error, testing::TransactionContextBuilder};
 
 // FUNGIBLE FAUCET MINT TESTS

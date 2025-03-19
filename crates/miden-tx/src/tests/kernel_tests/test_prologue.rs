@@ -9,23 +9,23 @@ use miden_lib::{
         ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
     },
     transaction::{
+        TransactionKernel,
         memory::{
-            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLOCK_COMMITMENT_PTR, BLOCK_METADATA_PTR,
+            ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLOCK_COMMITMENT_PTR, BLOCK_METADATA_PTR,
             BLOCK_NUMBER_IDX, CHAIN_COMMITMENT_PTR, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
-            INIT_ACCT_COMMITMENT_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR,
-            INPUT_NOTE_ARGS_OFFSET, INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET,
-            INPUT_NOTE_ID_OFFSET, INPUT_NOTE_INPUTS_COMMITMENT_OFFSET, INPUT_NOTE_METADATA_OFFSET,
+            INIT_ACCT_COMMITMENT_PTR, INIT_NONCE_PTR, INPUT_NOTE_ARGS_OFFSET,
+            INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
+            INPUT_NOTE_INPUTS_COMMITMENT_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
             INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
-            NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
-            NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
-            NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
-            NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
-            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_COMMITMENT_PTR, PROOF_COMMITMENT_PTR,
-            PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_COMMITMENT_PTR, TX_KERNEL_COMMITMENT_PTR,
-            TX_SCRIPT_ROOT_PTR,
+            INPUT_NOTES_COMMITMENT_PTR, MemoryOffset, NATIVE_ACCT_CODE_COMMITMENT_PTR,
+            NATIVE_ACCT_ID_AND_NONCE_PTR, NATIVE_ACCT_PROCEDURES_SECTION_PTR,
+            NATIVE_ACCT_STORAGE_COMMITMENT_PTR, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
+            NATIVE_ACCT_VAULT_ROOT_PTR, NATIVE_NUM_ACCT_PROCEDURES_PTR,
+            NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
+            PREV_BLOCK_COMMITMENT_PTR, PROOF_COMMITMENT_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
+            TX_COMMITMENT_PTR, TX_KERNEL_COMMITMENT_PTR, TX_SCRIPT_ROOT_PTR,
         },
-        TransactionKernel,
     },
 };
 use miden_objects::{
@@ -43,13 +43,13 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, Digest, ExecutionError, Process, ONE};
+use vm_processor::{AdviceInputs, Digest, ExecutionError, ONE, Process};
 
 use super::{Felt, Word, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
-        utils::input_note_data_ptr, MockChain, TransactionContext, TransactionContextBuilder,
+        MockChain, TransactionContext, TransactionContextBuilder, utils::input_note_data_ptr,
     },
     tests::kernel_tests::read_root_mem_word,
 };
@@ -293,7 +293,10 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_word(&process.into(), NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + (i as u32) * 4),
+            read_root_mem_word(
+                &process.into(),
+                NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + (i as u32) * 4
+            ),
             Word::try_from(elements).unwrap(),
             "The account storage slots should be stored starting at NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR"
         )
@@ -318,7 +321,10 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_word(&process.into(), NATIVE_ACCT_PROCEDURES_SECTION_PTR + (i as u32) * 4),
+            read_root_mem_word(
+                &process.into(),
+                NATIVE_ACCT_PROCEDURES_SECTION_PTR + (i as u32) * 4
+            ),
             Word::try_from(elements).unwrap(),
             "The account procedures and storage offsets should be stored starting at NATIVE_ACCT_PROCEDURES_SECTION_PTR"
         );
@@ -447,7 +453,7 @@ pub fn create_multiple_accounts_test(
         AccountType::FungibleFaucet,
         AccountType::NonFungibleFaucet,
     ] {
-        let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
             .account_type(account_type)
             .storage_mode(storage_mode)
             .anchor(
@@ -612,7 +618,7 @@ pub fn create_account_invalid_seed() {
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .anchor(AccountIdAnchor::try_from(&genesis_block_header).unwrap())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)

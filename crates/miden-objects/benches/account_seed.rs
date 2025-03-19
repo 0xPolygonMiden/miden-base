@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use miden_objects::{
-    account::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
     Digest,
+    account::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
 };
 use rand::{Rng, SeedableRng};
 
@@ -36,7 +36,7 @@ fn grind_account_seed(c: &mut Criterion) {
     group.bench_function("Grind regular public account seed", |bench| {
         bench.iter(|| {
             AccountId::compute_account_seed(
-                rng.gen(),
+                rng.random(),
                 AccountType::RegularAccountImmutableCode,
                 AccountStorageMode::Public,
                 AccountIdVersion::Version0,

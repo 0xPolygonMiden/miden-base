@@ -1,11 +1,12 @@
 use alloc::vec::Vec;
-use std::string::{String, ToString};
+use std::string::String;
 
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
     transaction::{
+        TransactionKernel,
         memory::{
             ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
             ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
@@ -14,11 +15,11 @@ use miden_lib::{
             NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
             OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
         },
-        TransactionKernel,
     },
     utils::word_to_masm_push_string,
 };
 use miden_objects::{
+    ACCOUNT_TREE_DEPTH, FieldElement,
     account::{
         Account, AccountBuilder, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
         StorageSlot,
@@ -36,13 +37,12 @@ use miden_objects::{
         storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes, TransactionScript},
-    FieldElement, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
 
-use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
+use super::{Felt, ONE, Process, ProcessState, Word, ZERO};
 use crate::{
     assert_execution_error,
     testing::{MockChain, TransactionContextBuilder},
@@ -751,12 +751,12 @@ fn test_fpi_memory() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -1010,17 +1010,17 @@ fn test_fpi_memory_two_accounts() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_1)
         .build_existing()
         .unwrap();
 
-    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_2)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
                 .unwrap(),
@@ -1214,12 +1214,12 @@ fn test_fpi_execute_foreign_procedure() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().random())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().random())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),
@@ -1300,35 +1300,16 @@ fn test_fpi_execute_foreign_procedure() {
     let tx_script =
         TransactionScript::compile(code, vec![], TransactionKernel::testing_assembler()).unwrap();
 
+    // load the mast forest of the foreign account's code to be able to create an account procedure
+    // index map and execute the specified foreign procedure
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
         .advice_inputs(advice_inputs.clone())
+        .foreign_account_codes(vec![foreign_account.code().clone()])
         .tx_script(tx_script)
         .build();
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
-
-    // load the mast forest of the foreign account's code to be able to create an account procedure
-    // index map and execute the specified foreign procedure
-    executor.load_account_code(foreign_account.code());
-
-    let _executed_transaction = executor
-        .execute_transaction(
-            native_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
-        .map_err(|e| e.to_string())
-        .unwrap();
+    tx_context.execute().unwrap();
 }
 
 // HELPER FUNCTIONS

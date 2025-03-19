@@ -114,7 +114,7 @@ mod tests {
 
     use super::AccountFile;
     use crate::{
-        account::{storage, Account, AccountCode, AccountId, AuthSecretKey, Felt, Word},
+        account::{Account, AccountCode, AccountId, AuthSecretKey, Felt, Word, storage},
         asset::AssetVault,
         testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
     };

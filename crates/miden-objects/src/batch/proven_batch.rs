@@ -1,13 +1,13 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use crate::{
+    Digest,
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
     note::Nullifier,
     transaction::{InputNoteCommitment, InputNotes, OutputNote},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest,
 };
 
 /// A transaction batch with an execution proof.

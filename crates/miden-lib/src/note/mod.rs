@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
+    Felt, NoteError, Word,
     account::AccountId,
     asset::Asset,
     block::BlockNumber,
@@ -9,7 +10,6 @@ use miden_objects::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
         NoteMetadata, NoteRecipient, NoteTag, NoteType,
     },
-    Felt, NoteError, Word,
 };
 use utils::build_swap_tag;
 use well_known_note::WellKnownNote;

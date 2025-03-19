@@ -312,6 +312,7 @@ mod tests {
 
     use super::{NoteExecutionMode, NoteTag};
     use crate::{
+        NoteError,
         account::AccountId,
         note::NoteType,
         testing::account_id::{
@@ -326,7 +327,6 @@ mod tests {
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        NoteError,
     };
 
     #[test]

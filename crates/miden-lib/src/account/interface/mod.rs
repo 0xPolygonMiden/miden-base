@@ -1,22 +1,22 @@
 use alloc::{collections::BTreeSet, string::String, sync::Arc, vec::Vec};
 
 use miden_objects::{
+    Digest, TransactionScriptError,
     account::{Account, AccountCode, AccountId, AccountIdPrefix, AccountType},
     assembly::mast::{MastForest, MastNode, MastNodeId},
     crypto::dsa::rpo_falcon512,
     note::{Note, NoteScript, PartialNote},
     transaction::TransactionScript,
-    Digest, TransactionScriptError,
 };
 use thiserror::Error;
 
 use crate::{
+    AuthScheme,
     account::components::{
         basic_fungible_faucet_library, basic_wallet_library, rpo_falcon_512_library,
     },
     note::well_known_note::WellKnownNote,
     transaction::TransactionKernel,
-    AuthScheme,
 };
 
 #[cfg(test)]
@@ -410,6 +410,8 @@ pub enum AccountInterfaceError {
     InvalidSenderAccount(AccountId),
     #[error("{} interface does not support the generation of the standard send_note script", interface.name())]
     UnsupportedInterface { interface: AccountComponentInterface },
-    #[error("account does not contain the basic fungible faucet or basic wallet interfaces which are needed to support the send_note script generation")]
+    #[error(
+        "account does not contain the basic fungible faucet or basic wallet interfaces which are needed to support the send_note script generation"
+    )]
     UnsupportedAccountInterface,
 }

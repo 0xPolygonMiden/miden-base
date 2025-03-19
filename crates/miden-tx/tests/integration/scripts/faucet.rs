@@ -5,10 +5,10 @@ use miden_lib::{
     transaction::TransactionKernel,
 };
 use miden_objects::{
+    Felt,
     asset::{Asset, FungibleAsset},
     note::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::TransactionScript,
-    Felt,
 };
 use miden_tx::{
     testing::{Auth, MockChain},

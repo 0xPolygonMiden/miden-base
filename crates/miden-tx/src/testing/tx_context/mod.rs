@@ -17,10 +17,10 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ExecutionError, Process, Word};
 use winter_maybe_async::*;
 
-use super::{executor::CodeExecutor, MockHost};
+use super::{MockHost, executor::CodeExecutor};
 use crate::{
-    auth::{BasicAuthenticator, TransactionAuthenticator},
     DataStore, DataStoreError, TransactionExecutor, TransactionExecutorError, TransactionMastStore,
+    auth::{BasicAuthenticator, TransactionAuthenticator},
 };
 
 mod builder;
@@ -107,8 +107,12 @@ impl TransactionContext {
             .cloned()
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
 
-        let tx_executor =
+        let mut tx_executor =
             TransactionExecutor::new(Arc::new(self.clone()), mast_forest_store, authenticator);
+
+        for foreign_code in self.foreign_codes.iter() {
+            tx_executor.load_account_commitment(foreign_code);
+        }
         maybe_await!(tx_executor.execute_transaction(account_id, block_num, notes, tx_args))
     }
 
@@ -125,7 +129,7 @@ impl TransactionContext {
         mast_forest_store.load_transaction_code(self.tx_inputs(), &self.tx_args);
         mast_forest_store.load_account_code(self.account().code());
         for foreign_code in self.foreign_codes.iter() {
-            mast_forest_store.insert(foreign_code.mast());
+            mast_forest_store.load_account_code(foreign_code);
         }
         mast_forest_store.into()
     }

@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
 use crate::{
+    Digest, Felt, Hasher, MAX_ASSETS_PER_NOTE, WORD_SIZE, Word, ZERO,
     asset::Asset,
     errors::NoteError,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest, Felt, Hasher, Word, MAX_ASSETS_PER_NOTE, WORD_SIZE, ZERO,
 };
 
 // NOTE ASSETS
@@ -220,12 +220,12 @@ impl Deserializable for NoteAssets {
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_asset_commitment, NoteAssets};
+    use super::{NoteAssets, compute_asset_commitment};
     use crate::{
+        Digest,
         account::AccountId,
         asset::{Asset, FungibleAsset},
         testing::account_id::ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET,
-        Digest,
     };
 
     #[test]

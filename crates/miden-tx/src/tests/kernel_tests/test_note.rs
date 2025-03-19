@@ -2,28 +2,26 @@ use alloc::{collections::BTreeMap, string::String};
 
 use miden_lib::{
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
-    transaction::{memory::CURRENT_INPUT_NOTE_PTR, TransactionKernel},
-    utils::word_to_masm_push_string,
+    transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
 };
 use miden_objects::{
+    Hasher, WORD_SIZE,
     account::AccountId,
     note::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
     transaction::TransactionArgs,
-    Hasher, WORD_SIZE,
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
+use vm_processor::{EMPTY_WORD, ONE, ProcessState, Word};
 
-use super::{Felt, Process, ZERO};
+use super::{Felt, Process, ZERO, word_to_masm_push_string};
 use crate::{
-    assert_execution_error,
+    TransactionExecutorError, assert_execution_error,
     testing::{
-        utils::input_note_data_ptr, Auth, MockChain, TransactionContext, TransactionContextBuilder,
+        Auth, MockChain, TransactionContext, TransactionContextBuilder, utils::input_note_data_ptr,
     },
     tests::kernel_tests::read_root_mem_word,
-    TransactionExecutorError,
 };
 
 #[test]
@@ -651,7 +649,7 @@ pub fn test_timelock() {
     );
 
     let lock_timestamp = 2_000_000_000;
-    let timelock_note = NoteBuilder::new(account.id(), &mut ChaCha20Rng::from_entropy())
+    let timelock_note = NoteBuilder::new(account.id(), &mut ChaCha20Rng::from_os_rng())
         .note_inputs([Felt::from(lock_timestamp)])
         .unwrap()
         .code(code.clone())

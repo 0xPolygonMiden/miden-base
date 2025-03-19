@@ -1,7 +1,7 @@
 use super::{
+    AssetError, Felt, Hasher, Word, ZERO,
     account::AccountType,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    AssetError, Felt, Hasher, Word, ZERO,
 };
 use crate::account::AccountIdPrefix;
 
@@ -216,16 +216,16 @@ impl Deserializable for Asset {
 
         match faucet_id_prefix.account_type() {
             AccountType::FungibleFaucet => {
-              FungibleAsset::deserialize_with_faucet_id_prefix(faucet_id_prefix, source).map(Asset::from)
+                FungibleAsset::deserialize_with_faucet_id_prefix(faucet_id_prefix, source)
+                    .map(Asset::from)
             },
             AccountType::NonFungibleFaucet => {
-                NonFungibleAsset::deserialize_with_faucet_id_prefix (faucet_id_prefix, source).map(Asset::from)
+                NonFungibleAsset::deserialize_with_faucet_id_prefix(faucet_id_prefix, source)
+                    .map(Asset::from)
             },
-            other_type => {
-                 Err(DeserializationError::InvalidValue(format!(
-                    "failed to deserialize asset: expected an account ID prefix of type faucet, found {other_type:?}"
-                )))
-            },
+            other_type => Err(DeserializationError::InvalidValue(format!(
+                "failed to deserialize asset: expected an account ID prefix of type faucet, found {other_type:?}"
+            ))),
         }
     }
 }
@@ -258,8 +258,8 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
 mod tests {
 
     use miden_crypto::{
-        utils::{Deserializable, Serializable},
         Word,
+        utils::{Deserializable, Serializable},
     };
 
     use super::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};

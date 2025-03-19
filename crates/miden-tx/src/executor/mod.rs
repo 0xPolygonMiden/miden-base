@@ -2,6 +2,7 @@ use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::{AccountCode, AccountId},
     block::BlockNumber,
     note::NoteLocation,
@@ -10,7 +11,6 @@ use miden_objects::{
         TransactionScript,
     },
     vm::StackOutputs,
-    Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
 use vm_processor::{AdviceInputs, ExecutionOptions, MastForestStore, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -92,6 +92,15 @@ impl TransactionExecutor {
     pub fn with_tracing(mut self) -> Self {
         self.exec_options = self.exec_options.with_tracing();
         self
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Adds the commitment of the provided code to the commitments set.
+    pub fn load_account_commitment(&mut self, code: &AccountCode) {
+        // store the commitment of the foreign account code in the set
+        self.account_codes.insert(code.clone());
     }
 
     // TRANSACTION EXECUTION

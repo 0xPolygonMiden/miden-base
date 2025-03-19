@@ -7,13 +7,13 @@ use assembly::Assembler;
 use rand::Rng;
 
 use crate::{
+    Felt, NoteError, Word, ZERO,
     account::AccountId,
     asset::Asset,
     note::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
         NoteTag, NoteType,
     },
-    Felt, NoteError, Word, ZERO,
 };
 
 pub const DEFAULT_NOTE_CODE: &str = "begin nop end";
@@ -37,10 +37,10 @@ pub struct NoteBuilder {
 impl NoteBuilder {
     pub fn new<T: Rng>(sender: AccountId, mut rng: T) -> Self {
         let serial_num = [
-            Felt::new(rng.gen()),
-            Felt::new(rng.gen()),
-            Felt::new(rng.gen()),
-            Felt::new(rng.gen()),
+            Felt::new(rng.random()),
+            Felt::new(rng.random()),
+            Felt::new(rng.random()),
+            Felt::new(rng.random()),
         ];
 
         Self {

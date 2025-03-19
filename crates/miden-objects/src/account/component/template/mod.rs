@@ -340,22 +340,22 @@ mod tests {
     use assert_matches::assert_matches;
     use semver::Version;
     use vm_core::{
-        utils::{Deserializable, Serializable},
         Felt, FieldElement,
+        utils::{Deserializable, Serializable},
     };
 
     use super::FeltRepresentation;
     use crate::{
+        AccountError,
         account::{
-            component::template::{
-                storage::StorageEntry, AccountComponentMetadata, AccountComponentTemplate,
-                InitStorageData,
-            },
             AccountComponent, StorageValueName,
+            component::template::{
+                AccountComponentMetadata, AccountComponentTemplate, InitStorageData,
+                storage::StorageEntry,
+            },
         },
         errors::AccountComponentTemplateError,
         testing::account_code::CODE,
-        AccountError,
     };
 
     fn default_felt_array() -> [FeltRepresentation; 4] {

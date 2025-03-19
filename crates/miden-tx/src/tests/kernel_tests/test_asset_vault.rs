@@ -11,6 +11,7 @@ use miden_lib::{
     utils::word_to_masm_push_string,
 };
 use miden_objects::{
+    AssetVaultError,
     account::AccountId,
     asset::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     testing::{
@@ -20,11 +21,10 @@ use miden_objects::{
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
     },
-    AssetVaultError,
 };
 use vm_processor::ProcessState;
 
-use super::{Felt, Word, ONE, ZERO};
+use super::{Felt, ONE, Word, ZERO};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_word,

@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, string::ToString};
 use core::fmt;
 
-use super::{is_not_a_non_fungible_asset, AccountType, Asset, AssetError, Felt, Word, ZERO};
+use super::{AccountType, Asset, AssetError, Felt, Word, ZERO, is_not_a_non_fungible_asset};
 use crate::{
     account::{AccountId, AccountIdPrefix},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},

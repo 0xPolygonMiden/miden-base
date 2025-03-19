@@ -11,8 +11,8 @@ use tokio::sync::Mutex;
 
 use super::generated::api_client::ApiClient;
 use crate::{
-    proving_service::generated::{ProofType, ProvingRequest, ProvingResponse},
     RemoteProverError,
+    proving_service::generated::{ProofType, ProvingRequest, ProvingResponse},
 };
 
 // REMOTE BATCH PROVER

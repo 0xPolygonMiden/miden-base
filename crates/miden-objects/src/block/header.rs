@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
 use crate::{
+    Digest, Felt, Hasher, ZERO,
     account::AccountId,
     block::BlockNumber,
     transaction::TransactionId,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest, Felt, Hasher, ZERO,
 };
 
 /// The header of a block. It contains metadata about the block, commitments to the current

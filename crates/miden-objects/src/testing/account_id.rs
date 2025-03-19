@@ -1,4 +1,4 @@
-use rand::SeedableRng;
+use rand_xoshiro::rand_core::SeedableRng;
 
 use crate::account::{AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType};
 
@@ -177,15 +177,15 @@ impl AccountIdBuilder {
     pub fn build_with_rng<R: rand::Rng + ?Sized>(self, rng: &mut R) -> AccountId {
         let account_type = match self.account_type {
             Some(account_type) => account_type,
-            None => rng.gen(),
+            None => rng.random(),
         };
 
         let storage_mode = match self.storage_mode {
             Some(storage_mode) => storage_mode,
-            None => rng.gen(),
+            None => rng.random(),
         };
 
-        AccountId::dummy(rng.gen(), AccountIdVersion::Version0, account_type, storage_mode)
+        AccountId::dummy(rng.random(), AccountIdVersion::Version0, account_type, storage_mode)
     }
 
     /// Builds an [`AccountId`] using the provided seed as input for an RNG implemented in

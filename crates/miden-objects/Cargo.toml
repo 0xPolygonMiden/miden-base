@@ -31,14 +31,14 @@ log = { version = "0.4", optional = true }
 miden-crypto = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true, optional = true }
-rand_xoshiro = { version = "0.6.0", default-features = false, optional = true }
+rand_xoshiro = { version = "0.7", default-features = false, optional = true }
 semver = { version = "1.0", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 toml = { version = "0.8", optional = true }
 thiserror = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
-winter-rand-utils = { version = "0.11", optional = true }
+winter-rand-utils = { version = "0.12", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
@@ -51,4 +51,4 @@ criterion = { version = "0.5", default-features = false, features = ["html_repor
 miden-objects = { path = ".", features = ["testing"] }
 rstest = { version = "0.23" }
 tempfile = { version = "3.14" }
-winter-air = { version = "0.11" }
+winter-air = { version = "0.12" }

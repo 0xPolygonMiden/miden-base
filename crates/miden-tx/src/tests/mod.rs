@@ -6,38 +6,47 @@ use alloc::{
 };
 
 use ::assembly::{
-    ast::{Module, ModuleKind},
     LibraryPath,
+    ast::{Module, ModuleKind},
 };
-use miden_lib::{account::wallets::BasicWallet, transaction::TransactionKernel, utils::word_to_masm_push_string};
+use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
 use miden_objects::{
-    account::{Account, AccountBuilder, AccountComponent, AccountStorage, StorageSlot}, assembly::DefaultSourceManager, asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset}, note::{
+    Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL, Word,
+    account::{Account, AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
+    assembly::DefaultSourceManager,
+    asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    note::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
-    }, testing::{
+    },
+    testing::{
         account_component::AccountMockComponent,
         account_id::{
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE, ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         note::DEFAULT_NOTE_CODE,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
-    }, transaction::{InputNote, InputNotes, OutputNote, ProvenTransaction, TransactionArgs, TransactionScript}, Felt, FieldElement, Word, MIN_PROOF_SECURITY_LEVEL
+    },
+    transaction::{
+        InputNote, InputNotes, OutputNote, ProvenTransaction, TransactionArgs, TransactionScript,
+    },
 };
 use miden_prover::ProvingOptions;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
-    utils::{Deserializable, Serializable},
     Digest, MemAdviceProvider, ONE,
+    utils::{Deserializable, Serializable},
 };
 
 use super::{
     LocalTransactionProver, TransactionExecutor, TransactionHost, TransactionProver,
     TransactionVerifier,
 };
-use crate::{testing::TransactionContextBuilder, TransactionMastStore};
+use crate::{TransactionMastStore, testing::TransactionContextBuilder};
 
 mod kernel_tests;
 
@@ -102,7 +111,7 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -314,22 +323,26 @@ fn executed_transaction_account_delta_new() {
         .cloned()
         .collect::<Vec<_>>();
 
-    assert!(executed_transaction
-        .account_delta()
-        .vault()
-        .added_assets()
-        .all(|x| added_assets.contains(&x)));
+    assert!(
+        executed_transaction
+            .account_delta()
+            .vault()
+            .added_assets()
+            .all(|x| added_assets.contains(&x))
+    );
     assert_eq!(
         added_assets.len(),
         executed_transaction.account_delta().vault().added_assets().count()
     );
 
     // assert that removed assets are tracked
-    assert!(executed_transaction
-        .account_delta()
-        .vault()
-        .removed_assets()
-        .all(|x| removed_assets.contains(&x)));
+    assert!(
+        executed_transaction
+            .account_delta()
+            .vault()
+            .removed_assets()
+            .all(|x| removed_assets.contains(&x))
+    );
     assert_eq!(
         removed_assets.len(),
         executed_transaction.account_delta().vault().removed_assets().count()
@@ -496,11 +509,13 @@ fn test_send_note_proc() {
         // vault delta
         // --------------------------------------------------------------------------------------------
         // assert that removed assets are tracked
-        assert!(executed_transaction
-            .account_delta()
-            .vault()
-            .removed_assets()
-            .all(|x| removed_assets.contains(&x)));
+        assert!(
+            executed_transaction
+                .account_delta()
+                .vault()
+                .removed_assets()
+                .all(|x| removed_assets.contains(&x))
+        );
         assert_eq!(
             removed_assets.len(),
             executed_transaction.account_delta().vault().removed_assets().count()
@@ -710,7 +725,10 @@ fn executed_transaction_output_notes() {
     let tx_context = TransactionContextBuilder::new(executor_account)
         .with_mock_notes_preserved_with_account_vault_delta()
         .tx_script(tx_script)
-        .expected_notes(vec![OutputNote::Full(expected_output_note_2.clone()), OutputNote::Full(expected_output_note_3.clone())])
+        .expected_notes(vec![
+            OutputNote::Full(expected_output_note_2.clone()),
+            OutputNote::Full(expected_output_note_3.clone()),
+        ])
         .build();
 
     let executed_transaction = tx_context.execute().unwrap();
@@ -877,7 +895,7 @@ fn transaction_executor_account_code_using_custom_library() {
             .with_supports_all_types();
 
     // Build an existing account with nonce 1.
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(account_component)
         .build_existing()
         .unwrap();
@@ -952,7 +970,9 @@ fn test_execute_program() {
     let tx_script = TransactionScript::compile(source, [], assembler)
         .expect("failed to compile the source script");
 
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE).tx_script(tx_script.clone()).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .tx_script(tx_script.clone())
+        .build();
     let account_id = tx_context.account().id();
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let advice_inputs = tx_context.tx_args().advice_inputs().clone();

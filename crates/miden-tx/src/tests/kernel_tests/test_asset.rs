@@ -11,7 +11,7 @@ use miden_objects::{
 };
 use vm_processor::ProcessState;
 
-use super::{Felt, Hasher, Word, ONE};
+use super::{Felt, Hasher, ONE, Word};
 use crate::testing::TransactionContextBuilder;
 
 #[test]

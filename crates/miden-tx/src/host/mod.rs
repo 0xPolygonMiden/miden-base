@@ -9,17 +9,17 @@ use alloc::{
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
     transaction::{
-        memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
         TransactionEvent, TransactionEventError, TransactionKernelError, TransactionTrace,
+        memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
     },
 };
 use miden_objects::{
+    Digest, Hasher,
     account::{AccountDelta, AccountHeader},
     asset::Asset,
     note::NoteId,
     transaction::{OutputNote, TransactionMeasurements},
     vm::{RowIndex, SystemEvent},
-    Digest, Hasher,
 };
 use vm_processor::{
     AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt, Host, MastForest,
@@ -396,7 +396,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
                 None => {
                     return Err(ExecutionError::FailedSignatureGeneration(
                         "No authenticator assigned to transaction host",
-                    ))
+                    ));
                 },
                 Some(authenticator) => {
                     authenticator.get_signature(pub_key, msg, &account_delta).map_err(|_| {

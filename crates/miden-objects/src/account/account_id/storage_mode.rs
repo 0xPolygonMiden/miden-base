@@ -57,10 +57,10 @@ impl FromStr for AccountStorageMode {
 }
 
 #[cfg(any(feature = "testing", test))]
-impl rand::distributions::Distribution<AccountStorageMode> for rand::distributions::Standard {
+impl rand::distr::Distribution<AccountStorageMode> for rand::distr::StandardUniform {
     /// Samples a uniformly random [`AccountStorageMode`] from the given `rng`.
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountStorageMode {
-        match rng.gen_range(0..2) {
+        match rng.random_range(0..2) {
             0 => AccountStorageMode::Public,
             1 => AccountStorageMode::Private,
             _ => unreachable!("gen_range should not produce higher values"),

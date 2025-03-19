@@ -1,15 +1,15 @@
 use alloc::string::ToString;
 
 use crate::{
+    BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    MAX_OUTPUT_NOTES_PER_BLOCK,
     batch::BatchNoteTree,
     crypto::{
         hash::rpo::RpoDigest,
         merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
     },
-    note::{compute_note_commitment, NoteId, NoteMetadata},
+    note::{NoteId, NoteMetadata, compute_note_commitment},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
-    MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 
 /// Wrapper over [SimpleSmt<BLOCK_NOTE_TREE_DEPTH>] for notes tree.
@@ -178,9 +178,9 @@ impl Deserializable for BlockNoteTree {
 #[cfg(test)]
 mod tests {
     use miden_crypto::{
+        Felt, ONE, ZERO,
         merkle::SimpleSmt,
         utils::{Deserializable, Serializable},
-        Felt, ONE, ZERO,
     };
 
     use super::BlockNoteTree;

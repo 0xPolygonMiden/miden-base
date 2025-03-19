@@ -28,12 +28,12 @@ use core::fmt;
 pub use id_version::AccountIdVersion;
 use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
 use vm_core::{
-    utils::{ByteReader, Deserializable, Serializable},
     Felt, Word,
+    utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::{DeserializationError, Digest};
 
-use crate::{errors::AccountIdError, AccountError, ACCOUNT_TREE_DEPTH};
+use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
 
 /// The identifier of an [`Account`](crate::account::Account).
 ///

@@ -5,10 +5,10 @@ use alloc::{
 };
 
 use miden_objects::{
+    Felt,
     account::{AccountId, AccountProcedureInfo},
     note::PartialNote,
     utils::word_to_masm_push_string,
-    Felt,
 };
 
 use crate::account::{
@@ -250,7 +250,7 @@ impl AccountComponentInterface {
                 _ => {
                     return Err(AccountInterfaceError::UnsupportedInterface {
                         interface: self.clone(),
-                    })
+                    });
                 },
             }
         }
