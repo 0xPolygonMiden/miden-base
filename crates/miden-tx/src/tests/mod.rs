@@ -9,7 +9,7 @@ use ::assembly::{
     ast::{Module, ModuleKind},
     LibraryPath,
 };
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
 use miden_objects::{
     account::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
     assembly::DefaultSourceManager,
@@ -28,8 +28,7 @@ use miden_objects::{
         note::DEFAULT_NOTE_CODE,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
-    transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
-    utils::word_to_masm_push_string,
+    transaction::{InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionScript},
     Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
@@ -57,21 +56,7 @@ fn transaction_executor_witness() {
         .with_mock_notes_preserved()
         .build();
 
-    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
-
-    let account_id = tx_context.account().id();
-
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
-        .unwrap();
+    let executed_transaction = tx_context.execute().unwrap();
 
     let tx_inputs = executed_transaction.tx_inputs();
     let tx_args = executed_transaction.tx_args();
@@ -189,8 +174,8 @@ fn executed_transaction_account_delta_new() {
             "
             ### note {i}
             # prepare the stack for a new note creation
-            push.0.1.2.3            # recipient
-            push.{EXECUTION_HINT} # note_execution_hint
+            push.0.1.2.3           # recipient
+            push.{EXECUTION_HINT}  # note_execution_hint
             push.{NOTETYPE}        # note_type
             push.{aux}             # aux
             push.{tag}             # tag
@@ -211,7 +196,6 @@ fn executed_transaction_account_delta_new() {
 
             # clear the stack
             dropw dropw dropw dropw
-
         ",
             EXECUTION_HINT = hints[i],
             NOTETYPE = note_types[i] as u8,
@@ -230,7 +214,7 @@ fn executed_transaction_account_delta_new() {
         begin
             ## Update account storage item
             ## ------------------------------------------------------------------------------------
-            # push a new value for the storage slot onto the stack
+            # push a new value for the storage slot onto the stack             
             push.{UPDATED_SLOT_VALUE}
             # => [13, 11, 9, 7]
 
@@ -243,7 +227,7 @@ fn executed_transaction_account_delta_new() {
 
             ## Update account storage map
             ## ------------------------------------------------------------------------------------
-            # push a new VALUE for the storage map onto the stack
+            # push a new VALUE for the storage map onto the stack             
             push.{UPDATED_MAP_VALUE}
             # => [18, 19, 20, 21]
 
@@ -265,7 +249,7 @@ fn executed_transaction_account_delta_new() {
 
             ## Update the account nonce
             ## ------------------------------------------------------------------------------------
-            push.1 call.account::incr_nonce drop
+            push.1 call.account::incr_nonce drop             
             # => []
         end
     ",
@@ -292,7 +276,7 @@ fn executed_transaction_account_delta_new() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction = tx_context.clone().execute().unwrap();
+    let executed_transaction = tx_context.execute().unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
@@ -360,11 +344,6 @@ fn executed_transaction_account_delta_new() {
 
 #[test]
 fn test_empty_delta_nonce_update() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-
-    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
-    let account_id = tx_context.tx_inputs().account().id();
-
     let tx_script_src = "
         use.test::account
         begin
@@ -384,25 +363,15 @@ fn test_empty_delta_nonce_update() {
         TransactionKernel::testing_assembler_with_mock_account(),
     )
     .unwrap();
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .tx_script(tx_script)
+        .build();
 
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+    let executed_transaction = tx_context.execute().unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
@@ -418,13 +387,6 @@ fn test_empty_delta_nonce_update() {
 
 #[test]
 fn test_send_note_proc() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .with_mock_notes_preserved_with_account_vault_delta()
-        .build();
-
-    let executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode();
-    let account_id = tx_context.tx_inputs().account().id();
-
     // removed assets
     let removed_asset_1 = FungibleAsset::mock(FUNGIBLE_ASSET_AMOUNT / 2);
     let removed_asset_2 = Asset::Fungible(
@@ -520,25 +482,17 @@ fn test_send_note_proc() {
             TransactionKernel::testing_assembler_with_mock_account(),
         )
         .unwrap();
-        let tx_args = TransactionArgs::new(
-            Some(tx_script),
-            None,
-            tx_context.tx_args().advice_inputs().clone().map,
-        );
 
-        let block_ref = tx_context.tx_inputs().block_header().block_num();
-        let note_ids = tx_context
-            .tx_inputs()
-            .input_notes()
-            .iter()
-            .map(|note| note.id())
-            .collect::<Vec<_>>();
+        let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+            .tx_script(tx_script)
+            .with_mock_notes_preserved_with_account_vault_delta()
+            .build();
 
         // expected delta
         // --------------------------------------------------------------------------------------------
         // execute the transaction and get the witness
-        let executed_transaction = executor
-            .execute_transaction(account_id, block_ref, &note_ids, tx_args)
+        let executed_transaction = tx_context
+            .execute()
             .unwrap_or_else(|_| panic!("test failed in iteration {idx}"));
 
         // nonce delta
@@ -561,13 +515,16 @@ fn test_send_note_proc() {
 }
 
 #[test]
+#[allow(clippy::arc_with_non_send_sync)]
 fn executed_transaction_output_notes() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_debug_mode();
     let account_id = tx_context.tx_inputs().account().id();
+    let mast_store = tx_context.get_mast_store();
+    let executor =
+        TransactionExecutor::new(Arc::new(tx_context.clone()), mast_store, None).with_debug_mode();
 
     // removed assets
     let removed_asset_1 = FungibleAsset::mock(FUNGIBLE_ASSET_AMOUNT / 2);
@@ -763,19 +720,15 @@ fn executed_transaction_output_notes() {
     tx_args.add_expected_output_note(&expected_output_note_3);
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
+    let notes = tx_context.tx_inputs().input_notes().iter().cloned().collect::<Vec<_>>();
 
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
 
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+    let executed_transaction = executor
+        .execute_transaction(account_id, block_ref, InputNotes::new(notes).unwrap(), tx_args)
+        .unwrap();
 
     // output notes
     // --------------------------------------------------------------------------------------------
@@ -804,6 +757,7 @@ fn executed_transaction_output_notes() {
 }
 
 #[test]
+#[allow(clippy::arc_with_non_send_sync)]
 fn prove_witness_and_verify() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
@@ -812,17 +766,12 @@ fn prove_witness_and_verify() {
     let account_id = tx_context.tx_inputs().account().id();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
-        .unwrap();
+    let notes = tx_context.tx_inputs().input_notes().clone();
+    let tx_args = tx_context.tx_args().clone();
+    let mast_store = tx_context.get_mast_store();
+    let executor = TransactionExecutor::new(Arc::new(tx_context), mast_store, None);
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, notes, tx_args).unwrap();
     let executed_transaction_id = executed_transaction.id();
 
     let proof_options = ProvingOptions::default();
@@ -842,21 +791,6 @@ fn prove_witness_and_verify() {
 
 #[test]
 fn test_tx_script() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .with_mock_notes_preserved()
-        .build();
-    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
-
-    let account_id = tx_context.tx_inputs().account().id();
-
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
     let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
     let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
     let tx_script_src = format!(
@@ -882,14 +816,13 @@ fn test_tx_script() {
         TransactionKernel::testing_assembler(),
     )
     .unwrap();
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
 
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .tx_script(tx_script)
+        .build();
+
+    let executed_transaction = tx_context.execute();
 
     assert!(
         executed_transaction.is_ok(),
@@ -904,6 +837,7 @@ fn test_tx_script() {
 /// The call chain and dependency graph in this test is:
 /// `tx script -> account code -> external library`
 #[test]
+#[allow(clippy::arc_with_non_send_sync)]
 fn transaction_executor_account_code_using_custom_library() {
     const EXTERNAL_LIBRARY_CODE: &str = "
       use.miden::account
@@ -980,21 +914,25 @@ fn transaction_executor_account_code_using_custom_library() {
         tx_context.tx_args().advice_inputs().clone().map,
     );
 
-    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None);
-    // Load the external library into the executor to make it available during transaction
-    // execution.
-    executor.load_library(&external_library);
-
     let account_id = tx_context.account().id();
     let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let mast_forest = tx_context.get_mast_store();
+    // Load the external library into the executor to make it available during transaction
+    // execution.
+    mast_forest.insert(external_library.mast_forest().clone());
 
-    let executed_tx = executor.execute_transaction(account_id, block_ref, &[], tx_args).unwrap();
+    let executor = TransactionExecutor::new(Arc::new(tx_context), mast_forest, None);
+
+    let executed_tx = executor
+        .execute_transaction(account_id, block_ref, InputNotes::<InputNote>::default(), tx_args)
+        .unwrap();
 
     // Account's initial nonce of 1 should have been incremented by 4.
     assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(5));
 }
 
 #[test]
+#[allow(clippy::arc_with_non_send_sync)]
 fn test_execute_program() {
     let test_module_source = "
         export.foo
@@ -1031,12 +969,13 @@ fn test_execute_program() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let account_id = tx_context.account().id();
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let advice_inputs = tx_context.tx_args().advice_inputs();
+    let advice_inputs = tx_context.tx_args().advice_inputs().clone();
+    let mast_forest = tx_context.get_mast_store();
 
-    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context), mast_forest, None);
 
     let stack_outputs = executor
-        .execute_tx_view_script(account_id, block_ref, tx_script, advice_inputs.clone())
+        .execute_tx_view_script(account_id, block_ref, tx_script, advice_inputs)
         .unwrap();
 
     assert_eq!(stack_outputs[..3], [Felt::new(7), Felt::new(2), ONE]);

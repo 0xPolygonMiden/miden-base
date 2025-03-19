@@ -3,6 +3,7 @@ use alloc::{collections::BTreeMap, string::String};
 use miden_lib::{
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
     transaction::{memory::CURRENT_INPUT_NOTE_PTR, TransactionKernel},
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     account::AccountId,
@@ -15,7 +16,7 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
 
-use super::{word_to_masm_push_string, Felt, Process, ZERO};
+use super::{Felt, Process, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
@@ -623,29 +624,29 @@ pub fn test_timelock() {
     const TIMESTAMP_ERROR: u32 = 123;
 
     let code = format!(
-        "
+        "	
       use.miden::note
       use.miden::tx
 
-      begin
-          # store the note inputs to memory starting at address 0
-          push.0 exec.note::get_inputs
-          # => [num_inputs, inputs_ptr]
+      begin	
+          # store the note inputs to memory starting at address 0	
+          push.0 exec.note::get_inputs	
+          # => [num_inputs, inputs_ptr]	
 
-          # make sure the number of inputs is 1
-          eq.1 assert.err=789
-          # => [inputs_ptr]
+          # make sure the number of inputs is 1	
+          eq.1 assert.err=789	
+          # => [inputs_ptr]	
 
-          # read the timestamp at which the note can be consumed
-          mem_load
-          # => [timestamp]
+          # read the timestamp at which the note can be consumed	
+          mem_load	
+          # => [timestamp]	
 
-          exec.tx::get_block_timestamp
-          # => [block_timestamp, timestamp]
+          exec.tx::get_block_timestamp	
+          # => [block_timestamp, timestamp]	
+          # ensure block timestamp is newer than timestamp	
 
-          # ensure block timestamp is newer than timestamp
-          lte assert.err={TIMESTAMP_ERROR}
-          # => []
+          lte assert.err={TIMESTAMP_ERROR}	
+          # => []	
       end"
     );
 

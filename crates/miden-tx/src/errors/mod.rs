@@ -18,6 +18,8 @@ pub enum TransactionExecutorError {
     TransactionProgramExecutionFailed(#[source] ExecutionError),
     #[error("failed to fetch transaction inputs from the data store")]
     FetchTransactionInputsFailed(#[source] DataStoreError),
+    #[error("failed to create transaction inputs")]
+    InvalidTransactionInputs(#[source] TransactionInputError),
     #[error("input account ID {input_id} does not match output account ID {output_id}")]
     InconsistentAccountId {
         input_id: AccountId,
@@ -113,8 +115,6 @@ pub enum DataStoreError {
     AccountNotFound(AccountId),
     #[error("block with number {0} not found in data store")]
     BlockNotFound(BlockNumber),
-    #[error("failed to create transaction inputs")]
-    InvalidTransactionInput(#[source] TransactionInputError),
     #[error("note with id {0} is already consumed")]
     NoteAlreadyConsumed(NoteId),
     #[error("not with id {0} not found in data store")]

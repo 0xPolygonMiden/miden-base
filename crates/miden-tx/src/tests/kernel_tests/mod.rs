@@ -1,12 +1,15 @@
 use alloc::string::String;
 
-use miden_lib::transaction::memory::{
-    NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
-    OUTPUT_NOTE_NUM_ASSETS_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+use miden_lib::{
+    transaction::memory::{
+        NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET,
+        OUTPUT_NOTE_METADATA_OFFSET, OUTPUT_NOTE_NUM_ASSETS_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET,
+        OUTPUT_NOTE_SECTION_OFFSET,
+    },
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
-    note::Note, testing::storage::prepare_assets, utils::word_to_masm_push_string, vm::StackInputs,
-    Felt, Hasher, Word, ONE, ZERO,
+    note::Note, testing::storage::prepare_assets, vm::StackInputs, Felt, Hasher, Word, ONE, ZERO,
 };
 use vm_processor::{ContextId, Process, ProcessState};
 

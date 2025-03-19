@@ -8,6 +8,7 @@ use miden_lib::{
         ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW,
     },
     transaction::memory::NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     account::AccountId,
@@ -27,7 +28,7 @@ use miden_objects::{
 };
 use vm_processor::{Felt, ProcessState};
 
-use super::{word_to_masm_push_string, ONE};
+use super::ONE;
 use crate::{assert_execution_error, testing::TransactionContextBuilder};
 
 // FUNGIBLE FAUCET MINT TESTS

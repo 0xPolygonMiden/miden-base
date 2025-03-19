@@ -5,6 +5,7 @@ use miden_lib::{
         ERR_ACCOUNT_ID_UNKNOWN_VERSION, TX_KERNEL_ERRORS,
     },
     transaction::TransactionKernel,
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     account::{
@@ -27,7 +28,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{word_to_masm_push_string, Felt, StackInputs, Word, ONE, ZERO};
+use super::{Felt, StackInputs, Word, ONE, ZERO};
 use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
 
 // ACCOUNT CODE TESTS

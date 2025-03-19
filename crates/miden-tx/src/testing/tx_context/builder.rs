@@ -3,7 +3,7 @@
 
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
 use miden_objects::{
     account::{Account, AccountCode, AccountId},
     assembly::Assembler,
@@ -23,7 +23,6 @@ use miden_objects::{
         storage::prepare_assets,
     },
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
-    utils::word_to_masm_push_string,
     vm::AdviceMap,
     FieldElement,
 };

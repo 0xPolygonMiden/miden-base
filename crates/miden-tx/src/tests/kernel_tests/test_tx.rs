@@ -16,6 +16,7 @@ use miden_lib::{
         },
         TransactionKernel,
     },
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     account::{
@@ -41,12 +42,11 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
 
-use super::{word_to_masm_push_string, Felt, Process, ProcessState, Word, ONE, ZERO};
+use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
 use crate::{
     assert_execution_error,
     testing::{MockChain, TransactionContextBuilder},
     tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
-    TransactionExecutor,
 };
 
 #[test]
@@ -1302,33 +1302,12 @@ fn test_fpi_execute_foreign_procedure() {
 
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
+        .foreign_account_codes(vec![foreign_account.code().clone()])
         .advice_inputs(advice_inputs.clone())
         .tx_script(tx_script)
         .build();
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
-
-    // load the mast forest of the foreign account's code to be able to create an account procedure
-    // index map and execute the specified foreign procedure
-    executor.load_account_code(foreign_account.code());
-
-    let _executed_transaction = executor
-        .execute_transaction(
-            native_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
-        .map_err(|e| e.to_string())
-        .unwrap();
+    let _executed_transaction = tx_context.execute().map_err(|e| e.to_string()).unwrap();
 }
 
 // HELPER FUNCTIONS

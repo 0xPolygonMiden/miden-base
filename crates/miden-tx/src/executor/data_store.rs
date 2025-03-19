@@ -1,9 +1,13 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
+use alloc::collections::BTreeSet;
 
 use miden_objects::{
-    account::AccountId, block::BlockNumber, note::NoteId, transaction::TransactionInputs,
+    account::{Account, AccountId},
+    block::{BlockHeader, BlockNumber},
+    transaction::ChainMmr,
 };
+use vm_processor::Word;
 use winter_maybe_async::*;
 
 use crate::DataStoreError;
@@ -15,26 +19,36 @@ use crate::DataStoreError;
 /// required for transaction execution.
 #[maybe_async_trait]
 pub trait DataStore {
-    /// Returns account, chain, and input note data required to execute a transaction against
-    /// the account with the specified ID and consuming the set of specified input notes.
+    /// Returns blockchain-related data required to execute a transaction against a specific
+    /// account, that consumes specific notes.
     ///
-    /// block_ref must be the block number of the block by which all of the input notes have been
-    /// recorded in the chain. In general, it is recommended that bock_ref corresponds to the
-    /// latest block available in the data store.
+    /// The returned [`ChainMmr`] is expected to contain the complete set of requested
+    /// block numbers (`ref_blocks`).
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The block with the specified number could not be found in the data store.
+    /// - The combination of specified inputs resulted in a transaction input error.
+    /// - The data store encountered some internal error
+    #[maybe_async]
+    fn get_chain_inputs(
+        &self,
+        ref_blocks: BTreeSet<BlockNumber>,
+        block_header: BlockNumber,
+    ) -> Result<(ChainMmr, BlockHeader), DataStoreError>;
+
+    /// Returns account data required to execute a transaction.
+    ///
+    /// For a new [`Account`], the corresponding seed should be returned as the second element
+    /// of the return tuple.
     ///
     /// # Errors
     /// Returns an error if:
     /// - The account with the specified ID could not be found in the data store.
-    /// - The block with the specified number could not be found in the data store.
-    /// - Any of the notes with the specified IDs could not be found in the data store.
-    /// - Any of the notes with the specified IDs were already consumed.
-    /// - The combination of specified inputs resulted in a transaction input error.
-    /// - The data store encountered some internal error
+    /// - The data store encountered some internal error.
     #[maybe_async]
-    fn get_transaction_inputs(
+    fn get_account_inputs(
         &self,
         account_id: AccountId,
-        block_ref: BlockNumber,
-        notes: &[NoteId],
-    ) -> Result<TransactionInputs, DataStoreError>;
+    ) -> Result<(Account, Option<Word>), DataStoreError>;
 }

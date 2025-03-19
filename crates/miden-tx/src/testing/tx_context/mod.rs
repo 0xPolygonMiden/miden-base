@@ -1,23 +1,26 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
-use alloc::{rc::Rc, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, rc::Rc, sync::Arc, vec::Vec};
 
 use builder::MockAuthenticator;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::{Account, AccountCode, AccountId},
     assembly::Assembler,
-    block::BlockNumber,
-    note::{Note, NoteId},
-    transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
+    block::{BlockHeader, BlockNumber},
+    note::Note,
+    transaction::{
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs,
+    },
 };
-use vm_processor::{AdviceInputs, ExecutionError, Process};
+use rand_chacha::ChaCha20Rng;
+use vm_processor::{AdviceInputs, ExecutionError, Process, Word};
 use winter_maybe_async::*;
 
 use super::{executor::CodeExecutor, MockHost};
 use crate::{
-    auth::TransactionAuthenticator, DataStore, DataStoreError, TransactionExecutor,
-    TransactionExecutorError, TransactionMastStore,
+    auth::{BasicAuthenticator, TransactionAuthenticator},
+    DataStore, DataStoreError, TransactionExecutor, TransactionExecutorError, TransactionMastStore,
 };
 
 mod builder;
@@ -26,11 +29,11 @@ pub use builder::TransactionContextBuilder;
 // TRANSACTION CONTEXT
 // ================================================================================================
 
-#[derive(Clone)]
 /// Represents all needed data for executing a transaction, or arbitrary code.
 ///
 /// It implements [DataStore], so transactions may be executed with
 /// [TransactionExecutor](crate::TransactionExecutor)
+#[derive(Clone)]
 pub struct TransactionContext {
     expected_output_notes: Vec<Note>,
     tx_args: TransactionArgs,
@@ -90,24 +93,23 @@ impl TransactionContext {
     }
 
     /// Executes the transaction through a [TransactionExecutor]
+    #[allow(clippy::arc_with_non_send_sync)]
     #[maybe_async]
-    pub fn execute(self) -> Result<ExecutedTransaction, TransactionExecutorError> {
+    pub fn execute(&self) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let account_id = self.account().id();
         let block_num = self.tx_inputs().block_header().block_num();
-        let notes: Vec<NoteId> =
-            self.tx_inputs().input_notes().into_iter().map(|n| n.id()).collect();
+        let notes = self.tx_inputs().input_notes().clone();
+        let tx_args = self.tx_args().clone();
+        let mast_forest_store = self.get_mast_store();
 
         let authenticator = self
-            .authenticator
+            .authenticator()
+            .cloned()
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
 
-        let mut tx_executor = TransactionExecutor::new(Arc::new(self.tx_inputs), authenticator);
-
-        for code in self.foreign_codes {
-            tx_executor.load_account_code(&code);
-        }
-
-        maybe_await!(tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args))
+        let tx_executor =
+            TransactionExecutor::new(Arc::new(self.clone()), mast_forest_store, authenticator);
+        maybe_await!(tx_executor.execute_transaction(account_id, block_num, notes, tx_args))
     }
 
     pub fn account(&self) -> &Account {
@@ -116,6 +118,15 @@ impl TransactionContext {
 
     pub fn expected_output_notes(&self) -> &[Note] {
         &self.expected_output_notes
+    }
+
+    pub fn get_mast_store(&self) -> Arc<TransactionMastStore> {
+        let mast_forest_store = TransactionMastStore::new();
+        mast_forest_store.load_transaction_code(self.tx_inputs(), &self.tx_args);
+        for foreign_code in self.foreign_codes.iter() {
+            mast_forest_store.insert(foreign_code.mast());
+        }
+        mast_forest_store.into()
     }
 
     pub fn tx_args(&self) -> &TransactionArgs {
@@ -134,24 +145,31 @@ impl TransactionContext {
         &self.tx_inputs
     }
 
-    pub fn get_data_store(&self) -> Arc<dyn DataStore> {
-        Arc::new(self.tx_inputs().clone())
+    pub fn authenticator(&self) -> Option<&BasicAuthenticator<ChaCha20Rng>> {
+        self.authenticator.as_ref()
     }
 }
 
 #[maybe_async_trait]
-impl DataStore for TransactionInputs {
+impl DataStore for TransactionContext {
     #[maybe_async]
-    fn get_transaction_inputs(
+    fn get_chain_inputs(
+        &self,
+        _ref_blocks: BTreeSet<BlockNumber>,
+        _block_header: BlockNumber,
+    ) -> Result<(ChainMmr, BlockHeader), DataStoreError> {
+        let mmr = self.tx_inputs.block_chain().clone();
+        let block = self.tx_inputs.block_header().clone();
+        Ok((mmr, block))
+    }
+
+    #[maybe_async]
+    fn get_account_inputs(
         &self,
         account_id: AccountId,
-        block_num: BlockNumber,
-        notes: &[NoteId],
-    ) -> Result<TransactionInputs, DataStoreError> {
+    ) -> Result<(Account, Option<Word>), DataStoreError> {
         assert_eq!(account_id, self.account().id());
-        assert_eq!(block_num, self.block_header().block_num());
-        assert_eq!(notes.len(), self.input_notes().num_notes());
-
-        Ok(self.clone())
+        let account_seed = self.tx_inputs.account_seed();
+        Ok((self.account().clone(), account_seed))
     }
 }
