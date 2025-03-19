@@ -491,7 +491,10 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
         let transaction_event = TransactionEvent::try_from(event_id)
             .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
-        if process.ctx() != ContextId::root() {
+        // only the `FalconSigToStack` event can be executed outside the root context
+        if process.ctx() != ContextId::root()
+            && !matches!(transaction_event, TransactionEvent::FalconSigToStack)
+        {
             return Err(ExecutionError::EventError(Box::new(
                 TransactionEventError::NotRootContext(event_id),
             )));

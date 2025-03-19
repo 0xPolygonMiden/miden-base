@@ -118,6 +118,8 @@ impl TryFrom<u32> for TransactionEvent {
             NOTE_BEFORE_ADD_ASSET => Ok(TransactionEvent::NoteBeforeAddAsset),
             NOTE_AFTER_ADD_ASSET => Ok(TransactionEvent::NoteAfterAddAsset),
 
+            FALCON_SIG_TO_STACK => Ok(TransactionEvent::FalconSigToStack),
+
             _ => Err(TransactionEventError::InvalidTransactionEvent(value)),
         }
     }
