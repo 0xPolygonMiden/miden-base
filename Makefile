@@ -61,7 +61,7 @@ doc: ## Generates & checks documentation
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	$(BUILD_GENERATED_FILES_IN_SRC) $(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
+	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
 
 
 .PHONY: test-default
