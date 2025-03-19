@@ -3,13 +3,13 @@ use core::fmt::Display;
 
 use super::{Digest, Felt};
 use crate::{
+    NoteError, PrettyPrint,
     assembly::{
-        mast::{MastForest, MastNodeId},
         Assembler, Compile,
+        mast::{MastForest, MastNodeId},
     },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::Program,
-    NoteError, PrettyPrint,
 };
 
 // NOTE SCRIPT

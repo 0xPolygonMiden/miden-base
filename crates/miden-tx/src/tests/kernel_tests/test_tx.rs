@@ -6,6 +6,7 @@ use miden_lib::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
     transaction::{
+        TransactionKernel,
         memory::{
             ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
             ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
@@ -14,10 +15,10 @@ use miden_lib::{
             NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
             OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
         },
-        TransactionKernel,
     },
 };
 use miden_objects::{
+    ACCOUNT_TREE_DEPTH, FieldElement,
     account::{
         Account, AccountBuilder, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
         StorageSlot,
@@ -35,18 +36,16 @@ use miden_objects::{
         storage::STORAGE_LEAVES_2,
     },
     transaction::{OutputNote, OutputNotes, TransactionScript},
-    FieldElement, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::AdviceInputs;
 
-use super::{word_to_masm_push_string, Felt, Process, ProcessState, Word, ONE, ZERO};
+use super::{Felt, ONE, Process, ProcessState, Word, ZERO, word_to_masm_push_string};
 use crate::{
-    assert_execution_error,
+    TransactionExecutor, assert_execution_error,
     testing::{MockChain, TransactionContextBuilder},
     tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
-    TransactionExecutor,
 };
 
 #[test]
@@ -751,12 +750,12 @@ fn test_fpi_memory() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -1010,17 +1009,17 @@ fn test_fpi_memory_two_accounts() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_1)
         .build_existing()
         .unwrap();
 
-    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account_2 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component_2)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
                 .unwrap(),
@@ -1214,12 +1213,12 @@ fn test_fpi_execute_foreign_procedure() {
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(foreign_account_component)
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
                 .unwrap(),

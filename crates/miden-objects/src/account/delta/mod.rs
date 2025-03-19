@@ -58,7 +58,7 @@ impl AccountDelta {
             (Some(old), Some(new)) if new.as_int() <= old.as_int() => {
                 return Err(AccountDeltaError::InconsistentNonceUpdate(format!(
                     "new nonce {new} is not larger than the old nonce {old}"
-                )))
+                )));
             },
             // Incoming nonce takes precedence.
             (old, new) => *old = new.or(*old),
@@ -142,7 +142,7 @@ impl AccountUpdateDetails {
                 return Err(AccountDeltaError::IncompatibleAccountUpdates {
                     left_update_type: left.as_tag_str(),
                     right_update_type: right.as_tag_str(),
-                })
+                });
             },
         };
 
@@ -266,7 +266,7 @@ fn validate_nonce(
             None => {
                 return Err(AccountDeltaError::InconsistentNonceUpdate(
                     "nonce not updated for non-empty account delta".to_string(),
-                ))
+                ));
             },
         }
     }
@@ -280,19 +280,19 @@ fn validate_nonce(
 #[cfg(test)]
 mod tests {
 
-    use vm_core::{utils::Serializable, Felt, FieldElement};
+    use vm_core::{Felt, FieldElement, utils::Serializable};
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
+        ONE, ZERO,
         account::{
-            delta::AccountUpdateDetails, Account, AccountCode, AccountId, AccountStorage,
-            AccountStorageMode, AccountType, StorageMapDelta,
+            Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
+            StorageMapDelta, delta::AccountUpdateDetails,
         },
         asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
         testing::account_id::{
-            AccountIdBuilder, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, AccountIdBuilder,
         },
-        ONE, ZERO,
     };
 
     #[test]
@@ -341,7 +341,7 @@ mod tests {
                 AccountIdBuilder::new()
                     .account_type(AccountType::NonFungibleFaucet)
                     .storage_mode(AccountStorageMode::Public)
-                    .build_with_rng(&mut rand::thread_rng())
+                    .build_with_rng(&mut rand::rng())
                     .prefix(),
                 vec![6],
             )
@@ -353,7 +353,7 @@ mod tests {
             AccountIdBuilder::new()
                 .account_type(AccountType::FungibleFaucet)
                 .storage_mode(AccountStorageMode::Public)
-                .build_with_rng(&mut rand::thread_rng()),
+                .build_with_rng(&mut rand::rng()),
             10,
         )
         .unwrap()

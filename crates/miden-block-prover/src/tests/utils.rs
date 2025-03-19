@@ -3,8 +3,8 @@ use std::{collections::BTreeMap, vec, vec::Vec};
 use miden_crypto::rand::RpoRandomCoin;
 use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    self,
-    account::{delta::AccountUpdateDetails, Account, AccountId},
+    self, Felt,
+    account::{Account, AccountId, delta::AccountUpdateDetails},
     asset::{Asset, FungibleAsset},
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
@@ -15,10 +15,9 @@ use miden_objects::{
     },
     utils::word_to_masm_push_string,
     vm::ExecutionProof,
-    Felt,
 };
 use miden_tx::testing::{AccountState, Auth, MockChain};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 use winterfell::Proof;
 
 pub struct TestSetup {
@@ -28,7 +27,7 @@ pub struct TestSetup {
 }
 
 pub fn generate_account(chain: &mut MockChain) -> Account {
-    let account_builder = Account::builder(rand::thread_rng().gen()).with_component(
+    let account_builder = Account::builder(rand::rng().random()).with_component(
         AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
     );
     chain.add_from_account_builder(Auth::NoAuth, account_builder, AccountState::Exists)
@@ -94,7 +93,7 @@ pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: 
     );
 
     // Create a note that will create the above output note when consumed.
-    NoteBuilder::new(sender, &mut SmallRng::from_entropy())
+    NoteBuilder::new(sender, &mut SmallRng::from_os_rng())
         .code(code.clone())
         .build(&TransactionKernel::testing_assembler_with_mock_account())
         .unwrap()
@@ -107,10 +106,10 @@ fn generate_untracked_note_internal(
 ) -> Note {
     // Use OS-randomness so that notes with the same sender and target have different note IDs.
     let mut rng = RpoRandomCoin::new([
-        Felt::new(rand::thread_rng().gen()),
-        Felt::new(rand::thread_rng().gen()),
-        Felt::new(rand::thread_rng().gen()),
-        Felt::new(rand::thread_rng().gen()),
+        Felt::new(rand::rng().random()),
+        Felt::new(rand::rng().random()),
+        Felt::new(rand::rng().random()),
+        Felt::new(rand::rng().random()),
     ]);
     create_p2id_note(sender, reciver, asset, NoteType::Public, Default::default(), &mut rng)
         .unwrap()

@@ -5,6 +5,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    FieldElement,
     account::{Account, AccountCode, AccountId},
     assembly::Assembler,
     asset::{Asset, FungibleAsset, NonFungibleAsset},
@@ -25,7 +26,6 @@ use miden_objects::{
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
     utils::word_to_masm_push_string,
     vm::AdviceMap,
-    FieldElement,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -227,7 +227,7 @@ impl TransactionContextBuilder {
         assets: impl IntoIterator<Item = Asset>,
         inputs: impl IntoIterator<Item = Felt>,
     ) -> Note {
-        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
+        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.random()))
             .note_inputs(inputs)
             .unwrap()
             .add_assets(assets)
@@ -280,7 +280,7 @@ impl TransactionContextBuilder {
         );
         let code = var_name;
 
-        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
+        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.random()))
             .note_inputs(inputs)
             .unwrap()
             .add_assets(assets)
@@ -357,7 +357,7 @@ impl TransactionContextBuilder {
             execution_hint_always = Felt::from(NoteExecutionHint::always())
         );
 
-        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
+        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.random()))
             .note_inputs(inputs)
             .unwrap()
             .add_assets([asset])
@@ -418,7 +418,7 @@ impl TransactionContextBuilder {
             end
         ";
 
-        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
+        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.random()))
             .add_assets(assets)
             .code(code)
             .build(&self.assembler)

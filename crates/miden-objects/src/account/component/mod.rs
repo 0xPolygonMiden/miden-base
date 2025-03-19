@@ -7,8 +7,8 @@ mod template;
 pub use template::*;
 
 use crate::{
-    account::{AccountType, StorageSlot},
     AccountError,
+    account::{AccountType, StorageSlot},
 };
 
 /// An [`AccountComponent`] defines a [`Library`] of code and the initial value and types of

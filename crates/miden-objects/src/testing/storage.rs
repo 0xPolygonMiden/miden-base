@@ -5,10 +5,10 @@ use vm_core::{Felt, Word};
 use vm_processor::Digest;
 
 use crate::{
+    AccountDeltaError,
     account::{AccountStorage, AccountStorageDelta, StorageMap, StorageMapDelta, StorageSlot},
     note::NoteAssets,
     utils::word_to_masm_push_string,
-    AccountDeltaError,
 };
 
 // ACCOUNT STORAGE DELTA BUILDER

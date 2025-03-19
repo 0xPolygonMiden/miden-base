@@ -1,6 +1,6 @@
 use miden_objects::{
-    account::{AccountDelta, AccountHeader, AccountStorageDelta, AccountVaultDelta},
     Felt, ZERO,
+    account::{AccountDelta, AccountHeader, AccountStorageDelta, AccountVaultDelta},
 };
 // ACCOUNT DELTA TRACKER
 // ================================================================================================

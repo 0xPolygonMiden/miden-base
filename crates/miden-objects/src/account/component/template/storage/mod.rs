@@ -2,8 +2,8 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{iter, ops::Range};
 
 use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, FieldElement,
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use vm_processor::DeserializationError;
 
@@ -89,7 +89,7 @@ impl StorageEntry {
     ) -> Self {
         StorageEntry::MultiSlot {
             name: name.into(),
-            description: description.map(Into::into),
+            description,
             slots,
             values,
         }
@@ -115,7 +115,7 @@ impl StorageEntry {
     /// Returns an iterator over all of the storage entries's value names, alongside their
     /// expected type.
     pub fn template_requirements(&self) -> TemplateRequirementsIter {
-        let requirements = match self {
+        match self {
             StorageEntry::Value { word_entry, .. } => {
                 word_entry.template_requirements(StorageValueName::empty())
             },
@@ -125,9 +125,7 @@ impl StorageEntry {
                     word.iter().flat_map(move |f| f.template_requirements(name.clone()))
                 }))
             },
-        };
-
-        requirements
+        }
     }
 
     /// Attempts to convert the storage entry into a list of [`StorageSlot`].
@@ -323,23 +321,23 @@ mod tests {
     use assembly::Assembler;
     use semver::Version;
     use vm_core::{
-        utils::{Deserializable, Serializable},
         Felt, FieldElement, Word,
+        utils::{Deserializable, Serializable},
     };
 
     use crate::{
+        AccountError,
         account::{
-            component::template::{
-                storage::placeholder::TemplateType, AccountComponentMetadata, InitStorageData,
-                MapEntry, MapRepresentation, StorageValueName,
-            },
             AccountComponent, AccountComponentTemplate, AccountType, FeltRepresentation,
             StorageEntry, StorageSlot, TemplateTypeError, WordRepresentation,
+            component::template::{
+                AccountComponentMetadata, InitStorageData, MapEntry, MapRepresentation,
+                StorageValueName, storage::placeholder::TemplateType,
+            },
         },
         digest,
         errors::AccountComponentTemplateError,
         testing::account_code::CODE,
-        AccountError,
     };
 
     #[test]

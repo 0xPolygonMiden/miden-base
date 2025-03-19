@@ -1,9 +1,9 @@
 use miden_objects::{
+    Digest,
     assembly::{ProcedureName, QualifiedProcedureName},
     note::{Note, NoteScript},
-    utils::{sync::LazyLock, Deserializable},
+    utils::{Deserializable, sync::LazyLock},
     vm::Program,
-    Digest,
 };
 
 use crate::account::{

@@ -2,8 +2,8 @@ use vm_processor::DeserializationError;
 
 use super::{NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier};
 use crate::{
-    utils::serde::{ByteReader, ByteWriter, Deserializable, Serializable},
     Word,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 
 // NOTE DETAILS

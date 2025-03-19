@@ -4,7 +4,6 @@
 
 ### Changes
 
-- [BREAKING] Incremented minimum supported Rust version to 1.84.
 - [BREAKING] Moved `generated` module from `miden-proving-service-client` crate to `tx_prover::generated` hierarchy (#1102).
 - Added an endpoint to the `miden-proving-service` to update the workers (#1107).
 - Renamed the protobuf file of the transaction prover to `tx_prover.proto` (#1110).
@@ -32,6 +31,8 @@
 - [BREAKING] Enable timestamp customization on `MockChain::seal_block` (#1208).
 - [BREAKING] Renamed constants and comments: `OnChain` -> `Public` and `OffChain` -> `Private` (#1218).
 - [BREAKING] Replace "hash" with "commitment" in `BlockHeader::{prev_hash, chain_root, kernel_root, tx_hash, proof_hash, sub_hash, hash}` (#1209, #1221, #1226).
+- [BREAKING] Incremented minimum supported Rust version to 1.85.
+- [BREAKING] Change advice for Falcon signature verification (#1183).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, vec::Vec};
 use miden_crypto::merkle::{LeafIndex, PartialMerkleTree};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    Digest, Word,
     account::AccountId,
     block::{
         AccountUpdateWitness, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
@@ -11,7 +12,6 @@ use miden_objects::{
     },
     note::Nullifier,
     transaction::ChainMmr,
-    Digest, Word,
 };
 
 use crate::errors::ProvenBlockError;

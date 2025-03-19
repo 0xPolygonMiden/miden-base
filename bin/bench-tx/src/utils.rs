@@ -10,11 +10,11 @@ use miden_objects::{
     transaction::TransactionMeasurements,
 };
 use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use rand_chacha::{ChaCha20Rng, rand_core::SeedableRng};
 use serde::Serialize;
-use serde_json::{from_str, to_string_pretty, Value};
+use serde_json::{Value, from_str, to_string_pretty};
 
-use super::{read_to_string, write, Benchmark, Path};
+use super::{Benchmark, Path, read_to_string, write};
 
 // CONSTANTS
 // ================================================================================================

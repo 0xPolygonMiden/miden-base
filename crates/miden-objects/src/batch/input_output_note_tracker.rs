@@ -1,13 +1,13 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use crate::{
+    Digest, ProposedBlockError,
     batch::{BatchId, ProvenBatch},
     block::{BlockHeader, BlockNumber},
     crypto::merkle::MerkleError,
     errors::ProposedBatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof, Nullifier},
     transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
-    Digest, ProposedBlockError,
 };
 
 type BatchInputNotes = Vec<InputNoteCommitment>;

@@ -137,8 +137,8 @@ mod tests {
     use alloc::vec::Vec;
 
     use vm_core::{
-        utils::{Deserializable, Serializable},
         Felt,
+        utils::{Deserializable, Serializable},
     };
 
     use crate::{

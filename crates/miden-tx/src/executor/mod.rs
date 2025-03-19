@@ -2,13 +2,13 @@ use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::{AccountCode, AccountId},
     assembly::Library,
     block::BlockNumber,
     note::NoteId,
     transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
     vm::StackOutputs,
-    Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
 };
 use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};

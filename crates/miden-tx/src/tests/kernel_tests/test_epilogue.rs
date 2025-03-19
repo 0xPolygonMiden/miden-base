@@ -6,17 +6,17 @@ use miden_lib::{
         ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME, ERR_TX_INVALID_EXPIRATION_DELTA,
     },
     transaction::{
-        memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_COMMITMENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
         TransactionKernel,
+        memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_COMMITMENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
     },
 };
 use miden_objects::{
     account::Account,
     transaction::{OutputNote, OutputNotes},
 };
-use vm_processor::{Felt, ProcessState, ONE};
+use vm_processor::{Felt, ONE, ProcessState};
 
-use super::{output_notes_data_procedure, ZERO};
+use super::{ZERO, output_notes_data_procedure};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_word,

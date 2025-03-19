@@ -14,10 +14,10 @@ use miden_objects::{
 use vm_processor::{AdviceInputs, ExecutionError, Process};
 use winter_maybe_async::*;
 
-use super::{executor::CodeExecutor, MockHost};
+use super::{MockHost, executor::CodeExecutor};
 use crate::{
-    auth::TransactionAuthenticator, DataStore, DataStoreError, TransactionExecutor,
-    TransactionExecutorError, TransactionMastStore,
+    DataStore, DataStoreError, TransactionExecutor, TransactionExecutorError, TransactionMastStore,
+    auth::TransactionAuthenticator,
 };
 
 mod builder;

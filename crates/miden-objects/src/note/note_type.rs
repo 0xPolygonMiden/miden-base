@@ -1,6 +1,6 @@
 use crate::{
-    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Felt, NoteError,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // CONSTANTS
@@ -106,7 +106,7 @@ impl Deserializable for NoteType {
                 return Err(DeserializationError::InvalidValue(format!(
                     "value {} is not a valid NoteType",
                     v
-                )))
+                )));
             },
         };
 

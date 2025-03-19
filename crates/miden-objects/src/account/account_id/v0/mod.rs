@@ -5,30 +5,30 @@ use alloc::{
 };
 use core::fmt;
 
-use bech32::{primitives::decode::CheckedHrpstring, Bech32m};
+use bech32::{Bech32m, primitives::decode::CheckedHrpstring};
 use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
 pub use prefix::AccountIdPrefixV0;
 use vm_core::{
-    utils::{ByteReader, Deserializable, Serializable},
     Felt, Word,
+    utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::{DeserializationError, Digest};
 
 use crate::{
+    ACCOUNT_TREE_DEPTH, AccountError, Hasher,
     account::{
+        AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
         account_id::{
+            NetworkId,
             account_type::{
                 FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET, REGULAR_ACCOUNT_IMMUTABLE_CODE,
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
             },
             address_type::AddressType,
             storage_mode::{PRIVATE, PUBLIC},
-            NetworkId,
         },
-        AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
     },
     errors::{AccountIdError, Bech32Error},
-    AccountError, Hasher, ACCOUNT_TREE_DEPTH,
 };
 
 // ACCOUNT ID VERSION 0
@@ -114,8 +114,8 @@ impl AccountIdV0 {
         storage_mode: AccountStorageMode,
     ) -> AccountIdV0 {
         let version = AccountIdVersion::Version0 as u8;
-        let low_nibble = (storage_mode as u8) << Self::STORAGE_MODE_SHIFT
-            | (account_type as u8) << Self::TYPE_SHIFT
+        let low_nibble = ((storage_mode as u8) << Self::STORAGE_MODE_SHIFT)
+            | ((account_type as u8) << Self::TYPE_SHIFT)
             | version;
 
         // Set least significant byte.
