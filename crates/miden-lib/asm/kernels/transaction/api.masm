@@ -32,9 +32,6 @@ const.ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUC
 # Provided kernel procedure offset is out of bounds
 const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020000
 
-# Creation of a foreign context against the native account is forbidden
-const.ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT=0x00020180
-
 # EVENTS
 # =================================================================================================
 
