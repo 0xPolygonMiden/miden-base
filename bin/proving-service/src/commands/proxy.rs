@@ -12,8 +12,8 @@ use tracing::{info, warn};
 use super::ProxyConfig;
 use crate::{
     error::ProvingServiceError,
-    proxy::{update_workers::LoadBalancerUpdateService, LoadBalancer, LoadBalancerState},
-    utils::{check_port_availability, MIDEN_PROVING_SERVICE},
+    proxy::{LoadBalancer, LoadBalancerState, update_workers::LoadBalancerUpdateService},
+    utils::{MIDEN_PROVING_SERVICE, check_port_availability},
 };
 
 /// Starts the proxy.

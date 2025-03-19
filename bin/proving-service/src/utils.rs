@@ -1,3 +1,5 @@
+use std::net::TcpListener;
+
 use opentelemetry::{KeyValue, trace::TracerProvider as _};
 use opentelemetry_sdk::{
     Resource, runtime,
@@ -9,7 +11,7 @@ use opentelemetry_semantic_conventions::{
 };
 use pingora::{Error, ErrorType, http::ResponseHeader, protocols::http::ServerSession};
 use pingora_proxy::Session;
-use tracing_subscriber::{Registry, layer::SubscriberExt};
+use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
 
 use crate::{error::ProvingServiceError, proxy::metrics::QUEUE_DROP_COUNT};
 
