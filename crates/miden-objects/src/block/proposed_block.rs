@@ -121,7 +121,6 @@ impl ProposedBlock {
     ///
     /// - The given `timestamp` does not increase monotonically compared to the previous block
     ///   header' timestamp.
-    #[allow(clippy::result_large_err)]
     pub fn new_at(
         block_inputs: BlockInputs,
         batches: Vec<ProvenBatch>,
@@ -234,7 +233,6 @@ impl ProposedBlock {
     ///
     /// See the [`ProposedBlock::new_at`] for details on errors and other constraints.
     #[cfg(feature = "std")]
-    #[allow(clippy::result_large_err)]
     pub fn new(
         block_inputs: BlockInputs,
         batches: Vec<ProvenBatch>,
@@ -363,7 +361,6 @@ impl Deserializable for ProposedBlock {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-#[allow(clippy::result_large_err)]
 fn check_duplicate_batches(batches: &[ProvenBatch]) -> Result<(), ProposedBlockError> {
     let mut input_note_set = BTreeSet::new();
 
@@ -376,7 +373,6 @@ fn check_duplicate_batches(batches: &[ProvenBatch]) -> Result<(), ProposedBlockE
     Ok(())
 }
 
-#[allow(clippy::result_large_err)]
 fn check_timestamp_increases_monotonically(
     provided_timestamp: u32,
     prev_block_header: &BlockHeader,
@@ -395,7 +391,6 @@ fn check_timestamp_increases_monotonically(
 ///
 /// To illustrate, a batch which expired at block 4 cannot be included in block 5, but if it
 /// expires at block 5 then it can still be included in block 5.
-#[allow(clippy::result_large_err)]
 fn check_batch_expiration(
     batches: &[ProvenBatch],
     prev_block_header: &BlockHeader,
@@ -417,7 +412,6 @@ fn check_batch_expiration(
 
 /// Check that each nullifier in the block has a proof provided and that the nullifier is
 /// unspent. The proofs are required to update the nullifier tree.
-#[allow(clippy::result_large_err)]
 fn check_nullifiers(
     nullifier_witnesses: &BTreeMap<Nullifier, NullifierWitness>,
     block_input_notes: impl Iterator<Item = Nullifier>,
@@ -461,7 +455,6 @@ fn remove_erased_nullifiers(
 ///   i.e. the chain MMR's latest block is the previous' blocks reference block. The previous block
 ///   header will be added to the chain MMR as part of constructing the current block.
 /// - the root of the chain MMR is equivalent to the chain commitment of the previous block header.
-#[allow(clippy::result_large_err)]
 fn check_reference_block_chain_mmr_consistency(
     chain_mmr: &ChainMmr,
     prev_block_header: &BlockHeader,
@@ -489,7 +482,6 @@ fn check_reference_block_chain_mmr_consistency(
 
 /// Check that each block referenced by a batch in the block has an entry in the chain MMR,
 /// except if the referenced block is the same as the previous block, referenced by the block.
-#[allow(clippy::result_large_err)]
 fn check_batch_reference_blocks(
     chain_mmr: &ChainMmr,
     prev_block_header: &BlockHeader,
@@ -598,7 +590,6 @@ impl AccountUpdateAggregator {
     /// Aggregates all updates for the same account and stores each update indexed by its initial
     /// state commitment so we can easily retrieve them in the next step. This lets us
     /// chronologically order the updates per account across batches.
-    #[allow(clippy::result_large_err)]
     fn from_batches(batches: &[ProvenBatch]) -> Result<Self, ProposedBlockError> {
         let mut update_aggregator = AccountUpdateAggregator::new();
 
@@ -612,7 +603,6 @@ impl AccountUpdateAggregator {
     }
 
     /// Inserts the update from one batch for a specific account into the map of updates.
-    #[allow(clippy::result_large_err)]
     fn insert_update(
         &mut self,
         account_id: AccountId,
@@ -638,7 +628,6 @@ impl AccountUpdateAggregator {
 
     /// Consumes self and aggregates the account updates from all contained accounts.
     /// For each updated account an entry in `account_witnesses` must be present.
-    #[allow(clippy::result_large_err)]
     fn into_update_witnesses(
         self,
         mut account_witnesses: BTreeMap<AccountId, AccountWitness>,
@@ -661,7 +650,6 @@ impl AccountUpdateAggregator {
     /// Build the update for a single account from the provided map of updates, where each entry is
     /// the state from which the update starts. This chains updates for this account together in a
     /// chronological order using the state commitments to link them.
-    #[allow(clippy::result_large_err)]
     fn aggregate_account(
         account_id: AccountId,
         witness: AccountWitness,

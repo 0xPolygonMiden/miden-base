@@ -50,7 +50,6 @@ pub(crate) struct InputOutputNoteTracker<ContainerId> {
 impl InputOutputNoteTracker<TransactionId> {
     /// Computes the input and output notes for a transaction batch from the provided iterator over
     /// transactions. Implements batch-specific logic.
-    #[allow(clippy::result_large_err)]
     pub fn from_transactions<'a>(
         txs: impl Iterator<Item = &'a ProvenTransaction> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
@@ -91,7 +90,6 @@ impl InputOutputNoteTracker<TransactionId> {
 impl InputOutputNoteTracker<BatchId> {
     /// Computes the input and output notes for a block from the provided iterator over batches.
     /// Implements block-specific logic.
-    #[allow(clippy::result_large_err)]
     pub fn from_batches<'a>(
         batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,

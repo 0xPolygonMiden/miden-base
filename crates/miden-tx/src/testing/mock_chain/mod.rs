@@ -435,7 +435,6 @@ impl MockChain {
     /// Proposes a new transaction batch from the provided transactions and returns it.
     ///
     /// This method does not modify the chain state.
-    #[allow(clippy::result_large_err)]
     pub fn propose_transaction_batch<I>(
         &self,
         txs: impl IntoIterator<Item = ProvenTransaction, IntoIter = I>,
@@ -489,7 +488,6 @@ impl MockChain {
     /// Proposes a new block from the provided batches and returns it.
     ///
     /// This method does not modify the chain state.
-    #[allow(clippy::result_large_err)]
     pub fn propose_block<I>(
         &self,
         batches: impl IntoIterator<Item = ProvenBatch, IntoIter = I>,
