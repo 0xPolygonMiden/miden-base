@@ -1,9 +1,9 @@
 [book]
-title        = "The Miden Node"
 authors      = ["Miden team"]
 description  = "Description and core structures for the Miden rollup protocol"
 language     = "en"
 multilingual = false
+title        = "The Miden Node"
 
 [output.html]
 git-repository-url = "https://github.com/0xPolygonMiden/miden-node"
