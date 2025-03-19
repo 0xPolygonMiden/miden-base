@@ -31,6 +31,8 @@ const NOTE_AFTER_CREATED: u32 = 0x2_000c; // 131084
 const NOTE_BEFORE_ADD_ASSET: u32 = 0x2_000d; // 131085
 const NOTE_AFTER_ADD_ASSET: u32 = 0x2_000e; // 131086
 
+const FALCON_SIG_TO_STACK: u32 = 0x2_000f; // 131087
+
 /// Events which may be emitted by a transaction kernel.
 ///
 /// The events are emitted via the `emit.<event_id>` instruction. The event ID is a 32-bit
@@ -63,6 +65,8 @@ pub enum TransactionEvent {
 
     NoteBeforeAddAsset = NOTE_BEFORE_ADD_ASSET,
     NoteAfterAddAsset = NOTE_AFTER_ADD_ASSET,
+
+    FalconSigToStack = FALCON_SIG_TO_STACK,
 }
 
 impl TransactionEvent {
