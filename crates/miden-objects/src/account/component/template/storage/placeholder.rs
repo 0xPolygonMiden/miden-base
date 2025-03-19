@@ -11,8 +11,8 @@ use core::{
 use miden_crypto::dsa::rpo_falcon512::{self};
 use thiserror::Error;
 use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, Word,
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use vm_processor::DeserializationError;
 

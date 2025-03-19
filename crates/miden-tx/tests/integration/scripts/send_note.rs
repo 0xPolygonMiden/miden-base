@@ -1,5 +1,6 @@
 use miden_lib::{account::interface::AccountInterface, transaction::TransactionKernel};
 use miden_objects::{
+    Felt, ONE,
     asset::{Asset, FungibleAsset},
     crypto::rand::{FeltRng, RpoRandomCoin},
     note::{
@@ -7,7 +8,6 @@ use miden_objects::{
         NoteRecipient, NoteScript, NoteTag, NoteType, PartialNote,
     },
     transaction::OutputNote,
-    Felt, ONE,
 };
 use miden_tx::testing::{Auth, MockChain};
 

@@ -3,8 +3,8 @@ use std::{collections::BTreeMap, vec, vec::Vec};
 use miden_crypto::rand::RpoRandomCoin;
 use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    self,
-    account::{delta::AccountUpdateDetails, Account, AccountId},
+    self, Felt,
+    account::{Account, AccountId, delta::AccountUpdateDetails},
     asset::{Asset, FungibleAsset},
     batch::ProvenBatch,
     block::{BlockHeader, BlockNumber},
@@ -15,10 +15,9 @@ use miden_objects::{
     },
     utils::word_to_masm_push_string,
     vm::ExecutionProof,
-    Felt,
 };
 use miden_tx::testing::{AccountState, Auth, MockChain};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 use winterfell::Proof;
 
 pub struct TestSetup {

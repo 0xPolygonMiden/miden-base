@@ -1,7 +1,7 @@
 use crate::{
+    Digest, EMPTY_WORD,
     block::{BlockHeader, BlockNumber},
     errors::AccountIdError,
-    Digest, EMPTY_WORD,
 };
 
 // ACCOUNT ID ANCHOR

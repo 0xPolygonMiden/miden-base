@@ -3,15 +3,15 @@ use core::fmt;
 
 use miden_crypto::utils::ByteWriter;
 use vm_core::{
-    utils::{ByteReader, Deserializable, Serializable},
     Felt,
+    utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::DeserializationError;
 
 use crate::{
     account::{
-        account_id::v0::{self, validate_prefix},
         AccountIdVersion, AccountStorageMode, AccountType,
+        account_id::v0::{self, validate_prefix},
     },
     errors::AccountIdError,
 };

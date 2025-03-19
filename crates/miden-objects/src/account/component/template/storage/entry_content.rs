@@ -7,16 +7,16 @@ use alloc::{
 use core::iter;
 
 use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Felt, FieldElement, Word,
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use vm_processor::{DeserializationError, Digest};
 
 use super::{
-    placeholder::{PlaceholderTypeRequirement, TemplateType, TEMPLATE_REGISTRY},
     InitStorageData, MapEntry, StorageValueName, TemplateRequirementsIter,
+    placeholder::{PlaceholderTypeRequirement, TEMPLATE_REGISTRY, TemplateType},
 };
-use crate::account::{component::template::AccountComponentTemplateError, StorageMap};
+use crate::account::{StorageMap, component::template::AccountComponentTemplateError};
 
 // WORDS
 // ================================================================================================

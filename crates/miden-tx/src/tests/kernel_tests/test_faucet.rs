@@ -10,6 +10,7 @@ use miden_lib::{
     transaction::memory::NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
 };
 use miden_objects::{
+    FieldElement,
     account::AccountId,
     asset::{FungibleAsset, NonFungibleAsset},
     testing::{
@@ -23,11 +24,10 @@ use miden_objects::{
         },
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
-    FieldElement,
 };
 use vm_processor::{Felt, ProcessState};
 
-use super::{word_to_masm_push_string, ONE};
+use super::{ONE, word_to_masm_push_string};
 use crate::{assert_execution_error, testing::TransactionContextBuilder};
 
 // FUNGIBLE FAUCET MINT TESTS

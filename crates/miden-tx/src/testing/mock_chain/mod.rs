@@ -6,12 +6,13 @@ use alloc::{
 use miden_lib::{
     account::{auth::RpoFalcon512, faucets::BasicFungibleFaucet, wallets::BasicWallet},
     note::{create_p2id_note, create_p2idr_note},
-    transaction::{memory, TransactionKernel},
+    transaction::{TransactionKernel, memory},
 };
 use miden_objects::{
+    ACCOUNT_TREE_DEPTH, AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
-        delta::AccountUpdateDetails, Account, AccountBuilder, AccountComponent, AccountDelta,
-        AccountId, AccountIdAnchor, AccountType, AuthSecretKey,
+        Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
+        AccountType, AuthSecretKey, delta::AccountUpdateDetails,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
@@ -29,13 +30,12 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
         ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
     },
-    AccountError, NoteError, ProposedBatchError, ProposedBlockError, ACCOUNT_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
-    crypto::{RpoRandomCoin, SimpleSmt},
     Digest, Felt, Word, ZERO,
+    crypto::{RpoRandomCoin, SimpleSmt},
 };
 
 use super::TransactionContextBuilder;

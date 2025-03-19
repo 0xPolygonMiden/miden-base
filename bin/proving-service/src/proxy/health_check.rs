@@ -7,8 +7,8 @@ use tonic_health::pb::health_client::HealthClient;
 use tracing::debug_span;
 
 use super::{
-    metrics::{WORKER_COUNT, WORKER_UNHEALTHY},
     LoadBalancerState,
+    metrics::{WORKER_COUNT, WORKER_UNHEALTHY},
 };
 use crate::error::ProvingServiceError;
 

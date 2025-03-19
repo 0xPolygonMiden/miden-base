@@ -1,8 +1,8 @@
 use alloc::string::ToString;
 
 use super::{
-    execution_hint::NoteExecutionHint, AccountId, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Felt, NoteError, NoteTag, NoteType, Serializable, Word,
+    AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, NoteError,
+    NoteTag, NoteType, Serializable, Word, execution_hint::NoteExecutionHint,
 };
 
 // NOTE METADATA

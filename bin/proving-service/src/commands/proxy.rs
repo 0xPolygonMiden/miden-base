@@ -2,7 +2,7 @@ use clap::Parser;
 use pingora::{
     apps::HttpServerOptions,
     lb::Backend,
-    prelude::{background_service, Opt},
+    prelude::{Opt, background_service},
     server::Server,
     services::listening::Service,
 };
@@ -12,7 +12,7 @@ use tracing::warn;
 use super::ProxyConfig;
 use crate::{
     error::ProvingServiceError,
-    proxy::{update_workers::LoadBalancerUpdateService, LoadBalancer, LoadBalancerState},
+    proxy::{LoadBalancer, LoadBalancerState, update_workers::LoadBalancerUpdateService},
     utils::MIDEN_PROVING_SERVICE,
 };
 

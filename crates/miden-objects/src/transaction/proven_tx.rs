@@ -2,6 +2,7 @@ use alloc::{string::ToString, vec::Vec};
 
 use super::{InputNote, ToInputNoteCommitments};
 use crate::{
+    ACCOUNT_UPDATE_MAX_SIZE, ProvenTransactionError,
     account::delta::AccountUpdateDetails,
     block::BlockNumber,
     note::NoteHeader,
@@ -10,7 +11,6 @@ use crate::{
     },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::ExecutionProof,
-    ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE,
 };
 
 // PROVEN TRANSACTION
@@ -120,9 +120,9 @@ impl ProvenTransaction {
                 AccountUpdateDetails::Private => {
                     return Err(ProvenTransactionError::PublicAccountMissingDetails(
                         self.account_id(),
-                    ))
+                    ));
                 },
-                AccountUpdateDetails::New(ref account) => {
+                AccountUpdateDetails::New(account) => {
                     if !is_new_account {
                         return Err(
                             ProvenTransactionError::ExistingPublicAccountRequiresDeltaDetails(
@@ -550,16 +550,15 @@ mod tests {
 
     use super::ProvenTransaction;
     use crate::{
+        ACCOUNT_UPDATE_MAX_SIZE, Digest, EMPTY_WORD, ONE, ProvenTransactionError, ZERO,
         account::{
-            delta::AccountUpdateDetails, AccountDelta, AccountId, AccountIdVersion,
-            AccountStorageDelta, AccountStorageMode, AccountType, AccountVaultDelta,
-            StorageMapDelta,
+            AccountDelta, AccountId, AccountIdVersion, AccountStorageDelta, AccountStorageMode,
+            AccountType, AccountVaultDelta, StorageMapDelta, delta::AccountUpdateDetails,
         },
         block::BlockNumber,
         testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         transaction::{ProvenTransactionBuilder, TxAccountUpdate},
         utils::Serializable,
-        Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
     };
 
     fn check_if_sync<T: Sync>() {}

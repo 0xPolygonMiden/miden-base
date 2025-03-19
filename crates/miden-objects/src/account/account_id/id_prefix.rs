@@ -3,13 +3,13 @@ use core::fmt;
 
 use super::v0;
 use crate::{
+    Felt,
     account::{
-        account_id::AccountIdPrefixV0, AccountIdV0, AccountIdVersion, AccountStorageMode,
-        AccountType,
+        AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType,
+        account_id::AccountIdPrefixV0,
     },
     errors::AccountIdError,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Felt,
 };
 
 // ACCOUNT ID PREFIX

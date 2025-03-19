@@ -7,13 +7,13 @@ use assembly::Assembler;
 use rand::Rng;
 
 use crate::{
+    Felt, NoteError, Word, ZERO,
     account::AccountId,
     asset::Asset,
     note::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
         NoteTag, NoteType,
     },
-    Felt, NoteError, Word, ZERO,
 };
 
 pub const DEFAULT_NOTE_CODE: &str = "begin nop end";

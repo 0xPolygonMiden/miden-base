@@ -5,6 +5,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    FieldElement,
     account::{Account, AccountCode, AccountId},
     assembly::Assembler,
     asset::{Asset, FungibleAsset, NonFungibleAsset},
@@ -25,7 +26,6 @@ use miden_objects::{
     transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
     utils::word_to_masm_push_string,
     vm::AdviceMap,
-    FieldElement,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;

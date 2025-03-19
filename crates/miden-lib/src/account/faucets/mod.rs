@@ -1,10 +1,10 @@
 use miden_objects::{
+    AccountError, Felt, FieldElement, Word,
     account::{
         Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode,
         AccountType, StorageSlot,
     },
     asset::{FungibleAsset, TokenSymbol},
-    AccountError, Felt, FieldElement, Word,
 };
 
 use super::AuthScheme;
@@ -127,11 +127,11 @@ pub fn create_basic_fungible_faucet(
 #[cfg(test)]
 mod tests {
     use miden_objects::{
-        block::BlockHeader, crypto::dsa::rpo_falcon512, digest, FieldElement, ONE,
+        FieldElement, ONE, block::BlockHeader, crypto::dsa::rpo_falcon512, digest,
     };
     use vm_processor::Word;
 
-    use super::{create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol};
+    use super::{AccountStorageMode, AuthScheme, Felt, TokenSymbol, create_basic_fungible_faucet};
 
     #[test]
     fn faucet_contract_creation() {

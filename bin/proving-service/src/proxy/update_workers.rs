@@ -5,7 +5,7 @@ use axum::async_trait;
 use pingora::{
     apps::{HttpServerApp, HttpServerOptions},
     http::ResponseHeader,
-    protocols::{http::ServerSession, Stream},
+    protocols::{Stream, http::ServerSession},
     server::ShutdownWatch,
 };
 use tracing::{error, info};
@@ -13,7 +13,7 @@ use tracing::{error, info};
 use super::LoadBalancerState;
 use crate::{
     commands::update_workers::UpdateWorkers,
-    utils::{create_response_with_error_message, MIDEN_PROVING_SERVICE},
+    utils::{MIDEN_PROVING_SERVICE, create_response_with_error_message},
 };
 
 /// The Load Balancer Updater Service.

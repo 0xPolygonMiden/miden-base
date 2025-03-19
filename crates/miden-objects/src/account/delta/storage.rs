@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
     string::ToString,
     vec::Vec,
 };
@@ -9,9 +9,9 @@ use super::{
     Word,
 };
 use crate::{
+    Digest, EMPTY_WORD,
     account::{AccountStorage, StorageMap, StorageSlot},
     crypto::merkle::SmtLeaf,
-    Digest, EMPTY_WORD,
 };
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
@@ -349,7 +349,7 @@ impl Deserializable for StorageMapDelta {
 mod tests {
     use super::{AccountStorageDelta, Deserializable, Serializable};
     use crate::{
-        account::StorageMapDelta, testing::storage::AccountStorageDeltaBuilder, ONE, ZERO,
+        ONE, ZERO, account::StorageMapDelta, testing::storage::AccountStorageDeltaBuilder,
     };
 
     #[test]

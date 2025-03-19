@@ -5,15 +5,15 @@ use miden_lib::{
     transaction::{TransactionEvent, TransactionEventError},
 };
 use miden_objects::{
-    account::{AccountHeader, AccountVaultDelta},
     Digest,
+    account::{AccountHeader, AccountVaultDelta},
 };
 use vm_processor::{
     AdviceInputs, AdviceProvider, AdviceSource, ContextId, ExecutionError, Host, MastForest,
     MastForestStore, MemAdviceProvider, ProcessState,
 };
 
-use crate::{host::AccountProcedureIndexMap, TransactionMastStore};
+use crate::{TransactionMastStore, host::AccountProcedureIndexMap};
 
 // MOCK HOST
 // ================================================================================================

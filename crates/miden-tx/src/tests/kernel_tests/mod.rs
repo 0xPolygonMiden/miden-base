@@ -5,8 +5,8 @@ use miden_lib::transaction::memory::{
     OUTPUT_NOTE_NUM_ASSETS_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
 };
 use miden_objects::{
-    note::Note, testing::storage::prepare_assets, utils::word_to_masm_push_string, vm::StackInputs,
-    Felt, Hasher, Word, ONE, ZERO,
+    Felt, Hasher, ONE, Word, ZERO, note::Note, testing::storage::prepare_assets,
+    utils::word_to_masm_push_string, vm::StackInputs,
 };
 use vm_processor::{ContextId, Process, ProcessState};
 

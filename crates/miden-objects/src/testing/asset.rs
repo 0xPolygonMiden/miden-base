@@ -1,12 +1,12 @@
-use rand::{distr::StandardUniform, Rng};
+use rand::{Rng, distr::StandardUniform};
 
 use crate::{
+    AssetError,
     account::{AccountId, AccountIdPrefix, AccountType},
     asset::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     testing::account_id::{
         ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET,
     },
-    AssetError,
 };
 
 /// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multiplied

@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
 use crate::{
-    account::{delta::AccountUpdateDetails, AccountId},
+    Digest,
+    account::{AccountId, delta::AccountUpdateDetails},
     transaction::TransactionId,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    Digest,
 };
 
 // BLOCK ACCOUNT UPDATE

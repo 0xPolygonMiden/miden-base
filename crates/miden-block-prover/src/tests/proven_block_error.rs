@@ -2,17 +2,17 @@ use anyhow::Context;
 use assert_matches::assert_matches;
 use miden_crypto::merkle::MerkleError;
 use miden_objects::{
+    NullifierTreeError,
     batch::ProvenBatch,
     block::{BlockInputs, ProposedBlock},
-    NullifierTreeError,
 };
 
 use crate::{
-    tests::utils::{
-        generate_batch, generate_executed_tx_with_authenticated_notes, generate_tracked_note,
-        setup_chain, TestSetup,
-    },
     LocalBlockProver, ProvenBlockError,
+    tests::utils::{
+        TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
+        generate_tracked_note, setup_chain,
+    },
 };
 
 struct WitnessTestSetup {

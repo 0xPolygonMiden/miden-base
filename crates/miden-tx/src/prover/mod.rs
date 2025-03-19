@@ -8,8 +8,8 @@ use miden_objects::{
     assembly::Library,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
-use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
+use miden_prover::prove;
 use vm_processor::MemAdviceProvider;
 use winter_maybe_async::*;
 
