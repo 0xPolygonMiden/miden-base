@@ -43,6 +43,7 @@ jobs:
       - name: Clippy no_std
         run: |
           rustup update --no-self-update
+          rustup target add wasm32-unknown-unknown
           rustup component add clippy
           make clippy-no-std
 
