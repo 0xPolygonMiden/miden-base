@@ -90,7 +90,7 @@ pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 24;
 /// ├──────────────┼────────────────┼───────────────────┼─────┼────────────────────┤
 ///        28              29                30                         92
 /// ```
-pub const ACCOUNT_STACK_TOP_POINTER: MemoryAddress = 28;
+pub const ACCOUNT_STACK_TOP_PTR: MemoryAddress = 28;
 
 // GLOBAL INPUTS
 // ------------------------------------------------------------------------------------------------

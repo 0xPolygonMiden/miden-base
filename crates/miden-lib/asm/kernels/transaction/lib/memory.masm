@@ -45,7 +45,7 @@ const.TX_EXPIRATION_BLOCK_NUM_PTR=24
 
 # The memory address at which the pointer to the account stack element containing the pointer to the 
 # currently accessing account data is stored.
-const.ACCOUNT_STACK_TOP_POINTER=28
+const.ACCOUNT_STACK_TOP_PTR=28
 
 # Pointer to the first element on the account stack.
 const.MIN_ACCOUNT_STACK_PTR=29
@@ -692,12 +692,12 @@ end
 export.set_current_account_data_ptr_to_native_account
     # get the pointer to the first stack element where pointer to the native account data should be 
     # stored
-    push.ACCOUNT_STACK_TOP_POINTER.MIN_ACCOUNT_STACK_PTR
-    # => [native_acct_stack_ptr, account_stack_top_pointer]
+    push.ACCOUNT_STACK_TOP_PTR.MIN_ACCOUNT_STACK_PTR
+    # => [native_acct_stack_ptr, account_stack_top_ptr]
 
     # store the native account data pointer into the first stack element.
     push.NATIVE_ACCOUNT_DATA_PTR dup.1 mem_store
-    # => [native_acct_stack_ptr, account_stack_top_pointer]
+    # => [native_acct_stack_ptr, account_stack_top_ptr]
 
     # store the pointer to the first account stack element at the account stack top 
     # pointer.
@@ -713,8 +713,8 @@ end
 #! Where:
 #! - ptr is the memory address at which the data of the currently used account begins.
 export.get_current_account_data_ptr
-    push.ACCOUNT_STACK_TOP_POINTER mem_load
-    # => [account_stack_top_pointer]
+    push.ACCOUNT_STACK_TOP_PTR mem_load
+    # => [account_stack_top_ptr]
 
     mem_load
     # => [current_account_data_ptr]
@@ -735,14 +735,14 @@ end
 #! - the account stack is full, containing 64 accounts total.
 export.push_ptr_to_account_stack
     # check that the account stack is not full
-    push.ACCOUNT_STACK_TOP_POINTER mem_load dup push.MAX_ACCOUNT_STACK_PTR
+    push.ACCOUNT_STACK_TOP_PTR mem_load dup push.MAX_ACCOUNT_STACK_PTR
     lt assert.err=ERR_ACCOUNT_STACK_OVERFLOW
     # => [account_stack_top_ptr, curr_account_data_ptr]
 
     add.1 dup movdn.2 mem_store
     # => [account_stack_top_ptr+1]
 
-    push.ACCOUNT_STACK_TOP_POINTER mem_store
+    push.ACCOUNT_STACK_TOP_PTR mem_store
     # => []
 end
 
@@ -758,12 +758,12 @@ end
 export.pop_ptr_from_account_stack
     # check that the account data stack always is at least of size 1, that is, it contains at least 
     # the native account
-    push.ACCOUNT_STACK_TOP_POINTER mem_load dup push.MIN_ACCOUNT_STACK_PTR
+    push.ACCOUNT_STACK_TOP_PTR mem_load dup push.MIN_ACCOUNT_STACK_PTR
     gt assert.err=ERR_ACCOUNT_STACK_UNDERFLOW
     # => [account_stack_top_ptr]
 
     # move the account stack pointer one element back and store it as the top pointer
-    sub.1 push.ACCOUNT_STACK_TOP_POINTER mem_store
+    sub.1 push.ACCOUNT_STACK_TOP_PTR mem_store
     # => []
 end
 
