@@ -114,8 +114,8 @@ impl AccountIdV0 {
         storage_mode: AccountStorageMode,
     ) -> AccountIdV0 {
         let version = AccountIdVersion::Version0 as u8;
-        let low_nibble = (storage_mode as u8) << Self::STORAGE_MODE_SHIFT
-            | (account_type as u8) << Self::TYPE_SHIFT
+        let low_nibble = ((storage_mode as u8) << Self::STORAGE_MODE_SHIFT)
+            | ((account_type as u8) << Self::TYPE_SHIFT)
             | version;
 
         // Set least significant byte.

@@ -104,7 +104,7 @@ impl NoteExecutionHint {
             },
             Self::AFTER_BLOCK_TAG => NoteExecutionHint::after_block(payload.into()),
             Self::ON_BLOCK_SLOT_TAG => {
-                let remainder = (payload >> 24 & 0xff) as u8;
+                let remainder = ((payload >> 24) & 0xff) as u8;
                 if remainder != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
                 }
@@ -201,7 +201,7 @@ impl TryFrom<u64> for NoteExecutionHint {
 impl From<NoteExecutionHint> for u64 {
     fn from(value: NoteExecutionHint) -> Self {
         let (tag, payload) = value.into_parts();
-        (payload as u64) << 6 | (tag as u64)
+        ((payload as u64) << 6) | (tag as u64)
     }
 }
 
