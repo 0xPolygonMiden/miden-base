@@ -962,7 +962,7 @@ end
 #! Invocation: dynexec
 export.tx_start_foreign_context
     # get the memory address and a flag whether this account was already loaded.
-    exec.account::get_foreign_account_ptr
+    exec.account::get_account_data_ptr
     # OS => [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
     if.true
