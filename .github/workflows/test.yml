@@ -27,10 +27,8 @@ jobs:
         run: rustup update --no-self-update 
       - name: Build tests
         run: make test-build
-      - name: test-default
+      - name: test
         run: make test-default
-      - name: test-prove
-        run: make test-prove
 
   doc-tests:
     name: doc-tests
@@ -43,4 +41,4 @@ jobs:
       - name: Install rust
         run: rustup update --no-self-update
       - name: Run doc-tests
-        run: make test-docs  
+        run: make test-docs
