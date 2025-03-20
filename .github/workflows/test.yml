@@ -28,7 +28,7 @@ jobs:
       - name: Build tests
         run: make test-build
       - name: test
-        run: make test-default
+        run: make test
 
   doc-tests:
     name: doc-tests
