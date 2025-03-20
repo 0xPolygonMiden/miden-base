@@ -1052,8 +1052,9 @@ export.get_foreign_account_ptr
     dup.1 eq.0 dup.1 eq.0 and not assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
     # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
-    # get the initial account data pointer
-    exec.memory::get_native_account_data_ptr
+    # move pointer one account block back so that the first account pointer in the cycle will point 
+    # to the native account
+    exec.memory::get_native_account_data_ptr exec.memory::get_account_data_length sub
     # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 
     # push the flag to enter the loop

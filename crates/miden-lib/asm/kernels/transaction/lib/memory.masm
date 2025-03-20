@@ -729,33 +729,31 @@ end
 #! It is done by writing the pointer to the element next to the stack top and moving the top pointer
 #! to it.
 #!
-#! Inputs:  [curr_account_data_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
-#! Outputs: [foreign_account_id_prefix, foreign_account_id_suffix]
+#! Inputs:  [curr_account_data_ptr]
+#! Outputs: []
 #!
 #! Where:
 #! - curr_account_data_ptr is the memory address
-#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the ID of the foreign
-#!   account whose procedure is going to be executed.
 #!
 #! Panics if:
 #! - the account stack is full, containing 64 accounts total.
-#! - the provided foreign account ID is equal to the native account ID.
+#! - the provided account data pointer is equal to the native account data pointer.
 export.push_ptr_to_account_stack
     # check that the account stack is not full
     push.ACCOUNT_STACK_TOP_PTR mem_load dup push.MAX_ACCOUNT_STACK_PTR
     lt assert.err=ERR_ACCOUNT_STACK_OVERFLOW
-    # => [account_stack_top_ptr, curr_account_data_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
+    # => [account_stack_top_ptr, curr_account_data_ptr]
 
-    # check that foreign account ID is not equal to the native account ID
-    dup.3 dup.3 exec.get_native_account_id exec.account::is_id_equal
+    # check that the current account data pointer is not equal to the native account data pointer
+    dup.1 push.NATIVE_ACCOUNT_DATA_PTR eq 
     assertz.err=ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT
-    # => [account_stack_top_ptr, curr_account_data_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
+    # => [account_stack_top_ptr, curr_account_data_ptr]
 
     add.1 dup movdn.2 mem_store
-    # => [account_stack_top_ptr+1, foreign_account_id_prefix, foreign_account_id_suffix]
+    # => [account_stack_top_ptr+1]
 
     push.ACCOUNT_STACK_TOP_PTR mem_store
-    # => [foreign_account_id_prefix, foreign_account_id_suffix]
+    # => []
 end
 
 #! Removes the pointer from the account stack.
