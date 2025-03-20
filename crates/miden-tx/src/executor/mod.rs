@@ -151,8 +151,7 @@ impl TransactionExecutor {
             self.authenticator.clone(),
             self.account_codes.iter().map(|code| code.commitment()).collect(),
         )
-        .unwrap();
-        // .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
         // execute the transaction kernel
         let result = vm_processor::execute(
