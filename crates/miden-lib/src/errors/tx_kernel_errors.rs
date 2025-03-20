@@ -141,7 +141,7 @@ pub const ERR_ACCOUNT_STACK_OVERFLOW: u32 = 0x20155;
 pub const ERR_ACCOUNT_STACK_UNDERFLOW: u32 = 0x20156;
 
 /// Creation of a foreign context against the native account is forbidden
-pub const ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT: u32 = 0x20180;
+pub const ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT: u32 = 0x20180;
 /// ID of the provided foreign account equals zero.
 pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 0x20181;
 /// State of the current foreign account is invalid.
@@ -273,7 +273,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 88] = [
     (ERR_ACCOUNT_STACK_OVERFLOW, "Depth of the nested FPI calls exceeded 64"),
     (ERR_ACCOUNT_STACK_UNDERFLOW, "Failed to end foreign context because the current account is the native account"),
 
-    (ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT, "Creation of a foreign context against the native account is forbidden"),
+    (ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, "Creation of a foreign context against the native account is forbidden"),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "ID of the provided foreign account equals zero."),
     (ERR_FOREIGN_ACCOUNT_INVALID, "State of the current foreign account is invalid."),
     (ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED, "Maximum allowed number of foreign account to be loaded (64) was exceeded."),

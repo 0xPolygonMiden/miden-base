@@ -78,17 +78,17 @@ pub const NEW_CODE_ROOT_PTR: MemoryAddress = 20;
 pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 24;
 
 /// The memory address at which the pointer to the stack element containing the pointer to the
-/// currently accessing account data is stored.
+/// currently active account data is stored.
 ///
 /// The stack starts at the address `29`. Stack has a length of `64` elements meaning that the
 /// maximum depth of FPI calls is `63` — the first slot is always occupied by the native account
 /// data pointer.
 ///
 /// ```text
-/// ┌──────────────┬────────────────┬───────────────────┬─────┬────────────────────┐
-/// │ STACK LENGTH │ NATIVE ACCOUNT │ FOREIGN ACCOUNT 1 │ ... │ FOREIGN ACCOUNT 63 │
-/// ├──────────────┼────────────────┼───────────────────┼─────┼────────────────────┤
-///        28              29                30                         92
+/// ┌───────────────┬────────────────┬───────────────────┬─────┬────────────────────┐
+/// │ STACK TOP PTR │ NATIVE ACCOUNT │ FOREIGN ACCOUNT 1 │ ... │ FOREIGN ACCOUNT 63 │
+/// ├───────────────┼────────────────┼───────────────────┼─────┼────────────────────┤
+///        28               29                30                         92
 /// ```
 pub const ACCOUNT_STACK_TOP_PTR: MemoryAddress = 28;
 

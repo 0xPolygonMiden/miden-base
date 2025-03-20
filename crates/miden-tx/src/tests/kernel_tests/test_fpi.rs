@@ -3,7 +3,7 @@ use std::{string::ToString, vec};
 
 use miden_lib::{
     errors::tx_kernel_errors::{
-        ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT, ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED,
+        ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED,
     },
     transaction::{
         TransactionKernel,
@@ -632,12 +632,6 @@ fn test_fpi_execute_foreign_procedure() {
         .build();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
 
     let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
 
@@ -646,12 +640,7 @@ fn test_fpi_execute_foreign_procedure() {
     executor.load_account_code(foreign_account.code());
 
     let _executed_transaction = executor
-        .execute_transaction(
-            native_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
+        .execute_transaction(native_account.id(), block_ref, &[], tx_context.tx_args().clone())
         .map_err(|e| e.to_string())
         .unwrap();
 }
@@ -669,16 +658,21 @@ fn test_fpi_execute_foreign_procedure() {
 #[test]
 fn test_nested_fpi_cyclic_invocation() {
     // ------ SECOND FOREIGN ACCOUNT ---------------------------------------------------------------
+    let storage_slots = vec![AccountStorage::mock_item_0().slot];
     let second_foreign_account_code_source = "
         use.miden::tx
+        use.miden::account
         
         use.std::sys
 
         export.second_account_foreign_proc
-            # get the storage item at index 0
+            # get the storage item at index 1
             # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0
             # => [pad(14)]
+
+            # push the index of desired storage item
+            push.1
 
             # get the hash of the `get_item_foreign` account procedure from the advice stack
             adv_push.4
@@ -690,8 +684,16 @@ fn test_nested_fpi_cyclic_invocation() {
             exec.tx::execute_foreign_procedure
             # => [storage_value]
 
-            # add 10 to the returning value
-            add.10
+            # make sure that the resulting value equals 5
+            dup push.5 assert_eq.err=5678
+
+            # get the first element of the 0'th storage slot (it should be 1) and add it to the 
+            # obtained foreign value.
+            push.0 exec.account::get_item drop drop drop
+            add
+
+            # assert that the resulting value equals 6
+            dup push.6 assert_eq.err=9012
 
             exec.sys::truncate_stack
         end
@@ -700,7 +702,7 @@ fn test_nested_fpi_cyclic_invocation() {
     let second_foreign_account_component = AccountComponent::compile(
         second_foreign_account_code_source,
         TransactionKernel::testing_assembler(),
-        vec![],
+        storage_slots,
     )
     .unwrap()
     .with_supports_all_types();
@@ -711,7 +713,8 @@ fn test_nested_fpi_cyclic_invocation() {
         .unwrap();
 
     // ------ FIRST FOREIGN ACCOUNT ---------------------------------------------------------------
-    let storage_slots = vec![AccountStorage::mock_item_0().slot];
+    let storage_slots =
+        vec![AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot];
     let first_foreign_account_code_source = "
         use.miden::tx
         use.miden::account
@@ -719,13 +722,9 @@ fn test_nested_fpi_cyclic_invocation() {
         use.std::sys
 
         export.first_account_foreign_proc
-            # get the storage item at index 0
             # pad the stack for the `execute_foreign_procedure` execution
-            padw padw padw push.0.0
-            # => [pad(14)]
-
-            # push the index of desired storage item
-            push.0
+            padw padw padw push.0.0.0
+            # => [pad(15)]
 
             # get the hash of the `second_account_foreign_proc` account procedure from the advice stack
             adv_push.4
@@ -737,8 +736,13 @@ fn test_nested_fpi_cyclic_invocation() {
             exec.tx::execute_foreign_procedure
             # => [storage_value]
 
-            # add 100 to the returning value
-            add.100
+            # get the second element of the 0'th storage slot (it should be 2) and add it to the 
+            # obtained foreign value.
+            push.0 exec.account::get_item drop drop swap drop
+            add
+
+            # assert that the resulting value equals 8
+            dup push.8 assert_eq.err=3456
 
             exec.sys::truncate_stack
         end
@@ -805,13 +809,9 @@ fn test_nested_fpi_cyclic_invocation() {
         use.miden::tx
 
         begin
-            # get the storage item at index 0
             # pad the stack for the `execute_foreign_procedure` execution
-            padw padw padw push.0.0
-            # => [pad(14)]
-
-            # push the index of desired storage item
-            push.0
+            padw padw padw push.0.0.0
+            # => [pad(15)]
 
             # get the hash of the `get_item` account procedure
             push.{first_account_foreign_proc_hash}
@@ -823,11 +823,11 @@ fn test_nested_fpi_cyclic_invocation() {
             exec.tx::execute_foreign_procedure
             # => [storage_value]
             
-            # add 1000 to the returning value
-            add.1000
+            # add 10 to the returning value
+            add.10
 
-            # check that the resulting value equals 1111
-            push.1111 assert_eq.err=1234
+            # assert that the resulting value equals 18
+            push.18 assert_eq.err=1234
             # => []
 
             exec.sys::truncate_stack
@@ -852,12 +852,6 @@ fn test_nested_fpi_cyclic_invocation() {
         .build();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
 
     let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None)
         .with_tracing()
@@ -869,12 +863,7 @@ fn test_nested_fpi_cyclic_invocation() {
     executor.load_account_code(second_foreign_account.code());
 
     let _executed_transaction = executor
-        .execute_transaction(
-            native_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
+        .execute_transaction(native_account.id(), block_ref, &[], tx_context.tx_args().clone())
         .map_err(|e| e.to_string())
         .unwrap();
 }
@@ -886,7 +875,7 @@ fn test_nested_fpi_cyclic_invocation() {
 #[test]
 fn test_nested_fpi_stack_overflow() {
     // use a custom thread to increase its stack capacity
-    std::thread::Builder::new().stack_size(10 * 1_048_576).spawn(||{
+    std::thread::Builder::new().stack_size(8 * 1_048_576).spawn(||{
         let mut foreign_accounts = Vec::new();
 
         let last_foreign_account_code_source = "
@@ -934,13 +923,9 @@ fn test_nested_fpi_stack_overflow() {
                 use.std::sys
 
                 export.read_first_foreign_storage_slot_{foreign_account_index}
-                    # get the storage item at index 0
                     # pad the stack for the `execute_foreign_procedure` execution
-                    padw padw padw push.0.0
-                    # => [pad(14)]
-
-                    # push the index of desired storage item
-                    push.0
+                    padw padw padw push.0.0.0
+                    # => [pad(15)]
 
                     # get the hash of the `get_item` account procedure
                     push.{next_account_proc_hash}
@@ -1001,13 +986,9 @@ fn test_nested_fpi_stack_overflow() {
             use.miden::tx
 
             begin
-                # get the storage item at index 0
                 # pad the stack for the `execute_foreign_procedure` execution
-                padw padw padw push.0.0
-                # => [pad(14)]
-
-                # push the index of desired storage item
-                push.0
+                padw padw padw push.0.0.0
+                # => [pad(15)]
 
                 # get the hash of the `get_item` account procedure
                 push.{foreign_account_proc_hash}
@@ -1041,12 +1022,6 @@ fn test_nested_fpi_stack_overflow() {
             .build();
 
         let block_ref = tx_context.tx_inputs().block_header().block_num();
-        let note_ids = tx_context
-            .tx_inputs()
-            .input_notes()
-            .iter()
-            .map(|note| note.id())
-            .collect::<Vec<_>>();
 
         let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None)
             .with_tracing()
@@ -1062,7 +1037,7 @@ fn test_nested_fpi_stack_overflow() {
             .execute_transaction(
                 native_account.id(),
                 block_ref,
-                &note_ids,
+                &[],
                 tx_context.tx_args().clone(),
             ).unwrap_err();
 
@@ -1071,7 +1046,7 @@ fn test_nested_fpi_stack_overflow() {
         };
 
         assert_execution_error!(Err::<(), _>(err), ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED);
-    }).expect("tread panic external").join().expect("tread panic internal");
+    }).expect("thread panic external").join().expect("thread panic internal");
 }
 
 /// Test that code will panic in attempt to call a procedure from the native account.
@@ -1084,7 +1059,6 @@ fn test_nested_fpi_native_account_invocation() {
         use.std::sys
 
         export.first_account_foreign_proc
-            # get the storage item at index 0
             # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0.0
             # => [pad(15)]
@@ -1143,13 +1117,9 @@ fn test_nested_fpi_native_account_invocation() {
         use.miden::tx
 
         begin
-            # get the storage item at index 0
             # pad the stack for the `execute_foreign_procedure` execution
-            padw padw padw push.0.0
-            # => [pad(14)]
-
-            # push the index of desired storage item
-            push.0
+            padw padw padw push.0.0.0
+            # => [pad(15)]
 
             # get the hash of the `get_item` account procedure
             push.{first_account_foreign_proc_hash}
@@ -1183,12 +1153,6 @@ fn test_nested_fpi_native_account_invocation() {
         .build();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
 
     let mut executor = TransactionExecutor::new(tx_context.get_data_store(), None)
         .with_tracing()
@@ -1199,19 +1163,14 @@ fn test_nested_fpi_native_account_invocation() {
     executor.load_account_code(foreign_account.code());
 
     let err = executor
-        .execute_transaction(
-            native_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
+        .execute_transaction(native_account.id(), block_ref, &[], tx_context.tx_args().clone())
         .unwrap_err();
 
     let TransactionExecutorError::TransactionProgramExecutionFailed(err) = err else {
         panic!("unexpected error")
     };
 
-    assert_execution_error!(Err::<(), _>(err), ERR_FOREIGN_ACCOUNT_CONTEXT_WITH_NATIVE_ACCOUNT);
+    assert_execution_error!(Err::<(), _>(err), ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT);
 }
 
 // HELPER FUNCTIONS

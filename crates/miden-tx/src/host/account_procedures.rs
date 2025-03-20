@@ -55,7 +55,7 @@ impl AccountProcedureIndexMap {
                     process.ctx(),
                     account_stack_top_ptr
                         .try_into()
-                        .expect("account data stack top pointer should be less than u32::MAX"),
+                        .expect("account stack top pointer should be less than u32::MAX"),
                 )
                 .expect("Current account pointer was not initialized")
                 .as_int();
