@@ -17,19 +17,16 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
     steps:
       - uses: actions/checkout@main
       - uses: taiki-e/install-action@nextest 
-      - uses: rui314/setup-mold@v1
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Install rust
         run: rustup update --no-self-update 
       - name: Build tests
-        run: make test-build && ls -l && ls -l target && find target/test-dev/deps/ -type f -executable | grep "miden_tx" | xargs readelf -p .comment
+        run: make test-build
       - name: test
         run: make test
 
