@@ -98,12 +98,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - name: Install cargo-machete
-        uses: clechasseur/rs-cargo@v2
-        with:
-          command: install
-          args: cargo-machete@0.7.0
-      - name: Machete
-        uses: clechasseur/rs-cargo@v2
-        with:
-          command: machete
+      - name: machete
+        uses: bnjbvr/cargo-machete@main
