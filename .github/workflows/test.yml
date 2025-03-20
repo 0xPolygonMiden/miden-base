@@ -29,5 +29,16 @@ jobs:
         run: make test-build
       - name: test
         run: make test
-      - name: test-doc
+
+  doc-tests:
+    name: doc-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
+      - name: Install rust
+        run: rustup update --no-self-update
+      - name: Run doc-tests
         run: make test-docs
