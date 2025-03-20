@@ -29,7 +29,7 @@ jobs:
       - name: Install rust
         run: rustup update --no-self-update 
       - name: Build tests
-        run: make test-build && readelf -p .comment target/test-dev/deps/miden-tx-*
+        run: make test-build && ls -l && ls -l target && find target/test-dev/deps/ -type f -executable | grep "miden_tx" | xargs readelf -p .comment
       - name: test
         run: make test
 
