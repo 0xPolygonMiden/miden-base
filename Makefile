@@ -7,7 +7,6 @@ help:
 # -- variables --------------------------------------------------------------------------------------
 
 WARNINGS=RUSTDOCFLAGS="-D warnings"
-DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
 # Enable file generation in the `src` directory.
 # This is used in the build scripts of miden-lib, miden-proving-service and miden-proving-service-client.
@@ -61,31 +60,23 @@ doc: ## Generates & checks documentation
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
+	cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
 
 
-.PHONY: test-default
-test-default: ## Run default tests excluding `prove`
-	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing --filter-expr "not test(prove)"
+.PHONY: test
+test: ## Run all tests
+	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing
 
 
 .PHONY: test-dev
 test-dev: ## Run default tests excluding slow tests (prove and ID anchor block tests) in debug mode intended to be run locally
-	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --features concurrent,testing --filter-expr "not test(prove) & not test(create_accounts_with_non_zero_anchor_block)"
+	$(BACKTRACE) cargo nextest run --profile default --features concurrent,testing --filter-expr "not test(prove) & not test(create_accounts_with_non_zero_anchor_block)"
 
 
 .PHONY: test-docs
 test-docs: ## Run documentation tests
-	$(WARNINGS) $(DEBUG_ASSERTIONS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
+	$(WARNINGS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
 
-
-.PHONY: test-prove
-test-prove: ## Run `prove` tests (tests which use the Miden prover)
-	$(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-dev --features concurrent,testing --filter-expr "test(prove)"
-
-
-.PHONY: test
-test: test-default test-prove ## Run all tests
 
 # --- checking ------------------------------------------------------------------------------------
 
