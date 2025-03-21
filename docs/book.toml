@@ -6,7 +6,7 @@ multilingual = false
 title        = "The Miden Protocol"
 
 [output.html]
-git-repository-url = "https://github.com/0xPolygonMiden/miden-node"
+git-repository-url = "https://github.com/0xPolygonMiden/miden-base"
 
 [preprocessor.katex]
 after = ["links"]
