@@ -1783,9 +1783,8 @@ dependencies = [
 
 [[package]]
 name = "miden-air"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72269e041e915d6c34325a8906f08a8ff6ec9b92c79ae07f3a0de8c3588694b5"
+version = "0.14.0"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=andrew-split-hash-memory#1230c072002aacdeb1029307f1de0fff601d0f41"
 dependencies = [
  "miden-core",
  "thiserror 2.0.12",
@@ -1795,9 +1794,8 @@ dependencies = [
 
 [[package]]
 name = "miden-assembly"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce5680a0e75470389b65cc00900422ad7e1aa7972477c75ff88f63c3a01671e9"
+version = "0.14.0"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=andrew-split-hash-memory#1230c072002aacdeb1029307f1de0fff601d0f41"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -1841,9 +1839,8 @@ dependencies = [
 
 [[package]]
 name = "miden-core"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8ba125a31e9ec0e732f47e639525c753973e553126cfc46cc63674049ea4134"
+version = "0.14.0"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=andrew-split-hash-memory#1230c072002aacdeb1029307f1de0fff601d0f41"
 dependencies = [
  "lock_api",
  "loom",
@@ -1974,9 +1971,8 @@ dependencies = [
 
 [[package]]
 name = "miden-processor"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e5f362138a7bfe6c20246de651e848566843a0d5062cc4a7a8ebff6bd14668d"
+version = "0.14.0"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=andrew-split-hash-memory#1230c072002aacdeb1029307f1de0fff601d0f41"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1987,9 +1983,8 @@ dependencies = [
 
 [[package]]
 name = "miden-prover"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6531711c8f3e25be9c607f82fc456594aba061acd3cde1df5d23eed88579340"
+version = "0.14.0"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=andrew-split-hash-memory#1230c072002aacdeb1029307f1de0fff601d0f41"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -2062,9 +2057,8 @@ dependencies = [
 
 [[package]]
 name = "miden-stdlib"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2694c29b37e953fec31bb912db604f16d4c1e9a692618eac876eb6d3c0473c36"
+version = "0.14.0"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=andrew-split-hash-memory#1230c072002aacdeb1029307f1de0fff601d0f41"
 dependencies = [
  "miden-assembly",
  "miden-core",
@@ -2108,9 +2102,8 @@ dependencies = [
 
 [[package]]
 name = "miden-verifier"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ae6636d1e7a9d78a973fd59ffcfd87964eee235ecdf3264569add5ff89b0d91"
+version = "0.14.0"
+source = "git+https://github.com/0xPolygonMiden/miden-vm?branch=andrew-split-hash-memory#1230c072002aacdeb1029307f1de0fff601d0f41"
 dependencies = [
  "miden-air",
  "miden-core",

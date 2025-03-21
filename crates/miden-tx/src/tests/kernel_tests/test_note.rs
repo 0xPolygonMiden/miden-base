@@ -5,9 +5,11 @@ use miden_lib::{
     transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
 };
 use miden_objects::{
-    Hasher, WORD_SIZE,
+    WORD_SIZE,
     account::AccountId,
-    note::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
+    note::{
+        Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
+    },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
     transaction::TransactionArgs,
 };
@@ -449,24 +451,24 @@ fn test_get_inputs_hash() {
 
             # push the number of values and pointer to the inputs on the stack
             push.5.4000
-            # execute the `compute_inputs_hash` procedure for 5 values
-            exec.note::compute_inputs_hash
+            # execute the `compute_inputs_commitment` procedure for 5 values
+            exec.note::compute_inputs_commitment
             # => [HASH_5]
 
             push.8.4000
-            # execute the `compute_inputs_hash` procedure for 8 values
-            exec.note::compute_inputs_hash
+            # execute the `compute_inputs_commitment` procedure for 8 values
+            exec.note::compute_inputs_commitment
             # => [HASH_8, HASH_5]
 
             push.15.4000
-            # execute the `compute_inputs_hash` procedure for 15 values
-            exec.note::compute_inputs_hash
+            # execute the `compute_inputs_commitment` procedure for 15 values
+            exec.note::compute_inputs_commitment
             # => [HASH_15, HASH_8, HASH_5]
 
             push.0.4000
-            # check that calling `compute_inputs_hash` procedure with 0 elements will result in an
+            # check that calling `compute_inputs_commitment` procedure with 0 elements will result in an
             # empty word
-            exec.note::compute_inputs_hash
+            exec.note::compute_inputs_commitment
             # => [0, 0, 0, 0, HASH_15, HASH_8, HASH_5]
 
             # truncate the stack
@@ -477,17 +479,12 @@ fn test_get_inputs_hash() {
     let process = &tx_context.execute_code(code).unwrap();
     let process_state: ProcessState = process.into();
 
-    let mut expected_5 = Hasher::hash_elements(&[
-        Felt::new(1),
-        Felt::new(2),
-        Felt::new(3),
-        Felt::new(4),
-        Felt::new(5),
-    ])
-    .to_vec();
-    expected_5.reverse();
+    let note_inputs_5_hash =
+        NoteInputs::new(vec![Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4), Felt::new(5)])
+            .unwrap()
+            .commitment();
 
-    let mut expected_8 = Hasher::hash_elements(&[
+    let note_inputs_8_hash = NoteInputs::new(vec![
         Felt::new(1),
         Felt::new(2),
         Felt::new(3),
@@ -497,10 +494,10 @@ fn test_get_inputs_hash() {
         Felt::new(7),
         Felt::new(8),
     ])
-    .to_vec();
-    expected_8.reverse();
+    .unwrap()
+    .commitment();
 
-    let mut expected_15 = Hasher::hash_elements(&[
+    let note_inputs_15_hash = NoteInputs::new(vec![
         Felt::new(1),
         Felt::new(2),
         Felt::new(3),
@@ -517,13 +514,16 @@ fn test_get_inputs_hash() {
         Felt::new(14),
         Felt::new(15),
     ])
-    .to_vec();
-    expected_15.reverse();
+    .unwrap()
+    .commitment();
 
-    let mut expected_stack = vec![ZERO, ZERO, ZERO, ZERO];
-    expected_stack.extend_from_slice(&expected_15);
-    expected_stack.extend_from_slice(&expected_8);
-    expected_stack.extend_from_slice(&expected_5);
+    let mut expected_stack = alloc::vec::Vec::new();
+
+    expected_stack.extend_from_slice(note_inputs_5_hash.as_elements());
+    expected_stack.extend_from_slice(note_inputs_8_hash.as_elements());
+    expected_stack.extend_from_slice(note_inputs_15_hash.as_elements());
+    expected_stack.extend_from_slice(&[ZERO, ZERO, ZERO, ZERO]);
+    expected_stack.reverse();
 
     assert_eq!(process_state.get_stack_state()[0..16], expected_stack);
 }
