@@ -261,11 +261,9 @@ impl AssetVault {
 
 impl Serializable for AssetVault {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO: determine total number of assets in the vault without allocating the vector
-        let assets = self.assets().collect::<Vec<_>>();
-
-        target.write_usize(assets.len());
-        target.write_many(&assets);
+        let count = self.asset_tree.num_entries();
+        target.write_usize(count);
+        target.write_many(self.assets());
     }
 
     fn get_size_hint(&self) -> usize {
@@ -278,7 +276,6 @@ impl Serializable for AssetVault {
         }
 
         size += count.get_size_hint();
-
         size
     }
 }

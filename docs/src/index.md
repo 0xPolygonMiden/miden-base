@@ -24,30 +24,27 @@ Miden uses _accounts_ and _notes_, both of which hold assets. Accounts consume a
 
 ### Accounts
 
-[Accounts](accounts.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. The [accounts chapter](accounts.md) describes the design of an account, its storage types, and creating an account.
+An [Account](account.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. The [account chapter](account.md) describes the design of an account, its storage types, and creating an account.
 
 ### Notes
 
-[Notes](notes.md) are messages that accounts send to each other. A note stores assets and a script that defines how the note can be consumed. The [note chapter](notes.md) describes the design, the storage types, and the creation of a note.
+A [Note](note.md) is a message that accounts send to each other. A note stores assets and a script that defines how the note can be consumed. The [note chapter](note.md) describes the design, the storage types, and the creation of a note.
 
 ### Assets
 
-[Assets](assets.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. The [assets chapter](assets.md) describes asset issuance, customization, and storage.
+An [Asset](asset.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. The [asset chapter](asset.md) describes asset issuance, customization, and storage.
 
 ### Transactions
 
-[Transactions](transactions/overview.md) describe the production and consumption of notes by a single account. 
+A [Transactions](transaction.md) describe the production and consumption of notes by a single account. 
 
 Executing a transaction always results in a STARK proof. 
 
-The [transaction chapter](transactions/overview.md) describes the transaction design and implementation, including an in-depth discussion of how transaction execution happens in the transaction kernel program.
+The [transaction chapter](transaction.md) describes the transaction design and implementation, including an in-depth discussion of how transaction execution happens in the transaction kernel program.
 
-### Limits
-[Limits](limits.md) topic describes limits currently enforced in `miden-base` and `miden-node`. 
+#### Accounts produce and consume notes to communicate
 
-##### Accounts produce and consume notes to communicate
-
-![Architecture core concepts](../img/architecture/miden-architecture-core-concepts.gif)
+![Architecture core concepts](img/miden-architecture-core-concepts.gif)
 
 ## State and execution
 
@@ -56,12 +53,13 @@ The actor-based execution model requires a radically different approach to recor
 Miden's state model captures the individual states of all accounts and notes, and the execution model describes state progress in a sequence of blocks.
 
 ### State model
+
 [State](state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored on-chain and off-chain. This chapter describes the three different state databases in Miden.
 
-### Execution model
+### Blockchain
 
-[Execution](execution.md) defines how state progresses as aggregated-state-updates in batches, blocks, and epochs. The [execution chapter](execution.md) describes the execution model and how blocks are built.
+The [Blockchain](blockchain.md) defines how state progresses as aggregated-state-updates in batches, blocks, and epochs. The [blockchain chapter](blockchain.md) describes the execution model and how blocks are built.
 
 ##### Operators capture and progress state
 
-![Architecture state process](../img/architecture/miden-architecture-state-progress.gif)
+![Architecture state process](img/miden-architecture-state-progress.gif)

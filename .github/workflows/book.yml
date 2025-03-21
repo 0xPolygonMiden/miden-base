@@ -1,0 +1,41 @@
+# Builds and deploys the mdbook
+
+name: book
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy mdbook
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@main
+      - name: Install katex, alerts and linkcheck
+        run: |
+          rustup update --no-self-update stable
+          cargo +stable install mdbook-katex mdbook-linkcheck mdbook-alerts
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: "latest"
+
+      - name: Build miden book
+        run: mdbook build docs/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "docs/book/html"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
