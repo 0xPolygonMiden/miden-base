@@ -4,6 +4,7 @@
 
 - [Protocol](./index.md)
     * [Account](./account.md)
+      - [Components](./component_templates.md)
     * [Note](./note.md)
     * [Asset](./asset.md)
     * [Transaction](./transaction.md)
