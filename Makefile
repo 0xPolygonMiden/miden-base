@@ -56,6 +56,11 @@ lint: ## Runs all linting tasks at once (Clippy, fixing, formatting)
 doc: ## Generates & checks documentation
 	$(WARNINGS) cargo doc $(ALL_FEATURES_BUT_ASYNC) --keep-going --release
 
+
+.PHONY: book
+book: ## Builds the book & serves documentation site
+	mdbook serve --open docs
+
 # --- testing -------------------------------------------------------------------------------------
 
 .PHONY: test-build
