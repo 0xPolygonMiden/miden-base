@@ -276,7 +276,7 @@ impl Serializable for AssetVault {
         }
 
         size += count.get_size_hint();
-        
+
         size
     }
 }
