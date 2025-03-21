@@ -5,9 +5,9 @@ use super::{
     FungibleAsset, NonFungibleAsset, Serializable,
 };
 use crate::{
-    AssetVaultError, Digest,
     account::{AccountId, AccountVaultDelta, NonFungibleDeltaAction},
     crypto::merkle::Smt,
+    AssetVaultError, Digest,
 };
 // ASSET VAULT
 // ================================================================================================
@@ -44,8 +44,8 @@ impl AssetVault {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the tree root of this vault.
-    pub fn root(&self) -> Digest {
+    /// Returns a commitment to this vault.
+    pub fn commitment(&self) -> Digest {
         self.asset_tree.root()
     }
 
@@ -214,7 +214,7 @@ impl AssetVault {
         // fetch the asset from the vault.
         let mut current = match self.asset_tree.get_value(&asset.vault_key().into()) {
             current if current == Smt::EMPTY_VALUE => {
-                return Err(AssetVaultError::FungibleAssetNotFound(asset));
+                return Err(AssetVaultError::FungibleAssetNotFound(asset))
             },
             current => FungibleAsset::new_unchecked(current),
         };
@@ -261,11 +261,9 @@ impl AssetVault {
 
 impl Serializable for AssetVault {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO: determine total number of assets in the vault without allocating the vector
-        let assets = self.assets().collect::<Vec<_>>();
-
-        target.write_usize(assets.len());
-        target.write_many(&assets);
+        let count = self.asset_tree.num_entries();
+        target.write_usize(count);
+        target.write_many(self.assets());
     }
 
     fn get_size_hint(&self) -> usize {
@@ -278,7 +276,6 @@ impl Serializable for AssetVault {
         }
 
         size += count.get_size_hint();
-
         size
     }
 }
