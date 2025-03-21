@@ -45,17 +45,3 @@ jobs:
           rustup target add wasm32-unknown-unknown
           make build-no-std
           make build-no-std-testing
-
-  book:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup mdbook and extensions
-        run: |
-          # Update Rust and install mdbook, katex, linkcheck and alerts
-          rustup update --no-self-update stable
-          cargo +stable install mdbook mdbook-katex mdbook-linkcheck mdbook-alerts
-      - name: Build book
-        run: mdbook build docs
-
-
