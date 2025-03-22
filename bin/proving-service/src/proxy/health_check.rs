@@ -1,8 +1,7 @@
 use std::time::Duration;
 
-use axum::async_trait;
 use pingora::{prelude::sleep, server::ShutdownWatch, services::background::BackgroundService};
-use tonic::transport::Channel;
+use tonic::{async_trait, transport::Channel};
 use tonic_health::pb::health_client::HealthClient;
 use tracing::debug_span;
 
@@ -32,7 +31,7 @@ impl BackgroundService for LoadBalancerState {
     ///
     /// # Errors
     /// - If the worker has an invalid URI.
-    async fn start(&self, _shutdown: ShutdownWatch) {
+    async fn start(&self, mut _shutdown: ShutdownWatch) {
         Box::pin(async move {
             loop {
                 // Create a new spawn to perform the health check
