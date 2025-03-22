@@ -198,12 +198,12 @@ export.get_serial_number
     # => [SERIAL_NUMBER]
 end
 
-#! Computes commitment of note inputs starting at the specified memory address.
+#! Computes commitment to the note inputs starting at the specified memory address.
 #!
 #! This procedure checks that the provided number of inputs is within limits and then computes the
-#! hash. 
+#! commitment.
 #!
-#! Notice that the note inputs are padded with zeros in case their number is not multiple of 8.
+#! Notice that the note inputs are padded with zeros in case their number is not a multiple of 8.
 #!
 #! If the number if inputs is 0, procedure returns the empty word: [0, 0, 0, 0].
 #!
@@ -215,6 +215,7 @@ end
 #! - Else: 189 cycles + 3 * words
 #!
 #! Panics if:
+#! - inputs_ptr is not word-aligned (i.e., is not a multiple of 4).
 #! - num_inputs is greater than 128.
 #!
 #! Invocation: exec
