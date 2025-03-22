@@ -1,11 +1,13 @@
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{MerkleError, SimpleSmt},
-};
+use alloc::vec::Vec;
 
 use crate::{
-    note::{compute_note_hash, NoteId, NoteMetadata},
-    BATCH_NOTE_TREE_DEPTH,
+    BATCH_NOTE_TREE_DEPTH, EMPTY_WORD,
+    crypto::{
+        hash::rpo::RpoDigest,
+        merkle::{LeafIndex, MerkleError, SimpleSmt},
+    },
+    note::{NoteId, NoteMetadata, compute_note_commitment},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 /// Wrapper over [SimpleSmt<BATCH_NOTE_TREE_DEPTH>] for batch note tree.
@@ -26,7 +28,7 @@ impl BatchNoteTree {
     ) -> Result<Self, MerkleError> {
         let leaves = entries
             .into_iter()
-            .map(|(note_id, metadata)| compute_note_hash(note_id, metadata).into());
+            .map(|(note_id, metadata)| compute_note_commitment(note_id, metadata).into());
 
         SimpleSmt::with_contiguous_leaves(leaves).map(Self)
     }
@@ -34,5 +36,50 @@ impl BatchNoteTree {
     /// Returns the root of the tree
     pub fn root(&self) -> RpoDigest {
         self.0.root()
+    }
+
+    /// Returns the number of non-empty leaves in this tree.
+    pub fn num_leaves(&self) -> usize {
+        self.0.num_leaves()
+    }
+
+    /// Removes the note at the given `index` form the tree by inserting [`EMPTY_WORD`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the `index` is equal to or exceeds
+    ///   [`MAX_OUTPUT_NOTES_PER_BATCH`](crate::constants::MAX_OUTPUT_NOTES_PER_BATCH).
+    pub fn remove(&mut self, index: u64) -> Result<(), MerkleError> {
+        let key = LeafIndex::new(index)?;
+        self.0.insert(key, EMPTY_WORD);
+
+        Ok(())
+    }
+
+    /// Consumes the batch note tree and returns the underlying [`SimpleSmt`].
+    pub fn into_smt(self) -> SimpleSmt<BATCH_NOTE_TREE_DEPTH> {
+        self.0
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for BatchNoteTree {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.leaves().collect::<Vec<_>>().write_into(target);
+    }
+}
+
+impl Deserializable for BatchNoteTree {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let leaves = Vec::read_from(source)?;
+        let smt = SimpleSmt::with_leaves(leaves.into_iter()).map_err(|err| {
+            DeserializationError::UnknownError(format!(
+                "failed to deserialize BatchNoteTree: {err}"
+            ))
+        })?;
+        Ok(Self(smt))
     }
 }

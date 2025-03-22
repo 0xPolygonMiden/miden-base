@@ -1,12 +1,12 @@
 use.miden::kernel_proc_offsets
 
-#! Returns the block number of the last known block at the time of transaction execution.
+#! Returns the block number of the transaction reference block.
 #!
 #! Inputs:  []
 #! Outputs: [num]
 #!
 #! Where:
-#! - num is the last known block number.
+#! - num is the transaction reference block number.
 #!
 #! Invocation: exec
 export.get_block_number
@@ -25,29 +25,72 @@ export.get_block_number
     # => [num]
 end
 
-#! Returns the block hash of the reference block.
+#! Returns the block commitment of the transaction reference block.
 #!
-#! Inputs:  [EMPTY_WORD]
-#! Outputs: [BLOCK_HASH]
+#! Inputs:  []
+#! Outputs: [BLOCK_COMMITMENT]
 #!
 #! Where:
-#! - BLOCK_HASH, reference block for the transaction execution.
+#! - BLOCK_COMMITMENT is the commitment to the reference block of the transaction.
 #!
 #! Invocation: exec
-export.get_block_hash
+export.get_block_commitment
     # pad the stack
     padw padw padw push.0.0.0
     # => [pad(15)]
 
-    exec.kernel_proc_offsets::tx_get_block_hash_offset
+    exec.kernel_proc_offsets::tx_get_block_commitment_offset
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [BLOCK_HASH, pad(12)]
+    # => [BLOCK_COMMITMENT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [BLOCK_HASH]
+    # => [BLOCK_COMMITMENT]
+end
+
+#! Returns the timestamp of the reference block for this transaction.
+#!
+#! WARNING: the returned timestamp is not guaranteed to be precise (i.e., could be several seconds
+#! off) or recent, unless recency is separately enforced by setting transaction expiration delta.
+#!
+#! Specifically, the reference blocks (and therefore the corresponding block timestamp) can be
+#! chosen somewhat arbitrarily by the transaction executor. While this does not allow executors to
+#! choose future timestamps, they can choose older timestamps for their benefit.
+#!
+#! For example, consider a script that includes a "time boundary", where before time 10 account X
+#! can consume the note and after time 10 another account Y can consume the note. Even if the latest
+#! block in the chain is at time 11, the owner of account X can choose to create a transaction
+#! referencing the block at time 5 and still consume the note, while account Y would also be able
+#! to consume the note when referencing the latest block. This is not necessarily a problem in all
+#! cases, but must be taken into consideration by script developers.
+#!
+#! If the above is undesired, then one possible countermeasure is to set a transaction expiration
+#! delta. For example, with a delta of 3, the oldest block account X could reference is the one at
+#! time 8. This still allows for consumption by both accounts during a period of time, but shortens
+#! that window.
+#!
+#! Inputs:  []
+#! Outputs: [timestamp]
+#!
+#! Where:
+#! - timestamp is the timestamp of the reference block for this transaction. The underlying value is
+#!   of type u32, so u32 operations can be safely used on it.
+export.get_block_timestamp
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [pad(15)]
+
+    exec.kernel_proc_offsets::tx_get_block_timestamp_offset
+    # => [offset, pad(15)]
+
+    syscall.exec_kernel_proc
+    # => [timestamp, pad(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
+    # => [timestamp]
 end
 
 #! Returns the input notes commitment hash.
@@ -77,14 +120,14 @@ export.get_input_notes_commitment
     # => [INPUT_NOTES_COMMITMENT]
 end
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
+#! Returns the output notes commitment. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
 #! Inputs:  [0, 0, 0, 0]
-#! Outputs: [COMMITMENT]
+#! Outputs: [OUTPUT_NOTES_COMMITMENT]
 #!
 #! Where:
-#! - COMMITMENT is the output notes hash.
+#! - OUTPUT_NOTES_COMMITMENT is the output notes commitment.
 #!
 #! Invocation: exec
 export.get_output_notes_commitment
@@ -96,11 +139,11 @@ export.get_output_notes_commitment
     # => [offset, pad(15)]
 
     syscall.exec_kernel_proc
-    # => [COMMITMENT, pad(12)]
+    # => [OUTPUT_NOTES_COMMITMENT, pad(12)]
 
     # clean the stack
     swapdw dropw dropw swapw dropw
-    # => [COMMITMENT]
+    # => [OUTPUT_NOTES_COMMITMENT]
 end
 
 #! Creates a new note and returns the index of the note.
@@ -161,27 +204,27 @@ export.add_asset_to_note
     # => [ASSET, note_idx]
 end
 
-#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_ROOT, and inputs commitment.
 #!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
+#! Inputs:  [SERIAL_NUM, SCRIPT_ROOT, INPUT_COMMITMENT]
 #! Outputs: [RECIPIENT]
 #!
 #! Where:
 #! - SERIAL_NUM is the serial number of the recipient.
-#! - SCRIPT_HASH is the commitment of the note script.
-#! - INPUT_HASH is the commitment of the note inputs.
+#! - SCRIPT_ROOT is the commitment of the note script.
+#! - INPUT_COMMITMENT is the commitment of the note inputs.
 #! - RECIPIENT is the recipient of the note.
 #!
 #! Invocation: exec
 export.build_recipient_hash
-  padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+    padw hmerge
+    # => [SERIAL_NUM_HASH, SCRIPT_ROOT, INPUT_COMMITMENT]
 
-  swapw hmerge
-  # => [MERGE_SCRIPT, INPUT_HASH]
+    swapw hmerge
+    # => [MERGE_SCRIPT, INPUT_COMMITMENT]
 
-  swapw hmerge
-  # [RECIPIENT]
+    swapw hmerge
+    # [RECIPIENT]
 end
 
 #! Executes the provided procedure against the foreign account.
@@ -194,9 +237,9 @@ end
 #! Outputs: [<values returned from the foreign procedure>]
 #!
 #! Where:
-#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the 
+#! - foreign_account_id_{prefix,suffix} are the prefix and suffix felts of the account ID of the
 #!   foreign account to execute the procedure on.
-#! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the 
+#! - pad(n) is the exact number of pads needed to set the number of procedure inputs to 16 at the
 #!   moment of the foreign procedure execution (n = 16 - mem_addr_size - foreign_inputs_len).
 #!
 #! Invocation: exec
@@ -217,7 +260,7 @@ export.execute_foreign_procedure.4
     dropw dropw dropw dropw
     # => [FOREIGN_PROC_ROOT, <foreign account inputs>, pad(n)]
 
-    # store the foreign procedure root to the first local memory slot and get its absolute memory 
+    # store the foreign procedure root to the first local memory slot and get its absolute memory
     # address
     loc_storew.0 dropw locaddr.0
     # => [foreign_proc_root_ptr, <foreign account inputs>, pad(n)]

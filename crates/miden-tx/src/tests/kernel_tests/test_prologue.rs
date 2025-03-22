@@ -4,27 +4,28 @@ use anyhow::Context;
 use miden_lib::{
     account::wallets::BasicWallet,
     errors::tx_kernel_errors::{
-        ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH,
+        ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH,
         ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_EMPTY,
         ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_RESERVED_SLOT_MUST_BE_VALID_EMPY_SMT,
     },
     transaction::{
+        TransactionKernel,
         memory::{
-            MemoryOffset, ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
-            BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
-            INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
+            ACCT_DB_ROOT_PTR, ACCT_ID_PTR, BLOCK_COMMITMENT_PTR, BLOCK_METADATA_PTR,
+            BLOCK_NUMBER_IDX, CHAIN_COMMITMENT_PTR, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
+            INIT_ACCT_COMMITMENT_PTR, INIT_NONCE_PTR, INPUT_NOTE_ARGS_OFFSET,
             INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
-            INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET,
+            INPUT_NOTE_INPUTS_COMMITMENT_OFFSET, INPUT_NOTE_METADATA_OFFSET,
             INPUT_NOTE_NULLIFIER_SECTION_PTR, INPUT_NOTE_NUM_ASSETS_OFFSET,
             INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_PTR, INPUT_NOTE_SERIAL_NUM_OFFSET,
-            KERNEL_ROOT_PTR, NATIVE_ACCT_CODE_COMMITMENT_PTR, NATIVE_ACCT_ID_AND_NONCE_PTR,
-            NATIVE_ACCT_PROCEDURES_SECTION_PTR, NATIVE_ACCT_STORAGE_COMMITMENT_PTR,
-            NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR, NATIVE_ACCT_VAULT_ROOT_PTR,
-            NATIVE_NUM_ACCT_PROCEDURES_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR,
-            NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
-            TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+            INPUT_NOTES_COMMITMENT_PTR, MemoryOffset, NATIVE_ACCT_CODE_COMMITMENT_PTR,
+            NATIVE_ACCT_ID_AND_NONCE_PTR, NATIVE_ACCT_PROCEDURES_SECTION_PTR,
+            NATIVE_ACCT_STORAGE_COMMITMENT_PTR, NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR,
+            NATIVE_ACCT_VAULT_ROOT_PTR, NATIVE_NUM_ACCT_PROCEDURES_PTR,
+            NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
+            PREV_BLOCK_COMMITMENT_PTR, PROOF_COMMITMENT_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
+            TX_COMMITMENT_PTR, TX_KERNEL_COMMITMENT_PTR, TX_SCRIPT_ROOT_PTR,
         },
-        TransactionKernel,
     },
 };
 use miden_objects::{
@@ -35,22 +36,20 @@ use miden_objects::{
     block::{BlockHeader, BlockNumber},
     testing::{
         account_component::AccountMockComponent,
-        account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        },
+        account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET},
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
     },
     transaction::{TransactionArgs, TransactionScript},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, Digest, ExecutionError, Process, ONE};
+use vm_processor::{AdviceInputs, Digest, ExecutionError, ONE, Process};
 
 use super::{Felt, Word, ZERO};
 use crate::{
     assert_execution_error,
     testing::{
-        utils::input_note_data_ptr, MockChain, TransactionContext, TransactionContextBuilder,
+        MockChain, TransactionContext, TransactionContextBuilder, utils::input_note_data_ptr,
     },
     tests::kernel_tests::read_root_mem_word,
 };
@@ -110,9 +109,9 @@ fn test_transaction_prologue() {
 
 fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_word(&process.into(), BLK_HASH_PTR),
-        inputs.tx_inputs().block_header().hash().as_elements(),
-        "The block hash should be stored at the BLK_HASH_PTR"
+        read_root_mem_word(&process.into(), BLOCK_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().commitment().as_elements(),
+        "The block commitment should be stored at the BLOCK_COMMITMENT_PTR"
     );
 
     assert_eq!(
@@ -127,9 +126,9 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), INIT_ACCT_HASH_PTR),
-        inputs.account().hash().as_elements(),
-        "The account commitment should be stored at the ACCT_HASH_PTR"
+        read_root_mem_word(&process.into(), INIT_ACCT_COMMITMENT_PTR),
+        inputs.account().commitment().as_elements(),
+        "The account commitment should be stored at the INIT_ACCT_COMMITMENT_PTR"
     );
 
     assert_eq!(
@@ -146,28 +145,28 @@ fn global_input_memory_assertions(process: &Process, inputs: &TransactionContext
 
     assert_eq!(
         read_root_mem_word(&process.into(), TX_SCRIPT_ROOT_PTR),
-        *inputs.tx_args().tx_script().as_ref().unwrap().hash(),
+        *inputs.tx_args().tx_script().as_ref().unwrap().root(),
         "The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR"
     );
 }
 
 fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) {
     assert_eq!(
-        read_root_mem_word(&process.into(), BLK_HASH_PTR),
-        inputs.tx_inputs().block_header().hash().as_elements(),
-        "The block hash should be stored at the BLK_HASH_PTR"
+        read_root_mem_word(&process.into(), BLOCK_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().commitment().as_elements(),
+        "The block commitment should be stored at the BLOCK_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), PREV_BLOCK_HASH_PTR),
-        inputs.tx_inputs().block_header().prev_hash().as_elements(),
-        "The previous block hash should be stored at the PREV_BLK_HASH_PTR"
+        read_root_mem_word(&process.into(), PREV_BLOCK_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().prev_block_commitment().as_elements(),
+        "The previous block commitment should be stored at the PARENT_BLOCK_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), CHAIN_ROOT_PTR),
-        inputs.tx_inputs().block_header().chain_root().as_elements(),
-        "The chain root should be stored at the CHAIN_ROOT_PTR"
+        read_root_mem_word(&process.into(), CHAIN_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().chain_commitment().as_elements(),
+        "The chain commitment should be stored at the CHAIN_COMMITMENT_PTR"
     );
 
     assert_eq!(
@@ -183,21 +182,21 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), TX_HASH_PTR),
-        inputs.tx_inputs().block_header().tx_hash().as_elements(),
-        "The TX hash should be stored at the TX_HASH_PTR"
+        read_root_mem_word(&process.into(), TX_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().tx_commitment().as_elements(),
+        "The TX commitment should be stored at the TX_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), KERNEL_ROOT_PTR),
-        inputs.tx_inputs().block_header().kernel_root().as_elements(),
-        "The kernel root should be stored at the KERNEL_ROOT_PTR"
+        read_root_mem_word(&process.into(), TX_KERNEL_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().tx_kernel_commitment().as_elements(),
+        "The kernel commitment should be stored at the TX_KERNEL_COMMITMENT_PTR"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), PROOF_HASH_PTR),
-        inputs.tx_inputs().block_header().proof_hash().as_elements(),
-        "The proof hash should be stored at the PROOF_HASH_PTR"
+        read_root_mem_word(&process.into(), PROOF_COMMITMENT_PTR),
+        inputs.tx_inputs().block_header().proof_commitment().as_elements(),
+        "The proof commitment should be stored at the PROOF_COMMITMENT_PTR"
     );
 
     assert_eq!(
@@ -228,7 +227,7 @@ fn block_data_memory_assertions(process: &Process, inputs: &TransactionContext) 
 fn chain_mmr_memory_assertions(process: &Process, prepared_tx: &TransactionContext) {
     // update the chain MMR to point to the block against which this transaction is being executed
     let mut chain_mmr = prepared_tx.tx_inputs().block_chain().clone();
-    chain_mmr.add_block(*prepared_tx.tx_inputs().block_header(), true);
+    chain_mmr.add_block(prepared_tx.tx_inputs().block_header().clone(), true);
 
     assert_eq!(
         read_root_mem_word(&process.into(), CHAIN_MMR_NUM_LEAVES_PTR)[0],
@@ -259,8 +258,8 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
 
     assert_eq!(
         read_root_mem_word(&process.into(), NATIVE_ACCT_VAULT_ROOT_PTR),
-        inputs.account().vault().commitment().as_elements(),
-        "The account vault root commitment should be stored at NATIVE_ACCT_VAULT_ROOT_PTR"
+        inputs.account().vault().root().as_elements(),
+        "The account vault root should be stored at NATIVE_ACCT_VAULT_ROOT_PTR"
     );
 
     assert_eq!(
@@ -294,7 +293,10 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_word(&process.into(), NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + (i as u32) * 4),
+            read_root_mem_word(
+                &process.into(),
+                NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR + (i as u32) * 4
+            ),
             Word::try_from(elements).unwrap(),
             "The account storage slots should be stored starting at NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR"
         )
@@ -319,7 +321,10 @@ fn account_data_memory_assertions(process: &Process, inputs: &TransactionContext
         .enumerate()
     {
         assert_eq!(
-            read_root_mem_word(&process.into(), NATIVE_ACCT_PROCEDURES_SECTION_PTR + (i as u32) * 4),
+            read_root_mem_word(
+                &process.into(),
+                NATIVE_ACCT_PROCEDURES_SECTION_PTR + (i as u32) * 4
+            ),
             Word::try_from(elements).unwrap(),
             "The account procedures and storage offsets should be stored starting at NATIVE_ACCT_PROCEDURES_SECTION_PTR"
         );
@@ -360,20 +365,20 @@ fn input_notes_memory_assertions(
 
         assert_eq!(
             read_note_element(process, note_idx, INPUT_NOTE_SCRIPT_ROOT_OFFSET),
-            note.script().hash().as_elements(),
-            "note script hash should be stored at the correct offset"
+            note.script().root().as_elements(),
+            "note script root should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, INPUT_NOTE_INPUTS_HASH_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_INPUTS_COMMITMENT_OFFSET),
             note.inputs().commitment().as_elements(),
-            "note input hash should be stored at the correct offset"
+            "note input commitment should be stored at the correct offset"
         );
 
         assert_eq!(
             read_note_element(process, note_idx, INPUT_NOTE_ASSETS_HASH_OFFSET),
             note.assets().commitment().as_elements(),
-            "note asset hash should be stored at the correct offset"
+            "note asset commitment should be stored at the correct offset"
         );
 
         assert_eq!(
@@ -448,7 +453,7 @@ pub fn create_multiple_accounts_test(
         AccountType::FungibleFaucet,
         AccountType::NonFungibleFaucet,
     ] {
-        let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+        let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
             .account_type(account_type)
             .storage_mode(storage_mode)
             .anchor(
@@ -492,7 +497,7 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
 }
@@ -504,7 +509,7 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 #[test]
 pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(1 << 16));
+    mock_chain.seal_block(Some(1 << 16), None);
 
     // Choose epoch block 1 whose block number is 2^16 as the anchor block.
     // Here the transaction reference block is also the anchor block.
@@ -514,7 +519,7 @@ pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Public)
 }
@@ -533,7 +538,7 @@ fn compute_valid_account_id(
         AccountIdVersion::Version0,
         account.code().commitment(),
         account.storage().commitment(),
-        anchor_block_header.hash(),
+        anchor_block_header.commitment(),
     )
     .unwrap();
 
@@ -559,12 +564,12 @@ fn compute_valid_account_id(
 #[test]
 pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     let account = Account::mock_fungible_faucet(
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         ZERO,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
         TransactionKernel::assembler().with_debug_mode(true),
@@ -583,12 +588,12 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
 #[test]
 pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
     let account = Account::mock_non_fungible_faucet(
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET,
         ZERO,
         false,
         TransactionKernel::assembler().with_debug_mode(true),
@@ -609,11 +614,11 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
 #[test]
 pub fn create_account_invalid_seed() {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .anchor(AccountIdAnchor::try_from(&genesis_block_header).unwrap())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .with_component(BasicWallet)
@@ -643,7 +648,7 @@ pub fn create_account_invalid_seed() {
 
     let result = tx_context.execute_code(code);
 
-    assert_execution_error!(result, ERR_ACCOUNT_SEED_ANCHOR_BLOCK_HASH_DIGEST_MISMATCH)
+    assert_execution_error!(result, ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH)
 }
 
 #[test]
@@ -657,7 +662,7 @@ fn test_get_blk_version() {
         exec.prologue::prepare_transaction
         exec.memory::get_blk_version
 
-        # truncate the stack 
+        # truncate the stack
         swap drop
     end
     ";
@@ -678,7 +683,7 @@ fn test_get_blk_timestamp() {
         exec.prologue::prepare_transaction
         exec.memory::get_blk_timestamp
 
-        # truncate the stack 
+        # truncate the stack
         swap drop
     end
     ";

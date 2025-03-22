@@ -21,7 +21,7 @@ const.PRIVATE_NOTE=2
 # =================================================================================================
 
 # Distribute would cause the maximum supply to be exceeded
-const.ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED=0x0002004A
+const.ERR_FUNGIBLE_ASSET_DISTRIBUTE_WOULD_CAUSE_MAX_SUPPLY_TO_BE_EXCEEDED=0x00020201
 
 # CONSTANTS
 # =================================================================================================
@@ -44,7 +44,7 @@ export.basic::auth_tx_rpo_falcon512
 #! - note_type is the type of the note that holds the asset.
 #! - execution_hint is the execution hint of the note that holds the asset.
 #! - RECIPIENT is the recipient of the asset, i.e.,
-#!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash).
+#!   hash(hash(hash(serial_num, [0; 4]), script_root), input_commitment).
 #! - note_idx is the index of the output note.
 #!   This cannot directly be accessed from another context.
 #!
@@ -60,12 +60,12 @@ export.distribute.4
 
     # get total issuance of this faucet so far and add amount to be minted
     exec.faucet::get_total_issuance
-    # => [total_issuance, max_supply, amount, tag, aux, note_type, execution_hint, RECIPIENT, 
+    # => [total_issuance, max_supply, amount, tag, aux, note_type, execution_hint, RECIPIENT,
     #     pad(7)]
 
     # compute maximum amount that can be minted, max_mint_amount = max_supply - total_issuance
     sub
-    # => [max_supply - total_issuance, amount, tag, aux, note_type, execution_hint, RECIPIENT, 
+    # => [max_supply - total_issuance, amount, tag, aux, note_type, execution_hint, RECIPIENT,
     #     pad(7)]
 
     # check that amount =< max_supply - total_issuance, fails if otherwise

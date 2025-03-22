@@ -5,27 +5,30 @@ use alloc::{
 };
 use core::fmt;
 
+use bech32::{Bech32m, primitives::decode::CheckedHrpstring};
 use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
 pub use prefix::AccountIdPrefixV0;
 use vm_core::{
-    utils::{ByteReader, Deserializable, Serializable},
     Felt, Word,
+    utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::{DeserializationError, Digest};
 
 use crate::{
+    ACCOUNT_TREE_DEPTH, AccountError, Hasher,
     account::{
+        AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
         account_id::{
+            NetworkId,
             account_type::{
                 FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET, REGULAR_ACCOUNT_IMMUTABLE_CODE,
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
             },
+            address_type::AddressType,
             storage_mode::{PRIVATE, PUBLIC},
         },
-        AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
     },
-    errors::AccountIdError,
-    AccountError, Hasher, ACCOUNT_TREE_DEPTH,
+    errors::{AccountIdError, Bech32Error},
 };
 
 // ACCOUNT ID VERSION 0
@@ -77,7 +80,7 @@ impl AccountIdV0 {
         storage_commitment: Digest,
     ) -> Result<Self, AccountIdError> {
         let seed_digest =
-            compute_digest(seed, code_commitment, storage_commitment, anchor.block_hash());
+            compute_digest(seed, code_commitment, storage_commitment, anchor.block_commitment());
 
         let mut felts: [Felt; 2] = seed_digest.as_elements()[0..2]
             .try_into()
@@ -111,8 +114,8 @@ impl AccountIdV0 {
         storage_mode: AccountStorageMode,
     ) -> AccountIdV0 {
         let version = AccountIdVersion::Version0 as u8;
-        let low_nibble = (storage_mode as u8) << Self::STORAGE_MODE_SHIFT
-            | (account_type as u8) << Self::TYPE_SHIFT
+        let low_nibble = ((storage_mode as u8) << Self::STORAGE_MODE_SHIFT)
+            | ((account_type as u8) << Self::TYPE_SHIFT)
             | version;
 
         // Set least significant byte.
@@ -152,7 +155,7 @@ impl AccountIdV0 {
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
-        anchor_block_hash: Digest,
+        anchor_block_commitment: Digest,
     ) -> Result<Word, AccountError> {
         crate::account::account_id::seed::compute_account_seed(
             init_seed,
@@ -161,7 +164,7 @@ impl AccountIdV0 {
             version,
             code_commitment,
             storage_commitment,
-            anchor_block_hash,
+            anchor_block_commitment,
         )
     }
 
@@ -221,6 +224,64 @@ impl AccountIdV0 {
             format!("0x{:016x}{:016x}", self.prefix().as_u64(), self.suffix().as_int());
         hex_string.truncate(32);
         hex_string
+    }
+
+    /// See [`AccountId::to_bech32`](super::AccountId::to_bech32) for details.
+    pub fn to_bech32(&self, network_id: NetworkId) -> String {
+        let id_bytes: [u8; Self::SERIALIZED_SIZE] = (*self).into();
+
+        let mut data = [0; Self::SERIALIZED_SIZE + 1];
+        data[0] = AddressType::AccountId as u8;
+        data[1..16].copy_from_slice(&id_bytes);
+
+        // SAFETY: Encoding only panics if the total length of the hrp, data (in GF(32)), separator
+        // and checksum exceeds Bech32m::CODE_LENGTH, which is 1023. Since the data is 26 bytes in
+        // that field and the hrp is at most 83 in size we are way below the limit.
+        bech32::encode::<Bech32m>(network_id.into_hrp(), &data)
+            .expect("code length of bech32 should not be exceeded")
+    }
+
+    /// See [`AccountId::from_bech32`](super::AccountId::from_bech32) for details.
+    pub fn from_bech32(bech32_string: &str) -> Result<(NetworkId, Self), AccountIdError> {
+        // We use CheckedHrpString with an explicit checksum algorithm so we don't allow the
+        // `Bech32` or `NoChecksum` algorithms.
+        let checked_string = CheckedHrpstring::new::<Bech32m>(bech32_string).map_err(|source| {
+            // The CheckedHrpStringError does not implement core::error::Error, only
+            // std::error::Error, so for now we convert it to a String. Even if it will
+            // implement the trait in the future, we should include it as an opaque
+            // error since the crate does not have a stable release yet.
+            AccountIdError::Bech32DecodeError(Bech32Error::DecodeError(source.to_string().into()))
+        })?;
+
+        let hrp = checked_string.hrp();
+        let network_id = NetworkId::from_hrp(hrp);
+
+        let mut byte_iter = checked_string.byte_iter();
+        // The length must be the serialized size of the account ID plus the address byte.
+        if byte_iter.len() != Self::SERIALIZED_SIZE + 1 {
+            return Err(AccountIdError::Bech32DecodeError(Bech32Error::InvalidDataLength {
+                expected: Self::SERIALIZED_SIZE + 1,
+                actual: byte_iter.len(),
+            }));
+        }
+
+        let address_byte = byte_iter.next().expect("there should be at least one byte");
+        if address_byte != AddressType::AccountId as u8 {
+            return Err(AccountIdError::Bech32DecodeError(Bech32Error::UnknownAddressType(
+                address_byte,
+            )));
+        }
+
+        // Every byte is guaranteed to be overwritten since we've checked the length of the
+        // iterator.
+        let mut id_bytes = [0_u8; Self::SERIALIZED_SIZE];
+        for (i, byte) in byte_iter.enumerate() {
+            id_bytes[i] = byte;
+        }
+
+        let account_id = Self::try_from(id_bytes)?;
+
+        Ok((network_id, account_id))
     }
 
     /// Returns the [`AccountIdPrefixV0`] of this account ID.
@@ -486,13 +547,13 @@ pub(crate) fn compute_digest(
     seed: Word,
     code_commitment: Digest,
     storage_commitment: Digest,
-    anchor_block_hash: Digest,
+    anchor_block_commitment: Digest,
 ) -> Digest {
     let mut elements = Vec::with_capacity(16);
     elements.extend(seed);
     elements.extend(*code_commitment);
     elements.extend(*storage_commitment);
-    elements.extend(*anchor_block_hash);
+    elements.extend(*anchor_block_commitment);
     Hasher::hash_elements(&elements)
 }
 
@@ -506,9 +567,9 @@ mod tests {
     use crate::{
         account::AccountIdPrefix,
         testing::account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_SENDER,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
     };
 
@@ -516,7 +577,7 @@ mod tests {
     fn test_account_id_from_seed_with_epoch() {
         let code_commitment: Digest = Digest::default();
         let storage_commitment: Digest = Digest::default();
-        let anchor_block_hash: Digest = Digest::default();
+        let anchor_block_commitment: Digest = Digest::default();
 
         let seed = AccountIdV0::compute_account_seed(
             [10; 32],
@@ -525,12 +586,12 @@ mod tests {
             AccountIdVersion::Version0,
             code_commitment,
             storage_commitment,
-            anchor_block_hash,
+            anchor_block_commitment,
         )
         .unwrap();
 
         for anchor_epoch in [0, u16::MAX - 1, 5000] {
-            let anchor = AccountIdAnchor::new_unchecked(anchor_epoch, anchor_block_hash);
+            let anchor = AccountIdAnchor::new_unchecked(anchor_epoch, anchor_block_commitment);
             let id = AccountIdV0::new(seed, anchor, code_commitment, storage_commitment).unwrap();
             assert_eq!(id.anchor_epoch(), anchor_epoch, "failed for account ID: {id}");
         }
@@ -580,7 +641,7 @@ mod tests {
     #[test]
     fn account_id_prefix_serialization_compatibility() {
         // Ensure that an AccountIdPrefix can be read from the serialized bytes of an AccountId.
-        let account_id = AccountIdV0::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
+        let account_id = AccountIdV0::try_from(ACCOUNT_ID_PRIVATE_SENDER).unwrap();
         let id_bytes = account_id.to_bytes();
         assert_eq!(account_id.prefix().to_bytes(), id_bytes[..8]);
 
@@ -597,11 +658,11 @@ mod tests {
     #[test]
     fn test_account_id_conversion_roundtrip() {
         for (idx, account_id) in [
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_OFF_CHAIN_SENDER,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_SENDER,
         ]
         .into_iter()
         .enumerate()
@@ -619,25 +680,25 @@ mod tests {
 
     #[test]
     fn test_account_id_tag_identifiers() {
-        let account_id = AccountIdV0::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
+        let account_id = AccountIdV0::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE)
             .expect("valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountImmutableCode);
         assert!(account_id.is_public());
 
-        let account_id = AccountIdV0::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
+        let account_id = AccountIdV0::try_from(ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE)
             .expect("valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountUpdatableCode);
         assert!(!account_id.is_public());
 
         let account_id =
-            AccountIdV0::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("valid account ID");
+            AccountIdV0::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).expect("valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::FungibleFaucet);
         assert!(account_id.is_public());
 
-        let account_id = AccountIdV0::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
+        let account_id = AccountIdV0::try_from(ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET)
             .expect("valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::NonFungibleFaucet);

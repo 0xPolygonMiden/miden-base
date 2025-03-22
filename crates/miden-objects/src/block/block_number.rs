@@ -1,8 +1,8 @@
 use core::{fmt, ops::Add};
 
-use super::Felt;
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use crate::{
+    Felt,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // BLOCK NUMBER
@@ -38,11 +38,6 @@ impl BlockNumber {
     /// Creates the [`BlockNumber`] corresponding to the epoch block for the provided `epoch`.
     pub const fn from_epoch(epoch: u16) -> BlockNumber {
         BlockNumber((epoch as u32) << BlockNumber::EPOCH_LENGTH_EXPONENT)
-    }
-
-    /// Creates a `BlockNumber` from a `usize`.
-    pub fn from_usize(value: usize) -> Self {
-        BlockNumber(value as u32)
     }
 
     /// Returns the epoch to which this block number belongs.

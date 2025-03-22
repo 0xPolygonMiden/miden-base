@@ -4,12 +4,12 @@ use vm_core::FieldElement;
 use vm_processor::Digest;
 
 use crate::{
+    AccountError, Felt, Word,
     account::{
         Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdV0,
         AccountIdVersion, AccountStorage, AccountStorageMode, AccountType,
     },
     asset::AssetVault,
-    AccountError, Felt, Word,
 };
 
 /// A convenient builder for an [`Account`] allowing for safe construction of an account by
@@ -31,8 +31,9 @@ use crate::{
 /// - [`AccountBuilder::with_component`], which must be called at least once.
 /// - [`AccountBuilder::anchor`].
 ///
-/// The latter methods set the anchor block hash and epoch which will be used for the generation of
-/// the account's ID. See [`AccountId`] for details on its generation and anchor blocks.
+/// The latter methods set the anchor block commitment and epoch which will be used for the
+/// generation of the account's ID. See [`AccountId`] for details on its generation and anchor
+/// blocks.
 ///
 /// Under the `testing` feature, it is possible to:
 /// - Change the `nonce` to build an existing account.
@@ -131,7 +132,7 @@ impl AccountBuilder {
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
-        block_hash: Digest,
+        block_commitment: Digest,
     ) -> Result<Word, AccountError> {
         let seed = AccountIdV0::compute_account_seed(
             init_seed,
@@ -140,7 +141,7 @@ impl AccountBuilder {
             version,
             code_commitment,
             storage_commitment,
-            block_hash,
+            block_commitment,
         )
         .map_err(|err| {
             AccountError::BuildError("account seed generation failed".into(), Some(Box::new(err)))
@@ -183,7 +184,7 @@ impl AccountBuilder {
             self.id_version,
             code.commitment(),
             storage.commitment(),
-            id_anchor.block_hash(),
+            id_anchor.block_commitment(),
         )?;
 
         let account_id = AccountId::new(
@@ -314,10 +315,10 @@ mod tests {
         let storage_slot1 = 12;
         let storage_slot2 = 42;
 
-        let anchor_block_hash = Digest::new([Felt::new(42); 4]);
+        let anchor_block_commitment = Digest::new([Felt::new(42); 4]);
         let anchor_block_number = 1 << 16;
         let id_anchor =
-            AccountIdAnchor::new(BlockNumber::from(anchor_block_number), anchor_block_hash)
+            AccountIdAnchor::new(BlockNumber::from(anchor_block_number), anchor_block_commitment)
                 .unwrap();
 
         let (account, seed) = Account::builder([5; 32])

@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use miden_objects::{
-    account::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
     Digest,
+    account::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
 };
 use rand::{Rng, SeedableRng};
 
@@ -18,7 +18,7 @@ use rand::{Rng, SeedableRng};
 /// cargo bench -p miden-objects --no-default-features -- --profile-time 10
 /// ```
 ///
-/// The flamegraph will be saved as `target/criterion/grind-seed/Grind regular on-chain account
+/// The flamegraph will be saved as `target/criterion/grind-seed/Grind regular public account
 /// seed/profile/flamegraph.svg`.
 fn grind_account_seed(c: &mut Criterion) {
     let mut group = c.benchmark_group("grind-seed");
@@ -33,10 +33,10 @@ fn grind_account_seed(c: &mut Criterion) {
     // Use an rng to ensure we're starting from different seeds for each iteration.
     let mut rng = rand_xoshiro::Xoshiro256PlusPlus::from_seed(init_seed);
 
-    group.bench_function("Grind regular on-chain account seed", |bench| {
+    group.bench_function("Grind regular public account seed", |bench| {
         bench.iter(|| {
             AccountId::compute_account_seed(
-                rng.gen(),
+                rng.random(),
                 AccountType::RegularAccountImmutableCode,
                 AccountStorageMode::Public,
                 AccountIdVersion::Version0,

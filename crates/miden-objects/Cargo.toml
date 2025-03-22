@@ -1,6 +1,6 @@
 [package]
 name = "miden-objects"
-version = "0.7.2"
+version = "0.8.0"
 description = "Core components of the Miden rollup"
 readme = "README.md"
 categories = ["no-std"]
@@ -26,27 +26,29 @@ testing = ["dep:winter-rand-utils", "dep:rand", "dep:rand_xoshiro"]
 
 [dependencies]
 assembly = { workspace = true }
+bech32 = { version = "0.11", default-features = false, features = ["alloc"] }
 log = { version = "0.4", optional = true }
 miden-crypto = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true, optional = true }
-rand_xoshiro = { version = "0.6.0", default-features = false, optional = true }
+rand_xoshiro = { version = "0.7", default-features = false, optional = true }
 semver = { version = "1.0", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 toml = { version = "0.8", optional = true }
 thiserror = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
-winter-rand-utils = { version = "0.11", optional = true }
+winter-rand-utils = { version = "0.12", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [dev-dependencies]
-pprof = { version = "0.14.0", default-features = false, features = ["criterion", "flamegraph"] }
-anyhow = { version = "1.0.93", default-features = false, features = ["std", "backtrace"]}
+pprof = { version = "0.14", default-features = false, features = ["criterion", "flamegraph"] }
+anyhow = { version = "1.0", default-features = false, features = ["std", "backtrace"]}
 assert_matches = { workspace = true }
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
 miden-objects = { path = ".", features = ["testing"] }
-rstest = { version = "0.23" }
-tempfile = { version = "3.14" }
+rstest = { version = "0.25" }
+tempfile = { version = "3.19" }
+winter-air = { version = "0.12" }

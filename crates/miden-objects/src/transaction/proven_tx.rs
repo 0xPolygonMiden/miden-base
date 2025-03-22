@@ -1,9 +1,8 @@
 use alloc::{string::ToString, vec::Vec};
 
-use miden_verifier::ExecutionProof;
-
 use super::{InputNote, ToInputNoteCommitments};
 use crate::{
+    ACCOUNT_UPDATE_MAX_SIZE, ProvenTransactionError,
     account::delta::AccountUpdateDetails,
     block::BlockNumber,
     note::NoteHeader,
@@ -11,7 +10,7 @@ use crate::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE,
+    vm::ExecutionProof,
 };
 
 // PROVEN TRANSACTION
@@ -34,8 +33,14 @@ pub struct ProvenTransaction {
     /// while for public notes this will also contain full note details.
     output_notes: OutputNotes,
 
-    /// The block hash of the last known block at the time the transaction was executed.
-    block_ref: Digest,
+    /// [`BlockNumber`] of the transaction's reference block.
+    ///
+    /// This is not needed for proving the transaction, but it is useful for the node to lookup the
+    /// block.
+    ref_block_num: BlockNumber,
+
+    /// The block commitment of the transaction's reference block.
+    ref_block_commitment: Digest,
 
     /// The block number by which the transaction will expire, as defined by the executed scripts.
     expiration_block_num: BlockNumber,
@@ -75,9 +80,14 @@ impl ProvenTransaction {
         &self.proof
     }
 
-    /// Returns the block reference the transaction was executed against.
-    pub fn block_ref(&self) -> Digest {
-        self.block_ref
+    /// Returns the number of the reference block the transaction was executed against.
+    pub fn ref_block_num(&self) -> BlockNumber {
+        self.ref_block_num
+    }
+
+    /// Returns the commitment of the block transaction was executed against.
+    pub fn ref_block_commitment(&self) -> Digest {
+        self.ref_block_commitment
     }
 
     /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
@@ -104,17 +114,18 @@ impl ProvenTransaction {
         if self.account_id().is_public() {
             self.account_update.validate()?;
 
-            let is_new_account = self.account_update.init_state_hash() == Digest::default();
+            let is_new_account =
+                self.account_update.initial_state_commitment() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
-                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
+                    return Err(ProvenTransactionError::PublicAccountMissingDetails(
                         self.account_id(),
-                    ))
+                    ));
                 },
-                AccountUpdateDetails::New(ref account) => {
+                AccountUpdateDetails::New(account) => {
                     if !is_new_account {
                         return Err(
-                            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
+                            ProvenTransactionError::ExistingPublicAccountRequiresDeltaDetails(
                                 self.account_id(),
                             ),
                         );
@@ -125,23 +136,23 @@ impl ProvenTransaction {
                             details_account_id: account.id(),
                         });
                     }
-                    if account.hash() != self.account_update.final_state_hash() {
-                        return Err(ProvenTransactionError::AccountFinalHashMismatch {
-                            tx_final_hash: self.account_update.final_state_hash(),
-                            details_hash: account.hash(),
+                    if account.commitment() != self.account_update.final_state_commitment() {
+                        return Err(ProvenTransactionError::AccountFinalCommitmentMismatch {
+                            tx_final_commitment: self.account_update.final_state_commitment(),
+                            details_commitment: account.commitment(),
                         });
                     }
                 },
                 AccountUpdateDetails::Delta(_) => {
                     if is_new_account {
-                        return Err(ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
+                        return Err(ProvenTransactionError::NewPublicAccountRequiresFullDetails(
                             self.account_id(),
                         ));
                     }
                 },
             }
         } else if !self.account_update.is_private() {
-            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id()));
+            return Err(ProvenTransactionError::PrivateAccountWithDetails(self.account_id()));
         }
 
         Ok(self)
@@ -153,7 +164,8 @@ impl Serializable for ProvenTransaction {
         self.account_update.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
-        self.block_ref.write_into(target);
+        self.ref_block_num.write_into(target);
+        self.ref_block_commitment.write_into(target);
         self.expiration_block_num.write_into(target);
         self.proof.write_into(target);
     }
@@ -166,13 +178,14 @@ impl Deserializable for ProvenTransaction {
         let input_notes = <InputNotes<InputNoteCommitment>>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
 
-        let block_ref = Digest::read_from(source)?;
+        let ref_block_num = BlockNumber::read_from(source)?;
+        let ref_block_commitment = Digest::read_from(source)?;
         let expiration_block_num = BlockNumber::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
-            account_update.init_state_hash(),
-            account_update.final_state_hash(),
+            account_update.initial_state_commitment(),
+            account_update.final_state_commitment(),
             input_notes.commitment(),
             output_notes.commitment(),
         );
@@ -182,7 +195,8 @@ impl Deserializable for ProvenTransaction {
             account_update,
             input_notes,
             output_notes,
-            block_ref,
+            ref_block_num,
+            ref_block_commitment,
             expiration_block_num,
             proof,
         };
@@ -202,11 +216,11 @@ pub struct ProvenTransactionBuilder {
     /// ID of the account that the transaction was executed against.
     account_id: AccountId,
 
-    /// The hash of the account before the transaction was executed.
-    initial_account_hash: Digest,
+    /// The commitment of the account before the transaction was executed.
+    initial_account_commitment: Digest,
 
-    /// The hash of the account after the transaction was executed.
-    final_account_hash: Digest,
+    /// The commitment of the account after the transaction was executed.
+    final_account_commitment: Digest,
 
     /// State changes to the account due to the transaction.
     account_update_details: AccountUpdateDetails,
@@ -217,8 +231,11 @@ pub struct ProvenTransactionBuilder {
     /// List of [OutputNote]s of all notes created by the transaction.
     output_notes: Vec<OutputNote>,
 
+    /// [`BlockNumber`] of the transaction's reference block.
+    ref_block_num: BlockNumber,
+
     /// Block [Digest] of the transaction's reference block.
-    block_ref: Digest,
+    ref_block_commitment: Digest,
 
     /// The block number by which the transaction will expire, as defined by the executed scripts.
     expiration_block_num: BlockNumber,
@@ -234,20 +251,22 @@ impl ProvenTransactionBuilder {
     /// Returns a [ProvenTransactionBuilder] used to build a [ProvenTransaction].
     pub fn new(
         account_id: AccountId,
-        initial_account_hash: Digest,
-        final_account_hash: Digest,
-        block_ref: Digest,
+        initial_account_commitment: Digest,
+        final_account_commitment: Digest,
+        ref_block_num: BlockNumber,
+        ref_block_commitment: Digest,
         expiration_block_num: BlockNumber,
         proof: ExecutionProof,
     ) -> Self {
         Self {
             account_id,
-            initial_account_hash,
-            final_account_hash,
+            initial_account_commitment,
+            final_account_commitment,
             account_update_details: AccountUpdateDetails::Private,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
-            block_ref,
+            ref_block_num,
+            ref_block_commitment,
             expiration_block_num,
             proof,
         }
@@ -285,7 +304,7 @@ impl ProvenTransactionBuilder {
     ///
     /// # Errors
     ///
-    /// An error will be returned if an on-chain account is used without provided on-chain detail.
+    /// An error will be returned if a public account is used without provided on-chain detail.
     /// Or if the account details, i.e. account ID and final hash, don't match the transaction.
     pub fn build(self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let input_notes =
@@ -293,15 +312,15 @@ impl ProvenTransactionBuilder {
         let output_notes = OutputNotes::new(self.output_notes)
             .map_err(ProvenTransactionError::OutputNotesError)?;
         let id = TransactionId::new(
-            self.initial_account_hash,
-            self.final_account_hash,
+            self.initial_account_commitment,
+            self.final_account_commitment,
             input_notes.commitment(),
             output_notes.commitment(),
         );
         let account_update = TxAccountUpdate::new(
             self.account_id,
-            self.initial_account_hash,
-            self.final_account_hash,
+            self.initial_account_commitment,
+            self.final_account_commitment,
             self.account_update_details,
         );
 
@@ -310,7 +329,8 @@ impl ProvenTransactionBuilder {
             account_update,
             input_notes,
             output_notes,
-            block_ref: self.block_ref,
+            ref_block_num: self.ref_block_num,
+            ref_block_commitment: self.ref_block_commitment,
             expiration_block_num: self.expiration_block_num,
             proof: self.proof,
         };
@@ -328,13 +348,13 @@ pub struct TxAccountUpdate {
     /// ID of the account updated by a transaction.
     account_id: AccountId,
 
-    /// The hash of the account before a transaction was executed.
+    /// The commitment of the account before a transaction was executed.
     ///
     /// Set to `Digest::default()` for new accounts.
-    init_state_hash: Digest,
+    init_state_commitment: Digest,
 
-    /// The hash of the account state after a transaction was executed.
-    final_state_hash: Digest,
+    /// The commitment of the account state after a transaction was executed.
+    final_state_commitment: Digest,
 
     /// A set of changes which can be applied the account's state prior to the transaction to
     /// get the account state after the transaction. For private accounts this is set to
@@ -346,14 +366,14 @@ impl TxAccountUpdate {
     /// Returns a new [TxAccountUpdate] instantiated from the specified components.
     pub const fn new(
         account_id: AccountId,
-        init_state_hash: Digest,
-        final_state_hash: Digest,
+        init_state_commitment: Digest,
+        final_state_commitment: Digest,
         details: AccountUpdateDetails,
     ) -> Self {
         Self {
             account_id,
-            init_state_hash,
-            final_state_hash,
+            init_state_commitment,
+            final_state_commitment,
             details,
         }
     }
@@ -363,14 +383,14 @@ impl TxAccountUpdate {
         self.account_id
     }
 
-    /// Returns the hash of the account's initial state.
-    pub fn init_state_hash(&self) -> Digest {
-        self.init_state_hash
+    /// Returns the commitment of the account's initial state.
+    pub fn initial_state_commitment(&self) -> Digest {
+        self.init_state_commitment
     }
 
-    /// Returns the hash of the account's after a transaction was executed.
-    pub fn final_state_hash(&self) -> Digest {
-        self.final_state_hash
+    /// Returns the commitment of the account's after a transaction was executed.
+    pub fn final_state_commitment(&self) -> Digest {
+        self.final_state_commitment
     }
 
     /// Returns the description of the updates for public accounts.
@@ -405,8 +425,8 @@ impl TxAccountUpdate {
 impl Serializable for TxAccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.account_id.write_into(target);
-        self.init_state_hash.write_into(target);
-        self.final_state_hash.write_into(target);
+        self.init_state_commitment.write_into(target);
+        self.final_state_commitment.write_into(target);
         self.details.write_into(target);
     }
 }
@@ -415,8 +435,8 @@ impl Deserializable for TxAccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
             account_id: AccountId::read_from(source)?,
-            init_state_hash: Digest::read_from(source)?,
-            final_state_hash: Digest::read_from(source)?,
+            init_state_commitment: Digest::read_from(source)?,
+            final_state_commitment: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
         })
     }
@@ -492,8 +512,8 @@ impl ToInputNoteCommitments for InputNoteCommitment {
         self.nullifier
     }
 
-    fn note_hash(&self) -> Option<Digest> {
-        self.header.map(|header| header.hash())
+    fn note_commitment(&self) -> Option<Digest> {
+        self.header.map(|header| header.commitment())
     }
 }
 
@@ -523,18 +543,22 @@ impl Deserializable for InputNoteCommitment {
 mod tests {
     use alloc::collections::BTreeMap;
 
+    use miden_verifier::ExecutionProof;
+    use vm_core::utils::Deserializable;
+    use winter_air::proof::Proof;
     use winter_rand_utils::rand_array;
 
     use super::ProvenTransaction;
     use crate::{
+        ACCOUNT_UPDATE_MAX_SIZE, Digest, EMPTY_WORD, ONE, ProvenTransactionError, ZERO,
         account::{
-            delta::AccountUpdateDetails, AccountDelta, AccountId, AccountStorageDelta,
-            AccountVaultDelta, StorageMapDelta,
+            AccountDelta, AccountId, AccountIdVersion, AccountStorageDelta, AccountStorageMode,
+            AccountType, AccountVaultDelta, StorageMapDelta, delta::AccountUpdateDetails,
         },
-        testing::account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        transaction::TxAccountUpdate,
+        block::BlockNumber,
+        testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        transaction::{ProvenTransactionBuilder, TxAccountUpdate},
         utils::Serializable,
-        Digest, ProvenTransactionError, ACCOUNT_UPDATE_MAX_SIZE, EMPTY_WORD, ONE, ZERO,
     };
 
     fn check_if_sync<T: Sync>() {}
@@ -566,7 +590,7 @@ mod tests {
             AccountDelta::new(storage_delta, AccountVaultDelta::default(), Some(ONE)).unwrap();
         let details = AccountUpdateDetails::Delta(delta);
         TxAccountUpdate::new(
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,
@@ -595,7 +619,7 @@ mod tests {
         let details_size = details.get_size_hint();
 
         let err = TxAccountUpdate::new(
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap(),
             Digest::new(EMPTY_WORD),
             Digest::new(EMPTY_WORD),
             details,
@@ -606,5 +630,39 @@ mod tests {
         assert!(
             matches!(err, ProvenTransactionError::AccountUpdateSizeLimitExceeded { update_size, .. } if update_size == details_size)
         );
+    }
+
+    #[test]
+    fn test_proven_tx_serde_roundtrip() {
+        let account_id = AccountId::dummy(
+            [1; 15],
+            AccountIdVersion::Version0,
+            AccountType::FungibleFaucet,
+            AccountStorageMode::Private,
+        );
+        let initial_account_commitment =
+            [2; 32].try_into().expect("failed to create initial account commitment");
+        let final_account_commitment =
+            [3; 32].try_into().expect("failed to create final account commitment");
+        let ref_block_num = BlockNumber::from(1);
+        let ref_block_commitment = Digest::default();
+        let expiration_block_num = BlockNumber::from(2);
+        let proof = ExecutionProof::new(Proof::new_dummy(), Default::default());
+
+        let tx = ProvenTransactionBuilder::new(
+            account_id,
+            initial_account_commitment,
+            final_account_commitment,
+            ref_block_num,
+            ref_block_commitment,
+            expiration_block_num,
+            proof,
+        )
+        .build()
+        .expect("failed to build proven transaction");
+
+        let deserialized = ProvenTransaction::read_from_bytes(&tx.to_bytes()).unwrap();
+
+        assert_eq!(tx, deserialized);
     }
 }

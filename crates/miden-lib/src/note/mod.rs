@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
+    Felt, NoteError, Word,
     account::AccountId,
     asset::Asset,
     block::BlockNumber,
@@ -9,12 +10,12 @@ use miden_objects::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
         NoteMetadata, NoteRecipient, NoteTag, NoteType,
     },
-    Felt, NoteError, Word,
 };
 use utils::build_swap_tag;
+use well_known_note::WellKnownNote;
 
-pub mod scripts;
 pub mod utils;
+pub mod well_known_note;
 
 // STANDARDIZED SCRIPTS
 // ================================================================================================
@@ -69,7 +70,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     recall_height: BlockNumber,
     rng: &mut R,
 ) -> Result<Note, NoteError> {
-    let note_script = scripts::p2idr();
+    let note_script = WellKnownNote::P2IDR.script();
 
     let inputs =
         NoteInputs::new(vec![target.suffix(), target.prefix().as_felt(), recall_height.into()])?;
@@ -99,7 +100,7 @@ pub fn create_swap_note<R: FeltRng>(
     aux: Felt,
     rng: &mut R,
 ) -> Result<(Note, NoteDetails), NoteError> {
-    let note_script = scripts::swap();
+    let note_script = WellKnownNote::SWAP.script();
 
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;

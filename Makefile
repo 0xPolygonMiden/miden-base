@@ -7,7 +7,6 @@ help:
 # -- variables --------------------------------------------------------------------------------------
 
 WARNINGS=RUSTDOCFLAGS="-D warnings"
-DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 ALL_FEATURES_BUT_ASYNC=--features concurrent,testing
 # Enable file generation in the `src` directory.
 # This is used in the build scripts of miden-lib, miden-proving-service and miden-proving-service-client.
@@ -15,6 +14,7 @@ BUILD_GENERATED_FILES_IN_SRC=BUILD_GENERATED_FILES_IN_SRC=1
 # Enable backtraces for tests where we return an anyhow::Result. If enabled, anyhow::Error will
 # then contain a `Backtrace` and print it when a test returns an error.
 BACKTRACE=RUST_BACKTRACE=1
+ALL_REMOTE_PROVER_FEATURES=--features tx-prover,batch-prover,block-prover
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -25,7 +25,7 @@ clippy: ## Runs Clippy with configs
 
 .PHONY: clippy-no-std
 clippy-no-std: ## Runs Clippy with configs
-	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service -- -D warnings
+	cargo clippy --no-default-features --target wasm32-unknown-unknown --workspace --lib $(ALL_REMOTE_PROVER_FEATURES) --exclude miden-proving-service -- -D warnings
 
 
 .PHONY: fix
@@ -65,31 +65,23 @@ book: ## Builds the book & serves documentation site
 
 .PHONY: test-build
 test-build: ## Build the test binary
-	$(BUILD_GENERATED_FILES_IN_SRC) $(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
+	cargo nextest run --cargo-profile test-dev --features concurrent,testing --no-run
 
 
-.PHONY: test-default
-test-default: ## Run default tests excluding `prove`
-	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
+.PHONY: test
+test: ## Run all tests
+	$(BACKTRACE) cargo nextest run --profile default --cargo-profile test-dev --features concurrent,testing
 
 
 .PHONY: test-dev
 test-dev: ## Run default tests excluding slow tests (prove and ID anchor block tests) in debug mode intended to be run locally
-	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile default --features concurrent,testing --filter-expr "not test(prove) & not test(create_accounts_with_non_zero_anchor_block)"
+	$(BACKTRACE) cargo nextest run --profile default --features concurrent,testing --filter-expr "not test(prove) & not test(create_accounts_with_non_zero_anchor_block)"
 
 
 .PHONY: test-docs
 test-docs: ## Run documentation tests
-	$(WARNINGS) $(DEBUG_ASSERTIONS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
+	$(WARNINGS) cargo test --doc $(ALL_FEATURES_BUT_ASYNC)
 
-
-.PHONY: test-prove
-test-prove: ## Run `prove` tests (tests which use the Miden prover)
-	$(DEBUG_ASSERTIONS) $(BACKTRACE) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
-
-
-.PHONY: test
-test: test-default test-prove ## Run all tests
 
 # --- checking ------------------------------------------------------------------------------------
 
@@ -111,12 +103,12 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib --features tx-prover --exclude miden-proving-service
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --no-default-features --target wasm32-unknown-unknown --workspace --lib $(ALL_REMOTE_PROVER_FEATURES) --exclude miden-proving-service
 
 
 .PHONY: build-no-std-testing
 build-no-std-testing: ## Build without the standard library. Includes the `testing` feature
-	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing,tx-prover --exclude miden-proving-service
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --features testing $(ALL_REMOTE_PROVER_FEATURES) --exclude miden-proving-service
 
 
 .PHONY: build-async

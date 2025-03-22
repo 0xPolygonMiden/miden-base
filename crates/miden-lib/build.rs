@@ -4,17 +4,21 @@ use std::{
     fmt::Write,
     fs::{self},
     io::{self},
+    ops::Range,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use assembly::{
-    diagnostics::{IntoDiagnostic, Result},
-    utils::Serializable,
     Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, Report,
+    diagnostics::{IntoDiagnostic, Result, WrapErr},
+    utils::Serializable,
 };
 use regex::Regex;
 use walkdir::WalkDir;
+
+/// A map where the key is the error name and the value is the error code with the message.
+type ErrorCategoryMap = BTreeMap<ErrorCategory, Vec<NamedError>>;
 
 // CONSTANTS
 // ================================================================================================
@@ -32,7 +36,27 @@ const ASM_ACCOUNT_COMPONENTS_DIR: &str = "account_components";
 const SHARED_DIR: &str = "shared";
 const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 const KERNEL_V0_RS_FILE: &str = "src/transaction/procedures/kernel_v0.rs";
-const KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
+
+const TX_KERNEL_ERRORS_FILE: &str = "src/errors/tx_kernel_errors.rs";
+const NOTE_SCRIPT_ERRORS_FILE: &str = "src/errors/note_script_errors.rs";
+
+const TX_KERNEL_ERRORS_ARRAY_NAME: &str = "TX_KERNEL_ERRORS";
+const NOTE_SCRIPT_ERRORS_ARRAY_NAME: &str = "NOTE_SCRIPT_ERRORS";
+
+const ERROR_CATEGORIES: [ErrorCategory; 2] = [ErrorCategory::TxKernel, ErrorCategory::NoteScript];
+const TX_KERNEL_ERROR_CATEGORIES: [TxKernelErrorCategory; 11] = [
+    TxKernelErrorCategory::Kernel,
+    TxKernelErrorCategory::Prologue,
+    TxKernelErrorCategory::Epilogue,
+    TxKernelErrorCategory::Tx,
+    TxKernelErrorCategory::Note,
+    TxKernelErrorCategory::Account,
+    TxKernelErrorCategory::ForeignAccount,
+    TxKernelErrorCategory::Faucet,
+    TxKernelErrorCategory::FungibleAsset,
+    TxKernelErrorCategory::NonFugibleAsset,
+    TxKernelErrorCategory::Vault,
+];
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -75,9 +99,13 @@ fn main() -> Result<()> {
     )?;
 
     // compile account components
-    compile_account_components(&target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR), assembler)?;
+    compile_account_components(
+        &source_dir.join(ASM_ACCOUNT_COMPONENTS_DIR),
+        &target_dir.join(ASM_ACCOUNT_COMPONENTS_DIR),
+        assembler,
+    )?;
 
-    generate_kernel_error_constants(&source_dir)?;
+    generate_error_constants(&source_dir)?;
 
     Ok(())
 }
@@ -88,17 +116,24 @@ fn main() -> Result<()> {
 /// Reads the transaction kernel MASM source from the `source_dir`, compiles it, saves the results
 /// to the `target_dir`, and returns an [Assembler] instantiated with the compiled kernel.
 ///
+/// Additionally it compiles the transaction script executor program, see the
+/// [compile_tx_script_main] procedure for details.
+///
 /// `source_dir` is expected to have the following structure:
 ///
-/// - {source_dir}/api.masm         -> defines exported procedures from the transaction kernel.
-/// - {source_dir}/main.masm        -> defines the executable program of the transaction kernel.
-/// - {source_dir}/lib              -> contains common modules used by both api.masm and main.masm.
+/// - {source_dir}/api.masm       -> defines exported procedures from the transaction kernel.
+/// - {source_dir}/main.masm      -> defines the executable program of the transaction kernel.
+/// - {source_dir}/tx_script_main -> defines the executable program of the arbitrary transaction
+///   script.
+/// - {source_dir}/lib            -> contains common modules used by both api.masm and main.masm.
 ///
 /// The compiled files are written as follows:
 ///
-/// - {target_dir}/tx_kernel.masl               -> contains kernel library compiled from api.masm.
-/// - {target_dir}/tx_kernel.masb               -> contains the executable compiled from main.masm.
-/// - src/transaction/procedures/kernel_v0.rs   -> contains the kernel procedures table.
+/// - {target_dir}/tx_kernel.masl             -> contains kernel library compiled from api.masm.
+/// - {target_dir}/tx_kernel.masb             -> contains the executable compiled from main.masm.
+/// - {target_dir}/tx_script_main.masb        -> contains the executable compiled from
+///   tx_script_main.masm.
+/// - src/transaction/procedures/kernel_v0.rs -> contains the kernel procedures table.
 fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
     let shared_path = Path::new(ASM_DIR).join(SHARED_DIR);
     let kernel_namespace = LibraryNamespace::new("kernel").expect("namespace should be valid");
@@ -122,17 +157,20 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 
     let assembler = build_assembler(Some(kernel_lib))?;
 
-    // assemble the kernel program and write it the "tx_kernel.masb" file
+    // assemble the kernel program and write it to the "tx_kernel.masb" file
     let mut main_assembler = assembler.clone();
     // add the shared modules to the kernel lib under the kernel::util namespace
     main_assembler.add_modules_from_dir(kernel_namespace.clone(), &shared_path)?;
     main_assembler.add_modules_from_dir(kernel_namespace, &source_dir.join("lib"))?;
 
-    let main_file_path = source_dir.join("main.masm").clone();
-    let kernel_main = main_assembler.assemble_program(main_file_path)?;
+    let main_file_path = source_dir.join("main.masm");
+    let kernel_main = main_assembler.clone().assemble_program(main_file_path)?;
 
     let masb_file_path = target_dir.join("tx_kernel.masb");
     kernel_main.write_to_file(masb_file_path).into_diagnostic()?;
+
+    // compile the transaction script main program
+    compile_tx_script_main(source_dir, target_dir, main_assembler)?;
 
     #[cfg(any(feature = "testing", test))]
     {
@@ -156,6 +194,22 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     }
 
     Ok(assembler)
+}
+
+/// Reads the transaction script executor MASM source from the `source_dir/tx_script_main.masm`,
+/// compiles it and saves the results to the `target_dir` as a `tx_script_main.masb` binary file.
+fn compile_tx_script_main(
+    source_dir: &Path,
+    target_dir: &Path,
+    main_assembler: Assembler,
+) -> Result<()> {
+    // assemble the transaction script executor program and write it to the "tx_script_main.masb"
+    // file.
+    let tx_script_main_file_path = source_dir.join("tx_script_main.masm");
+    let tx_script_main = main_assembler.assemble_program(tx_script_main_file_path)?;
+
+    let masb_file_path = target_dir.join("tx_script_main.masb");
+    tx_script_main.write_to_file(masb_file_path).into_diagnostic()
 }
 
 /// Generates `kernel_v0.rs` file based on the kernel library
@@ -197,7 +251,7 @@ fn generate_kernel_proc_hash_file(kernel: KernelLibrary) -> Result<()> {
     fs::write(
         KERNEL_V0_RS_FILE,
         format!(
-            r#"/// This file is generated by build.rs, do not modify
+            r#"//! This file is generated by build.rs, do not modify
 
 use miden_objects::{{digest, Digest}};
 
@@ -233,7 +287,7 @@ fn parse_proc_offsets(filename: impl AsRef<Path>) -> Result<BTreeMap<String, usi
 // ================================================================================================
 
 /// Reads the MASM files from "{source_dir}/miden" directory, compiles them into a Miden assembly
-/// library, saves the library into "{target_dir}/miden.masl", and returns the complied library.
+/// library, saves the library into "{target_dir}/miden.masl", and returns the compiled library.
 fn compile_miden_lib(
     source_dir: &Path,
     target_dir: &Path,
@@ -258,7 +312,7 @@ fn compile_miden_lib(
 // ================================================================================================
 
 /// Reads all MASM files from the "{source_dir}", complies each file individually into a MASB
-/// file, and stores the complied files into the "{target_dir}".
+/// file, and stores the compiled files into the "{target_dir}".
 ///
 /// The source files are expected to contain executable programs.
 fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembler) -> Result<()> {
@@ -283,33 +337,37 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
     Ok(())
 }
 
-// COMPILE DEFAULT ACCOUNT COMPONENTS
+// COMPILE ACCOUNT COMPONENTS
 // ================================================================================================
 
-const BASIC_WALLET_CODE: &str = "
-    export.::miden::contracts::wallets::basic::receive_asset
-    export.::miden::contracts::wallets::basic::create_note
-    export.::miden::contracts::wallets::basic::move_asset_to_note
-";
+/// Compiles the account components in `source_dir` into MASL libraries and stores the compiled
+/// files in `target_dir`.
+fn compile_account_components(
+    source_dir: &Path,
+    target_dir: &Path,
+    assembler: Assembler,
+) -> Result<()> {
+    if !target_dir.exists() {
+        fs::create_dir_all(target_dir).unwrap();
+    }
 
-const RPO_FALCON_AUTH_CODE: &str = "
-    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
-";
+    for masm_file_path in get_masm_files(source_dir).unwrap() {
+        let component_name = masm_file_path
+            .file_stem()
+            .expect("masm file should have a file stem")
+            .to_str()
+            .expect("file stem should be valid UTF-8")
+            .to_owned();
 
-const BASIC_FUNGIBLE_FAUCET_CODE: &str = "
-    export.::miden::contracts::faucets::basic_fungible::distribute
-    export.::miden::contracts::faucets::basic_fungible::burn
-";
+        // Read the source code to string instead of passing it to assemble_library directly since
+        // that would attempt to interpret the path as a LibraryPath which would fail.
+        let component_source_code = fs::read_to_string(masm_file_path)
+            .expect("reading the component's MASM source code should succeed");
 
-/// Compiles the default account components into a MASL library and stores the complied files in
-/// `target_dir`.
-fn compile_account_components(target_dir: &Path, assembler: Assembler) -> Result<()> {
-    for (component_name, component_code) in [
-        ("basic_wallet", BASIC_WALLET_CODE),
-        ("rpo_falcon_512", RPO_FALCON_AUTH_CODE),
-        ("basic_fungible_faucet", BASIC_FUNGIBLE_FAUCET_CODE),
-    ] {
-        let component_library = assembler.clone().assemble_library([component_code])?;
+        let component_library = assembler
+            .clone()
+            .assemble_library([component_source_code])
+            .expect("library assembly should succeed");
         let component_file_path =
             target_dir.join(component_name).with_extension(Library::LIBRARY_EXTENSION);
         component_library.write_to_file(component_file_path).into_diagnostic()?;
@@ -405,7 +463,7 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
     if let Some(extension) = path.extension() {
         let extension = extension
             .to_str()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid UTF-8 filename"))?
+            .ok_or_else(|| io::Error::other("invalid UTF-8 filename"))?
             .to_lowercase();
         Ok(extension == "masm")
     } else {
@@ -413,21 +471,23 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
     }
 }
 
-// KERNEL ERROR CONSTANTS
+// ERROR CONSTANTS FILE GENERATION
 // ================================================================================================
 
-/// Reads all MASM files from the `kernel_source_dir` and extracts its error constants and their
-/// associated comment as the error message and generates a Rust file from them. For example:
+/// Reads all MASM files from the `asm_source_dir` and extracts its error constants and their
+/// associated comment as the error message and generates a Rust file for each category of errors.
+/// For example:
 ///
 /// ```text
 /// # New account must have an empty vault
-/// const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x0002000F
+/// const.ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY=0x00020000
 /// ```
 ///
-/// would generate a Rust file with the following content:
+/// would generate a Rust file for transaction kernel errors (since the error belongs to that
+/// category, identified by its range) with - roughly - the following content:
 ///
 /// ```rust
-/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x0002000f;
+/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: u32 = 0x00020000;
 /// ```
 ///
 /// and add an entry in the constant -> error mapping array:
@@ -445,44 +505,116 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 /// Because the error files will be written to ./src/errors, this should be a no-op if ./src is
 /// read-only. To enable writing to ./src, set the `BUILD_GENERATED_FILES_IN_SRC` environment
 /// variable.
-fn generate_kernel_error_constants(kernel_source_dir: &Path) -> Result<()> {
+fn generate_error_constants(asm_source_dir: &Path) -> Result<()> {
     if !BUILD_GENERATED_FILES_IN_SRC {
         return Ok(());
     }
 
+    let categories =
+        extract_all_masm_errors(asm_source_dir).context("failed to extract all masm errors")?;
+
+    for (category, mut errors) in categories {
+        // Sort by error code.
+        errors.sort_by_key(|error| error.code);
+
+        // Generate the errors file.
+        let error_file_content = generate_error_file_content(category, errors)?;
+        std::fs::write(category.error_file_name(), error_file_content).into_diagnostic()?;
+    }
+
+    Ok(())
+}
+
+/// Extract all masm errors from the given path and returns a map by error category.
+fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
     // We use a BTree here to order the errors by their categories which is the first part after the
     // ERR_ prefix and to allow for the same error code to be defined multiple times in
     // different files (as long as the constant names match).
     let mut errors = BTreeMap::new();
 
     // Walk all files of the kernel source directory.
-    for entry in WalkDir::new(kernel_source_dir) {
+    for entry in WalkDir::new(asm_source_dir) {
         let entry = entry.into_diagnostic()?;
         if !is_masm_file(entry.path()).into_diagnostic()? {
             continue;
         }
         let file_contents = std::fs::read_to_string(entry.path()).into_diagnostic()?;
-        extract_kernel_errors(&mut errors, &file_contents)?;
+        extract_masm_errors(&mut errors, &file_contents)?;
     }
 
     // Check if any error code is used twice with different error names.
     let mut error_codes = BTreeMap::new();
     for (error_name, error) in errors.iter() {
         if let Some(existing_error_name) = error_codes.get(&error.code) {
-            return Err(Report::msg(format!("Transaction kernel error code 0x{} is used multiple times; Non-exhaustive list: ERR_{existing_error_name}, ERR_{error_name}", error.code)));
+            return Err(Report::msg(format!(
+                "Transaction kernel error code 0x{} is used multiple times; Non-exhaustive list: ERR_{existing_error_name}, ERR_{error_name}",
+                error.code
+            )));
         }
 
         error_codes.insert(error.code.clone(), error_name);
     }
 
-    // Generate the errors file.
-    let error_file_content = generate_kernel_errors(errors)?;
-    std::fs::write(KERNEL_ERRORS_FILE, error_file_content).into_diagnostic()?;
+    let mut category_map: BTreeMap<ErrorCategory, Vec<NamedError>> = BTreeMap::new();
+    for (error_name, error) in errors.into_iter() {
+        let error_num = u32::from_str_radix(&error.code, 16)
+            .into_diagnostic()
+            .context("failed to parse error code into u32")?;
+
+        let category = ERROR_CATEGORIES
+            .iter()
+            .find(|category| category.err_code_range().contains(&error_num))
+            .ok_or_else(|| {
+                Report::msg(format!("error num {error_num} does not lie in a known range"))
+            })?;
+
+        validate_error_category(*category, error_num, &error_name)?;
+
+        let named_error = NamedError {
+            name: error_name,
+            code: error_num,
+            message: error.message,
+        };
+
+        category_map.entry(*category).or_default().push(named_error);
+    }
+
+    Ok(category_map)
+}
+
+/// Validates that an error's category, implied from its error code, and the category of its name
+/// match.
+fn validate_error_category(
+    category: ErrorCategory,
+    error_num: u32,
+    error_name: &ErrorName,
+) -> Result<()> {
+    if category == ErrorCategory::TxKernel {
+        let tx_kernel_error_category = TX_KERNEL_ERROR_CATEGORIES
+            .iter()
+            .find(|tx_kernel_category| tx_kernel_category.error_code_range().contains(&error_num))
+            .copied()
+            .ok_or_else(|| {
+                Report::msg(format!(
+                    "error num {error_num} does not lie in a known tx kernel error range"
+                ))
+            })?;
+
+        if !error_name.starts_with(tx_kernel_error_category.category_name()) {
+            return Err(Report::msg(format!(
+                "expected error with code {} to be in category {}, but its name {} does not start with the category name",
+                error_num,
+                tx_kernel_error_category.category_name(),
+                error_name
+            )));
+        }
+    }
 
     Ok(())
 }
 
-fn extract_kernel_errors(
+/// Extracts the errors from a single masm file and inserts them into the provided map.
+fn extract_masm_errors(
     errors: &mut BTreeMap<ErrorName, ExtractedError>,
     file_contents: &str,
 ) -> Result<()> {
@@ -507,13 +639,17 @@ fn extract_kernel_errors(
         let error_message = match capture.name("message") {
             Some(message) => message.as_str().trim().to_owned(),
             None => {
-                return Err(Report::msg(format!("error message for constant ERR_{error_name} not found; add a comment above the constant to add an error message")));
+                return Err(Report::msg(format!(
+                    "error message for constant ERR_{error_name} not found; add a comment above the constant to add an error message"
+                )));
             },
         };
 
         if let Some(ExtractedError { code: existing_error_code, .. }) = errors.get(&error_name) {
             if existing_error_code != &error_code {
-                return Err(Report::msg(format!("Transaction kernel error constant ERR_{error_name} is already defined elsewhere but its error code is different")));
+                return Err(Report::msg(format!(
+                    "Transaction kernel error constant ERR_{error_name} is already defined elsewhere but its error code is different"
+                )));
             }
         }
 
@@ -540,7 +676,8 @@ fn is_new_error_category<'a>(last_error: &mut Option<&'a str>, current_error: &'
     is_new
 }
 
-fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result<String> {
+/// Generates the content of an error file for the given category and the set of errors.
+fn generate_error_file_content(category: ErrorCategory, errors: Vec<NamedError>) -> Result<String> {
     let mut output = String::new();
 
     writeln!(
@@ -553,33 +690,52 @@ fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result
 // Non-Fungible-Asset, ...).
 //
 // The comment directly above the constant will be interpreted as the error message for that error.
-
-// KERNEL ASSERTION ERROR
-// ================================================================================================
 "
+    )
+    .unwrap();
+
+    writeln!(output, "{}", category.category_info()).unwrap();
+
+    writeln!(
+        output,
+        "// {}
+// ================================================================================================
+",
+        category.array_name().replace("_", " ")
+    )
+    .unwrap();
+
+    let mut last_error = None;
+    for named_error in errors.iter() {
+        let NamedError { name, code, message } = named_error;
+
+        // Group errors into blocks separate by newlines.
+        if is_new_error_category(&mut last_error, name) {
+            writeln!(output).into_diagnostic()?;
+        }
+
+        writeln!(output, "/// {message}").into_diagnostic()?;
+        writeln!(output, "pub const ERR_{name}: u32 = 0x{code:x};").into_diagnostic()?;
+    }
+    writeln!(output).into_diagnostic()?;
+
+    writeln!(
+        output,
+        "pub const {}: [(u32, &str); {}] = [",
+        category.array_name(),
+        errors.len()
     )
     .into_diagnostic()?;
 
     let mut last_error = None;
-    for (error_name, ExtractedError { code, .. }) in errors.iter() {
+    for named_error in errors.iter() {
+        let NamedError { name, message, .. } = named_error;
+
         // Group errors into blocks separate by newlines.
-        if is_new_error_category(&mut last_error, error_name) {
+        if is_new_error_category(&mut last_error, name) {
             writeln!(output).into_diagnostic()?;
         }
-        writeln!(output, "pub const ERR_{error_name}: u32 = 0x{code};").into_diagnostic()?;
-    }
-    writeln!(output).into_diagnostic()?;
-
-    writeln!(output, "pub const TX_KERNEL_ERRORS: [(u32, &str); {}] = [", errors.len())
-        .into_diagnostic()?;
-
-    let mut last_error = None;
-    for (error_name, ExtractedError { message, .. }) in errors.iter() {
-        // Group errors into blocks separate by newlines.
-        if is_new_error_category(&mut last_error, error_name) {
-            writeln!(output).into_diagnostic()?;
-        }
-        writeln!(output, r#"    (ERR_{error_name}, "{message}"),"#).into_diagnostic()?;
+        writeln!(output, r#"    (ERR_{name}, "{message}"),"#).into_diagnostic()?;
     }
 
     writeln!(output, "];").into_diagnostic()?;
@@ -589,7 +745,134 @@ fn generate_kernel_errors(errors: BTreeMap<ErrorName, ExtractedError>) -> Result
 
 type ErrorName = String;
 
+#[derive(Debug, Clone)]
 struct ExtractedError {
     code: String,
     message: String,
+}
+
+#[derive(Debug, Clone)]
+struct NamedError {
+    name: ErrorName,
+    code: u32,
+    message: String,
+}
+
+// Later we can extend this with:
+// batch kernel: 0x2_4000..0x2_8000
+// block kernel: 0x2_8000..0x2_c000
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ErrorCategory {
+    TxKernel,
+    NoteScript,
+}
+
+impl ErrorCategory {
+    pub const fn err_code_range(&self) -> Range<u32> {
+        match self {
+            ErrorCategory::TxKernel => 0x2_0000..0x2_4000,
+            ErrorCategory::NoteScript => 0x2_c000..0x3_0000,
+        }
+    }
+
+    pub const fn error_file_name(&self) -> &'static str {
+        match self {
+            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_FILE,
+            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_FILE,
+        }
+    }
+
+    pub const fn array_name(&self) -> &'static str {
+        match self {
+            ErrorCategory::TxKernel => TX_KERNEL_ERRORS_ARRAY_NAME,
+            ErrorCategory::NoteScript => NOTE_SCRIPT_ERRORS_ARRAY_NAME,
+        }
+    }
+
+    pub fn category_info(&self) -> String {
+        let mut output = String::new();
+        match self {
+            ErrorCategory::TxKernel => {
+                writeln!(
+                    output,
+                    "// Transaction Kernel errors are in range 0x{:x}..0x{:x}.
+// Its sub categories are:",
+                    self.err_code_range().start,
+                    self.err_code_range().end,
+                )
+                .unwrap();
+
+                TX_KERNEL_ERROR_CATEGORIES.iter().for_each(|category| {
+                    writeln!(
+                        output,
+                        "// {} is in range 0x{:x}..0x{:x}",
+                        category.category_name(),
+                        category.error_code_range().start,
+                        category.error_code_range().end
+                    )
+                    .unwrap()
+                });
+            },
+            ErrorCategory::NoteScript => {
+                writeln!(
+                    output,
+                    "// Note Script errors are in range 0x{:x}..0x{:x}.",
+                    self.err_code_range().start,
+                    self.err_code_range().end,
+                )
+                .unwrap();
+            },
+        }
+
+        output
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum TxKernelErrorCategory {
+    Kernel,
+    Prologue,
+    Epilogue,
+    Tx,
+    Note,
+    Account,
+    ForeignAccount,
+    Faucet,
+    FungibleAsset,
+    NonFugibleAsset,
+    Vault,
+}
+
+impl TxKernelErrorCategory {
+    pub const fn error_code_range(&self) -> Range<u32> {
+        match self {
+            TxKernelErrorCategory::Kernel => 0x2_0000..0x2_0040,
+            TxKernelErrorCategory::Prologue => 0x2_0040..0x2_0080,
+            TxKernelErrorCategory::Epilogue => 0x2_0080..0x2_00c0,
+            TxKernelErrorCategory::Tx => 0x2_00c0..0x2_0100,
+            TxKernelErrorCategory::Note => 0x2_0100..0x2_0140,
+            TxKernelErrorCategory::Account => 0x2_0140..0x2_0180,
+            TxKernelErrorCategory::ForeignAccount => 0x2_0180..0x2_01c0,
+            TxKernelErrorCategory::Faucet => 0x2_01c0..0x2_0200,
+            TxKernelErrorCategory::FungibleAsset => 0x2_0200..0x2_0240,
+            TxKernelErrorCategory::NonFugibleAsset => 0x2_0240..0x2_0280,
+            TxKernelErrorCategory::Vault => 0x2_0280..0x2_02c0,
+        }
+    }
+
+    pub const fn category_name(&self) -> &'static str {
+        match self {
+            TxKernelErrorCategory::Kernel => "KERNEL",
+            TxKernelErrorCategory::Prologue => "PROLOGUE",
+            TxKernelErrorCategory::Epilogue => "EPILOGUE",
+            TxKernelErrorCategory::Tx => "TX",
+            TxKernelErrorCategory::Note => "NOTE",
+            TxKernelErrorCategory::Account => "ACCOUNT",
+            TxKernelErrorCategory::ForeignAccount => "FOREIGN_ACCOUNT",
+            TxKernelErrorCategory::Faucet => "FAUCET",
+            TxKernelErrorCategory::FungibleAsset => "FUNGIBLE_ASSET",
+            TxKernelErrorCategory::NonFugibleAsset => "NON_FUNGIBLE_ASSET",
+            TxKernelErrorCategory::Vault => "VAULT",
+        }
+    }
 }

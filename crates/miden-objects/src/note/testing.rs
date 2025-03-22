@@ -38,10 +38,10 @@ pub struct NoteBuilder {
 impl NoteBuilder {
     pub fn new<T: Rng>(sender: AccountId, mut rng: T) -> Self {
         let serial_num = [
-            Felt::new(rng.gen()),
-            Felt::new(rng.gen()),
-            Felt::new(rng.gen()),
-            Felt::new(rng.gen()),
+            Felt::new(rng.random()),
+            Felt::new(rng.random()),
+            Felt::new(rng.random()),
+            Felt::new(rng.random()),
         ];
 
         Self {

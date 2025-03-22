@@ -1,5 +1,5 @@
 use alloc::{
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
     string::ToString,
     vec::Vec,
 };
@@ -507,7 +507,7 @@ mod tests {
         account::{AccountId, AccountIdPrefix},
         asset::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
         testing::account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
         },
     };
 
@@ -524,7 +524,7 @@ mod tests {
 
     #[test]
     fn test_is_empty_account_vault() {
-        let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let faucet = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
         let asset: Asset = FungibleAsset::new(faucet, 123).unwrap().into();
 
         assert!(AccountVaultDelta::default().is_empty());
@@ -554,7 +554,7 @@ mod tests {
             }
         }
 
-        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let account_id = AccountId::try_from(ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET).unwrap();
 
         let mut delta_x = create_delta_with_fungible(account_id, x);
         let delta_y = create_delta_with_fungible(account_id, y);

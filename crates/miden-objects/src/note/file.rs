@@ -1,8 +1,20 @@
+#[cfg(feature = "std")]
+use std::{
+    fs::{self, File},
+    io::{self, Read},
+    path::Path,
+    vec::Vec,
+};
+
+#[cfg(feature = "std")]
+use vm_core::utils::SliceReader;
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{Note, NoteDetails, NoteId, NoteInclusionProof, NoteTag};
 use crate::block::BlockNumber;
+
+const MAGIC: &str = "note";
 
 // NOTE FILE
 // ================================================================================================
@@ -28,6 +40,25 @@ pub enum NoteFile {
     NoteWithProof(Note, NoteInclusionProof),
 }
 
+#[cfg(feature = "std")]
+impl NoteFile {
+    /// Serializes and writes binary [NoteFile] to specified file
+    pub fn write(&self, filepath: impl AsRef<Path>) -> io::Result<()> {
+        fs::write(filepath, self.to_bytes())
+    }
+
+    /// Reads from file and tries to deserialize an [NoteFile]
+    pub fn read(filepath: impl AsRef<Path>) -> io::Result<Self> {
+        let mut file = File::open(filepath)?;
+        let mut buffer = Vec::new();
+
+        file.read_to_end(&mut buffer)?;
+        let mut reader = SliceReader::new(&buffer);
+
+        Ok(NoteFile::read_from(&mut reader).map_err(|_| io::ErrorKind::InvalidData)?)
+    }
+}
+
 impl From<NoteDetails> for NoteFile {
     fn from(details: NoteDetails) -> Self {
         NoteFile::NoteDetails {
@@ -49,7 +80,7 @@ impl From<NoteId> for NoteFile {
 
 impl Serializable for NoteFile {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_bytes("note".as_bytes());
+        target.write_bytes(MAGIC.as_bytes());
         match self {
             NoteFile::NoteId(note_id) => {
                 target.write_u8(0);
@@ -73,9 +104,9 @@ impl Serializable for NoteFile {
 impl Deserializable for NoteFile {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let magic_value = source.read_string(4)?;
-        if magic_value != "note" {
+        if magic_value != MAGIC {
             return Err(DeserializationError::InvalidValue(format!(
-                "Invalid note file marker: {magic_value}"
+                "invalid note file marker: {magic_value}"
             )));
         }
         match source.read_u8()? {
@@ -106,8 +137,8 @@ mod tests {
     use alloc::vec::Vec;
 
     use vm_core::{
-        utils::{Deserializable, Serializable},
         Felt,
+        utils::{Deserializable, Serializable},
     };
 
     use crate::{
@@ -119,15 +150,14 @@ mod tests {
             NoteRecipient, NoteScript, NoteTag, NoteType,
         },
         testing::account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
         },
     };
 
     fn create_example_note() -> Note {
-        let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let faucet = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
         let target =
-            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE).unwrap();
 
         let serial_num = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
         let script = NoteScript::mock();

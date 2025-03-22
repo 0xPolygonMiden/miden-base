@@ -2,21 +2,27 @@ use alloc::{collections::BTreeMap, string::String};
 
 use miden_lib::{
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
-    transaction::memory::CURRENT_INPUT_NOTE_PTR,
+    transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
 };
 use miden_objects::{
+    WORD_SIZE,
     account::AccountId,
-    note::{Note, NoteExecutionHint, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
-    testing::{account_id::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, prepare_word},
+    note::{
+        Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
+    },
+    testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
     transaction::TransactionArgs,
-    Hasher, WORD_SIZE,
 };
-use vm_processor::{ProcessState, Word, EMPTY_WORD, ONE};
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use vm_processor::{EMPTY_WORD, ONE, ProcessState, Word};
 
-use super::{Felt, Process, ZERO};
+use super::{Felt, Process, ZERO, word_to_masm_push_string};
 use crate::{
-    assert_execution_error,
-    testing::{utils::input_note_data_ptr, TransactionContext, TransactionContextBuilder},
+    TransactionExecutorError, assert_execution_error,
+    testing::{
+        Auth, MockChain, TransactionContext, TransactionContextBuilder, utils::input_note_data_ptr,
+    },
     tests::kernel_tests::read_root_mem_word,
 };
 
@@ -98,7 +104,7 @@ fn test_get_vault_data() {
             exec.note::get_assets_info
 
             # assert the assets data is correct
-            push.{note_0_asset_hash} assert_eqw
+            push.{note_0_asset_commitment} assert_eqw
             push.{note_0_num_assets} assert_eq
 
             # increment current input note pointer
@@ -108,16 +114,18 @@ fn test_get_vault_data() {
             exec.note::get_assets_info
 
             # assert the assets data is correct
-            push.{note_1_asset_hash} assert_eqw
+            push.{note_1_asset_commitment} assert_eqw
             push.{note_1_num_assets} assert_eq
 
             # truncate the stack
             exec.sys::truncate_stack
         end
         ",
-        note_0_asset_hash = prepare_word(&notes.get_note(0).note().assets().commitment()),
+        note_0_asset_commitment =
+            word_to_masm_push_string(&notes.get_note(0).note().assets().commitment()),
         note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
-        note_1_asset_hash = prepare_word(&notes.get_note(1).note().assets().commitment()),
+        note_1_asset_commitment =
+            word_to_masm_push_string(&notes.get_note(1).note().assets().commitment()),
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
@@ -142,7 +150,7 @@ fn test_get_assets() {
                 # assert the asset is correct
                 dup padw movup.4 mem_loadw push.{asset} assert_eqw push.4 add
                 ",
-                asset = prepare_word(&<[Felt; 4]>::from(*asset))
+                asset = word_to_masm_push_string(&<[Felt; 4]>::from(*asset))
             );
         }
         code
@@ -252,7 +260,7 @@ fn test_get_inputs() {
                 # assert the input is correct
                 dup padw movup.4 mem_loadw push.{input_word} assert_eqw push.4 add
                 ",
-                input_word = prepare_word(&input_word)
+                input_word = word_to_masm_push_string(&input_word)
             );
         }
         code
@@ -381,7 +389,7 @@ fn note_setup_stack_assertions(process: &Process, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
-    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().hash();
+    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().root();
     note_script_root.reverse();
     expected_stack[..4].copy_from_slice(&note_script_root);
 
@@ -443,24 +451,24 @@ fn test_get_inputs_hash() {
 
             # push the number of values and pointer to the inputs on the stack
             push.5.4000
-            # execute the `compute_inputs_hash` procedure for 5 values
-            exec.note::compute_inputs_hash
+            # execute the `compute_inputs_commitment` procedure for 5 values
+            exec.note::compute_inputs_commitment
             # => [HASH_5]
 
             push.8.4000
-            # execute the `compute_inputs_hash` procedure for 8 values
-            exec.note::compute_inputs_hash
+            # execute the `compute_inputs_commitment` procedure for 8 values
+            exec.note::compute_inputs_commitment
             # => [HASH_8, HASH_5]
 
             push.15.4000
-            # execute the `compute_inputs_hash` procedure for 15 values
-            exec.note::compute_inputs_hash
+            # execute the `compute_inputs_commitment` procedure for 15 values
+            exec.note::compute_inputs_commitment
             # => [HASH_15, HASH_8, HASH_5]
 
             push.0.4000
-            # check that calling `compute_inputs_hash` procedure with 0 elements will result in an
+            # check that calling `compute_inputs_commitment` procedure with 0 elements will result in an
             # empty word
-            exec.note::compute_inputs_hash
+            exec.note::compute_inputs_commitment
             # => [0, 0, 0, 0, HASH_15, HASH_8, HASH_5]
 
             # truncate the stack
@@ -471,17 +479,12 @@ fn test_get_inputs_hash() {
     let process = &tx_context.execute_code(code).unwrap();
     let process_state: ProcessState = process.into();
 
-    let mut expected_5 = Hasher::hash_elements(&[
-        Felt::new(1),
-        Felt::new(2),
-        Felt::new(3),
-        Felt::new(4),
-        Felt::new(5),
-    ])
-    .to_vec();
-    expected_5.reverse();
+    let note_inputs_5_hash =
+        NoteInputs::new(vec![Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4), Felt::new(5)])
+            .unwrap()
+            .commitment();
 
-    let mut expected_8 = Hasher::hash_elements(&[
+    let note_inputs_8_hash = NoteInputs::new(vec![
         Felt::new(1),
         Felt::new(2),
         Felt::new(3),
@@ -491,10 +494,10 @@ fn test_get_inputs_hash() {
         Felt::new(7),
         Felt::new(8),
     ])
-    .to_vec();
-    expected_8.reverse();
+    .unwrap()
+    .commitment();
 
-    let mut expected_15 = Hasher::hash_elements(&[
+    let note_inputs_15_hash = NoteInputs::new(vec![
         Felt::new(1),
         Felt::new(2),
         Felt::new(3),
@@ -511,31 +514,34 @@ fn test_get_inputs_hash() {
         Felt::new(14),
         Felt::new(15),
     ])
-    .to_vec();
-    expected_15.reverse();
+    .unwrap()
+    .commitment();
 
-    let mut expected_stack = vec![ZERO, ZERO, ZERO, ZERO];
-    expected_stack.extend_from_slice(&expected_15);
-    expected_stack.extend_from_slice(&expected_8);
-    expected_stack.extend_from_slice(&expected_5);
+    let mut expected_stack = alloc::vec::Vec::new();
+
+    expected_stack.extend_from_slice(note_inputs_5_hash.as_elements());
+    expected_stack.extend_from_slice(note_inputs_8_hash.as_elements());
+    expected_stack.extend_from_slice(note_inputs_15_hash.as_elements());
+    expected_stack.extend_from_slice(&[ZERO, ZERO, ZERO, ZERO]);
+    expected_stack.reverse();
 
     assert_eq!(process_state.get_stack_state()[0..16], expected_stack);
 }
 
 #[test]
-fn test_get_current_script_hash() {
+fn test_get_current_script_root() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
 
-    // calling get_script_hash should return script hash
+    // calling get_script_root should return script root
     let code = "
     use.kernel::prologue
     use.miden::note
 
     begin
         exec.prologue::prepare_transaction
-        exec.note::get_script_hash
+        exec.note::get_script_root
 
         # truncate the stack
         swapw dropw
@@ -544,8 +550,8 @@ fn test_get_current_script_hash() {
 
     let process = tx_context.execute_code(code).unwrap();
 
-    let script_hash = tx_context.input_notes().get_note(0).note().script().hash();
-    assert_eq!(process.stack.get_word(0), script_hash.as_elements());
+    let script_root = tx_context.input_notes().get_note(0).note().script().root();
+    assert_eq!(process.stack.get_word(0), script_root.as_elements());
 }
 
 #[test]
@@ -554,8 +560,7 @@ fn test_build_note_metadata() {
         .with_mock_notes_preserved()
         .build();
     let sender = tx_context.account().id();
-    let receiver =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+    let receiver = AccountId::try_from(ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE).unwrap();
 
     let test_metadata1 = NoteMetadata::new(
         sender,
@@ -607,4 +612,71 @@ fn test_build_note_metadata() {
 
         assert_eq!(Word::from(test_metadata), metadata_word, "failed in iteration {iteration}");
     }
+}
+
+/// This serves as a test that setting a custom timestamp on mock chain blocks works.
+#[test]
+pub fn test_timelock() {
+    let mut mock_chain = MockChain::new();
+    let account = mock_chain.add_existing_wallet(Auth::NoAuth, vec![]);
+    const TIMESTAMP_ERROR: u32 = 123;
+
+    let code = format!(
+        "
+      use.miden::note
+      use.miden::tx
+
+      begin
+          # store the note inputs to memory starting at address 0
+          push.0 exec.note::get_inputs
+          # => [num_inputs, inputs_ptr]
+
+          # make sure the number of inputs is 1
+          eq.1 assert.err=789
+          # => [inputs_ptr]
+
+          # read the timestamp at which the note can be consumed
+          mem_load
+          # => [timestamp]
+
+          exec.tx::get_block_timestamp
+          # => [block_timestamp, timestamp]
+
+          # ensure block timestamp is newer than timestamp
+          lte assert.err={TIMESTAMP_ERROR}
+          # => []
+      end"
+    );
+
+    let lock_timestamp = 2_000_000_000;
+    let timelock_note = NoteBuilder::new(account.id(), &mut ChaCha20Rng::from_os_rng())
+        .note_inputs([Felt::from(lock_timestamp)])
+        .unwrap()
+        .code(code.clone())
+        .build(&TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
+
+    mock_chain.add_pending_note(timelock_note.clone());
+    mock_chain.seal_block(None, Some(lock_timestamp - 100));
+
+    // Attempt to consume note too early.
+    // ----------------------------------------------------------------------------------------
+    let tx_inputs =
+        mock_chain.get_transaction_inputs(account.clone(), None, &[timelock_note.id()], &[]);
+    let tx_context = TransactionContextBuilder::new(account.clone())
+        .tx_inputs(tx_inputs.clone())
+        .build();
+    let err = tx_context.execute().unwrap_err();
+    let TransactionExecutorError::TransactionProgramExecutionFailed(err) = err else {
+        panic!("unexpected error")
+    };
+    assert_execution_error!(Err::<(), _>(err), TIMESTAMP_ERROR);
+
+    // Consume note where lock timestamp matches the block timestamp.
+    // ----------------------------------------------------------------------------------------
+    mock_chain.seal_block(None, Some(lock_timestamp));
+    let tx_inputs =
+        mock_chain.get_transaction_inputs(account.clone(), None, &[timelock_note.id()], &[]);
+    let tx_context = TransactionContextBuilder::new(account).tx_inputs(tx_inputs).build();
+    tx_context.execute().unwrap();
 }

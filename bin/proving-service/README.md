@@ -1,8 +1,8 @@
 # Miden proving service
 
-A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. Currently, only supports transactions proving.
+A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions, transaction batches, and blocks.
 
-The worker is a gRPC service that can receive transaction witnesses and returns the proof. It can only handle one request at a time and returns an error if is already in use.
+The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if it is already in use.
 
 The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue, assigning a worker to each request and retrying if the worker is not available. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
@@ -14,78 +14,65 @@ To build the service from a local version, from the root of the workspace you ca
 make install-proving-service
 ```
 
-The CLI can be installed from the source code using specific git revisions with `cargo install`. Note that since these aren't official releases we cannot provide much support for any issues you run into, so consider this for advanced users only.
+The CLI can be installed from the source code using specific git revisions with `cargo install` or from crates.io with `cargo install miden-proving-service`.
 
 ## Worker
 
 To start the worker service you will need to run:
 
 ```bash
-miden-proving-service start-worker --host 0.0.0.0 --port 8082
+miden-proving-service start-worker --host 0.0.0.0 --port 8082 --tx-prover --batch-prover
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. This command will start a worker that can handle transaction and batch proving requests.
+
+Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
 
 ## Proxy
 
-First, you need to create a configuration file for the proxy with:
-
-```bash
-miden-proving-service init
-```
-
-This will create the `miden-proving-service.toml` file in your current directory. This file will hold the configuration for the proxy. You can modify the configuration by changing the host and ports of the services, the maximum size of the queue, among other options. An example configuration is:
-
-```toml
-# Host of the proxy server
-host = "0.0.0.0"
-# Port of the proxy server
-port = 8082
-# Timeout for a new request to be completed
-timeout_secs = 100
-# Timeout for establishing a connection to the worker
-connection_timeout_secs = 10
-# Maximum amount of items that a queue can handle
-max_queue_items = 10
-# Maximum amount of retries that a request can take
-max_retries_per_request = 1
-# Maximum amount of requests that a given IP address can make per second
-max_req_per_sec = 5
-# Time to wait before checking the availability of workers
-available_workers_polling_time_ms = 20
-# Interval to check the health of the workers
-health_check_interval_secs = 1
-# Host of the metrics server
-prometheus_host = "127.0.0.1"
-# Port of the metrics server
-prometheus_port = 6192
-```
-
-Then, to start the proxy service, you will need to run:
+To start the proxy service, you will need to run:
 
 ```bash
 miden-proving-service start-proxy [worker1] [worker2] ... [workerN]
 ```
 
+For example:
+
+```bash
+miden-proving-service start-proxy 0.0.0.0:8084 0.0.0.0:8085
+```
+
 This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
 
-At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `max_retries_per_request` value in the configuration file.
+You can customize the proxy service by setting environment variables. Possible customizations can be found by running `miden-proving-service start-proxy --help`.
+
+An example `.env` file is provided in the crate's root directory. To use the variables from a file in any Unix-like operating system, you can run `source <your-file>`.
+
+At the moment, when a worker added to the proxy stops working and can not connect to it for a request, the connection is marked as retriable meaning that the proxy will try reaching another worker. The number of retries is configurable via the `MPS_MAX_RETRIES_PER_REQUEST` environmental variable.
 
 ## Updating workers on a running proxy
 
 To update the workers on a running proxy, two commands are provided: `add-worker` and `remove-worker`. These commands will update the workers on the proxy and will not require a restart. To use these commands, you will need to run:
 
 ```bash
-miden-proving-service add-worker [worker1] [worker2] ... [workerN]
-miden-proving-service remove-worker [worker1] [worker2] ... [workerN]
+miden-proving-service add-worker --proxy-host <proxy-host> --proxy-update-workers-port <proxy-update-workers-port> [worker1] [worker2] ... [workerN]
+miden-proving-service remove-worker --proxy-host <proxy-host> --proxy-update-workers-port <proxy-update-workers-port> [worker1] [worker2] ... [workerN]
 ```
 For example:
 
 ```bash
 # To add 0.0.0.0:8085 and 200.58.70.4:50051 to the workers list:
-miden-proving-service add-workers 0.0.0.0:8085 200.58.70.4:50051
+miden-proving-service add-workers --proxy-host 0.0.0.0 --proxy-update-workers-port 8083 0.0.0.0:8085 200.58.70.4:50051
 # To remove 158.12.12.3:8080 and 122.122.6.6:50051 from the workers list:
-miden-proving-service remove-workers 158.12.12.3:8080 122.122.6.6:50051
+miden-proving-service remove-workers --proxy-host 0.0.0.0 --proxy-update-workers-port 8083 158.12.12.3:8080 122.122.6.6:50051
+```
+
+The `--proxy-host` and `--proxy-update-workers-port` flags are required to specify the proxy's host and the port where the proxy is listening for updates. The workers are passed as arguments in the format `host:port`. Both flags can be used from environment variables, `MPS_PROXY_HOST` and `MPS_PROXY_UPDATE_WORKERS_PORT` respectively. For example:
+
+```bash
+export MPS_PROXY_HOST="0.0.0.0"
+export MPS_PROXY_UPDATE_WORKERS_PORT="8083"
+miden-proving-service add-workers 0.0.0.0:8085
 ```
 
 Note that, in order to update the workers, the proxy must be running in the same computer as the command is being executed because it will check if the client address is localhost to avoid any security issues.
@@ -120,7 +107,31 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 ## Metrics
 
-The proxy includes a service that exposes metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is always enabled and uses the host and port defined in the `miden-proving-service.toml` file.
+The proxy includes a service that can optionally expose metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is controlled by the `enable_metrics` configuration option.
+
+### Enabling Prometheus Metrics
+
+To enable Prometheus metrics, set the `enable_metrics` field to `true`. This can be done via environment variables or command-line arguments.
+
+#### Using Environment Variables
+
+Set the following environment variable:
+
+```bash
+export MPS_ENABLE_METRICS=true
+```
+
+#### Using Command-Line Arguments
+
+Pass the `--enable-metrics` flag when starting the proxy:
+
+```bash
+miden-proving-service start-proxy --enable-metrics [worker1] [worker2] ... [workerN]
+```
+
+When enabled, the Prometheus metrics will be available at the host and port specified by the `prometheus_host` and `prometheus_port` fields in the configuration. By default, these are set to `0.0.0.0` and `9090`, respectively.
+
+If metrics are not enabled, the proxy will log that Prometheus metrics are not enabled.
 
 The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
 

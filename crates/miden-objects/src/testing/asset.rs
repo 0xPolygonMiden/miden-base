@@ -1,12 +1,12 @@
-use rand::{distributions::Standard, Rng};
+use rand::{Rng, distr::StandardUniform};
 
 use crate::{
+    AssetError,
     account::{AccountId, AccountIdPrefix, AccountType},
     asset::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     testing::account_id::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET,
     },
-    AssetError,
 };
 
 /// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multiplied
@@ -34,7 +34,7 @@ impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
     }
 
     pub fn build(&mut self) -> Result<NonFungibleAssetDetails, AssetError> {
-        let data = (&mut self.rng).sample_iter(Standard).take(5).collect();
+        let data = (&mut self.rng).sample_iter(StandardUniform).take(5).collect();
         NonFungibleAssetDetails::new(self.faucet_id, data)
     }
 }
@@ -88,10 +88,10 @@ impl FungibleAssetBuilder {
 }
 
 impl NonFungibleAsset {
-    /// Returns a mocked non-fungible asset, issued by [ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN].
+    /// Returns a mocked non-fungible asset, issued by [ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET].
     pub fn mock(asset_data: &[u8]) -> Asset {
         let non_fungible_asset_details = NonFungibleAssetDetails::new(
-            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap().prefix(),
+            AccountId::try_from(ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET).unwrap().prefix(),
             asset_data.to_vec(),
         )
         .unwrap();
@@ -100,27 +100,26 @@ impl NonFungibleAsset {
     }
 
     /// Returns the account ID of the issuer of [`NonFungibleAsset::mock()`]
-    /// ([ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN]).
+    /// ([ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET]).
     pub fn mock_issuer() -> AccountId {
-        AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap()
+        AccountId::try_from(ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET).unwrap()
     }
 }
 
 impl FungibleAsset {
-    /// Returns a mocked fungible asset, issued by [ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN].
+    /// Returns a mocked fungible asset, issued by [ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET].
     pub fn mock(amount: u64) -> Asset {
         Asset::Fungible(
             FungibleAsset::new(
-                AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)
-                    .expect("id should be valid"),
+                AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).expect("id should be valid"),
                 amount,
             )
             .expect("asset is valid"),
         )
     }
 
-    /// Returns a mocked asset account ID ([ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN]).
+    /// Returns a mocked asset account ID ([ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET]).
     pub fn mock_issuer() -> AccountId {
-        AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap()
+        AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap()
     }
 }

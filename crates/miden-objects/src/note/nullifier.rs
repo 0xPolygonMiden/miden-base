@@ -3,9 +3,14 @@ use core::fmt::{Debug, Display, Formatter};
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher,
-    NoteDetails, Serializable, Word, WORD_SIZE, ZERO,
+    NoteDetails, Serializable, WORD_SIZE, Word, ZERO,
 };
-use crate::utils::{hex_to_bytes, HexParseError};
+use crate::utils::{HexParseError, hex_to_bytes};
+
+// CONSTANTS
+// ================================================================================================
+
+const NULLIFIER_PREFIX_SHIFT: u8 = 48;
 
 // NULLIFIER
 // ================================================================================================
@@ -14,29 +19,29 @@ use crate::utils::{hex_to_bytes, HexParseError};
 ///
 /// A note's nullifier is computed as:
 ///
-/// > hash(serial_num, script_hash, input_hash, asset_hash).
+/// > hash(serial_num, script_root, input_commitment, asset_commitment).
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique nullifier.
-/// - We cannot derive a note's hash from its nullifier, or a note's nullifier from its hash.
-/// - To compute the nullifier we must know all components of the note: serial_num, script_hash,
-///   input_hash and asset_hash.
+/// - We cannot derive a note's commitment from its nullifier, or a note's nullifier from its hash.
+/// - To compute the nullifier we must know all components of the note: serial_num, script_root,
+///   input_commitment and asset_commitment.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nullifier(Digest);
 
 impl Nullifier {
     /// Returns a new note [Nullifier] instantiated from the provided digest.
     pub fn new(
-        script_hash: Digest,
-        inputs_hash: Digest,
-        asset_hash: Digest,
+        script_root: Digest,
+        inputs_commitment: Digest,
+        asset_commitment: Digest,
         serial_num: Word,
     ) -> Self {
         let mut elements = [ZERO; 4 * WORD_SIZE];
         elements[..4].copy_from_slice(&serial_num);
-        elements[4..8].copy_from_slice(script_hash.as_elements());
-        elements[8..12].copy_from_slice(inputs_hash.as_elements());
-        elements[12..].copy_from_slice(asset_hash.as_elements());
+        elements[4..8].copy_from_slice(script_root.as_elements());
+        elements[8..12].copy_from_slice(inputs_commitment.as_elements());
+        elements[12..].copy_from_slice(asset_commitment.as_elements());
         Self(Hasher::hash_elements(&elements))
     }
 
@@ -55,6 +60,13 @@ impl Nullifier {
         self.0
     }
 
+    /// Returns the prefix of this nullifier.
+    ///
+    /// Nullifier prefix is defined as the 16 most significant bits of the nullifier value.
+    pub fn prefix(&self) -> u16 {
+        (self.inner()[3].as_int() >> NULLIFIER_PREFIX_SHIFT) as u16
+    }
+
     /// Creates a Nullifier from a hex string. Assumes that the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_value: &str) -> Result<Self, HexParseError> {
@@ -67,6 +79,13 @@ impl Nullifier {
     /// Returns a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
         self.0.to_hex()
+    }
+
+    #[cfg(any(feature = "testing", test))]
+    pub fn dummy(n: u64) -> Self {
+        use vm_core::FieldElement;
+
+        Self(Digest::new([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(n)]))
     }
 }
 
@@ -88,7 +107,7 @@ impl Debug for Nullifier {
 impl From<&NoteDetails> for Nullifier {
     fn from(note: &NoteDetails) -> Self {
         Self::new(
-            note.script().hash(),
+            note.script().root(),
             note.inputs().commitment(),
             note.assets().commitment(),
             note.serial_num(),

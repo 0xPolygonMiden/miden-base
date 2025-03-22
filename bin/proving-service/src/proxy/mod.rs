@@ -1,7 +1,5 @@
 use std::{
     collections::VecDeque,
-    future::Future,
-    pin::Pin,
     sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
@@ -9,44 +7,41 @@ use std::{
 use async_trait::async_trait;
 use bytes::Bytes;
 use metrics::{
-    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMITED_REQUESTS, RATE_LIMIT_VIOLATIONS, REQUEST_COUNT,
+    QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMIT_VIOLATIONS, RATE_LIMITED_REQUESTS, REQUEST_COUNT,
     REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
-    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
+    WORKER_REQUEST_COUNT,
 };
 use pingora::{
     http::ResponseHeader,
     lb::Backend,
     prelude::*,
     protocols::Digest,
-    server::ShutdownWatch,
-    services::background::BackgroundService,
-    upstreams::peer::{Peer, ALPN},
+    upstreams::peer::{ALPN, Peer},
 };
-use pingora_core::{upstreams::peer::HttpPeer, Result};
+use pingora_core::{Result, upstreams::peer::HttpPeer};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
-use tokio::{sync::RwLock, time::sleep};
-use tracing::{debug_span, error, info, info_span, warn, Span};
+use tokio::sync::RwLock;
+use tracing::{Span, error, info, info_span, warn};
 use uuid::Uuid;
 use worker::Worker;
 
 use crate::{
     commands::{
-        update_workers::{Action, UpdateWorkers},
         ProxyConfig,
+        update_workers::{Action, UpdateWorkers},
     },
-    error::TxProverServiceError,
+    error::ProvingServiceError,
     utils::{
-        create_queue_full_response, create_response_with_error_message,
-        create_too_many_requests_response, create_workers_updated_response, MIDEN_PROVING_SERVICE,
+        MIDEN_PROVING_SERVICE, create_queue_full_response, create_response_with_error_message,
+        create_too_many_requests_response,
     },
 };
 
+mod health_check;
 pub mod metrics;
+pub(crate) mod update_workers;
 mod worker;
-
-/// Localhost address
-const LOCALHOST_ADDR: &str = "127.0.0.1";
 
 // LOAD BALANCER STATE
 // ================================================================================================
@@ -60,8 +55,8 @@ pub struct LoadBalancerState {
     max_queue_items: usize,
     max_retries_per_request: usize,
     max_req_per_sec: isize,
-    available_workers_polling_time: Duration,
-    health_check_frequency: Duration,
+    available_workers_polling_interval: Duration,
+    health_check_interval: Duration,
 }
 
 impl LoadBalancerState {
@@ -74,15 +69,22 @@ impl LoadBalancerState {
     pub async fn new(
         initial_workers: Vec<Backend>,
         config: &ProxyConfig,
-    ) -> core::result::Result<Self, TxProverServiceError> {
+    ) -> core::result::Result<Self, ProvingServiceError> {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
 
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
         let total_timeout = Duration::from_secs(config.timeout_secs);
 
         for worker in initial_workers {
-            workers.push(Worker::new(worker, connection_timeout, total_timeout).await?);
+            match Worker::new(worker, connection_timeout, total_timeout).await {
+                Ok(w) => workers.push(w),
+                Err(e) => {
+                    error!("Failed to create worker: {}", e);
+                },
+            }
         }
+
+        info!("Workers created: {:?}", workers);
 
         WORKER_COUNT.set(workers.len() as i64);
         RATE_LIMIT_VIOLATIONS.reset();
@@ -96,10 +98,10 @@ impl LoadBalancerState {
             max_queue_items: config.max_queue_items,
             max_retries_per_request: config.max_retries_per_request,
             max_req_per_sec: config.max_req_per_sec,
-            available_workers_polling_time: Duration::from_millis(
-                config.available_workers_polling_time_ms,
+            available_workers_polling_interval: Duration::from_millis(
+                config.available_workers_polling_interval_ms,
             ),
-            health_check_frequency: Duration::from_secs(config.health_check_interval_secs),
+            health_check_interval: Duration::from_secs(config.health_check_interval_secs),
         })
     }
 
@@ -142,7 +144,7 @@ impl LoadBalancerState {
     pub async fn update_workers(
         &self,
         update_workers: UpdateWorkers,
-    ) -> std::result::Result<(), TxProverServiceError> {
+    ) -> std::result::Result<(), ProvingServiceError> {
         let mut workers = self.workers.write().await;
         info!("Current workers: {:?}", workers);
 
@@ -151,7 +153,7 @@ impl LoadBalancerState {
             .iter()
             .map(|worker| Backend::new(worker))
             .collect::<Result<Vec<Backend>, _>>()
-            .map_err(TxProverServiceError::BackendCreationFailed)?;
+            .map_err(ProvingServiceError::BackendCreationFailed)?;
 
         let mut native_workers = Vec::new();
 
@@ -189,66 +191,6 @@ impl LoadBalancerState {
     /// Get the number of busy workers.
     pub async fn num_busy_workers(&self) -> usize {
         self.workers.read().await.iter().filter(|w| !w.is_available()).count()
-    }
-
-    /// Handles the update workers request.
-    ///
-    /// # Behavior
-    /// - Reads the HTTP request from the session.
-    /// - If query parameters are present, attempts to parse them as an `UpdateWorkers` object.
-    /// - If the parsing fails, returns an error response.
-    /// - If successful, updates the list of workers by calling `update_workers`.
-    /// - If the update is successful, returns the count of available workers.
-    ///
-    /// # Errors
-    /// - If the HTTP request cannot be read.
-    /// - If the query parameters cannot be parsed.
-    /// - If the workers cannot be updated.
-    /// - If the response cannot be created.
-    pub async fn handle_update_workers_request(
-        &self,
-        session: &mut Session,
-    ) -> Option<Result<bool>> {
-        let http_session = session.as_downstream_mut();
-
-        // Attempt to read the HTTP request
-        if let Err(err) = http_session.read_request().await {
-            let error_message = format!("Failed to read request: {}", err);
-            error!("{}", error_message);
-            return Some(create_response_with_error_message(session, error_message).await);
-        }
-
-        // Extract and parse query parameters, if there are not any, return early to continue
-        // processing the request as a regular proving request.
-        let query_params = match http_session.req_header().as_ref().uri.query() {
-            Some(params) => params,
-            None => {
-                return None;
-            },
-        };
-
-        // Parse the query parameters
-        let update_workers: Result<UpdateWorkers, _> = serde_qs::from_str(query_params);
-        let update_workers = match update_workers {
-            Ok(workers) => workers,
-            Err(err) => {
-                let error_message = format!("Failed to parse query parameters: {}", err);
-                error!("{}", error_message);
-                return Some(create_response_with_error_message(session, error_message).await);
-            },
-        };
-
-        // Update workers and handle potential errors
-        if let Err(err) = self.update_workers(update_workers).await {
-            let error_message = format!("Failed to update workers: {}", err);
-            error!("{}", error_message);
-            return Some(create_response_with_error_message(session, error_message).await);
-        }
-
-        // Successfully updated workers
-        info!("Workers updated successfully");
-        let workers_count = self.num_workers().await;
-        Some(create_workers_updated_response(session, workers_count).await)
     }
 
     /// Check the health of the workers and returns a list of healthy workers.
@@ -425,7 +367,7 @@ impl ProxyHttp for LoadBalancer {
             Some(addr) => addr.to_string(),
             None => {
                 return create_response_with_error_message(
-                    session,
+                    session.as_downstream_mut(),
                     "No socket address".to_string(),
                 )
                 .await;
@@ -433,13 +375,6 @@ impl ProxyHttp for LoadBalancer {
         };
 
         info!("Client address: {:?}", client_addr);
-
-        // Special handling for localhost
-        if client_addr.contains(LOCALHOST_ADDR) {
-            if let Some(response) = self.0.handle_update_workers_request(session).await {
-                return response;
-            }
-        }
 
         // Increment the request count
         REQUEST_COUNT.inc();
@@ -507,7 +442,7 @@ impl ProxyHttp for LoadBalancer {
                 break;
             }
             info!("All workers are busy");
-            tokio::time::sleep(self.0.available_workers_polling_time).await;
+            tokio::time::sleep(self.0.available_workers_polling_interval).await;
         }
 
         // Remove the request from the queue
@@ -744,59 +679,5 @@ impl ProxyHttp for ProxyHttpDefaultImpl {
         _ctx: &mut Self::CTX,
     ) -> Result<Box<HttpPeer>> {
         unimplemented!("This is a dummy implementation, should not be called")
-    }
-}
-
-/// Implement the BackgroundService trait for the LoadBalancer
-///
-/// A [BackgroundService] can be run as part of a Pingora application to add supporting logic that
-/// exists outside of the request/response lifecycle.
-///
-/// We use this implementation to periodically check the health of the workers and update the list
-/// of available workers.
-impl BackgroundService for LoadBalancerState {
-    /// Starts the health check background service.
-    ///
-    /// This function is called when the Pingora server tries to start all the services. The
-    /// background service can return at anytime or wait for the `shutdown` signal.
-    ///
-    /// The health check background service will periodically check the health of the workers
-    /// using the gRPC health check protocol. If a worker is not healthy, it will be removed from
-    /// the list of available workers.
-    ///
-    /// # Errors
-    /// - If the worker has an invalid URI.
-    fn start<'life0, 'async_trait>(
-        &'life0 self,
-        _shutdown: ShutdownWatch,
-    ) -> Pin<Box<dyn Future<Output = ()> + ::core::marker::Send + 'async_trait>>
-    where
-        'life0: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async move {
-            loop {
-                // Create a new spawn to perform the health check
-                let span = debug_span!("proxy:health_check");
-                let _guard = span.enter();
-
-                let mut workers = self.workers.write().await;
-                let initial_workers_len = workers.len();
-
-                // Perform health checks on workers and retain healthy ones
-                let healthy_workers = self.check_workers_health(workers.iter_mut()).await;
-
-                // Update the worker list with healthy workers
-                *workers = healthy_workers;
-
-                // Update the worker count and worker unhealhy count metrics
-                WORKER_COUNT.set(workers.len() as i64);
-                let unhealthy_workers = initial_workers_len - workers.len();
-                WORKER_UNHEALTHY.inc_by(unhealthy_workers as u64);
-
-                // Sleep for the defined interval before the next health check
-                sleep(self.health_check_frequency).await;
-            }
-        })
     }
 }

@@ -6,11 +6,12 @@ use alloc::{
 };
 
 use ::assembly::{
-    ast::{Module, ModuleKind},
     LibraryPath,
+    ast::{Module, ModuleKind},
 };
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    Felt, MIN_PROOF_SECURITY_LEVEL, Word,
     account::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
     assembly::DefaultSourceManager,
     asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
@@ -21,30 +22,29 @@ use miden_objects::{
     testing::{
         account_component::AccountMockComponent,
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         note::DEFAULT_NOTE_CODE,
-        prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
-    Felt, Word, MIN_PROOF_SECURITY_LEVEL,
+    utils::word_to_masm_push_string,
 };
 use miden_prover::ProvingOptions;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
-    utils::{Deserializable, Serializable},
     Digest, MemAdviceProvider, ONE,
+    utils::{Deserializable, Serializable},
 };
 
 use super::{
     LocalTransactionProver, TransactionExecutor, TransactionHost, TransactionProver,
     TransactionVerifier,
 };
-use crate::{testing::TransactionContextBuilder, TransactionMastStore};
+use crate::{TransactionMastStore, testing::TransactionContextBuilder};
 
 mod kernel_tests;
 
@@ -113,14 +113,17 @@ fn transaction_executor_witness() {
     )
     .unwrap();
 
-    assert_eq!(executed_transaction.final_account().hash(), tx_outputs.account.hash());
+    assert_eq!(
+        executed_transaction.final_account().commitment(),
+        tx_outputs.account.commitment()
+    );
     assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);
 }
 
 #[test]
 fn executed_transaction_account_delta_new() {
     let account_assets = AssetVault::mock().assets().collect::<Vec<Asset>>();
-    let account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
                 TransactionKernel::testing_assembler(),
@@ -147,7 +150,7 @@ fn executed_transaction_account_delta_new() {
     let removed_asset_1 = FungibleAsset::mock(FUNGIBLE_ASSET_AMOUNT / 2);
     let removed_asset_2 = Asset::Fungible(
         FungibleAsset::new(
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2.try_into().expect("id is valid"),
             FUNGIBLE_ASSET_AMOUNT,
         )
         .expect("asset is valid"),
@@ -156,7 +159,7 @@ fn executed_transaction_account_delta_new() {
     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
 
     let tag1 = NoteTag::from_account_id(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
         NoteExecutionMode::Local,
     )
     .unwrap();
@@ -214,7 +217,7 @@ fn executed_transaction_account_delta_new() {
             NOTETYPE = note_types[i] as u8,
             aux = aux_array[i],
             tag = tags[i],
-            REMOVED_ASSET = prepare_word(&Word::from(removed_assets[i]))
+            REMOVED_ASSET = word_to_masm_push_string(&Word::from(removed_assets[i]))
         ));
     }
 
@@ -266,9 +269,9 @@ fn executed_transaction_account_delta_new() {
             # => []
         end
     ",
-        UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
-        UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
-        UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
+        UPDATED_SLOT_VALUE = word_to_masm_push_string(&Word::from(updated_slot_value)),
+        UPDATED_MAP_VALUE = word_to_masm_push_string(&Word::from(updated_map_value)),
+        UPDATED_MAP_KEY = word_to_masm_push_string(&Word::from(updated_map_key)),
     );
 
     let tx_script = TransactionScript::compile(
@@ -333,22 +336,26 @@ fn executed_transaction_account_delta_new() {
         .cloned()
         .collect::<Vec<_>>();
 
-    assert!(executed_transaction
-        .account_delta()
-        .vault()
-        .added_assets()
-        .all(|x| added_assets.contains(&x)));
+    assert!(
+        executed_transaction
+            .account_delta()
+            .vault()
+            .added_assets()
+            .all(|x| added_assets.contains(&x))
+    );
     assert_eq!(
         added_assets.len(),
         executed_transaction.account_delta().vault().added_assets().count()
     );
 
     // assert that removed assets are tracked
-    assert!(executed_transaction
-        .account_delta()
-        .vault()
-        .removed_assets()
-        .all(|x| removed_assets.contains(&x)));
+    assert!(
+        executed_transaction
+            .account_delta()
+            .vault()
+            .removed_assets()
+            .all(|x| removed_assets.contains(&x))
+    );
     assert_eq!(
         removed_assets.len(),
         executed_transaction.account_delta().vault().removed_assets().count()
@@ -426,7 +433,7 @@ fn test_send_note_proc() {
     let removed_asset_1 = FungibleAsset::mock(FUNGIBLE_ASSET_AMOUNT / 2);
     let removed_asset_2 = Asset::Fungible(
         FungibleAsset::new(
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2.try_into().expect("id is valid"),
             FUNGIBLE_ASSET_AMOUNT,
         )
         .expect("asset is valid"),
@@ -434,7 +441,7 @@ fn test_send_note_proc() {
     let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
 
     let tag = NoteTag::from_account_id(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
         NoteExecutionMode::Local,
     )
     .unwrap();
@@ -468,7 +475,7 @@ fn test_send_note_proc() {
 
             call.wallet::move_asset_to_note
             # => [ASSET, note_idx, GARBAGE(11)]\n",
-                ASSET = prepare_word(&asset.into())
+                ASSET = word_to_masm_push_string(&asset.into())
             ))
         }
 
@@ -545,11 +552,13 @@ fn test_send_note_proc() {
         // vault delta
         // --------------------------------------------------------------------------------------------
         // assert that removed assets are tracked
-        assert!(executed_transaction
-            .account_delta()
-            .vault()
-            .removed_assets()
-            .all(|x| removed_assets.contains(&x)));
+        assert!(
+            executed_transaction
+                .account_delta()
+                .vault()
+                .removed_assets()
+                .all(|x| removed_assets.contains(&x))
+        );
         assert_eq!(
             removed_assets.len(),
             executed_transaction.account_delta().vault().removed_assets().count()
@@ -572,7 +581,7 @@ fn executed_transaction_output_notes() {
 
     let combined_asset = Asset::Fungible(
         FungibleAsset::new(
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET.try_into().expect("id is valid"),
             FUNGIBLE_ASSET_AMOUNT,
         )
         .expect("asset is valid"),
@@ -580,14 +589,14 @@ fn executed_transaction_output_notes() {
     let removed_asset_3 = NonFungibleAsset::mock(&NON_FUNGIBLE_ASSET_DATA);
     let removed_asset_4 = Asset::Fungible(
         FungibleAsset::new(
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2.try_into().expect("id is valid"),
             FUNGIBLE_ASSET_AMOUNT / 2,
         )
         .expect("asset is valid"),
     );
 
     let tag1 = NoteTag::from_account_id(
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
         NoteExecutionMode::Local,
     )
     .unwrap();
@@ -728,12 +737,14 @@ fn executed_transaction_output_notes() {
             # => []
         end
     ",
-        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
-        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
-        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
-        REMOVED_ASSET_4 = prepare_word(&Word::from(removed_asset_4)),
-        RECIPIENT2 = prepare_word(&Word::from(expected_output_note_2.recipient().digest())),
-        RECIPIENT3 = prepare_word(&Word::from(expected_output_note_3.recipient().digest())),
+        REMOVED_ASSET_1 = word_to_masm_push_string(&Word::from(removed_asset_1)),
+        REMOVED_ASSET_2 = word_to_masm_push_string(&Word::from(removed_asset_2)),
+        REMOVED_ASSET_3 = word_to_masm_push_string(&Word::from(removed_asset_3)),
+        REMOVED_ASSET_4 = word_to_masm_push_string(&Word::from(removed_asset_4)),
+        RECIPIENT2 =
+            word_to_masm_push_string(&Word::from(expected_output_note_2.recipient().digest())),
+        RECIPIENT3 =
+            word_to_masm_push_string(&Word::from(expected_output_note_3.recipient().digest())),
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
@@ -829,7 +840,7 @@ fn prove_witness_and_verify() {
     let serialized_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialized_transaction).unwrap();
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
-    assert!(verifier.verify(proven_transaction).is_ok());
+    assert!(verifier.verify(&proven_transaction).is_ok());
 }
 
 // TEST TRANSACTION SCRIPT
@@ -867,8 +878,8 @@ fn test_tx_script() {
         push.{value} assert_eqw
     end
 ",
-        key = prepare_word(&tx_script_input_key),
-        value = prepare_word(&tx_script_input_value)
+        key = word_to_masm_push_string(&tx_script_input_key),
+        value = word_to_masm_push_string(&tx_script_input_value)
     );
 
     let tx_script = TransactionScript::compile(
@@ -953,7 +964,7 @@ fn transaction_executor_account_code_using_custom_library() {
             .with_supports_all_types();
 
     // Build an existing account with nonce 1.
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
+    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(account_component)
         .build_existing()
         .unwrap();
@@ -987,4 +998,52 @@ fn transaction_executor_account_code_using_custom_library() {
 
     // Account's initial nonce of 1 should have been incremented by 4.
     assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(5));
+}
+
+#[test]
+fn test_execute_program() {
+    let test_module_source = "
+        export.foo
+            push.3.4
+            add
+            swapw dropw
+        end
+    ";
+
+    let assembler = TransactionKernel::assembler();
+    let test_module = Module::parser(assembly::ast::ModuleKind::Library)
+        .parse_str(
+            LibraryPath::new("test::module_1").unwrap(),
+            test_module_source,
+            &assembler.source_manager(),
+        )
+        .unwrap();
+    let assembler = assembler.with_module(test_module).unwrap();
+
+    let source = "
+    use.test::module_1
+    use.std::sys
+    
+    begin
+        push.1.2
+        call.module_1::foo
+        exec.sys::truncate_stack
+    end
+    ";
+
+    let tx_script = TransactionScript::compile(source, [], assembler)
+        .expect("failed to compile the source script");
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+    let account_id = tx_context.account().id();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let advice_inputs = tx_context.tx_args().advice_inputs();
+
+    let executor = TransactionExecutor::new(tx_context.get_data_store(), None);
+
+    let stack_outputs = executor
+        .execute_tx_view_script(account_id, block_ref, tx_script, advice_inputs.clone())
+        .unwrap();
+
+    assert_eq!(stack_outputs[..3], [Felt::new(7), Felt::new(2), ONE]);
 }

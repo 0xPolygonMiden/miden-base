@@ -24,17 +24,24 @@ mod errors;
 
 pub use constants::*;
 pub use errors::{
-    AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError, BlockError,
-    ChainMmrError, NoteError, ProvenTransactionError, TransactionInputError,
-    TransactionOutputError, TransactionScriptError,
+    AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError,
+    BatchAccountUpdateError, ChainMmrError, NoteError, NullifierTreeError, ProposedBatchError,
+    ProposedBlockError, ProvenTransactionError, TransactionInputError, TransactionOutputError,
+    TransactionScriptError,
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
-pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
+pub use vm_core::{
+    EMPTY_WORD, Felt, FieldElement, ONE, StarkField, WORD_SIZE, Word, ZERO,
+    mast::{MastForest, MastNodeId},
+    prettier::PrettyPrint,
+};
 
 pub mod assembly {
     pub use assembly::{
-        mast, Assembler, AssemblyError, DefaultSourceManager, KernelLibrary, Library,
-        LibraryNamespace, LibraryPath, SourceManager, Version,
+        Assembler, AssemblyError, Compile, CompileOptions, DefaultSourceManager, KernelLibrary,
+        Library, LibraryNamespace, LibraryPath, SourceManager, Version,
+        ast::{Module, ModuleKind, ProcedureName, QualifiedProcedureName},
+        mast,
     };
 }
 
@@ -45,14 +52,28 @@ pub mod crypto {
 pub mod utils {
     use alloc::string::{String, ToString};
 
-    pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
+    pub use miden_crypto::utils::{HexParseError, bytes_to_hex_string, collections, hex_to_bytes};
     pub use vm_core::utils::*;
-    use vm_core::{Felt, StarkField};
+    use vm_core::{Felt, StarkField, Word};
 
     pub mod serde {
         pub use miden_crypto::utils::{
             ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         };
+    }
+
+    /// Converts a word into a string of the word's field elements separated by periods, which can
+    /// be used on a MASM `push` instruction to push the word onto the stack.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use miden_objects::{Word, Felt, utils::word_to_masm_push_string};
+    /// let word = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+    /// assert_eq!(word_to_masm_push_string(&word), "1.2.3.4");
+    /// ```
+    pub fn word_to_masm_push_string(word: &Word) -> String {
+        format!("{}.{}.{}.{}", word[0], word[1], word[2], word[3])
     }
 
     pub const fn parse_hex_string_as_word(hex: &str) -> Result<[Felt; 4], &'static str> {
@@ -189,6 +210,6 @@ pub mod utils {
 
 pub mod vm {
     pub use miden_verifier::ExecutionProof;
-    pub use vm_core::{sys_events::SystemEvent, AdviceMap, Program, ProgramInfo};
+    pub use vm_core::{AdviceMap, Program, ProgramInfo, sys_events::SystemEvent};
     pub use vm_processor::{AdviceInputs, RowIndex, StackInputs, StackOutputs};
 }

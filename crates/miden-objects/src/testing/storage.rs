@@ -4,11 +4,11 @@ use miden_crypto::EMPTY_WORD;
 use vm_core::{Felt, Word};
 use vm_processor::Digest;
 
-use super::prepare_word;
 use crate::{
+    AccountDeltaError,
     account::{AccountStorage, AccountStorageDelta, StorageMap, StorageMapDelta, StorageSlot},
     note::NoteAssets,
-    AccountDeltaError,
+    utils::word_to_masm_push_string,
 };
 
 // ACCOUNT STORAGE DELTA BUILDER
@@ -112,7 +112,7 @@ impl AccountStorage {
     }
 
     pub fn mock_map() -> StorageMap {
-        StorageMap::with_entries(STORAGE_LEAVES_2)
+        StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
     }
 }
 
@@ -124,7 +124,7 @@ pub fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
     let mut assets = Vec::new();
     for &asset in note_assets.iter() {
         let asset_word: Word = asset.into();
-        let asset_str = prepare_word(&asset_word);
+        let asset_str = word_to_masm_push_string(&asset_word);
         assets.push(asset_str);
     }
     assets

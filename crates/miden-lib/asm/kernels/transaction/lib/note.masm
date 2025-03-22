@@ -7,16 +7,16 @@ use.kernel::memory
 # =================================================================================================
 
 # Attempted to access note sender from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT=0x00020031
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT=0x00020102
 
 # Attempted to access note assets from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT=0x00020032
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_ASSETS_FROM_INCORRECT_CONTEXT=0x00020100
 
 # Attempted to access note inputs from incorrect context
-const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT=0x00020033
+const.ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT=0x00020101
 
 # Number of assets in a note exceed 255
-const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x0002002F
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x00020108
 
 # CONSTANTS
 # =================================================================================================
@@ -34,7 +34,7 @@ const.OUTPUT_NOTE_HASHING_MEM_DIFF=2040
 #! Outputs: [sender_id_prefix, sender_id_suffix]
 #!
 #! Where:
-#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently 
+#! - sender_{prefix,suffix} are the prefix and suffix felts of the sender of the note currently
 #!   being processed.
 #!
 #! Panics if:
@@ -54,7 +54,7 @@ export.get_sender
     # => [sender_id_prefix, sender_id_suffix]
 end
 
-#! Returns the number of assets and the assets hash of the note currently being processed. 
+#! Returns the number of assets and the assets commitment of the note currently being processed.
 #!
 #! Inputs:  []
 #! Outputs: [ASSETS_HASH, num_assets]
@@ -79,7 +79,7 @@ export.get_assets_info
     dup exec.memory::get_input_note_num_assets
     # => [num_assets, ptr]
 
-    # get the assets hash from the note pointer
+    # get the assets commitment from the note pointer
     swap exec.memory::get_input_note_assets_hash
     # => [ASSETS_HASH, num_assets]
 end
@@ -87,14 +87,14 @@ end
 #! Returns the commitment to the note's inputs.
 #!
 #! Inputs:  []
-#! Outputs: [NOTE_INPUTS_HASH]
+#! Outputs: [NOTE_INPUTS_COMMITMENT]
 #!
 #! Where:
-#! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
+#! - NOTE_INPUTS_COMMITMENT is the note inputs commitment of the note currently being processed.
 #!
 #! Panics if:
 #! - the note is not being processed.
-export.get_note_inputs_hash
+export.get_note_inputs_commitment
     exec.memory::get_current_input_note_ptr
     # => [ptr]
 
@@ -104,8 +104,8 @@ export.get_note_inputs_hash
     dup neq.0 assert.err=ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_INPUTS_FROM_INCORRECT_CONTEXT
     # => [ptr]
 
-    exec.memory::get_input_note_inputs_hash
-    # => [NOTE_INPUTS_HASH]
+    exec.memory::get_input_note_inputs_commitment
+    # => [NOTE_INPUTS_COMMITMENT]
 end
 
 #! Move the current input note pointer to the next note and returns the pointer value.
@@ -164,11 +164,11 @@ end
 # OUTPUT NOTE PROCEDURES
 # =================================================================================================
 
-#! Computes the assets hash of the output note located at the specified memory address.
+#! Computes the assets commitment of the output note located at the specified memory address.
 #!
 #! The hash is computed as a sequential hash of the assets contained in the note. If there is an
 #! odd number of assets, then for the final hashing permutation we pad the last word of the hasher
-#! rate with zeros. If the note contains no assets, ASSET_HASH is set to EMPTY_WORD.
+#! rate with zeros. If the note contains no assets, ASSET_COMMITMENT is set to EMPTY_WORD.
 #!
 #! Inputs:  [note_data_ptr]
 #! Outputs: [ASSETS_HASH]
@@ -232,7 +232,7 @@ end
 #!
 #! The note ID is computed as follows:
 #! - we define, recipient =
-#!       hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+#!       hash(hash(hash(serial_num, [0; 4]), script_root), input_commitment)
 #! - we then compute the output note ID as:
 #!       hash(recipient, assets_hash)
 #!
@@ -249,7 +249,7 @@ proc.compute_output_note_id
     # insert output note recipient into the first four elements of the hasher rate
     dup.4 exec.memory::get_output_note_recipient
 
-    # populate the last four elements of the hasher rate with the output note's asset hash
+    # populate the last four elements of the hasher rate with the output note's asset commitment
     dup.8 exec.compute_output_note_assets_hash
 
     # compute output note commitment and extract digest
@@ -290,7 +290,7 @@ export.compute_output_notes_commitment
 
     # loop and hash output notes
     while.true
-        # compute and save output note ID to memory (this also computes the note's asset hash)
+        # compute and save output note ID to memory (this also computes the note's asset commitment)
         dup.12 exec.compute_output_note_id
         # => [NOTE_ID, PERM, PERM, PERM, note_ptr, end_ptr, ...]
 
@@ -339,20 +339,20 @@ export.get_serial_number
     # => [SERIAL_NUMBER, ...]
 end
 
-#! Returns the script hash of the note currently being processed.
+#! Returns the script root of the note currently being processed.
 #!
 #! Inputs:  []
-#! Outputs: [SCRIPT_HASH]
+#! Outputs: [SCRIPT_ROOT]
 #!
 #! Where:
-#! - SCRIPT_HASH is the serial number of the note currently being processed.
+#! - SCRIPT_ROOT is the serial number of the note currently being processed.
 #!
 #! Panics if:
 #! - no note is being processed.
-export.get_script_hash
+export.get_script_root
     exec.memory::get_current_input_note_ptr
     # => [note_ptr]
 
     exec.memory::get_input_note_script_root
-    # => [SCRIPT_HASH]
+    # => [SCRIPT_ROOT]
 end

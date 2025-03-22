@@ -290,10 +290,7 @@ impl Deserializable for AccountCode {
 
 /// Converts given procedures into field elements
 fn procedures_as_elements(procedures: &[AccountProcedureInfo]) -> Vec<Felt> {
-    procedures
-        .iter()
-        .flat_map(|procedure| <[Felt; 8]>::from(procedure.clone()))
-        .collect()
+    procedures.iter().flat_map(|procedure| <[Felt; 8]>::from(*procedure)).collect()
 }
 
 /// Computes the commitment to the given procedures
@@ -313,8 +310,8 @@ mod tests {
 
     use super::{AccountCode, Deserializable, Serializable};
     use crate::{
-        account::{code::build_procedure_commitment, AccountComponent, AccountType, StorageSlot},
         AccountError,
+        account::{AccountComponent, AccountType, StorageSlot, code::build_procedure_commitment},
     };
 
     #[test]
@@ -326,10 +323,10 @@ mod tests {
     }
 
     #[test]
-    fn test_account_code_procedure_commitment() {
+    fn test_account_code_procedure_root() {
         let code = AccountCode::mock();
-        let procedure_commitment = build_procedure_commitment(code.procedures());
-        assert_eq!(procedure_commitment, code.commitment())
+        let procedure_root = build_procedure_commitment(code.procedures());
+        assert_eq!(procedure_root, code.commitment())
     }
 
     #[test]

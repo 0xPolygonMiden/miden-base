@@ -1,17 +1,14 @@
 use alloc::vec::Vec;
 
-use vm_core::{Felt, Word};
-use vm_processor::Digest;
-
 use crate::{
+    AccountError, Digest, Felt, Word,
     account::{
-        account_id::{
-            v0::{compute_digest, validate_prefix},
-            AccountIdVersion,
-        },
         AccountStorageMode, AccountType,
+        account_id::{
+            AccountIdVersion,
+            v0::{compute_digest, validate_prefix},
+        },
     },
-    AccountError,
 };
 
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
@@ -27,7 +24,7 @@ pub(super) fn compute_account_seed(
     version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
-    anchor_block_hash: Digest,
+    anchor_block_commitment: Digest,
 ) -> Result<Word, AccountError> {
     compute_account_seed_single(
         init_seed,
@@ -36,7 +33,7 @@ pub(super) fn compute_account_seed(
         version,
         code_commitment,
         storage_commitment,
-        anchor_block_hash,
+        anchor_block_commitment,
     )
 }
 
@@ -47,7 +44,7 @@ fn compute_account_seed_single(
     version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
-    anchor_block_hash: Digest,
+    anchor_block_commitment: Digest,
 ) -> Result<Word, AccountError> {
     let init_seed: Vec<[u8; 8]> =
         init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
@@ -58,7 +55,7 @@ fn compute_account_seed_single(
         Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
     let mut current_digest =
-        compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
+        compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_commitment);
 
     #[cfg(feature = "log")]
     let mut log = log::Log::start(current_digest, current_seed, account_type, storage_mode);
@@ -85,8 +82,12 @@ fn compute_account_seed_single(
         }
 
         current_seed = current_digest.into();
-        current_digest =
-            compute_digest(current_seed, code_commitment, storage_commitment, anchor_block_hash);
+        current_digest = compute_digest(
+            current_seed,
+            code_commitment,
+            storage_commitment,
+            anchor_block_commitment,
+        );
     }
 }
 
@@ -128,7 +129,7 @@ mod log {
             storage_mode: AccountStorageMode,
         ) -> Self {
             log::info!(
-                "Generating new account seed [digest={}, seed={} type={:?} onchain={:?}]",
+                "Generating new account seed [digest={}, seed={} type={:?} storage_mode={:?}]",
                 digest_hex(digest),
                 word_hex(seed),
                 account_type,

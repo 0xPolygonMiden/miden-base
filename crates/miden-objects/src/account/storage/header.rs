@@ -1,13 +1,10 @@
 use alloc::vec::Vec;
 
-use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    ZERO,
-};
-use vm_processor::DeserializationError;
-
 use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
-use crate::AccountError;
+use crate::{
+    AccountError, ZERO,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+};
 
 // ACCOUNT STORAGE HEADER
 // ================================================================================================
@@ -140,8 +137,8 @@ impl Deserializable for AccountStorageHeader {
 #[cfg(test)]
 mod tests {
     use vm_core::{
-        utils::{Deserializable, Serializable},
         Felt,
+        utils::{Deserializable, Serializable},
     };
 
     use super::AccountStorageHeader;

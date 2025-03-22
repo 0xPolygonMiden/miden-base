@@ -2,8 +2,8 @@ use alloc::{boxed::Box, string::String};
 use core::error::Error;
 
 use miden_objects::{
-    account::AccountId, block::BlockNumber, note::NoteId, AccountError, Felt,
-    ProvenTransactionError, TransactionInputError, TransactionOutputError,
+    AccountError, Felt, ProvenTransactionError, TransactionInputError, TransactionOutputError,
+    account::AccountId, block::BlockNumber, note::NoteId,
 };
 use miden_verifier::VerificationError;
 use thiserror::Error;
@@ -87,9 +87,7 @@ impl TransactionProverError {
 pub enum TransactionVerifierError {
     #[error("failed to verify transaction")]
     TransactionVerificationFailed(#[source] VerificationError),
-    #[error(
-        "transaction proof security level is {actual} but must be at least {expected_minimum}"
-    )]
+    #[error("transaction proof security level is {actual} but must be at least {expected_minimum}")]
     InsufficientProofSecurityLevel { actual: u32, expected_minimum: u32 },
 }
 

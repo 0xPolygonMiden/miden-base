@@ -1,17 +1,15 @@
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt::Display;
 
-use assembly::{Assembler, Compile};
-use vm_core::{
-    mast::{MastForest, MastNodeId},
-    prettier::PrettyPrint,
-    Program,
-};
-
 use super::{Digest, Felt};
 use crate::{
+    NoteError, PrettyPrint,
+    assembly::{
+        Assembler, Compile,
+        mast::{MastForest, MastNodeId},
+    },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    NoteError,
+    vm::Program,
 };
 
 // NOTE SCRIPT
@@ -71,14 +69,19 @@ impl NoteScript {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns MAST root of this note script.
-    pub fn hash(&self) -> Digest {
+    /// Returns the commitment of this note script (i.e., the script's MAST root).
+    pub fn root(&self) -> Digest {
         self.mast[self.entrypoint].digest()
     }
 
     /// Returns a reference to the [MastForest] backing this note script.
     pub fn mast(&self) -> Arc<MastForest> {
         self.mast.clone()
+    }
+
+    /// Returns an entrypoint node ID of the current script.
+    pub fn entrypoint(&self) -> MastNodeId {
+        self.entrypoint
     }
 }
 

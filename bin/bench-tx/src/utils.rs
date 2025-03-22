@@ -10,17 +10,17 @@ use miden_objects::{
     transaction::TransactionMeasurements,
 };
 use miden_tx::auth::{BasicAuthenticator, TransactionAuthenticator};
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use rand_chacha::{ChaCha20Rng, rand_core::SeedableRng};
 use serde::Serialize;
-use serde_json::{from_str, to_string_pretty, Value};
+use serde_json::{Value, from_str, to_string_pretty};
 
-use super::{read_to_string, write, Benchmark, Path};
+use super::{Benchmark, Path, read_to_string, write};
 
 // CONSTANTS
 // ================================================================================================
 
 // Copied from miden_objects::testing::account_id.
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u128 = 0x00aa00000000bc200000bc000000de00;
+pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET: u128 = 0x00aa00000000bc200000bc000000de00;
 pub const ACCOUNT_ID_SENDER: u128 = 0x00fa00000000bb800000cc000000de00;
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "

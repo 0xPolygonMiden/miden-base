@@ -16,12 +16,12 @@ pub type StorageSlot = u8;
 //
 // | Section           | Start address, pointer (word pointer) | End address, pointer (word pointer) | Comment                                     |
 // | ----------------- | :-----------------------------------: | :---------------------------------: | ------------------------------------------- |
-// | Bookkeeping       | 0 (0)                                 | 31 (7)                              |                                             |
+// | Bookkeeping       | 0 (0)                                 | 287 (71)                            |                                             |
 // | Global inputs     | 400 (100)                             | 423 (105)                           |                                             |
 // | Block header      | 800 (200)                             | 835 (208)                           |                                             |
 // | Chain MMR         | 1_200 (300)                           | 1_331? (332?)                       |                                             |
 // | Kernel data       | 1_600 (400)                           | 1_739 (434)                         | 34 procedures in total, 4 elements each     |
-// | Accounts data     | 8_192 (2048)                          | 532_479 (133_119)                   | 64 foreign accounts max, 8192 elements each |
+// | Accounts data     | 8_192 (2048)                          | 532_479 (133_119)                   | 64 accounts max, 8192 elements each         |
 // | Input notes       | 4_194_304 (1_048_576)                 | ?                                   |                                             |
 // | Output notes      | 16_777_216 (4_194_304)                | ?                                   |                                             |
 
@@ -65,20 +65,32 @@ pub const CURRENT_INPUT_NOTE_PTR: MemoryAddress = 4;
 /// The memory address at which the number of output notes is stored.
 pub const NUM_OUTPUT_NOTES_PTR: MemoryAddress = 8;
 
-/// The memory address at which the input vault root is stored
+/// The memory address at which the input vault root is stored.
 pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 12;
 
-/// The memory address at which the output vault root is stored
+/// The memory address at which the output vault root is stored.
 pub const OUTPUT_VAULT_ROOT_PTR: MemoryAddress = 16;
 
-/// The memory address at which the pointer to the data of the currently accessing account is stored
-pub const CURRENT_ACCOUNT_DATA_PTR: MemoryAddress = 20;
-
 /// The memory address at which the native account's new code commitment is stored.
-pub const NEW_CODE_ROOT_PTR: MemoryAddress = 24;
+pub const NEW_CODE_ROOT_PTR: MemoryAddress = 20;
 
 /// The memory address at which the transaction expiration block number is stored.
-pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 28;
+pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 24;
+
+/// The memory address at which the pointer to the stack element containing the pointer to the
+/// currently active account data is stored.
+///
+/// The stack starts at the address `29`. Stack has a length of `64` elements meaning that the
+/// maximum depth of FPI calls is `63` — the first slot is always occupied by the native account
+/// data pointer.
+///
+/// ```text
+/// ┌───────────────┬────────────────┬───────────────────┬─────┬────────────────────┐
+/// │ STACK TOP PTR │ NATIVE ACCOUNT │ FOREIGN ACCOUNT 1 │ ... │ FOREIGN ACCOUNT 63 │
+/// ├───────────────┼────────────────┼───────────────────┼─────┼────────────────────┤
+///        28               29                30                         92
+/// ```
+pub const ACCOUNT_STACK_TOP_PTR: MemoryAddress = 28;
 
 // GLOBAL INPUTS
 // ------------------------------------------------------------------------------------------------
@@ -86,14 +98,14 @@ pub const TX_EXPIRATION_BLOCK_NUM_PTR: MemoryAddress = 28;
 /// The memory address at which the global inputs section begins.
 pub const GLOBAL_INPUTS_SECTION_OFFSET: MemoryOffset = 400;
 
-/// The memory address at which the latest known block hash is stored.
-pub const BLK_HASH_PTR: MemoryAddress = 400;
+/// The memory address at which the commitment of the transaction's reference block is stored.
+pub const BLOCK_COMMITMENT_PTR: MemoryAddress = 400;
 
 /// The memory address at which the account ID is stored.
 pub const ACCT_ID_PTR: MemoryAddress = 404;
 
-/// The memory address at which the initial account hash is stored.
-pub const INIT_ACCT_HASH_PTR: MemoryAddress = 408;
+/// The memory address at which the initial account commitment is stored.
+pub const INIT_ACCT_COMMITMENT_PTR: MemoryAddress = 408;
 
 /// The memory address at which the input notes commitment is stored.
 pub const INPUT_NOTES_COMMITMENT_PTR: MemoryAddress = 412;
@@ -110,11 +122,11 @@ pub const TX_SCRIPT_ROOT_PTR: MemoryAddress = 420;
 /// The memory address at which the block data section begins
 pub const BLOCK_DATA_SECTION_OFFSET: MemoryOffset = 800;
 
-/// The memory address at which the previous block hash is stored
-pub const PREV_BLOCK_HASH_PTR: MemoryAddress = 800;
+/// The memory address at which the previous block commitment is stored
+pub const PREV_BLOCK_COMMITMENT_PTR: MemoryAddress = 800;
 
-/// The memory address at which the chain root is stored
-pub const CHAIN_ROOT_PTR: MemoryAddress = 804;
+/// The memory address at which the chain commitment is stored
+pub const CHAIN_COMMITMENT_PTR: MemoryAddress = 804;
 
 /// The memory address at which the state root is stored
 pub const ACCT_DB_ROOT_PTR: MemoryAddress = 808;
@@ -122,14 +134,14 @@ pub const ACCT_DB_ROOT_PTR: MemoryAddress = 808;
 /// The memory address at which the nullifier db root is store
 pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 812;
 
-/// The memory address at which the TX hash is stored
-pub const TX_HASH_PTR: MemoryAddress = 816;
+/// The memory address at which the TX commitment is stored
+pub const TX_COMMITMENT_PTR: MemoryAddress = 816;
 
-/// The memory address at which the kernel root is stored
-pub const KERNEL_ROOT_PTR: MemoryAddress = 820;
+/// The memory address at which the transaction kernel commitment is stored
+pub const TX_KERNEL_COMMITMENT_PTR: MemoryAddress = 820;
 
-/// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: MemoryAddress = 824;
+/// The memory address at which the proof commitment is stored
+pub const PROOF_COMMITMENT_PTR: MemoryAddress = 824;
 
 /// The memory address at which the block number is stored
 pub const BLOCK_METADATA_PTR: MemoryAddress = 828;
@@ -259,6 +271,7 @@ pub const NATIVE_ACCT_STORAGE_SLOTS_SECTION_PTR: MemoryAddress =
 /// The size of the memory segment allocated to each note.
 pub const NOTE_MEM_SIZE: MemoryAddress = 2048;
 
+#[allow(clippy::empty_line_after_outer_attr)]
 #[rustfmt::skip]
 // INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
@@ -282,7 +295,7 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 2048;
 // 0      4        8        12       16       20     24      28       32 + 4n
 //
 // - NUM_ASSETS is encoded [num_assets, 0, 0, 0].
-// - INPUTS_HASH is the key to look up note inputs in the advice map.
+// - INPUTS_COMMITMENT is the key to look up note inputs in the advice map.
 // - ASSETS_HASH is the key to look up note assets in the advice map.
 
 /// The memory address at which the input note section begins.
@@ -301,7 +314,7 @@ pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_PTR;
 pub const INPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const INPUT_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 4;
 pub const INPUT_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 8;
-pub const INPUT_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 12;
+pub const INPUT_NOTE_INPUTS_COMMITMENT_OFFSET: MemoryOffset = 12;
 pub const INPUT_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 16;
 pub const INPUT_NOTE_METADATA_OFFSET: MemoryOffset = 20;
 pub const INPUT_NOTE_ARGS_OFFSET: MemoryOffset = 24;
@@ -339,6 +352,6 @@ pub const OUTPUT_NOTE_CORE_DATA_SIZE: MemSize = 16;
 pub const OUTPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const OUTPUT_NOTE_METADATA_OFFSET: MemoryOffset = 4;
 pub const OUTPUT_NOTE_RECIPIENT_OFFSET: MemoryOffset = 8;
-pub const OUTPUT_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 12;
+pub const OUTPUT_NOTE_ASSET_COMMITMENT_OFFSET: MemoryOffset = 12;
 pub const OUTPUT_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 16;
 pub const OUTPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 20;

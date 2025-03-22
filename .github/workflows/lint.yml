@@ -43,6 +43,7 @@ jobs:
       - name: Clippy no_std
         run: |
           rustup update --no-self-update
+          rustup target add wasm32-unknown-unknown
           rustup component add clippy
           make clippy-no-std
 
@@ -76,17 +77,6 @@ jobs:
         run: |
           rustup update --no-self-update
           make doc
-
-  version:
-    name: check rust version consistency
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@main
-        with:
-          profile: minimal
-          override: true
-      - name: check rust versions
-        run: ./scripts/check-rust-version.sh
 
   generated-files:
     name: generated files check

@@ -5,7 +5,7 @@ use thiserror::Error;
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum TxProverServiceError {
+pub enum ProvingServiceError {
     #[error("invalid uri {1}")]
     InvalidURI(#[source] InvalidUri, String),
     #[error("failed to connect to worker {1}")]
@@ -14,10 +14,14 @@ pub enum TxProverServiceError {
     BackendCreationFailed(#[source] Box<pingora::Error>),
     #[error("failed to setup pingora: {0}")]
     PingoraConfigFailed(String),
+    #[error("failed to parse int: {0}")]
+    ParseError(#[from] std::num::ParseIntError),
+    #[error("port {1} is already in use: {0}")]
+    PortAlreadyInUse(#[source] std::io::Error, u16),
 }
 
-impl From<TxProverServiceError> for String {
-    fn from(err: TxProverServiceError) -> Self {
+impl From<ProvingServiceError> for String {
+    fn from(err: ProvingServiceError) -> Self {
         err.to_string()
     }
 }

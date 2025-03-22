@@ -5,13 +5,13 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
+    Felt, Word, ZERO,
     account::AccountId,
     asset::FungibleAsset,
     crypto::utils::Serializable,
     note::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
     testing::account_id::ACCOUNT_ID_SENDER,
     transaction::{ExecutedTransaction, ProvenTransaction},
-    Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use miden_tx::{
@@ -61,7 +61,7 @@ pub fn prove_and_verify_transaction(
     // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(miden_objects::MIN_PROOF_SECURITY_LEVEL);
 
-    verifier.verify(proven_transaction)
+    verifier.verify(&proven_transaction)
 }
 
 #[cfg(test)]

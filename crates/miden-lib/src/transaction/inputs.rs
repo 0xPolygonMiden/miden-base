@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
+    Digest, EMPTY_WORD, Felt, FieldElement, WORD_SIZE, Word, ZERO,
     account::{Account, StorageSlot},
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
-    Digest, Felt, FieldElement, Word, EMPTY_WORD, WORD_SIZE, ZERO,
 };
 
 use super::TransactionKernel;
@@ -29,7 +29,7 @@ pub(super) fn extend_advice_inputs(
     build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs, kernel_version);
 
     // build the advice map and Merkle store for relevant components
-    add_kernel_hashes_to_advice_inputs(advice_inputs, kernel_version);
+    add_kernel_commitments_to_advice_inputs(advice_inputs, kernel_version);
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
@@ -44,13 +44,13 @@ pub(super) fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
-///     PREVIOUS_BLOCK_HASH,
+///     PARENT_BLOCK_COMMITMENT,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
-///     TX_HASH,
-///     KERNEL_ROOT
-///     PROOF_HASH,
+///     TX_COMMITMENT,
+///     TX_KERNEL_COMMITMENT
+///     PROOF_COMMITMENT,
 ///     [block_num, version, timestamp, 0],
 ///     NOTE_ROOT,
 ///     kernel_version
@@ -71,13 +71,13 @@ fn build_advice_stack(
 
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
-    inputs.extend_stack(header.prev_hash());
-    inputs.extend_stack(header.chain_root());
+    inputs.extend_stack(header.prev_block_commitment());
+    inputs.extend_stack(header.chain_commitment());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
-    inputs.extend_stack(header.tx_hash());
-    inputs.extend_stack(header.kernel_root());
-    inputs.extend_stack(header.proof_hash());
+    inputs.extend_stack(header.tx_commitment());
+    inputs.extend_stack(header.tx_kernel_commitment());
+    inputs.extend_stack(header.proof_commitment());
     inputs.extend_stack([
         header.block_num().into(),
         header.version().into(),
@@ -99,7 +99,7 @@ fn build_advice_stack(
         ZERO,
         account.nonce(),
     ]);
-    inputs.extend_stack(account.vault().commitment());
+    inputs.extend_stack(account.vault().root());
     inputs.extend_stack(account.storage().commitment());
     inputs.extend_stack(account.code().commitment());
 
@@ -107,7 +107,7 @@ fn build_advice_stack(
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
 
     // push tx_script root onto the stack
-    inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.hash()));
+    inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.root()));
 }
 
 // CHAIN MMR INJECTOR
@@ -208,14 +208,14 @@ fn add_account_to_advice_inputs(
 /// The advice provider is populated with:
 ///
 /// - For each note:
-///     - The note's details (serial number, script root, and its input / assets hash).
+///     - The note's details (serial number, script root, and its input / assets commitment).
 ///     - The note's private arguments.
 ///     - The note's public metadata.
 ///     - The note's public inputs data. Prefixed by its length and padded to an even word length.
 ///     - The note's asset padded. Prefixed by its length and padded to an even word length.
 ///     - For authenticated notes (determined by the `is_authenticated` flag):
 ///         - The note's authentication path against its block's note tree.
-///         - The block number, sub hash, note root.
+///         - The block number, sub commitment, note root.
 ///         - The note's position in the note tree
 ///
 /// The data above is processed by `prologue::process_input_notes_data`.
@@ -246,7 +246,7 @@ fn add_input_notes_to_advice_inputs(
 
         // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
         note_data.extend(recipient.serial_num());
-        note_data.extend(*recipient.script().hash());
+        note_data.extend(*recipient.script().root());
         note_data.extend(*recipient.inputs().commitment());
         note_data.extend(*assets.commitment());
 
@@ -279,11 +279,14 @@ fn add_input_notes_to_advice_inputs(
                 inputs.extend_merkle_store(
                     proof
                         .note_path()
-                        .inner_nodes(proof.location().node_index_in_block().into(), note.hash())
+                        .inner_nodes(
+                            proof.location().node_index_in_block().into(),
+                            note.commitment(),
+                        )
                         .unwrap(),
                 );
                 note_data.push(proof.location().block_num().into());
-                note_data.extend(note_block_header.sub_hash());
+                note_data.extend(note_block_header.sub_commitment());
                 note_data.extend(note_block_header.note_root());
                 note_data.push(proof.location().node_index_in_block().into());
             },
@@ -299,32 +302,32 @@ fn add_input_notes_to_advice_inputs(
     inputs.extend_map([(tx_inputs.input_notes().commitment(), note_data)]);
 }
 
-// KERNEL HASHES INJECTOR
+// KERNEL COMMITMENTS INJECTOR
 // ------------------------------------------------------------------------------------------------
 
-/// Inserts kernel hashes and hashes of their procedures into the provided advice inputs.
+/// Inserts kernel commitments and hashes of their procedures into the provided advice inputs.
 ///
 /// Inserts the following entries into the advice map:
-/// - The accumulative hash of all kernels |-> array of each kernel hash.
-/// - The hash of the selected kernel |-> array of the kernel's procedure hashes.
-pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_version: u8) {
-    let mut kernel_hashes: Vec<Felt> =
+/// - The accumulative hash of all kernels |-> array of each kernel commitment.
+/// - The hash of the selected kernel |-> array of the kernel's procedure roots.
+pub fn add_kernel_commitments_to_advice_inputs(inputs: &mut AdviceInputs, kernel_version: u8) {
+    let mut kernel_commitments: Vec<Felt> =
         Vec::with_capacity(TransactionKernel::NUM_VERSIONS * WORD_SIZE);
     for version in 0..TransactionKernel::NUM_VERSIONS {
-        kernel_hashes
-            .extend_from_slice(TransactionKernel::kernel_hash(version as u8).as_elements());
+        kernel_commitments
+            .extend_from_slice(TransactionKernel::commitment(version as u8).as_elements());
     }
 
-    // insert the selected kernel hash with its procedure hashes into the advice map
+    // insert the selected kernel commitment with its procedure roots into the advice map
     inputs.extend_map([(
         Digest::new(
-            kernel_hashes[kernel_version as usize..kernel_version as usize + WORD_SIZE]
+            kernel_commitments[kernel_version as usize..kernel_version as usize + WORD_SIZE]
                 .try_into()
                 .expect("invalid kernel offset"),
         ),
         TransactionKernel::procedures_as_elements(kernel_version),
     )]);
 
-    // insert kernels root with kernel hashes into the advice map
-    inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
+    // insert kernels root with kernel commitments into the advice map
+    inputs.extend_map([(TransactionKernel::kernel_commitment(), kernel_commitments)]);
 }

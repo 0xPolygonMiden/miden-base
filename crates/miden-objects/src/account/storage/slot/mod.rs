@@ -1,10 +1,10 @@
 use vm_core::{
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     EMPTY_WORD,
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use vm_processor::DeserializationError;
 
-use super::{map::EMPTY_STORAGE_MAP_ROOT, StorageMap, Word};
+use super::{StorageMap, Word, map::EMPTY_STORAGE_MAP_ROOT};
 
 mod r#type;
 pub use r#type::StorageSlotType;

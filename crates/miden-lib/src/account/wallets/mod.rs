@@ -1,10 +1,10 @@
 use alloc::string::ToString;
 
 use miden_objects::{
+    AccountError, Word,
     account::{
         Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode, AccountType,
     },
-    AccountError, Word,
 };
 
 use super::AuthScheme;
@@ -15,7 +15,10 @@ use crate::account::{auth::RpoFalcon512, components::basic_wallet_library};
 
 /// An [`AccountComponent`] implementing a basic wallet.
 ///
-/// Its exported procedures are:
+/// It reexports the procedures from `miden::contracts::wallets::basic`. When linking against this
+/// component, the `miden` library (i.e. [`MidenLib`](crate::MidenLib)) must be available to the
+/// assembler which is the case when using [`TransactionKernel::assembler()`][kasm]. The procedures
+/// of this component are:
 /// - `receive_asset`, which can be used to add an asset to the account.
 /// - `create_note`, which can be used to create a new note without any assets attached to it.
 /// - `move_asset_to_note`, which can be used to remove the specified asset from the account and add
@@ -25,6 +28,8 @@ use crate::account::{auth::RpoFalcon512, components::basic_wallet_library};
 /// providing authentication.
 ///
 /// This component supports all account types.
+///
+/// [kasm]: crate::transaction::TransactionKernel::assembler
 pub struct BasicWallet;
 
 impl From<BasicWallet> for AccountComponent {
@@ -80,10 +85,10 @@ pub fn create_basic_wallet(
 #[cfg(test)]
 mod tests {
 
-    use miden_objects::{block::BlockHeader, crypto::dsa::rpo_falcon512, digest, ONE};
+    use miden_objects::{ONE, block::BlockHeader, crypto::dsa::rpo_falcon512, digest};
     use vm_processor::utils::{Deserializable, Serializable};
 
-    use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
+    use super::{Account, AccountStorageMode, AccountType, AuthScheme, create_basic_wallet};
 
     #[test]
     fn test_create_basic_wallet() {

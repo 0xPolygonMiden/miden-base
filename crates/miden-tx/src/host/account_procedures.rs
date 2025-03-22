@@ -1,8 +1,8 @@
 use alloc::string::ToString;
 
 use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_OFFSET, CURRENT_ACCOUNT_DATA_PTR},
     TransactionKernelError,
+    memory::{ACCOUNT_STACK_TOP_PTR, ACCT_CODE_COMMITMENT_OFFSET},
 };
 use miden_objects::account::{AccountCode, AccountProcedureInfo};
 
@@ -12,8 +12,9 @@ use crate::errors::TransactionHostError;
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
 
-/// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known procedures
-/// of account interfaces for all accounts expected to be invoked during transaction execution.
+/// A map of maps { acct_code_commitment |-> { proc_root |-> proc_index } } for all known
+/// procedures of account interfaces for all accounts expected to be invoked during transaction
+/// execution.
 pub struct AccountProcedureIndexMap(BTreeMap<Digest, BTreeMap<Digest, u8>>);
 
 impl AccountProcedureIndexMap {
@@ -45,8 +46,17 @@ impl AccountProcedureIndexMap {
     pub fn get_proc_index(&self, process: &ProcessState) -> Result<u8, TransactionKernelError> {
         // get current account code commitment
         let code_commitment = {
+            let account_stack_top_ptr = process
+                .get_mem_value(process.ctx(), ACCOUNT_STACK_TOP_PTR)
+                .expect("Account stack top pointer was not initialized")
+                .as_int();
             let curr_data_ptr = process
-                .get_mem_value(process.ctx(), CURRENT_ACCOUNT_DATA_PTR)
+                .get_mem_value(
+                    process.ctx(),
+                    account_stack_top_ptr
+                        .try_into()
+                        .expect("account stack top pointer should be less than u32::MAX"),
+                )
                 .expect("Current account pointer was not initialized")
                 .as_int();
             process

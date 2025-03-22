@@ -3,17 +3,17 @@ use vm_core::FieldElement;
 
 use super::constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA};
 use crate::{
+    Felt, ZERO,
     account::{Account, AccountCode, AccountId, AccountStorage, StorageMap, StorageSlot},
     asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     testing::{
         account_component::AccountMockComponent,
         account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
         },
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
-    Felt, Word, ZERO,
 };
 
 // MOCK ACCOUNT
@@ -73,12 +73,13 @@ impl Account {
             true => vec![],
             false => {
                 let asset = NonFungibleAsset::mock(&constants::NON_FUNGIBLE_ASSET_DATA_2);
-                vec![(Word::from(asset).into(), asset.into())]
+                let vault_key = asset.vault_key();
+                vec![(vault_key.into(), asset.into())]
             },
         };
 
         // construct nft tree
-        let nft_storage_map = StorageMap::with_entries(entries);
+        let nft_storage_map = StorageMap::with_entries(entries).unwrap();
 
         let account_id = AccountId::try_from(account_id).unwrap();
 
@@ -102,20 +103,20 @@ impl AssetVault {
     ///
     /// The ids of the assets added to the vault are defined by the following constants:
     ///
-    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
-    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
-    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
-    /// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
+    /// - ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET
+    /// - ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1
+    /// - ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2
+    /// - ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET
     pub fn mock() -> Self {
-        let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
+        let faucet_id: AccountId = ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET.try_into().unwrap();
         let fungible_asset =
             Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-        let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
+        let faucet_id_1: AccountId = ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1.try_into().unwrap();
         let fungible_asset_1 =
             Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-        let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
+        let faucet_id_2: AccountId = ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2.try_into().unwrap();
         let fungible_asset_2 =
             Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
 

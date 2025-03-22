@@ -3,15 +3,15 @@ use core::fmt;
 
 use miden_crypto::utils::ByteWriter;
 use vm_core::{
-    utils::{ByteReader, Deserializable, Serializable},
     Felt,
+    utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::DeserializationError;
 
 use crate::{
     account::{
-        account_id::v0::{self, validate_prefix},
         AccountIdVersion, AccountStorageMode, AccountType,
+        account_id::v0::{self, validate_prefix},
     },
     errors::AccountIdError,
 };
@@ -228,20 +228,20 @@ mod tests {
     use crate::{
         account::{AccountId, AccountIdPrefix},
         testing::account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_SENDER,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
     };
 
     #[test]
     fn test_account_id_prefix_conversion_roundtrip() {
         for (idx, account_id) in [
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_OFF_CHAIN_SENDER,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_SENDER,
         ]
         .into_iter()
         .enumerate()

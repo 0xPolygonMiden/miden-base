@@ -1,18 +1,17 @@
 use alloc::{
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
     string::ToString,
     vec::Vec,
 };
-
-use miden_crypto::{merkle::SmtLeaf, EMPTY_WORD};
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
     Word,
 };
 use crate::{
+    Digest, EMPTY_WORD,
     account::{AccountStorage, StorageMap, StorageSlot},
-    Digest,
+    crypto::merkle::SmtLeaf,
 };
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
@@ -350,7 +349,7 @@ impl Deserializable for StorageMapDelta {
 mod tests {
     use super::{AccountStorageDelta, Deserializable, Serializable};
     use crate::{
-        account::StorageMapDelta, testing::storage::AccountStorageDeltaBuilder, ONE, ZERO,
+        ONE, ZERO, account::StorageMapDelta, testing::storage::AccountStorageDeltaBuilder,
     };
 
     #[test]

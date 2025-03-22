@@ -1,14 +1,14 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 use core::fmt::Debug;
 
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
 use crate::{
+    Digest, Felt, Hasher, MAX_OUTPUT_NOTES_PER_TX, TransactionOutputError, Word,
     account::AccountHeader,
     block::BlockNumber,
-    note::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
-    Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
+    note::{
+        Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote, compute_note_commitment,
+    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 // TRANSACTION OUTPUTS
 // ================================================================================================
@@ -232,8 +232,8 @@ impl OutputNote {
     /// Returns a commitment to the note and its metadata.
     ///
     /// > hash(NOTE_ID || NOTE_METADATA)
-    pub fn hash(&self) -> Digest {
-        compute_note_hash(self.id(), self.metadata())
+    pub fn commitment(&self) -> Digest {
+        compute_note_commitment(self.id(), self.metadata())
     }
 }
 

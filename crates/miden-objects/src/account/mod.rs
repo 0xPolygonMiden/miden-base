@@ -1,13 +1,13 @@
 use crate::{
+    AccountError, Digest, Felt, Hasher, Word, ZERO,
     asset::AssetVault,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
 mod account_id;
 pub use account_id::{
     AccountId, AccountIdAnchor, AccountIdPrefix, AccountIdPrefixV0, AccountIdV0, AccountIdVersion,
-    AccountStorageMode, AccountType,
+    AccountStorageMode, AccountType, AddressType, NetworkId,
 };
 
 pub mod auth;
@@ -18,13 +18,13 @@ mod builder;
 pub use builder::AccountBuilder;
 
 pub mod code;
-pub use code::{procedure::AccountProcedureInfo, AccountCode};
+pub use code::{AccountCode, procedure::AccountProcedureInfo};
 
 mod component;
 pub use component::{
     AccountComponent, AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation,
-    InitStorageData, MapRepresentation, PlaceholderType, StorageEntry, StoragePlaceholder,
-    StorageValue, WordRepresentation,
+    InitStorageData, MapEntry, MapRepresentation, PlaceholderTypeRequirement, StorageEntry,
+    StorageValueName, StorageValueNameError, TemplateType, TemplateTypeError, WordRepresentation,
 };
 
 pub mod delta;
@@ -39,8 +39,8 @@ pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot,
 mod header;
 pub use header::AccountHeader;
 
-mod data;
-pub use data::AccountData;
+mod file;
+pub use file::AccountFile;
 
 // ACCOUNT
 // ================================================================================================
@@ -149,35 +149,35 @@ impl Account {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns hash of this account.
+    /// Returns the commitment of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
-    /// code_commitment). Computing the account hash requires 2 permutations of the hash
+    /// The commitment of an account is computed as hash(id, nonce, vault_root, storage_commitment,
+    /// code_commitment). Computing the account commitment requires 2 permutations of the hash
     /// function.
-    pub fn hash(&self) -> Digest {
+    pub fn commitment(&self) -> Digest {
         hash_account(
             self.id,
             self.nonce,
-            self.vault.commitment(),
+            self.vault.root(),
             self.storage.commitment(),
             self.code.commitment(),
         )
     }
 
-    /// Returns hash of this account as used for the initial account state hash in transaction
-    /// proofs.
+    /// Returns the commitment of this account as used for the initial account state commitment in
+    /// transaction proofs.
     ///
-    /// For existing accounts, this is exactly the same as [Account::hash()], however, for new
+    /// For existing accounts, this is exactly the same as [Account::commitment()], however, for new
     /// accounts this value is set to [crate::EMPTY_WORD]. This is because when a transaction is
     /// executed against a new account, public input for the initial account state is set to
-    /// [crate::EMPTY_WORD] to distinguish new accounts from existing accounts. The actual hash of
-    /// the initial account state (and the initial state itself), are provided to the VM via the
-    /// advice provider.
-    pub fn init_hash(&self) -> Digest {
+    /// [crate::EMPTY_WORD] to distinguish new accounts from existing accounts. The actual
+    /// commitment of the initial account state (and the initial state itself), are provided to
+    /// the VM via the advice provider.
+    pub fn init_commitment(&self) -> Digest {
         if self.is_new() {
             Digest::default()
         } else {
-            self.hash()
+            self.commitment()
         }
     }
 
@@ -343,7 +343,7 @@ impl Deserializable for Account {
 /// code commitment.
 ///
 /// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
-/// code_commitment). Computing the account hash requires 2 permutations of the hash function.
+/// code_commitment). Computing the account commitment requires 2 permutations of the hash function.
 pub fn hash_account(
     id: AccountId,
     nonce: Felt,
@@ -388,8 +388,8 @@ mod tests {
     use assembly::Assembler;
     use assert_matches::assert_matches;
     use miden_crypto::{
-        utils::{Deserializable, Serializable},
         Felt, Word,
+        utils::{Deserializable, Serializable},
     };
     use vm_processor::Digest;
 
@@ -398,15 +398,15 @@ mod tests {
         AccountVaultDelta,
     };
     use crate::{
+        AccountError,
         account::{
             Account, AccountComponent, AccountType, StorageMap, StorageMapDelta, StorageSlot,
         },
         asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
         testing::{
-            account_id::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
             storage::AccountStorageDeltaBuilder,
         },
-        AccountError,
     };
 
     #[test]
@@ -461,7 +461,8 @@ mod tests {
                 Digest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
                 [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
             ),
-        ]);
+        ])
+        .unwrap();
         let storage_slot_map = StorageSlot::Map(storage_map.clone());
 
         let mut account = build_account(
@@ -583,7 +584,7 @@ mod tests {
     }
 
     pub fn build_account(assets: Vec<Asset>, nonce: Felt, slots: Vec<StorageSlot>) -> Account {
-        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap();
         let code = AccountCode::mock();
 
         let vault = AssetVault::new(&assets).unwrap();

@@ -5,10 +5,8 @@ use miden_lib::transaction::memory::{
     OUTPUT_NOTE_NUM_ASSETS_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
 };
 use miden_objects::{
-    note::Note,
-    testing::{prepare_word, storage::prepare_assets},
-    vm::StackInputs,
-    Felt, Hasher, Word, ONE, ZERO,
+    Felt, Hasher, ONE, Word, ZERO, note::Note, testing::storage::prepare_assets,
+    utils::word_to_masm_push_string, vm::StackInputs,
 };
 use vm_processor::{ContextId, Process, ProcessState};
 
@@ -17,6 +15,7 @@ mod test_asset;
 mod test_asset_vault;
 mod test_epilogue;
 mod test_faucet;
+mod test_fpi;
 mod test_note;
 mod test_prologue;
 mod test_tx;
@@ -53,18 +52,18 @@ pub fn try_read_root_mem_word(process: &ProcessState, addr: u32) -> Option<Word>
 }
 
 pub fn output_notes_data_procedure(notes: &[Note]) -> String {
-    let note_0_metadata = prepare_word(&notes[0].metadata().into());
-    let note_0_recipient = prepare_word(&notes[0].recipient().digest());
+    let note_0_metadata = word_to_masm_push_string(&notes[0].metadata().into());
+    let note_0_recipient = word_to_masm_push_string(&notes[0].recipient().digest());
     let note_0_assets = prepare_assets(notes[0].assets());
     let note_0_num_assets = 1;
 
-    let note_1_metadata = prepare_word(&notes[1].metadata().into());
-    let note_1_recipient = prepare_word(&notes[1].recipient().digest());
+    let note_1_metadata = word_to_masm_push_string(&notes[1].metadata().into());
+    let note_1_recipient = word_to_masm_push_string(&notes[1].recipient().digest());
     let note_1_assets = prepare_assets(notes[1].assets());
     let note_1_num_assets = 1;
 
-    let note_2_metadata = prepare_word(&notes[2].metadata().into());
-    let note_2_recipient = prepare_word(&notes[2].recipient().digest());
+    let note_2_metadata = word_to_masm_push_string(&notes[2].metadata().into());
+    let note_2_recipient = word_to_masm_push_string(&notes[2].recipient().digest());
     let note_2_assets = prepare_assets(notes[2].assets());
     let note_2_num_assets = 1;
 

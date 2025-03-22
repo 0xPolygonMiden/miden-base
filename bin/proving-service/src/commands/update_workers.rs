@@ -2,15 +2,23 @@ use clap::Parser;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::commands::ProxyConfig;
-
 // ADD WORKERS
 // ================================================================================================
 
 /// Add workers to the proxy
 #[derive(Debug, Parser, Clone, Serialize, Deserialize)]
 pub struct AddWorkers {
+    /// Workers to be added to the proxy.
+    ///
+    /// The workers are passed as host:port strings.
+    #[clap(value_name = "WORKERS")]
     workers: Vec<String>,
+    /// Host of the proxy.
+    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
+    proxy_host: String,
+    /// Port of the proxy endpoint to update workers.
+    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
+    proxy_update_workers_port: u64,
 }
 
 // REMOVE WORKERS
@@ -19,7 +27,16 @@ pub struct AddWorkers {
 /// Remove workers from the proxy
 #[derive(Debug, Parser, Clone, Serialize, Deserialize)]
 pub struct RemoveWorkers {
+    /// Workers to be removed from the proxy.
+    ///
+    /// The workers are passed as host:port strings.
     workers: Vec<String>,
+    /// Host of the proxy.
+    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
+    proxy_host: String,
+    /// Port of the proxy endpoint to update workers.
+    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
+    proxy_update_workers_port: u64,
 }
 
 // UPDATE WORKERS
@@ -37,22 +54,21 @@ pub enum Action {
 pub struct UpdateWorkers {
     pub action: Action,
     pub workers: Vec<String>,
+    pub proxy_host: String,
+    pub proxy_update_workers_port: u64,
 }
 
 impl UpdateWorkers {
-    /// Makes a requests to the proxy to update the workers.
+    /// Makes a requests to the update workers endpoint to update the workers.
     ///
     /// It works by sending a GET request to the proxy with the query parameters. The query
     /// parameters are serialized from the struct fields.
     ///
-    /// This method will work only if the proxy is running and the user is in the same computer as
-    /// the proxy, since the proxy checks for the source IP address and checks that the sender is
-    /// localhost.
+    /// It uses the host and port defined in the env vars or passed as parameter for the proxy.
     ///
     /// The request will return the new number of workers in the X-Worker-Count header.
     ///
     /// # Errors
-    /// - If a tokio runtime cannot be created.
     /// - If the query parameters cannot be serialized.
     /// - If the request fails.
     /// - If the status code is not successful.
@@ -64,11 +80,11 @@ impl UpdateWorkers {
 
         println!("Action: {:?}, with workers: {:?}", self.action, self.workers);
 
-        // Get the proxy url from the configuration file.
-        let proxy_config = ProxyConfig::load_config_from_file()?;
-
         // Create the full URL
-        let url = format!("http://{}:{}?{}", proxy_config.host, proxy_config.port, query_params);
+        let url = format!(
+            "http://{}:{}?{}",
+            self.proxy_host, self.proxy_update_workers_port, query_params
+        );
 
         // Create an HTTP/2 client
         let client = Client::builder()
@@ -106,6 +122,8 @@ impl From<RemoveWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Remove,
             workers: remove_workers.workers,
+            proxy_host: remove_workers.proxy_host,
+            proxy_update_workers_port: remove_workers.proxy_update_workers_port,
         }
     }
 }
@@ -115,6 +133,8 @@ impl From<AddWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Add,
             workers: add_workers.workers,
+            proxy_host: add_workers.proxy_host,
+            proxy_update_workers_port: add_workers.proxy_update_workers_port,
         }
     }
 }

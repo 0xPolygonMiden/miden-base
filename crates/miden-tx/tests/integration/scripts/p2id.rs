@@ -1,22 +1,20 @@
 use miden_lib::{
-    errors::tx_kernel_errors::ERR_P2ID_TARGET_ACCT_MISMATCH, note::create_p2id_note,
+    errors::note_script_errors::ERR_P2ID_TARGET_ACCT_MISMATCH, note::create_p2id_note,
     transaction::TransactionKernel,
 };
 use miden_objects::{
+    Felt,
     account::Account,
     asset::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::NoteType,
-    testing::{
-        account_id::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
-        },
-        prepare_word,
+    testing::account_id::{
+        ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2, ACCOUNT_ID_SENDER,
     },
     transaction::{OutputNote, TransactionScript},
-    Felt,
+    utils::word_to_masm_push_string,
 };
 use miden_tx::testing::{Auth, MockChain};
 
@@ -31,7 +29,7 @@ fn p2id_script_multiple_assets() {
     // Create assets
     let fungible_asset_1: Asset = FungibleAsset::mock(123);
     let fungible_asset_2: Asset =
-        FungibleAsset::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap(), 456)
+        FungibleAsset::new(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2.try_into().unwrap(), 456)
             .unwrap()
             .into();
 
@@ -50,7 +48,7 @@ fn p2id_script_multiple_assets() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -70,14 +68,17 @@ fn p2id_script_multiple_assets() {
         Felt::new(2),
     );
 
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    assert_eq!(
+        executed_transaction.final_account().commitment(),
+        target_account_after.commitment()
+    );
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
     // A "malicious" account tries to consume the note, we expect an error (not the correct target)
 
     let malicious_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // Execute the transaction and get the result
     let executed_transaction_2 = mock_chain
@@ -112,7 +113,7 @@ fn prove_consume_note_with_new_account() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -132,7 +133,10 @@ fn prove_consume_note_with_new_account() {
         Felt::new(1),
     );
 
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    assert_eq!(
+        executed_transaction.final_account().commitment(),
+        target_account_after.commitment()
+    );
     prove_and_verify_transaction(executed_transaction).unwrap();
 }
 
@@ -165,7 +169,7 @@ fn prove_consume_multiple_notes() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let tx_context = mock_chain
         .build_tx_context(account.id(), &[note_1.id(), note_2.id()], &[])
@@ -191,7 +195,7 @@ fn test_create_consume_multiple_notes() {
     let mut account =
         mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
 
-    let input_note_faucet_id = ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN.try_into().unwrap();
+    let input_note_faucet_id = ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET.try_into().unwrap();
     let input_note_asset_1: Asset = FungibleAsset::new(input_note_faucet_id, 11).unwrap().into();
 
     let input_note_asset_2: Asset = FungibleAsset::new(input_note_faucet_id, 100).unwrap().into();
@@ -208,7 +212,7 @@ fn test_create_consume_multiple_notes() {
 
     let input_note_2 = mock_chain
         .add_p2id_note(
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
             account.id(),
             &[input_note_asset_2],
             NoteType::Private,
@@ -216,11 +220,11 @@ fn test_create_consume_multiple_notes() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let output_note_1 = create_p2id_note(
         account.id(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
         vec![FungibleAsset::mock(10)],
         NoteType::Public,
         Felt::new(0),
@@ -230,7 +234,7 @@ fn test_create_consume_multiple_notes() {
 
     let output_note_2 = create_p2id_note(
         account.id(),
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
         vec![FungibleAsset::mock(5)],
         NoteType::Public,
         Felt::new(0),
@@ -265,15 +269,15 @@ fn test_create_consume_multiple_notes() {
                 dropw dropw dropw dropw
             end
             ",
-        recipient_1 = prepare_word(&output_note_1.recipient().digest()),
+        recipient_1 = word_to_masm_push_string(&output_note_1.recipient().digest()),
         note_type_1 = NoteType::Public as u8,
         tag_1 = Felt::new(output_note_1.metadata().tag().into()),
-        asset_1 = prepare_word(&FungibleAsset::mock(10).into()),
+        asset_1 = word_to_masm_push_string(&FungibleAsset::mock(10).into()),
         note_execution_hint_1 = Felt::from(output_note_1.metadata().execution_hint()),
-        recipient_2 = prepare_word(&output_note_2.recipient().digest()),
+        recipient_2 = word_to_masm_push_string(&output_note_2.recipient().digest()),
         note_type_2 = NoteType::Public as u8,
         tag_2 = Felt::new(output_note_2.metadata().tag().into()),
-        asset_2 = prepare_word(&FungibleAsset::mock(5).into()),
+        asset_2 = word_to_masm_push_string(&FungibleAsset::mock(5).into()),
         note_execution_hint_2 = Felt::from(output_note_2.metadata().execution_hint())
     );
 

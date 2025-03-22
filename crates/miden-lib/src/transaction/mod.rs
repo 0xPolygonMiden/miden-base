@@ -1,6 +1,7 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
+    Digest, EMPTY_WORD, Felt, TransactionOutputError, ZERO,
     account::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     block::BlockNumber,
@@ -8,9 +9,8 @@ use miden_objects::{
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    utils::serde::Deserializable,
+    utils::{serde::Deserializable, sync::LazyLock},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, EMPTY_WORD, ZERO,
 };
 use miden_stdlib::StdLibrary;
 use outputs::EXPIRATION_BLOCK_ELEMENT_IDX;
@@ -26,7 +26,7 @@ mod inputs;
 
 mod outputs;
 pub use outputs::{
-    parse_final_account_header, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
+    FINAL_ACCOUNT_COMMITMENT_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX, parse_final_account_header,
 };
 
 mod errors;
@@ -37,10 +37,29 @@ mod procedures;
 // CONSTANTS
 // ================================================================================================
 
-const KERNEL_LIB_BYTES: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
-const KERNEL_MAIN_BYTES: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
+// Initialize the kernel library only once
+static KERNEL_LIB: LazyLock<KernelLibrary> = LazyLock::new(|| {
+    let kernel_lib_bytes =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
+    KernelLibrary::read_from_bytes(kernel_lib_bytes)
+        .expect("failed to deserialize transaction kernel library")
+});
+
+// Initialize the kernel main program only once
+static KERNEL_MAIN: LazyLock<Program> = LazyLock::new(|| {
+    let kernel_main_bytes =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
+    Program::read_from_bytes(kernel_main_bytes)
+        .expect("failed to deserialize transaction kernel runtime")
+});
+
+// Initialize the transaction script executor program only once
+static TX_SCRIPT_MAIN: LazyLock<Program> = LazyLock::new(|| {
+    let tx_script_main_bytes =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_script_main.masb"));
+    Program::read_from_bytes(tx_script_main_bytes)
+        .expect("failed to deserialize tx script executor runtime")
+});
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -56,9 +75,7 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn kernel() -> KernelLibrary {
-        // TODO: make this static
-        KernelLibrary::read_from_bytes(KERNEL_LIB_BYTES)
-            .expect("failed to deserialize transaction kernel library")
+        KERNEL_LIB.clone()
     }
 
     /// Returns an AST of the transaction kernel executable program.
@@ -66,9 +83,15 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn main() -> Program {
-        // TODO: make static
-        Program::read_from_bytes(KERNEL_MAIN_BYTES)
-            .expect("failed to deserialize transaction kernel runtime")
+        KERNEL_MAIN.clone()
+    }
+
+    /// Returns an AST of the transaction script executor program.
+    ///
+    /// # Panics
+    /// Panics if the transaction kernel source is not well-formed.
+    pub fn tx_script_main() -> Program {
+        TX_SCRIPT_MAIN.clone()
     }
 
     /// Returns [ProgramInfo] for the transaction kernel executable program.
@@ -96,9 +119,10 @@ impl TransactionKernel {
 
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            account.init_hash(),
+            account.init_commitment(),
             tx_inputs.input_notes().commitment(),
-            tx_inputs.block_header().hash(),
+            tx_inputs.block_header().commitment(),
+            tx_inputs.block_header().block_num(),
         );
 
         let mut advice_inputs = init_advice_inputs.unwrap_or_default();
@@ -130,31 +154,36 @@ impl TransactionKernel {
     ///
     /// ```text
     /// [
-    ///     BLOCK_HASH,
-    ///     acct_id,
-    ///     INITIAL_ACCOUNT_HASH,
+    ///     BLOCK_COMMITMENT,
+    ///     INITIAL_ACCOUNT_COMMITMENT,
     ///     INPUT_NOTES_COMMITMENT,
+    ///     account_id_prefix, account_id_suffix, block_num
     /// ]
     /// ```
     ///
     /// Where:
-    /// - BLOCK_HASH, reference block for the transaction execution.
-    /// - acct_id, the account that the transaction is being executed against.
-    /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
+    /// - BLOCK_COMMITMENT is the commitment to the reference block of the transaction.
+    /// - block_num is the reference block number.
+    /// - account_id_{prefix,suffix} are the prefix and suffix felts of the account that the
+    ///   transaction is being executed against.
+    /// - INITIAL_ACCOUNT_COMMITMENT is the account state prior to the transaction, EMPTY_WORD for
+    ///   new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
     pub fn build_input_stack(
         account_id: AccountId,
-        init_acct_hash: Digest,
-        input_notes_hash: Digest,
-        block_hash: Digest,
+        init_account_commitment: Digest,
+        input_notes_commitment: Digest,
+        block_commitment: Digest,
+        block_num: BlockNumber,
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
         let mut inputs: Vec<Felt> = Vec::with_capacity(14);
-        inputs.extend(input_notes_hash);
-        inputs.extend_from_slice(init_acct_hash.as_elements());
+        inputs.push(Felt::from(block_num));
         inputs.push(account_id.suffix());
         inputs.push(account_id.prefix().as_felt());
-        inputs.extend_from_slice(block_hash.as_elements());
+        inputs.extend(input_notes_commitment);
+        inputs.extend_from_slice(init_account_commitment.as_elements());
+        inputs.extend_from_slice(block_commitment.as_elements());
         StackInputs::new(inputs)
             .map_err(|e| e.to_string())
             .expect("Invalid stack input")
@@ -195,7 +224,7 @@ impl TransactionKernel {
         // Extend the advice inputs with Merkle store data
         advice_inputs.extend_merkle_store(
             // The prefix is the index in the account tree.
-            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.hash())?,
+            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.commitment())?,
         );
 
         Ok(())
@@ -208,23 +237,23 @@ impl TransactionKernel {
     /// [
     ///     expiration_block_num,
     ///     OUTPUT_NOTES_COMMITMENT,
-    ///     FINAL_ACCOUNT_HASH,
+    ///     FINAL_ACCOUNT_COMMITMENT,
     /// ]
     /// ```
     ///
     /// Where:
     /// - OUTPUT_NOTES_COMMITMENT is a commitment to the output notes.
-    /// - FINAL_ACCOUNT_HASH is a hash of the account's final state.
+    /// - FINAL_ACCOUNT_COMMITMENT is a hash of the account's final state.
     /// - expiration_block_num is the block number at which the transaction will expire.
     pub fn build_output_stack(
-        final_acct_hash: Digest,
-        output_notes_hash: Digest,
+        final_account_commitment: Digest,
+        output_notes_commitment: Digest,
         expiration_block_num: BlockNumber,
     ) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
         outputs.push(Felt::from(expiration_block_num));
-        outputs.extend(final_acct_hash);
-        outputs.extend(output_notes_hash);
+        outputs.extend(final_account_commitment);
+        outputs.extend(output_notes_commitment);
         outputs.reverse();
         StackOutputs::new(outputs)
             .map_err(|e| e.to_string())
@@ -235,12 +264,12 @@ impl TransactionKernel {
     ///
     /// The data on the stack is expected to be arranged as follows:
     ///
-    /// Stack: [CNC, FAH, tx_expiration_block_num]
+    /// Stack: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT, tx_expiration_block_num]
     ///
     /// Where:
-    /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being executed
-    ///   against.
+    /// - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes.
+    /// - FINAL_ACCOUNT_COMMITMENT is the final account commitment of the account that the
+    ///   transaction is being executed against.
     /// - tx_expiration_block_num is the block height at which the transaction will become expired,
     ///   defined by the sum of the execution block ref and the transaction's block expiration delta
     ///   (if set during transaction execution).
@@ -252,13 +281,13 @@ impl TransactionKernel {
     pub fn parse_output_stack(
         stack: &StackOutputs,
     ) -> Result<(Digest, Digest, BlockNumber), TransactionOutputError> {
-        let output_notes_hash = stack
+        let output_notes_commitment = stack
             .get_stack_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX * 4)
             .expect("first word missing")
             .into();
 
-        let final_account_hash = stack
-            .get_stack_word(FINAL_ACCOUNT_HASH_WORD_IDX * 4)
+        let final_account_commitment = stack
+            .get_stack_word(FINAL_ACCOUNT_COMMITMENT_WORD_IDX * 4)
             .expect("second word missing")
             .into();
 
@@ -280,7 +309,7 @@ impl TransactionKernel {
             ));
         }
 
-        Ok((final_account_hash, output_notes_hash, expiration_block_num))
+        Ok((final_account_commitment, output_notes_commitment, expiration_block_num))
     }
 
     // TRANSACTION OUTPUT PARSER
@@ -290,39 +319,40 @@ impl TransactionKernel {
     ///
     /// The output stack is expected to be arrange as follows:
     ///
-    /// Stack: [CNC, FAH, tx_expiration_block_num]
+    /// Stack: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_COMMITMENT, tx_expiration_block_num]
     ///
     /// Where:
-    /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being executed
-    ///   against.
+    /// - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes.
+    /// - FINAL_ACCOUNT_COMMITMENT is the final account commitment of the account that the
+    ///   transaction is being executed against.
     /// - tx_expiration_block_num is the block height at which the transaction will become expired,
     ///   defined by the sum of the execution block ref and the transaction's block expiration delta
     ///   (if set during transaction execution).
     ///
     /// The actual data describing the new account state and output notes is expected to be located
-    /// in the provided advice map under keys CNC and FAH.
+    /// in the provided advice map under keys `OUTPUT_NOTES_COMMITMENT` and
+    /// `FINAL_ACCOUNT_COMMITMENT`.
     pub fn from_transaction_parts(
         stack: &StackOutputs,
         adv_map: &AdviceMap,
         output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
-        let (final_acct_hash, output_notes_hash, expiration_block_num) =
+        let (final_account_commitment, output_notes_commitment, expiration_block_num) =
             Self::parse_output_stack(stack)?;
 
         // parse final account state
         let final_account_data = adv_map
-            .get(&final_acct_hash)
+            .get(&final_account_commitment)
             .ok_or(TransactionOutputError::FinalAccountHashMissingInAdviceMap)?;
         let account = parse_final_account_header(final_account_data)
             .map_err(TransactionOutputError::FinalAccountHeaderParseFailure)?;
 
         // validate output notes
         let output_notes = OutputNotes::new(output_notes)?;
-        if output_notes_hash != output_notes.commitment() {
+        if output_notes_commitment != output_notes.commitment() {
             return Err(TransactionOutputError::OutputNotesCommitmentInconsistent {
                 actual: output_notes.commitment(),
-                expected: output_notes_hash,
+                expected: output_notes_commitment,
             });
         }
 

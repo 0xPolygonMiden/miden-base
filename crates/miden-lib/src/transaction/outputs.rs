@@ -1,11 +1,11 @@
 use miden_objects::{
+    AccountError, Felt, WORD_SIZE, Word,
     account::{AccountHeader, AccountId},
-    AccountError, Felt, Word, WORD_SIZE,
 };
 
 use super::memory::{
-    MemoryOffset, ACCT_CODE_COMMITMENT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET,
-    ACCT_NONCE_IDX, ACCT_STORAGE_COMMITMENT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
+    ACCT_CODE_COMMITMENT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_NONCE_IDX,
+    ACCT_STORAGE_COMMITMENT_OFFSET, ACCT_VAULT_ROOT_OFFSET, MemoryOffset,
 };
 use crate::transaction::memory::{ACCT_ID_PREFIX_IDX, ACCT_ID_SUFFIX_IDX};
 
@@ -15,8 +15,8 @@ use crate::transaction::memory::{ACCT_ID_PREFIX_IDX, ACCT_ID_SUFFIX_IDX};
 /// The index of the word at which the final account nonce is stored on the output stack.
 pub const OUTPUT_NOTES_COMMITMENT_WORD_IDX: usize = 0;
 
-/// The index of the word at which the final account hash is stored on the output stack.
-pub const FINAL_ACCOUNT_HASH_WORD_IDX: usize = 1;
+/// The index of the word at which the final account commitment is stored on the output stack.
+pub const FINAL_ACCOUNT_COMMITMENT_WORD_IDX: usize = 1;
 
 /// The index of the item at which the expiration block height is stored on the output stack.
 pub const EXPIRATION_BLOCK_ELEMENT_IDX: usize = 8;

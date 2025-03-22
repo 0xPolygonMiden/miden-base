@@ -1,53 +1,34 @@
 use alloc::vec::Vec;
-use std::string::{String, ToString};
+use std::string::String;
 
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
-    transaction::{
-        memory::{
-            ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
-            ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
-            ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, NATIVE_ACCOUNT_DATA_PTR,
-            NOTE_MEM_SIZE, NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
-            NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
-            OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
-        },
-        TransactionKernel,
+    transaction::memory::{
+        NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET,
+        OUTPUT_NOTE_METADATA_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
     },
 };
 use miden_objects::{
-    account::{
-        Account, AccountBuilder, AccountComponent, AccountId, AccountProcedureInfo, AccountStorage,
-        StorageSlot,
-    },
+    FieldElement,
+    account::AccountId,
     asset::NonFungibleAsset,
-    crypto::merkle::{LeafIndex, MerklePath},
     note::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
         NoteRecipient, NoteTag, NoteType,
     },
     testing::{
-        account_component::AccountMockComponent,
-        account_id::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2},
+        account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2},
         constants::NON_FUNGIBLE_ASSET_DATA_2,
-        prepare_word,
-        storage::STORAGE_LEAVES_2,
     },
-    transaction::{OutputNote, OutputNotes, TransactionScript},
-    FieldElement, ACCOUNT_TREE_DEPTH,
+    transaction::{OutputNote, OutputNotes},
 };
-use rand::{Rng, SeedableRng};
-use rand_chacha::ChaCha20Rng;
-use vm_processor::AdviceInputs;
 
-use super::{Felt, Process, ProcessState, Word, ONE, ZERO};
+use super::{Felt, ONE, ProcessState, Word, ZERO, word_to_masm_push_string};
 use crate::{
-    assert_execution_error,
-    testing::{MockChain, TransactionContextBuilder},
-    tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
-    TransactionExecutor,
+    assert_execution_error, testing::TransactionContextBuilder,
+    tests::kernel_tests::read_root_mem_word,
 };
 
 #[test]
@@ -80,7 +61,7 @@ fn test_create_note() {
             swapdw dropw dropw
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_masm_push_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         note_execution_hint = Felt::from(NoteExecutionHint::after_block(23.into()).unwrap()),
         tag = tag,
@@ -167,7 +148,7 @@ fn test_create_note_with_invalid_tag() {
                 dropw dropw
             end
             ",
-            recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
+            recipient = word_to_masm_push_string(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
             execution_hint_always = Felt::from(NoteExecutionHint::always()),
             PUBLIC_NOTE = NoteType::Public as u8,
             aux = Felt::ZERO,
@@ -201,7 +182,7 @@ fn test_create_note_too_many_notes() {
         end
         ",
         tag = Felt::new(4),
-        recipient = prepare_word(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
+        recipient = word_to_masm_push_string(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
         execution_hint_always = Felt::from(NoteExecutionHint::always()),
         PUBLIC_NOTE = NoteType::Public as u8,
         aux = Felt::ZERO,
@@ -256,8 +237,8 @@ fn test_get_output_notes_commitment() {
     let recipient = NoteRecipient::new(output_serial_no_2, input_note_2.script().clone(), inputs);
     let output_note_2 = Note::new(assets, metadata, recipient);
 
-    // compute expected output notes hash
-    let expected_output_notes_hash = OutputNotes::new(vec![
+    // compute expected output notes commitment
+    let expected_output_notes_commitment = OutputNotes::new(vec![
         OutputNote::Full(output_note_1.clone()),
         OutputNote::Full(output_note_2.clone()),
     ])
@@ -311,28 +292,28 @@ fn test_get_output_notes_commitment() {
             dropw drop
             # => []
 
-            # compute the output notes hash
+            # compute the output notes commitment
             exec.tx::get_output_notes_commitment
-            # => [COM]
+            # => [OUTPUT_NOTES_COMMITMENT]
 
             # truncate the stack
             exec.sys::truncate_stack
-            # => [COM]
+            # => [OUTPUT_NOTES_COMMITMENT]
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
         NOTE_EXECUTION_HINT_1 = Felt::from(output_note_1.metadata().execution_hint()),
-        recipient_1 = prepare_word(&output_note_1.recipient().digest()),
+        recipient_1 = word_to_masm_push_string(&output_note_1.recipient().digest()),
         tag_1 = output_note_1.metadata().tag(),
         aux_1 = output_note_1.metadata().aux(),
-        asset_1 = prepare_word(&Word::from(
+        asset_1 = word_to_masm_push_string(&Word::from(
             **output_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
-        recipient_2 = prepare_word(&output_note_2.recipient().digest()),
+        recipient_2 = word_to_masm_push_string(&output_note_2.recipient().digest()),
         NOTE_EXECUTION_HINT_2 = Felt::from(output_note_2.metadata().execution_hint()),
         tag_2 = output_note_2.metadata().tag(),
         aux_2 = output_note_2.metadata().aux(),
-        asset_2 = prepare_word(&Word::from(
+        asset_2 = word_to_masm_push_string(&Word::from(
             **output_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
     );
@@ -364,14 +345,14 @@ fn test_get_output_notes_commitment() {
         "Validate the output note 1 metadata",
     );
 
-    assert_eq!(process_state.get_stack_word(0), *expected_output_notes_hash);
+    assert_eq!(process_state.get_stack_word(0), *expected_output_notes_commitment);
 }
 
 #[test]
 fn test_create_note_and_add_asset() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
     let tag = Felt::new(4);
@@ -407,11 +388,11 @@ fn test_create_note_and_add_asset() {
             swapdw dropw dropw
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_masm_push_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         NOTE_EXECUTION_HINT = Felt::from(NoteExecutionHint::always()),
         tag = tag,
-        asset = prepare_word(&asset),
+        asset = word_to_masm_push_string(&asset),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -434,8 +415,8 @@ fn test_create_note_and_add_asset() {
 fn test_create_note_and_add_multiple_assets() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let faucet_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+    let faucet = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
+    let faucet_2 = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -487,13 +468,13 @@ fn test_create_note_and_add_multiple_assets() {
             swapdw dropw drop drop drop
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_masm_push_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
-        asset = prepare_word(&asset),
-        asset_2 = prepare_word(&asset_2),
-        asset_3 = prepare_word(&asset_3),
-        nft = prepare_word(&non_fungible_asset_encoded),
+        asset = word_to_masm_push_string(&asset),
+        asset_2 = word_to_masm_push_string(&asset_2),
+        asset_3 = word_to_masm_push_string(&asset_3),
+        nft = word_to_masm_push_string(&non_fungible_asset_encoded),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
@@ -571,12 +552,12 @@ fn test_create_note_and_add_same_nft_twice() {
             repeat.5 dropw end
         end
         ",
-        recipient = prepare_word(&recipient),
+        recipient = word_to_masm_push_string(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         execution_hint_always = Felt::from(NoteExecutionHint::always()),
         aux = Felt::new(0),
         tag = tag,
-        nft = prepare_word(&encoded),
+        nft = word_to_masm_push_string(&encoded),
     );
 
     let process = tx_context.execute_code(&code);
@@ -598,7 +579,7 @@ fn test_build_recipient_hash() {
     let tag = 8888;
     let single_input = 2;
     let inputs = NoteInputs::new(vec![Felt::new(single_input)]).unwrap();
-    let input_hash = inputs.commitment();
+    let input_commitment = inputs.commitment();
 
     let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
@@ -618,12 +599,12 @@ fn test_build_recipient_hash() {
             padw
 
             # input
-            push.{input_hash}
-            # SCRIPT_HASH
-            push.{script_hash}
+            push.{input_commitment}
+            # SCRIPT_ROOT
+            push.{script_root}
             # SERIAL_NUM
             push.{output_serial_no}
-            # => [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH, pad(4)]
+            # => [SERIAL_NUM, SCRIPT_ROOT, INPUT_COMMITMENT, pad(4)]
 
             call.build_recipient_hash
             # => [RECIPIENT, pad(12)]
@@ -641,9 +622,8 @@ fn test_build_recipient_hash() {
             dropw dropw dropw dropw dropw
         end
         ",
-        input_hash = input_hash,
-        script_hash = input_note_1.script().clone().hash(),
-        output_serial_no = prepare_word(&output_serial_no),
+        script_root = input_note_1.script().clone().root(),
+        output_serial_no = word_to_masm_push_string(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
         execution_hint = Felt::from(NoteExecutionHint::after_block(2.into()).unwrap()),
@@ -670,529 +650,48 @@ fn test_build_recipient_hash() {
     );
 }
 
-// FOREIGN PROCEDURE INVOCATION TESTS
+// BLOCK TESTS
 // ================================================================================================
 
 #[test]
-fn test_fpi_memory() {
-    // Prepare the test data
-    let storage_slots =
-        vec![AccountStorage::mock_item_0().slot, AccountStorage::mock_item_2().slot];
-    let foreign_account_code_source = "
-        use.miden::account
+fn test_block_procedures() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-        export.get_item_foreign
-            # make this foreign procedure unique to make sure that we invoke the procedure of the 
-            # foreign account, not the native one
-            push.1 drop
-            exec.account::get_item
-
-            # truncate the stack
-            movup.6 movup.6 movup.6 drop drop drop
-        end
-
-        export.get_map_item_foreign
-            # make this foreign procedure unique to make sure that we invoke the procedure of the 
-            # foreign account, not the native one
-            push.2 drop
-            exec.account::get_map_item
-        end
-    ";
-
-    let foreign_account_component = AccountComponent::compile(
-        foreign_account_code_source,
-        TransactionKernel::testing_assembler(),
-        storage_slots.clone(),
-    )
-    .unwrap()
-    .with_supports_all_types();
-
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
-        .with_component(foreign_account_component)
-        .build_existing()
-        .unwrap();
-
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
-        .with_component(
-            AccountMockComponent::new_with_slots(
-                TransactionKernel::testing_assembler(),
-                vec![AccountStorage::mock_item_2().slot],
-            )
-            .unwrap(),
-        )
-        .build_existing()
-        .unwrap();
-
-    let mut mock_chain =
-        MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_block(None);
-    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
-
-    let tx_context = mock_chain
-        .build_tx_context(native_account.id(), &[], &[])
-        .foreign_account_codes(vec![foreign_account.code().clone()])
-        .advice_inputs(advice_inputs.clone())
-        .build();
-
-    // GET ITEM
-    // --------------------------------------------------------------------------------------------
-    // Check the correctness of the memory layout after `get_item_foreign` account procedure
-    // invocation
-
-    let code = format!(
-        "
-        use.std::sys
-        
-        use.kernel::prologue
+    let code = "
         use.miden::tx
+        use.kernel::prologue
 
         begin
             exec.prologue::prepare_transaction
 
-            # pad the stack for the `execute_foreign_procedure`execution
-            padw padw padw push.0.0
-            # => [pad(14)]
-
-            # push the index of desired storage item
-            push.0
-
-            # get the hash of the `get_item_foreign` procedure of the foreign account 
-            push.{get_item_foreign_hash}
-
-            # push the foreign account ID
-            push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(11)]
-
-            exec.tx::execute_foreign_procedure
-            # => [STORAGE_VALUE_1]
+            # get the block data
+            exec.tx::get_block_number
+            exec.tx::get_block_timestamp
+            exec.tx::get_block_commitment
+            # => [BLOCK_COMMITMENT, block_timestamp, block_number]
 
             # truncate the stack
-            exec.sys::truncate_stack
-            end
-            ",
-        foreign_prefix = foreign_account.id().prefix().as_felt(),
-        foreign_suffix = foreign_account.id().suffix(),
-        get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
-    );
+            swapdw dropw dropw
+        end
+        ";
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(code).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
-        storage_slots[0].value(),
-        "Value at the top of the stack (value in the storage at index 0) should be equal [1, 2, 3, 4]",
-    );
-
-    foreign_account_data_memory_assertions(&foreign_account, &process);
-
-    // GET MAP ITEM
-    // --------------------------------------------------------------------------------------------
-    // Check the correctness of the memory layout after `get_map_item` account procedure invocation
-
-    let code = format!(
-        "
-        use.std::sys
-
-        use.kernel::prologue
-        use.miden::tx
-
-        begin
-            exec.prologue::prepare_transaction
-
-            # pad the stack for the `execute_foreign_procedure` execution
-            padw padw push.0.0
-            # => [pad(10)]
-
-            # push the key of desired storage item
-            push.{map_key}
-
-            # push the index of desired storage item
-            push.1
-
-            # get the hash of the `get_map_item_foreign` account procedure
-            push.{get_map_item_foreign_hash}
-
-            # push the foreign account ID
-            push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
-
-            exec.tx::execute_foreign_procedure
-            # => [MAP_VALUE]
-
-            # truncate the stack
-            exec.sys::truncate_stack
-        end
-        ",
-        foreign_prefix = foreign_account.id().prefix().as_felt(),
-        foreign_suffix = foreign_account.id().suffix(),
-        map_key = STORAGE_LEAVES_2[0].0,
-        get_map_item_foreign_hash = foreign_account.code().procedures()[1].mast_root(),
-    );
-
-    let process = tx_context.execute_code(&code).unwrap();
-
-    assert_eq!(
-        process.stack.get_word(0),
-        STORAGE_LEAVES_2[0].1,
-        "Value at the top of the stack should be equal [1, 2, 3, 4]",
-    );
-
-    foreign_account_data_memory_assertions(&foreign_account, &process);
-
-    // GET ITEM TWICE
-    // --------------------------------------------------------------------------------------------
-    // Check the correctness of the memory layout after two consecutive invocations of the
-    // `get_item` account procedures. Invoking two foreign procedures from the same account should
-    // result in reuse of the loaded account.
-
-    let code = format!(
-        "
-        use.std::sys
-
-        use.kernel::prologue
-        use.miden::tx
-
-        begin
-            exec.prologue::prepare_transaction
-
-            ### Get the storage item at index 0 #####################
-            # pad the stack for the `execute_foreign_procedure`execution
-            padw padw padw push.0.0
-            # => [pad(14)]
-
-            # push the index of desired storage item
-            push.0
-
-            # get the hash of the `get_item_foreign` procedure of the foreign account 
-            push.{get_item_foreign_hash}
-
-            # push the foreign account ID
-            push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
-
-            exec.tx::execute_foreign_procedure dropw
-            # => []
-
-            ### Get the storage item at index 0 again ###############
-            # pad the stack for the `execute_foreign_procedure`execution
-            padw padw padw push.0.0
-            # => [pad(14)]
-
-            # push the index of desired storage item
-            push.0
-
-            # get the hash of the `get_item_foreign` procedure of the foreign account 
-            push.{get_item_foreign_hash}
-
-            # push the foreign account ID
-            push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
-
-            exec.tx::execute_foreign_procedure
-
-            # truncate the stack
-            exec.sys::truncate_stack
-        end
-        ",
-        foreign_prefix = foreign_account.id().prefix().as_felt(),
-        foreign_suffix = foreign_account.id().suffix(),
-        get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
-    );
-
-    let process = &tx_context.execute_code(&code).unwrap();
-
-    // Check that the second invocation of the foreign procedure from the same account does not load
-    // the account data again: already loaded data should be reused.
-    //
-    // Native account:    [2048; 4095] <- initialized during prologue
-    // Foreign account:   [4096; 6143] <- initialized during first FPI
-    // Next account slot: [6144; 8191] <- should not be initialized
-    assert_eq!(
-        try_read_root_mem_word(
-            &process.into(),
-            NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 2
-        ),
-        None,
-        "Memory starting from 6144 should stay uninitialized"
-    );
-}
-
-/// Test the correctness of the foreign procedure execution.
-///
-/// It checks the foreign account code loading, providing the mast forest to the executor,
-/// construction of the account procedure maps and execution the foreign procedure in order to
-/// obtain the data from the foreign account's storage slot.
-#[test]
-fn test_fpi_execute_foreign_procedure() {
-    // Prepare the test data
-    let storage_slots =
-        vec![AccountStorage::mock_item_0().slot, AccountStorage::mock_item_2().slot];
-    let foreign_account_code_source = "
-        use.miden::account
-
-        export.get_item_foreign
-            # make this foreign procedure unique to make sure that we invoke the procedure of the 
-            # foreign account, not the native one
-            push.1 drop
-            exec.account::get_item
-
-            # truncate the stack
-            movup.6 movup.6 movup.6 drop drop drop
-        end
-
-        export.get_map_item_foreign
-            # make this foreign procedure unique to make sure that we invoke the procedure of the 
-            # foreign account, not the native one
-            push.2 drop
-            exec.account::get_map_item
-        end
-    ";
-
-    let foreign_account_component = AccountComponent::compile(
-        foreign_account_code_source,
-        TransactionKernel::testing_assembler(),
-        storage_slots,
-    )
-    .unwrap()
-    .with_supports_all_types();
-
-    let foreign_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
-        .with_component(foreign_account_component)
-        .build_existing()
-        .unwrap();
-
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_entropy().gen())
-        .with_component(
-            AccountMockComponent::new_with_slots(TransactionKernel::testing_assembler(), vec![])
-                .unwrap(),
-        )
-        .build_existing()
-        .unwrap();
-
-    let mut mock_chain =
-        MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_block(None);
-    let advice_inputs = get_mock_fpi_adv_inputs(&foreign_account, &mock_chain);
-
-    let code = format!(
-        "
-        use.std::sys
-
-        use.miden::tx
-
-        begin
-            # get the storage item at index 0
-            # pad the stack for the `execute_foreign_procedure`execution
-            padw padw padw push.0.0
-            # => [pad(14)]
-
-            # push the index of desired storage item
-            push.0
-
-            # get the hash of the `get_item` account procedure
-            push.{get_item_foreign_hash}
-
-            # push the foreign account ID
-            push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
-
-            exec.tx::execute_foreign_procedure
-            # => [STORAGE_VALUE]
-
-            # assert the correctness of the obtained value
-            push.1.2.3.4 assert_eqw
-            # => []
-
-            # get the storage map at index 1
-            # pad the stack for the `execute_foreign_procedure` execution
-            padw padw push.0.0
-            # => [pad(10)]
-
-            # push the key of desired storage item
-            push.{map_key}
-
-            # push the index of desired storage item
-            push.1
-
-            # get the hash of the `get_map_item_foreign` account procedure
-            push.{get_map_item_foreign_hash}
-
-            # push the foreign account ID
-            push.{foreign_suffix}.{foreign_prefix}
-            # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, MAP_ITEM_KEY, pad(10)]
-
-            exec.tx::execute_foreign_procedure
-            # => [MAP_VALUE]
-
-            # assert the correctness of the obtained value
-            push.1.2.3.4 assert_eqw
-            # => []
-
-            # truncate the stack
-            exec.sys::truncate_stack
-        end
-        ",
-        foreign_prefix = foreign_account.id().prefix().as_felt(),
-        foreign_suffix = foreign_account.id().suffix(),
-        get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
-        get_map_item_foreign_hash = foreign_account.code().procedures()[1].mast_root(),
-        map_key = STORAGE_LEAVES_2[0].0,
-    );
-
-    let tx_script =
-        TransactionScript::compile(code, vec![], TransactionKernel::testing_assembler()).unwrap();
-
-    let tx_context = mock_chain
-        .build_tx_context(native_account.id(), &[], &[])
-        .advice_inputs(advice_inputs.clone())
-        .tx_script(tx_script)
-        .build();
-
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let mut executor: TransactionExecutor =
-        TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
-
-    // load the mast forest of the foreign account's code to be able to create an account procedure
-    // index map and execute the specified foreign procedure
-    executor.load_account_code(foreign_account.code());
-
-    let _executed_transaction = executor
-        .execute_transaction(
-            native_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
-        .map_err(|e| e.to_string())
-        .unwrap();
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn get_mock_fpi_adv_inputs(foreign_account: &Account, mock_chain: &MockChain) -> AdviceInputs {
-    let mut advice_inputs = AdviceInputs::default();
-    TransactionKernel::extend_advice_inputs_for_account(
-        &mut advice_inputs,
-        &foreign_account.clone().into(),
-        foreign_account.code(),
-        &foreign_account.storage().get_header(),
-        // Provide the merkle path of the foreign account to be able to verify that the account
-        // database has the hash of this foreign account. Verification is done during the
-        // execution of the `kernel::account::validate_current_foreign_account` procedure.
-        &MerklePath::new(
-            mock_chain
-                .accounts()
-                  // TODO: Update.
-                .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().prefix().as_felt().as_int()).unwrap())
-                .path
-                .into(),
-        ),
-    )
-    .unwrap();
-
-    for slot in foreign_account.storage().slots() {
-        // if there are storage maps, we populate the merkle store and advice map
-        if let StorageSlot::Map(map) = slot {
-            // extend the merkle store and map with the storage maps
-            advice_inputs.extend_merkle_store(map.inner_nodes());
-            // populate advice map with Sparse Merkle Tree leaf nodes
-            advice_inputs
-                .extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
-        }
-    }
-
-    advice_inputs
-}
-
-fn foreign_account_data_memory_assertions(foreign_account: &Account, process: &Process) {
-    let foreign_account_data_ptr = NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32;
-
-    assert_eq!(
-        read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_ID_AND_NONCE_OFFSET),
-        [
-            foreign_account.id().suffix(),
-            foreign_account.id().prefix().as_felt(),
-            ZERO,
-            foreign_account.nonce()
-        ],
+        tx_context.tx_inputs().block_header().commitment().as_elements(),
+        "top word on the stack should be equal to the block header commitment"
     );
 
     assert_eq!(
-        read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_VAULT_ROOT_OFFSET),
-        foreign_account.vault().commitment().as_elements(),
+        process.stack.get(4).as_int(),
+        tx_context.tx_inputs().block_header().timestamp() as u64,
+        "fifth element on the stack should be equal to the timestamp of the last block creation"
     );
 
     assert_eq!(
-        read_root_mem_word(
-            &process.into(),
-            foreign_account_data_ptr + ACCT_STORAGE_COMMITMENT_OFFSET
-        ),
-        Word::from(foreign_account.storage().commitment()),
+        process.stack.get(5).as_int(),
+        tx_context.tx_inputs().block_header().block_num().as_u64(),
+        "sixth element on the stack should be equal to the block number"
     );
-
-    assert_eq!(
-        read_root_mem_word(&process.into(), foreign_account_data_ptr + ACCT_CODE_COMMITMENT_OFFSET),
-        foreign_account.code().commitment().as_elements(),
-    );
-
-    assert_eq!(
-        read_root_mem_word(
-            &process.into(),
-            foreign_account_data_ptr + NUM_ACCT_STORAGE_SLOTS_OFFSET
-        ),
-        [
-            u16::try_from(foreign_account.storage().slots().len()).unwrap().into(),
-            ZERO,
-            ZERO,
-            ZERO
-        ],
-    );
-
-    for (i, elements) in foreign_account
-        .storage()
-        .as_elements()
-        .chunks(StorageSlot::NUM_ELEMENTS_PER_STORAGE_SLOT / 2)
-        .enumerate()
-    {
-        assert_eq!(
-            read_root_mem_word(
-                &process.into(),
-                foreign_account_data_ptr + ACCT_STORAGE_SLOTS_SECTION_OFFSET + (i as u32) * 4
-            ),
-            Word::try_from(elements).unwrap(),
-        )
-    }
-
-    assert_eq!(
-        read_root_mem_word(&process.into(), foreign_account_data_ptr + NUM_ACCT_PROCEDURES_OFFSET),
-        [
-            u16::try_from(foreign_account.code().procedures().len()).unwrap().into(),
-            ZERO,
-            ZERO,
-            ZERO
-        ],
-    );
-
-    for (i, elements) in foreign_account
-        .code()
-        .as_elements()
-        .chunks(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC / 2)
-        .enumerate()
-    {
-        assert_eq!(
-            read_root_mem_word(
-                &process.into(),
-                foreign_account_data_ptr + ACCT_PROCEDURES_SECTION_OFFSET + (i as u32) * 4
-            ),
-            Word::try_from(elements).unwrap(),
-        );
-    }
 }

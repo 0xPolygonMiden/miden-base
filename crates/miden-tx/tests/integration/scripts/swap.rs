@@ -1,12 +1,12 @@
 use miden_lib::{note::create_swap_note, transaction::TransactionKernel};
 use miden_objects::{
+    Felt,
     account::AccountId,
     asset::{Asset, NonFungibleAsset},
     crypto::rand::RpoRandomCoin,
     note::{Note, NoteDetails, NoteType},
-    testing::prepare_word,
     transaction::{OutputNote, TransactionScript},
-    Felt,
+    utils::word_to_masm_push_string,
 };
 use miden_tx::testing::{Auth, MockChain};
 
@@ -41,10 +41,10 @@ pub fn prove_send_swap_note() {
             dropw dropw dropw dropw
         end
         ",
-        recipient = prepare_word(&note.recipient().digest()),
+        recipient = word_to_masm_push_string(&note.recipient().digest()),
         note_type = NoteType::Public as u8,
         tag = Felt::new(note.metadata().tag().into()),
-        asset = prepare_word(&offered_asset.into()),
+        asset = word_to_masm_push_string(&offered_asset.into()),
         note_execution_hint = Felt::from(note.metadata().execution_hint())
     );
 
@@ -62,7 +62,12 @@ pub fn prove_send_swap_note() {
 
     let sender_account = mock_chain.apply_executed_transaction(&create_swap_note_tx);
 
-    assert!(create_swap_note_tx.output_notes().iter().any(|n| n.hash() == note.hash()));
+    assert!(
+        create_swap_note_tx
+            .output_notes()
+            .iter()
+            .any(|n| n.commitment() == note.commitment())
+    );
     assert_eq!(sender_account.vault().assets().count(), 0); // Offered asset should be gone
     let swap_output_note = create_swap_note_tx.output_notes().iter().next().unwrap();
     assert_eq!(swap_output_note.assets().unwrap().iter().next().unwrap(), &offered_asset);
@@ -85,7 +90,7 @@ fn prove_consume_swap_note() {
 
     let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
     mock_chain.add_pending_note(note.clone());
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     let consume_swap_note_tx = mock_chain
         .build_tx_context(target_account.id(), &[note.id()], &[])

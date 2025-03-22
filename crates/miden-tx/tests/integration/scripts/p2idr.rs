@@ -1,11 +1,11 @@
-use miden_lib::errors::tx_kernel_errors::{
+use miden_lib::errors::note_script_errors::{
     ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
 };
 use miden_objects::{
+    Felt,
     account::Account,
     asset::{Asset, AssetVault, FungibleAsset},
     note::NoteType,
-    Felt,
 };
 use miden_tx::testing::{Auth, MockChain};
 
@@ -14,7 +14,7 @@ use crate::assert_transaction_executor_error;
 #[test]
 fn p2idr_script() {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(3));
+    mock_chain.seal_block(Some(3), None);
 
     // Create assets
     let fungible_asset: Asset = FungibleAsset::mock(100);
@@ -49,7 +49,7 @@ fn p2idr_script() {
         )
         .unwrap();
 
-    mock_chain.seal_block(None);
+    mock_chain.seal_next_block();
 
     // --------------------------------------------------------------------------------------------
     // Case "in time": Only the target account can consume the note.
@@ -68,7 +68,10 @@ fn p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(executed_transaction_1.final_account().hash(), target_account_after.hash());
+    assert_eq!(
+        executed_transaction_1.final_account().commitment(),
+        target_account_after.commitment()
+    );
 
     // CONSTRUCT AND EXECUTE TX (Failure - Sender Account tries to consume too early)
     let executed_transaction_2 = mock_chain

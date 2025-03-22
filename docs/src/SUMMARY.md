@@ -4,6 +4,7 @@
 
 - [Introduction](./index.md)
 - [Accounts](./account.md)
+  - [Components](./component_templates.md)
 - [Notes](./note.md)
 - [Assets](./asset.md)
 - [Transactions](./transaction.md)

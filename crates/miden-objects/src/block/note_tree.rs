@@ -1,15 +1,15 @@
 use alloc::string::ToString;
 
-use miden_crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
-};
-
 use crate::{
-    note::{compute_note_hash, NoteId, NoteMetadata},
-    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
+    BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
     MAX_OUTPUT_NOTES_PER_BLOCK,
+    batch::BatchNoteTree,
+    crypto::{
+        hash::rpo::RpoDigest,
+        merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
+    },
+    note::{NoteId, NoteMetadata, compute_note_commitment},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 /// Wrapper over [SimpleSmt<BLOCK_NOTE_TREE_DEPTH>] for notes tree.
@@ -21,7 +21,7 @@ use crate::{
 pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTE_TREE_DEPTH>);
 
 impl BlockNoteTree {
-    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided
+    /// Returns a new [`BlockNoteTree`] instantiated with entries set as specified by the provided
     /// entries.
     ///
     /// Entry format: (note_index, note_id, note_metadata).
@@ -37,10 +37,36 @@ impl BlockNoteTree {
         entries: impl IntoIterator<Item = (BlockNoteIndex, NoteId, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
         let leaves = entries.into_iter().map(|(index, note_id, metadata)| {
-            (index.leaf_index_value() as u64, compute_note_hash(note_id, &metadata).into())
+            (
+                index.leaf_index_value() as u64,
+                compute_note_commitment(note_id, &metadata).into(),
+            )
         });
 
         SimpleSmt::with_leaves(leaves).map(Self)
+    }
+
+    /// Returns a new, empty [`BlockNoteTree`].
+    pub fn empty() -> Self {
+        Self(SimpleSmt::new().expect("depth should be 16 and thus > 0 and <= 64"))
+    }
+
+    /// Inserts the given [`BatchNoteTree`] as a subtree into the block note tree at the specified
+    /// index.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the given batch index is greater or equal to [`MAX_BATCHES_PER_BLOCK`]
+    pub fn insert_batch_note_subtree(
+        &mut self,
+        batch_idx: u64,
+        batch_note_tree: BatchNoteTree,
+    ) -> Result<(), MerkleError> {
+        // Note that the subtree depth > depth error cannot occur, as the batch note tree's depth is
+        // smaller than the block note tree's depth.
+        // This is guaranteed through the definition of MAX_BATCHES_PER_BLOCK.
+        self.0.set_subtree(batch_idx, batch_note_tree.into_smt()).map(|_| ())
     }
 
     /// Returns the root of the tree
@@ -53,6 +79,16 @@ impl BlockNoteTree {
         // get the path to the leaf containing the note (path len = 16)
         self.0.open(&index.leaf_index()).path
     }
+
+    /// Returns the number of notes in this block note tree.
+    pub fn num_notes(&self) -> usize {
+        self.0.num_leaves()
+    }
+
+    /// Returns a boolean value indicating whether the block note tree is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl Default for BlockNoteTree {
@@ -60,6 +96,9 @@ impl Default for BlockNoteTree {
         Self(SimpleSmt::new().expect("Unreachable"))
     }
 }
+
+// BLOCK NOTE INDEX
+// ================================================================================================
 
 /// Index of a block note.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,15 +109,17 @@ pub struct BlockNoteIndex {
 
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
-    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Result<Self, BlockError> {
-        if note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
-            return Err(BlockError::TooManyNotesInBatch(note_idx_in_batch));
-        }
-        if batch_idx >= MAX_BATCHES_PER_BLOCK {
-            return Err(BlockError::TooManyTransactionBatches(batch_idx));
+    ///
+    /// # Errors
+    ///
+    /// Returns `None` if the batch index is equal to or greater than [`MAX_BATCHES_PER_BLOCK`] or
+    /// if the note index is equal to or greater than [`MAX_OUTPUT_NOTES_PER_BATCH`].
+    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Option<Self> {
+        if batch_idx >= MAX_BATCHES_PER_BLOCK || note_idx_in_batch >= MAX_OUTPUT_NOTES_PER_BATCH {
+            return None;
         }
 
-        Ok(Self { batch_idx, note_idx_in_batch })
+        Some(Self { batch_idx, note_idx_in_batch })
     }
 
     /// Returns the batch index.
@@ -137,9 +178,9 @@ impl Deserializable for BlockNoteTree {
 #[cfg(test)]
 mod tests {
     use miden_crypto::{
+        Felt, ONE, ZERO,
         merkle::SimpleSmt,
         utils::{Deserializable, Serializable},
-        Felt, ONE, ZERO,
     };
 
     use super::BlockNoteTree;

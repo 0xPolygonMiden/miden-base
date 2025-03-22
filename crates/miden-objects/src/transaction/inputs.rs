@@ -3,11 +3,11 @@ use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
+    MAX_INPUT_NOTES_PER_TX, TransactionInputError,
     account::{Account, AccountId, AccountIdAnchor},
     block::BlockNumber,
     note::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    TransactionInputError, MAX_INPUT_NOTES_PER_TX,
 };
 
 // TRANSACTION INPUTS
@@ -51,9 +51,9 @@ impl TransactionInputs {
             });
         }
 
-        if block_chain.peaks().hash_peaks() != block_header.chain_root() {
-            return Err(TransactionInputError::InconsistentChainRoot {
-                expected: block_header.chain_root(),
+        if block_chain.peaks().hash_peaks() != block_header.chain_commitment() {
+            return Err(TransactionInputError::InconsistentChainCommitment {
+                expected: block_header.chain_commitment(),
                 actual: block_chain.peaks().hash_peaks(),
             });
         }
@@ -160,10 +160,10 @@ impl Deserializable for TransactionInputs {
 /// The commitment is composed of:
 ///
 /// - nullifier, which prevents double spend and provides unlinkability.
-/// - an optional note hash, which allows for delayed note authentication.
+/// - an optional note commitment, which allows for delayed note authentication.
 pub trait ToInputNoteCommitments {
     fn nullifier(&self) -> Nullifier;
-    fn note_hash(&self) -> Option<Digest>;
+    fn note_commitment(&self) -> Option<Digest>;
 }
 
 // INPUT NOTES
@@ -204,6 +204,19 @@ impl<T: ToInputNoteCommitments> InputNotes<T> {
         let commitment = build_input_note_commitment(&notes);
 
         Ok(Self { notes, commitment })
+    }
+
+    /// Returns new [`InputNotes`] instantiated from the provided vector of notes without checking
+    /// their validity.
+    ///
+    /// This is exposed for use in transaction batches, but should generally not be used.
+    ///
+    /// # Warning
+    ///
+    /// This does not run the checks from [`InputNotes::new`], so the latter should be preferred.
+    pub fn new_unchecked(notes: Vec<T>) -> Self {
+        let commitment = build_input_note_commitment(&notes);
+        Self { notes, commitment }
     }
 
     // PUBLIC ACCESSORS
@@ -320,11 +333,12 @@ fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 2);
     for commitment_data in notes {
         let nullifier = commitment_data.nullifier();
-        let zero_or_note_hash =
-            &commitment_data.note_hash().map_or(Word::default(), |note_id| note_id.into());
+        let empty_word_or_note_commitment = &commitment_data
+            .note_commitment()
+            .map_or(Word::default(), |note_id| note_id.into());
 
         elements.extend_from_slice(nullifier.as_elements());
-        elements.extend_from_slice(zero_or_note_hash);
+        elements.extend_from_slice(empty_word_or_note_commitment);
     }
     Hasher::hash_elements(&elements)
 }
@@ -397,10 +411,10 @@ fn validate_is_in_block(
     block_header: &BlockHeader,
 ) -> Result<(), TransactionInputError> {
     let note_index = proof.location().node_index_in_block().into();
-    let note_hash = note.hash();
+    let note_commitment = note.commitment();
     proof
         .note_path()
-        .verify(note_index, note_hash, &block_header.note_root())
+        .verify(note_index, note_commitment, &block_header.note_root())
         .map_err(|_| {
             TransactionInputError::InputNoteNotInBlock(note.id(), proof.location().block_num())
         })
@@ -411,10 +425,10 @@ impl ToInputNoteCommitments for InputNote {
         self.note().nullifier()
     }
 
-    fn note_hash(&self) -> Option<Digest> {
+    fn note_commitment(&self) -> Option<Digest> {
         match self {
             InputNote::Authenticated { .. } => None,
-            InputNote::Unauthenticated { note } => Some(note.hash()),
+            InputNote::Unauthenticated { note } => Some(note.commitment()),
         }
     }
 }
@@ -424,8 +438,8 @@ impl ToInputNoteCommitments for &InputNote {
         (*self).nullifier()
     }
 
-    fn note_hash(&self) -> Option<Digest> {
-        (*self).note_hash()
+    fn note_commitment(&self) -> Option<Digest> {
+        (*self).note_commitment()
     }
 }
 
@@ -479,8 +493,8 @@ pub fn validate_account_seed(
         (true, Some(seed)) => {
             let anchor_block_number = BlockNumber::from_epoch(account.id().anchor_epoch());
 
-            let anchor_block_hash = if block_header.block_num() == anchor_block_number {
-                block_header.hash()
+            let anchor_block_commitment = if block_header.block_num() == anchor_block_number {
+                block_header.commitment()
             } else {
                 let anchor_block_header =
                     block_chain.get_block(anchor_block_number).ok_or_else(|| {
@@ -488,10 +502,10 @@ pub fn validate_account_seed(
                             account.id().anchor_epoch(),
                         )
                     })?;
-                anchor_block_header.hash()
+                anchor_block_header.commitment()
             };
 
-            let anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_hash)
+            let anchor = AccountIdAnchor::new(anchor_block_number, anchor_block_commitment)
                 .map_err(TransactionInputError::InvalidAccountIdSeed)?;
 
             let account_id = AccountId::new(

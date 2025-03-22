@@ -3,11 +3,12 @@ use std::time::Duration;
 use pingora::lb::Backend;
 use tonic::transport::Channel;
 use tonic_health::pb::{
-    health_check_response::ServingStatus, health_client::HealthClient, HealthCheckRequest,
+    HealthCheckRequest, health_check_response::ServingStatus, health_client::HealthClient,
 };
 use tracing::error;
 
-use crate::{error::TxProverServiceError, utils::create_health_check_client};
+use super::health_check::create_health_check_client;
+use crate::error::ProvingServiceError;
 
 // WORKER
 // ================================================================================================
@@ -27,13 +28,13 @@ impl Worker {
     /// Creates a new worker and a gRPC health check client for the given worker address.
     ///
     /// # Errors
-    /// - Returns [TxProverServiceError::InvalidURI] if the worker address is invalid.
-    /// - Returns [TxProverServiceError::ConnectionFailed] if the connection to the worker fails.
+    /// - Returns [ProvingServiceError::InvalidURI] if the worker address is invalid.
+    /// - Returns [ProvingServiceError::ConnectionFailed] if the connection to the worker fails.
     pub async fn new(
         worker: Backend,
         connection_timeout: Duration,
         total_timeout: Duration,
-    ) -> Result<Self, TxProverServiceError> {
+    ) -> Result<Self, ProvingServiceError> {
         let health_check_client =
             create_health_check_client(worker.addr.to_string(), connection_timeout, total_timeout)
                 .await?;

@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
-use super::{
-    Asset, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher,
-    NoteError, Serializable, Word, WORD_SIZE, ZERO,
+use crate::{
+    Digest, Felt, Hasher, MAX_ASSETS_PER_NOTE, WORD_SIZE, Word, ZERO,
+    asset::Asset,
+    errors::NoteError,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
-use crate::MAX_ASSETS_PER_NOTE;
 
 // NOTE ASSETS
 // ================================================================================================
@@ -219,17 +220,17 @@ impl Deserializable for NoteAssets {
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_asset_commitment, NoteAssets};
+    use super::{NoteAssets, compute_asset_commitment};
     use crate::{
+        Digest,
         account::AccountId,
         asset::{Asset, FungibleAsset},
-        testing::account_id::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
-        Digest,
+        testing::account_id::ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET,
     };
 
     #[test]
     fn add_asset() {
-        let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let faucet_id = AccountId::try_from(ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET).unwrap();
 
         let asset1 = Asset::Fungible(FungibleAsset::new(faucet_id, 100).unwrap());
         let asset2 = Asset::Fungible(FungibleAsset::new(faucet_id, 50).unwrap());

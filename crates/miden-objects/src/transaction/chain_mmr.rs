@@ -1,11 +1,10 @@
-use alloc::{collections::BTreeMap, vec::Vec};
-
-use vm_core::utils::{Deserializable, Serializable};
+use alloc::collections::BTreeMap;
 
 use crate::{
+    ChainMmrError,
     block::{BlockHeader, BlockNumber},
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
-    ChainMmrError,
+    utils::serde::{Deserializable, Serializable},
 };
 
 // CHAIN MMR
@@ -43,21 +42,24 @@ impl ChainMmr {
     ///   partial MMR.
     /// - The same block appears more than once in the provided list of block headers.
     /// - The partial MMR does not track authentication paths for any of the specified blocks.
-    pub fn new(mmr: PartialMmr, blocks: Vec<BlockHeader>) -> Result<Self, ChainMmrError> {
+    pub fn new(
+        mmr: PartialMmr,
+        blocks: impl IntoIterator<Item = BlockHeader>,
+    ) -> Result<Self, ChainMmrError> {
         let chain_length = mmr.forest();
-
         let mut block_map = BTreeMap::new();
-        for block in blocks.into_iter() {
+        for block in blocks {
+            let block_num = block.block_num();
             if block.block_num().as_usize() >= chain_length {
-                return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
+                return Err(ChainMmrError::block_num_too_big(chain_length, block_num));
             }
 
-            if block_map.insert(block.block_num(), block).is_some() {
-                return Err(ChainMmrError::duplicate_block(block.block_num()));
+            if !mmr.is_tracked(block_num.as_usize()) {
+                return Err(ChainMmrError::untracked_block(block_num));
             }
 
-            if !mmr.is_tracked(block.block_num().as_usize()) {
-                return Err(ChainMmrError::untracked_block(block.block_num()));
+            if block_map.insert(block_num, block).is_some() {
+                return Err(ChainMmrError::duplicate_block(block_num));
             }
         }
 
@@ -66,6 +68,11 @@ impl ChainMmr {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the underlying [`PartialMmr`].
+    pub fn mmr(&self) -> &PartialMmr {
+        &self.mmr
+    }
 
     /// Returns peaks of this MMR.
     pub fn peaks(&self) -> MmrPeaks {
@@ -91,6 +98,11 @@ impl ChainMmr {
         self.blocks.get(&block_num)
     }
 
+    /// Returns an iterator over the block headers in this chain MMR.
+    pub fn block_headers(&self) -> impl Iterator<Item = &BlockHeader> {
+        self.blocks.values()
+    }
+
     // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -105,7 +117,7 @@ impl ChainMmr {
     /// provided block header is not the next block in the chain).
     pub fn add_block(&mut self, block_header: BlockHeader, track: bool) {
         assert_eq!(block_header.block_num(), self.chain_length());
-        self.mmr.add(block_header.hash(), track);
+        self.mmr.add(block_header.commitment(), track);
     }
 
     // ITERATORS
@@ -115,18 +127,36 @@ impl ChainMmr {
     /// MMR.
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
         self.mmr.inner_nodes(
-            self.blocks.values().map(|block| (block.block_num().as_usize(), block.hash())),
+            self.blocks
+                .values()
+                .map(|block| (block.block_num().as_usize(), block.commitment())),
         )
+    }
+
+    // TESTING
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a mutable reference to the map of block numbers to block headers in this chain MMR.
+    ///
+    /// Allows mutating the inner map for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn block_headers_mut(&mut self) -> &mut BTreeMap<BlockNumber, BlockHeader> {
+        &mut self.blocks
+    }
+
+    /// Returns a mutable reference to the partial MMR of this chain MMR.
+    ///
+    /// Allows mutating the inner partial MMR for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn partial_mmr_mut(&mut self) -> &mut PartialMmr {
+        &mut self.mmr
     }
 }
 
 impl Serializable for ChainMmr {
     fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
         self.mmr.write_into(target);
-        self.blocks.len().write_into(target);
-        for block in self.blocks.values() {
-            block.write_into(target);
-        }
+        self.blocks.write_into(target);
     }
 }
 
@@ -135,12 +165,7 @@ impl Deserializable for ChainMmr {
         source: &mut R,
     ) -> Result<Self, miden_crypto::utils::DeserializationError> {
         let mmr = PartialMmr::read_from(source)?;
-        let block_count = usize::read_from(source)?;
-        let mut blocks = BTreeMap::new();
-        for _ in 0..block_count {
-            let block = BlockHeader::read_from(source)?;
-            blocks.insert(block.block_num(), block);
-        }
+        let blocks = BTreeMap::<BlockNumber, BlockHeader>::read_from(source)?;
         Ok(Self { mmr, blocks })
     }
 }
@@ -153,10 +178,10 @@ mod tests {
 
     use super::ChainMmr;
     use crate::{
+        Digest,
         alloc::vec::Vec,
         block::{BlockHeader, BlockNumber},
         crypto::merkle::{Mmr, PartialMmr},
-        Digest,
     };
 
     #[test]
@@ -165,7 +190,7 @@ mod tests {
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = int_to_block_header(i);
-            mmr.add(block_header.hash());
+            mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
         let mut chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
@@ -173,7 +198,7 @@ mod tests {
         // add a new block to the chain MMR, this reduces the number of peaks to 1
         let block_num = 3;
         let bock_header = int_to_block_header(block_num);
-        mmr.add(bock_header.hash());
+        mmr.add(bock_header.commitment());
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
@@ -184,7 +209,7 @@ mod tests {
         // add one more block to the chain MMR, the number of peaks is again 2
         let block_num = 4;
         let bock_header = int_to_block_header(block_num);
-        mmr.add(bock_header.hash());
+        mmr.add(bock_header.commitment());
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
@@ -195,7 +220,7 @@ mod tests {
         // add one more block to the chain MMR, the number of peaks is still 2
         let block_num = 5;
         let bock_header = int_to_block_header(block_num);
-        mmr.add(bock_header.hash());
+        mmr.add(bock_header.commitment());
         chain_mmr.add_block(bock_header, true);
 
         assert_eq!(
@@ -210,7 +235,7 @@ mod tests {
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = int_to_block_header(i);
-            mmr.add(block_header.hash());
+            mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
         let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
