@@ -35,10 +35,10 @@ miden-objects = { workspace = true, default-features = false, optional = true }
 miden-tx = { workspace = true, default-features = false, optional = true }
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 thiserror = "2.0"
-tokio = { version = "1.38", default-features = false, features = ["sync"], optional = true }
+tokio = { version = "1.44", default-features = false, features = ["sync"], optional = true }
 
 [build-dependencies]
-miette = { version = "7.2", features = ["fancy"] }
+miette = { version = "7.5", features = ["fancy"] }
 prost = { version = "0.13", default-features = false, features = ["derive"] }
 prost-build = { version = "0.13" }
 protox = { version = "0.7" }
