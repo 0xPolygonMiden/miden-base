@@ -1,11 +1,18 @@
 # Changelog
 
-## 0.8.0 (TBD)
+## 0.8.0 (2025-03-21)
+
+### Features
+- Added an endpoint to the `miden-proving-service` to update the workers (#1107).
+- [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
+- Implemented `AccountInterface` structure (#1171).
+- Implement user-facing bech32 encoding for `AccountId`s (#1185).
+- Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
+- Enabled nested FPI calls (#1227).
 
 ### Changes
 
 - [BREAKING] Moved `generated` module from `miden-proving-service-client` crate to `tx_prover::generated` hierarchy (#1102).
-- Added an endpoint to the `miden-proving-service` to update the workers (#1107).
 - Renamed the protobuf file of the transaction prover to `tx_prover.proto` (#1110).
 - [BREAKING] Renamed `AccountData` to `AccountFile` (#1116).
 - Implement transaction batch prover in Rust (#1112).
@@ -14,24 +21,19 @@
 - Added block number as a public input to the transaction kernel. Updated prologue logic to validate the global input block number is consistent with the commitment block number (#1126).
 - Made NoteFile and AccountFile more consistent (#1133).
 - [BREAKING] Implement most block constraints in `ProposedBlock` (#1123, #1141).
-- [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
 - Added serialization for `ProposedBatch`, `BatchId`, `BatchNoteTree` and `ProvenBatch` (#1140).
 - Added `prefix` to `Nullifier` (#1153).
 - [BREAKING] Implemented a `RemoteBatchProver`. `miden-proving-service` workers can prove batches (#1142).
 - [BREAKING] Implement `LocalBlockProver` and rename `Block` to `ProvenBlock` (#1152, #1168, #1172).
 - [BREAKING] Added native types to `AccountComponentTemplate` (#1124).
-- Implemented `AccountInterface` structure (#1171).
 - Implemented `RemoteBlockProver`. `miden-proving-service` workers can prove blocks (#1169).
 - Used `Smt::with_entries` to error on duplicates in `StorageMap::with_entries` (#1167).
-- Implement user-facing bech32 encoding for `AccountId`s (#1185).
 - [BREAKING] Added `InitStorageData::from_toml()`, improved storage entry validations in `AccountComponentMetadata` (#1170).
 - [BREAKING] Rework miden-lib error codes into categories (#1196).
-- Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
 - [BREAKING] Moved the `TransactionScriptBuilder` from `miden-client` to `miden-base` (#1206).
 - [BREAKING] Enable timestamp customization on `MockChain::seal_block` (#1208).
 - [BREAKING] Renamed constants and comments: `OnChain` -> `Public` and `OffChain` -> `Private` (#1218).
 - [BREAKING] Replace "hash" with "commitment" in `BlockHeader::{prev_hash, chain_root, kernel_root, tx_hash, proof_hash, sub_hash, hash}` (#1209, #1221, #1226).
-- Enabled nested FPI calls (#1227).
 - [BREAKING] Incremented minimum supported Rust version to 1.85.
 - [BREAKING] Change advice for Falcon signature verification (#1183).
 - Added `info` log level by default in the proving service (#1200).
