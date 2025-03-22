@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::string::ToString;
 
 use super::{
     AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
@@ -261,11 +261,9 @@ impl AssetVault {
 
 impl Serializable for AssetVault {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO: determine total number of assets in the vault without allocating the vector
-        let assets = self.assets().collect::<Vec<_>>();
-
-        target.write_usize(assets.len());
-        target.write_many(&assets);
+        let num_assets = self.asset_tree.num_entries();
+        target.write_usize(num_assets);
+        target.write_many(self.assets());
     }
 
     fn get_size_hint(&self) -> usize {
