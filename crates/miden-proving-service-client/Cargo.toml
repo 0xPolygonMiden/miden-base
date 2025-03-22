@@ -23,7 +23,7 @@ block-prover = ["dep:tokio", "dep:miden-objects"]
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 tonic-web-wasm-client = { version = "0.6", default-features = false }
 tonic = { version = "0.12", default-features = false, features = ["prost", "codegen"] }
-getrandom = { version = "0.2", features = ["js"], optional = true }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
 tonic = { version = "0.12", default-features = false, features = ["prost", "codegen", "transport"] }

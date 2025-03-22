@@ -41,7 +41,7 @@ vm-processor = { workspace = true }
 winter-rand-utils = { version = "0.12", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [dev-dependencies]
 pprof = { version = "0.14.0", default-features = false, features = ["criterion", "flamegraph"] }
