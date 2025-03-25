@@ -32,13 +32,15 @@ Native `Asset`s adhere to the Miden `Asset` model (encoding, issuance, storage).
 
 Faucets can issue either fungible or non-fungible `Asset`s as defined at account creation. The faucet's code specifies the `Asset` minting conditions: i.e., how, when, and by whom these `Asset`s can be minted. Once minted, they can be transferred to other accounts using notes.
 
-![Architecture core concepts](img/asset/asset-issuance.png)
+<p style="text-align: center;">
+    <img src="img/asset/asset-issuance.png" style="width:70%;" alt="Asset issuance"/>
+</p>
 
 ### Type
 
 #### Fungible asset
 
-Fungible `Asset`s are encoded with the amount and the `faucet_id` of the issuing faucet. The amount is always 2^{63} - 1 or smaller, representing the maximum supply for any fungible `Asset`. Examples include ETH and various stablecoins (e.g., DAI, USDT, USDC).
+Fungible `Asset`s are encoded with the amount and the `faucet_id` of the issuing faucet. The amount is always $2^{63}-1$ or smaller, representing the maximum supply for any fungible `Asset`. Examples include ETH and various stablecoins (e.g., DAI, USDT, USDC).
 
 #### Non-fungible asset
 
@@ -48,7 +50,9 @@ Non-fungible `Asset`s are encoded by hashing the `Asset` data into 32 bytes and 
 
 [Accounts](account.md) and [notes](note.md) have vaults used to store `Asset`s. Accounts use a sparse Merkle tree as a vault while notes use a simple list. This enables an account to store a practically unlimited number of assets while a note can only store 255 assets.
 
-![Architecture core concepts](img/asset/asset-storage.png)
+<p style="text-align: center;">
+    <img src="img/asset/asset-storage.png" style="width:70%;" alt="Asset storage"/>
+</p>
 
 ### Burning
 
