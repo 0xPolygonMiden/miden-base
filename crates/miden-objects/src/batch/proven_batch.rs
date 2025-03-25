@@ -6,7 +6,7 @@ use crate::{
     batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
     note::Nullifier,
-    transaction::{InputNoteCommitment, InputNotes, OutputNote},
+    transaction::{InputNoteCommitment, InputNotes, OutputNote, VerifiedTransaction},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -20,6 +20,7 @@ pub struct ProvenBatch {
     input_notes: InputNotes<InputNoteCommitment>,
     output_notes: Vec<OutputNote>,
     batch_expiration_block_num: BlockNumber,
+    verified_txs: Vec<VerifiedTransaction>,
 }
 
 impl ProvenBatch {
@@ -36,6 +37,7 @@ impl ProvenBatch {
         input_notes: InputNotes<InputNoteCommitment>,
         output_notes: Vec<OutputNote>,
         batch_expiration_block_num: BlockNumber,
+        verified_txs: Vec<VerifiedTransaction>,
     ) -> Self {
         Self {
             id,
@@ -45,6 +47,7 @@ impl ProvenBatch {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            verified_txs,
         }
     }
 
@@ -106,6 +109,11 @@ impl ProvenBatch {
     pub fn output_notes(&self) -> &[OutputNote] {
         &self.output_notes
     }
+
+    /// Returns the [`VerifiedTransaction`]s this batch contains.
+    pub fn verified_transactions(&self) -> &[VerifiedTransaction] {
+        &self.verified_txs
+    }
 }
 
 // SERIALIZATION
@@ -120,6 +128,7 @@ impl Serializable for ProvenBatch {
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
         self.batch_expiration_block_num.write_into(target);
+        self.verified_txs.write_into(target);
     }
 }
 
@@ -132,6 +141,7 @@ impl Deserializable for ProvenBatch {
         let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
         let output_notes = Vec::<OutputNote>::read_from(source)?;
         let batch_expiration_block_num = BlockNumber::read_from(source)?;
+        let verified_txs = <Vec<VerifiedTransaction>>::read_from(source)?;
 
         Ok(Self::new_unchecked(
             id,
@@ -141,6 +151,7 @@ impl Deserializable for ProvenBatch {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            verified_txs,
         ))
     }
 }

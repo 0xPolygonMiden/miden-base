@@ -29,6 +29,7 @@ use miden_objects::{
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
         ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
+        VerifiedTransaction,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -463,7 +464,7 @@ impl MockChain {
     /// This method does not modify the chain state.
     pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
         let (
-            _transactions,
+            transactions,
             block_header,
             _chain_mmr,
             _unauthenticated_note_proofs,
@@ -474,6 +475,19 @@ impl MockChain {
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
 
+        let verified_txs = transactions
+            .iter()
+            .map(|proven_tx| {
+                VerifiedTransaction::new_unchecked(
+                    proven_tx.id(),
+                    proven_tx.account_update().clone(),
+                    proven_tx.input_notes().clone(),
+                    proven_tx.output_notes().clone(),
+                    proven_tx.ref_block_num(),
+                )
+            })
+            .collect();
+
         ProvenBatch::new_unchecked(
             id,
             block_header.commitment(),
@@ -482,6 +496,7 @@ impl MockChain {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            verified_txs,
         )
     }
 

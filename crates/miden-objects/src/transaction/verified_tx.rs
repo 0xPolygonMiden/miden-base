@@ -40,7 +40,7 @@ impl VerifiedTransaction {
     // --------------------------------------------------------------------------------------------
 
     /// Constructs a new [`VerifiedTransaction`] from the provided parameteres.
-    pub fn new(
+    pub fn new_unchecked(
         id: TransactionId,
         account_update: TxAccountUpdate,
         input_notes: InputNotes<InputNoteCommitment>,
@@ -124,6 +124,12 @@ impl Deserializable for VerifiedTransaction {
             output_notes.commitment(),
         );
 
-        Ok(Self::new(id, account_update, input_notes, output_notes, ref_block_num))
+        Ok(Self::new_unchecked(
+            id,
+            account_update,
+            input_notes,
+            output_notes,
+            ref_block_num,
+        ))
     }
 }

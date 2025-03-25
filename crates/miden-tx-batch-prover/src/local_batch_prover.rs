@@ -1,4 +1,9 @@
-use miden_objects::batch::{ProposedBatch, ProvenBatch};
+use std::vec::Vec;
+
+use miden_objects::{
+    batch::{ProposedBatch, ProvenBatch},
+    transaction::VerifiedTransaction,
+};
 use miden_tx::TransactionVerifier;
 
 use crate::errors::ProvenBatchError;
@@ -39,11 +44,20 @@ impl LocalBatchProver {
         ) = proposed_batch.into_parts();
 
         let verifier = TransactionVerifier::new(self.proof_security_level);
+        let mut verified_txs = Vec::with_capacity(transactions.len());
 
         for tx in transactions {
             verifier.verify(&tx).map_err(|source| {
                 ProvenBatchError::TransactionVerificationFailed { transaction_id: tx.id(), source }
             })?;
+
+            verified_txs.push(VerifiedTransaction::new_unchecked(
+                tx.id(),
+                tx.account_update().clone(),
+                tx.input_notes().clone(),
+                tx.output_notes().clone(),
+                tx.ref_block_num(),
+            ));
         }
 
         Ok(ProvenBatch::new_unchecked(
@@ -54,6 +68,7 @@ impl LocalBatchProver {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            verified_txs,
         ))
     }
 }
