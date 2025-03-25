@@ -34,9 +34,6 @@ pub struct ProvenTransaction {
     output_notes: OutputNotes,
 
     /// [`BlockNumber`] of the transaction's reference block.
-    ///
-    /// This is not needed for proving the transaction, but it is useful for the node to lookup the
-    /// block.
     ref_block_num: BlockNumber,
 
     /// The block commitment of the transaction's reference block.
