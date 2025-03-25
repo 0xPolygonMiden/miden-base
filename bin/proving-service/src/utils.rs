@@ -2,8 +2,8 @@ use std::net::TcpListener;
 
 use opentelemetry::{KeyValue, trace::TracerProvider as _};
 use opentelemetry_sdk::{
-    Resource, runtime,
-    trace::{RandomIdGenerator, Sampler, TracerProvider},
+    Resource,
+    trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
 };
 use opentelemetry_semantic_conventions::{
     SCHEMA_URL,
@@ -63,19 +63,21 @@ pub(crate) fn setup_tracing() -> Result<(), String> {
         .build()
         .map_err(|e| format!("Failed to create OTLP exporter: {:?}", e))?;
 
-    let resource = Resource::from_schema_url(
-        [
-            KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
-            KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
-        ],
-        SCHEMA_URL,
-    );
+    let resource = Resource::builder()
+        .with_schema_url(
+            [
+                KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
+                KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
+            ],
+            SCHEMA_URL,
+        )
+        .build();
 
-    let provider = TracerProvider::builder()
+    let provider = SdkTracerProvider::builder()
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(1.0))))
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(resource)
-        .with_batch_exporter(exporter, runtime::Tokio)
+        .with_batch_exporter(exporter)
         .build();
 
     let tracer = provider.tracer(MIDEN_PROVING_SERVICE);
