@@ -25,11 +25,12 @@ const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 /// This function sets up a tracing pipeline that includes:
 ///
 /// - An OpenTelemetry (OTLP) exporter, which sends span data to an OTLP endpoint using gRPC.
-/// - A [TracerProvider] configured with a [Sampler::ParentBased] sampler at a `1.0` sampling ratio,
-///   ensuring that all traces are recorded.
+/// - A [SdkTracerProvider] configured with a [Sampler::ParentBased] sampler at a `1.0` sampling
+///   ratio, ensuring that all traces are recorded.
 /// - A resource containing the service name and version extracted from the crate's metadata.
-/// - A `tracing` subscriber that integrates the configured [TracerProvider] with the Rust `tracing`
-///   ecosystem, applying filters from the environment and enabling formatted console logs.
+/// - A `tracing` subscriber that integrates the configured [SdkTracerProvider] with the Rust
+///   `tracing` ecosystem, applying filters from the environment and enabling formatted console
+///   logs.
 ///
 /// **Process:**
 /// 1. **OTLP Exporter**:   Creates an OTLP span exporter that sends trace data to a collector
@@ -38,7 +39,7 @@ const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 /// 2. **Resource Setup**:   Creates a [Resource] containing service metadata (name and version),
 ///    which is attached to all emitted telemetry data to identify the originating service.
 ///
-/// 3. **TracerProvider and Sampler**:   Builds a [TracerProvider] using a [Sampler::ParentBased]
+/// 3. **TracerProvider and Sampler**:   Builds a [SdkTracerProvider] using a [Sampler::ParentBased]
 ///    sampler layered over a [Sampler::TraceIdRatioBased] sampler set to `1.0`, ensuring all traces
 ///    are recorded. A random ID generator is used to produce trace and span IDs. The tracer is
 ///    retrieved from this provider, which can then be used by the OpenTelemetry layer of `tracing`.
