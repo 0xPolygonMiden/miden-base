@@ -43,6 +43,7 @@
 - Made Prometheus metrics optional in the proving service proxy via the `enable_metrics` configuration option (#1200).
 - Improved logging in the proving service proxy for better diagnostics (#1200).
 - Fixed issues with the proving service proxy's signal handling and port binding (#1200).
+- [BREAKING] Simplified worker update configuration by using a single URL parameter instead of separate host and port (#1249).
 
 ## 0.7.2 (2025-01-28) - `miden-objects` crate only
 

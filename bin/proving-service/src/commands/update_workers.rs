@@ -13,12 +13,11 @@ pub struct AddWorkers {
     /// The workers are passed as host:port strings.
     #[clap(value_name = "WORKERS")]
     workers: Vec<String>,
-    /// Host of the proxy.
-    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
-    proxy_host: String,
-    /// Port of the proxy endpoint to update workers.
-    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
-    proxy_update_workers_port: u64,
+    /// URL of the proxy endpoint to update workers.
+    ///
+    /// Example: http://0.0.0.0:8083
+    #[clap(long, default_value = "http://0.0.0.0:8083", env = "MPS_PROXY_UPDATE_URL")]
+    proxy_url: String,
 }
 
 // REMOVE WORKERS
@@ -31,12 +30,11 @@ pub struct RemoveWorkers {
     ///
     /// The workers are passed as host:port strings.
     workers: Vec<String>,
-    /// Host of the proxy.
-    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
-    proxy_host: String,
-    /// Port of the proxy endpoint to update workers.
-    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
-    proxy_update_workers_port: u64,
+    /// URL of the proxy endpoint to update workers.
+    ///
+    /// Example: http://0.0.0.0:8083
+    #[clap(long, default_value = "http://0.0.0.0:8083", env = "MPS_PROXY_UPDATE_URL")]
+    proxy_url: String,
 }
 
 // UPDATE WORKERS
@@ -54,8 +52,11 @@ pub enum Action {
 pub struct UpdateWorkers {
     pub action: Action,
     pub workers: Vec<String>,
-    pub proxy_host: String,
-    pub proxy_update_workers_port: u64,
+    /// URL of the proxy endpoint to update workers.
+    ///
+    /// Example: http://0.0.0.0:8083
+    #[clap(long, default_value = "http://0.0.0.0:8083", env = "MPS_PROXY_UPDATE_URL")]
+    pub proxy_url: String,
 }
 
 impl UpdateWorkers {
@@ -64,7 +65,7 @@ impl UpdateWorkers {
     /// It works by sending a GET request to the proxy with the query parameters. The query
     /// parameters are serialized from the struct fields.
     ///
-    /// It uses the host and port defined in the env vars or passed as parameter for the proxy.
+    /// It uses the URL defined in the env vars or passed as parameter for the proxy.
     ///
     /// The request will return the new number of workers in the X-Worker-Count header.
     ///
@@ -74,17 +75,12 @@ impl UpdateWorkers {
     /// - If the status code is not successful.
     /// - If the X-Worker-Count header is missing.
     pub async fn execute(&self) -> Result<(), String> {
-        // Define a runtime
-
         let query_params = serde_qs::to_string(&self).map_err(|err| err.to_string())?;
 
         println!("Action: {:?}, with workers: {:?}", self.action, self.workers);
 
         // Create the full URL
-        let url = format!(
-            "http://{}:{}?{}",
-            self.proxy_host, self.proxy_update_workers_port, query_params
-        );
+        let url = format!("{}?{}", self.proxy_url, query_params);
 
         // Create an HTTP/2 client
         let client = Client::builder()
@@ -122,8 +118,7 @@ impl From<RemoveWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Remove,
             workers: remove_workers.workers,
-            proxy_host: remove_workers.proxy_host,
-            proxy_update_workers_port: remove_workers.proxy_update_workers_port,
+            proxy_url: remove_workers.proxy_url,
         }
     }
 }
@@ -133,8 +128,7 @@ impl From<AddWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Add,
             workers: add_workers.workers,
-            proxy_host: add_workers.proxy_host,
-            proxy_update_workers_port: add_workers.proxy_update_workers_port,
+            proxy_url: add_workers.proxy_url,
         }
     }
 }

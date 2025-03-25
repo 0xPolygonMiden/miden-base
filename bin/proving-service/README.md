@@ -55,23 +55,22 @@ At the moment, when a worker added to the proxy stops working and can not connec
 To update the workers on a running proxy, two commands are provided: `add-worker` and `remove-worker`. These commands will update the workers on the proxy and will not require a restart. To use these commands, you will need to run:
 
 ```bash
-miden-proving-service add-worker --proxy-host <proxy-host> --proxy-update-workers-port <proxy-update-workers-port> [worker1] [worker2] ... [workerN]
-miden-proving-service remove-worker --proxy-host <proxy-host> --proxy-update-workers-port <proxy-update-workers-port> [worker1] [worker2] ... [workerN]
+miden-proving-service add-worker --proxy-url <proxy-url> [worker1] [worker2] ... [workerN]
+miden-proving-service remove-worker --proxy-url <proxy-url> [worker1] [worker2] ... [workerN]
 ```
 For example:
 
 ```bash
 # To add 0.0.0.0:8085 and 200.58.70.4:50051 to the workers list:
-miden-proving-service add-workers --proxy-host 0.0.0.0 --proxy-update-workers-port 8083 0.0.0.0:8085 200.58.70.4:50051
+miden-proving-service add-workers --proxy-url http://0.0.0.0:8083 0.0.0.0:8085 200.58.70.4:50051
 # To remove 158.12.12.3:8080 and 122.122.6.6:50051 from the workers list:
-miden-proving-service remove-workers --proxy-host 0.0.0.0 --proxy-update-workers-port 8083 158.12.12.3:8080 122.122.6.6:50051
+miden-proving-service remove-workers --proxy-url http://0.0.0.0:8083 158.12.12.3:8080 122.122.6.6:50051
 ```
 
-The `--proxy-host` and `--proxy-update-workers-port` flags are required to specify the proxy's host and the port where the proxy is listening for updates. The workers are passed as arguments in the format `host:port`. Both flags can be used from environment variables, `MPS_PROXY_HOST` and `MPS_PROXY_UPDATE_WORKERS_PORT` respectively. For example:
+The `--proxy-url` flag is required to specify the URL where the proxy is listening for updates. The workers are passed as arguments in the format `host:port`. The URL can be specified via the `MPS_PROXY_UPDATE_URL` environment variable. For example:
 
 ```bash
-export MPS_PROXY_HOST="0.0.0.0"
-export MPS_PROXY_UPDATE_WORKERS_PORT="8083"
+export MPS_PROXY_UPDATE_URL="http://0.0.0.0:8083"
 miden-proving-service add-workers 0.0.0.0:8085
 ```
 
