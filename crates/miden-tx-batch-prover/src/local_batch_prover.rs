@@ -1,4 +1,4 @@
-use std::vec::Vec;
+use alloc::vec::Vec;
 
 use miden_objects::{
     batch::{ProposedBatch, ProvenBatch},
