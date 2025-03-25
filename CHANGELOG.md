@@ -2,6 +2,7 @@
 
 ## 0.9.0 (TBD)
 
+- Include the verified transactions in batches and blocks (#1247).
 
 ## 0.8.0 (2025-03-21)
 
