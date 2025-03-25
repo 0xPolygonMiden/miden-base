@@ -110,9 +110,14 @@ impl ProvenBatch {
         &self.output_notes
     }
 
-    /// Returns the [`VerifiedTransaction`]s this batch contains.
+    /// Returns the [`VerifiedTransaction`]s of this batch.
     pub fn verified_transactions(&self) -> &[VerifiedTransaction] {
         &self.verified_txs
+    }
+
+    /// Consumes self and returns the contained [`VerifiedTransaction`]s of this batch.
+    pub fn into_verified_transactions(self) -> Vec<VerifiedTransaction> {
+        self.verified_txs
     }
 }
 

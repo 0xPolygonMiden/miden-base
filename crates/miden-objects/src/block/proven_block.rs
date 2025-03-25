@@ -5,7 +5,7 @@ use crate::{
     account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
-    transaction::{OutputNote, TransactionId},
+    transaction::{OutputNote, TransactionId, VerifiedTransaction},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -42,6 +42,9 @@ pub struct ProvenBlock {
 
     /// Nullifiers created by the transactions in this block through the consumption of notes.
     created_nullifiers: Vec<Nullifier>,
+
+    /// The aggregated verified transactions of all batches.
+    verified_txs: Vec<VerifiedTransaction>,
 }
 
 impl ProvenBlock {
@@ -56,12 +59,14 @@ impl ProvenBlock {
         updated_accounts: Vec<BlockAccountUpdate>,
         output_note_batches: Vec<OutputNoteBatch>,
         created_nullifiers: Vec<Nullifier>,
+        verified_txs: Vec<VerifiedTransaction>,
     ) -> Self {
         Self {
             header,
             updated_accounts,
             output_note_batches,
             created_nullifiers,
+            verified_txs,
         }
     }
 
@@ -133,6 +138,11 @@ impl ProvenBlock {
                 .map(|transaction_id| (*transaction_id, update.account_id()))
         })
     }
+
+    /// Returns the [`VerifiedTransaction`]s of this block.
+    pub fn verified_transactions(&self) -> &[VerifiedTransaction] {
+        &self.verified_txs
+    }
 }
 
 impl Serializable for ProvenBlock {
@@ -141,6 +151,7 @@ impl Serializable for ProvenBlock {
         self.updated_accounts.write_into(target);
         self.output_note_batches.write_into(target);
         self.created_nullifiers.write_into(target);
+        self.verified_txs.write_into(target);
     }
 }
 
@@ -151,6 +162,7 @@ impl Deserializable for ProvenBlock {
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
+            verified_txs: <Vec<VerifiedTransaction>>::read_from(source)?,
         };
 
         Ok(block)

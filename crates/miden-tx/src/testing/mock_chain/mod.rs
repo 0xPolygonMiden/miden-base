@@ -912,6 +912,9 @@ impl MockChain {
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
+                // TODO: For now we can't easily compute the verified transactions of this block.
+                // Let's do this as part of miden-base/#1244.
+                vec![],
             );
 
             for (batch_index, note_batch) in
