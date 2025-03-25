@@ -13,7 +13,8 @@ use crate::{
 
 /// A verified transaction.
 ///
-/// It is the result of verifying the ZK proof of a [`ProvenTransaction`](crate::transaction::ProvenTransaction).
+/// It is the result of verifying the ZK proof of a
+/// [`ProvenTransaction`](crate::transaction::ProvenTransaction).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedTransaction {
     /// A unique identifier for the transaction, see [`TransactionId`] for additional details.
