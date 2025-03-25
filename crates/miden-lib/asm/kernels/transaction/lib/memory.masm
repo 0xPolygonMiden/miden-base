@@ -201,6 +201,45 @@ const.OUTPUT_NOTE_ASSETS_HASH_OFFSET=12
 const.OUTPUT_NOTE_NUM_ASSETS_OFFSET=16
 const.OUTPUT_NOTE_ASSETS_OFFSET=20
 
+# USER-DEFINED ASSETS
+# -------------------------------------------------------------------------------------------------
+
+# Asset Section Layout
+# ID_SEED,
+# num_created_assets,
+# next_ptr,
+# 0,
+# 0,
+# <ASSET_DATA>
+
+# The memory address at which the user-defined asset
+const.ASSET_ID_SEED_PTR=33554432
+const.ASSET_NUM_CREATED=33554436
+const.ASSET_NEXT_PTR=33554437
+const.ASSET_MIN_PTR=33554440
+
+# Asset Memory Layout
+# [
+#   ASSET_ID,
+#   BOOKKEEPING = [
+#     package_id_prefix,
+#     package_id_suffix,
+#     type_id,
+#     num_fields
+#   ],
+#   field_0,
+#   field_1,
+#   ...,
+#   field_n
+# ]
+
+# The size of each asset's bookkeeping section, including the asset ID.
+const.ASSET_BOOKKEEPING_SIZE=8
+const.ASSET_ISSUER_PREFIX_OFFSET=4
+const.ASSET_ISSUER_SUFFIX_OFFSET=5
+const.ASSET_TYPE_ID_OFFSET=6
+const.ASSET_NUM_FIELDS_OFFSET=7
+
 # MEMORY PROCEDURES
 # =================================================================================================
 
@@ -1490,6 +1529,111 @@ end
 export.set_output_note_assets_hash
     push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add
     mem_storew
+end
+
+#! Computes and sets the asset id seed.
+#!
+#! Inputs:  []
+#! Outputs: []
+export.init_asset_id_seed
+  exec.get_block_commitment
+  # => [BLOCK_COMMITMENT]
+
+  exec.get_account_id
+  # => [curr_acct_id_prefix, curr_acct_id_suffix, BLOCK_COMMITMENT]
+
+  push.0 exec.get_acct_nonce
+  # => [nonce, 0, curr_acct_id_prefix, curr_acct_id_suffix, BLOCK_COMMITMENT]
+
+  # TODO: Not sure if this is correct
+  hmerge
+  # => [ASSET_ID_SEED]
+
+  push.ASSET_ID_SEED_PTR mem_storew dropw
+end
+
+export.init_next_asset_ptr
+  push.ASSET_MIN_PTR
+  push.ASSET_NEXT_PTR
+  mem_store
+end
+
+#! Computes a new Asset ID and increments the number of created assets by one.
+#!
+#! Inputs:  [num_fields]
+#! Outputs: [asset_ptr]
+export.generate_asset_id
+  push.ASSET_ID_SEED_PTR mem_loadw
+  # => [ASSET_ID_SEED]
+  push.ASSET_NUM_CREATED mem_load
+  # => [num_created, ASSET_ID_SEED]
+  dup add.1
+  # => [num_created+1, num_created, ASSET_ID_SEED]
+  push.ASSET_NUM_CREATED mem_store
+  # => [num_created, ASSET_ID_SEED]
+  push.0.0.0
+  # => [0, 0, 0, num_created, ASSET_ID_SEED]
+  hmerge
+  # => [ASSET_ID]
+end
+
+#! Computes the next free asset pointer for an asset with the given number of felts.
+#!
+#! Inputs:  [num_fields]
+#! Outputs: [asset_ptr]
+export.get_next_asset_ptr
+    push.ASSET_NEXT_PTR mem_load
+    # => [asset_ptr, num_fields]
+
+    dup swap.2 push.ASSET_BOOKKEEPING_SIZE
+    # => [ASSET_BOOKKEEPING_SIZE, asset_ptr, num_fields, asset_ptr]
+
+    add add
+    # => [next_asset_ptr, asset_ptr]
+
+    push.ASSET_NEXT_PTR mem_store
+    # => [asset_ptr]
+end
+
+#! Sets the asset ID of an asset.
+#!
+#! Inputs:  [asset_ptr, ASSET_ID]
+#! Outputs: []
+export.set_asset_id
+  mem_storew
+end
+
+#! Sets the issuer of an asset.
+#!
+#! Inputs:  [asset_ptr, account_id_prefix, account_id_suffix]
+#! Outputs: []
+export.set_asset_issuer
+  dup movdn.2
+  # => [asset_ptr, account_id_prefix, asset_ptr, account_id_suffix]
+
+  push.ASSET_ISSUER_PREFIX_OFFSET add mem_store
+  # => [asset_ptr, account_id_suffix]
+
+  push.ASSET_ISSUER_SUFFIX_OFFSET add mem_store
+  # => []
+end
+
+#! Sets the type of an asset.
+#!
+#! Inputs:  [asset_ptr, type_id]
+#! Outputs: []
+export.set_asset_type
+  push.ASSET_TYPE_ID_OFFSET add mem_store
+  # => []
+end
+
+#! Sets the number of fields of an asset.
+#!
+#! Inputs:  [asset_ptr, num_fields]
+#! Outputs: []
+export.set_asset_num_fields
+  push.ASSET_NUM_FIELDS_OFFSET add mem_store
+  # => []
 end
 
 # KERNEL DATA

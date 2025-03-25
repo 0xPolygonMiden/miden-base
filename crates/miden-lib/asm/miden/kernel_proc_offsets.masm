@@ -68,6 +68,11 @@ const.TX_END_FOREIGN_CONTEXT_OFFSET=33
 const.TX_GET_EXPIRATION_DELTA_OFFSET=34          # accessor
 const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 
+### ASSET ##########################################
+
+const.CREATE_ASSET_OFFSET=36
+
+
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
 
@@ -509,4 +514,8 @@ end
 #!   address where this procedure is stored.
 export.tx_get_expiration_delta_offset
     push.TX_GET_EXPIRATION_DELTA_OFFSET
+end
+
+export.create_asset_offset
+    push.CREATE_ASSET_OFFSET
 end

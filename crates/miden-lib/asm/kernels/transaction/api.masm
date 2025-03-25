@@ -1074,6 +1074,36 @@ export.tx_get_expiration_delta
     # => [block_height_delta, pad(15)]
 end
 
+### ASSETS ########################################
+
+#! Creates a new asset with the given number of fields and returns the pointer to it.
+#!
+#! Inputs:  [num_fields, type_id]
+#! Outputs: [asset_ptr]
+export.create_asset
+  dup movdn.2 exec.memory::get_next_asset_ptr
+  # => [asset_ptr, type_id, num_fields]
+
+  exec.memory::generate_asset_id
+  # => [ASSET_ID, asset_ptr, type_id, num_fields]
+
+  dup.4 exec.memory::set_asset_id
+  # => [asset_ptr, type_id, num_fields]
+
+  # Get the _current_ account's ID, which becomes the issuer of the asset.
+  exec.memory::get_account_id dup.2
+  # => [asset_ptr, account_id_prefix, account_id_suffix, asset_ptr, type_id, num_fields]
+
+  exec.memory::set_asset_issuer dup movdn.2
+  # => [asset_ptr, type_id, asset_ptr, num_fields]
+
+  exec.memory::set_asset_type dup movdn.2
+  # => [asset_ptr, num_fields, asset_ptr]
+
+  exec.memory::set_asset_num_fields
+  # => [asset_ptr]
+end
+
 #! Executes a kernel procedure specified by its offset.
 #!
 #! Inputs:  [procedure_offset, <procedure_inputs>, <pad>]

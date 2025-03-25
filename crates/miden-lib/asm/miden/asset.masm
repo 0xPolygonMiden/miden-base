@@ -113,3 +113,35 @@ end
 #!
 #! fungible_asset_max_amount is the maximum amount of a fungible asset.
 export.::miden::util::asset::get_fungible_asset_max_amount
+
+#! Creates a new asset with the given number of fields and returns the pointer to it.
+#!
+#! Inputs:  [num_fields, type_id]
+#! Outputs: [asset_ptr]
+export.create
+    exec.kernel_proc_offsets::create_asset_offset
+    # => [offset, num_fields, type_id]
+
+    # Padding Ops:
+    # => [offset, num_fields, type_id, 0]
+    # => [pad(4), pad(4), offset, num_fields, type_id, 0]
+    # => [pad(4), pad(4), pad(4), offset, num_fields, type_id, 0]
+    # => [pad(4), offset, num_fields, type_id, 0, pad(4), pad(4)]
+    # => [offset, num_fields, type_id, 0, pad(4), pad(4), pad(4)]
+
+    # pad the stack
+    push.0 movdn.4 padw padw padw swapdw swapw
+    # => [offset, num_fields, type_id, pad(13)]
+
+    syscall.exec_kernel_proc
+    # => [asset_ptr, pad(15)]
+
+    # clean the stack
+    swapdw dropw dropw
+    # => [asset_ptr, pad(7)]
+    swapw dropw
+    # => [asset_ptr, 0, 0, 0]
+    movdn.3 drop drop drop
+
+    # => [asset_ptr]
+end
