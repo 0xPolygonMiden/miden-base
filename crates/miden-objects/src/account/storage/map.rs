@@ -41,12 +41,12 @@ pub const EMPTY_STORAGE_MAP_ROOT: Digest = *EmptySubtreeRoots::entry(StorageMap:
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StorageMap {
     /// The SMT where each key is the hashed original key.
-    map: Smt,
+    smt: Smt,
     /// The entries of the map where the key is the original user-chosen one.
     ///
     /// It is an invariant of this type that the map's entries are always consistent with the SMT's
     /// entries and vice-versa.
-    entries: BTreeMap<RpoDigest, Word>,
+    map: BTreeMap<RpoDigest, Word>,
 }
 
 impl StorageMap {
@@ -66,10 +66,7 @@ impl StorageMap {
     ///
     /// All leaves in the returned tree are set to [Self::EMPTY_VALUE].
     pub fn new() -> Self {
-        StorageMap {
-            map: Smt::new(),
-            entries: BTreeMap::new(),
-        }
+        StorageMap { smt: Smt::new(), map: BTreeMap::new() }
     }
 
     /// Creates a new [`StorageMap`] from the provided key-value entries.
@@ -97,12 +94,12 @@ impl StorageMap {
     }
 
     /// Creates a new [`StorageMap`] from the given map. For internal use.
-    fn from_btree_map(entries: BTreeMap<RpoDigest, Word>) -> Self {
-        let hashed_keys_iter = entries.iter().map(|(key, value)| (Self::hash_key(*key), *value));
+    fn from_btree_map(map: BTreeMap<RpoDigest, Word>) -> Self {
+        let hashed_keys_iter = map.iter().map(|(key, value)| (Self::hash_key(*key), *value));
         let smt = Smt::with_entries(hashed_keys_iter)
             .expect("btree maps should not contain duplicate keys");
 
-        StorageMap { map: smt, entries }
+        StorageMap { smt, map }
     }
 
     // PUBLIC ACCESSORS
@@ -110,13 +107,13 @@ impl StorageMap {
 
     /// Returns the root of the underlying sparse merkle tree.
     pub fn root(&self) -> RpoDigest {
-        self.map.root()
+        self.smt.root()
     }
 
     /// Returns the value corresponding to the key or [`Self::EMPTY_VALUE`] if the key is not
     /// associated with a value.
     pub fn get(&self, key: &RpoDigest) -> Word {
-        self.entries.get(key).copied().unwrap_or_default()
+        self.map.get(key).copied().unwrap_or_default()
     }
 
     /// Returns an opening of the leaf associated with `key`.
@@ -124,7 +121,7 @@ impl StorageMap {
     /// Conceptually, an opening is a Merkle path to the leaf, as well as the leaf itself.
     pub fn open(&self, key: &RpoDigest) -> SmtProof {
         let key = Self::hash_key(*key);
-        self.map.open(&key)
+        self.smt.open(&key)
     }
 
     // ITERATORS
@@ -132,17 +129,17 @@ impl StorageMap {
 
     /// Returns an iterator over the leaves of the underlying [`Smt`].
     pub fn leaves(&self) -> impl Iterator<Item = (LeafIndex<SMT_DEPTH>, &SmtLeaf)> {
-        self.map.leaves() // Delegate to Smt's leaves method
+        self.smt.leaves() // Delegate to Smt's leaves method
     }
 
     /// Returns an iterator over the key value pairs of the map.
     pub fn entries(&self) -> impl Iterator<Item = (&RpoDigest, &Word)> {
-        self.entries.iter()
+        self.map.iter()
     }
 
     /// Returns an iterator over the inner nodes of the underlying [`Smt`].
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
-        self.map.inner_nodes() // Delegate to Smt's inner_nodes method
+        self.smt.inner_nodes() // Delegate to Smt's inner_nodes method
     }
 
     // DATA MUTATORS
@@ -154,13 +151,13 @@ impl StorageMap {
     /// If the provided `value` is [`Self::EMPTY_VALUE`] the entry will be removed.
     pub fn insert(&mut self, key: RpoDigest, value: Word) -> Word {
         if value == EMPTY_WORD {
-            self.entries.remove(&key);
+            self.map.remove(&key);
         } else {
-            self.entries.insert(key, value);
+            self.map.insert(key, value);
         }
 
         let key = Self::hash_key(key);
-        self.map.insert(key, value) // Delegate to Smt's insert method
+        self.smt.insert(key, value) // Delegate to Smt's insert method
     }
 
     /// Applies the provided delta to this account storage.
@@ -175,7 +172,7 @@ impl StorageMap {
 
     /// Consumes the map and returns the underlying map of entries.
     pub fn into_entries(self) -> BTreeMap<RpoDigest, Word> {
-        self.entries
+        self.map
     }
 
     /// Hashes the given key to get the key of the SMT.
@@ -198,18 +195,18 @@ impl Default for StorageMap {
 
 impl Serializable for StorageMap {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.entries.write_into(target);
+        self.map.write_into(target);
     }
 
     fn get_size_hint(&self) -> usize {
-        self.map.get_size_hint()
+        self.smt.get_size_hint()
     }
 }
 
 impl Deserializable for StorageMap {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let entries = BTreeMap::read_from(source)?;
-        Ok(Self::from_btree_map(entries))
+        let map = BTreeMap::read_from(source)?;
+        Ok(Self::from_btree_map(map))
     }
 }
 
