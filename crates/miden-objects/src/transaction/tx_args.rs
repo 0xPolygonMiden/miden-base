@@ -95,16 +95,19 @@ impl TransactionArgs {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Populates the advice inputs with the specified note details.
+    /// Populates the advice inputs with the expected recipient data for creating output notes.
     ///
     /// The advice inputs' map is extended with the following keys:
     ///
-    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num).
+    /// - recipient_digest |-> recipient details (inputs_hash, script_root, serial_num).
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
     ///   adding ONE to its most significant element.
     /// - script_root |-> script.
-    pub fn add_expected_output_note<T: AsRef<NoteRecipient>>(&mut self, recipient: T) {
-        let note_recipient = recipient.as_ref();
+    pub fn add_output_note_recipient_details<T: AsRef<NoteRecipient>>(
+        &mut self,
+        note_recipient: T,
+    ) {
+        let note_recipient = note_recipient.as_ref();
         let inputs = note_recipient.inputs();
         let script = note_recipient.script();
         let script_encoded: Vec<Felt> = script.into();
@@ -118,7 +121,7 @@ impl TransactionArgs {
         self.advice_inputs.extend_map(new_elements);
     }
 
-    /// Populates the advice inputs with the specified note details.
+    /// Populates the advice inputs with the specified note recipient details.
     ///
     /// The advice inputs' map is extended with the following keys:
     ///
@@ -126,13 +129,13 @@ impl TransactionArgs {
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
     ///   adding ONE to its most significant element.
     /// - script_root |-> script
-    pub fn extend_expected_output_notes<T, L>(&mut self, notes: L)
+    pub fn extend_output_note_recipient_details<T, L>(&mut self, notes: L)
     where
         L: IntoIterator<Item = T>,
         T: AsRef<NoteRecipient>,
     {
         for note in notes {
-            self.add_expected_output_note(note);
+            self.add_output_note_recipient_details(note);
         }
     }
 
