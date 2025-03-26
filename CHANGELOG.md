@@ -1,8 +1,12 @@
 # Changelog
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 ## 0.9.0 (TBD)
+=======
+## 0.8.1 (2025-03-26)
+>>>>>>> 24ef53f5 (reviews: Changelog for main)
 
 ### Changes
 
