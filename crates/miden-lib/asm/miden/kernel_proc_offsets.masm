@@ -71,7 +71,7 @@ const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 ### ASSET ##########################################
 
 const.CREATE_ASSET_OFFSET=36
-
+const.CONSUME_ONE_TIME_WITNESS_OFFSET=37
 
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
@@ -518,4 +518,8 @@ end
 
 export.create_asset_offset
     push.CREATE_ASSET_OFFSET
+end
+
+export.consume_one_time_witness_offset
+    push.CONSUME_ONE_TIME_WITNESS_OFFSET
 end

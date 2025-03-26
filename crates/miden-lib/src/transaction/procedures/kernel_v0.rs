@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 37] = [
+pub const KERNEL0_PROCEDURES: [Digest; 38] = [
     // account_get_initial_commitment
     digest!("0x920898348bacd6d98a399301eb308478fd32b32eab019a5a6ef7a6b44abb61f6"),
     // account_get_current_commitment
@@ -81,4 +81,6 @@ pub const KERNEL0_PROCEDURES: [Digest; 37] = [
     digest!("0x11ca0c8662d20e6b05fbff4a20423bfa52595862b6c7c5c5ef1cc0a917e4cb62"),
     // create_asset
     digest!("0x487b64bef66fd70e81cdea89ea929ade797ed5c768d19dc05a233280f14c4bdc"),
+    // consume_one_time_witness
+    digest!("0x77e9ce113de111792ec857ef3fadefdde2e3cbad6950a2d72faf3dfd9150005d"),
 ];

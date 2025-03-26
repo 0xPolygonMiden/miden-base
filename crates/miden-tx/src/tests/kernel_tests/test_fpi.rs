@@ -504,7 +504,7 @@ fn test_fpi_memory_two_accounts() {
 #[test]
 fn test_fpi_asset_memory() {
     const TOKEN_ASSET_TYPE: u32 = 5;
-    const TOKEN_NUM_FIELDS: u32 = 1;
+    const TOKEN_NUM_FIELDS: u32 = 3;
 
     let stdlib_account_code = format!(
         "
@@ -514,16 +514,24 @@ fn test_fpi_asset_memory() {
         const.TOKEN_ASSET_TYPE={TOKEN_ASSET_TYPE}
         const.TOKEN_NUM_FIELDS={TOKEN_NUM_FIELDS}
 
+        #! Inputs:  [one_time_witness_id]
+        #! Outputs: [asset_ptr]
         export.create_token
-            # make this foreign procedure unique
-            push.1 drop
-
             push.TOKEN_ASSET_TYPE.TOKEN_NUM_FIELDS
             exec.asset::create
+
+            # mark OTW as used
+            dup exec.asset::consume_one_time_witness
+            # => [one_time_witness_id]
+
+            # TODO: Set [native account ID | otw_id] as field on the token
+            # OTW ID can be retrieved by subtracting the otw ptr constant in memory.masm
 
             # truncate the stack
             swap drop
         end
+
+        # TODO: merge token procedure
     "
     );
 
@@ -540,16 +548,8 @@ fn test_fpi_asset_memory() {
         .build_existing()
         .unwrap();
 
-    let native_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
-        .with_component(
-            AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
-                .unwrap(),
-        )
-        .build_existing()
-        .unwrap();
-
-    let mut mock_chain =
-        MockChain::with_accounts(&[native_account.clone(), stdlib_account.clone()]);
+    let mut mock_chain = MockChain::with_accounts(&[stdlib_account.clone()]);
+    let native_account = mock_chain.add_new_wallet(crate::testing::Auth::BasicAuth);
     mock_chain.seal_next_block();
     let advice_inputs = get_mock_fpi_adv_inputs(vec![&stdlib_account], &mock_chain);
 
@@ -562,19 +562,26 @@ fn test_fpi_asset_memory() {
     // GET ITEM TWICE WITH TWO ACCOUNTS
     // --------------------------------------------------------------------------------------------
 
+    const BOB_TOKEN_OTW: u32 = 8;
+
     let code = format!(
         "
         use.std::sys
 
         use.kernel::prologue
         use.miden::tx
+        use.miden::asset
 
         begin
             exec.prologue::prepare_transaction
 
             # pad the stack for the `execute_foreign_procedure` execution
-            padw padw padw push.0.0.0
-            # => [pad(15)]
+            padw padw padw push.0.0
+            # => [pad(14)]
+
+            # Push OTW
+            push.{BOB_TOKEN_OTW}
+            # => [otw_id, pad(14)]
 
             # get the hash of the `create_token` procedure of the stdlib account
             push.{create_token}
@@ -588,7 +595,6 @@ fn test_fpi_asset_memory() {
 
             # truncate the stack
             movdn.15 dropw dropw dropw drop drop drop
-            # exec.sys::truncate_stack
         end
         ",
         create_token = stdlib_account.code().procedures()[0].mast_root(),
@@ -614,7 +620,7 @@ fn test_fpi_asset_memory() {
         ProcessState::from(process)
             .get_mem_value(ContextId::root(), ASSET_NEXT_PTR)
             .unwrap(),
-        Felt::from(asset_ptr + ASSET_BOOKKEEPING_SIZE + 1)
+        Felt::from(asset_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_NUM_FIELDS)
     );
 }
 

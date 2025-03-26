@@ -2,6 +2,7 @@ use.std::sys
 
 use.kernel::account
 use.kernel::asset_vault
+use.kernel::asset
 use.kernel::constants
 use.kernel::faucet
 use.kernel::memory
@@ -1102,6 +1103,31 @@ export.create_asset
 
   exec.memory::set_asset_num_fields
   # => [asset_ptr]
+end
+
+#! Creates a new one time witness in the context of the native account if it has not been created before.
+#!
+#! Inputs:  [one_time_witness_id]
+#! Outputs: []
+export.consume_one_time_witness
+  # exec.memory::assert_native_account
+  # => []
+
+  # TODO: Assert 0 <= one_time_witness_id < 32
+
+  # Assert that the native account is new.
+  exec.memory::get_init_nonce assertz.err=123
+  # => []
+
+  # Make sure the OTW hasn't been instantiated before by checking its state is 0.
+  exec.memory::compute_otw_ptr dup mem_load
+  # => [otw_state, otw_ptr]
+  assertz.err=456
+  # => [otw_ptr]
+
+  # Mark OTW as consumed.
+  dup push.1 mem_store
+  # => [otw_ptr]
 end
 
 #! Executes a kernel procedure specified by its offset.

@@ -207,16 +207,18 @@ const.OUTPUT_NOTE_ASSETS_OFFSET=20
 # Asset Section Layout
 # ID_SEED,
 # num_created_assets,
-# next_ptr,
+# next_asset_ptr,
 # 0,
 # 0,
-# <ASSET_DATA>
+# 0..32 -> one time witnesses
+# 32.. -> <asset_data>
 
 # The memory address at which the user-defined asset
 const.ASSET_ID_SEED_PTR=33554432
 const.ASSET_NUM_CREATED=33554436
 const.ASSET_NEXT_PTR=33554437
-const.ASSET_MIN_PTR=33554440
+const.ASSET_OTW=33554440
+const.ASSET_MIN_PTR=33554472
 
 # Asset Memory Layout
 # [
@@ -1587,6 +1589,8 @@ end
 #! Inputs:  [num_fields]
 #! Outputs: [asset_ptr]
 export.get_next_asset_ptr
+    # TODO: Assert ptr is in valid range.
+
     push.ASSET_NEXT_PTR mem_load
     # => [asset_ptr, num_fields]
 
@@ -1601,6 +1605,14 @@ export.get_next_asset_ptr
 
     push.ASSET_NEXT_PTR mem_store
     # => [asset_ptr]
+end
+
+#! Computes the one time witness pointer for the given otw ID which is assumed to be within the valid range.
+#!
+#! Inputs:  [one_time_witness_id]
+#! Outputs: [one_time_witness_ptr]
+export.compute_otw_ptr
+  push.ASSET_OTW add
 end
 
 #! Sets the asset ID of an asset.

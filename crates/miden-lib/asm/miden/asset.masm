@@ -146,3 +146,23 @@ export.create
 
     # => [asset_ptr]
 end
+
+#! Creates a new one time witness in the context of the native account if it has not been created before.
+#!
+#! Inputs:  [one_time_witness_id]
+#! Outputs: []
+export.consume_one_time_witness
+  exec.kernel_proc_offsets::consume_one_time_witness_offset
+  # => [offset, one_time_witness_id]
+
+  # pad the stack
+  push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  # => [offset, one_time_witness_id, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [pad(16)]
+
+  # clean the stack
+  dropw dropw dropw dropw
+  # => []
+end
