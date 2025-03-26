@@ -10,7 +10,8 @@ use miden_lib::{
         memory::{
             ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
             ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
-            ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, NATIVE_ACCOUNT_DATA_PTR,
+            ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, ASSET_BOOKKEEPING_SIZE,
+            ASSET_ISSUER_PREFIX_OFFSET, ASSET_NEXT_PTR, NATIVE_ACCOUNT_DATA_PTR,
             NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
         },
     },
@@ -27,7 +28,7 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::AdviceInputs;
+use vm_processor::{AdviceInputs, ContextId, Felt, ProcessState};
 
 use super::{Process, Word, ZERO};
 use crate::{
@@ -502,34 +503,40 @@ fn test_fpi_memory_two_accounts() {
 
 #[test]
 fn test_fpi_asset_memory() {
-    // Prepare the test data
-    let storage_slots_1 = vec![AccountStorage::mock_item_0().slot];
-    let storage_slots_2 = vec![AccountStorage::mock_item_1().slot];
+    const TOKEN_ASSET_TYPE: u32 = 5;
+    const TOKEN_NUM_FIELDS: u32 = 1;
 
-    let foreign_account_code_source_1 = "
+    let stdlib_account_code = format!(
+        "
         use.miden::account
+        use.miden::asset
 
-        export.get_item_foreign_1
-            # make this foreign procedure unique to make sure that we invoke the procedure of the 
-            # foreign account, not the native one
+        const.TOKEN_ASSET_TYPE={TOKEN_ASSET_TYPE}
+        const.TOKEN_NUM_FIELDS={TOKEN_NUM_FIELDS}
+
+        export.create_token
+            # make this foreign procedure unique
             push.1 drop
-            exec.account::get_item
+
+            push.TOKEN_ASSET_TYPE.TOKEN_NUM_FIELDS
+            exec.asset::create
 
             # truncate the stack
-            movup.6 movup.6 movup.6 drop drop drop
+            swap drop
         end
-    ";
+    "
+    );
 
-    let foreign_account_component_1 = AccountComponent::compile(
-        foreign_account_code_source_1,
+    let stdlib_account_component = AccountComponent::compile(
+        stdlib_account_code,
         TransactionKernel::testing_assembler(),
-        storage_slots_1.clone(),
+        vec![],
     )
     .unwrap()
     .with_supports_all_types();
 
-    let foreign_account_1 = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
-        .with_component(foreign_account_component_1)
+    let stdlib_account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
+        .with_component(stdlib_account_component)
         .build_existing()
         .unwrap();
 
@@ -542,21 +549,18 @@ fn test_fpi_asset_memory() {
         .unwrap();
 
     let mut mock_chain =
-        MockChain::with_accounts(&[native_account.clone(), foreign_account_1.clone()]);
+        MockChain::with_accounts(&[native_account.clone(), stdlib_account.clone()]);
     mock_chain.seal_next_block();
-    let advice_inputs = get_mock_fpi_adv_inputs(vec![&foreign_account_1], &mock_chain);
+    let advice_inputs = get_mock_fpi_adv_inputs(vec![&stdlib_account], &mock_chain);
 
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
-        .foreign_account_codes(vec![foreign_account_1.code().clone()])
+        .foreign_account_codes(vec![stdlib_account.code().clone()])
         .advice_inputs(advice_inputs.clone())
         .build();
 
     // GET ITEM TWICE WITH TWO ACCOUNTS
     // --------------------------------------------------------------------------------------------
-    // Check the correctness of the memory layout after two invocations of the `get_item` account
-    // procedures separated by the call of this procedure against another foreign account. Invoking
-    // two foreign procedures from the same account should result in reuse of the loaded account.
 
     let code = format!(
         "
@@ -568,63 +572,49 @@ fn test_fpi_asset_memory() {
         begin
             exec.prologue::prepare_transaction
 
-            ### Get the storage item at index 0 from the first account 
             # pad the stack for the `execute_foreign_procedure` execution
-            padw padw padw push.0.0
-            # => [pad(14)]
+            padw padw padw push.0.0.0
+            # => [pad(15)]
 
-            # push the index of desired storage item
-            push.0
+            # get the hash of the `create_token` procedure of the stdlib account
+            push.{create_token}
 
-            # get the hash of the `get_item_foreign_1` procedure of the foreign account 1
-            push.{get_item_foreign_1_hash}
+            # push the stdlib account ID
+            push.{stdlib_suffix}.{stdlib_prefix}
+            # => [stdlib_id_prefix, stdlib_id_suffix, FOREIGN_PROC_ROOT, pad(15)]
 
-            # push the foreign account ID
-            push.{foreign_1_suffix}.{foreign_1_prefix}
-            # => [foreign_account_1_id_prefix, foreign_account_1_id_suffix, FOREIGN_PROC_ROOT, storage_item_index, pad(14)]
-
-            exec.tx::execute_foreign_procedure dropw
+            exec.tx::execute_foreign_procedure
             # => []
 
             # truncate the stack
-            exec.sys::truncate_stack
+            movdn.15 dropw dropw dropw drop drop drop
+            # exec.sys::truncate_stack
         end
         ",
-        get_item_foreign_1_hash = foreign_account_1.code().procedures()[0].mast_root(),
-
-        foreign_1_prefix = foreign_account_1.id().prefix().as_felt(),
-        foreign_1_suffix = foreign_account_1.id().suffix(),
+        create_token = stdlib_account.code().procedures()[0].mast_root(),
+        stdlib_prefix = stdlib_account.id().prefix().as_felt(),
+        stdlib_suffix = stdlib_account.id().suffix(),
     );
 
     let process = &tx_context.execute_code(&code).unwrap();
 
-    // Check the correctness of the memory layout after multiple foreign procedure invocations from
-    // different foreign accounts
-    //
-    // Native account:    [8192; 16383]  <- initialized during prologue
-    // Foreign account 1: [16384; 24575] <- initialized during first FPI
-    // Foreign account 2: [24576; 32767] <- initialized during second FPI
-    // Next account slot: [32768; 40959] <- should not be initialized
+    let asset_ptr = u32::try_from(process.stack.get(0)).unwrap();
 
-    // check that the first word of the first foreign account slot is correct
     assert_eq!(
-        read_root_mem_word(&process.into(), NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32),
+        read_root_mem_word(&process.into(), asset_ptr + ASSET_ISSUER_PREFIX_OFFSET),
         [
-            foreign_account_1.id().suffix(),
-            foreign_account_1.id().prefix().as_felt(),
-            ZERO,
-            foreign_account_1.nonce()
+            stdlib_account.id().prefix().as_felt(),
+            stdlib_account.id().suffix(),
+            Felt::from(TOKEN_ASSET_TYPE),
+            Felt::from(TOKEN_NUM_FIELDS),
         ]
     );
 
-    // check that the first word of the third foreign account slot was not initialized
     assert_eq!(
-        try_read_root_mem_word(
-            &process.into(),
-            NATIVE_ACCOUNT_DATA_PTR + ACCOUNT_DATA_LENGTH as u32 * 3
-        ),
-        None,
-        "Memory starting from 32768 should stay uninitialized"
+        ProcessState::from(process)
+            .get_mem_value(ContextId::root(), ASSET_NEXT_PTR)
+            .unwrap(),
+        Felt::from(asset_ptr + ASSET_BOOKKEEPING_SIZE + 1)
     );
 }
 

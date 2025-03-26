@@ -1560,19 +1560,24 @@ end
 
 #! Computes a new Asset ID and increments the number of created assets by one.
 #!
-#! Inputs:  [num_fields]
-#! Outputs: [asset_ptr]
+#! Inputs:  []
+#! Outputs: []
 export.generate_asset_id
-  push.ASSET_ID_SEED_PTR mem_loadw
+  padw push.ASSET_ID_SEED_PTR mem_loadw
   # => [ASSET_ID_SEED]
+
   push.ASSET_NUM_CREATED mem_load
   # => [num_created, ASSET_ID_SEED]
+
   dup add.1
   # => [num_created+1, num_created, ASSET_ID_SEED]
+
   push.ASSET_NUM_CREATED mem_store
   # => [num_created, ASSET_ID_SEED]
+
   push.0.0.0
   # => [0, 0, 0, num_created, ASSET_ID_SEED]
+
   hmerge
   # => [ASSET_ID]
 end
@@ -1585,8 +1590,11 @@ export.get_next_asset_ptr
     push.ASSET_NEXT_PTR mem_load
     # => [asset_ptr, num_fields]
 
-    dup swap.2 push.ASSET_BOOKKEEPING_SIZE
-    # => [ASSET_BOOKKEEPING_SIZE, asset_ptr, num_fields, asset_ptr]
+    dup swap.2
+    # => [num_fields, asset_ptr, asset_ptr]
+
+    push.ASSET_BOOKKEEPING_SIZE
+    # => [ASSET_BOOKKEEPING_SIZE, num_fields, asset_ptr, asset_ptr]
 
     add add
     # => [next_asset_ptr, asset_ptr]
@@ -1600,7 +1608,7 @@ end
 #! Inputs:  [asset_ptr, ASSET_ID]
 #! Outputs: []
 export.set_asset_id
-  mem_storew
+  mem_storew dropw
 end
 
 #! Sets the issuer of an asset.

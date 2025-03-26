@@ -80,5 +80,5 @@ pub const KERNEL0_PROCEDURES: [Digest; 37] = [
     // tx_update_expiration_block_num
     digest!("0x11ca0c8662d20e6b05fbff4a20423bfa52595862b6c7c5c5ef1cc0a917e4cb62"),
     // create_asset
-    digest!("0x4555a109e8aa869d42e870182e19898a6998acc1bb71b6173b0c52c34f6c3297"),
+    digest!("0x487b64bef66fd70e81cdea89ea929ade797ed5c768d19dc05a233280f14c4bdc"),
 ];
