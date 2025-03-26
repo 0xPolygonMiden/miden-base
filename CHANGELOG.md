@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.1 (2025-03-26)
+## 0.8.1 (2025-03-26) - `miden-objects` and `miden-tx` crates only.
 
 ### Changes
 
