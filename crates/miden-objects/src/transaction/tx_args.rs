@@ -100,13 +100,9 @@ impl TransactionArgs {
     /// The advice inputs' map is extended with the following keys:
     ///
     /// - recipient_digest |-> recipient details (inputs_hash, script_root, serial_num).
-    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
-    ///   adding ONE to its most significant element.
+    /// - inputs_commitment |-> inputs.
     /// - script_root |-> script.
-    pub fn add_output_note_recipient_details<T: AsRef<NoteRecipient>>(
-        &mut self,
-        note_recipient: T,
-    ) {
+    pub fn add_output_note_recipient<T: AsRef<NoteRecipient>>(&mut self, note_recipient: T) {
         let note_recipient = note_recipient.as_ref();
         let inputs = note_recipient.inputs();
         let script = note_recipient.script();
@@ -125,17 +121,16 @@ impl TransactionArgs {
     ///
     /// The advice inputs' map is extended with the following keys:
     ///
-    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num)
-    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
-    ///   adding ONE to its most significant element.
-    /// - script_root |-> script
-    pub fn extend_output_note_recipient_details<T, L>(&mut self, notes: L)
+    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num).
+    /// - inputs_key |-> inputs.
+    /// - script_root |-> script.
+    pub fn extend_output_note_recipients<T, L>(&mut self, notes: L)
     where
         L: IntoIterator<Item = T>,
         T: AsRef<NoteRecipient>,
     {
         for note in notes {
-            self.add_output_note_recipient_details(note);
+            self.add_output_note_recipient(note);
         }
     }
 
