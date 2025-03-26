@@ -122,7 +122,7 @@ impl TransactionArgs {
     /// The advice inputs' map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_root, serial_num).
-    /// - inputs_key |-> inputs.
+    /// - inputs_commitment |-> inputs.
     /// - script_root |-> script.
     pub fn extend_output_note_recipients<T, L>(&mut self, notes: L)
     where
