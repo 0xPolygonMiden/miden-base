@@ -1,4 +1,3 @@
-use core::ops::Deref;
 
 use miden_crypto::{
     Word,
@@ -161,14 +160,12 @@ impl Note {
     }
 }
 
-// DEREFERENCING
+// AS REF
 // ================================================================================================
 
-impl Deref for Note {
-    type Target = NoteDetails;
-
-    fn deref(&self) -> &Self::Target {
-        &self.details
+impl AsRef<NoteRecipient> for Note {
+    fn as_ref(&self) -> &NoteRecipient {
+        self.recipient()
     }
 }
 
