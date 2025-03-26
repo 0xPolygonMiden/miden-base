@@ -2,6 +2,8 @@ use clap::Parser;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+use crate::commands::PROXY_HOST;
+
 // ADD WORKERS
 // ================================================================================================
 
@@ -13,11 +15,9 @@ pub struct AddWorkers {
     /// The workers are passed as host:port strings.
     #[clap(value_name = "WORKERS")]
     workers: Vec<String>,
-    /// URL of the proxy endpoint to update workers.
-    ///
-    /// Example: http://0.0.0.0:8083
-    #[clap(long, default_value = "http://0.0.0.0:8083", env = "MPS_PROXY_UPDATE_URL")]
-    proxy_url: String,
+    /// Port of the proxy endpoint to update workers.
+    #[clap(long, default_value = "8083", env = "MPS_CONTROL_PORT")]
+    control_port: u16,
 }
 
 // REMOVE WORKERS
@@ -30,11 +30,9 @@ pub struct RemoveWorkers {
     ///
     /// The workers are passed as host:port strings.
     workers: Vec<String>,
-    /// URL of the proxy endpoint to update workers.
-    ///
-    /// Example: http://0.0.0.0:8083
-    #[clap(long, default_value = "http://0.0.0.0:8083", env = "MPS_PROXY_UPDATE_URL")]
-    proxy_url: String,
+    /// Port of the proxy endpoint to update workers.
+    #[clap(long, default_value = "8083", env = "MPS_CONTROL_PORT")]
+    control_port: u16,
 }
 
 // UPDATE WORKERS
@@ -52,11 +50,7 @@ pub enum Action {
 pub struct UpdateWorkers {
     pub action: Action,
     pub workers: Vec<String>,
-    /// URL of the proxy endpoint to update workers.
-    ///
-    /// Example: http://0.0.0.0:8083
-    #[clap(long, default_value = "http://0.0.0.0:8083", env = "MPS_PROXY_UPDATE_URL")]
-    pub proxy_url: String,
+    pub control_port: u16,
 }
 
 impl UpdateWorkers {
@@ -79,8 +73,8 @@ impl UpdateWorkers {
 
         println!("Action: {:?}, with workers: {:?}", self.action, self.workers);
 
-        // Create the full URL
-        let url = format!("{}?{}", self.proxy_url, query_params);
+        // Create the full URL with fixed host "0.0.0.0"
+        let url = format!("http://{}:{}?{}", PROXY_HOST, self.control_port, query_params);
 
         // Create an HTTP/2 client
         let client = Client::builder()
@@ -118,7 +112,7 @@ impl From<RemoveWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Remove,
             workers: remove_workers.workers,
-            proxy_url: remove_workers.proxy_url,
+            control_port: remove_workers.control_port,
         }
     }
 }
@@ -128,7 +122,7 @@ impl From<AddWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Add,
             workers: add_workers.workers,
-            proxy_url: add_workers.proxy_url,
+            control_port: add_workers.control_port,
         }
     }
 }

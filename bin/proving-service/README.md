@@ -55,22 +55,22 @@ At the moment, when a worker added to the proxy stops working and can not connec
 To update the workers on a running proxy, two commands are provided: `add-worker` and `remove-worker`. These commands will update the workers on the proxy and will not require a restart. To use these commands, you will need to run:
 
 ```bash
-miden-proving-service add-worker --proxy-url <proxy-url> [worker1] [worker2] ... [workerN]
-miden-proving-service remove-worker --proxy-url <proxy-url> [worker1] [worker2] ... [workerN]
+miden-proving-service add-worker --control-port <port> [worker1] [worker2] ... [workerN]
+miden-proving-service remove-worker --control-port <port> [worker1] [worker2] ... [workerN]
 ```
 For example:
 
 ```bash
 # To add 0.0.0.0:8085 and 200.58.70.4:50051 to the workers list:
-miden-proving-service add-workers --proxy-url http://0.0.0.0:8083 0.0.0.0:8085 200.58.70.4:50051
+miden-proving-service add-workers --control-port 8083 0.0.0.0:8085 200.58.70.4:50051
 # To remove 158.12.12.3:8080 and 122.122.6.6:50051 from the workers list:
-miden-proving-service remove-workers --proxy-url http://0.0.0.0:8083 158.12.12.3:8080 122.122.6.6:50051
+miden-proving-service remove-workers --control-port 8083 158.12.12.3:8080 122.122.6.6:50051
 ```
 
-The `--proxy-url` flag is required to specify the URL where the proxy is listening for updates. The workers are passed as arguments in the format `host:port`. The URL can be specified via the `MPS_PROXY_UPDATE_URL` environment variable. For example:
+The `--control-port` flag is required to specify the port where the proxy is listening for updates. The workers are passed as arguments in the format `host:port`. The port can be specified via the `MPS_CONTROL_PORT` environment variable. For example:
 
 ```bash
-export MPS_PROXY_UPDATE_URL="http://0.0.0.0:8083"
+export MPS_CONTROL_PORT="8083"
 miden-proving-service add-workers 0.0.0.0:8085
 ```
 
@@ -114,10 +114,11 @@ To enable Prometheus metrics, set the `enable_metrics` field to `true`. This can
 
 #### Using Environment Variables
 
-Set the following environment variable:
+Set the following environment variables:
 
 ```bash
 export MPS_ENABLE_METRICS=true
+export MPS_PROMETHEUS_PORT=6192  # Optional, defaults to 6192
 ```
 
 #### Using Command-Line Arguments
@@ -128,7 +129,13 @@ Pass the `--enable-metrics` flag when starting the proxy:
 miden-proving-service start-proxy --enable-metrics [worker1] [worker2] ... [workerN]
 ```
 
-When enabled, the Prometheus metrics will be available at the host and port specified by the `prometheus_host` and `prometheus_port` fields in the configuration. By default, these are set to `0.0.0.0` and `9090`, respectively.
+You can also specify a custom Prometheus port using the `--prometheus-port` flag:
+
+```bash
+miden-proving-service start-proxy --enable-metrics --prometheus-port 6192 [worker1] [worker2] ... [workerN]
+```
+
+When enabled, the Prometheus metrics will be available at `http://0.0.0.0:<prometheus_port>`. By default, this is set to port `6192`.
 
 If metrics are not enabled, the proxy will log that Prometheus metrics are not enabled.
 
@@ -148,7 +155,7 @@ docker run -d -p 3000:3000 --name grafana grafana/grafana-enterprise:latest
 
 In case that Docker is not an option, Prometheus and Grafana can also be set up directly on your machine or hosted in the cloud. See the [Prometheus documentation](https://prometheus.io/docs/prometheus/latest/getting_started/) and [Grafana documentation](https://grafana.com/docs/grafana/latest/setup-grafana/) for alternative installation methods.
 
-A prometheus configuration file is provided in this repository, you will need to modify the `scrape_configs` section to include the host and port of the proxy service.
+A prometheus configuration file is provided in this repository, you will need to modify the `scrape_configs` section to include the URL of the proxy service (e.g., `http://0.0.0.0:6192`).
 
 Then, to add the new Prometheus collector as a datasource for Grafana, you can [follow this tutorial](https://grafana.com/docs/grafana-cloud/connect-externally-hosted/existing-datasource/). A Grafana dashboard under the name `proxy_grafana_dashboard.json` is provided, see this [link](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) to import it. Otherwise, you can [create your own dashboard](https://grafana.com/docs/grafana/latest/getting-started/build-first-dashboard/) using the metrics provided by the proxy and export it by following this [link](https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/#export-a-dashboard-as-json).
 

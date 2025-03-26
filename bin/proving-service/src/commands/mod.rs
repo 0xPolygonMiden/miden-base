@@ -10,6 +10,8 @@ pub mod proxy;
 pub mod update_workers;
 pub mod worker;
 
+pub(crate) const PROXY_HOST: &str = "0.0.0.0";
+
 #[derive(Debug, Parser)]
 pub(crate) struct ProxyConfig {
     /// Interval in milliseconds at which the system polls for available workers to assign new
@@ -22,9 +24,6 @@ pub(crate) struct ProxyConfig {
     /// Health check interval in seconds.
     #[clap(long, default_value = "10", env = "MPS_HEALTH_CHECK_INTERVAL_SECS")]
     pub(crate) health_check_interval_secs: u64,
-    /// Host of the proxy.
-    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
-    pub(crate) host: String,
     /// Maximum number of items in the queue.
     #[clap(long, default_value = "10", env = "MPS_MAX_QUEUE_ITEMS")]
     pub(crate) max_queue_items: usize,
@@ -44,22 +43,20 @@ pub(crate) struct ProxyConfig {
     /// aborted.
     #[clap(long, default_value = "100", env = "MPS_TIMEOUT_SECS")]
     pub(crate) timeout_secs: u64,
-    /// Worker update service port.
-    #[clap(long, default_value = "8083", env = "MPS_MPS_WORKERS_UPDATE_PORT")]
-    pub(crate) workers_update_port: u16,
+    /// Control port.
+    #[clap(long, default_value = "8083", env = "MPS_CONTROL_PORT")]
+    pub(crate) control_port: u16,
 }
 
-#[derive(Debug, Parser)]
-pub(crate) struct MetricsConfig {
-    /// Enable metrics.
-    #[clap(long, default_value = "false", env = "MPS_ENABLE_METRICS")]
-    pub(crate) enable_metrics: bool,
-    /// Prometheus metrics host.
-    #[clap(long, default_value = "0.0.0.0", env = "MPS_PROMETHEUS_HOST")]
-    pub(crate) prometheus_host: String,
-    /// Prometheus metrics port.
-    #[clap(long, default_value = "9090", env = "MPS_PROMETHEUS_PORT")]
-    pub(crate) prometheus_port: u16,
+#[derive(Debug, Clone, clap::Parser)]
+pub struct MetricsConfig {
+    /// Enable Prometheus metrics
+    #[arg(long, env = "MPS_ENABLE_METRICS", default_value = "false")]
+    pub enable_metrics: bool,
+
+    /// Port for Prometheus metrics
+    #[arg(long, env = "MPS_PROMETHEUS_PORT", default_value = "6192")]
+    pub prometheus_port: u16,
 }
 
 /// Root CLI struct
