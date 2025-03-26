@@ -1,18 +1,11 @@
 # Changelog
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-## 0.9.0 (TBD)
-=======
 ## 0.8.1 (2025-03-26)
->>>>>>> 24ef53f5 (reviews: Changelog for main)
 
 ### Changes
 
 - [BREAKING] Changed `TransactionArgs` API to accept `AsRef<NoteRecipient>` for extending the advice map in relation to output notes (#1251).
 
->>>>>>> 7774259a (refactor: Take AsRef<NoteRecipient> to extend expected output notes)
 ## 0.8.0 (2025-03-21)
 
 ### Features
