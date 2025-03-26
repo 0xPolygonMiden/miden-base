@@ -1,4 +1,3 @@
-
 use miden_crypto::{
     Word,
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
