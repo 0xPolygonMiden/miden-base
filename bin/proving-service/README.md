@@ -118,7 +118,7 @@ Set the following environment variables:
 
 ```bash
 export MPS_ENABLE_METRICS=true
-export MPS_PROMETHEUS_PORT=6192  # Optional, defaults to 6192
+export MPS_METRICS_PORT=6192  # Optional, defaults to 6192
 ```
 
 #### Using Command-Line Arguments
@@ -129,13 +129,13 @@ Pass the `--enable-metrics` flag when starting the proxy:
 miden-proving-service start-proxy --enable-metrics [worker1] [worker2] ... [workerN]
 ```
 
-You can also specify a custom Prometheus port using the `--prometheus-port` flag:
+You can also specify a custom Prometheus port using the `--metrics-port` flag:
 
 ```bash
-miden-proving-service start-proxy --enable-metrics --prometheus-port 6192 [worker1] [worker2] ... [workerN]
+miden-proving-service start-proxy --enable-metrics --metrics-port 6192 [worker1] [worker2] ... [workerN]
 ```
 
-When enabled, the Prometheus metrics will be available at `http://0.0.0.0:<prometheus_port>`. By default, this is set to port `6192`.
+When enabled, the Prometheus metrics will be available at `http://0.0.0.0:<metrics_port>`. By default, this is set to port `6192`.
 
 If metrics are not enabled, the proxy will log that Prometheus metrics are not enabled.
 

@@ -50,13 +50,13 @@ pub(crate) struct ProxyConfig {
 
 #[derive(Debug, Clone, clap::Parser)]
 pub struct MetricsConfig {
-    /// Enable Prometheus metrics
+    /// Enable Prometheus-compatible metrics
     #[arg(long, env = "MPS_ENABLE_METRICS", default_value = "false")]
     pub enable_metrics: bool,
 
-    /// Port for Prometheus metrics
-    #[arg(long, env = "MPS_PROMETHEUS_PORT", default_value = "6192")]
-    pub prometheus_port: u16,
+    /// Port for Prometheus-compatible metrics
+    #[arg(long, env = "MPS_METRICS_PORT", default_value = "6192")]
+    pub metrics_port: u16,
 }
 
 /// Root CLI struct
