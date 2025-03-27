@@ -505,6 +505,9 @@ fn test_fpi_memory_two_accounts() {
 fn test_fpi_asset_memory() {
     const TOKEN_ASSET_TYPE: u32 = 5;
     const TOKEN_NUM_FIELDS: u32 = 3;
+    const TOKEN_FIELD_TYPE_ID_PREFIX: u32 = 0;
+    const TOKEN_FIELD_TYPE_ID_SUFFIX: u32 = 1;
+    const TOKEN_FIELD_OTW_ID: u32 = 2;
 
     let stdlib_account_code = format!(
         "
@@ -513,19 +516,40 @@ fn test_fpi_asset_memory() {
 
         const.TOKEN_ASSET_TYPE={TOKEN_ASSET_TYPE}
         const.TOKEN_NUM_FIELDS={TOKEN_NUM_FIELDS}
+        const.TOKEN_FIELD_TYPE_ID_PREFIX={TOKEN_FIELD_TYPE_ID_PREFIX}
+        const.TOKEN_FIELD_TYPE_ID_SUFFIX={TOKEN_FIELD_TYPE_ID_SUFFIX}
+        const.TOKEN_FIELD_OTW_ID={TOKEN_FIELD_OTW_ID}
 
         #! Inputs:  [one_time_witness_id]
         #! Outputs: [asset_ptr]
-        export.create_token
+        export.token_create
             push.TOKEN_ASSET_TYPE.TOKEN_NUM_FIELDS
             exec.asset::create
+            # => [asset_ptr, otw_id]
 
-            # mark OTW as used
-            dup exec.asset::consume_one_time_witness
-            # => [one_time_witness_id]
+            # consume OTW or abort if it was already consumed
+            dup.1 exec.asset::consume_one_time_witness
+            # => [asset_ptr, otw_id]
 
-            # TODO: Set [native account ID | otw_id] as field on the token
-            # OTW ID can be retrieved by subtracting the otw ptr constant in memory.masm
+            swap push.TOKEN_FIELD_OTW_ID dup.2
+            # => [asset_ptr, field_idx, otw_id, asset_ptr]
+            exec.asset::set_field
+            # => [asset_ptr]
+
+            exec.account::get_native_id
+            # => [native_id_prefix, native_id_suffix, asset_ptr]
+            dup.2
+            # => [asset_ptr, native_id_prefix, native_id_suffix, asset_ptr]
+
+            push.TOKEN_FIELD_TYPE_ID_PREFIX swap
+            # => [asset_ptr, field_idx, native_id_prefix, native_id_suffix, asset_ptr]
+            exec.asset::set_field
+            # => [native_id_suffix, asset_ptr]
+
+            push.TOKEN_FIELD_TYPE_ID_SUFFIX dup.2
+            # => [asset_ptr, field_idx, native_id_suffix, asset_ptr]
+            exec.asset::set_field
+            # => [asset_ptr]
 
             # truncate the stack
             swap drop
@@ -537,7 +561,7 @@ fn test_fpi_asset_memory() {
 
     let stdlib_account_component = AccountComponent::compile(
         stdlib_account_code,
-        TransactionKernel::testing_assembler(),
+        TransactionKernel::testing_assembler().with_debug_mode(true),
         vec![],
     )
     .unwrap()
@@ -552,6 +576,18 @@ fn test_fpi_asset_memory() {
     let native_account = mock_chain.add_new_wallet(crate::testing::Auth::BasicAuth);
     mock_chain.seal_next_block();
     let advice_inputs = get_mock_fpi_adv_inputs(vec![&stdlib_account], &mock_chain);
+
+    std::println!(
+        "stdlib account {}, {}",
+        stdlib_account.id().prefix().as_u64(),
+        stdlib_account.id().suffix().as_int()
+    );
+
+    std::println!(
+        "native account {}, {}",
+        native_account.id().prefix().as_u64(),
+        native_account.id().suffix().as_int()
+    );
 
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
@@ -621,6 +657,34 @@ fn test_fpi_asset_memory() {
             .get_mem_value(ContextId::root(), ASSET_NEXT_PTR)
             .unwrap(),
         Felt::from(asset_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_NUM_FIELDS)
+    );
+
+    assert_eq!(
+        ProcessState::from(process)
+            .get_mem_value(
+                ContextId::root(),
+                asset_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_FIELD_TYPE_ID_PREFIX
+            )
+            .unwrap(),
+        native_account.id().prefix().as_felt()
+    );
+    assert_eq!(
+        ProcessState::from(process)
+            .get_mem_value(
+                ContextId::root(),
+                asset_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_FIELD_TYPE_ID_SUFFIX
+            )
+            .unwrap(),
+        native_account.id().suffix()
+    );
+    assert_eq!(
+        ProcessState::from(process)
+            .get_mem_value(
+                ContextId::root(),
+                asset_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_FIELD_OTW_ID
+            )
+            .unwrap(),
+        Felt::from(BOB_TOKEN_OTW)
     );
 }
 

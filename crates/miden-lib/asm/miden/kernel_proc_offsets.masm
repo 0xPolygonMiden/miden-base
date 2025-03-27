@@ -72,6 +72,9 @@ const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 
 const.CREATE_ASSET_OFFSET=36
 const.CONSUME_ONE_TIME_WITNESS_OFFSET=37
+const.SET_ASSET_FIELD_OFFSET=38
+
+const.GET_NATIVE_ACCOUNT_ID_OFFSET=39
 
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
@@ -522,4 +525,12 @@ end
 
 export.consume_one_time_witness_offset
     push.CONSUME_ONE_TIME_WITNESS_OFFSET
+end
+
+export.set_asset_field_offset
+    push.SET_ASSET_FIELD_OFFSET
+end
+
+export.get_native_account_id_offset
+  push.GET_NATIVE_ACCOUNT_ID_OFFSET
 end

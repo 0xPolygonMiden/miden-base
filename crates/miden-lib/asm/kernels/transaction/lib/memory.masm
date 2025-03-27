@@ -1615,6 +1615,15 @@ export.compute_otw_ptr
   push.ASSET_OTW add
 end
 
+#! Computes the pointer to an asset's field.
+#!
+#! Inputs:  [asset_ptr, field_idx]
+#! Outputs: [asset_field_ptr]
+export.compute_asset_field_ptr
+  push.ASSET_BOOKKEEPING_SIZE add add
+  # => [asset_field_ptr]
+end
+
 #! Sets the asset ID of an asset.
 #!
 #! Inputs:  [asset_ptr, ASSET_ID]
@@ -1636,6 +1645,18 @@ export.set_asset_issuer
 
   push.ASSET_ISSUER_SUFFIX_OFFSET add mem_store
   # => []
+end
+
+#! Gets the issuer of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [account_id_prefix, account_id_suffix]
+export.get_asset_issuer
+  push.ASSET_ISSUER_SUFFIX_OFFSET dup.1 add mem_load
+  # => [account_id_suffix, asset_ptr]
+
+  swap push.ASSET_ISSUER_PREFIX_OFFSET add mem_load
+  # => [account_id_prefix, account_id_suffix]
 end
 
 #! Sets the type of an asset.

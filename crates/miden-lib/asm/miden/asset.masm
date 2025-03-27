@@ -131,7 +131,7 @@ export.create
     # => [offset, num_fields, type_id, 0, pad(4), pad(4), pad(4)]
 
     # pad the stack
-    push.0 movdn.4 padw padw padw swapdw swapw
+    push.0 movdn.3 padw padw padw swapdw swapw
     # => [offset, num_fields, type_id, pad(13)]
 
     syscall.exec_kernel_proc
@@ -158,6 +158,26 @@ export.consume_one_time_witness
   # pad the stack
   push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
   # => [offset, one_time_witness_id, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [pad(16)]
+
+  # clean the stack
+  dropw dropw dropw dropw
+  # => []
+end
+
+#! Sets the field of the asset to the provided value.
+#!
+#! Inputs:  [asset_ptr, field_idx, field_value]
+#! Outputs: []
+export.set_field
+  exec.kernel_proc_offsets::set_asset_field_offset
+  # => [offset, asset_ptr, field_idx, field_value]
+
+  # pad the stack
+  padw padw padw swapdw swapw
+  # => [offset, asset_ptr, field_idx, field_value, pad(12)]
 
   syscall.exec_kernel_proc
   # => [pad(16)]

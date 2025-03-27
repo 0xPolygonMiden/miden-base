@@ -130,6 +130,19 @@ export.account_get_id
     # => [acct_id_prefix, acct_id_suffix, pad(14)]
 end
 
+#! Returns the ID of the native account.
+#!
+#! Inputs:  [pad(16)]
+#! Outputs: [acct_id_prefix, acct_id_suffix, pad(14)]
+export.get_native_account_id
+  exec.memory::get_native_account_id
+  # => [acct_id_prefix, acct_id_suffix, pad(16)]
+
+  # truncate the stack
+  movup.2 drop movup.2 drop
+  # => [acct_id_prefix, acct_id_suffix, pad(14)]
+end
+
 #! Returns the account nonce.
 #!
 #! Inputs:  [pad(16)]
@@ -1105,6 +1118,18 @@ export.create_asset
   # => [asset_ptr]
 end
 
+#! Sets the field of the asset to the provided value.
+#!
+#! Inputs:  [asset_ptr, field_idx, field_value]
+#! Outputs: []
+export.set_asset_field
+  dup exec.assert_asset_issuer
+  # => [asset_ptr, field_idx, field_value]
+
+  exec.memory::compute_asset_field_ptr mem_store
+  # => []
+end
+
 #! Creates a new one time witness in the context of the native account if it has not been created before.
 #!
 #! Inputs:  [one_time_witness_id]
@@ -1128,6 +1153,22 @@ export.consume_one_time_witness
   # Mark OTW as consumed.
   dup push.1 mem_store
   # => [otw_ptr]
+end
+
+#! Asserts the currently accessing account is the account that issued the asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+proc.assert_asset_issuer
+  exec.memory::get_asset_issuer
+  # => [asset_account_id_prefix, asset_account_id_suffix]
+
+  exec.memory::get_account_id
+  # => [current_account_id_prefix, current_account_id_suffix, asset_account_id_prefix, asset_account_id_suffix]
+
+  # assert only the account that defines the asset can modify it
+  exec.account::is_id_equal assert.err=987
+  # => []
 end
 
 #! Executes a kernel procedure specified by its offset.
