@@ -1139,16 +1139,15 @@ export.validate_current_foreign_account
     dropw drop drop dropw
 end
 
-#! Hashes the map key.
+#! Hashes the provided map key before using it as the key in an SMT.
+#!
+#! Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
+#! tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
+#! storage map are hashed before they are inserted into the SMT.
 #!
 #! Inputs:  [KEY]
 #! Outputs: [HASHED_KEY]
 proc.hash_map_key
-  # pad four elements for the capacity of the hasher
-  # pad another four elements so the hash input is a multiple of 8
-  padw swapw padw swapw
-  # => [KEY, pad(8)]
-
-  hperm exec.rpo::squeeze_digest
+  hash
   # => [HASHED_KEY]
 end

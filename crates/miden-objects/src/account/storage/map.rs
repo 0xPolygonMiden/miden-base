@@ -22,7 +22,7 @@ use crate::{
 /// Empty storage map root.
 pub const EMPTY_STORAGE_MAP_ROOT: Digest = *EmptySubtreeRoots::entry(StorageMap::TREE_DEPTH, 0);
 
-/// An account storage map which is a sparse merkle tree of depth [`Self::TREE_DEPTH`] (64).
+/// An account storage map is a sparse merkle tree of depth [`Self::TREE_DEPTH`] (64).
 ///
 /// It can be used to store a large amount of data in an account than would be otherwise possible
 /// using just the account's storage slots. This works by storing the root of the map's underlying
@@ -34,7 +34,7 @@ pub const EMPTY_STORAGE_MAP_ROOT: Digest = *EmptySubtreeRoots::entry(StorageMap:
 /// accessed/modified items are present in the advice provider.
 ///
 /// Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
-/// trees could be imbalanced and made less efficient. To mitigate that, the keys used in the
+/// tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
 /// storage map are hashed before they are inserted into the SMT. The original keys are retained in
 /// a separate map. This causes redundancy but allows for introspection of the map, e.g. by querying
 /// the set of stored (original) keys which is useful in debugging and explorer scenarios.
@@ -177,10 +177,7 @@ impl StorageMap {
 
     /// Hashes the given key to get the key of the SMT.
     pub fn hash_key(key: RpoDigest) -> RpoDigest {
-        let padded_input =
-            [Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ZERO, key[0], key[1], key[2], key[3]];
-
-        Hasher::hash_elements(&padded_input)
+        Hasher::hash_elements(key.as_elements())
     }
 }
 
