@@ -584,6 +584,7 @@ export.get_map_item
     exec.get_item swapw
     # => [KEY, ROOT]
 
+    # see hash_map_key's docs for why this is done
     exec.hash_map_key
     # => [HASHED_KEY, ROOT]
 
@@ -637,6 +638,7 @@ export.set_map_item.12
     movdn.12 movupw.2 dupw.2 dupw.2
     # => [KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
 
+    # see hash_map_key's docs for why this is done
     exec.hash_map_key
     # => [HASHED_KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
 
@@ -1143,7 +1145,7 @@ end
 #!
 #! Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
 #! tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
-#! storage map are hashed before they are inserted into the SMT.
+#! storage map are hashed before they are inserted into the SMT, which creates a uniform distribution.
 #!
 #! Inputs:  [KEY]
 #! Outputs: [HASHED_KEY]

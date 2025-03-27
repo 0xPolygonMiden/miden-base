@@ -1,7 +1,7 @@
 use alloc::collections::BTreeMap;
 
 use miden_crypto::merkle::EmptySubtreeRoots;
-use vm_core::{EMPTY_WORD, Felt, FieldElement};
+use vm_core::EMPTY_WORD;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Serializable, Word,
@@ -35,9 +35,10 @@ pub const EMPTY_STORAGE_MAP_ROOT: Digest = *EmptySubtreeRoots::entry(StorageMap:
 ///
 /// Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
 /// tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
-/// storage map are hashed before they are inserted into the SMT. The original keys are retained in
-/// a separate map. This causes redundancy but allows for introspection of the map, e.g. by querying
-/// the set of stored (original) keys which is useful in debugging and explorer scenarios.
+/// storage map are hashed before they are inserted into the SMT, which creates a uniform
+/// distribution. The original keys are retained in a separate map. This causes redundancy but
+/// allows for introspection of the map, e.g. by querying the set of stored (original) keys which is
+/// useful in debugging and explorer scenarios.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StorageMap {
     /// The SMT where each key is the hashed original key.
