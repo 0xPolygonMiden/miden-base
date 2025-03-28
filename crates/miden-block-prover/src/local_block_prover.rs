@@ -141,8 +141,7 @@ impl LocalBlockProver {
         // Aggregate the verified transactions of all batches.
         // --------------------------------------------------------------------------------------------
 
-        let verified_txs =
-            batches.into_iter().flat_map(ProvenBatch::into_verified_transactions).collect();
+        let txs = batches.into_iter().flat_map(ProvenBatch::into_transaction_headers).collect();
 
         // Construct the new block header.
         // --------------------------------------------------------------------------------------------
@@ -177,7 +176,7 @@ impl LocalBlockProver {
             updated_accounts,
             output_note_batches,
             created_nullifiers,
-            verified_txs,
+            txs,
         );
 
         Ok(proven_block)

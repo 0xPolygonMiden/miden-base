@@ -1,0 +1,112 @@
+use alloc::vec::Vec;
+
+use vm_processor::{DeserializationError, Digest};
+
+use crate::{
+    note::NoteId,
+    transaction::{AccountId, Nullifier, TransactionId},
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionHeader {
+    id: TransactionId,
+    account_id: AccountId,
+    initial_state_commitment: Digest,
+    final_state_commitment: Digest,
+    input_notes: Vec<Nullifier>,
+    output_notes: Vec<NoteId>,
+}
+
+impl TransactionHeader {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Constructs a new [`TransactionHeader`] from the provided parameteres.
+    pub fn new_unchecked(
+        id: TransactionId,
+        account_id: AccountId,
+        initial_state_commitment: Digest,
+        final_state_commitment: Digest,
+        input_notes: Vec<Nullifier>,
+        output_notes: Vec<NoteId>,
+    ) -> Self {
+        Self {
+            id,
+            account_id,
+            initial_state_commitment,
+            final_state_commitment,
+            input_notes,
+            output_notes,
+        }
+    }
+
+    /// Returns the unique identifier of this transaction.
+    pub fn id(&self) -> TransactionId {
+        self.id
+    }
+
+    /// Returns the ID of the account against which this transaction was executed.
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
+    }
+
+    /// Returns a commitment to the state of the account before this update is applied.
+    ///
+    /// This is equal to [`Digest::default()`] for new accounts.
+    pub fn initial_state_commitment(&self) -> Digest {
+        self.initial_state_commitment
+    }
+
+    /// Returns a commitment to the state of the account after this update is applied.
+    pub fn final_state_commitment(&self) -> Digest {
+        self.final_state_commitment
+    }
+
+    /// Returns a reference to the nullifiers of the consumed notes.
+    ///
+    /// Note that the note may have been erased at the batch or block level, so it may not be
+    /// present there.
+    pub fn input_notes(&self) -> &[Nullifier] {
+        &self.input_notes
+    }
+
+    /// Returns a reference to the notes created by the transaction.
+    ///
+    /// Note that the note may have been erased at the batch or block level, so it may not be
+    /// present there.
+    pub fn output_notes(&self) -> &[NoteId] {
+        &self.output_notes
+    }
+}
+
+impl Serializable for TransactionHeader {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.id.write_into(target);
+        self.account_id.write_into(target);
+        self.initial_state_commitment.write_into(target);
+        self.final_state_commitment.write_into(target);
+        self.input_notes.write_into(target);
+        self.output_notes.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionHeader {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let id = <TransactionId>::read_from(source)?;
+        let account_id = <AccountId>::read_from(source)?;
+        let initial_state_commitment = <Digest>::read_from(source)?;
+        let final_state_commitment = <Digest>::read_from(source)?;
+        let input_notes = <Vec<Nullifier>>::read_from(source)?;
+        let output_notes = <Vec<NoteId>>::read_from(source)?;
+
+        Ok(Self::new_unchecked(
+            id,
+            account_id,
+            initial_state_commitment,
+            final_state_commitment,
+            input_notes,
+            output_notes,
+        ))
+    }
+}

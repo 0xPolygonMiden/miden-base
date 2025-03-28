@@ -28,8 +28,8 @@ use miden_objects::{
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
-        ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
-        VerifiedTransaction,
+        ToInputNoteCommitments, TransactionHeader, TransactionId, TransactionInputs,
+        TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -478,12 +478,13 @@ impl MockChain {
         let verified_txs = transactions
             .iter()
             .map(|proven_tx| {
-                VerifiedTransaction::new_unchecked(
+                TransactionHeader::new_unchecked(
                     proven_tx.id(),
-                    proven_tx.account_update().clone(),
-                    proven_tx.input_notes().clone(),
-                    proven_tx.output_notes().clone(),
-                    proven_tx.ref_block_num(),
+                    proven_tx.account_id(),
+                    proven_tx.account_update().initial_state_commitment(),
+                    proven_tx.account_update().final_state_commitment(),
+                    proven_tx.input_notes().iter().map(|note| note.nullifier()).collect(),
+                    proven_tx.output_notes().iter().map(|note| note.id()).collect(),
                 )
             })
             .collect();
