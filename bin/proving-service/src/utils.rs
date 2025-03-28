@@ -152,21 +152,14 @@ pub async fn create_response_with_error_message(
 /// * `service` - A descriptive name for the service (for logging purposes).
 ///
 /// # Returns
-/// * `Ok(())` if the port is available.
+/// * `Ok(TcpListener)` if the port is available.
 /// * `Err(ProvingServiceError::PortAlreadyInUse)` if the port is already in use.
-pub fn check_port_availability(port: u16, service: &str) -> Result<(), ProvingServiceError> {
+pub fn check_port_availability(
+    port: u16,
+    service: &str,
+) -> Result<std::net::TcpListener, ProvingServiceError> {
     let addr = format!("{}:{}", PROXY_HOST, port);
-    match TcpListener::bind(&addr) {
-        Ok(_) => {
-            // Port is available, we can proceed
-            tracing::info!("Port {} is available for {}", port, service);
-            Ok(())
-        },
-        Err(e) => {
-            // Port is already in use, log an error and return an error
-            let error_msg = format!("{} port {} is already in use: {}", service, port, e);
-            tracing::error!("{}", error_msg);
-            Err(ProvingServiceError::PortAlreadyInUse(e, port))
-        },
-    }
+    TcpListener::bind(&addr)
+        .inspect(|_| tracing::debug!(%service, %port, "Port is available"))
+        .map_err(|err| ProvingServiceError::PortAlreadyInUse(err, port))
 }
