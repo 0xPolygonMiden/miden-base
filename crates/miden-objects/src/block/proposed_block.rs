@@ -655,7 +655,11 @@ impl AccountUpdateAggregator {
         witness: AccountWitness,
         mut updates: BTreeMap<Digest, (BatchAccountUpdate, BatchId)>,
     ) -> Result<AccountUpdateWitness, ProposedBlockError> {
-        let (initial_state_commitment, initial_state_proof) = witness.into_parts();
+        let initial_state_commitment = witness
+            .get_state_commitment(account_id)
+            .ok_or(ProposedBlockError::MissingAccountWitness(account_id))?;
+        let initial_state_proof = witness.into_proof();
+
         let mut details: Option<AccountUpdateDetails> = None;
 
         let mut transactions = Vec::new();

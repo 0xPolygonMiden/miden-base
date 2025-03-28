@@ -1,9 +1,9 @@
-use alloc::vec::Vec;
-use std::{string::ToString, vec};
+use alloc::{string::ToString, vec, vec::Vec};
 
 use miden_lib::{
     errors::tx_kernel_errors::{
-        ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED,
+        ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT,
+        ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED,
     },
     transaction::{
         TransactionKernel,
@@ -16,18 +16,17 @@ use miden_lib::{
     },
 };
 use miden_objects::{
-    ACCOUNT_TREE_DEPTH,
+    FieldElement,
     account::{
         Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
         StorageSlot,
     },
-    crypto::merkle::{LeafIndex, MerklePath},
     testing::{account_component::AccountMockComponent, storage::STORAGE_LEAVES_2},
     transaction::TransactionScript,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::AdviceInputs;
+use vm_processor::{AdviceInputs, Felt};
 
 use super::{Process, Word, ZERO};
 use crate::{
@@ -1173,6 +1172,106 @@ fn test_nested_fpi_native_account_invocation() {
     assert_execution_error!(Err::<(), _>(err), ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT);
 }
 
+/// Test that providing an account whose commitment does not match the one in the account tree
+/// results in an error.
+#[test]
+fn test_fpi_stale_account() {
+    // Prepare the test data
+    let foreign_account_code_source = "
+        use.miden::account
+
+        # code is not used in this test
+        export.set_some_item_foreign
+            push.34.1
+            exec.account::set_item
+        end
+    ";
+
+    let foreign_account_component = AccountComponent::compile(
+        foreign_account_code_source,
+        TransactionKernel::testing_assembler(),
+        vec![AccountStorage::mock_item_0().slot],
+    )
+    .unwrap()
+    .with_supports_all_types();
+
+    let mut foreign_account = AccountBuilder::new([5; 32])
+        .with_component(foreign_account_component)
+        .build_existing()
+        .unwrap();
+
+    let native_account = AccountBuilder::new([4; 32])
+        .with_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![AccountStorage::mock_item_2().slot],
+            )
+            .unwrap(),
+        )
+        .build_existing()
+        .unwrap();
+
+    let mut mock_chain =
+        MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
+    mock_chain.seal_next_block();
+
+    // Make the foreign account invalid.
+    // --------------------------------------------------------------------------------------------
+
+    // Modify the account's storage to change its storage commitment and in turn the account
+    // commitment.
+    foreign_account
+        .storage_mut()
+        .set_item(0, Word::from([Felt::ONE, Felt::ONE, Felt::ONE, Felt::ONE]))
+        .unwrap();
+
+    // Place the modified account in the advice provider, which will cause the commitment mismatch.
+    let advice_inputs = get_mock_fpi_adv_inputs(vec![&foreign_account], &mock_chain);
+
+    // The account tree at this point will have a commitment to the account before the storage
+    // modification.
+    let tx_context = mock_chain
+        .build_tx_context(native_account.id(), &[], &[])
+        .foreign_account_codes(vec![foreign_account.code().clone()])
+        .advice_inputs(advice_inputs.clone())
+        .build();
+
+    // Attempt to run FPI.
+    // --------------------------------------------------------------------------------------------
+
+    let code = format!(
+        "
+      use.std::sys
+
+      use.kernel::prologue
+      use.miden::tx
+
+      begin
+          exec.prologue::prepare_transaction
+
+          # pad the stack for the `execute_foreign_procedure` execution
+          padw padw padw padw
+          # => [pad(16)]
+
+          # push some hash onto the stack - for this test it does not matter
+          push.0.0.0.0
+          # => [FOREIGN_PROC_ROOT, pad(16)]
+
+          # push the foreign account ID
+          push.{foreign_suffix}.{foreign_prefix}
+          # => [foreign_account_id_prefix, foreign_account_id_suffix, FOREIGN_PROC_ROOT, pad(16)]
+
+          exec.tx::execute_foreign_procedure
+        end
+      ",
+        foreign_prefix = foreign_account.id().prefix().as_felt(),
+        foreign_suffix = foreign_account.id().suffix(),
+    );
+
+    let result = tx_context.execute_code(&code).map(|_| ());
+    assert_execution_error!(result, ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT);
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -1191,14 +1290,7 @@ fn get_mock_fpi_adv_inputs(
             // Provide the merkle path of the foreign account to be able to verify that the account
             // tree has the commitment of this foreign account. Verification is done during the
             // execution of the `kernel::account::validate_current_foreign_account` procedure.
-            &MerklePath::new(
-                mock_chain
-                    .accounts()
-                      // TODO: Update.
-                    .open(&LeafIndex::<ACCOUNT_TREE_DEPTH>::new(foreign_account.id().prefix().as_felt().as_int()).unwrap())
-                    .path
-                    .into(),
-            ),
+            &mock_chain.accounts().open(foreign_account.id()),
         )
         .unwrap();
 

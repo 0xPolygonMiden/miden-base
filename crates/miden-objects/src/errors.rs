@@ -168,6 +168,21 @@ pub enum AccountIdError {
     Bech32DecodeError(#[source] Bech32Error),
 }
 
+// ACCOUNT ID ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountTreeError {
+    #[error(
+        "account tree contains two or more account IDs that share the same prefix {duplicate_prefix}"
+    )]
+    DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
+    #[error(
+        "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
+    )]
+    DuplicateStateCommitments { prefix: AccountIdPrefix },
+}
+
 // BECH32 ERROR
 // ================================================================================================
 
