@@ -260,7 +260,11 @@ fn compute_account_root(
                 account_leaf_index.value(),
                 witness.initial_state_commitment(),
                 // We don't need the merkle path later, so we can take it out.
-                core::mem::take(witness.initial_state_proof_mut()),
+
+                // TODO: Check if we can avoid clone.
+
+                // core::mem::take(witness.initial_state_proof_mut()).into_parts().0,
+                witness.initial_state_proof().path().clone(),
             )
             .map_err(|source| ProvenBlockError::AccountWitnessRootMismatch {
                 account_id: *account_id,

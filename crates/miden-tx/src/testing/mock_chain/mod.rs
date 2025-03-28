@@ -9,7 +9,7 @@ use miden_lib::{
     transaction::{TransactionKernel, memory},
 };
 use miden_objects::{
-    ACCOUNT_TREE_DEPTH, AccountError, NoteError, ProposedBatchError, ProposedBlockError,
+    AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
         Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
         AccountType, AuthSecretKey, delta::AccountUpdateDetails,
@@ -17,12 +17,12 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        AccountTree, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
         BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{LeafIndex, Mmr, Smt},
+        merkle::{Mmr, Smt},
     },
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
@@ -33,10 +33,7 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{
-    Digest, Felt, Word, ZERO,
-    crypto::{RpoRandomCoin, SimpleSmt},
-};
+use vm_processor::{Digest, Felt, Word, ZERO, crypto::RpoRandomCoin};
 
 use super::TransactionContextBuilder;
 use crate::auth::BasicAuthenticator;
@@ -260,7 +257,7 @@ pub struct MockChain {
     nullifiers: Smt,
 
     /// Tree containing the latest hash of each account.
-    accounts: SimpleSmt<ACCOUNT_TREE_DEPTH>,
+    account_tree: AccountTree,
 
     /// Objects that have not yet been finalized.
     ///
@@ -287,7 +284,7 @@ impl Default for MockChain {
             chain: Mmr::default(),
             blocks: vec![],
             nullifiers: Smt::default(),
-            accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
+            account_tree: AccountTree::new(),
             pending_objects: PendingObjects::new(),
             available_notes: BTreeMap::new(),
             available_accounts: BTreeMap::new(),
@@ -624,8 +621,7 @@ impl MockChain {
 
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-        self.accounts
-            .insert(LeafIndex::from(account.id()), Word::from(account.commitment()));
+        self.account_tree.insert(account.id(), account.commitment());
 
         account
     }
@@ -816,8 +812,7 @@ impl MockChain {
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
-                self.accounts
-                    .insert(update.account_id().into(), *update.final_state_commitment());
+                self.account_tree.insert(update.account_id(), update.final_state_commitment());
 
                 if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
                     let account = match update.details() {
@@ -846,7 +841,7 @@ impl MockChain {
             let previous = self.blocks.last();
             let peaks = self.chain.peaks();
             let chain_commitment: Digest = peaks.hash_peaks();
-            let account_root = self.accounts.root();
+            let account_root = self.account_tree.root();
             let prev_block_commitment =
                 previous.map_or(Digest::default(), |block| block.commitment());
             let nullifier_root = self.nullifiers.root();
@@ -998,8 +993,8 @@ impl MockChain {
         let mut account_witnesses = BTreeMap::new();
 
         for account_id in account_ids {
-            let proof = self.accounts.open(&account_id.into());
-            account_witnesses.insert(account_id, AccountWitness::new(proof.value, proof.path));
+            let witness = self.account_tree.open(account_id);
+            account_witnesses.insert(account_id, witness);
         }
 
         account_witnesses
@@ -1077,9 +1072,9 @@ impl MockChain {
             .account()
     }
 
-    /// Get the reference to the accounts hash tree.
-    pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
-        &self.accounts
+    /// Get the reference to the account tree.
+    pub fn accounts(&self) -> &AccountTree {
+        &self.account_tree
     }
 }
 

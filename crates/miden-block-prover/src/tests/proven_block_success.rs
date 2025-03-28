@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, vec::Vec};
 
 use anyhow::Context;
-use miden_crypto::merkle::{LeafIndex, SimpleSmt, Smt};
+use miden_crypto::merkle::{SimpleSmt, Smt};
 use miden_objects::{
     ACCOUNT_TREE_DEPTH, Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
     batch::BatchNoteTree,
@@ -109,8 +109,7 @@ fn proven_block_success() -> anyhow::Result<()> {
 
     let mut expected_account_tree = chain.accounts().clone();
     for (account_id, witness) in proposed_block.updated_accounts() {
-        expected_account_tree
-            .insert(LeafIndex::from(*account_id), *witness.final_state_commitment());
+        expected_account_tree.insert(*account_id, witness.final_state_commitment());
     }
 
     // Prove block.

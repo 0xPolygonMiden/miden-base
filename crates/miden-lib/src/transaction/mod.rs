@@ -4,8 +4,8 @@ use miden_objects::{
     Digest, EMPTY_WORD, Felt, TransactionOutputError, ZERO,
     account::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
-    block::BlockNumber,
-    crypto::merkle::{MerkleError, MerklePath},
+    block::{AccountWitness, BlockNumber},
+    crypto::merkle::MerkleError,
     transaction::{
         OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
     },
@@ -202,7 +202,7 @@ impl TransactionKernel {
         account_header: &AccountHeader,
         account_code: &AccountCode,
         storage_header: &AccountStorageHeader,
-        merkle_path: &MerklePath,
+        account_witness: &AccountWitness,
     ) -> Result<(), MerkleError> {
         let account_id = account_header.id();
         let storage_root = account_header.storage_commitment();
@@ -221,11 +221,18 @@ impl TransactionKernel {
             (code_root, account_code.as_elements()),
         ]);
 
-        // Extend the advice inputs with Merkle store data
+        let account_leaf = account_witness.as_proof().leaf();
+        let account_leaf_hash = account_leaf.hash();
+
+        // extend the merkle store and map with account witnesses merkle path
         advice_inputs.extend_merkle_store(
-            // The prefix is the index in the account tree.
-            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.commitment())?,
+            account_witness
+                .as_proof()
+                .path()
+                .inner_nodes(account_id.prefix().as_u64(), account_leaf_hash)?,
         );
+        // populate advice map with the account's leaf
+        advice_inputs.extend_map([(account_leaf_hash, account_leaf.to_elements())]);
 
         Ok(())
     }

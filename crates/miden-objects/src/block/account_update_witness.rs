@@ -1,9 +1,10 @@
 use alloc::vec::Vec;
 
+use miden_crypto::merkle::SmtProof;
+
 use crate::{
     Digest,
     account::delta::AccountUpdateDetails,
-    crypto::merkle::MerklePath,
     transaction::TransactionId,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
@@ -23,7 +24,7 @@ pub struct AccountUpdateWitness {
     final_state_commitment: Digest,
     /// The merkle path for the account tree proving that the initial state commitment is the
     /// current state.
-    initial_state_proof: MerklePath,
+    initial_state_proof: SmtProof,
     /// A set of changes which can be applied to the previous account state (i.e., the state as of
     /// the last block, equivalent to `initial_state_commitment`) to get the new account state. For
     /// private accounts, this is set to [`AccountUpdateDetails::Private`].
@@ -40,7 +41,7 @@ impl AccountUpdateWitness {
     pub fn new(
         initial_state_commitment: Digest,
         final_state_commitment: Digest,
-        initial_state_proof: MerklePath,
+        initial_state_proof: SmtProof,
         details: AccountUpdateDetails,
         transactions: Vec<TransactionId>,
     ) -> Self {
@@ -67,7 +68,7 @@ impl AccountUpdateWitness {
     }
 
     /// Returns a reference to the initial state proof of the account.
-    pub fn initial_state_proof(&self) -> &MerklePath {
+    pub fn initial_state_proof(&self) -> &SmtProof {
         &self.initial_state_proof
     }
 
@@ -87,14 +88,14 @@ impl AccountUpdateWitness {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a mutable reference to the initial state proof of the account.
-    pub fn initial_state_proof_mut(&mut self) -> &mut MerklePath {
+    pub fn initial_state_proof_mut(&mut self) -> &mut SmtProof {
         &mut self.initial_state_proof
     }
 
     /// Consumes self and returns its parts.
     pub fn into_parts(
         self,
-    ) -> (Digest, Digest, MerklePath, AccountUpdateDetails, Vec<TransactionId>) {
+    ) -> (Digest, Digest, SmtProof, AccountUpdateDetails, Vec<TransactionId>) {
         (
             self.initial_state_commitment,
             self.final_state_commitment,
