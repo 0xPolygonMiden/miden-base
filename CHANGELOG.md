@@ -2,6 +2,8 @@
 
 ## 0.9.0 (TBD)
 
+- [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
+
 ## 0.8.1 (2025-03-26)
 
 ### Changes

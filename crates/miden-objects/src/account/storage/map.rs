@@ -1,29 +1,53 @@
-use miden_crypto::merkle::{EmptySubtreeRoots, MerkleError};
+use alloc::collections::BTreeMap;
+
+use miden_crypto::merkle::EmptySubtreeRoots;
+use vm_core::EMPTY_WORD;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Serializable, Word,
 };
 use crate::{
+    Hasher,
     account::StorageMapDelta,
     crypto::{
         hash::rpo::RpoDigest,
         merkle::{InnerNodeInfo, LeafIndex, SMT_DEPTH, Smt, SmtLeaf, SmtProof},
     },
+    errors::StorageMapError,
 };
 
 // ACCOUNT STORAGE MAP
 // ================================================================================================
 
 /// Empty storage map root.
-pub const EMPTY_STORAGE_MAP_ROOT: Digest =
-    *EmptySubtreeRoots::entry(StorageMap::STORAGE_MAP_TREE_DEPTH, 0);
+pub const EMPTY_STORAGE_MAP_ROOT: Digest = *EmptySubtreeRoots::entry(StorageMap::TREE_DEPTH, 0);
 
-/// Account storage map is a Sparse Merkle Tree of depth 64. It can be used to store more data as
-/// there is in plain usage of the storage slots. The root of the SMT consumes one account storage
-/// slot.
+/// An account storage map is a sparse merkle tree of depth [`Self::TREE_DEPTH`] (64).
+///
+/// It can be used to store a large amount of data in an account than would be otherwise possible
+/// using just the account's storage slots. This works by storing the root of the map's underlying
+/// SMT in one account storage slot. Each map entry is a leaf in the tree and its inclusion is
+/// proven while retrieving it (e.g. via `account::get_map_item`).
+///
+/// As a side-effect, this also means that _not all_ entries of the map have to be present at
+/// transaction execution time in order to access or modify the map. It is sufficient if _just_ the
+/// accessed/modified items are present in the advice provider.
+///
+/// Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
+/// tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
+/// storage map are hashed before they are inserted into the SMT, which creates a uniform
+/// distribution. The original keys are retained in a separate map. This causes redundancy but
+/// allows for introspection of the map, e.g. by querying the set of stored (original) keys which is
+/// useful in debugging and explorer scenarios.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StorageMap {
-    map: Smt,
+    /// The SMT where each key is the hashed original key.
+    smt: Smt,
+    /// The entries of the map where the key is the original user-chosen one.
+    ///
+    /// It is an invariant of this type that the map's entries are always consistent with the SMT's
+    /// entries and vice-versa.
+    map: BTreeMap<RpoDigest, Word>,
 }
 
 impl StorageMap {
@@ -31,7 +55,7 @@ impl StorageMap {
     // --------------------------------------------------------------------------------------------
 
     /// Depth of the storage tree.
-    pub const STORAGE_MAP_TREE_DEPTH: u8 = SMT_DEPTH;
+    pub const TREE_DEPTH: u8 = SMT_DEPTH;
 
     /// The default value of empty leaves.
     pub const EMPTY_VALUE: Word = Smt::EMPTY_VALUE;
@@ -43,61 +67,98 @@ impl StorageMap {
     ///
     /// All leaves in the returned tree are set to [Self::EMPTY_VALUE].
     pub fn new() -> Self {
-        StorageMap { map: Smt::new() }
+        StorageMap { smt: Smt::new(), map: BTreeMap::new() }
     }
 
     /// Creates a new [`StorageMap`] from the provided key-value entries.
     ///
     /// # Errors
     ///
-    /// Returns an error if the provided entries contain multiple values for the same key.
-    pub fn with_entries(
-        entries: impl IntoIterator<Item = (RpoDigest, Word)>,
-    ) -> Result<Self, MerkleError> {
-        Smt::with_entries(entries).map(|map| StorageMap { map })
+    /// Returns an error if:
+    /// - the provided entries contain multiple values for the same key.
+    pub fn with_entries<I: ExactSizeIterator<Item = (RpoDigest, Word)>>(
+        entries: impl IntoIterator<Item = (RpoDigest, Word), IntoIter = I>,
+    ) -> Result<Self, StorageMapError> {
+        let mut map = BTreeMap::new();
+
+        for (key, value) in entries {
+            if let Some(prev_value) = map.insert(key, value) {
+                return Err(StorageMapError::DuplicateKey {
+                    key,
+                    value0: prev_value,
+                    value1: value,
+                });
+            }
+        }
+
+        Ok(Self::from_btree_map(map))
+    }
+
+    /// Creates a new [`StorageMap`] from the given map. For internal use.
+    fn from_btree_map(map: BTreeMap<RpoDigest, Word>) -> Self {
+        let hashed_keys_iter = map.iter().map(|(key, value)| (Self::hash_key(*key), *value));
+        let smt = Smt::with_entries(hashed_keys_iter)
+            .expect("btree maps should not contain duplicate keys");
+
+        StorageMap { smt, map }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    pub const fn depth(&self) -> u8 {
-        SMT_DEPTH
-    }
-
+    /// Returns the root of the underlying sparse merkle tree.
     pub fn root(&self) -> RpoDigest {
-        self.map.root() // Delegate to Smt's root method
+        self.smt.root()
     }
 
-    pub fn get_leaf(&self, key: &RpoDigest) -> SmtLeaf {
-        self.map.get_leaf(key) // Delegate to Smt's get_leaf method
+    /// Returns the value corresponding to the key or [`Self::EMPTY_VALUE`] if the key is not
+    /// associated with a value.
+    pub fn get(&self, key: &RpoDigest) -> Word {
+        self.map.get(key).copied().unwrap_or_default()
     }
 
-    pub fn get_value(&self, key: &RpoDigest) -> Word {
-        self.map.get_value(key) // Delegate to Smt's get_value method
-    }
-
+    /// Returns an opening of the leaf associated with `key`.
+    ///
+    /// Conceptually, an opening is a Merkle path to the leaf, as well as the leaf itself.
     pub fn open(&self, key: &RpoDigest) -> SmtProof {
-        self.map.open(key) // Delegate to Smt's open method
+        let key = Self::hash_key(*key);
+        self.smt.open(&key)
     }
 
     // ITERATORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns an iterator over the leaves of the underlying [`Smt`].
     pub fn leaves(&self) -> impl Iterator<Item = (LeafIndex<SMT_DEPTH>, &SmtLeaf)> {
-        self.map.leaves() // Delegate to Smt's leaves method
+        self.smt.leaves() // Delegate to Smt's leaves method
     }
 
-    pub fn entries(&self) -> impl Iterator<Item = &(RpoDigest, Word)> {
-        self.map.entries() // Delegate to Smt's entries method
+    /// Returns an iterator over the key value pairs of the map.
+    pub fn entries(&self) -> impl Iterator<Item = (&RpoDigest, &Word)> {
+        self.map.iter()
     }
 
+    /// Returns an iterator over the inner nodes of the underlying [`Smt`].
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
-        self.map.inner_nodes() // Delegate to Smt's inner_nodes method
+        self.smt.inner_nodes() // Delegate to Smt's inner_nodes method
     }
 
     // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
+
+    /// Inserts or updates the given key value pair and returns the previous value, or
+    /// [`Self::EMPTY_VALUE`] if no entry was previously present.
+    ///
+    /// If the provided `value` is [`Self::EMPTY_VALUE`] the entry will be removed.
     pub fn insert(&mut self, key: RpoDigest, value: Word) -> Word {
-        self.map.insert(key, value) // Delegate to Smt's insert method
+        if value == EMPTY_WORD {
+            self.map.remove(&key);
+        } else {
+            self.map.insert(key, value);
+        }
+
+        let key = Self::hash_key(key);
+        self.smt.insert(key, value) // Delegate to Smt's insert method
     }
 
     /// Applies the provided delta to this account storage.
@@ -108,6 +169,16 @@ impl StorageMap {
         }
 
         self.root()
+    }
+
+    /// Consumes the map and returns the underlying map of entries.
+    pub fn into_entries(self) -> BTreeMap<RpoDigest, Word> {
+        self.map
+    }
+
+    /// Hashes the given key to get the key of the SMT.
+    pub fn hash_key(key: RpoDigest) -> RpoDigest {
+        Hasher::hash_elements(key.as_elements())
     }
 }
 
@@ -122,27 +193,28 @@ impl Default for StorageMap {
 
 impl Serializable for StorageMap {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.map.write_into(target)
+        self.map.write_into(target);
     }
 
     fn get_size_hint(&self) -> usize {
-        self.map.get_size_hint()
+        self.smt.get_size_hint()
     }
 }
 
 impl Deserializable for StorageMap {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let smt = Smt::read_from(source)?;
-        Ok(StorageMap { map: smt })
+        let map = BTreeMap::read_from(source)?;
+        Ok(Self::from_btree_map(map))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use miden_crypto::{Felt, hash::rpo::RpoDigest, merkle::MerkleError};
+    use miden_crypto::{Felt, hash::rpo::RpoDigest};
 
     use super::{Deserializable, EMPTY_STORAGE_MAP_ROOT, Serializable, StorageMap, Word};
+    use crate::errors::StorageMapError;
 
     #[test]
     fn account_storage_serialization() {
@@ -165,7 +237,11 @@ mod tests {
         let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
 
         let bytes = storage_map.to_bytes();
-        assert_eq!(storage_map, StorageMap::read_from_bytes(&bytes).unwrap());
+        let deserialized_map = StorageMap::read_from_bytes(&bytes).unwrap();
+
+        assert_eq!(storage_map.root(), deserialized_map.root());
+
+        assert_eq!(storage_map, deserialized_map);
     }
 
     #[test]
@@ -189,6 +265,6 @@ mod tests {
         ];
 
         let error = StorageMap::with_entries(storage_map_leaves_2).unwrap_err();
-        assert_matches!(error, MerkleError::DuplicateValuesForIndex(_));
+        assert_matches!(error, StorageMapError::DuplicateKey { .. });
     }
 }

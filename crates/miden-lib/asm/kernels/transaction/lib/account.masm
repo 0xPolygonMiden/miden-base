@@ -584,7 +584,11 @@ export.get_map_item
     exec.get_item swapw
     # => [KEY, ROOT]
 
-    # fetch the VALUE located under KEY in the tree
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, ROOT]
+
+    # fetch the VALUE located under HASHED_KEY in the tree
     exec.smt::get
     # => [VALUE, ROOT]
 
@@ -629,13 +633,17 @@ export.set_map_item.12
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item
-    # is being updated
+    # duplicate the original KEY and the NEW_VALUE to be able to emit an event after the
+    # account storage item was updated
     movdn.12 movupw.2 dupw.2 dupw.2
     # => [KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
 
-    # set the NEW_VALUE under KEY in the tree
-    # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
+
+    # set the NEW_VALUE under HASHED_KEY in the tree
+    # note smt::set expects the stack to be [NEW_VALUE, HASHED_KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_MAP_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
 
@@ -1131,4 +1139,17 @@ export.validate_current_foreign_account
 
     # clean the stack
     dropw drop drop dropw
+end
+
+#! Hashes the provided map key before using it as the key in an SMT.
+#!
+#! Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
+#! tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
+#! storage map are hashed before they are inserted into the SMT, which creates a uniform distribution.
+#!
+#! Inputs:  [KEY]
+#! Outputs: [HASHED_KEY]
+proc.hash_map_key
+  hash
+  # => [HASHED_KEY]
 end
