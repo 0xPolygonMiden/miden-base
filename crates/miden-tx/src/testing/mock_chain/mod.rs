@@ -256,7 +256,7 @@ pub struct MockChain {
     /// Tree containing the latest `Nullifier`'s tree.
     nullifiers: Smt,
 
-    /// Tree containing the latest hash of each account.
+    /// Tree containing the latest state commitment of each account.
     account_tree: AccountTree,
 
     /// Objects that have not yet been finalized.
