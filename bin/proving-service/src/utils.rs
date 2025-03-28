@@ -13,7 +13,7 @@ use pingora::{Error, ErrorType, http::ResponseHeader, protocols::http::ServerSes
 use pingora_proxy::Session;
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
 
-use crate::{error::ProvingServiceError, proxy::metrics::QUEUE_DROP_COUNT};
+use crate::{commands::PROXY_HOST, error::ProvingServiceError, proxy::metrics::QUEUE_DROP_COUNT};
 
 pub const MIDEN_PROVING_SERVICE: &str = "miden-proving-service";
 
@@ -151,28 +151,18 @@ pub async fn create_response_with_error_message(
 /// Checks if a port is available for use.
 ///
 /// # Arguments
-/// * `host` - The host to bind to.
 /// * `port` - The port to check.
-/// * `port_name` - A descriptive name for the port (for logging purposes).
+/// * `service` - A descriptive name for the service (for logging purposes).
 ///
 /// # Returns
-/// * `Ok(())` if the port is available.
+/// * `Ok(TcpListener)` if the port is available.
 /// * `Err(ProvingServiceError::PortAlreadyInUse)` if the port is already in use.
 pub fn check_port_availability(
-    host: &str,
     port: u16,
-    port_name: &str,
-) -> Result<(), ProvingServiceError> {
-    let addr = format!("{}:{}", host, port);
-    match TcpListener::bind(&addr) {
-        Ok(_) => {
-            // Port is available, we can proceed
-            tracing::info!("Port {} is available for {}", port, port_name);
-            Ok(())
-        },
-        Err(e) => {
-            // Port is already in use, log an error and return an error
-            Err(ProvingServiceError::PortAlreadyInUse(e, port))
-        },
-    }
+    service: &str,
+) -> Result<std::net::TcpListener, ProvingServiceError> {
+    let addr = format!("{}:{}", PROXY_HOST, port);
+    TcpListener::bind(&addr)
+        .inspect(|_| tracing::debug!(%service, %port, "Port is available"))
+        .map_err(|err| ProvingServiceError::PortAlreadyInUse(err, port))
 }
