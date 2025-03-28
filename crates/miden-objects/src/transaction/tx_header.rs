@@ -8,6 +8,13 @@ use crate::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 
+/// A transaction header derived from a
+/// [`ProvenTransaction`](crate::transaction::ProvenTransaction).
+///
+/// The header is essentially a direct copy of the transaction's commitments, in particular the
+/// initial and final account state commitment as well as all nullifiers of consumed notes and all
+/// note IDs of created notes. While account updates may be aggregated and notes may be erased as
+/// part of batch and block building, the header retains the original transaction's data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionHeader {
     id: TransactionId,

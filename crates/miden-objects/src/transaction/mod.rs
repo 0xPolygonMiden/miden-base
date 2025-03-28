@@ -13,8 +13,8 @@ mod outputs;
 mod proven_tx;
 mod transaction_id;
 mod tx_args;
-mod tx_witness;
 mod tx_header;
+mod tx_witness;
 
 pub use chain_mmr::ChainMmr;
 pub use executed_tx::{ExecutedTransaction, TransactionMeasurements};
