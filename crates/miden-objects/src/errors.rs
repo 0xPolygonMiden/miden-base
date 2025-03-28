@@ -227,6 +227,18 @@ pub enum AccountDeltaError {
     NotAFungibleFaucetId(AccountId),
 }
 
+// STORAGE MAP ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum StorageMapError {
+    #[error("map entries contain key {key} twice with values {value0} and {value1}",
+      value0 = vm_core::utils::to_hex(Felt::elements_as_bytes(value0)),
+      value1 = vm_core::utils::to_hex(Felt::elements_as_bytes(value1))
+    )]
+    DuplicateKey { key: Digest, value0: Word, value1: Word },
+}
+
 // BATCH ACCOUNT UPDATE ERROR
 // ================================================================================================
 
