@@ -3,7 +3,7 @@ use std::time::Duration;
 use pingora::{prelude::sleep, server::ShutdownWatch, services::background::BackgroundService};
 use tonic::{async_trait, transport::Channel};
 use tonic_health::pb::health_client::HealthClient;
-use tracing::debug_span;
+use tracing::{debug_span, info};
 
 use super::{
     LoadBalancerState,
@@ -34,25 +34,43 @@ impl BackgroundService for LoadBalancerState {
     async fn start(&self, mut _shutdown: ShutdownWatch) {
         Box::pin(async move {
             loop {
+                info!("Starting health check");
                 // Create a new spawn to perform the health check
                 let span = debug_span!("proxy:health_check");
                 let _guard = span.enter();
+                {
+                    let mut workers = self.workers.write().await;
 
-                let mut workers = self.workers.write().await;
-                let initial_workers_len = workers.len();
+                    info!("workers: {:?}", workers);
 
-                // Perform health checks on workers and retain healthy ones
-                let healthy_workers = self.check_workers_health(workers.iter_mut()).await;
+                    // Perform health checks on workers and retain healthy ones
+                    self.check_workers_health(workers.iter_mut()).await;
 
-                // Update the worker list with healthy workers
-                *workers = healthy_workers;
+                    // Count workers before filtering
+                    let before_count = workers.len();
 
-                // Update the worker count and worker unhealhy count metrics
-                WORKER_COUNT.set(workers.len() as i64);
-                let unhealthy_workers = initial_workers_len - workers.len();
-                WORKER_UNHEALTHY.inc_by(unhealthy_workers as u64);
+                    info!("max health check retries: {}", self.max_health_check_retries);
 
-                // Sleep for the defined interval before the next health check
+                    // Filter out unhealthy workers that exceed retry limit
+                    workers.retain(|worker| {
+                        !worker.has_exceeded_failed_health_checks(self.max_health_check_retries)
+                    });
+
+                    // Log and update metrics for removed workers
+                    let removed_count = before_count - workers.len();
+                    if removed_count > 0 {
+                        WORKER_UNHEALTHY.inc_by(removed_count as u64);
+                        info!(
+                            "Removed {} workers that exceeded health check retry limit",
+                            removed_count
+                        );
+                    }
+
+                    // Update total worker count
+                    WORKER_COUNT.set(workers.len() as i64);
+
+                    // Sleep for the defined interval before the next health check
+                }
                 sleep(self.health_check_interval).await;
             }
         })
