@@ -22,6 +22,13 @@ pub struct Worker {
     backend: Backend,
     health_check_client: HealthClient<Channel>,
     is_available: bool,
+    health_status: WorkerHealthStatus,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum WorkerHealthStatus {
+    Healthy,
+    Unhealthy { failed_attempts: usize },
 }
 
 impl Worker {
@@ -43,6 +50,7 @@ impl Worker {
             backend: worker,
             is_available: true,
             health_check_client,
+            health_status: WorkerHealthStatus::Healthy,
         })
     }
 
@@ -56,9 +64,18 @@ impl Worker {
             .check(HealthCheckRequest { service: "".to_string() })
             .await
         {
-            Ok(response) => response.into_inner().status() == ServingStatus::Serving,
+            Ok(response) => {
+                let status = response.into_inner().status();
+                if status == ServingStatus::Serving {
+                    self.mark_as_healthy();
+                } else {
+                    self.mark_as_unhealthy();
+                }
+                status == ServingStatus::Serving
+            },
             Err(err) => {
                 error!("Failed to check worker health ({}): {}", self.address(), err);
+                self.mark_as_unhealthy();
                 false
             },
         }
@@ -70,6 +87,35 @@ impl Worker {
 
     pub fn set_availability(&mut self, is_available: bool) {
         self.is_available = is_available;
+    }
+
+    pub fn mark_as_unhealthy(&mut self) {
+        self.health_status = match &self.health_status {
+            WorkerHealthStatus::Healthy => WorkerHealthStatus::Unhealthy { failed_attempts: 1 },
+            WorkerHealthStatus::Unhealthy { failed_attempts } => {
+                WorkerHealthStatus::Unhealthy { failed_attempts: failed_attempts + 1 }
+            },
+        };
+        self.is_available = false;
+    }
+
+    /// Reset the health status to healthy
+    pub fn mark_as_healthy(&mut self) {
+        if self.health_status == WorkerHealthStatus::Healthy {
+            return;
+        }
+
+        self.health_status = WorkerHealthStatus::Healthy;
+        self.is_available = true;
+    }
+
+    pub fn has_exceeded_failed_health_checks(&self, max_health_check_retries: usize) -> bool {
+        match &self.health_status {
+            WorkerHealthStatus::Healthy => false,
+            WorkerHealthStatus::Unhealthy { failed_attempts } => {
+                failed_attempts >= &max_health_check_retries
+            },
+        }
     }
 }
 
