@@ -3,7 +3,7 @@ use std::time::Duration;
 use pingora::{prelude::sleep, server::ShutdownWatch, services::background::BackgroundService};
 use tonic::{async_trait, transport::Channel};
 use tonic_health::pb::health_client::HealthClient;
-use tracing::debug_span;
+use tracing::{debug_span, info};
 
 use super::LoadBalancerState;
 use crate::error::ProvingServiceError;
@@ -31,6 +31,7 @@ impl BackgroundService for LoadBalancerState {
     async fn start(&self, mut _shutdown: ShutdownWatch) {
         Box::pin(async move {
             loop {
+                info!("Starting health check");
                 // Create a new spawn to perform the health check
                 let span = debug_span!("proxy:health_check");
                 let _guard = span.enter();
