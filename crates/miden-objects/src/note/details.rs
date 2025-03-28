@@ -75,6 +75,15 @@ impl NoteDetails {
     }
 }
 
+// AS REF
+// ================================================================================================
+
+impl AsRef<NoteRecipient> for NoteDetails {
+    fn as_ref(&self) -> &NoteRecipient {
+        self.recipient()
+    }
+}
+
 // SERIALIZATION
 // ================================================================================================
 

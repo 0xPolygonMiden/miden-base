@@ -765,8 +765,8 @@ fn executed_transaction_output_notes() {
         tx_context.tx_args().advice_inputs().clone().map,
     );
 
-    tx_args.add_expected_output_note(&expected_output_note_2);
-    tx_args.add_expected_output_note(&expected_output_note_3);
+    tx_args.add_output_note_recipient(&expected_output_note_2);
+    tx_args.add_output_note_recipient(&expected_output_note_3);
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
