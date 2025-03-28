@@ -106,38 +106,33 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 ## Metrics
 
-The proxy includes a service that can optionally expose metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is controlled by the `enable_metrics` configuration option.
+The proxy includes a service that can optionally expose metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is enabled by specifying a metrics port.
 
 ### Enabling Prometheus Metrics
 
-To enable Prometheus metrics, set the `enable_metrics` field to `true`. This can be done via environment variables or command-line arguments.
+To enable Prometheus metrics, simply specify a port on which to expose the metrics. This can be done via environment variables or command-line arguments.
 
 #### Using Environment Variables
 
-Set the following environment variables:
+Set the following environment variable:
 
 ```bash
-export MPS_ENABLE_METRICS=true
-export MPS_METRICS_PORT=6192  # Optional, defaults to 6192
+export MPS_METRICS_PORT=6192  # Set to enable metrics on port 6192
 ```
+
+To disable metrics, simply don't set the MPS_METRICS_PORT environment variable.
 
 #### Using Command-Line Arguments
 
-Pass the `--enable-metrics` flag when starting the proxy:
+Specify a metrics port using the `--metrics-port` flag when starting the proxy:
 
 ```bash
-miden-proving-service start-proxy --enable-metrics [worker1] [worker2] ... [workerN]
+miden-proving-service start-proxy --metrics-port 6192 [worker1] [worker2] ... [workerN]
 ```
 
-You can also specify a custom Prometheus port using the `--metrics-port` flag:
+If you don't specify a metrics port, metrics will be disabled.
 
-```bash
-miden-proving-service start-proxy --enable-metrics --metrics-port 6192 [worker1] [worker2] ... [workerN]
-```
-
-When enabled, the Prometheus metrics will be available at `http://0.0.0.0:<metrics_port>`. By default, this is set to port `6192`.
-
-If metrics are not enabled, the proxy will log that Prometheus metrics are not enabled.
+When enabled, the Prometheus metrics will be available at `http://0.0.0.0:<metrics_port>` (e.g., `http://0.0.0.0:6192`).
 
 The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
 

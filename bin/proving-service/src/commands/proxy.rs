@@ -50,8 +50,9 @@ impl StartProxy {
         check_port_availability(self.proxy_config.port, "Proxy")?;
         check_port_availability(self.proxy_config.control_port, "Control")?;
 
-        if self.proxy_config.metrics_config.enable_metrics {
-            check_port_availability(self.proxy_config.metrics_config.metrics_port, "Metrics")?;
+        // First, check if the metrics port is specified (metrics enabled)
+        if let Some(metrics_port) = self.proxy_config.metrics_config.metrics_port {
+            check_port_availability(metrics_port, "Metrics")?;
         }
 
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
@@ -96,10 +97,9 @@ impl StartProxy {
         http_server_options.h2c = true;
         logic.server_options = Some(http_server_options);
 
-        // Enable metrics if enabled in the configuration
-        if self.proxy_config.metrics_config.enable_metrics {
-            let metrics_addr =
-                format!("{}:{}", PROXY_HOST, self.proxy_config.metrics_config.metrics_port);
+        // Enable Prometheus metrics if metrics_port is specified
+        if let Some(metrics_port) = self.proxy_config.metrics_config.metrics_port {
+            let metrics_addr = format!("{}:{}", PROXY_HOST, metrics_port);
             info!("Starting metrics service on {}", metrics_addr);
             let mut prometheus_service =
                 pingora::services::listening::Service::prometheus_http_service();
