@@ -137,75 +137,75 @@ impl RemoteBatchProver {
 
         // Because we checked the length matches we can zip the iterators up.
         // We expect the transactions to be in the same order.
-        for (proposed_tx, tx_header) in
+        for (proposed_header, proven_header) in
             proposed_txs.into_iter().zip(proven_batch.transaction_headers())
         {
-            if tx_header.account_id() != proposed_tx.account_id() {
+            if proven_header.account_id() != proposed_header.account_id() {
                 return Err(RemoteProverError::other(format!(
                     "transaction header of {} has a different account ID than the proposed transaction",
-                    proposed_tx.id()
+                    proposed_header.id()
                 )));
             }
 
-            if tx_header.initial_state_commitment()
-                != proposed_tx.account_update().initial_state_commitment()
+            if proven_header.initial_state_commitment()
+                != proposed_header.account_update().initial_state_commitment()
             {
                 return Err(RemoteProverError::other(format!(
                     "transaction header of {} has a different initial state commitment than the proposed transaction",
-                    proposed_tx.id()
+                    proposed_header.id()
                 )));
             }
 
-            if tx_header.final_state_commitment()
-                != proposed_tx.account_update().final_state_commitment()
+            if proven_header.final_state_commitment()
+                != proposed_header.account_update().final_state_commitment()
             {
                 return Err(RemoteProverError::other(format!(
                     "transaction header of {} has a different final state commitment than the proposed transaction",
-                    proposed_tx.id()
+                    proposed_header.id()
                 )));
             }
 
             // Check input notes
-            if proposed_tx.input_notes().num_notes() != tx_header.input_notes().len() {
+            if proposed_header.input_notes().num_notes() != proven_header.input_notes().len() {
                 return Err(RemoteProverError::other(format!(
                     "transaction header of {} has a different number of input notes than the proposed transaction",
-                    proposed_tx.id()
+                    proposed_header.id()
                 )));
             }
 
             // Because we checked the length matches we can zip the iterators up.
             // We expect the nullifiers to be in the same order.
             for (proposed_nullifier, header_nullifier) in
-                proposed_tx.nullifiers().zip(tx_header.input_notes().iter())
+                proposed_header.nullifiers().zip(proven_header.input_notes().iter())
             {
                 if proposed_nullifier != *header_nullifier {
                     return Err(RemoteProverError::other(format!(
                         "transaction header of {} has a different set of input notes than the proposed transaction",
-                        proposed_tx.id()
+                        proposed_header.id()
                     )));
                 }
             }
 
             // Check output notes
-            if proposed_tx.output_notes().num_notes() != tx_header.output_notes().len() {
+            if proposed_header.output_notes().num_notes() != proven_header.output_notes().len() {
                 return Err(RemoteProverError::other(format!(
                     "transaction header of {} has a different number of output notes than the proposed transaction",
-                    proposed_tx.id()
+                    proposed_header.id()
                 )));
             }
 
             // Because we checked the length matches we can zip the iterators up.
             // We expect the note IDs to be in the same order.
-            for (proposed_note_id, header_note_id) in proposed_tx
+            for (proposed_note_id, header_note_id) in proposed_header
                 .output_notes()
                 .iter()
                 .map(OutputNote::id)
-                .zip(tx_header.output_notes().iter())
+                .zip(proven_header.output_notes().iter())
             {
                 if proposed_note_id != *header_note_id {
                     return Err(RemoteProverError::other(format!(
                         "transaction header of {} has a different set of input notes than the proposed transaction",
-                        proposed_tx.id()
+                        proposed_header.id()
                     )));
                 }
             }

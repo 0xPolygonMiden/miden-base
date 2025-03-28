@@ -29,6 +29,7 @@ use crate::{
 /// - A list of new notes created in this block. For private notes, the block contains only note IDs
 ///   and note metadata while for public notes the full note details are included.
 /// - A list of new nullifiers created for all notes that were consumed in the block.
+/// - A list of transaction headers that were included in the block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBlock {
     /// The header of the block, committing to the current state of the chain.
@@ -49,6 +50,11 @@ pub struct ProvenBlock {
 
 impl ProvenBlock {
     /// Returns a new [`ProvenBlock`] instantiated from the provided components.
+    ///
+    /// Note that the transaction headers must be the flattened sets of transactions of each proven
+    /// batch in the proposed block. This is not enforced by this type. The rationale for this
+    /// requirement is that it allows a client to cheaply validate the correctness of the
+    /// transactions in a proven block returned by a remote prover.
     ///
     /// # Warning
     ///

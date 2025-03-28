@@ -31,7 +31,10 @@ impl ProvenBatch {
     ///
     /// Note that the transaction headers must be in the same order as the transactions in the
     /// proposed batch. The order of the nullifiers and output note IDs within the header must also
-    /// match the order of input and output notes in the corresponding transaction.
+    /// match the order of input and output notes in the corresponding transaction. This is not
+    /// enforced by this type. The rationale for this requirement is that it allows a client to
+    /// cheaply validate the correctness of the transactions in a proven batch returned by a remote
+    /// prover.
     #[allow(clippy::too_many_arguments)]
     pub fn new_unchecked(
         id: BatchId,

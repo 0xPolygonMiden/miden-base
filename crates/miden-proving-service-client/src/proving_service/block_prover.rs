@@ -1,10 +1,12 @@
 use alloc::{
     string::{String, ToString},
     sync::Arc,
+    vec::Vec,
 };
 
 use miden_objects::{
     block::{ProposedBlock, ProvenBlock},
+    transaction::TransactionHeader,
     utils::{Deserializable, DeserializationError, Serializable},
 };
 use tokio::sync::Mutex;
@@ -92,6 +94,14 @@ impl RemoteBlockProver {
             })?
             .clone();
 
+        // Create the set of the transaction headers we pass to the prover for later validation.
+        let proposed_txs: Vec<_> = proposed_block
+            .batches()
+            .iter()
+            .flat_map(|batch| batch.transaction_headers())
+            .cloned()
+            .collect();
+
         let request = tonic::Request::new(proposed_block.into());
 
         let response = client
@@ -107,7 +117,39 @@ impl RemoteBlockProver {
             )
         })?;
 
+        Self::validate_tx_headers(&proven_block, proposed_txs)?;
+
         Ok(proven_block)
+    }
+
+    /// Validates that the proven block's transaction headers are consistent with the transactions
+    /// passed in the proposed block.
+    fn validate_tx_headers(
+        proven_block: &ProvenBlock,
+        proposed_txs: Vec<TransactionHeader>,
+    ) -> Result<(), RemoteProverError> {
+        if proposed_txs.len() != proven_block.transaction_headers().len() {
+            return Err(RemoteProverError::other(format!(
+                "remote prover returned {} transaction headers but {} transactions were passed as part of the proposed block",
+                proven_block.transaction_headers().len(),
+                proposed_txs.len()
+            )));
+        }
+
+        // Because we checked the length matches we can zip the iterators up.
+        // We expect the transaction headers to be in the same order.
+        for (proposed_header, proven_header) in
+            proposed_txs.iter().zip(proven_block.transaction_headers())
+        {
+            if proposed_header != proven_header {
+                return Err(RemoteProverError::other(format!(
+                    "transaction header with id {} does not match header of the transaction in the proposed block",
+                    proposed_header.id()
+                )));
+            }
+        }
+
+        Ok(())
     }
 }
 
