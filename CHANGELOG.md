@@ -4,6 +4,12 @@
 
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
 
+## 0.8.1 (2025-03-26)
+
+### Changes
+
+- [BREAKING] Changed `TransactionArgs` API to accept `AsRef<NoteRecipient>` for extending the advice map in relation to output notes (#1251).
+
 ## 0.8.0 (2025-03-21)
 
 ### Features

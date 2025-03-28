@@ -1,5 +1,4 @@
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
-use core::ops::Deref;
 
 use assembly::{Assembler, Compile};
 use miden_crypto::merkle::InnerNodeInfo;
@@ -7,7 +6,7 @@ use miden_crypto::merkle::InnerNodeInfo;
 use super::{Digest, Felt, Word};
 use crate::{
     MastForest, MastNodeId, TransactionScriptError,
-    note::{NoteDetails, NoteId},
+    note::{NoteId, NoteRecipient},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::{AdviceInputs, AdviceMap, Program},
 };
@@ -96,22 +95,21 @@ impl TransactionArgs {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Populates the advice inputs with the specified note details.
+    /// Populates the advice inputs with the expected recipient data for creating output notes.
     ///
     /// The advice inputs' map is extended with the following keys:
     ///
-    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num).
-    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
-    ///   adding ONE to its most significant element.
+    /// - recipient_digest |-> recipient details (inputs_hash, script_root, serial_num).
+    /// - inputs_commitment |-> inputs.
     /// - script_root |-> script.
-    pub fn add_expected_output_note<T: Deref<Target = NoteDetails>>(&mut self, note: &T) {
-        let recipient = note.recipient();
-        let inputs = note.inputs();
-        let script = note.script();
+    pub fn add_output_note_recipient<T: AsRef<NoteRecipient>>(&mut self, note_recipient: T) {
+        let note_recipient = note_recipient.as_ref();
+        let inputs = note_recipient.inputs();
+        let script = note_recipient.script();
         let script_encoded: Vec<Felt> = script.into();
 
         let new_elements = [
-            (recipient.digest(), recipient.to_elements()),
+            (note_recipient.digest(), note_recipient.to_elements()),
             (inputs.commitment(), inputs.format_for_advice()),
             (script.root(), script_encoded),
         ];
@@ -119,21 +117,20 @@ impl TransactionArgs {
         self.advice_inputs.extend_map(new_elements);
     }
 
-    /// Populates the advice inputs with the specified note details.
+    /// Populates the advice inputs with the specified note recipient details.
     ///
     /// The advice inputs' map is extended with the following keys:
     ///
-    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num)
-    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
-    ///   adding ONE to its most significant element.
-    /// - script_root |-> script
-    pub fn extend_expected_output_notes<T, L>(&mut self, notes: L)
+    /// - recipient |-> recipient details (inputs_hash, script_root, serial_num).
+    /// - inputs_commitment |-> inputs.
+    /// - script_root |-> script.
+    pub fn extend_output_note_recipients<T, L>(&mut self, notes: L)
     where
         L: IntoIterator<Item = T>,
-        T: Deref<Target = NoteDetails>,
+        T: AsRef<NoteRecipient>,
     {
         for note in notes {
-            self.add_expected_output_note(&note);
+            self.add_output_note_recipient(note);
         }
     }
 
