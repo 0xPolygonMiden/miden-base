@@ -5,7 +5,7 @@ use crate::{
     account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
-    transaction::{OutputNote, TransactionId},
+    transaction::{OutputNote, TransactionHeader, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -29,6 +29,7 @@ use crate::{
 /// - A list of new notes created in this block. For private notes, the block contains only note IDs
 ///   and note metadata while for public notes the full note details are included.
 /// - A list of new nullifiers created for all notes that were consumed in the block.
+/// - A list of transaction headers that were included in the block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBlock {
     /// The header of the block, committing to the current state of the chain.
@@ -42,10 +43,18 @@ pub struct ProvenBlock {
 
     /// Nullifiers created by the transactions in this block through the consumption of notes.
     created_nullifiers: Vec<Nullifier>,
+
+    /// The aggregated verified transactions of all batches.
+    transactions: Vec<TransactionHeader>,
 }
 
 impl ProvenBlock {
     /// Returns a new [`ProvenBlock`] instantiated from the provided components.
+    ///
+    /// Note that the transaction headers must be the flattened sets of transactions of each proven
+    /// batch in the proposed block. This is not enforced by this type. The rationale for this
+    /// requirement is that it allows a client to cheaply validate the correctness of the
+    /// transactions in a proven block returned by a remote prover.
     ///
     /// # Warning
     ///
@@ -56,12 +65,14 @@ impl ProvenBlock {
         updated_accounts: Vec<BlockAccountUpdate>,
         output_note_batches: Vec<OutputNoteBatch>,
         created_nullifiers: Vec<Nullifier>,
+        transactions: Vec<TransactionHeader>,
     ) -> Self {
         Self {
             header,
             updated_accounts,
             output_note_batches,
             created_nullifiers,
+            transactions,
         }
     }
 
@@ -133,6 +144,11 @@ impl ProvenBlock {
                 .map(|transaction_id| (*transaction_id, update.account_id()))
         })
     }
+
+    /// Returns the [`TransactionHeader`]s of this block.
+    pub fn transaction_headers(&self) -> &[TransactionHeader] {
+        &self.transactions
+    }
 }
 
 impl Serializable for ProvenBlock {
@@ -141,6 +157,7 @@ impl Serializable for ProvenBlock {
         self.updated_accounts.write_into(target);
         self.output_note_batches.write_into(target);
         self.created_nullifiers.write_into(target);
+        self.transactions.write_into(target);
     }
 }
 
@@ -151,6 +168,7 @@ impl Deserializable for ProvenBlock {
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
+            transactions: <Vec<TransactionHeader>>::read_from(source)?,
         };
 
         Ok(block)

@@ -6,7 +6,7 @@ use crate::{
     batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
     note::Nullifier,
-    transaction::{InputNoteCommitment, InputNotes, OutputNote},
+    transaction::{InputNoteCommitment, InputNotes, OutputNote, TransactionHeader},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -20,6 +20,7 @@ pub struct ProvenBatch {
     input_notes: InputNotes<InputNoteCommitment>,
     output_notes: Vec<OutputNote>,
     batch_expiration_block_num: BlockNumber,
+    transactions: Vec<TransactionHeader>,
 }
 
 impl ProvenBatch {
@@ -27,6 +28,13 @@ impl ProvenBatch {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [`ProvenBatch`] from the provided parts.
+    ///
+    /// Note that the transaction headers must be in the same order as the transactions in the
+    /// proposed batch. The order of the nullifiers and output note IDs within the header must also
+    /// match the order of input and output notes in the corresponding transaction. This is not
+    /// enforced by this type. The rationale for this requirement is that it allows a client to
+    /// cheaply validate the correctness of the transactions in a proven batch returned by a remote
+    /// prover.
     #[allow(clippy::too_many_arguments)]
     pub fn new_unchecked(
         id: BatchId,
@@ -36,6 +44,7 @@ impl ProvenBatch {
         input_notes: InputNotes<InputNoteCommitment>,
         output_notes: Vec<OutputNote>,
         batch_expiration_block_num: BlockNumber,
+        transactions: Vec<TransactionHeader>,
     ) -> Self {
         Self {
             id,
@@ -45,6 +54,7 @@ impl ProvenBatch {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            transactions,
         }
     }
 
@@ -106,6 +116,19 @@ impl ProvenBatch {
     pub fn output_notes(&self) -> &[OutputNote] {
         &self.output_notes
     }
+
+    /// Returns the [`TransactionHeader`]s of this batch.
+    pub fn transaction_headers(&self) -> &[TransactionHeader] {
+        &self.transactions
+    }
+
+    // MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes self and returns the contained [`TransactionHeader`]s of this batch.
+    pub fn into_transaction_headers(self) -> Vec<TransactionHeader> {
+        self.transactions
+    }
 }
 
 // SERIALIZATION
@@ -120,6 +143,7 @@ impl Serializable for ProvenBatch {
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
         self.batch_expiration_block_num.write_into(target);
+        self.transactions.write_into(target);
     }
 }
 
@@ -132,6 +156,7 @@ impl Deserializable for ProvenBatch {
         let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
         let output_notes = Vec::<OutputNote>::read_from(source)?;
         let batch_expiration_block_num = BlockNumber::read_from(source)?;
+        let transactions = <Vec<TransactionHeader>>::read_from(source)?;
 
         Ok(Self::new_unchecked(
             id,
@@ -141,6 +166,7 @@ impl Deserializable for ProvenBatch {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            transactions,
         ))
     }
 }

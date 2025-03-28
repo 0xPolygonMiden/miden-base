@@ -34,9 +34,6 @@ pub struct ProvenTransaction {
     output_notes: OutputNotes,
 
     /// [`BlockNumber`] of the transaction's reference block.
-    ///
-    /// This is not needed for proving the transaction, but it is useful for the node to lookup the
-    /// block.
     ref_block_num: BlockNumber,
 
     /// The block commitment of the transaction's reference block.
@@ -91,7 +88,7 @@ impl ProvenTransaction {
     }
 
     /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
-    pub fn get_unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
+    pub fn unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
         self.input_notes.iter().filter_map(|note| note.header())
     }
 
@@ -103,7 +100,7 @@ impl ProvenTransaction {
     /// Returns an iterator over the nullifiers of all input notes in this transaction.
     ///
     /// This includes both authenticated and unauthenticated notes.
-    pub fn get_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
+    pub fn nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
         self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 

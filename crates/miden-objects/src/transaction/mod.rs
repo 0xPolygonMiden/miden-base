@@ -13,6 +13,7 @@ mod outputs;
 mod proven_tx;
 mod transaction_id;
 mod tx_args;
+mod tx_header;
 mod tx_witness;
 
 pub use chain_mmr::ChainMmr;
@@ -24,4 +25,5 @@ pub use proven_tx::{
 };
 pub use transaction_id::TransactionId;
 pub use tx_args::{TransactionArgs, TransactionScript};
+pub use tx_header::TransactionHeader;
 pub use tx_witness::TransactionWitness;
