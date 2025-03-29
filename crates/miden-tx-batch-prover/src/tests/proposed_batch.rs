@@ -502,7 +502,7 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
         BTreeMap::default(),
     )?;
 
-    // We expecte note1 to be erased from the input/output notes as it is created and consumed
+    // We expected note1 to be erased from the input/output notes as it is created and consumed
     // in the batch.
     let mut expected_output_notes = [note0, note2, note3];
     // We expect a vector sorted by NoteId.
