@@ -11,8 +11,8 @@ use miden_lib::{
             ACCOUNT_DATA_LENGTH, ACCT_CODE_COMMITMENT_OFFSET, ACCT_ID_AND_NONCE_OFFSET,
             ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
             ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_OFFSET, ASSET_BOOKKEEPING_SIZE,
-            ASSET_ISSUER_PREFIX_OFFSET, ASSET_MIN_PTR, ASSET_NEXT_PTR, NATIVE_ACCOUNT_DATA_PTR,
-            NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
+            ASSET_ISSUER_PREFIX_OFFSET, ASSET_MIN_PTR, ASSET_NEXT_OFFSET_PTR, ASSET_PTR_MAP_MIN,
+            NATIVE_ACCOUNT_DATA_PTR, NUM_ACCT_PROCEDURES_OFFSET, NUM_ACCT_STORAGE_SLOTS_OFFSET,
         },
     },
 };
@@ -792,11 +792,15 @@ fn test_fpi_asset_memory() {
     let token_ptr = u32::try_from(process.stack.get(0)).unwrap();
     let treasury_cap_ptr = u32::try_from(process.stack.get(1)).unwrap();
 
+    // Dereference the pointers once to get the actual pointers.
+    let token_ptr = read_mem_felt(process, token_ptr).as_int() as u32;
+    let treasury_cap_ptr = read_mem_felt(process, treasury_cap_ptr).as_int() as u32;
+
+    let next_offset = read_mem_felt(process, ASSET_NEXT_OFFSET_PTR).as_int() as u32;
+    assert_eq!(next_offset, 2);
     assert_eq!(
-        read_mem_felt(process, ASSET_NEXT_PTR),
-        Felt::from(
-            ASSET_MIN_PTR + 2 * ASSET_BOOKKEEPING_SIZE + TOKEN_NUM_FIELDS + TREASURY_CAP_NUM_FIELDS
-        )
+        read_mem_felt(process, ASSET_PTR_MAP_MIN + next_offset).as_int() as u32,
+        ASSET_MIN_PTR + 2 * ASSET_BOOKKEEPING_SIZE + TOKEN_NUM_FIELDS + TREASURY_CAP_NUM_FIELDS
     );
 
     // TREASURY CAP MEMORY ASSERTIONS

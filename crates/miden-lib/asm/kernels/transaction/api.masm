@@ -1098,22 +1098,28 @@ end
 export.create_asset
   dup movdn.2 exec.memory::get_next_asset_ptr
   # => [asset_ptr, type_id, num_fields]
+  dup movdn.3
+  # => [asset_ptr, type_id, num_fields, asset_ptr]
+
+  # dereference asset ptr which should be valid
+  mem_load
+  # => [asset_mem_ptr, type_id, num_fields, asset_ptr]
 
   exec.memory::generate_asset_id
-  # => [ASSET_ID, asset_ptr, type_id, num_fields]
+  # => [ASSET_ID, asset_mem_ptr, type_id, num_fields, asset_ptr]
 
   dup.4 exec.memory::set_asset_id
-  # => [asset_ptr, type_id, num_fields]
+  # => [asset_mem_ptr, type_id, num_fields, asset_ptr]
 
   # Get the _current_ account's ID, which becomes the issuer of the asset.
   exec.memory::get_account_id dup.2
-  # => [asset_ptr, account_id_prefix, account_id_suffix, asset_ptr, type_id, num_fields]
+  # => [asset_mem_ptr, account_id_prefix, account_id_suffix, asset_mem_ptr, type_id, num_fields, asset_ptr]
 
   exec.memory::set_asset_issuer dup movdn.2
-  # => [asset_ptr, type_id, asset_ptr, num_fields]
+  # => [asset_mem_ptr, type_id, asset_mem_ptr, num_fields, asset_ptr]
 
-  exec.memory::set_asset_type dup movdn.2
-  # => [asset_ptr, num_fields, asset_ptr]
+  exec.memory::set_asset_type
+  # => [asset_mem_ptr, num_fields, asset_ptr]
 
   exec.memory::set_asset_num_fields
   # => [asset_ptr]
@@ -1124,8 +1130,11 @@ end
 #! Inputs:  [asset_ptr, field_idx, field_value]
 #! Outputs: []
 export.set_asset_field
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr, field_idx, field_value]
+
   dup exec.assert_asset_issuer
-  # => [asset_ptr, field_idx, field_value]
+  # => [asset_mem_ptr, field_idx, field_value]
 
   exec.memory::compute_asset_field_ptr mem_store
   # => []
@@ -1136,9 +1145,12 @@ end
 #! Inputs:  [asset_ptr, field_idx]
 #! Outputs: [field_value]
 export.get_asset_field
-  # TODO: Probably optional?
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr, field_idx]
+
+  # TODO: Not 100% necessary.
   dup exec.assert_asset_issuer
-  # => [asset_ptr, field_idx]
+  # => [asset_mem_ptr, field_idx]
 
   exec.memory::compute_asset_field_ptr mem_load
   # => []
@@ -1176,15 +1188,18 @@ end
 #! Inputs:  [asset_ptr]
 #! Outputs: []
 export.move_asset_to_account
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
   # this asserts both the validity of the asset and that only the issuing package can control transfers of an asset
   dup exec.assert_asset_issuer
-  # => [asset_ptr]
+  # => [asset_mem_ptr]
 
   exec.memory::get_acct_vault_root
-  # => [ACCOUNT_VAULT_ROOT, asset_ptr]
+  # => [ACCOUNT_VAULT_ROOT, asset_mem_ptr]
 
   dup.4 exec.memory::get_asset_id
-  # => [ASSET_ID, ACCOUNT_VAULT_ROOT, asset_ptr]
+  # => [ASSET_ID, ACCOUNT_VAULT_ROOT, asset_mem_ptr]
 
   movup.8 exec.memory::compute_asset_hash
   # => [ASSET_HASH, ASSET_ID, ACCOUNT_VAULT_ROOT]
@@ -1203,23 +1218,44 @@ export.move_asset_to_account
   # TODO: Clear asset memory, invalidate ptr
 end
 
+#! Gets the issuer of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [account_id_prefix, account_id_suffix]
 export.get_asset_issuer
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
   exec.memory::get_asset_issuer
   # truncate stack
   movup.2 drop
 end
 
+#! Gets the type of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [type_id]
 export.get_asset_type
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
   exec.memory::get_asset_type
 end
 
+#! Gets the number of fields of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [num_fields]
 export.get_asset_num_fields
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
   exec.memory::get_asset_num_fields
 end
 
 #! Asserts the currently accessing account is the account that issued the asset.
 #!
-#! Inputs:  [asset_ptr]
+#! Inputs:  [asset_mem_ptr]
 #! Outputs: []
 proc.assert_asset_issuer
   exec.memory::get_asset_issuer
@@ -1230,18 +1266,6 @@ proc.assert_asset_issuer
 
   # assert only the account that defines the asset can modify it
   exec.account::is_id_equal assert.err=987
-  # => []
-end
-
-#! Asserts the validity of an asset ptr by checking that its ASSET_ID != EMPTY_WORD
-#!
-#! Inputs:  [asset_ptr]
-#! Outputs: []
-proc.assert_valid_asset
-  exec.memory::get_asset_id padw
-  # => [EMPTY_WORD, ASSET_ID]
-
-  eqw assertz.err=523 dropw dropw
   # => []
 end
 
