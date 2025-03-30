@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 40] = [
+pub const KERNEL0_PROCEDURES: [Digest; 45] = [
     // account_get_initial_commitment
     digest!("0x920898348bacd6d98a399301eb308478fd32b32eab019a5a6ef7a6b44abb61f6"),
     // account_get_current_commitment
@@ -80,11 +80,21 @@ pub const KERNEL0_PROCEDURES: [Digest; 40] = [
     // tx_update_expiration_block_num
     digest!("0x11ca0c8662d20e6b05fbff4a20423bfa52595862b6c7c5c5ef1cc0a917e4cb62"),
     // create_asset
-    digest!("0x487b64bef66fd70e81cdea89ea929ade797ed5c768d19dc05a233280f14c4bdc"),
+    digest!("0x8de7facdeb71759738410965476e647aad7360bcb92887eca7eeae8473ba57a2"),
     // consume_one_time_witness
     digest!("0x77e9ce113de111792ec857ef3fadefdde2e3cbad6950a2d72faf3dfd9150005d"),
     // set_asset_field
     digest!("0xa00768d97e6e865fde8d4c18acf3c63dee1440cf646f443aa7d082d86dc2dfea"),
     // get_native_account_id
     digest!("0xc9180623881da1c2bde78026708404a949f32ca93e033fdc45ff1c8f7e28b63f"),
+    // move_asset_to_account
+    digest!("0x1b4a13938696759ecdd8778d82627551a7f441d1e7012d66a6c40106fd0eb226"),
+    // get_asset_issuer
+    digest!("0x36511fd0e682f11b996206791d70153fed7ee29330bb8f1c5059255801027264"),
+    // get_asset_type
+    digest!("0xaaa879822c42d9f4ad83836a929dc306153b6ccbe510299e25d0c37b63358d2f"),
+    // get_asset_num_fields
+    digest!("0xb31c694bc75d77140d772ad558176df9d914788255283707506f1063272513ea"),
+    // get_asset_field
+    digest!("0x0a832fdb6d17c6bf2bd8ee96c2f4113223fd15e91b30955607331c1a209f082d"),
 ];

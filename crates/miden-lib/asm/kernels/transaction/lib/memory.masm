@@ -1,6 +1,8 @@
 use.kernel::account
 use.kernel::constants
 
+use.std::crypto::hashes::rpo
+
 # ERRORS
 # =================================================================================================
 
@@ -1589,7 +1591,9 @@ end
 #! Inputs:  [num_fields]
 #! Outputs: [asset_ptr]
 export.get_next_asset_ptr
-    # TODO: Assert ptr is in valid range.
+    # Assert num_fields % 8 == 0 (we can later allow arbitrary field nums and compute the next multiple instead)
+    dup push.8 u32mod assertz.err=163
+    # => [num_fields]
 
     push.ASSET_NEXT_PTR mem_load
     # => [asset_ptr, num_fields]
@@ -1602,6 +1606,8 @@ export.get_next_asset_ptr
 
     add add
     # => [next_asset_ptr, asset_ptr]
+
+    # TODO: Assert ptr is in valid range.
 
     push.ASSET_NEXT_PTR mem_store
     # => [asset_ptr]
@@ -1624,12 +1630,44 @@ export.compute_asset_field_ptr
   # => [asset_field_ptr]
 end
 
+#! Computes the asset hash.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [ASSET_HASH]
+export.compute_asset_hash
+  dup dup
+  # => [asset_ptr, asset_ptr, asset_hash_start_ptr]
+
+  exec.get_asset_num_fields push.ASSET_BOOKKEEPING_SIZE add add
+  # => [asset_hash_end_ptr, asset_hash_start_ptr]
+  swap
+  # => [asset_hash_start_ptr, asset_hash_end_ptr]
+
+  # initialize hasher state
+  padw padw padw
+  # => [pad(12), asset_hash_start_ptr, asset_hash_end_ptr]
+
+  exec.rpo::absorb_double_words_from_memory
+  exec.rpo::squeeze_digest
+  # => [ASSET_HASH, asset_hash_start_ptr, asset_hash_end_ptr]
+  movup.4 drop movup.4 drop
+  # => [ASSET_HASH]
+end
+
 #! Sets the asset ID of an asset.
 #!
 #! Inputs:  [asset_ptr, ASSET_ID]
 #! Outputs: []
 export.set_asset_id
   mem_storew dropw
+end
+
+#! Gets the asset ID of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [ASSET_ID]
+export.get_asset_id
+  padw movup.4 mem_loadw
 end
 
 #! Sets the issuer of an asset.
@@ -1668,6 +1706,15 @@ export.set_asset_type
   # => []
 end
 
+#! Gets the type of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [type_id]
+export.get_asset_type
+  push.ASSET_TYPE_ID_OFFSET add mem_load
+  # => []
+end
+
 #! Sets the number of fields of an asset.
 #!
 #! Inputs:  [asset_ptr, num_fields]
@@ -1675,6 +1722,15 @@ end
 export.set_asset_num_fields
   push.ASSET_NUM_FIELDS_OFFSET add mem_store
   # => []
+end
+
+#! Gets the number of fields of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [num_fields]
+export.get_asset_num_fields
+  push.ASSET_NUM_FIELDS_OFFSET add mem_load
+  # => [num_fields]
 end
 
 # KERNEL DATA
