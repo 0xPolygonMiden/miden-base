@@ -19,6 +19,7 @@ mod test_fpi;
 mod test_note;
 mod test_prologue;
 mod test_tx;
+mod test_user_asset;
 
 // HELPER MACROS
 // ================================================================================================
