@@ -117,8 +117,8 @@ impl ProvenBatch {
         &self.output_notes
     }
 
-    /// Returns the [`TransactionHeader`]s of this batch.
-    pub fn transaction_headers(&self) -> &[TransactionHeader] {
+    /// Returns the [`TransactionHeader`]s included in this batch.
+    pub fn transactions(&self) -> &[TransactionHeader] {
         &self.transactions
     }
 
@@ -126,7 +126,7 @@ impl ProvenBatch {
     // --------------------------------------------------------------------------------------------
 
     /// Consumes self and returns the contained [`TransactionHeader`]s of this batch.
-    pub fn into_transaction_headers(self) -> Vec<TransactionHeader> {
+    pub fn into_transactions(self) -> Vec<TransactionHeader> {
         self.transactions
     }
 }

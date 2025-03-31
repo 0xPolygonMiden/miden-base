@@ -2,10 +2,9 @@ use alloc::vec::Vec;
 
 use crate::{
     Digest,
-    account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
-    transaction::{OutputNote, TransactionHeader, TransactionId},
+    transaction::{OutputNote, TransactionHeader},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -134,19 +133,8 @@ impl ProvenBlock {
         &self.created_nullifiers
     }
 
-    /// Returns an iterator over all transactions which affected accounts in the block with
-    /// their corresponding account IDs.
-    pub fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
-        self.updated_accounts.iter().flat_map(|update| {
-            update
-                .transactions()
-                .iter()
-                .map(|transaction_id| (*transaction_id, update.account_id()))
-        })
-    }
-
-    /// Returns the [`TransactionHeader`]s of this block.
-    pub fn transaction_headers(&self) -> &[TransactionHeader] {
+    /// Returns the [`TransactionHeader`]s of all transactions included in this block.
+    pub fn transactions(&self) -> &[TransactionHeader] {
         &self.transactions
     }
 }

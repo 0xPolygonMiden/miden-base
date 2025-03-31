@@ -127,10 +127,10 @@ impl RemoteBatchProver {
         proven_batch: &ProvenBatch,
         proposed_txs: Vec<Arc<ProvenTransaction>>,
     ) -> Result<(), RemoteProverError> {
-        if proposed_txs.len() != proven_batch.transaction_headers().len() {
+        if proposed_txs.len() != proven_batch.transactions().len() {
             return Err(RemoteProverError::other(format!(
                 "remote prover returned {} transaction headers but {} transactions were passed as part of the proposed batch",
-                proven_batch.transaction_headers().len(),
+                proven_batch.transactions().len(),
                 proposed_txs.len()
             )));
         }
@@ -138,7 +138,7 @@ impl RemoteBatchProver {
         // Because we checked the length matches we can zip the iterators up.
         // We expect the transactions to be in the same order.
         for (proposed_header, proven_header) in
-            proposed_txs.into_iter().zip(proven_batch.transaction_headers())
+            proposed_txs.into_iter().zip(proven_batch.transactions())
         {
             if proven_header.account_id() != proposed_header.account_id() {
                 return Err(RemoteProverError::other(format!(

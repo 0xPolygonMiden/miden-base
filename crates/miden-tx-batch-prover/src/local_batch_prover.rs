@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     batch::{ProposedBatch, ProvenBatch},
-    transaction::{InputNoteCommitment, OutputNote, TransactionHeader},
+    transaction::TransactionHeader,
 };
 use miden_tx::TransactionVerifier;
 
@@ -51,14 +51,7 @@ impl LocalBatchProver {
                 ProvenBatchError::TransactionVerificationFailed { transaction_id: tx.id(), source }
             })?;
 
-            tx_headers.push(TransactionHeader::new_unchecked(
-                tx.id(),
-                tx.account_id(),
-                tx.account_update().initial_state_commitment(),
-                tx.account_update().final_state_commitment(),
-                tx.input_notes().iter().map(InputNoteCommitment::nullifier).collect(),
-                tx.output_notes().iter().map(OutputNote::id).collect(),
-            ));
+            tx_headers.push(TransactionHeader::from(tx.as_ref()));
         }
 
         Ok(ProvenBatch::new_unchecked(

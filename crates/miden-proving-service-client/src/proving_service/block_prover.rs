@@ -5,6 +5,7 @@ use alloc::{
 };
 
 use miden_objects::{
+    batch::ProvenBatch,
     block::{ProposedBlock, ProvenBlock},
     transaction::TransactionHeader,
     utils::{Deserializable, DeserializationError, Serializable},
@@ -98,7 +99,7 @@ impl RemoteBlockProver {
         let proposed_txs: Vec<_> = proposed_block
             .batches()
             .iter()
-            .flat_map(|batch| batch.transaction_headers())
+            .flat_map(ProvenBatch::transactions)
             .cloned()
             .collect();
 
@@ -128,18 +129,17 @@ impl RemoteBlockProver {
         proven_block: &ProvenBlock,
         proposed_txs: Vec<TransactionHeader>,
     ) -> Result<(), RemoteProverError> {
-        if proposed_txs.len() != proven_block.transaction_headers().len() {
+        if proposed_txs.len() != proven_block.transactions().len() {
             return Err(RemoteProverError::other(format!(
                 "remote prover returned {} transaction headers but {} transactions were passed as part of the proposed block",
-                proven_block.transaction_headers().len(),
+                proven_block.transactions().len(),
                 proposed_txs.len()
             )));
         }
 
         // Because we checked the length matches we can zip the iterators up.
         // We expect the transaction headers to be in the same order.
-        for (proposed_header, proven_header) in
-            proposed_txs.iter().zip(proven_block.transaction_headers())
+        for (proposed_header, proven_header) in proposed_txs.iter().zip(proven_block.transactions())
         {
             if proposed_header != proven_header {
                 return Err(RemoteProverError::other(format!(

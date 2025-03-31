@@ -4,7 +4,9 @@ use vm_processor::{DeserializationError, Digest};
 
 use crate::{
     note::NoteId,
-    transaction::{AccountId, Nullifier, TransactionId},
+    transaction::{
+        AccountId, InputNoteCommitment, Nullifier, OutputNote, ProvenTransaction, TransactionId,
+    },
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 
@@ -26,7 +28,7 @@ pub struct TransactionHeader {
 }
 
 impl TransactionHeader {
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
     /// Constructs a new [`TransactionHeader`] from the provided parameteres.
@@ -47,6 +49,9 @@ impl TransactionHeader {
             output_notes,
         }
     }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
 
     /// Returns the unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
@@ -86,6 +91,22 @@ impl TransactionHeader {
         &self.output_notes
     }
 }
+
+impl From<&ProvenTransaction> for TransactionHeader {
+    fn from(tx: &ProvenTransaction) -> Self {
+        TransactionHeader::new_unchecked(
+            tx.id(),
+            tx.account_id(),
+            tx.account_update().initial_state_commitment(),
+            tx.account_update().final_state_commitment(),
+            tx.input_notes().iter().map(InputNoteCommitment::nullifier).collect(),
+            tx.output_notes().iter().map(OutputNote::id).collect(),
+        )
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
 
 impl Serializable for TransactionHeader {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
