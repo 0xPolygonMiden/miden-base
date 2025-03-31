@@ -13,7 +13,6 @@ use metrics::{
 };
 use pingora::{
     http::ResponseHeader,
-    lb::Backend,
     prelude::*,
     protocols::Digest,
     upstreams::peer::{ALPN, Peer},
@@ -68,7 +67,7 @@ impl LoadBalancerState {
     /// - The worker cannot be created.
     #[tracing::instrument(name = "proxy:new_load_balancer", skip(initial_workers))]
     pub async fn new(
-        initial_workers: Vec<Backend>,
+        initial_workers: Vec<String>,
         config: &ProxyConfig,
     ) -> core::result::Result<Self, ProvingServiceError> {
         let mut workers: Vec<Worker> = Vec::with_capacity(initial_workers.len());
@@ -76,8 +75,8 @@ impl LoadBalancerState {
         let connection_timeout = Duration::from_secs(config.connection_timeout_secs);
         let total_timeout = Duration::from_secs(config.timeout_secs);
 
-        for worker in initial_workers {
-            match Worker::new(worker, connection_timeout, total_timeout).await {
+        for worker_addr in initial_workers {
+            match Worker::new(worker_addr, connection_timeout, total_timeout).await {
                 Ok(w) => workers.push(w),
                 Err(e) => {
                     error!("Failed to create worker: {}", e);
@@ -150,18 +149,12 @@ impl LoadBalancerState {
         let mut workers = self.workers.write().await;
         info!("Current workers: {:?}", workers);
 
-        let workers_to_update: Vec<Backend> = update_workers
-            .workers
-            .iter()
-            .map(|worker| Backend::new(worker))
-            .collect::<Result<Vec<Backend>, _>>()
-            .map_err(ProvingServiceError::BackendCreationFailed)?;
-
         let mut native_workers = Vec::new();
 
-        for worker in workers_to_update {
-            native_workers
-                .push(Worker::new(worker, self.connection_timeout_secs, self.timeout_secs).await?);
+        for worker_addr in update_workers.workers {
+            native_workers.push(
+                Worker::new(worker_addr, self.connection_timeout_secs, self.timeout_secs).await?,
+            );
         }
 
         match update_workers.action {
