@@ -138,12 +138,12 @@ fn test_fpi_asset_memory() {
 
         #! Inputs:  [asset_ptr]
         #! Outputs: []
-        export.move_to_account
-            # before allowing the move we could check that the calling account's ID
+        export.store_to_account
+            # before allowing the store we could check that the calling account's ID
             # is in the storage of this account to implement a regulated token
-            # we could also prevent moving entirely by not exposing a procedure that wraps move_to_account
-            # (or an equivalent move_to_note)
-            exec.asset::move_to_account
+            # we could also prevent moving entirely by not exposing a procedure that wraps store_to_account
+            # (or an equivalent store_to_note)
+            exec.asset::store_to_account
             # => []
         end
 
@@ -256,13 +256,13 @@ fn test_fpi_asset_memory() {
 
         #! Inputs:  [asset_ptr]
         #! Outputs: []
-        proc.move_bob_token_to_account
+        proc.store_bob_token_to_account
             # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0.0 movup.15
             # => [asset_ptr, pad(15)]
 
-            # get the hash of the `move_to_account` procedure of the miden_std account
-            procref.token::move_to_account
+            # get the hash of the `store_to_account` procedure of the miden_std account
+            procref.token::store_to_account
 
             # push the miden_std account ID
             push.{miden_std_suffix}.{miden_std_prefix}
@@ -285,7 +285,7 @@ fn test_fpi_asset_memory() {
             dup exec.mint_bob_token
             # => [token_ptr, treasury_cap_ptr]
 
-            dup exec.move_bob_token_to_account
+            dup exec.store_bob_token_to_account
             # => [token_ptr, treasury_cap_ptr]
 
             # truncate stack

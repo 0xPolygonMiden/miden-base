@@ -74,7 +74,7 @@ const.CREATE_ASSET_OFFSET=36
 const.CONSUME_ONE_TIME_WITNESS_OFFSET=37
 const.SET_ASSET_FIELD_OFFSET=38
 const.GET_NATIVE_ACCOUNT_ID_OFFSET=39
-const.MOVE_ASSET_TO_ACCOUNT_OFFSET=40
+const.STORE_ASSET_TO_ACCOUNT_OFFSET=40
 const.GET_ASSET_ISSUER_OFFSET=41
 const.GET_ASSET_TYPE_OFFSET=42
 const.GET_ASSET_NUM_FIELDS_OFFSET=43
@@ -543,8 +543,8 @@ export.get_native_account_id_offset
   push.GET_NATIVE_ACCOUNT_ID_OFFSET
 end
 
-export.move_asset_to_account_offset
-  push.MOVE_ASSET_TO_ACCOUNT_OFFSET
+export.store_asset_to_account_offset
+  push.STORE_ASSET_TO_ACCOUNT_OFFSET
 end
 
 export.get_asset_issuer_offset

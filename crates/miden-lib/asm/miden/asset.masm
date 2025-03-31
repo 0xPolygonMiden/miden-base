@@ -207,12 +207,12 @@ export.get_field
   # => [field_value]
 end
 
-#! Moves the asset from kernel memory to the native account's vault.
+#! Stores the asset in kernel memory to the native account's vault.
 #!
 #! Inputs:  [asset_ptr]
 #! Outputs: []
-export.move_to_account
-  exec.kernel_proc_offsets::move_asset_to_account_offset
+export.store_to_account
+  exec.kernel_proc_offsets::store_asset_to_account_offset
   # => [offset, asset_ptr]
 
   # pad the stack
