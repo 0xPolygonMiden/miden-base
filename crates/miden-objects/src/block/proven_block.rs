@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use crate::{
-    Digest,
+    Digest, MIN_PROOF_SECURITY_LEVEL,
     account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
@@ -83,6 +83,11 @@ impl ProvenBlock {
     /// Returns the slice of [`OutputNoteBatch`]es for all output notes created in this block.
     pub fn output_note_batches(&self) -> &[OutputNoteBatch] {
         &self.output_note_batches
+    }
+
+    /// Returns the proof security level of the block.
+    pub fn proof_security_level(&self) -> u32 {
+        MIN_PROOF_SECURITY_LEVEL
     }
 
     /// Returns an iterator over all [`OutputNote`]s created in this block.
