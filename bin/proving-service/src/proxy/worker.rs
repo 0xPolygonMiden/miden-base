@@ -25,6 +25,11 @@ pub struct Worker {
     health_status: WorkerHealthStatus,
 }
 
+/// The health status of a worker.
+///
+/// A worker can be either healthy or unhealthy.
+/// If the worker is unhealthy, it will have a number of failed attempts.
+/// The number of failed attempts is incremented each time the worker is unhealthy.
 #[derive(Debug, Clone, PartialEq)]
 pub enum WorkerHealthStatus {
     Healthy,
@@ -56,10 +61,18 @@ impl Worker {
         })
     }
 
+    /// Returns the worker address.
     pub fn address(&self) -> String {
         self.backend.addr.to_string()
     }
 
+    /// Checks the worker health.
+    ///
+    /// Marks the worker as unhealthy if the health check fails.
+    ///
+    /// # Returns
+    /// - `true` if the worker is healthy.
+    /// - `false` if the worker is unhealthy.
     pub async fn is_healthy(&mut self) -> bool {
         match self
             .health_check_client
@@ -83,14 +96,19 @@ impl Worker {
         }
     }
 
+    /// Returns the worker availability.
     pub fn is_available(&self) -> bool {
         self.is_available
     }
 
+    /// Sets the worker availability.
     pub fn set_availability(&mut self, is_available: bool) {
         self.is_available = is_available;
     }
 
+    /// Marks the worker as unhealthy and increments the number of retries.
+    ///
+    /// Additionally, the worker is set to unavailable.
     pub fn mark_as_unhealthy(&mut self) {
         self.health_status = match &self.health_status {
             WorkerHealthStatus::Healthy => WorkerHealthStatus::Unhealthy { failed_attempts: 1 },
@@ -101,22 +119,17 @@ impl Worker {
         self.is_available = false;
     }
 
-    /// Reset the health status to healthy
+    /// Resets the health status to healthy and sets the worker to available.
     pub fn mark_as_healthy(&mut self) {
-        if self.health_status == WorkerHealthStatus::Healthy {
-            return;
-        }
-
         self.health_status = WorkerHealthStatus::Healthy;
         self.is_available = true;
     }
 
-    pub fn has_exceeded_failed_health_checks(&self, max_health_check_retries: usize) -> bool {
+    /// Returns the number of retries the worker has had.
+    pub fn retries_amount(&self) -> usize {
         match &self.health_status {
-            WorkerHealthStatus::Healthy => false,
-            WorkerHealthStatus::Unhealthy { failed_attempts } => {
-                failed_attempts >= &max_health_check_retries
-            },
+            WorkerHealthStatus::Healthy => 0,
+            WorkerHealthStatus::Unhealthy { failed_attempts } => *failed_attempts,
         }
     }
 }

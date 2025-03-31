@@ -9,7 +9,7 @@ use bytes::Bytes;
 use metrics::{
     QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMIT_VIOLATIONS, RATE_LIMITED_REQUESTS, REQUEST_COUNT,
     REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
-    WORKER_REQUEST_COUNT,
+    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
 };
 use pingora::{
     http::ResponseHeader,
@@ -21,7 +21,7 @@ use pingora_core::{Result, upstreams::peer::HttpPeer};
 use pingora_limits::rate::Rate;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
-use tracing::{Span, error, info, info_span, warn};
+use tracing::{Span, debug, error, info, info_span, warn};
 use uuid::Uuid;
 use worker::Worker;
 
@@ -199,7 +199,9 @@ impl LoadBalancerState {
     /// is not healthy, it won't be included in the list of healthy workers.
     async fn check_workers_health(&self, workers: impl Iterator<Item = &mut Worker>) {
         for worker in workers {
-            worker.is_healthy().await;
+            if !worker.is_healthy().await {
+                WORKER_UNHEALTHY.with_label_values(&[&worker.address()]).inc();
+            }
         }
     }
 }
@@ -426,11 +428,11 @@ impl ProxyHttp for LoadBalancer {
 
             // Check if there is an available worker
             if let Some(worker) = self.0.pop_available_worker().await {
-                info!("Worker {} picked up the request with ID: {}", worker.address(), request_id);
+                debug!("Worker {} picked up the request with ID: {}", worker.address(), request_id);
                 ctx.set_worker(worker);
                 break;
             }
-            info!("All workers are busy");
+            debug!("All workers are busy");
             tokio::time::sleep(self.0.available_workers_polling_interval).await;
         }
 
