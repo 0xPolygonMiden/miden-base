@@ -38,16 +38,18 @@ impl Worker {
     /// - Returns [ProvingServiceError::InvalidURI] if the worker address is invalid.
     /// - Returns [ProvingServiceError::ConnectionFailed] if the connection to the worker fails.
     pub async fn new(
-        worker: Backend,
+        worker_addr: String,
         connection_timeout: Duration,
         total_timeout: Duration,
     ) -> Result<Self, ProvingServiceError> {
+        let backend =
+            Backend::new(&worker_addr).map_err(ProvingServiceError::BackendCreationFailed)?;
+
         let health_check_client =
-            create_health_check_client(worker.addr.to_string(), connection_timeout, total_timeout)
-                .await?;
+            create_health_check_client(worker_addr, connection_timeout, total_timeout).await?;
 
         Ok(Self {
-            backend: worker,
+            backend,
             is_available: true,
             health_check_client,
             health_status: WorkerHealthStatus::Healthy,
