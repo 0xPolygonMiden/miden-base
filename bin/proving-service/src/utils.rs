@@ -1,7 +1,9 @@
+use std::net::TcpListener;
+
 use opentelemetry::{KeyValue, trace::TracerProvider as _};
 use opentelemetry_sdk::{
-    Resource, runtime,
-    trace::{RandomIdGenerator, Sampler, TracerProvider},
+    Resource,
+    trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
 };
 use opentelemetry_semantic_conventions::{
     SCHEMA_URL,
@@ -9,9 +11,9 @@ use opentelemetry_semantic_conventions::{
 };
 use pingora::{Error, ErrorType, http::ResponseHeader, protocols::http::ServerSession};
 use pingora_proxy::Session;
-use tracing_subscriber::{Registry, layer::SubscriberExt};
+use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
 
-use crate::proxy::metrics::QUEUE_DROP_COUNT;
+use crate::{commands::PROXY_HOST, error::ProvingServiceError, proxy::metrics::QUEUE_DROP_COUNT};
 
 pub const MIDEN_PROVING_SERVICE: &str = "miden-proving-service";
 
@@ -23,11 +25,12 @@ const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 /// This function sets up a tracing pipeline that includes:
 ///
 /// - An OpenTelemetry (OTLP) exporter, which sends span data to an OTLP endpoint using gRPC.
-/// - A [TracerProvider] configured with a [Sampler::ParentBased] sampler at a `1.0` sampling ratio,
-///   ensuring that all traces are recorded.
+/// - A [SdkTracerProvider] configured with a [Sampler::ParentBased] sampler at a `1.0` sampling
+///   ratio, ensuring that all traces are recorded.
 /// - A resource containing the service name and version extracted from the crate's metadata.
-/// - A `tracing` subscriber that integrates the configured [TracerProvider] with the Rust `tracing`
-///   ecosystem, applying filters from the environment and enabling formatted console logs.
+/// - A `tracing` subscriber that integrates the configured [SdkTracerProvider] with the Rust
+///   `tracing` ecosystem, applying filters from the environment and enabling formatted console
+///   logs.
 ///
 /// **Process:**
 /// 1. **OTLP Exporter**:   Creates an OTLP span exporter that sends trace data to a collector
@@ -36,7 +39,7 @@ const RESOURCE_EXHAUSTED_CODE: u16 = 8;
 /// 2. **Resource Setup**:   Creates a [Resource] containing service metadata (name and version),
 ///    which is attached to all emitted telemetry data to identify the originating service.
 ///
-/// 3. **TracerProvider and Sampler**:   Builds a [TracerProvider] using a [Sampler::ParentBased]
+/// 3. **TracerProvider and Sampler**:   Builds a [SdkTracerProvider] using a [Sampler::ParentBased]
 ///    sampler layered over a [Sampler::TraceIdRatioBased] sampler set to `1.0`, ensuring all traces
 ///    are recorded. A random ID generator is used to produce trace and span IDs. The tracer is
 ///    retrieved from this provider, which can then be used by the OpenTelemetry layer of `tracing`.
@@ -61,19 +64,21 @@ pub(crate) fn setup_tracing() -> Result<(), String> {
         .build()
         .map_err(|e| format!("Failed to create OTLP exporter: {:?}", e))?;
 
-    let resource = Resource::from_schema_url(
-        [
-            KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
-            KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
-        ],
-        SCHEMA_URL,
-    );
+    let resource = Resource::builder()
+        .with_schema_url(
+            [
+                KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
+                KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
+            ],
+            SCHEMA_URL,
+        )
+        .build();
 
-    let provider = TracerProvider::builder()
+    let provider = SdkTracerProvider::builder()
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(1.0))))
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(resource)
-        .with_batch_exporter(exporter, runtime::Tokio)
+        .with_batch_exporter(exporter)
         .build();
 
     let tracer = provider.tracer(MIDEN_PROVING_SERVICE);
@@ -82,7 +87,7 @@ pub(crate) fn setup_tracing() -> Result<(), String> {
 
     let subscriber = Registry::default()
         .with(telemetry)
-        .with(tracing_subscriber::filter::EnvFilter::from_default_env())
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .with(tracing_subscriber::fmt::layer());
 
     tracing::subscriber::set_global_default(subscriber)
@@ -141,4 +146,23 @@ pub async fn create_response_with_error_message(
     session.set_keepalive(None);
     session.write_response_header(Box::new(header)).await?;
     Ok(true)
+}
+
+/// Checks if a port is available for use.
+///
+/// # Arguments
+/// * `port` - The port to check.
+/// * `service` - A descriptive name for the service (for logging purposes).
+///
+/// # Returns
+/// * `Ok(TcpListener)` if the port is available.
+/// * `Err(ProvingServiceError::PortAlreadyInUse)` if the port is already in use.
+pub fn check_port_availability(
+    port: u16,
+    service: &str,
+) -> Result<std::net::TcpListener, ProvingServiceError> {
+    let addr = format!("{}:{}", PROXY_HOST, port);
+    TcpListener::bind(&addr)
+        .inspect(|_| tracing::debug!(%service, %port, "Port is available"))
+        .map_err(|err| ProvingServiceError::PortAlreadyInUse(err, port))
 }

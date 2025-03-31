@@ -957,23 +957,19 @@ end
 #!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0].
 #!
 #! Panics if:
-#! - the current context is not a native context.
+#! - foreign context is created against the native account.
 #!
 #! Invocation: dynexec
 export.tx_start_foreign_context
-    # check that this procedure was executed against the native account
-    exec.memory::assert_native_account
-    # OS => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
-
     # get the memory address and a flag whether this account was already loaded.
-    exec.account::get_foreign_account_ptr
+    exec.account::get_account_data_ptr
     # OS => [was_loaded, ptr, foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
     if.true
-        exec.memory::set_current_account_data_ptr drop drop
+        exec.memory::push_ptr_to_account_stack drop drop
         # OS => [pad(16)]
     else
-        exec.memory::set_current_account_data_ptr
+        exec.memory::push_ptr_to_account_stack
         # OS => [foreign_account_id_prefix, foreign_account_id_suffix, pad(14)]
 
         # construct the word with account ID to load the core account data from the advice map
@@ -1038,7 +1034,7 @@ end
 #!
 #! Invocation: dynexec
 export.tx_end_foreign_context
-    exec.memory::set_current_account_data_ptr_to_native_account
+    exec.memory::pop_ptr_from_account_stack
     # => [pad(16)]
 end
 

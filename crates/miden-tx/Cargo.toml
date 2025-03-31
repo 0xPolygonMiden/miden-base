@@ -1,6 +1,6 @@
 [package]
 name = "miden-tx"
-version = "0.8.0"
+version = "0.9.0"
 description = "Miden rollup transaction compiler, executor, and prover"
 readme = "README.md"
 categories = ["no-std"]
@@ -36,7 +36,7 @@ vm-processor = { workspace = true }
 winter-maybe-async = { version = "0.12" }
 
 [dev-dependencies]
-anyhow = { version = "1.0.93", default-features = false, features = ["std", "backtrace"]}
+anyhow = { version = "1.0", default-features = false, features = ["std", "backtrace"]}
 assembly = { workspace = true }
 assert_matches = { workspace = true }
 miden-tx = { path = ".", features = ["testing"] }

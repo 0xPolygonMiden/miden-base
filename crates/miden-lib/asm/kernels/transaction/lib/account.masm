@@ -61,9 +61,6 @@ const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020181
 # Maximum allowed number of foreign account to be loaded (64) was exceeded.
 const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020183
 
-# Provided foreign account ID is equal to the native account ID.
-const.ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID=0x00020180
-
 # State of the current foreign account is invalid.
 const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020182
 
@@ -587,7 +584,11 @@ export.get_map_item
     exec.get_item swapw
     # => [KEY, ROOT]
 
-    # fetch the VALUE located under KEY in the tree
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, ROOT]
+
+    # fetch the VALUE located under HASHED_KEY in the tree
     exec.smt::get
     # => [VALUE, ROOT]
 
@@ -632,13 +633,17 @@ export.set_map_item.12
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item
-    # is being updated
+    # duplicate the original KEY and the NEW_VALUE to be able to emit an event after the
+    # account storage item was updated
     movdn.12 movupw.2 dupw.2 dupw.2
     # => [KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
 
-    # set the NEW_VALUE under KEY in the tree
-    # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
+
+    # set the NEW_VALUE under HASHED_KEY in the tree
+    # note smt::set expects the stack to be [NEW_VALUE, HASHED_KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_MAP_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
 
@@ -1050,17 +1055,14 @@ end
 #! Panics if:
 #! - the prefix or suffix of the provided foreign account ID equal zero.
 #! - the maximum allowed number of foreign account to be loaded (64) was exceeded.
-export.get_foreign_account_ptr
+export.get_account_data_ptr
     # check that foreign account ID is not equal zero
     dup.1 eq.0 dup.1 eq.0 and not assert.err=ERR_FOREIGN_ACCOUNT_ID_IS_ZERO
     # => [foreign_account_id_prefix, foreign_account_id_suffix]
 
-    # check that foreign account ID is not equal to the native account ID
-    dup.1 dup.1 exec.memory::get_native_account_id exec.is_id_equal not
-    assert.err=ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID
-
-    # get the initial account data pointer
-    exec.memory::get_native_account_data_ptr
+    # move pointer one account block back so that the first account pointer in the cycle will point 
+    # to the native account
+    exec.memory::get_native_account_data_ptr exec.memory::get_account_data_length sub
     # => [curr_account_ptr, foreign_account_id_prefix, foreign_account_id_suffix]
 
     # push the flag to enter the loop
@@ -1137,4 +1139,17 @@ export.validate_current_foreign_account
 
     # clean the stack
     dropw drop drop dropw
+end
+
+#! Hashes the provided map key before using it as the key in an SMT.
+#!
+#! Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
+#! tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
+#! storage map are hashed before they are inserted into the SMT, which creates a uniform distribution.
+#!
+#! Inputs:  [KEY]
+#! Outputs: [HASHED_KEY]
+proc.hash_map_key
+  hash
+  # => [HASHED_KEY]
 end

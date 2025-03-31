@@ -135,9 +135,13 @@ pub const ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x20152;
 pub const ERR_ACCOUNT_TOO_MANY_PROCEDURES: u32 = 0x20153;
 /// Number of account storage slots exceeds the maximum limit of 255
 pub const ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS: u32 = 0x20154;
+/// Depth of the nested FPI calls exceeded 64
+pub const ERR_ACCOUNT_STACK_OVERFLOW: u32 = 0x20155;
+/// Failed to end foreign context because the current account is the native account
+pub const ERR_ACCOUNT_STACK_UNDERFLOW: u32 = 0x20156;
 
-/// Provided foreign account ID is equal to the native account ID.
-pub const ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID: u32 = 0x20180;
+/// Creation of a foreign context against the native account is forbidden
+pub const ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT: u32 = 0x20180;
 /// ID of the provided foreign account equals zero.
 pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 0x20181;
 /// State of the current foreign account is invalid.
@@ -207,7 +211,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x20286;
 /// Failed to remove fungible asset from the asset vault due to the initial value being invalid
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x20287;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 86] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 88] = [
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
@@ -266,8 +270,10 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 86] = [
     (ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
     (ERR_ACCOUNT_TOO_MANY_PROCEDURES, "Number of account procedures exceeds the maximum limit of 256"),
     (ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeds the maximum limit of 255"),
+    (ERR_ACCOUNT_STACK_OVERFLOW, "Depth of the nested FPI calls exceeded 64"),
+    (ERR_ACCOUNT_STACK_UNDERFLOW, "Failed to end foreign context because the current account is the native account"),
 
-    (ERR_FOREIGN_ACCOUNT_ID_EQUALS_NATIVE_ACCT_ID, "Provided foreign account ID is equal to the native account ID."),
+    (ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, "Creation of a foreign context against the native account is forbidden"),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "ID of the provided foreign account equals zero."),
     (ERR_FOREIGN_ACCOUNT_INVALID, "State of the current foreign account is invalid."),
     (ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED, "Maximum allowed number of foreign account to be loaded (64) was exceeded."),

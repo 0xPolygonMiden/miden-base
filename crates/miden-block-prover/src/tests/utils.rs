@@ -33,8 +33,12 @@ pub fn generate_account(chain: &mut MockChain) -> Account {
     chain.add_from_account_builder(Auth::NoAuth, account_builder, AccountState::Exists)
 }
 
-pub fn generate_tracked_note(chain: &mut MockChain, sender: AccountId, reciver: AccountId) -> Note {
-    let note = generate_untracked_note_internal(sender, reciver, vec![]);
+pub fn generate_tracked_note(
+    chain: &mut MockChain,
+    sender: AccountId,
+    receiver: AccountId,
+) -> Note {
+    let note = generate_untracked_note_internal(sender, receiver, vec![]);
     chain.add_pending_note(note.clone());
     note
 }
@@ -42,16 +46,16 @@ pub fn generate_tracked_note(chain: &mut MockChain, sender: AccountId, reciver: 
 pub fn generate_tracked_note_with_asset(
     chain: &mut MockChain,
     sender: AccountId,
-    reciver: AccountId,
+    receiver: AccountId,
     asset: Asset,
 ) -> Note {
-    let note = generate_untracked_note_internal(sender, reciver, vec![asset]);
+    let note = generate_untracked_note_internal(sender, receiver, vec![asset]);
     chain.add_pending_note(note.clone());
     note
 }
 
-pub fn generate_untracked_note(sender: AccountId, reciver: AccountId) -> Note {
-    generate_untracked_note_internal(sender, reciver, vec![])
+pub fn generate_untracked_note(sender: AccountId, receiver: AccountId) -> Note {
+    generate_untracked_note_internal(sender, receiver, vec![])
 }
 
 /// Creates an NOP output note sent by the given sender.
@@ -101,7 +105,7 @@ pub fn generate_untracked_note_with_output_note(sender: AccountId, output_note: 
 
 fn generate_untracked_note_internal(
     sender: AccountId,
-    reciver: AccountId,
+    receiver: AccountId,
     asset: Vec<Asset>,
 ) -> Note {
     // Use OS-randomness so that notes with the same sender and target have different note IDs.
@@ -111,7 +115,7 @@ fn generate_untracked_note_internal(
         Felt::new(rand::rng().random()),
         Felt::new(rand::rng().random()),
     ]);
-    create_p2id_note(sender, reciver, asset, NoteType::Public, Default::default(), &mut rng)
+    create_p2id_note(sender, receiver, asset, NoteType::Public, Default::default(), &mut rng)
         .unwrap()
 }
 

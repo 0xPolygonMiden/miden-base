@@ -12,7 +12,7 @@ use miden_lib::{
 };
 use miden_objects::{
     FieldElement,
-    account::AccountId,
+    account::{AccountId, StorageMap},
     asset::{FungibleAsset, NonFungibleAsset},
     testing::{
         account_id::{
@@ -222,7 +222,7 @@ fn test_mint_non_fungible_asset_succeeds() {
         end
         ",
         non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into()),
-        asset_vault_key = word_to_masm_push_string(&asset_vault_key),
+        asset_vault_key = word_to_masm_push_string(&StorageMap::hash_key(asset_vault_key.into())),
     );
 
     tx_context.execute_code(&code).unwrap();

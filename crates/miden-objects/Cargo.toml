@@ -1,6 +1,6 @@
 [package]
 name = "miden-objects"
-version = "0.8.0"
+version = "0.9.0"
 description = "Core components of the Miden rollup"
 readme = "README.md"
 categories = ["no-std"]
@@ -41,14 +41,14 @@ vm-processor = { workspace = true }
 winter-rand-utils = { version = "0.12", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [dev-dependencies]
-pprof = { version = "0.14.0", default-features = false, features = ["criterion", "flamegraph"] }
-anyhow = { version = "1.0.93", default-features = false, features = ["std", "backtrace"]}
+pprof = { version = "0.14", default-features = false, features = ["criterion", "flamegraph"] }
+anyhow = { version = "1.0", default-features = false, features = ["std", "backtrace"]}
 assert_matches = { workspace = true }
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
 miden-objects = { path = ".", features = ["testing"] }
-rstest = { version = "0.23" }
-tempfile = { version = "3.14" }
+rstest = { version = "0.25" }
+tempfile = { version = "3.19" }
 winter-air = { version = "0.12" }

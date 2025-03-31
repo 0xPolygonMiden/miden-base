@@ -656,7 +656,7 @@ impl TransactionContextBuilder {
             TransactionArgs::new(self.tx_script, Some(self.note_args), AdviceMap::default())
                 .with_advice_inputs(self.advice_inputs.clone());
 
-        tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
+        tx_args.extend_output_note_recipients(self.expected_output_notes.clone());
 
         TransactionContext {
             expected_output_notes: self.expected_output_notes,
