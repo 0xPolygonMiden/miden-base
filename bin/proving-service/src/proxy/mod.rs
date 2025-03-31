@@ -118,13 +118,18 @@ impl LoadBalancerState {
         })
     }
 
-    /// Marks the given worker as available.
+    /// Marks the given worker as available and moves it to the end of the list.
     ///
     /// If the worker is not in the list, it won't be added.
     pub async fn add_available_worker(&self, worker: Worker) {
-        let mut available_workers = self.workers.write().await;
-        if let Some(w) = available_workers.iter_mut().find(|w| *w == &worker) {
+        let mut workers = self.workers.write().await;
+        if let Some(pos) = workers.iter().position(|w| *w == worker) {
+            // Remove the worker from its current position
+            let mut w = workers.remove(pos);
+            // Mark it as available
             w.set_availability(true);
+            // Add it to the end of the list
+            workers.push(w);
         }
     }
 
