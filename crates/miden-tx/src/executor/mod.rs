@@ -1,13 +1,20 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{
+    account::interface::{ExecutionCheckResult, NoteAccountCompatibility},
+    note::well_known_note::WellKnownNote,
+    transaction::TransactionKernel,
+};
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::{AccountCode, AccountId},
     assembly::Library,
     block::BlockNumber,
     note::NoteId,
-    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
+    transaction::{
+        ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs,
+        TransactionScript,
+    },
     vm::StackOutputs,
 };
 use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
@@ -234,6 +241,132 @@ impl TransactionExecutor {
             .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
         Ok(*stack_outputs)
+    }
+
+    // CHECK CONSUMABILITY
+    // ================================================================================================
+
+    // TODO: update the name, add docs
+    #[maybe_async]
+    pub fn check(
+        &self,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        notes: &InputNotes<InputNote>,
+        tx_args: TransactionArgs,
+    ) -> Result<(), TransactionExecutorError> {
+        // 1. Check note inputs
+
+        let note_ids = notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
+
+        let tx_inputs =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &note_ids))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
+        let input_notes = tx_inputs.input_notes().clone().into_vec();
+
+        for note in input_notes.iter() {
+            if let Some(well_known_note) = WellKnownNote::from_note(note.note()) {
+                let inputs_check_result =
+                    well_known_note.check_note_inputs(note.note(), tx_inputs.account());
+                if let NoteAccountCompatibility::No = inputs_check_result {
+                    std::println!("Note {} has incorrect inputs", note.id());
+                    return Ok(())
+                }
+            }
+        }
+
+        // # 2. Perform validation: outgoing notes required
+
+        // 3. Transaction execution
+        let result = maybe_await!(self.iterative_executor(tx_inputs, tx_args))?;
+
+        // how should we return the result of the check?
+        match result {
+            ExecutionCheckResult::Success => {
+                std::println!("All notes processed successfully");
+            },
+            ExecutionCheckResult::Failure((failing_note, successful_notes)) => {
+                std::println!("Notes execution error");
+                std::println!(
+                    "Notes processed: {} out of {}\n",
+                    successful_notes.len() + 1,
+                    notes.num_notes()
+                );
+                std::println!("Failing note: {}\n", failing_note.to_hex());
+
+                if !successful_notes.is_empty() {
+                    std::println!(
+                        "Successful notes:\n{}",
+                        successful_notes
+                            .iter()
+                            .map(|note| note.to_hex())
+                            .collect::<Vec<alloc::string::String>>()
+                            .join("\n")
+                    );
+                }
+            },
+        }
+
+        Ok(())
+    }
+
+    #[maybe_async]
+    fn iterative_executor(
+        &self,
+        tx_inputs: TransactionInputs,
+        tx_args: TransactionArgs,
+    ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
+        let advice_recorder: RecAdviceProvider = advice_inputs.into();
+
+        // load note script MAST into the MAST store
+        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+
+        let mut host = TransactionHost::new(
+            tx_inputs.account().into(),
+            advice_recorder,
+            self.mast_store.clone(),
+            self.authenticator.clone(),
+            self.account_codes.iter().map(|code| code.commitment()).collect(),
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        // execute the transaction kernel
+        let result = vm_processor::execute(
+            &TransactionKernel::main(),
+            stack_inputs,
+            &mut host,
+            self.exec_options,
+        )
+        .map_err(TransactionExecutorError::TransactionProgramExecutionFailed);
+
+        match result {
+            Ok(_) => Ok(ExecutionCheckResult::Success),
+            Err(e) => {
+                let notes = host.tx_progress().note_execution();
+
+                // empty notes vector means that we didn't process the notes, so an error
+                // occurred somewhere else
+                if notes.is_empty() {
+                    return Err(e);
+                }
+
+                let (last, success_notes) = notes.split_last().expect("notes vector is empty");
+
+                // if the interval end of the last note is specified, then an error occurred after
+                // notes processing
+                if last.1.end().is_some() {
+                    return Err(e);
+                }
+
+                Ok(ExecutionCheckResult::Failure((
+                    last.0,
+                    success_notes.iter().map(|note| note.0).collect(),
+                )))
+            },
+        }
     }
 }
 
