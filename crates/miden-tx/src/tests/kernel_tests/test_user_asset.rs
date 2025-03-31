@@ -137,14 +137,24 @@ fn test_fpi_asset_memory() {
         end
 
         #! Inputs:  [asset_ptr]
-        #! Outputs: []
+        #! Outputs: [ASSET_ID]
         export.store_to_account
             # before allowing the store we could check that the calling account's ID
             # is in the storage of this account to implement a regulated token
             # we could also prevent moving entirely by not exposing a procedure that wraps store_to_account
             # (or an equivalent store_to_note)
-            exec.asset::store_to_account
-            # => []
+            dup exec.asset::store_to_account
+            # => [asset_ptr]
+
+            exec.asset::get_id
+            # => [ASSET_ID]
+        end
+
+        #! Inputs:  [ASSET_ID]
+        #! Outputs: [asset_ptr]
+        export.load_from_account
+          # TODO: Pass type of asset so tx kernel can validate.
+          exec.asset::load_from_account
         end
 
         #! Inputs:  [treasury_cap_ptr]
@@ -255,7 +265,7 @@ fn test_fpi_asset_memory() {
         end
 
         #! Inputs:  [asset_ptr]
-        #! Outputs: []
+        #! Outputs: [ASSET_ID]
         proc.store_bob_token_to_account
             # pad the stack for the `execute_foreign_procedure` execution
             padw padw padw push.0.0.0 movup.15
@@ -269,11 +279,33 @@ fn test_fpi_asset_memory() {
             # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, asset_ptr, pad(15)]
 
             exec.tx::execute_foreign_procedure
-            # => []
+            # => [ASSET_ID]
 
             # truncate the stack
-            dropw dropw dropw dropw
-            # => []
+            swapdw dropw dropw swapw dropw
+            # => [ASSET_ID]
+        end
+
+        #! Inputs:  [ASSET_ID]
+        #! Outputs: [asset_ptr]
+        proc.load_bob_token_from_account
+            # pad the stack for the `execute_foreign_procedure` execution
+            padw swapw padw padw swapdw
+            # => [ASSET_ID, pad(12)]
+
+            # get the hash of the `load_from_account` procedure of the miden_std account
+            procref.token::load_from_account
+
+            # push the miden_std account ID
+            push.{miden_std_suffix}.{miden_std_prefix}
+            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, ASSET_ID, pad(15)]
+
+            exec.tx::execute_foreign_procedure
+            # => [asset_ptr]
+
+            # truncate the stack
+            movdn.15 dropw dropw dropw drop drop drop
+            # => [asset_ptr]
         end
 
         begin
@@ -285,7 +317,10 @@ fn test_fpi_asset_memory() {
             dup exec.mint_bob_token
             # => [token_ptr, treasury_cap_ptr]
 
-            dup exec.store_bob_token_to_account
+            exec.store_bob_token_to_account
+            # => [ASSET_ID, treasury_cap_ptr]
+
+            exec.load_bob_token_from_account
             # => [token_ptr, treasury_cap_ptr]
 
             # truncate stack
@@ -314,10 +349,11 @@ fn test_fpi_asset_memory() {
     let treasury_cap_ptr = read_mem_felt(process, treasury_cap_ptr).as_int() as u32;
 
     let next_offset = read_mem_felt(process, ASSET_NEXT_OFFSET_PTR).as_int() as u32;
-    assert_eq!(next_offset, 2);
+    // We've created 2 assets and loaded 1.
+    assert_eq!(next_offset, 3);
     assert_eq!(
         read_mem_felt(process, ASSET_PTR_MAP_MIN + next_offset).as_int() as u32,
-        ASSET_MIN_PTR + 2 * ASSET_BOOKKEEPING_SIZE + TOKEN_NUM_FIELDS + TREASURY_CAP_NUM_FIELDS
+        ASSET_MIN_PTR + 3 * ASSET_BOOKKEEPING_SIZE + 2 * TOKEN_NUM_FIELDS + TREASURY_CAP_NUM_FIELDS
     );
 
     // TREASURY CAP MEMORY ASSERTIONS

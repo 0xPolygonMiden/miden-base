@@ -1,5 +1,7 @@
 use.std::sys
 use.std::collections::smt
+use.std::crypto::hashes::rpo
+use.std::mem
 
 use.kernel::account
 use.kernel::asset_vault
@@ -1195,7 +1197,7 @@ export.store_asset_to_account
   dup exec.assert_asset_issuer
   # => [asset_mem_ptr]
 
-  exec.memory::get_acct_vault_root
+  exec.memory::get_native_account_vault_root
   # => [ACCOUNT_VAULT_ROOT, asset_mem_ptr]
 
   dup.4 exec.memory::get_asset_id
@@ -1212,10 +1214,71 @@ export.store_asset_to_account
   padw assert_eqw.err=9187
   # => [NEW_VAULT_ROOT]
 
-  exec.memory::set_acct_vault_root dropw
+  exec.memory::set_native_account_vault_root dropw
   # => []
 
   # TODO: Clear asset memory, invalidate ptr
+end
+
+#! Loads the asset from the native account's vault into kernel memory.
+#! 
+#! NOTE: Bypasses asset_vault.masm for now and does not emit events.
+#!
+#! Inputs:  [ASSET_ID]
+#! Outputs: [asset_ptr]
+export.asset_load_from_account
+  exec.memory::get_native_account_vault_root swapw padw
+  # => [EMPTY_WORD, ASSET_ID, ACCOUNT_VAULT_ROOT]
+
+  exec.smt::set swapw
+  # => [NEW_ACCOUNT_VAULT_ROOT, ASSET_HASH]
+  exec.memory::set_native_account_vault_root dropw
+  # => [ASSET_HASH]
+
+  adv.push_mapvaln
+  # OS => [ASSET_HASH]
+  # AS => [num_elems, [ASSET_DATA]]
+  adv_push.1
+  # OS => [num_elems, ASSET_HASH]
+  # AS => [[ASSET_DATA]]
+
+  # subtract asset bookkeeping size
+  dup sub.8
+  # => [num_fields, num_elems, ASSET_HASH]
+
+  exec.memory::get_next_asset_ptr dup movdn.6
+  # => [asset_ptr, num_elems, ASSET_HASH, asset_ptr]
+  mem_load
+  # => [asset_mem_ptr, num_elems, ASSET_HASH, asset_ptr]
+
+  dup movdn.2 add swap
+  # => [asset_mem_ptr, asset_mem_end_ptr, ASSET_HASH, asset_ptr]
+
+  # pad stack before reading from advice stack
+  padw padw padw
+  exec.mem::pipe_double_words_to_memory
+  # => [C, B, A, _ptr, ASSET_HASH, asset_ptr]
+
+  # extract the digest
+  exec.rpo::squeeze_digest
+  movup.4 drop
+  # => [COMPUTED_ASSET_HASH, ASSET_HASH, asset_ptr]
+
+  # assert asset from advice provider matches the commitment from the account vault
+  assert_eqw.err=47293
+  # => [asset_ptr]
+end
+
+#! Gets the ID of the asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [ASSET_ID]
+export.asset_get_id
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
+  exec.memory::get_asset_id swapw dropw
+  # => [ASSET_ID]
 end
 
 #! Gets the issuer of an asset.

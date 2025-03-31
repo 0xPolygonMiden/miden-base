@@ -79,6 +79,8 @@ const.GET_ASSET_ISSUER_OFFSET=41
 const.GET_ASSET_TYPE_OFFSET=42
 const.GET_ASSET_NUM_FIELDS_OFFSET=43
 const.GET_ASSET_FIELD_OFFSET=44
+const.ASSET_LOAD_FROM_ACCOUNT_OFFSET=45
+const.ASSET_GET_ID_OFFSET=46
 
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
@@ -557,4 +559,12 @@ end
 
 export.get_asset_num_fields_offset
   push.GET_ASSET_NUM_FIELDS_OFFSET
+end
+
+export.asset_load_from_account
+  push.ASSET_LOAD_FROM_ACCOUNT_OFFSET
+end
+
+export.asset_get_id_offset
+  push.ASSET_GET_ID_OFFSET
 end

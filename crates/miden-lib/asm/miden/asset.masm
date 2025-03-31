@@ -167,6 +167,26 @@ export.consume_one_time_witness
   # => []
 end
 
+#! Gets the ID of the asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [ASSET_ID]
+export.get_id
+  exec.kernel_proc_offsets::asset_get_id_offset
+  # => [offset, asset_ptr]
+
+  # pad the stack
+  push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [ASSET_ID, pad(12)]
+
+  # clean the stack
+  swapdw dropw dropw swapw dropw swapw dropw
+  # => [ASSET_ID]
+end
+
 #! Sets the field of the asset to the provided value.
 #!
 #! Inputs:  [asset_ptr, field_idx, field_value]
@@ -225,6 +245,30 @@ export.store_to_account
   # clean the stack
   dropw dropw dropw dropw
   # => []
+end
+
+#! Loads the asset from the native account's vault into kernel memory.
+#! 
+#! NOTE: Bypasses asset_vault.masm for now and does not emit events.
+#!
+#! Inputs:  [ASSET_ID]
+#! Outputs: [asset_ptr]
+export.load_from_account
+  exec.kernel_proc_offsets::asset_load_from_account
+  # => [offset, ASSET_ID]
+
+  # pad the stack
+  push.0.0.0 movdn.7 movdn.7 movdn.7
+  # => [offset, ASSET_ID, 0, 0, 0]
+  padw padw swapdw
+  # => [offset, ASSET_ID, pad(11)]
+
+  syscall.exec_kernel_proc
+  # => [asset_ptr, pad(15)]
+
+  # clean the stack
+  movdn.15 dropw dropw dropw drop drop drop
+  # => [asset_ptr]
 end
 
 #! Gets the issuer of an asset.

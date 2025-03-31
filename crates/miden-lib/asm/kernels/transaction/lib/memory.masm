@@ -961,6 +961,31 @@ export.set_acct_vault_root
     mem_storew
 end
 
+#! Returns the native account's vault root.
+#!
+#! Inputs:  []
+#! Outputs: [ACCT_VAULT_ROOT]
+#!
+#! Where:
+#! - ACCT_VAULT_ROOT is the account asset vault root.
+export.get_native_account_vault_root
+    padw
+    exec.get_native_account_data_ptr push.ACCT_VAULT_ROOT_OFFSET add
+    mem_loadw
+end
+
+#! Sets the native account's vault root.
+#!
+#! Inputs:  [ACCT_VAULT_ROOT]
+#! Outputs: [ACCT_VAULT_ROOT]
+#!
+#! Where:
+#! - ACCT_VAULT_ROOT is the account asset vault root.
+export.set_native_account_vault_root
+    exec.get_native_account_data_ptr push.ACCT_VAULT_ROOT_OFFSET add
+    mem_storew
+end
+
 ### ACCOUNT CODE #################################################
 
 #! Returns the code commitment of the account.
@@ -1658,16 +1683,26 @@ export.compute_asset_hash
 
   exec.get_asset_num_fields push.ASSET_BOOKKEEPING_SIZE add add
   # => [asset_hash_end_ptr, asset_hash_start_ptr]
-  swap
-  # => [asset_hash_start_ptr, asset_hash_end_ptr]
+  swap dup movdn.2
+  # => [asset_hash_start_ptr, asset_hash_end_ptr, asset_hash_start_ptr]
 
   # initialize hasher state
   padw padw padw
-  # => [pad(12), asset_hash_start_ptr, asset_hash_end_ptr]
+  # => [pad(12), asset_hash_start_ptr, asset_hash_end_ptr, asset_hash_start_ptr]
 
   exec.rpo::absorb_double_words_from_memory
   exec.rpo::squeeze_digest
+  # => [ASSET_HASH, asset_hash_end_ptr, asset_hash_end_ptr, asset_hash_start_ptr]
+
+  movup.4 drop
+  # => [ASSET_HASH, asset_hash_end_ptr, asset_hash_start_ptr]
+  movup.5 movdn.4
   # => [ASSET_HASH, asset_hash_start_ptr, asset_hash_end_ptr]
+
+  # insert the object into the advice provider for demo purposes,
+  # so we can load it from there
+  adv.insert_mem
+
   movup.4 drop movup.4 drop
   # => [ASSET_HASH]
 end
