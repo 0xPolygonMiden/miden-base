@@ -3,6 +3,7 @@
 ## 0.9.0 (TBD)
 
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
+- Added the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 
 ## 0.8.1 (2025-03-26)
 
