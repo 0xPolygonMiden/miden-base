@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use crate::{
-    Digest,
+    Digest, MIN_PROOF_SECURITY_LEVEL,
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
@@ -84,6 +84,11 @@ impl ProvenBatch {
     /// Returns an iterator over the IDs of all accounts updated in this batch.
     pub fn updated_accounts(&self) -> impl Iterator<Item = AccountId> + use<'_> {
         self.account_updates.keys().copied()
+    }
+
+    /// Returns the proof security level of the batch.
+    pub fn proof_security_level(&self) -> u32 {
+        MIN_PROOF_SECURITY_LEVEL
     }
 
     /// Returns the map of account IDs mapped to their [`BatchAccountUpdate`]s.
