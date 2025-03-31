@@ -12,7 +12,7 @@ use ::assembly::{
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Felt, MIN_PROOF_SECURITY_LEVEL, Word,
-    account::{AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
+    account::{AccountBuilder, AccountComponent, AccountId, AccountStorage, StorageSlot},
     assembly::DefaultSourceManager,
     asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     note::{
@@ -23,10 +23,10 @@ use miden_objects::{
         account_component::AccountMockComponent,
         account_id::{
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE, ACCOUNT_ID_SENDER,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        note::DEFAULT_NOTE_CODE,
+        note::{DEFAULT_NOTE_CODE, NoteBuilder},
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
@@ -1046,4 +1046,43 @@ fn test_execute_program() {
         .unwrap();
 
     assert_eq!(stack_outputs[..3], [Felt::new(7), Felt::new(2), ONE]);
+}
+
+#[test]
+fn test_check_note_consumability() {
+    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    let failing_note_1 = NoteBuilder::new(
+        sender,
+        ChaCha20Rng::from_seed(ChaCha20Rng::from_seed([0_u8; 32]).random()),
+    )
+    .code("begin push.1 drop push.0 div end")
+    .build(&TransactionKernel::testing_assembler())
+    .unwrap();
+
+    let failing_note_2 = NoteBuilder::new(
+        sender,
+        ChaCha20Rng::from_seed(ChaCha20Rng::from_seed([0_u8; 32]).random()),
+    )
+    .code("begin push.2 drop push.0 div end")
+    .build(&TransactionKernel::testing_assembler())
+    .unwrap();
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .input_notes(vec![failing_note_1, failing_note_2])
+        .build();
+
+    let account_id = tx_context.account().id();
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+
+    let executor: TransactionExecutor =
+        TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
+
+    let input_notes = tx_context.tx_inputs().input_notes();
+
+    executor
+        .check(account_id, block_ref, input_notes, tx_context.tx_args().clone())
+        .unwrap();
 }

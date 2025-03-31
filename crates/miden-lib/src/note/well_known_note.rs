@@ -1,6 +1,8 @@
 use miden_objects::{
-    Digest,
+    Digest, Felt, Word,
+    account::{Account, AccountId},
     assembly::{ProcedureName, QualifiedProcedureName},
+    asset::Asset,
     note::{Note, NoteScript},
     utils::{Deserializable, sync::LazyLock},
     vm::Program,
@@ -8,7 +10,7 @@ use miden_objects::{
 
 use crate::account::{
     components::basic_wallet_library,
-    interface::{AccountComponentInterface, AccountInterface},
+    interface::{AccountComponentInterface, AccountInterface, NoteAccountCompatibility},
 };
 
 // WELL KNOWN NOTE SCRIPTS
@@ -144,5 +146,80 @@ impl WellKnownNote {
                     .all(|proc_digest| interface_proc_digests.contains(&proc_digest))
             },
         }
+    }
+
+    pub fn check_note_inputs(&self, note: &Note, account: &Account) -> NoteAccountCompatibility {
+        match self {
+            WellKnownNote::P2ID => {
+                let note_inputs = note.inputs().values();
+                if note_inputs.len() != 2 {
+                    return NoteAccountCompatibility::No;
+                }
+
+                Self::check_input_account_id(note_inputs, account.id())
+            },
+            WellKnownNote::P2IDR => {
+                let note_inputs = note.inputs().values();
+                if note_inputs.len() != 3 {
+                    return NoteAccountCompatibility::No;
+                }
+
+                Self::check_input_account_id(note_inputs, account.id())
+            },
+            WellKnownNote::SWAP => {
+                let note_inputs = note.inputs().values();
+                if note_inputs.len() != 10 {
+                    return NoteAccountCompatibility::No;
+                }
+
+                let asset_felts: [Felt; 4] = note_inputs[4..8].try_into().expect(
+                    "Should be able to convert the second word from note inputs to an array of
+                four Felt elements",
+                );
+
+                // get the demanded asset from the note's inputs
+                let asset: Asset = Word::from(asset_felts)
+                    .try_into()
+                    .expect("Unable to construct demanded asset from the asset felts");
+
+                // Check that the account can cover the demanded asset
+                match asset {
+                    Asset::NonFungible(non_fungible_asset) => {
+                        if !account.vault().has_non_fungible_asset(non_fungible_asset).expect("Should be able to query has_non_fungible_asset for an Asset::NonFungible") {
+                            return NoteAccountCompatibility::No;
+                        }
+                    },
+                    Asset::Fungible(fungible_asset) => {
+                        let asset_faucet_id = fungible_asset.faucet_id();
+                        if account
+                            .vault()
+                            .get_balance(asset_faucet_id)
+                            .expect("Should be able to query get_balance for an Asset::Fungible") < fungible_asset.amount()
+                        {
+                            return NoteAccountCompatibility::No;            }
+                    },
+                }
+
+                NoteAccountCompatibility::Maybe
+            },
+        }
+    }
+
+    fn check_input_account_id(
+        note_inputs: &[Felt],
+        account_id: AccountId,
+    ) -> NoteAccountCompatibility {
+        let account_id_felts: [Felt; 2] = note_inputs[0..2].try_into().expect(
+            "Should be able to convert the first two note inputs to an array of two Felt elements",
+        );
+
+        let inputs_account_id = AccountId::try_from([account_id_felts[1], account_id_felts[0]])
+            .expect("invalid account ID felts");
+
+        if inputs_account_id != account_id {
+            return NoteAccountCompatibility::No;
+        }
+
+        NoteAccountCompatibility::Maybe
     }
 }
