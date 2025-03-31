@@ -361,7 +361,6 @@ impl MockChain {
             transaction.account_id(),
             account.commitment(),
             account_update_details,
-            vec![transaction.id()],
         );
         self.pending_objects.updated_accounts.push(block_account_update);
 
@@ -653,7 +652,6 @@ impl MockChain {
             account.id(),
             account.commitment(),
             AccountUpdateDetails::New(account),
-            vec![],
         ));
     }
 

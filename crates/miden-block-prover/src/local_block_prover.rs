@@ -79,7 +79,11 @@ impl LocalBlockProver {
 
         let block_num = proposed_block.block_num();
         let timestamp = proposed_block.timestamp();
-        let tx_commitment = BlockHeader::compute_tx_commitment(proposed_block.affected_accounts());
+        let tx_commitment = BlockHeader::compute_tx_commitment(
+            proposed_block
+                .transactions()
+                .map(|tx_header| (tx_header.id(), tx_header.account_id())),
+        );
 
         // Split the proposed block into its parts.
         // --------------------------------------------------------------------------------------------
@@ -132,9 +136,8 @@ impl LocalBlockProver {
                     // Note that compute_account_root took out this value so it should not be used.
                     _initial_state_proof,
                     details,
-                    transactions,
                 ) = update_witness.into_parts();
-                BlockAccountUpdate::new(account_id, final_state_commitment, details, transactions)
+                BlockAccountUpdate::new(account_id, final_state_commitment, details)
             })
             .collect();
 

@@ -1,10 +1,7 @@
-use alloc::vec::Vec;
-
 use crate::{
     Digest,
     account::delta::AccountUpdateDetails,
     crypto::merkle::MerklePath,
-    transaction::TransactionId,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -28,8 +25,6 @@ pub struct AccountUpdateWitness {
     /// the last block, equivalent to `initial_state_commitment`) to get the new account state. For
     /// private accounts, this is set to [`AccountUpdateDetails::Private`].
     details: AccountUpdateDetails,
-    /// All transaction IDs that contributed to this account update.
-    transactions: Vec<TransactionId>,
 }
 
 impl AccountUpdateWitness {
@@ -42,14 +37,12 @@ impl AccountUpdateWitness {
         final_state_commitment: Digest,
         initial_state_proof: MerklePath,
         details: AccountUpdateDetails,
-        transactions: Vec<TransactionId>,
     ) -> Self {
         Self {
             initial_state_commitment,
             final_state_commitment,
             initial_state_proof,
             details,
-            transactions,
         }
     }
 
@@ -78,11 +71,6 @@ impl AccountUpdateWitness {
         &self.details
     }
 
-    /// Returns the transactions that affected the account.
-    pub fn transactions(&self) -> &[TransactionId] {
-        &self.transactions
-    }
-
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -92,15 +80,12 @@ impl AccountUpdateWitness {
     }
 
     /// Consumes self and returns its parts.
-    pub fn into_parts(
-        self,
-    ) -> (Digest, Digest, MerklePath, AccountUpdateDetails, Vec<TransactionId>) {
+    pub fn into_parts(self) -> (Digest, Digest, MerklePath, AccountUpdateDetails) {
         (
             self.initial_state_commitment,
             self.final_state_commitment,
             self.initial_state_proof,
             self.details,
-            self.transactions,
         )
     }
 }
@@ -114,7 +99,6 @@ impl Serializable for AccountUpdateWitness {
         target.write(self.final_state_commitment);
         target.write(&self.initial_state_proof);
         target.write(&self.details);
-        target.write(&self.transactions);
     }
 }
 
@@ -124,13 +108,12 @@ impl Deserializable for AccountUpdateWitness {
         let final_state_commitment = source.read()?;
         let initial_state_proof = source.read()?;
         let details = source.read()?;
-        let transactions = source.read()?;
+
         Ok(AccountUpdateWitness {
             initial_state_commitment,
             final_state_commitment,
             initial_state_proof,
             details,
-            transactions,
         })
     }
 }

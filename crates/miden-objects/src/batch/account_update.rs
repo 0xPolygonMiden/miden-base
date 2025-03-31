@@ -1,10 +1,8 @@
-use alloc::vec::Vec;
-
 use crate::{
     Digest,
     account::{AccountId, delta::AccountUpdateDetails},
     errors::BatchAccountUpdateError,
-    transaction::{ProvenTransaction, TransactionId},
+    transaction::ProvenTransaction,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -25,9 +23,6 @@ pub struct BatchAccountUpdate {
     /// Commitment to the state of the account after this update is applied.
     final_state_commitment: Digest,
 
-    /// IDs of all transactions that updated the account.
-    transactions: Vec<TransactionId>,
-
     /// A set of changes which can be applied to the previous account state (i.e. `initial_state`)
     /// to get the new account state. For private accounts, this is set to
     /// [`AccountUpdateDetails::Private`].
@@ -45,7 +40,6 @@ impl BatchAccountUpdate {
             account_id: transaction.account_id(),
             initial_state_commitment: transaction.account_update().initial_state_commitment(),
             final_state_commitment: transaction.account_update().final_state_commitment(),
-            transactions: vec![transaction.id()],
             details: transaction.account_update().details().clone(),
         }
     }
@@ -68,11 +62,6 @@ impl BatchAccountUpdate {
     /// Returns a commitment to the state of the account after this update is applied.
     pub fn final_state_commitment(&self) -> Digest {
         self.final_state_commitment
-    }
-
-    /// Returns a slice of [`TransactionId`]s that updated this account's state.
-    pub fn transactions(&self) -> &[TransactionId] {
-        &self.transactions
     }
 
     /// Returns the contained [`AccountUpdateDetails`].
@@ -120,7 +109,6 @@ impl BatchAccountUpdate {
             |source_err| BatchAccountUpdateError::TransactionUpdateMergeError(tx.id(), source_err),
         )?;
         self.final_state_commitment = tx.account_update().final_state_commitment();
-        self.transactions.push(tx.id());
 
         Ok(())
     }
@@ -128,9 +116,9 @@ impl BatchAccountUpdate {
     // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Consumes the update and returns the non-[`Copy`] parts.
-    pub fn into_parts(self) -> (Vec<TransactionId>, AccountUpdateDetails) {
-        (self.transactions, self.details)
+    /// Consumes the update and returns the underlying [`AccountUpdateDetails`].
+    pub fn into_update(self) -> AccountUpdateDetails {
+        self.details
     }
 }
 
@@ -142,7 +130,6 @@ impl Serializable for BatchAccountUpdate {
         self.account_id.write_into(target);
         self.initial_state_commitment.write_into(target);
         self.final_state_commitment.write_into(target);
-        self.transactions.write_into(target);
         self.details.write_into(target);
     }
 }
@@ -153,7 +140,6 @@ impl Deserializable for BatchAccountUpdate {
             account_id: AccountId::read_from(source)?,
             initial_state_commitment: Digest::read_from(source)?,
             final_state_commitment: Digest::read_from(source)?,
-            transactions: <Vec<TransactionId>>::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
         })
     }

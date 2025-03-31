@@ -5,7 +5,7 @@ use miden_objects::{
     account::AccountId,
     block::{BlockInputs, ProposedBlock},
     testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
-    transaction::ProvenTransaction,
+    transaction::{ProvenTransaction, TransactionHeader},
 };
 
 use crate::tests::utils::{
@@ -28,7 +28,7 @@ fn proposed_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     );
     let block = ProposedBlock::new(block_inputs, Vec::new()).context("failed to propose block")?;
 
-    assert_eq!(block.affected_accounts().count(), 0);
+    assert_eq!(block.transactions().count(), 0);
     assert_eq!(block.output_note_batches().len(), 0);
     assert_eq!(block.created_nullifiers().len(), 0);
     assert_eq!(block.batches().len(), 0);
@@ -60,8 +60,12 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
         proposed_block.updated_accounts().iter().cloned().collect::<BTreeMap<_, _>>();
 
     assert_eq!(updated_accounts.len(), 2);
-    assert_eq!(updated_accounts[&account0.id()].transactions(), &[proven_tx0.id()]);
-    assert_eq!(updated_accounts[&account1.id()].transactions(), &[proven_tx1.id()]);
+    assert!(proposed_block.transactions().any(|tx_header| {
+        tx_header.id() == proven_tx0.id() && tx_header.account_id() == account0.id()
+    }));
+    assert!(proposed_block.transactions().any(|tx_header| {
+        tx_header.id() == proven_tx1.id() && tx_header.account_id() == account1.id()
+    }));
     assert_eq!(
         updated_accounts[&account0.id()].final_state_commitment(),
         proven_tx0.account_update().final_state_commitment()
@@ -170,8 +174,12 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         account_update.final_state_commitment(),
         tx2.account_update().final_state_commitment()
     );
-    // The transactions that affected the account are in chronological order.
-    assert_eq!(account_update.transactions(), [tx0.id(), tx1.id(), tx2.id()]);
+    // The transactions are in the flattened order of the batches.
+    assert_eq!(
+        block.transactions().map(TransactionHeader::id).collect::<Vec<_>>(),
+        [tx2.id(), tx0.id(), tx1.id()]
+    );
+
     assert!(account_update.details().is_private());
 
     Ok(())

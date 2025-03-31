@@ -13,7 +13,7 @@ use crate::{
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
-    transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
+    transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionHeader},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -252,12 +252,9 @@ impl ProposedBlock {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an iterator over all transactions which affected accounts in the block with
-    /// corresponding account IDs.
-    pub fn affected_accounts(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
-        self.account_updated_witnesses.iter().flat_map(|(account_id, update)| {
-            update.transactions().iter().map(move |tx_id| (*tx_id, *account_id))
-        })
+    /// Returns an iterator over all transactions in the block.
+    pub fn transactions(&self) -> impl Iterator<Item = &TransactionHeader> {
+        self.batches.iter().flat_map(ProvenBatch::transactions)
     }
 
     /// Returns the block number of this proposed block.
@@ -658,7 +655,6 @@ impl AccountUpdateAggregator {
         let (initial_state_commitment, initial_state_proof) = witness.into_parts();
         let mut details: Option<AccountUpdateDetails> = None;
 
-        let mut transactions = Vec::new();
         let mut current_commitment = initial_state_commitment;
         while !updates.is_empty() {
             let (update, _) = updates.remove(&current_commitment).ok_or_else(|| {
@@ -670,8 +666,7 @@ impl AccountUpdateAggregator {
             })?;
 
             current_commitment = update.final_state_commitment();
-            let (update_transactions, update_details) = update.into_parts();
-            transactions.extend(update_transactions);
+            let update_details = update.into_update();
 
             details = Some(match details {
                 None => update_details,
@@ -686,7 +681,6 @@ impl AccountUpdateAggregator {
             current_commitment,
             initial_state_proof,
             details.expect("details should be Some as updates is guaranteed to not be empty"),
-            transactions,
         ))
     }
 }
