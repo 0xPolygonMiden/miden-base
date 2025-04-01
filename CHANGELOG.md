@@ -3,6 +3,7 @@
 ## 0.9.0 (TBD)
 
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
+- Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
 - Added a retry strategy for worker's health check (#1255).
 
 ## 0.8.1 (2025-03-26)
