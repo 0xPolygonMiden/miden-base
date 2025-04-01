@@ -5,7 +5,7 @@ use tonic::{async_trait, transport::Channel};
 use tonic_health::pb::health_client::HealthClient;
 use tracing::debug_span;
 
-use super::{LoadBalancerState, metrics::WORKER_COUNT};
+use super::LoadBalancerState;
 use crate::error::ProvingServiceError;
 
 /// Implement the BackgroundService trait for the LoadBalancer
@@ -39,16 +39,8 @@ impl BackgroundService for LoadBalancerState {
 
                     // Perform health checks on workers and retain healthy ones
                     self.check_workers_health(workers.iter_mut()).await;
-
-                    // Filter out unhealthy workers that exceed retry limit
-                    workers
-                        .retain(|worker| worker.retries_amount() < self.max_health_check_retries);
-
-                    // Update total worker count
-                    WORKER_COUNT.set(workers.len() as i64);
-
-                    // Sleep for the defined interval before the next health check
                 }
+                // Sleep for the defined interval before the next health check
                 sleep(self.health_check_interval).await;
             }
         })

@@ -24,9 +24,6 @@ pub(crate) struct ProxyConfig {
     /// Health check interval in seconds.
     #[clap(long, default_value = "10", env = "MPS_HEALTH_CHECK_INTERVAL_SECS")]
     pub(crate) health_check_interval_secs: u64,
-    /// Maximum number of health check retries before permanently removing a worker.
-    #[clap(long, default_value = "3", env = "MPS_MAX_HEALTH_CHECK_RETRIES")]
-    pub(crate) max_health_check_retries: usize,
     /// Maximum number of items in the queue.
     #[clap(long, default_value = "10", env = "MPS_MAX_QUEUE_ITEMS")]
     pub(crate) max_queue_items: usize,
