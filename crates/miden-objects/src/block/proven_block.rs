@@ -2,7 +2,6 @@ use alloc::vec::Vec;
 
 use crate::{
     Digest, MIN_PROOF_SECURITY_LEVEL,
-    account::AccountId,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
     transaction::{OutputNote, TransactionHeader},
