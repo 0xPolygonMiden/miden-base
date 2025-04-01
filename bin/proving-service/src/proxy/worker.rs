@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use pingora::lb::Backend;
 use tonic::transport::Channel;
@@ -9,6 +9,11 @@ use tracing::error;
 
 use super::health_check::create_health_check_client;
 use crate::error::ProvingServiceError;
+
+/// The maximum exponent for the backoff.
+///
+/// The maximum backoff is 2^[MAX_BACKOFF_EXPONENT] seconds.
+const MAX_BACKOFF_EXPONENT: usize = 9;
 
 // WORKER
 // ================================================================================================
@@ -33,7 +38,10 @@ pub struct Worker {
 #[derive(Debug, Clone, PartialEq)]
 pub enum WorkerHealthStatus {
     Healthy,
-    Unhealthy { failed_attempts: usize },
+    Unhealthy {
+        failed_attempts: usize,
+        first_fail_timestamp: Instant,
+    },
 }
 
 impl Worker {
@@ -68,32 +76,25 @@ impl Worker {
 
     /// Checks the worker health.
     ///
-    /// Marks the worker as unhealthy if the health check fails.
-    ///
     /// # Returns
-    /// - `true` if the worker is healthy.
-    /// - `false` if the worker is unhealthy.
-    pub async fn is_healthy(&mut self) -> bool {
-        match self
-            .health_check_client
-            .check(HealthCheckRequest { service: "".to_string() })
-            .await
-        {
-            Ok(response) => {
-                let status = response.into_inner().status();
-                if status == ServingStatus::Serving {
-                    self.mark_as_healthy();
-                } else {
-                    self.mark_as_unhealthy();
-                }
-                status == ServingStatus::Serving
-            },
-            Err(err) => {
-                error!("Failed to check worker health ({}): {}", self.address(), err);
-                self.mark_as_unhealthy();
-                false
-            },
+    /// - `Some(true)` if the worker is healthy.
+    /// - `Some(false)` if the worker is unhealthy.
+    /// - `None` if the worker should not do a health check.
+    pub async fn is_healthy(&mut self) -> Option<bool> {
+        if !self.should_do_health_check() {
+            return None;
         }
+
+        Some(
+            self.health_check_client
+                .check(HealthCheckRequest { service: "".to_string() })
+                .await
+                .map(|response| response.into_inner().status() == ServingStatus::Serving)
+                .unwrap_or_else(|err| {
+                    error!("Failed to check worker health ({}): {}", self.address(), err);
+                    false
+                }),
+        )
     }
 
     /// Returns the worker availability.
@@ -111,9 +112,15 @@ impl Worker {
     /// Additionally, the worker is set to unavailable.
     pub fn mark_as_unhealthy(&mut self) {
         self.health_status = match &self.health_status {
-            WorkerHealthStatus::Healthy => WorkerHealthStatus::Unhealthy { failed_attempts: 1 },
-            WorkerHealthStatus::Unhealthy { failed_attempts } => {
-                WorkerHealthStatus::Unhealthy { failed_attempts: failed_attempts + 1 }
+            WorkerHealthStatus::Healthy => WorkerHealthStatus::Unhealthy {
+                failed_attempts: 1,
+                first_fail_timestamp: Instant::now(),
+            },
+            WorkerHealthStatus::Unhealthy { failed_attempts, first_fail_timestamp } => {
+                WorkerHealthStatus::Unhealthy {
+                    failed_attempts: failed_attempts + 1,
+                    first_fail_timestamp: *first_fail_timestamp,
+                }
             },
         };
         self.is_available = false;
@@ -129,7 +136,29 @@ impl Worker {
     pub fn retries_amount(&self) -> usize {
         match &self.health_status {
             WorkerHealthStatus::Healthy => 0,
-            WorkerHealthStatus::Unhealthy { failed_attempts } => *failed_attempts,
+            WorkerHealthStatus::Unhealthy { failed_attempts, first_fail_timestamp: _ } => {
+                *failed_attempts
+            },
+        }
+    }
+
+    /// Returns whether the worker should do a health check.
+    ///
+    /// A worker should do a health check if it is healthy or if the time since the first failure
+    /// is greater than the time since the first failure power of 2.
+    ///
+    /// The maximum exponent is [MAX_BACKOFF_EXPONENT], which corresponds to a backoff of
+    /// 2^[MAX_BACKOFF_EXPONENT] seconds.
+    pub(crate) fn should_do_health_check(&self) -> bool {
+        match self.health_status {
+            WorkerHealthStatus::Healthy => true,
+            WorkerHealthStatus::Unhealthy { failed_attempts, first_fail_timestamp } => {
+                let time_since_first_failure = Instant::now() - first_fail_timestamp;
+                time_since_first_failure
+                    > Duration::from_secs(
+                        2u64.pow(failed_attempts.min(MAX_BACKOFF_EXPONENT) as u32),
+                    )
+            },
         }
     }
 }

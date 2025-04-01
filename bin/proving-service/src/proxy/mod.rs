@@ -56,7 +56,6 @@ pub struct LoadBalancerState {
     max_req_per_sec: isize,
     available_workers_polling_interval: Duration,
     health_check_interval: Duration,
-    max_health_check_retries: usize,
 }
 
 impl LoadBalancerState {
@@ -102,7 +101,6 @@ impl LoadBalancerState {
                 config.available_workers_polling_interval_ms,
             ),
             health_check_interval: Duration::from_secs(config.health_check_interval_secs),
-            max_health_check_retries: config.max_health_check_retries,
         })
     }
 
@@ -193,14 +191,21 @@ impl LoadBalancerState {
         self.workers.read().await.iter().filter(|w| !w.is_available()).count()
     }
 
-    /// Check the health of the workers and returns a list of healthy workers.
+    /// Check the health of the workers.
     ///
-    /// Performs a health check on each worker using the gRPC health check protocol. If a worker
-    /// is not healthy, it won't be included in the list of healthy workers.
+    /// Performs a health check on each worker using the gRPC health check protocol.
+    ///
+    /// If a worker is not healthy, it will be marked as unhealthy and the number of unhealthy
+    /// workers will be incremented.
     async fn check_workers_health(&self, workers: impl Iterator<Item = &mut Worker>) {
         for worker in workers {
-            if !worker.is_healthy().await {
-                WORKER_UNHEALTHY.with_label_values(&[&worker.address()]).inc();
+            if let Some(is_healthy) = worker.is_healthy().await {
+                if is_healthy {
+                    worker.mark_as_healthy();
+                } else {
+                    worker.mark_as_unhealthy();
+                    WORKER_UNHEALTHY.with_label_values(&[&worker.address()]).inc();
+                }
             }
         }
     }
