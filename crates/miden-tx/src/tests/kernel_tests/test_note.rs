@@ -622,29 +622,29 @@ pub fn test_timelock() {
     const TIMESTAMP_ERROR: u32 = 123;
 
     let code = format!(
-        "
+        "	
       use.miden::note
       use.miden::tx
 
-      begin
-          # store the note inputs to memory starting at address 0
-          push.0 exec.note::get_inputs
-          # => [num_inputs, inputs_ptr]
+      begin	
+          # store the note inputs to memory starting at address 0	
+          push.0 exec.note::get_inputs	
+          # => [num_inputs, inputs_ptr]	
 
-          # make sure the number of inputs is 1
-          eq.1 assert.err=789
-          # => [inputs_ptr]
+          # make sure the number of inputs is 1	
+          eq.1 assert.err=789	
+          # => [inputs_ptr]	
 
-          # read the timestamp at which the note can be consumed
-          mem_load
-          # => [timestamp]
+          # read the timestamp at which the note can be consumed	
+          mem_load	
+          # => [timestamp]	
 
-          exec.tx::get_block_timestamp
-          # => [block_timestamp, timestamp]
+          exec.tx::get_block_timestamp	
+          # => [block_timestamp, timestamp]	
+          # ensure block timestamp is newer than timestamp	
 
-          # ensure block timestamp is newer than timestamp
-          lte assert.err={TIMESTAMP_ERROR}
-          # => []
+          lte assert.err={TIMESTAMP_ERROR}	
+          # => []	
       end"
     );
 
