@@ -251,23 +251,21 @@ end
 #! 
 #! NOTE: Bypasses asset_vault.masm for now and does not emit events.
 #!
-#! Inputs:  [ASSET_ID]
+#! Inputs:  [ASSET_ID, asset_type]
 #! Outputs: [asset_ptr]
 export.load_from_account
   exec.kernel_proc_offsets::asset_load_from_account
-  # => [offset, ASSET_ID]
+  # => [offset, ASSET_ID, asset_type]
 
   # pad the stack
-  push.0.0.0 movdn.7 movdn.7 movdn.7
-  # => [offset, ASSET_ID, 0, 0, 0]
-  padw padw swapdw
-  # => [offset, ASSET_ID, pad(11)]
+  repeat.10 push.0 movdn.6 end
+  # => [offset, ASSET_ID, asset_type, pad(10)]
 
   syscall.exec_kernel_proc
   # => [asset_ptr, pad(15)]
 
   # clean the stack
-  movdn.15 dropw dropw dropw drop drop drop
+  repeat.15 swap drop end
   # => [asset_ptr]
 end
 

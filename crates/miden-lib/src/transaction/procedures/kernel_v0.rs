@@ -98,7 +98,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 47] = [
     // get_asset_field
     digest!("0x34c9efcb02c3ebb2f1ea9d4e45f70fae79b9ec14d978a2c4a0f74c954c564361"),
     // asset_load_from_account
-    digest!("0xac4352e492449bebd7cb04f0b2343e364a88f480210085926629d931efb6a656"),
+    digest!("0xce77e15263ec43f5a489b7fb2553733fa661fba976de0fdfd59248b357b819c4"),
     // asset_get_id
     digest!("0xac801ccab602b422bc52a0a13433ccece517f3e0c16a28a2f68a65c90a14c095"),
 ];

@@ -24,6 +24,7 @@ use crate::{
 fn test_fpi_asset_memory() {
     // Num fields must satisfy num_fields % 8 == 0.
 
+    // Randomly picked a non-zero value for demo purposes.
     const TREASURY_CAP_ASSET_TYPE: u32 = 3;
     const TREASURY_CAP_NUM_FIELDS: u32 = 8;
     const TREASURY_CAP_FIELD_TYPE_ID_PREFIX: u32 = 0;
@@ -56,6 +57,9 @@ fn test_fpi_asset_memory() {
         const.TOKEN_FIELD_TYPE_ID_SUFFIX={TOKEN_FIELD_TYPE_ID_SUFFIX}
         const.TOKEN_FIELD_OTW_ID={TOKEN_FIELD_OTW_ID}
         const.TOKEN_FIELD_AMOUNT={TOKEN_FIELD_AMOUNT}
+
+        # TREASURY CAP
+        # =========================================================================================
 
         #! Inputs:  []
         #! Outputs: [treasury_cap_ptr]
@@ -136,6 +140,9 @@ fn test_fpi_asset_memory() {
             # => [token_ptr]
         end
 
+        # GENERIC
+        # =========================================================================================
+
         #! Inputs:  [asset_ptr]
         #! Outputs: [ASSET_ID]
         export.store_to_account
@@ -150,12 +157,20 @@ fn test_fpi_asset_memory() {
             # => [ASSET_ID]
         end
 
-        #! Inputs:  [ASSET_ID]
-        #! Outputs: [asset_ptr]
+        # TOKEN
+        # =========================================================================================
+
+        #! Inputs:  [TOKEN_ASSET_ID]
+        #! Outputs: [token_ptr]
         export.load_from_account
-          # TODO: Pass type of asset so tx kernel can validate.
+          # pass the type of the asset so the tx kernel can validate the type.
+          push.TOKEN_ASSET_TYPE movdn.4
+          # => [ASSET_ID, asset_type]
           exec.asset::load_from_account
         end
+
+        # HELPERS
+        # =========================================================================================
 
         #! Inputs:  [treasury_cap_ptr]
         #! Outputs: []

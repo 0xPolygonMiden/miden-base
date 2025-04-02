@@ -1224,48 +1224,65 @@ end
 #! 
 #! NOTE: Bypasses asset_vault.masm for now and does not emit events.
 #!
-#! Inputs:  [ASSET_ID]
+#! Inputs:  [ASSET_ID, expected_asset_type]
 #! Outputs: [asset_ptr]
 export.asset_load_from_account
   exec.memory::get_native_account_vault_root swapw padw
-  # => [EMPTY_WORD, ASSET_ID, ACCOUNT_VAULT_ROOT]
+  # => [EMPTY_WORD, ASSET_ID, ACCOUNT_VAULT_ROOT, expected_asset_type]
 
+  # Overwrite the object's ID with an empty word to prevent loading this asset multiple times.
+  # It also cleanly handles loading an account to move it to a note - the account then no longer has this asset.
+  # We could potentially have separate APIs for loading an asset for mutation (where it is written back to the same account),
+  # or loaded to move it somewhere else, in which case it is removed from the account vault, but these would have some tricky
+  # edge cases.
   exec.smt::set swapw
-  # => [NEW_ACCOUNT_VAULT_ROOT, ASSET_HASH]
+  # => [NEW_ACCOUNT_VAULT_ROOT, ASSET_HASH, expected_asset_type]
   exec.memory::set_native_account_vault_root dropw
-  # => [ASSET_HASH]
+  # => [ASSET_HASH, expected_asset_type]
 
   adv.push_mapvaln
-  # OS => [ASSET_HASH]
+  # OS => [ASSET_HASH, expected_asset_type]
   # AS => [num_elems, [ASSET_DATA]]
   adv_push.1
-  # OS => [num_elems, ASSET_HASH]
+  # OS => [num_elems, ASSET_HASH, expected_asset_type]
   # AS => [[ASSET_DATA]]
 
   # subtract asset bookkeeping size
   dup sub.8
-  # => [num_fields, num_elems, ASSET_HASH]
+  # => [num_fields, num_elems, ASSET_HASH, expected_asset_type]
 
   exec.memory::get_next_asset_ptr dup movdn.6
-  # => [asset_ptr, num_elems, ASSET_HASH, asset_ptr]
-  mem_load
-  # => [asset_mem_ptr, num_elems, ASSET_HASH, asset_ptr]
+  # => [asset_ptr, num_elems, ASSET_HASH, asset_ptr, expected_asset_type]
+  mem_load dup movdn.6
+  # => [asset_mem_ptr, num_elems, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
 
   dup movdn.2 add swap
-  # => [asset_mem_ptr, asset_mem_end_ptr, ASSET_HASH, asset_ptr]
+  # => [asset_mem_ptr, asset_mem_end_ptr, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
 
   # pad stack before reading from advice stack
   padw padw padw
   exec.mem::pipe_double_words_to_memory
-  # => [C, B, A, _ptr, ASSET_HASH, asset_ptr]
+  # => [C, B, A, _ptr, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
 
   # extract the digest
   exec.rpo::squeeze_digest
   movup.4 drop
-  # => [COMPUTED_ASSET_HASH, ASSET_HASH, asset_ptr]
+  # => [COMPUTED_ASSET_HASH, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
 
   # assert asset from advice provider matches the commitment from the account vault
   assert_eqw.err=47293
+  # => [asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  # make sure only the issuer code can control loading this asset
+  dup exec.assert_asset_issuer
+  # => [asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  # make sure the asset is of the expected type
+  # this could be checked by the calling code as well, but should be done anyway
+  # and would incur another context switch.
+  movup.2 swap
+  # => [asset_mem_ptr, expected_asset_type, asset_ptr]
+  exec.assert_asset_type
   # => [asset_ptr]
 end
 
@@ -1329,6 +1346,19 @@ proc.assert_asset_issuer
 
   # assert only the account that defines the asset can modify it
   exec.account::is_id_equal assert.err=987
+  # => []
+end
+
+#! Asserts the asset ptr points to an asset of the given expected type.
+#!
+#! Inputs:  [asset_mem_ptr, expected_asset_type]
+#! Outputs: []
+proc.assert_asset_type
+  exec.memory::get_asset_type
+  # => [actual_asset_type, expected_asset_type]
+
+  # assert types match
+  assert_eq.err=31927
   # => []
 end
 
