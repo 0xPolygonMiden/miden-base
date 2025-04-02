@@ -721,6 +721,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-encoding"
+version = "2.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "575f75dfd25738df5b91b8e43e14d44bda14637a58fae779fd2b064f8bf3e010"
+
+[[package]]
 name = "debugid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3672,11 +3678,10 @@ dependencies = [
 
 [[package]]
 name = "sfv"
-version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fa1f336066b758b7c9df34ed049c0e693a426afe2b27ff7d5b14f410ab1a132"
+version = "0.9.4"
+source = "git+https://github.com/undef1nd/sfv.git?tag=v0.9.4#e6499d8ce11271dd0a4c1f72445775a58b835a56"
 dependencies = [
- "base64",
+ "data-encoding",
  "indexmap 2.8.0",
  "rust_decimal",
 ]
