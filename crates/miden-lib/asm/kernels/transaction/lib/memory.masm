@@ -1656,6 +1656,15 @@ export.get_next_asset_ptr
     # => [asset_ptr]
 end
 
+#! Invalidates an asset ptr by making it point to zero.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.invalidate_asset_ptr
+  push.0 swap mem_store
+  # => []
+end
+
 #! Computes the one time witness pointer for the given otw ID which is assumed to be within the valid range.
 #!
 #! Inputs:  [one_time_witness_id]
@@ -1804,6 +1813,10 @@ export.assert_valid_asset_ptr
 
   # dereference the asset ptr to the actual memory location of the asset
   mem_load
+  # => [asset_mem_ptr]
+
+  # if it is a null pointer, it means we have invalidated the ptr and we abort
+  dup eq.0 assertz.err=491472
   # => [asset_mem_ptr]
 end
 

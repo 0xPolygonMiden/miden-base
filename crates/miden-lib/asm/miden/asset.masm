@@ -176,14 +176,16 @@ export.get_id
   # => [offset, asset_ptr]
 
   # pad the stack
-  push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
+  #push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
+  repeat.14 push.0 movdn.2 end
   # => [offset, asset_ptr, pad(14)]
 
   syscall.exec_kernel_proc
   # => [ASSET_ID, pad(12)]
 
   # clean the stack
-  swapdw dropw dropw swapw dropw swapw dropw
+  # swapdw dropw dropw swapw dropw swapw dropw
+  repeat.12 movup.4 drop end
   # => [ASSET_ID]
 end
 
@@ -236,7 +238,8 @@ export.store_to_account
   # => [offset, asset_ptr]
 
   # pad the stack
-  push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  # push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  repeat.14 push.0 movdn.2 end
   # => [offset, asset_ptr, pad(14)]
 
   syscall.exec_kernel_proc

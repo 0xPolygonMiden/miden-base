@@ -84,21 +84,21 @@ pub const KERNEL0_PROCEDURES: [Digest; 47] = [
     // consume_one_time_witness
     digest!("0x1cbc1a00a2b2bd110def30d241567c1713c459f71628cc0aeb2a8c2753eadecf"),
     // set_asset_field
-    digest!("0x7e390035dedb07ca396e60b8924c418f61427d435a90e59b7124f7457dd920b5"),
+    digest!("0x9ef0a49fb58034beec4468f442d7acf782c233ca12a932154747dfd2290621c3"),
     // get_native_account_id
     digest!("0xc9180623881da1c2bde78026708404a949f32ca93e033fdc45ff1c8f7e28b63f"),
     // store_asset_to_account
-    digest!("0x3026bcf2c540864fe9eda5d928450817bd6ac8ddd0f6deb9a1d51c5a4734ba27"),
+    digest!("0x7e608e22834cdf4f10ad7ae3bdc9a8a8f2793bf12757d38a9074bd0483d0038e"),
     // get_asset_issuer
-    digest!("0x7de999462a39b985d9343d9991d1b3381b8eda928dad7898859d67738b00c85f"),
+    digest!("0xd2bc05af310f06eda11af6ea6f85940e4fb80c91d1fbb62222241fa4e1bd55d0"),
     // get_asset_type
-    digest!("0x1398fccc2f9bb28d2c3ce153c60a6573cd1bf0c95f04258810e320b7d1096743"),
+    digest!("0x7ab6c6f4622e9abaee4cb7922d1e09080165487be998473cd61fe6cd2eb367f9"),
     // get_asset_num_fields
-    digest!("0x124e3a944e3d66e056bda6a1e46cee3c8d6bfd45a4272d004a2a3e6c76be5eb7"),
+    digest!("0xd96aad5f502c28a46799ab4ced5559d11d377fb1437dca3929c79d1ef4e2a157"),
     // get_asset_field
-    digest!("0x34c9efcb02c3ebb2f1ea9d4e45f70fae79b9ec14d978a2c4a0f74c954c564361"),
+    digest!("0x281f3c0aa892dab908079f61aee05d03fa9c00501350911fe26a2a3cfd80aadc"),
     // asset_load_from_account
     digest!("0xce77e15263ec43f5a489b7fb2553733fa661fba976de0fdfd59248b357b819c4"),
     // asset_get_id
-    digest!("0xac801ccab602b422bc52a0a13433ccece517f3e0c16a28a2f68a65c90a14c095"),
+    digest!("0x8778ef1df663d26feb50842df8fa7e023349f41aee8d0e969fc5c85e243435b5"),
 ];

@@ -154,11 +154,14 @@ fn test_fpi_asset_memory() {
             # we could also prevent moving entirely by not exposing a procedure that wraps store_to_account
             # (or an equivalent store_to_note)
 
-            dup exec.asset::store_to_account
-            # => [asset_ptr]
+            dup exec.asset::get_id movup.4
+            # => [asset_ptr, ASSET_ID]
 
-            exec.asset::get_id
+            exec.asset::store_to_account
             # => [ASSET_ID]
+
+            # truncate stack
+            repeat.3 movup.4 drop end
         end
 
         #! Inputs:  [TOKEN_ASSET_ID]

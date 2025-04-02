@@ -1189,7 +1189,10 @@ end
 #!
 #! Inputs:  [asset_ptr]
 #! Outputs: []
-export.store_asset_to_account
+export.store_asset_to_account.1
+  dup loc_store.0
+  # => [asset_ptr]
+
   exec.memory::assert_valid_asset_ptr
   # => [asset_mem_ptr]
 
@@ -1217,7 +1220,10 @@ export.store_asset_to_account
   exec.memory::set_native_account_vault_root dropw
   # => []
 
-  # TODO: Clear asset memory, invalidate ptr
+  # invalidate the ptr to make the asset inaccessible
+  # we do not clear the asset's memory because we do not reuse it anyway
+  loc_load.0 exec.memory::invalidate_asset_ptr
+  # => []
 end
 
 #! Loads the asset from the native account's vault into kernel memory.
