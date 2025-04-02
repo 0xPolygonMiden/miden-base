@@ -140,16 +140,20 @@ fn test_fpi_asset_memory() {
             # => [token_ptr]
         end
 
-        # GENERIC
+        # TOKEN
         # =========================================================================================
 
-        #! Inputs:  [asset_ptr]
-        #! Outputs: [ASSET_ID]
+        #! Inputs:  [token_ptr]
+        #! Outputs: [TOKEN_ASSET_ID]
         export.store_to_account
-            # before allowing the store we could check that the calling account's ID
+            dup exec.assert_token
+            # => [token_ptr]
+
+            # before allowing the store operation we could check that the calling account's ID
             # is in the storage of this account to implement a regulated token
             # we could also prevent moving entirely by not exposing a procedure that wraps store_to_account
             # (or an equivalent store_to_note)
+
             dup exec.asset::store_to_account
             # => [asset_ptr]
 
@@ -157,16 +161,15 @@ fn test_fpi_asset_memory() {
             # => [ASSET_ID]
         end
 
-        # TOKEN
-        # =========================================================================================
-
         #! Inputs:  [TOKEN_ASSET_ID]
         #! Outputs: [token_ptr]
         export.load_from_account
           # pass the type of the asset so the tx kernel can validate the type.
           push.TOKEN_ASSET_TYPE movdn.4
           # => [ASSET_ID, asset_type]
+
           exec.asset::load_from_account
+          # => [token_ptr]
         end
 
         # HELPERS
@@ -179,6 +182,16 @@ fn test_fpi_asset_memory() {
           # => [treasury_cap_ptr]
 
           exec.asset::get_asset_type push.TREASURY_CAP_ASSET_TYPE assert_eq.err=13844
+          # => []
+        end
+
+        #! Inputs:  [token_ptr]
+        #! Outputs: []
+        proc.assert_token
+          dup exec.assert_asset_issuer
+          # => [treasury_cap_ptr]
+
+          exec.asset::get_asset_type push.TOKEN_ASSET_TYPE assert_eq.err=13845
           # => []
         end
 

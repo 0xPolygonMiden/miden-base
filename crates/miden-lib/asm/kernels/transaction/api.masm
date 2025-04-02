@@ -1193,7 +1193,7 @@ export.store_asset_to_account
   exec.memory::assert_valid_asset_ptr
   # => [asset_mem_ptr]
 
-  # this asserts that only the issuing account can control transfers of an asset
+  # this asserts that only the issuing account code can control transfers of an asset
   dup exec.assert_asset_issuer
   # => [asset_mem_ptr]
 
