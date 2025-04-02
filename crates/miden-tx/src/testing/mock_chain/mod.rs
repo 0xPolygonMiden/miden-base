@@ -474,19 +474,14 @@ impl MockChain {
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
 
-        let verified_txs = transactions
-            .iter()
-            .map(|proven_tx| {
-                TransactionHeader::new_unchecked(
-                    proven_tx.id(),
-                    proven_tx.account_id(),
-                    proven_tx.account_update().initial_state_commitment(),
-                    proven_tx.account_update().final_state_commitment(),
-                    proven_tx.input_notes().iter().map(|note| note.nullifier()).collect(),
-                    proven_tx.output_notes().iter().map(|note| note.id()).collect(),
-                )
-            })
-            .collect();
+        // SAFETY: This satisfies the requirements of the ordered tx headers.
+        let tx_headers = OrderedTransactionHeaders::new_unchecked(
+            transactions
+                .iter()
+                .map(AsRef::as_ref)
+                .map(TransactionHeader::from)
+                .collect::<Vec<_>>(),
+        );
 
         ProvenBatch::new_unchecked(
             id,
@@ -496,7 +491,7 @@ impl MockChain {
             input_notes,
             output_notes,
             batch_expiration_block_num,
-            verified_txs,
+            tx_headers,
         )
     }
 

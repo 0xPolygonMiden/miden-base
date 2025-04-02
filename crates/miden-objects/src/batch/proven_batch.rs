@@ -6,7 +6,7 @@ use crate::{
     batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
     note::Nullifier,
-    transaction::{InputNoteCommitment, InputNotes, OutputNote, TransactionHeader},
+    transaction::{InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -20,7 +20,7 @@ pub struct ProvenBatch {
     input_notes: InputNotes<InputNoteCommitment>,
     output_notes: Vec<OutputNote>,
     batch_expiration_block_num: BlockNumber,
-    transactions: Vec<TransactionHeader>,
+    transactions: OrderedTransactionHeaders,
 }
 
 impl ProvenBatch {
@@ -44,7 +44,7 @@ impl ProvenBatch {
         input_notes: InputNotes<InputNoteCommitment>,
         output_notes: Vec<OutputNote>,
         batch_expiration_block_num: BlockNumber,
-        transactions: Vec<TransactionHeader>,
+        transactions: OrderedTransactionHeaders,
     ) -> Self {
         Self {
             id,
@@ -123,7 +123,7 @@ impl ProvenBatch {
     }
 
     /// Returns the [`TransactionHeader`]s included in this batch.
-    pub fn transactions(&self) -> &[TransactionHeader] {
+    pub fn transactions(&self) -> &OrderedTransactionHeaders {
         &self.transactions
     }
 
@@ -131,7 +131,7 @@ impl ProvenBatch {
     // --------------------------------------------------------------------------------------------
 
     /// Consumes self and returns the contained [`TransactionHeader`]s of this batch.
-    pub fn into_transactions(self) -> Vec<TransactionHeader> {
+    pub fn into_transactions(self) -> OrderedTransactionHeaders {
         self.transactions
     }
 }
@@ -161,7 +161,7 @@ impl Deserializable for ProvenBatch {
         let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
         let output_notes = Vec::<OutputNote>::read_from(source)?;
         let batch_expiration_block_num = BlockNumber::read_from(source)?;
-        let transactions = <Vec<TransactionHeader>>::read_from(source)?;
+        let transactions = OrderedTransactionHeaders::read_from(source)?;
 
         Ok(Self::new_unchecked(
             id,

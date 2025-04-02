@@ -11,7 +11,10 @@ use crate::{
     block::{BlockHeader, BlockNumber},
     errors::ProposedBatchError,
     note::{NoteId, NoteInclusionProof},
-    transaction::{ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction},
+    transaction::{
+        ChainMmr, InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote,
+        ProvenTransaction, TransactionHeader,
+    },
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -296,6 +299,18 @@ impl ProposedBatch {
     /// Returns a slice of the [`ProvenTransaction`]s in the batch.
     pub fn transactions(&self) -> &[Arc<ProvenTransaction>] {
         &self.transactions
+    }
+
+    /// Returns the ordered set of transactions in the batch.
+    pub fn transaction_headers(&self) -> OrderedTransactionHeaders {
+        // SAFETY: This constructs an ordered set in the order of the transactions in the batch.
+        OrderedTransactionHeaders::new(
+            self.transactions
+                .iter()
+                .map(AsRef::as_ref)
+                .map(TransactionHeader::from)
+                .collect(),
+        )
     }
 
     /// Returns the map of account IDs mapped to their [`BatchAccountUpdate`]s.

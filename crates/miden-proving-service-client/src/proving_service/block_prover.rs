@@ -7,7 +7,7 @@ use alloc::{
 use miden_objects::{
     batch::ProvenBatch,
     block::{ProposedBlock, ProvenBlock},
-    transaction::TransactionHeader,
+    transaction::{OrderedTransactionHeaders, TransactionHeader},
     utils::{Deserializable, DeserializationError, Serializable},
 };
 use tokio::sync::Mutex;
@@ -95,13 +95,8 @@ impl RemoteBlockProver {
             })?
             .clone();
 
-        // Create the set of the transaction headers we pass to the prover for later validation.
-        let proposed_txs: Vec<_> = proposed_block
-            .batches()
-            .iter()
-            .flat_map(ProvenBatch::transactions)
-            .cloned()
-            .collect();
+        // Get the set of expected transaction headers.
+        let proposed_txs = proposed_block.batches().to_transactions();
 
         let request = tonic::Request::new(proposed_block.into());
 
@@ -127,19 +122,20 @@ impl RemoteBlockProver {
     /// passed in the proposed block.
     fn validate_tx_headers(
         proven_block: &ProvenBlock,
-        proposed_txs: Vec<TransactionHeader>,
+        proposed_txs: OrderedTransactionHeaders,
     ) -> Result<(), RemoteProverError> {
-        if proposed_txs.len() != proven_block.transactions().len() {
+        if proposed_txs.as_slice().len() != proven_block.transactions().as_slice().len() {
             return Err(RemoteProverError::other(format!(
                 "remote prover returned {} transaction headers but {} transactions were passed as part of the proposed block",
-                proven_block.transactions().len(),
-                proposed_txs.len()
+                proven_block.transactions().as_slice().len(),
+                proposed_txs.as_slice().len()
             )));
         }
 
         // Because we checked the length matches we can zip the iterators up.
         // We expect the transaction headers to be in the same order.
-        for (proposed_header, proven_header) in proposed_txs.iter().zip(proven_block.transactions())
+        for (proposed_header, proven_header) in
+            proposed_txs.as_slice().iter().zip(proven_block.transactions().as_slice())
         {
             if proposed_header != proven_header {
                 return Err(RemoteProverError::other(format!(

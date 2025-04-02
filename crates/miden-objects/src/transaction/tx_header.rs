@@ -32,7 +32,12 @@ impl TransactionHeader {
     // --------------------------------------------------------------------------------------------
 
     /// Constructs a new [`TransactionHeader`] from the provided parameteres.
-    pub fn new_unchecked(
+    ///
+    /// Note that the nullifiers of the input notes and note IDs of the output notes must be in the
+    /// same order as they appeared in the transaction. This is ensured when constructing this type
+    /// from a proven transaction, but cannot be validated during deserialization, hence additional
+    /// validation is necessary.
+    pub(crate) fn new_unchecked(
         id: TransactionId,
         account_id: AccountId,
         initial_state_commitment: Digest,

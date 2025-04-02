@@ -254,7 +254,10 @@ impl ProposedBlock {
 
     /// Returns an iterator over all transactions in the block.
     pub fn transactions(&self) -> impl Iterator<Item = &TransactionHeader> {
-        self.batches.as_slice().iter().flat_map(ProvenBatch::transactions)
+        self.batches
+            .as_slice()
+            .iter()
+            .flat_map(|batch| batch.transactions().as_slice().iter())
     }
 
     /// Returns the block number of this proposed block.

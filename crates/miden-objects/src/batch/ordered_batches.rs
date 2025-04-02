@@ -31,10 +31,24 @@ impl OrderedBatches {
         &self.0
     }
 
+    /// Converts the transactions in batches into ordered transaction headers.
+    pub fn to_transactions(&self) -> OrderedTransactionHeaders {
+        OrderedTransactionHeaders::new(
+            self.0
+                .iter()
+                .flat_map(|batch| batch.transactions().as_slice().iter())
+                .cloned()
+                .collect(),
+        )
+    }
+
     /// Consumes self and converts the transactions in batches into ordered transaction headers.
     pub fn into_transactions(self) -> OrderedTransactionHeaders {
         OrderedTransactionHeaders::new(
-            self.0.into_iter().flat_map(ProvenBatch::into_transactions).collect(),
+            self.0
+                .into_iter()
+                .flat_map(|batch| batch.into_transactions().into_vec().into_iter())
+                .collect(),
         )
     }
 
