@@ -147,6 +147,24 @@ export.create
     # => [asset_ptr]
 end
 
+#! Destroys the given asset by making it inaccessible by invalidating its ptr.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.destroy
+  exec.kernel_proc_offsets::asset_destroy_offset
+  # => [offset, asset_ptr]
+
+  repeat.14 push.0 movdn.2 end
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [pad(16)]
+
+  dropw dropw dropw dropw
+  # => []
+end
+
 #! Creates a new one time witness in the context of the native account if it has not been created before.
 #!
 #! Inputs:  [one_time_witness_id]

@@ -81,6 +81,7 @@ const.GET_ASSET_NUM_FIELDS_OFFSET=43
 const.GET_ASSET_FIELD_OFFSET=44
 const.ASSET_LOAD_FROM_ACCOUNT_OFFSET=45
 const.ASSET_GET_ID_OFFSET=46
+const.ASSET_DESTROY_OFFSET=47
 
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
@@ -567,4 +568,8 @@ end
 
 export.asset_get_id_offset
   push.ASSET_GET_ID_OFFSET
+end
+
+export.asset_destroy_offset
+  push.ASSET_DESTROY_OFFSET
 end

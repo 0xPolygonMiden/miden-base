@@ -102,6 +102,9 @@ fn test_fpi_asset_memory() {
             dup exec.assert_treasury_cap
             # => [treasury_cap_ptr, amount]
 
+            # amount must be at least 1
+            dup.1 eq.0 assertz.err=324938
+
             push.TOKEN_ASSET_TYPE.TOKEN_NUM_FIELDS
             exec.asset::create
             # => [token_ptr, treasury_cap_ptr, amount]
@@ -175,6 +178,37 @@ fn test_fpi_asset_memory() {
           # => [token_ptr]
         end
 
+        #! Merges the other token into the first one and destroys the other one.
+        #!
+        #! Inputs:  [token_ptr, other_token_ptr]
+        #! Outputs: []
+        export.merge
+          dup movdn.2 exec.assert_token
+          # => [other_token_ptr, token_ptr]
+
+          dup exec.assert_token
+          # => [other_token_ptr, token_ptr]
+
+          push.TOKEN_FIELD_AMOUNT dup.1 exec.asset::get_field swap
+          # => [other_token_ptr, other_amount, token_ptr]
+
+          exec.asset::destroy swap
+          # => [token_ptr, other_amount]
+
+          push.TOKEN_FIELD_AMOUNT dup.1 exec.asset::get_field
+          # => [token_amount, token_ptr, other_amount]
+
+          movup.2 add swap
+          # => [token_ptr, merged_amount]
+
+          # set new amount on token ptr
+          push.TOKEN_FIELD_AMOUNT swap
+          # => [token_ptr, field_idx, merged_amount]
+
+          exec.asset::set_field
+          # => []
+        end
+
         # HELPERS
         # =========================================================================================
 
@@ -234,7 +268,7 @@ fn test_fpi_asset_memory() {
     mock_chain.seal_next_block();
     let advice_inputs = get_mock_fpi_adv_inputs(vec![&miden_std_account], &mock_chain);
 
-    const BOB_TOKEN_OTW: u32 = 8;
+    const POL_TOKEN_OTW: u32 = 8;
 
     let tx_code = format!(
         "
@@ -245,13 +279,13 @@ fn test_fpi_asset_memory() {
 
         #! Inputs:  []
         #! Outputs: [treasury_cap_ptr]
-        proc.create_bob_treasury_cap
+        proc.create_pol_treasury_cap
             # pad the stack for the `execute_foreign_procedure` execution
-            padw padw padw push.0.0
+            repeat.14 push.0 end
             # => [pad(14)]
 
             # Push OTW
-            push.{BOB_TOKEN_OTW}
+            push.{POL_TOKEN_OTW}
             # => [otw_id, pad(14)]
 
             # get the hash of the `create` procedure of the miden_std account
@@ -259,47 +293,43 @@ fn test_fpi_asset_memory() {
 
             # push the miden_std account ID
             push.{miden_std_suffix}.{miden_std_prefix}
-            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, pad(15)]
+            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, otw_id, pad(14)]
 
             exec.tx::execute_foreign_procedure
-            # => [treasury_cap_ptr]
+            # => [treasury_cap_ptr, pad(15)]
 
             # truncate the stack
-            movdn.15 dropw dropw dropw drop drop drop
+            repeat.15 swap drop end
             # => [treasury_cap_ptr]
         end
 
-        #! Inputs:  [treasury_cap_ptr]
+        #! Inputs:  [treasury_cap_ptr, amount]
         #! Outputs: [token_ptr]
-        proc.mint_bob_token
+        proc.mint_pol_token
             # pad the stack for the `execute_foreign_procedure` execution
-            push.0 padw padw padw movup.13
-            # => [treasury_cap_ptr, pad(13)]
-
-            # Push the amount of tokens to mint
-            push.100 swap
-            # => [treasury_cap_ptr, 100, pad(13)]
+            repeat.14 push.0 movdn.2 end
+            # => [treasury_cap_ptr, amount, pad(14)]
 
             # get the hash of the `mint` procedure of the miden_std account
             procref.token::mint
 
             # push the miden_std account ID
             push.{miden_std_suffix}.{miden_std_prefix}
-            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, treasury_cap_ptr, 100, pad(13)]
+            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, treasury_cap_ptr, amount, pad(14)]
 
             exec.tx::execute_foreign_procedure
-            # => [token_ptr]
+            # => [token_ptr, pad(15)]
 
             # truncate the stack
-            movdn.13 dropw dropw dropw drop
+            repeat.15 swap drop end
             # => [token_ptr]
         end
 
         #! Inputs:  [asset_ptr]
         #! Outputs: [ASSET_ID]
-        proc.store_bob_token_to_account
+        proc.store_pol_token_to_account
             # pad the stack for the `execute_foreign_procedure` execution
-            padw padw padw push.0.0.0 movup.15
+            repeat.15 push.0 swap end
             # => [asset_ptr, pad(15)]
 
             # get the hash of the `store_to_account` procedure of the miden_std account
@@ -310,18 +340,18 @@ fn test_fpi_asset_memory() {
             # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, asset_ptr, pad(15)]
 
             exec.tx::execute_foreign_procedure
-            # => [ASSET_ID]
+            # => [ASSET_ID, pad(12)]
 
             # truncate the stack
-            swapdw dropw dropw swapw dropw
+            repeat.12 movup.4 drop end
             # => [ASSET_ID]
         end
 
         #! Inputs:  [ASSET_ID]
         #! Outputs: [asset_ptr]
-        proc.load_bob_token_from_account
+        proc.load_pol_token_from_account
             # pad the stack for the `execute_foreign_procedure` execution
-            padw swapw padw padw swapdw
+            repeat.12 push.0 movdn.4 end
             # => [ASSET_ID, pad(12)]
 
             # get the hash of the `load_from_account` procedure of the miden_std account
@@ -329,30 +359,63 @@ fn test_fpi_asset_memory() {
 
             # push the miden_std account ID
             push.{miden_std_suffix}.{miden_std_prefix}
-            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, ASSET_ID, pad(15)]
+            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, ASSET_ID, pad(12)]
 
             exec.tx::execute_foreign_procedure
-            # => [asset_ptr]
+            # => [asset_ptr, pad(15)]
 
             # truncate the stack
-            movdn.15 dropw dropw dropw drop drop drop
+            repeat.15 swap drop end
             # => [asset_ptr]
+        end
+
+        #! Inputs:  [token_ptr, other_token_ptr]
+        #! Outputs: []
+        proc.merge_pol_tokens
+            repeat.14 push.0 movdn.2 end
+            # => [token_ptr, other_token_ptr, pad(14)]
+
+            # get the hash of the `token::merge` procedure of the miden_std account
+            procref.token::merge
+
+            # push the miden_std account ID
+            push.{miden_std_suffix}.{miden_std_prefix}
+            # => [miden_std_id_prefix, miden_std_id_suffix, FOREIGN_PROC_ROOT, token_ptr, other_token_ptr, pad(14)]
+
+            exec.tx::execute_foreign_procedure
+            # => [pad(16)]
+
+            repeat.16 drop end
+            # => []
         end
 
         begin
             exec.prologue::prepare_transaction
 
-            exec.create_bob_treasury_cap
+            # create the treasury cap for POL tokens
+            exec.create_pol_treasury_cap
             # => [treasury_cap_ptr]
 
-            dup exec.mint_bob_token
+            # use the treasury cap to mint a token with amount 100
+            push.100 dup.1 exec.mint_pol_token
             # => [token_ptr, treasury_cap_ptr]
 
-            exec.store_bob_token_to_account
+            # store the token in the account
+            exec.store_pol_token_to_account
             # => [ASSET_ID, treasury_cap_ptr]
 
-            exec.load_bob_token_from_account
+            # load the token from the account into kernel memory
+            # store and load here are for demo purposes
+            exec.load_pol_token_from_account
             # => [token_ptr, treasury_cap_ptr]
+
+            # use the treasury cap to mint a token with amount 50
+            push.50 dup.2 exec.mint_pol_token
+            # => [token2_ptr, token1_ptr, treasury_cap_ptr]
+
+            # merge both tokens to a single token of amount 150
+            dup.1 exec.merge_pol_tokens
+            # => [token1_ptr, treasury_cap_ptr]
 
             # truncate stack
             swapw dropw
@@ -375,16 +438,17 @@ fn test_fpi_asset_memory() {
     let token_ptr = u32::try_from(process.stack.get(0)).unwrap();
     let treasury_cap_ptr = u32::try_from(process.stack.get(1)).unwrap();
 
-    // Dereference the pointers once to get the actual pointers.
+    // Dereference the pointers once to get the pointers to the actual asset memory.
     let token_ptr = read_mem_felt(process, token_ptr).as_int() as u32;
     let treasury_cap_ptr = read_mem_felt(process, treasury_cap_ptr).as_int() as u32;
 
     let next_offset = read_mem_felt(process, ASSET_NEXT_OFFSET_PTR).as_int() as u32;
-    // We've created 2 assets and loaded 1.
-    assert_eq!(next_offset, 3);
+    // We've created 3 assets (1 treasury cap, 2 tokens) and loaded 1 (a token).
+    assert_eq!(next_offset, 4);
+
     assert_eq!(
         read_mem_felt(process, ASSET_PTR_MAP_MIN + next_offset).as_int() as u32,
-        ASSET_MIN_PTR + 3 * ASSET_BOOKKEEPING_SIZE + 2 * TOKEN_NUM_FIELDS + TREASURY_CAP_NUM_FIELDS
+        ASSET_MIN_PTR + 4 * ASSET_BOOKKEEPING_SIZE + 3 * TOKEN_NUM_FIELDS + TREASURY_CAP_NUM_FIELDS
     );
 
     // TREASURY CAP MEMORY ASSERTIONS
@@ -416,14 +480,15 @@ fn test_fpi_asset_memory() {
             process,
             treasury_cap_ptr + ASSET_BOOKKEEPING_SIZE + TREASURY_CAP_FIELD_OTW_ID
         ),
-        Felt::from(BOB_TOKEN_OTW)
+        Felt::from(POL_TOKEN_OTW)
     );
     assert_eq!(
         read_mem_felt(
             process,
             treasury_cap_ptr + ASSET_BOOKKEEPING_SIZE + TREASURY_CAP_FIELD_TOTAL_SUPPLY
         ),
-        Felt::from(100u32)
+        // the total supply
+        Felt::from(150u32)
     );
 
     // TOKEN MEMORY ASSERTIONS
@@ -446,7 +511,15 @@ fn test_fpi_asset_memory() {
     );
     assert_eq!(
         read_mem_felt(process, token_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_FIELD_OTW_ID),
-        Felt::from(BOB_TOKEN_OTW)
+        Felt::from(POL_TOKEN_OTW)
+    );
+    assert_eq!(
+        read_mem_felt(
+            process,
+            token_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_FIELD_AMOUNT
+        ),
+        // the merged amount
+        Felt::from(150u32)
     );
 }
 

@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 47] = [
+pub const KERNEL0_PROCEDURES: [Digest; 48] = [
     // account_get_initial_commitment
     digest!("0x920898348bacd6d98a399301eb308478fd32b32eab019a5a6ef7a6b44abb61f6"),
     // account_get_current_commitment
@@ -84,7 +84,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 47] = [
     // consume_one_time_witness
     digest!("0x1cbc1a00a2b2bd110def30d241567c1713c459f71628cc0aeb2a8c2753eadecf"),
     // set_asset_field
-    digest!("0x9ef0a49fb58034beec4468f442d7acf782c233ca12a932154747dfd2290621c3"),
+    digest!("0xd8b3308269b5457369f2a9876f40087669a7d93e4f144815035d82094def7208"),
     // get_native_account_id
     digest!("0xc9180623881da1c2bde78026708404a949f32ca93e033fdc45ff1c8f7e28b63f"),
     // store_asset_to_account
@@ -101,4 +101,6 @@ pub const KERNEL0_PROCEDURES: [Digest; 47] = [
     digest!("0xce77e15263ec43f5a489b7fb2553733fa661fba976de0fdfd59248b357b819c4"),
     // asset_get_id
     digest!("0x8778ef1df663d26feb50842df8fa7e023349f41aee8d0e969fc5c85e243435b5"),
+    // asset_destroy
+    digest!("0xc98b87726fafa9f05ef942c7d6a8ac973dddc0c09e45c0f554158ed8b463d26f"),
 ];

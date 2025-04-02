@@ -1127,6 +1127,21 @@ export.create_asset
   # => [asset_ptr]
 end
 
+#! Destroys the given asset by making it inaccessible by invalidating its ptr.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.asset_destroy
+  dup exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr, asset_ptr]
+
+  exec.assert_asset_issuer
+  # => [asset_ptr]
+
+  exec.memory::invalidate_asset_ptr
+  # => []
+end
+
 #! Sets the field of the asset to the provided value.
 #!
 #! Inputs:  [asset_ptr, field_idx, field_value]
