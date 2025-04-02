@@ -6,7 +6,7 @@ use alloc::{
 use crate::{
     Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
     account::{AccountId, delta::AccountUpdateDetails},
-    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
+    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, OrderedBatches, ProvenBatch},
     block::{
         AccountUpdateWitness, AccountWitness, BlockHeader, BlockNumber, NullifierWitness,
         OutputNoteBatch, block_inputs::BlockInputs,
@@ -27,7 +27,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ProposedBlock {
     /// The transaction batches in this block.
-    batches: Vec<ProvenBatch>,
+    batches: OrderedBatches,
     /// The unix timestamp of the block in seconds.
     timestamp: u32,
     /// All account's [`AccountUpdateWitness`] that were updated in this block. See its docs for
@@ -215,7 +215,7 @@ impl ProposedBlock {
         // --------------------------------------------------------------------------------------------
 
         Ok(Self {
-            batches,
+            batches: OrderedBatches::new(batches),
             timestamp,
             account_updated_witnesses,
             output_note_batches,
@@ -254,7 +254,7 @@ impl ProposedBlock {
 
     /// Returns an iterator over all transactions in the block.
     pub fn transactions(&self) -> impl Iterator<Item = &TransactionHeader> {
-        self.batches.iter().flat_map(ProvenBatch::transactions)
+        self.batches.as_slice().iter().flat_map(ProvenBatch::transactions)
     }
 
     /// Returns the block number of this proposed block.
@@ -265,7 +265,7 @@ impl ProposedBlock {
     }
 
     /// Returns a reference to the slice of batches in this block.
-    pub fn batches(&self) -> &[ProvenBatch] {
+    pub fn batches(&self) -> &OrderedBatches {
         &self.batches
     }
 
@@ -307,7 +307,7 @@ impl ProposedBlock {
     pub fn into_parts(
         self,
     ) -> (
-        Vec<ProvenBatch>,
+        OrderedBatches,
         Vec<(AccountId, AccountUpdateWitness)>,
         Vec<OutputNoteBatch>,
         BTreeMap<Nullifier, NullifierWitness>,
@@ -343,7 +343,7 @@ impl Serializable for ProposedBlock {
 impl Deserializable for ProposedBlock {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let block = Self {
-            batches: <Vec<ProvenBatch>>::read_from(source)?,
+            batches: OrderedBatches::read_from(source)?,
             timestamp: u32::read_from(source)?,
             account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,

@@ -31,7 +31,7 @@ fn proposed_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     assert_eq!(block.transactions().count(), 0);
     assert_eq!(block.output_note_batches().len(), 0);
     assert_eq!(block.created_nullifiers().len(), 0);
-    assert_eq!(block.batches().len(), 0);
+    assert_eq!(block.batches().as_slice().len(), 0);
 
     Ok(())
 }
@@ -54,7 +54,7 @@ fn proposed_block_basic_success() -> anyhow::Result<()> {
 
     let proposed_block = ProposedBlock::new(block_inputs.clone(), batches.to_vec()).unwrap();
 
-    assert_eq!(proposed_block.batches(), batches);
+    assert_eq!(proposed_block.batches().as_slice(), batches);
     assert_eq!(proposed_block.block_num(), block_inputs.prev_block_header().block_num() + 1);
     let updated_accounts =
         proposed_block.updated_accounts().iter().cloned().collect::<BTreeMap<_, _>>();

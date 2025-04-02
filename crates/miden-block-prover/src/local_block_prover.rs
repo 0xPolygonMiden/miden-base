@@ -5,7 +5,6 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Digest, Word,
     account::AccountId,
-    batch::ProvenBatch,
     block::{
         AccountUpdateWitness, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
         BlockNumber, NullifierWitness, OutputNoteBatch, PartialNullifierTree, ProposedBlock,
@@ -144,7 +143,7 @@ impl LocalBlockProver {
         // Aggregate the verified transactions of all batches.
         // --------------------------------------------------------------------------------------------
 
-        let txs = batches.into_iter().flat_map(ProvenBatch::into_transactions).collect();
+        let txs = batches.into_transactions();
 
         // Construct the new block header.
         // --------------------------------------------------------------------------------------------

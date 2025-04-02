@@ -27,9 +27,9 @@ use miden_objects::{
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
-        ToInputNoteCommitments, TransactionHeader, TransactionId, TransactionInputs,
-        TransactionScript,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OrderedTransactionHeaders,
+        OutputNote, ProvenTransaction, ToInputNoteCommitments, TransactionHeader, TransactionId,
+        TransactionInputs, TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -913,7 +913,7 @@ impl MockChain {
                 self.pending_objects.created_nullifiers.clone(),
                 // TODO: For now we can't easily compute the verified transactions of this block.
                 // Let's do this as part of miden-base/#1224.
-                vec![],
+                OrderedTransactionHeaders::new_unchecked(vec![]),
             );
 
             for (batch_index, note_batch) in

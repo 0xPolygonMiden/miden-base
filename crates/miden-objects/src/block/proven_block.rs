@@ -4,7 +4,7 @@ use crate::{
     Digest, MIN_PROOF_SECURITY_LEVEL,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
-    transaction::{OutputNote, TransactionHeader},
+    transaction::{OrderedTransactionHeaders, OutputNote},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -44,16 +44,11 @@ pub struct ProvenBlock {
     created_nullifiers: Vec<Nullifier>,
 
     /// The aggregated verified transactions of all batches.
-    transactions: Vec<TransactionHeader>,
+    transactions: OrderedTransactionHeaders,
 }
 
 impl ProvenBlock {
     /// Returns a new [`ProvenBlock`] instantiated from the provided components.
-    ///
-    /// Note that the transaction headers must be the flattened sets of transactions of each proven
-    /// batch in the proposed block. This is not enforced by this type. The rationale for this
-    /// requirement is that it allows a client to cheaply validate the correctness of the
-    /// transactions in a proven block returned by a remote prover.
     ///
     /// # Warning
     ///
@@ -64,7 +59,7 @@ impl ProvenBlock {
         updated_accounts: Vec<BlockAccountUpdate>,
         output_note_batches: Vec<OutputNoteBatch>,
         created_nullifiers: Vec<Nullifier>,
-        transactions: Vec<TransactionHeader>,
+        transactions: OrderedTransactionHeaders,
     ) -> Self {
         Self {
             header,
@@ -139,7 +134,7 @@ impl ProvenBlock {
     }
 
     /// Returns the [`TransactionHeader`]s of all transactions included in this block.
-    pub fn transactions(&self) -> &[TransactionHeader] {
+    pub fn transactions(&self) -> &OrderedTransactionHeaders {
         &self.transactions
     }
 }
@@ -161,7 +156,7 @@ impl Deserializable for ProvenBlock {
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
-            transactions: <Vec<TransactionHeader>>::read_from(source)?,
+            transactions: OrderedTransactionHeaders::read_from(source)?,
         };
 
         Ok(block)
