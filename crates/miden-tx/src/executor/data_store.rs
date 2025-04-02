@@ -7,7 +7,7 @@ use miden_objects::{
     block::{BlockHeader, BlockNumber},
     transaction::ChainMmr,
 };
-use vm_processor::Word;
+use vm_processor::{MastForestStore, Word};
 use winter_maybe_async::*;
 
 use crate::DataStoreError;
@@ -18,37 +18,23 @@ use crate::DataStoreError;
 /// The [DataStore] trait defines the interface that transaction objects use to fetch data
 /// required for transaction execution.
 #[maybe_async_trait]
-pub trait DataStore {
-    /// Returns blockchain-related data required to execute a transaction against a specific
-    /// account, that consumes specific notes.
+pub trait DataStore: MastForestStore {
+    /// Returns all the data required to execute a transaction against the account with the specified ID and consuming input notes created in blocks in the input
+    /// `ref_blocks` set.
     ///
-    /// The returned [`ChainMmr`] is expected to contain the complete set of requested
-    /// block numbers (`ref_blocks`).
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The block with the specified number could not be found in the data store.
-    /// - The combination of specified inputs resulted in a transaction input error.
-    /// - The data store encountered some internal error
-    #[maybe_async]
-    fn get_chain_inputs(
-        &self,
-        ref_blocks: BTreeSet<BlockNumber>,
-        block_header: BlockNumber,
-    ) -> Result<(ChainMmr, BlockHeader), DataStoreError>;
-
-    /// Returns account data required to execute a transaction.
-    ///
-    /// For a new [`Account`], the corresponding seed should be returned as the second element
-    /// of the return tuple.
+    /// The highest block number in `ref_blocks` will be the transaction reference block. In general, it is recommended that bock_ref corresponds to the
+    /// latest block available in the data store.
     ///
     /// # Errors
     /// Returns an error if:
     /// - The account with the specified ID could not be found in the data store.
-    /// - The data store encountered some internal error.
+    /// - The block with the specified number could not be found in the data store.
+    /// - The combination of specified inputs resulted in a transaction input error.
+    /// - The data store encountered some internal error
     #[maybe_async]
-    fn get_account_inputs(
+    fn get_transaction_inputs(
         &self,
         account_id: AccountId,
-    ) -> Result<(Account, Option<Word>), DataStoreError>;
+        ref_blocks: BTreeSet<BlockNumber>,
+    ) -> Result<(Account, Option<Word>, BlockHeader, ChainMmr), DataStoreError>;
 }

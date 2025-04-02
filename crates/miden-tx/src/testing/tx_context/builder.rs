@@ -31,7 +31,7 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, Felt, Word};
 
 use super::TransactionContext;
-use crate::{auth::BasicAuthenticator, testing::MockChain};
+use crate::{auth::BasicAuthenticator, testing::MockChain, TransactionMastStore};
 
 pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 
@@ -658,14 +658,24 @@ impl TransactionContextBuilder {
 
         tx_args.extend_output_note_recipients(self.expected_output_notes.clone());
 
+        let mast_store = {
+            let mast_forest_store = TransactionMastStore::new();
+            mast_forest_store.load_transaction_code(&tx_inputs, &tx_args);
+            mast_forest_store.load_account_code(tx_inputs.account().code());
+            for foreign_code in self.foreign_account_codes.iter() {
+                mast_forest_store.load_account_code(foreign_code);
+            }
+            mast_forest_store
+        };
+
         TransactionContext {
             expected_output_notes: self.expected_output_notes,
             tx_args,
             tx_inputs,
+            mast_store,
             authenticator: self.authenticator,
             advice_inputs: self.advice_inputs,
             assembler: self.assembler,
-            foreign_codes: self.foreign_account_codes,
         }
     }
 }

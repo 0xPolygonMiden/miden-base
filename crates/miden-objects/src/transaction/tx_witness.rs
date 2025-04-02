@@ -22,17 +22,11 @@ use crate::{
 ///   additional advice data to initialize the advice provide with prior to transaction execution.
 /// - Advice witness which contains all data requested by the VM from the advice provider while
 ///   executing the transaction program.
-///
-/// TODO: currently, the advice witness contains redundant and irrelevant data (e.g., tx inputs
-/// and tx outputs; account codes and a subset of that data in advice inputs).
-/// We should optimize it to contain only the minimum data required for executing/proving the
-/// transaction.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransactionWitness {
     pub tx_inputs: TransactionInputs,
     pub tx_args: TransactionArgs,
     pub advice_witness: AdviceInputs,
-    pub account_codes: Vec<AccountCode>,
 }
 
 // SERIALIZATION
@@ -43,7 +37,6 @@ impl Serializable for TransactionWitness {
         self.tx_inputs.write_into(target);
         self.tx_args.write_into(target);
         self.advice_witness.write_into(target);
-        self.account_codes.write_into(target);
     }
 }
 
@@ -52,12 +45,10 @@ impl Deserializable for TransactionWitness {
         let tx_inputs = TransactionInputs::read_from(source)?;
         let tx_args = TransactionArgs::read_from(source)?;
         let advice_witness = AdviceInputs::read_from(source)?;
-        let account_codes = <Vec<AccountCode>>::read_from(source)?;
         Ok(Self {
             tx_inputs,
             tx_args,
             advice_witness,
-            account_codes,
         })
     }
 }

@@ -771,8 +771,7 @@ fn prove_witness_and_verify() {
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let notes = tx_context.tx_inputs().input_notes().clone();
     let tx_args = tx_context.tx_args().clone();
-    let mast_store = tx_context.get_mast_store();
-    let executor = TransactionExecutor::new(Arc::new(tx_context), mast_store, None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context), None);
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, notes, tx_args).unwrap();
     let executed_transaction_id = executed_transaction.id();
@@ -919,13 +918,8 @@ fn transaction_executor_account_code_using_custom_library() {
 
     let account_id = tx_context.account().id();
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let mast_forest = tx_context.get_mast_store();
-    // Load the external library into the executor to make it available during transaction
-    // execution.
-    mast_forest.insert(external_library.mast_forest().clone());
-    mast_forest.load_transaction_code(tx_context.tx_inputs(), &tx_args);
-    mast_forest.load_account_code(native_account.code());
-    let executor = TransactionExecutor::new(Arc::new(tx_context), mast_forest, None);
+
+    let executor = TransactionExecutor::new(Arc::new(tx_context), None);
 
     let executed_tx = executor
         .execute_transaction(account_id, block_ref, InputNotes::<InputNote>::default(), tx_args)
@@ -976,9 +970,8 @@ fn test_execute_program() {
     let account_id = tx_context.account().id();
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let advice_inputs = tx_context.tx_args().advice_inputs().clone();
-    let mast_forest = tx_context.get_mast_store();
 
-    let executor = TransactionExecutor::new(Arc::new(tx_context), mast_forest, None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context), None);
 
     let stack_outputs = executor
         .execute_tx_view_script(account_id, block_ref, tx_script, advice_inputs)

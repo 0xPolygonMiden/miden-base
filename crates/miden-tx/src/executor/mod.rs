@@ -38,11 +38,7 @@ pub use mast_store::TransactionMastStore;
 /// [TransactionAuthenticator], allowing it to be used with different backend implementations.
 pub struct TransactionExecutor {
     data_store: Arc<dyn DataStore>,
-    mast_forest_store: Arc<dyn MastForestStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
-    /// Holds the code of all accounts loaded into this transaction executor via the
-    /// [Self::load_account_code()] method.
-    account_codes: BTreeSet<AccountCode>,
     exec_options: ExecutionOptions,
 }
 
@@ -54,14 +50,12 @@ impl TransactionExecutor {
     /// [TransactionAuthenticator].
     pub fn new(
         data_store: Arc<dyn DataStore>,
-        mast_forest_store: Arc<dyn MastForestStore>,
         authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     ) -> Self {
         const _: () = assert!(MIN_TX_EXECUTION_CYCLES <= MAX_TX_EXECUTION_CYCLES);
 
         Self {
             data_store,
-            mast_forest_store,
             authenticator,
             exec_options: ExecutionOptions::new(
                 Some(MAX_TX_EXECUTION_CYCLES),
@@ -70,7 +64,6 @@ impl TransactionExecutor {
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
-            account_codes: BTreeSet::new(),
         }
     }
 
@@ -94,15 +87,6 @@ impl TransactionExecutor {
         self
     }
 
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Adds the commitment of the provided code to the commitments set.
-    pub fn load_account_commitment(&mut self, code: &AccountCode) {
-        // store the commitment of the foreign account code in the set
-        self.account_codes.insert(code.clone());
-    }
-
     // TRANSACTION EXECUTION
     // --------------------------------------------------------------------------------------------
 
@@ -123,20 +107,16 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
+        foreign_account_codes: BTreeSet<AccountCode>
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        // TODO: Check that the reference block is not listed here, or otherwise
-        // change the DataStore/executor API so that returning a ChainMmr with the reference
-        // block works anyway.
-        let ref_blocks: BTreeSet<BlockNumber> = notes
+        let mut ref_blocks: BTreeSet<BlockNumber> = notes
             .iter()
             .filter_map(InputNote::location)
             .map(NoteLocation::block_num)
             .collect();
+        ref_blocks.insert(block_ref);
 
-        let (account, seed) = maybe_await!(self.data_store.get_account_inputs(account_id))
-            .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
-
-        let (mmr, header) = maybe_await!(self.data_store.get_chain_inputs(ref_blocks, block_ref))
+        let (account, seed, header, mmr) = maybe_await!(self.data_store.get_transaction_inputs(account_id,ref_blocks))
             .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let tx_inputs = TransactionInputs::new(account, seed, header, mmr, notes)
@@ -150,9 +130,9 @@ impl TransactionExecutor {
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
-            self.mast_forest_store.clone(),
+            self.data_store.clone(),
             self.authenticator.clone(),
-            self.account_codes.iter().map(|code| code.commitment()).collect(),
+            foreign_account_codes.iter().map(|code| code.commitment()).collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -165,24 +145,11 @@ impl TransactionExecutor {
         )
         .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
-        // Attempt to retrieve used account codes based on the advice map
-        let account_codes = self
-            .account_codes
-            .iter()
-            .filter_map(|code| {
-                tx_args
-                    .advice_inputs()
-                    .mapped_values(&code.commitment())
-                    .and(Some(code.clone()))
-            })
-            .collect();
-
         build_executed_transaction(
             tx_args,
             tx_inputs,
             result.stack_outputs().clone(),
             host,
-            account_codes,
         )
     }
 
@@ -205,12 +172,9 @@ impl TransactionExecutor {
         tx_script: TransactionScript,
         advice_inputs: AdviceInputs,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
-        let (account, seed) = maybe_await!(self.data_store.get_account_inputs(account_id))
+        let ref_blocks = [block_ref].into_iter().collect();
+        let (account, seed, header, mmr) = maybe_await!(self.data_store.get_transaction_inputs(account_id,ref_blocks))
             .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
-
-        let (mmr, header) =
-            maybe_await!(self.data_store.get_chain_inputs(Default::default(), block_ref))
-                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let tx_inputs = TransactionInputs::new(account, seed, header, mmr, Default::default())
             .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
@@ -224,9 +188,9 @@ impl TransactionExecutor {
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
-            self.mast_forest_store.clone(),
+            self.data_store.clone(),
             self.authenticator.clone(),
-            self.account_codes.iter().map(|code| code.commitment()).collect(),
+            tx_args..iter().map(|code| code.commitment()).collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -252,7 +216,6 @@ fn build_executed_transaction(
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
     host: TransactionHost<RecAdviceProvider>,
-    account_codes: Vec<AccountCode>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
     let (advice_recorder, account_delta, output_notes, generated_signatures, tx_progress) =
         host.into_parts();
@@ -296,7 +259,6 @@ fn build_executed_transaction(
     Ok(ExecutedTransaction::new(
         tx_inputs,
         tx_outputs,
-        account_codes,
         account_delta,
         tx_args,
         advice_witness,
