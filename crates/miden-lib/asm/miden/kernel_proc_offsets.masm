@@ -70,15 +70,15 @@ const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 
 ### ASSET ##########################################
 
-const.CREATE_ASSET_OFFSET=36
-const.CONSUME_ONE_TIME_WITNESS_OFFSET=37
-const.SET_ASSET_FIELD_OFFSET=38
+const.ASSET_CREATE_OFFSET=36
+const.ASSET_CONSUME_ONE_TIME_WITNESS_OFFSET=37
+const.ASSET_SET_FIELD_OFFSET=38
 const.GET_NATIVE_ACCOUNT_ID_OFFSET=39
-const.STORE_ASSET_TO_ACCOUNT_OFFSET=40
-const.GET_ASSET_ISSUER_OFFSET=41
-const.GET_ASSET_TYPE_OFFSET=42
-const.GET_ASSET_NUM_FIELDS_OFFSET=43
-const.GET_ASSET_FIELD_OFFSET=44
+const.ASSET_STORE_TO_ACCOUNT_OFFSET=40
+const.ASSET_GET_ISSUER_OFFSET=41
+const.ASSET_GET_TYPE_OFFSET=42
+const.ASSET_GET_NUM_FIELDS_OFFSET=43
+const.ASSET_GET_FIELD_OFFSET=44
 const.ASSET_LOAD_FROM_ACCOUNT_OFFSET=45
 const.ASSET_GET_ID_OFFSET=46
 const.ASSET_DESTROY_OFFSET=47
@@ -526,40 +526,40 @@ export.tx_get_expiration_delta_offset
     push.TX_GET_EXPIRATION_DELTA_OFFSET
 end
 
-export.create_asset_offset
-    push.CREATE_ASSET_OFFSET
+export.asset_create_offset
+    push.ASSET_CREATE_OFFSET
 end
 
-export.consume_one_time_witness_offset
-    push.CONSUME_ONE_TIME_WITNESS_OFFSET
+export.asset_consume_one_time_witness_offset
+    push.ASSET_CONSUME_ONE_TIME_WITNESS_OFFSET
 end
 
-export.set_asset_field_offset
-    push.SET_ASSET_FIELD_OFFSET
+export.asset_set_field_offset
+    push.ASSET_SET_FIELD_OFFSET
 end
 
-export.get_asset_field_offset
-    push.GET_ASSET_FIELD_OFFSET
+export.asset_get_field_offset
+    push.ASSET_GET_FIELD_OFFSET
 end
 
 export.get_native_account_id_offset
   push.GET_NATIVE_ACCOUNT_ID_OFFSET
 end
 
-export.store_asset_to_account_offset
-  push.STORE_ASSET_TO_ACCOUNT_OFFSET
+export.asset_store_to_account_offset
+  push.ASSET_STORE_TO_ACCOUNT_OFFSET
 end
 
-export.get_asset_issuer_offset
-  push.GET_ASSET_ISSUER_OFFSET
+export.asset_get_issuer_offset
+  push.ASSET_GET_ISSUER_OFFSET
 end
 
-export.get_asset_type_offset
-  push.GET_ASSET_TYPE_OFFSET
+export.asset_get_type_offset
+  push.ASSET_GET_TYPE_OFFSET
 end
 
-export.get_asset_num_fields_offset
-  push.GET_ASSET_NUM_FIELDS_OFFSET
+export.asset_get_num_fields_offset
+  push.ASSET_GET_NUM_FIELDS_OFFSET
 end
 
 export.asset_load_from_account

@@ -1097,7 +1097,7 @@ end
 #!
 #! Inputs:  [num_fields, type_id]
 #! Outputs: [asset_ptr]
-export.create_asset
+export.asset_create
   dup movdn.2 exec.memory::get_next_asset_ptr
   # => [asset_ptr, type_id, num_fields]
   dup movdn.3
@@ -1146,7 +1146,7 @@ end
 #!
 #! Inputs:  [asset_ptr, field_idx, field_value]
 #! Outputs: []
-export.set_asset_field
+export.asset_set_field
   exec.memory::assert_valid_asset_ptr
   # => [asset_mem_ptr, field_idx, field_value]
 
@@ -1161,7 +1161,7 @@ end
 #!
 #! Inputs:  [asset_ptr, field_idx]
 #! Outputs: [field_value]
-export.get_asset_field
+export.asset_get_field
   exec.memory::assert_valid_asset_ptr
   # => [asset_mem_ptr, field_idx]
 
@@ -1177,7 +1177,7 @@ end
 #!
 #! Inputs:  [one_time_witness_id]
 #! Outputs: []
-export.consume_one_time_witness
+export.asset_consume_one_time_witness
   # exec.memory::assert_native_account
   # => []
 
@@ -1204,7 +1204,7 @@ end
 #!
 #! Inputs:  [asset_ptr]
 #! Outputs: []
-export.store_asset_to_account.1
+export.asset_store_to_account.1
   dup loc_store.0
   # => [asset_ptr]
 
@@ -1323,11 +1323,11 @@ end
 #!
 #! Inputs:  [asset_ptr]
 #! Outputs: [account_id_prefix, account_id_suffix]
-export.get_asset_issuer
+export.asset_get_issuer
   exec.memory::assert_valid_asset_ptr
   # => [asset_mem_ptr]
 
-  exec.memory::get_asset_issuer
+  exec.memory::asset_get_issuer
   # truncate stack
   movup.2 drop
 end
@@ -1336,22 +1336,22 @@ end
 #!
 #! Inputs:  [asset_ptr]
 #! Outputs: [type_id]
-export.get_asset_type
+export.asset_get_type
   exec.memory::assert_valid_asset_ptr
   # => [asset_mem_ptr]
 
-  exec.memory::get_asset_type
+  exec.memory::asset_get_type
 end
 
 #! Gets the number of fields of an asset.
 #!
 #! Inputs:  [asset_ptr]
 #! Outputs: [num_fields]
-export.get_asset_num_fields
+export.asset_get_num_fields
   exec.memory::assert_valid_asset_ptr
   # => [asset_mem_ptr]
 
-  exec.memory::get_asset_num_fields
+  exec.memory::asset_get_num_fields
 end
 
 #! Asserts the currently accessing account is the account that issued the asset.
@@ -1359,7 +1359,7 @@ end
 #! Inputs:  [asset_mem_ptr]
 #! Outputs: []
 proc.assert_asset_issuer
-  exec.memory::get_asset_issuer
+  exec.memory::asset_get_issuer
   # => [asset_account_id_prefix, asset_account_id_suffix]
 
   exec.memory::get_account_id
@@ -1375,7 +1375,7 @@ end
 #! Inputs:  [asset_mem_ptr, expected_asset_type]
 #! Outputs: []
 proc.assert_asset_type
-  exec.memory::get_asset_type
+  exec.memory::asset_get_type
   # => [actual_asset_type, expected_asset_type]
 
   # assert types match

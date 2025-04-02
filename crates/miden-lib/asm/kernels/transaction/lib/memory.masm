@@ -1690,7 +1690,7 @@ export.compute_asset_hash
   dup dup
   # => [asset_mem_ptr, asset_mem_ptr, asset_hash_start_ptr]
 
-  exec.get_asset_num_fields push.ASSET_BOOKKEEPING_SIZE add add
+  exec.asset_get_num_fields push.ASSET_BOOKKEEPING_SIZE add add
   # => [asset_hash_end_ptr, asset_hash_start_ptr]
   swap dup movdn.2
   # => [asset_hash_start_ptr, asset_hash_end_ptr, asset_hash_start_ptr]
@@ -1751,7 +1751,7 @@ end
 #!
 #! Inputs:  [asset_mem_ptr]
 #! Outputs: [account_id_prefix, account_id_suffix]
-export.get_asset_issuer
+export.asset_get_issuer
   push.ASSET_ISSUER_SUFFIX_OFFSET dup.1 add mem_load
   # => [account_id_suffix, asset_mem_ptr]
 
@@ -1772,7 +1772,7 @@ end
 #!
 #! Inputs:  [asset_mem_ptr]
 #! Outputs: [type_id]
-export.get_asset_type
+export.asset_get_type
   push.ASSET_TYPE_ID_OFFSET add mem_load
   # => []
 end
@@ -1790,7 +1790,7 @@ end
 #!
 #! Inputs:  [asset_mem_ptr]
 #! Outputs: [num_fields]
-export.get_asset_num_fields
+export.asset_get_num_fields
   push.ASSET_NUM_FIELDS_OFFSET add mem_load
   # => [num_fields]
 end

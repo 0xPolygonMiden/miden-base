@@ -69,7 +69,7 @@ fn test_fpi_asset_memory() {
             # => [treasury_cap_ptr, otw_id]
 
             # consume OTW or abort if it was already consumed
-            dup.1 exec.asset::consume_one_time_witness
+            dup.1 exec.asset::asset_consume_one_time_witness
             # => [treasury_cap_ptr, otw_id]
 
             swap push.TREASURY_CAP_FIELD_OTW_ID dup.2
@@ -218,7 +218,7 @@ fn test_fpi_asset_memory() {
           dup exec.assert_asset_issuer
           # => [treasury_cap_ptr]
 
-          exec.asset::get_asset_type push.TREASURY_CAP_ASSET_TYPE assert_eq.err=13844
+          exec.asset::asset_get_type push.TREASURY_CAP_ASSET_TYPE assert_eq.err=13844
           # => []
         end
 
@@ -228,14 +228,14 @@ fn test_fpi_asset_memory() {
           dup exec.assert_asset_issuer
           # => [treasury_cap_ptr]
 
-          exec.asset::get_asset_type push.TOKEN_ASSET_TYPE assert_eq.err=13845
+          exec.asset::asset_get_type push.TOKEN_ASSET_TYPE assert_eq.err=13845
           # => []
         end
 
         #! Inputs:  [asset_ptr]
         #! Outputs: []
         proc.assert_asset_issuer
-          exec.asset::get_asset_issuer
+          exec.asset::asset_get_issuer
           # => [asset_account_id_prefix, asset_account_id_suffix]
 
           exec.account::get_id
@@ -514,10 +514,7 @@ fn test_fpi_asset_memory() {
         Felt::from(POL_TOKEN_OTW)
     );
     assert_eq!(
-        read_mem_felt(
-            process,
-            token_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_FIELD_AMOUNT
-        ),
+        read_mem_felt(process, token_ptr + ASSET_BOOKKEEPING_SIZE + TOKEN_FIELD_AMOUNT),
         // the merged amount
         Felt::from(150u32)
     );
