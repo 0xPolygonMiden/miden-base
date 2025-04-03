@@ -79,7 +79,7 @@ impl PartialAccountTree {
     // --------------------------------------------------------------------------------------------
 
     /// Adds the given account witness to the partial tree and tracks it. Once an account has
-    /// been added to the tree, it can be updated using [`Self::insert`].
+    /// been added to the tree, it can be updated using [`Self::upsert_state_commitments`].
     ///
     /// # Errors
     ///
@@ -102,14 +102,14 @@ impl PartialAccountTree {
         self.smt.add_path(leaf, path).map_err(AccountTreeError::TreeRootConflict)
     }
 
-    /// Inserts the provided account ID -> state commitment updates into the partial tree which
-    /// results in a new tree root.
+    /// Inserts or updates the provided account ID -> state commitment updates into the partial tree
+    /// which results in a new tree root.
     ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - the prefix of the account ID already exists in the tree.
-    pub fn update_state_commitments(
+    pub fn upsert_state_commitments(
         &mut self,
         updates: impl IntoIterator<Item = (AccountId, Digest)>,
     ) -> Result<(), AccountTreeError> {

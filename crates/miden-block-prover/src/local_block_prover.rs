@@ -278,7 +278,7 @@ fn compute_account_root(
     // Note that we have inserted all witnesses that we want to update into the partial account
     // tree, so we should not run into the untracked key error.
     partial_account_tree
-        .update_state_commitments(updated_accounts.iter().map(|(account_id, update_witness)| {
+        .upsert_state_commitments(updated_accounts.iter().map(|(account_id, update_witness)| {
             (*account_id, update_witness.final_state_commitment())
         }))
         .map_err(|source| ProvenBlockError::AccountIdPrefixDuplicate { source })?;
