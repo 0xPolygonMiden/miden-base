@@ -1,12 +1,12 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use crate::{
-    Digest,
+    Digest, MIN_PROOF_SECURITY_LEVEL,
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
     note::Nullifier,
-    transaction::{InputNoteCommitment, InputNotes, OutputNote},
+    transaction::{InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -20,6 +20,7 @@ pub struct ProvenBatch {
     input_notes: InputNotes<InputNoteCommitment>,
     output_notes: Vec<OutputNote>,
     batch_expiration_block_num: BlockNumber,
+    transactions: OrderedTransactionHeaders,
 }
 
 impl ProvenBatch {
@@ -36,6 +37,7 @@ impl ProvenBatch {
         input_notes: InputNotes<InputNoteCommitment>,
         output_notes: Vec<OutputNote>,
         batch_expiration_block_num: BlockNumber,
+        transactions: OrderedTransactionHeaders,
     ) -> Self {
         Self {
             id,
@@ -45,6 +47,7 @@ impl ProvenBatch {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            transactions,
         }
     }
 
@@ -74,6 +77,11 @@ impl ProvenBatch {
     /// Returns an iterator over the IDs of all accounts updated in this batch.
     pub fn updated_accounts(&self) -> impl Iterator<Item = AccountId> + use<'_> {
         self.account_updates.keys().copied()
+    }
+
+    /// Returns the proof security level of the batch.
+    pub fn proof_security_level(&self) -> u32 {
+        MIN_PROOF_SECURITY_LEVEL
     }
 
     /// Returns the map of account IDs mapped to their [`BatchAccountUpdate`]s.
@@ -106,6 +114,19 @@ impl ProvenBatch {
     pub fn output_notes(&self) -> &[OutputNote] {
         &self.output_notes
     }
+
+    /// Returns the [`OrderedTransactionHeaders`] included in this batch.
+    pub fn transactions(&self) -> &OrderedTransactionHeaders {
+        &self.transactions
+    }
+
+    // MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes self and returns the contained [`OrderedTransactionHeaders`] of this batch.
+    pub fn into_transactions(self) -> OrderedTransactionHeaders {
+        self.transactions
+    }
 }
 
 // SERIALIZATION
@@ -120,6 +141,7 @@ impl Serializable for ProvenBatch {
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
         self.batch_expiration_block_num.write_into(target);
+        self.transactions.write_into(target);
     }
 }
 
@@ -132,6 +154,7 @@ impl Deserializable for ProvenBatch {
         let input_notes = InputNotes::<InputNoteCommitment>::read_from(source)?;
         let output_notes = Vec::<OutputNote>::read_from(source)?;
         let batch_expiration_block_num = BlockNumber::read_from(source)?;
+        let transactions = OrderedTransactionHeaders::read_from(source)?;
 
         Ok(Self::new_unchecked(
             id,
@@ -141,6 +164,7 @@ impl Deserializable for ProvenBatch {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            transactions,
         ))
     }
 }

@@ -174,7 +174,6 @@ fn proven_block_success() -> anyhow::Result<()> {
             .find(|update| update.account_id() == updated_account)
             .expect("account should have been updated in the block");
 
-        assert_eq!(block_account_update.transactions(), [tx.id()]);
         assert_eq!(
             block_account_update.final_state_commitment(),
             batch.account_updates().get(&updated_account).unwrap().final_state_commitment()

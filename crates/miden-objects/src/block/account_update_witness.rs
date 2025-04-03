@@ -1,22 +1,19 @@
-use alloc::vec::Vec;
-
 use miden_crypto::merkle::SmtProof;
 
 use crate::{
     Digest,
     account::delta::AccountUpdateDetails,
     block::AccountWitness,
-    transaction::TransactionId,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 /// This type encapsulates essentially three components:
+/// - The initial and final state commitment of the account update.
 /// - The witness is a merkle path of the initial state commitment of the account before the block
 ///   in which the witness is included, that is, in the account tree at the state of the previous
 ///   block header.
 /// - The account update details represent the delta between the state of the account before the
 ///   block and the state after this block.
-/// - Additionally contains a list of transaction IDs that contributed to this update.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUpdateWitness {
     /// The state commitment before the update.
@@ -30,8 +27,6 @@ pub struct AccountUpdateWitness {
     /// the last block, equivalent to `initial_state_commitment`) to get the new account state. For
     /// private accounts, this is set to [`AccountUpdateDetails::Private`].
     details: AccountUpdateDetails,
-    /// All transaction IDs that contributed to this account update.
-    transactions: Vec<TransactionId>,
 }
 
 impl AccountUpdateWitness {
@@ -44,14 +39,12 @@ impl AccountUpdateWitness {
         final_state_commitment: Digest,
         initial_state_proof: SmtProof,
         details: AccountUpdateDetails,
-        transactions: Vec<TransactionId>,
     ) -> Self {
         Self {
             initial_state_commitment,
             final_state_commitment,
             initial_state_proof,
             details,
-            transactions,
         }
     }
 
@@ -80,11 +73,6 @@ impl AccountUpdateWitness {
         &self.details
     }
 
-    /// Returns the transactions that affected the account.
-    pub fn transactions(&self) -> &[TransactionId] {
-        &self.transactions
-    }
-
     /// TODO
     pub fn witness(&self) -> AccountWitness {
         AccountWitness::new(self.initial_state_proof.clone())
@@ -99,15 +87,12 @@ impl AccountUpdateWitness {
     }
 
     /// Consumes self and returns its parts.
-    pub fn into_parts(
-        self,
-    ) -> (Digest, Digest, SmtProof, AccountUpdateDetails, Vec<TransactionId>) {
+    pub fn into_parts(self) -> (Digest, Digest, SmtProof, AccountUpdateDetails) {
         (
             self.initial_state_commitment,
             self.final_state_commitment,
             self.initial_state_proof,
             self.details,
-            self.transactions,
         )
     }
 }
@@ -121,7 +106,6 @@ impl Serializable for AccountUpdateWitness {
         target.write(self.final_state_commitment);
         target.write(&self.initial_state_proof);
         target.write(&self.details);
-        target.write(&self.transactions);
     }
 }
 
@@ -131,13 +115,12 @@ impl Deserializable for AccountUpdateWitness {
         let final_state_commitment = source.read()?;
         let initial_state_proof = source.read()?;
         let details = source.read()?;
-        let transactions = source.read()?;
+
         Ok(AccountUpdateWitness {
             initial_state_commitment,
             final_state_commitment,
             initial_state_proof,
             details,
-            transactions,
         })
     }
 }
