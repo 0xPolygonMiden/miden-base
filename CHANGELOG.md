@@ -4,6 +4,7 @@
 
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
+- Added pretty print for `AccountCode` (#1273).
 
 ## 0.8.1 (2025-03-26)
 
