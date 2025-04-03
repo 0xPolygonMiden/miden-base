@@ -43,7 +43,8 @@ pub struct ProvenBlock {
     /// Nullifiers created by the transactions in this block through the consumption of notes.
     created_nullifiers: Vec<Nullifier>,
 
-    /// The aggregated verified transactions of all batches.
+    /// The aggregated and flattened transaction headers of all batches in the order in which they
+    /// appeared in the proposed block.
     transactions: OrderedTransactionHeaders,
 }
 
@@ -133,7 +134,7 @@ impl ProvenBlock {
         &self.created_nullifiers
     }
 
-    /// Returns the [`TransactionHeader`]s of all transactions included in this block.
+    /// Returns the [`OrderedTransactionHeaders`] of all transactions included in this block.
     pub fn transactions(&self) -> &OrderedTransactionHeaders {
         &self.transactions
     }

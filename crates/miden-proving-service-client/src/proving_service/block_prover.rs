@@ -120,6 +120,8 @@ impl RemoteBlockProver {
 
     /// Validates that the proven block's transaction headers are consistent with the transactions
     /// passed in the proposed block.
+    ///
+    /// This expects the ordering of `OrderedTransactionHeaders`.
     fn validate_tx_headers(
         proven_block: &ProvenBlock,
         proposed_txs: OrderedTransactionHeaders,

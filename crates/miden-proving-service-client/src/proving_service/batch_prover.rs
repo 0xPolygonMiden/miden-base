@@ -123,6 +123,8 @@ impl RemoteBatchProver {
     /// Note that we expect all input and output notes from a proposed transaction to be present
     /// in the corresponding header as well, because note erasure doesn't matter for the transaction
     /// itself and we want the original transaction data to be preserved.
+    ///
+    /// This expects the ordering of `OrderedTransactionHeaders`.
     fn validate_tx_headers(
         proven_batch: &ProvenBatch,
         proposed_txs: Vec<Arc<ProvenTransaction>>,

@@ -15,8 +15,8 @@ use crate::{
 /// [`ProvenBlock`](crate::block::ProvenBlock).
 ///
 /// This is a newtype wrapper representing either:
-/// - the set of transactions in a batch,
-/// - or the flattened sets of transactions of each proven batch in a block.
+/// - the set of transactions in a **batch**,
+/// - or the flattened sets of transactions of each proven batch in a **block**.
 ///
 /// This type cannot be constructed directly, but can be retrieved through:
 /// - [`ProposedBatch::transaction_headers`](crate::batch::ProposedBatch::transaction_headers),

@@ -14,7 +14,7 @@ use crate::{
 
 /// The ordered set of batches in a [`ProposedBlock`](crate::block::ProposedBlock).
 ///
-/// This is a newtype wrapper represeting the set of batches in a proposed block. It can only be
+/// This is a newtype wrapper representing the set of batches in a proposed block. It can only be
 /// retrieved from a proposed block. This type exists only to encapsulate the conversion to
 /// [`OrderedTransactionHeaders`].
 #[derive(Debug, Clone, PartialEq, Eq)]
