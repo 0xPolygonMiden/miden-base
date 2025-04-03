@@ -202,7 +202,12 @@ impl AccountMutationSet {
     }
 
     /// TODO
-    fn into_mutation_set(self) -> MutationSet<{ AccountTree::DEPTH }, Digest, Word> {
+    pub fn as_mutation_set(&self) -> &MutationSet<{ AccountTree::DEPTH }, Digest, Word> {
+        &self.mutation_set
+    }
+
+    /// TODO
+    pub fn into_mutation_set(self) -> MutationSet<{ AccountTree::DEPTH }, Digest, Word> {
         self.mutation_set
     }
 }
