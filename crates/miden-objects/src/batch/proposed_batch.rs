@@ -304,7 +304,7 @@ impl ProposedBatch {
     /// Returns the ordered set of transactions in the batch.
     pub fn transaction_headers(&self) -> OrderedTransactionHeaders {
         // SAFETY: This constructs an ordered set in the order of the transactions in the batch.
-        OrderedTransactionHeaders::new(
+        OrderedTransactionHeaders::new_unchecked(
             self.transactions
                 .iter()
                 .map(AsRef::as_ref)

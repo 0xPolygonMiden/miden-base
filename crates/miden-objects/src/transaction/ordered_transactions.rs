@@ -33,17 +33,6 @@ impl OrderedTransactionHeaders {
     /// # Warning
     ///
     /// See the type-level documentation for the requirements of the passed transactions.
-    pub(crate) fn new(transactions: Vec<TransactionHeader>) -> Self {
-        Self(transactions)
-    }
-
-    /// Creates a new set of ordered transaction headers from the provided vector.
-    ///
-    /// # Warning
-    ///
-    /// See the type-level documentation for the requirements of the passed transactions. This
-    /// method is exposed only for testing purposes.
-    #[cfg(feature = "testing")]
     pub fn new_unchecked(transactions: Vec<TransactionHeader>) -> Self {
         Self(transactions)
     }
@@ -70,6 +59,6 @@ impl Serializable for OrderedTransactionHeaders {
 
 impl Deserializable for OrderedTransactionHeaders {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        source.read().map(OrderedTransactionHeaders::new)
+        source.read().map(OrderedTransactionHeaders::new_unchecked)
     }
 }
