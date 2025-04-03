@@ -132,7 +132,7 @@ impl AccountStorage {
             slots_len: self.slots.len() as u8,
             index,
         })? {
-            StorageSlot::Map(map) => Ok(map.get_value(&Digest::from(key))),
+            StorageSlot::Map(map) => Ok(map.get(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
         }
     }

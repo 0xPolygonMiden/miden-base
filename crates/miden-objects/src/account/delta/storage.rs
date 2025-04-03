@@ -11,7 +11,6 @@ use super::{
 use crate::{
     Digest, EMPTY_WORD,
     account::{AccountStorage, StorageMap, StorageSlot},
-    crypto::merkle::SmtLeaf,
 };
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
@@ -276,21 +275,7 @@ impl StorageMapDelta {
 /// Converts a [StorageMap] into a [StorageMapDelta] for initial delta construction.
 impl From<StorageMap> for StorageMapDelta {
     fn from(map: StorageMap) -> Self {
-        // TODO: implement `IntoIterator` for `Smt` and get rid of copying keys/values:
-        let mut delta = StorageMapDelta::new(BTreeMap::default());
-        for (_, leaf) in map.leaves() {
-            match leaf {
-                SmtLeaf::Empty(_) => continue,
-                SmtLeaf::Single((key, value)) => {
-                    delta.insert(*key, *value);
-                },
-                SmtLeaf::Multiple(vec) => {
-                    vec.iter().for_each(|(key, value)| delta.insert(*key, *value));
-                },
-            }
-        }
-
-        delta
+        StorageMapDelta::new(map.into_entries())
     }
 }
 
