@@ -31,13 +31,13 @@ impl TransactionHeader {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Constructs a new [`TransactionHeader`] from the provided parameteres.
+    /// Constructs a new [`TransactionHeader`] from the provided parameters.
     ///
     /// Note that the nullifiers of the input notes and note IDs of the output notes must be in the
     /// same order as they appeared in the transaction. This is ensured when constructing this type
     /// from a proven transaction, but cannot be validated during deserialization, hence additional
     /// validation is necessary.
-    pub(crate) fn new_unchecked(
+    pub(crate) fn new(
         id: TransactionId,
         account_id: AccountId,
         initial_state_commitment: Digest,
@@ -53,6 +53,26 @@ impl TransactionHeader {
             input_notes,
             output_notes,
         }
+    }
+
+    /// Constructs a new [`TransactionHeader`] from the provided parameters for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn new_unchecked(
+        id: TransactionId,
+        account_id: AccountId,
+        initial_state_commitment: Digest,
+        final_state_commitment: Digest,
+        input_notes: Vec<Nullifier>,
+        output_notes: Vec<NoteId>,
+    ) -> Self {
+        Self::new(
+            id,
+            account_id,
+            initial_state_commitment,
+            final_state_commitment,
+            input_notes,
+            output_notes,
+        )
     }
 
     // PUBLIC ACCESSORS
