@@ -13,7 +13,10 @@ pub use proven_block::ProvenBlock;
 mod nullifier_witness;
 pub use nullifier_witness::NullifierWitness;
 
-mod account_tree;
+mod partial_account_tree;
+pub use partial_account_tree::PartialAccountTree;
+
+pub(super) mod account_tree;
 pub use account_tree::AccountTree;
 
 mod partial_nullifier_tree;

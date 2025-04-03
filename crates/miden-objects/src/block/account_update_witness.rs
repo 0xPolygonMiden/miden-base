@@ -5,6 +5,7 @@ use miden_crypto::merkle::SmtProof;
 use crate::{
     Digest,
     account::delta::AccountUpdateDetails,
+    block::AccountWitness,
     transaction::TransactionId,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
@@ -82,6 +83,11 @@ impl AccountUpdateWitness {
     /// Returns the transactions that affected the account.
     pub fn transactions(&self) -> &[TransactionId] {
         &self.transactions
+    }
+
+    /// TODO
+    pub fn witness(&self) -> AccountWitness {
+        AccountWitness::new(self.initial_state_proof.clone())
     }
 
     // STATE MUTATORS

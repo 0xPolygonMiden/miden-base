@@ -168,19 +168,26 @@ pub enum AccountIdError {
     Bech32DecodeError(#[source] Bech32Error),
 }
 
-// ACCOUNT ID ERROR
+// ACCOUNT TREE ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
 pub enum AccountTreeError {
     #[error(
-        "account tree contains two or more account IDs that share the same prefix {duplicate_prefix}"
+        "account tree contains two or more account IDs that share the same prefix {}",
+        duplicate_prefix.map(AccountIdPrefix::to_hex).unwrap_or_else(String::new)
     )]
-    DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
+    DuplicateIdPrefix {
+        duplicate_prefix: Option<AccountIdPrefix>,
+    },
     #[error(
         "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
     )]
     DuplicateStateCommitments { prefix: AccountIdPrefix },
+    #[error("untracked account ID {id} used in partial account tree")]
+    UntrackedAccountId { id: AccountId, source: MerkleError },
+    #[error("new tree root after account witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
 }
 
 // BECH32 ERROR

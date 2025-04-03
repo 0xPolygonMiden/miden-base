@@ -1,7 +1,7 @@
 use miden_crypto::merkle::{MerkleError, Smt};
 
 use crate::{
-    AccountError, Digest, Felt, FieldElement, Word,
+    Digest, Felt, FieldElement, Word,
     account::{AccountId, AccountIdPrefix},
     block::AccountWitness,
     errors::AccountTreeError,
@@ -67,10 +67,10 @@ impl AccountTree {
                 // SAFETY: Since we only inserted account IDs into the SMT, it is guaranteed that
                 // the leaf_idx is a valid Felt as well as a valid account ID prefix.
                 return Err(AccountTreeError::DuplicateIdPrefix {
-                    duplicate_prefix: AccountIdPrefix::new_unchecked(
+                    duplicate_prefix: Some(AccountIdPrefix::new_unchecked(
                         Felt::try_from(leaf_idx.value())
                             .expect("leaf index should be a valid felt"),
-                    ),
+                    )),
                 });
             }
         }
@@ -81,12 +81,19 @@ impl AccountTree {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an opening of the leaf associated with the `account_id`.
+    /// Returns an opening of the leaf associated with the `account_id`. This is a proof of the
+    /// current state commitment of the given account ID.
     ///
     /// Conceptually, an opening is a Merkle path to the leaf, as well as the leaf itself.
     pub fn open(&self, account_id: AccountId) -> AccountWitness {
         let key = Self::account_id_to_key(account_id);
         AccountWitness::new(self.smt.open(&key))
+    }
+
+    /// Returns the current state commitment of the given account ID.
+    pub fn get(&self, account_id: AccountId) -> Digest {
+        let key = Self::account_id_to_key(account_id);
+        Digest::from(self.smt.get_value(&key))
     }
 
     /// Returns the root of the tree.
@@ -99,6 +106,11 @@ impl AccountTree {
         Digest::from([Felt::ZERO, Felt::ZERO, account_id.suffix(), account_id.prefix().as_felt()])
     }
 
+    /// Returns the account ID encoded in the given SMT key, if it can be decoded, `None` otherwise.
+    pub(super) fn key_to_account_id(key: Digest) -> Option<AccountId> {
+        AccountId::try_from([key.as_elements()[3], key.as_elements()[2]]).ok()
+    }
+
     // PUBLIC MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -107,23 +119,31 @@ impl AccountTree {
     ///
     /// This also recomputes all hashes between the leaf (associated with the key) and the root,
     /// updating the root itself.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the prefix of the account ID already exists in the tree.
     pub fn insert(
         &mut self,
         account_id: AccountId,
         state_commitment: Digest,
     ) -> Result<Digest, AccountTreeError> {
         let key = Self::account_id_to_key(account_id);
+        let prev_value = Digest::from(self.smt.insert(key, Word::from(state_commitment)));
 
+        // If the leaf of the account ID now has two or more entries, we've inserted a duplicate
+        // prefix.
         if self.smt.get_leaf(&key).num_entries() >= 2 {
             return Err(AccountTreeError::DuplicateIdPrefix {
-                duplicate_prefix: account_id.prefix(),
+                duplicate_prefix: Some(account_id.prefix()),
             });
         }
 
-        Ok(Digest::from(self.smt.insert(key, Word::from(state_commitment))))
+        Ok(prev_value)
     }
 
-    // TODO: add api that makes use of concurrent insertion
+    // TODO: add api for computing mutations and applying them
 
     // HELPERS
     // --------------------------------------------------------------------------------------------
@@ -132,5 +152,77 @@ impl AccountTree {
 impl Default for AccountTree {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+pub(super) mod tests {
+    use assert_matches::assert_matches;
+
+    use super::*;
+    use crate::{
+        account::{AccountStorageMode, AccountType},
+        testing::account_id::account_id,
+    };
+
+    pub(crate) fn setup_duplicate_prefix_ids() -> [(AccountId, Digest); 2] {
+        let id0 = AccountId::try_from(account_id(
+            AccountType::FungibleFaucet,
+            AccountStorageMode::Public,
+            0xaabb_ccdd,
+        ))
+        .unwrap();
+        let id1 = AccountId::try_from(account_id(
+            AccountType::FungibleFaucet,
+            AccountStorageMode::Public,
+            0xaabb_ccff,
+        ))
+        .unwrap();
+        assert_eq!(id0.prefix(), id1.prefix(), "test requires that these ids have the same prefix");
+
+        let commitment0 = Digest::from([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(42)]);
+        let commitment1 = Digest::from([Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::new(24)]);
+
+        assert_eq!(id0.prefix(), id1.prefix(), "test requires that these ids have the same prefix");
+        [(id0, commitment0), (id1, commitment1)]
+    }
+
+    #[test]
+    fn insert_fails_on_duplicate_prefix() {
+        let mut tree = AccountTree::new();
+        let [(id0, commitment0), (id1, commitment1)] = setup_duplicate_prefix_ids();
+
+        tree.insert(id0, commitment0).unwrap();
+        assert_eq!(tree.get(id0), commitment0);
+
+        let err = tree.insert(id1, commitment1).unwrap_err();
+
+        assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
+          duplicate_prefix: Some(prefix)
+        } if prefix == id0.prefix());
+    }
+
+    #[test]
+    fn with_entries_fails_on_duplicate_prefix() {
+        let entries = setup_duplicate_prefix_ids();
+
+        let err = AccountTree::with_entries(entries.iter().copied()).unwrap_err();
+
+        assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
+          duplicate_prefix: Some(prefix)
+        } if prefix == entries[0].0.prefix());
+    }
+
+    #[test]
+    fn insert_succeeds_on_multiple_updates() {
+        let mut tree = AccountTree::new();
+        let [(id0, commitment0), (_, commitment1)] = setup_duplicate_prefix_ids();
+
+        tree.insert(id0, commitment0).unwrap();
+        tree.insert(id0, commitment1).unwrap();
+        assert_eq!(tree.get(id0), commitment1);
     }
 }

@@ -104,12 +104,14 @@ fn proven_block_success() -> anyhow::Result<()> {
         );
     }
 
-    // Compute expected account root on the full SimpleSmt.
+    // Compute expected account root on the full account tree.
     // --------------------------------------------------------------------------------------------
 
     let mut expected_account_tree = chain.accounts().clone();
     for (account_id, witness) in proposed_block.updated_accounts() {
-        expected_account_tree.insert(*account_id, witness.final_state_commitment());
+        expected_account_tree
+            .insert(*account_id, witness.final_state_commitment())
+            .context("failed to insert account id into account tree")?;
     }
 
     // Prove block.

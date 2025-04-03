@@ -1,8 +1,7 @@
 use anyhow::Context;
 use assert_matches::assert_matches;
-use miden_crypto::merkle::MerkleError;
 use miden_objects::{
-    NullifierTreeError,
+    AccountTreeError, NullifierTreeError,
     batch::ProvenBatch,
     block::{BlockInputs, ProposedBlock},
 };
@@ -186,8 +185,8 @@ fn proven_block_fails_on_account_tree_root_mismatch() -> anyhow::Result<()> {
 
     assert_matches!(
         error,
-        ProvenBlockError::AccountWitnessRootMismatch {
-            source: MerkleError::ConflictingRoots { .. },
+        ProvenBlockError::AccountWitnessTracking {
+            source: AccountTreeError::TreeRootConflict { .. },
             ..
         }
     );
@@ -240,3 +239,5 @@ fn proven_block_fails_on_nullifier_tree_root_mismatch() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+// TODO: Add test to make sure duplicate account ID prefixes result in an error.

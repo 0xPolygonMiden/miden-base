@@ -621,7 +621,7 @@ impl MockChain {
 
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-        self.account_tree.insert(account.id(), account.commitment());
+        self.account_tree.insert(account.id(), account.commitment()).unwrap();
 
         account
     }
@@ -812,7 +812,9 @@ impl MockChain {
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
-                self.account_tree.insert(update.account_id(), update.final_state_commitment());
+                self.account_tree
+                    .insert(update.account_id(), update.final_state_commitment())
+                    .unwrap();
 
                 if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
                     let account = match update.details() {
