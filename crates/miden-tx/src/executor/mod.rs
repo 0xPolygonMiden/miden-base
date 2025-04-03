@@ -271,7 +271,7 @@ impl TransactionExecutor {
                     well_known_note.check_note_inputs(note.note(), tx_inputs.account());
                 if let NoteAccountCompatibility::No = inputs_check_result {
                     std::println!("Note {} has incorrect inputs", note.id());
-                    return Ok(())
+                    return Ok(());
                 }
             }
         }
