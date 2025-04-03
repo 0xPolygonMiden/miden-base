@@ -2,6 +2,7 @@
 
 ## 0.9.0 (TBD)
 
+- [BREAKING] Add `TransactionHeader` and include it in batches and blocks (#1247).
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
 

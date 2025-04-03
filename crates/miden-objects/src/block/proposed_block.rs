@@ -6,14 +6,14 @@ use alloc::{
 use crate::{
     Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
     account::{AccountId, delta::AccountUpdateDetails},
-    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
+    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, OrderedBatches, ProvenBatch},
     block::{
         AccountUpdateWitness, AccountWitness, BlockHeader, BlockNumber, NullifierWitness,
         OutputNoteBatch, block_inputs::BlockInputs,
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
-    transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
+    transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionHeader},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -27,7 +27,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ProposedBlock {
     /// The transaction batches in this block.
-    batches: Vec<ProvenBatch>,
+    batches: OrderedBatches,
     /// The unix timestamp of the block in seconds.
     timestamp: u32,
     /// All account's [`AccountUpdateWitness`] that were updated in this block. See its docs for
@@ -215,7 +215,7 @@ impl ProposedBlock {
         // --------------------------------------------------------------------------------------------
 
         Ok(Self {
-            batches,
+            batches: OrderedBatches::new(batches),
             timestamp,
             account_updated_witnesses,
             output_note_batches,
@@ -252,12 +252,12 @@ impl ProposedBlock {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an iterator over all transactions which affected accounts in the block with
-    /// corresponding account IDs.
-    pub fn affected_accounts(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
-        self.account_updated_witnesses.iter().flat_map(|(account_id, update)| {
-            update.transactions().iter().map(move |tx_id| (*tx_id, *account_id))
-        })
+    /// Returns an iterator over all transactions in the block.
+    pub fn transactions(&self) -> impl Iterator<Item = &TransactionHeader> {
+        self.batches
+            .as_slice()
+            .iter()
+            .flat_map(|batch| batch.transactions().as_slice().iter())
     }
 
     /// Returns the block number of this proposed block.
@@ -268,7 +268,7 @@ impl ProposedBlock {
     }
 
     /// Returns a reference to the slice of batches in this block.
-    pub fn batches(&self) -> &[ProvenBatch] {
+    pub fn batches(&self) -> &OrderedBatches {
         &self.batches
     }
 
@@ -310,7 +310,7 @@ impl ProposedBlock {
     pub fn into_parts(
         self,
     ) -> (
-        Vec<ProvenBatch>,
+        OrderedBatches,
         Vec<(AccountId, AccountUpdateWitness)>,
         Vec<OutputNoteBatch>,
         BTreeMap<Nullifier, NullifierWitness>,
@@ -346,7 +346,7 @@ impl Serializable for ProposedBlock {
 impl Deserializable for ProposedBlock {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let block = Self {
-            batches: <Vec<ProvenBatch>>::read_from(source)?,
+            batches: OrderedBatches::read_from(source)?,
             timestamp: u32::read_from(source)?,
             account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
@@ -658,7 +658,6 @@ impl AccountUpdateAggregator {
         let (initial_state_commitment, initial_state_proof) = witness.into_parts();
         let mut details: Option<AccountUpdateDetails> = None;
 
-        let mut transactions = Vec::new();
         let mut current_commitment = initial_state_commitment;
         while !updates.is_empty() {
             let (update, _) = updates.remove(&current_commitment).ok_or_else(|| {
@@ -670,8 +669,7 @@ impl AccountUpdateAggregator {
             })?;
 
             current_commitment = update.final_state_commitment();
-            let (update_transactions, update_details) = update.into_parts();
-            transactions.extend(update_transactions);
+            let update_details = update.into_update();
 
             details = Some(match details {
                 None => update_details,
@@ -686,7 +684,6 @@ impl AccountUpdateAggregator {
             current_commitment,
             initial_state_proof,
             details.expect("details should be Some as updates is guaranteed to not be empty"),
-            transactions,
         ))
     }
 }

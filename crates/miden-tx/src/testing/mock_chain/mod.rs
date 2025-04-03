@@ -27,8 +27,9 @@ use miden_objects::{
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
-        ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OrderedTransactionHeaders,
+        OutputNote, ProvenTransaction, ToInputNoteCommitments, TransactionHeader, TransactionId,
+        TransactionInputs, TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -360,7 +361,6 @@ impl MockChain {
             transaction.account_id(),
             account.commitment(),
             account_update_details,
-            vec![transaction.id()],
         );
         self.pending_objects.updated_accounts.push(block_account_update);
 
@@ -463,7 +463,7 @@ impl MockChain {
     /// This method does not modify the chain state.
     pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
         let (
-            _transactions,
+            transactions,
             block_header,
             _chain_mmr,
             _unauthenticated_note_proofs,
@@ -474,6 +474,15 @@ impl MockChain {
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
 
+        // SAFETY: This satisfies the requirements of the ordered tx headers.
+        let tx_headers = OrderedTransactionHeaders::new_unchecked(
+            transactions
+                .iter()
+                .map(AsRef::as_ref)
+                .map(TransactionHeader::from)
+                .collect::<Vec<_>>(),
+        );
+
         ProvenBatch::new_unchecked(
             id,
             block_header.commitment(),
@@ -482,6 +491,7 @@ impl MockChain {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            tx_headers,
         )
     }
 
@@ -637,7 +647,6 @@ impl MockChain {
             account.id(),
             account.commitment(),
             AccountUpdateDetails::New(account),
-            vec![],
         ));
     }
 
@@ -897,6 +906,9 @@ impl MockChain {
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
+                // TODO: For now we can't easily compute the verified transactions of this block.
+                // Let's do this as part of miden-base/#1224.
+                OrderedTransactionHeaders::new_unchecked(vec![]),
             );
 
             for (batch_index, note_batch) in
