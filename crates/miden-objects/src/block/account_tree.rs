@@ -14,7 +14,7 @@ use crate::{
 /// The sparse merkle tree of all accounts in the blockchain.
 ///
 /// The key is the [`AccountId`] while the value is the current state commitment of the account,
-/// i.e. [`Account::commitment`](crate::account::Account::commitment)). If the account is new, then
+/// i.e. [`Account::commitment`](crate::account::Account::commitment). If the account is new, then
 /// the commitment is the [`EMPTY_WORD`](crate::EMPTY_WORD).
 ///
 /// Each account ID occupies exactly one leaf in the tree, which is identified by its
@@ -111,14 +111,24 @@ impl AccountTree {
         self.smt.root()
     }
 
-    /// Returns the SMT key of the given account ID.
-    pub(super) fn account_id_to_key(account_id: AccountId) -> Digest {
-        Digest::from([Felt::ZERO, Felt::ZERO, account_id.suffix(), account_id.prefix().as_felt()])
-    }
+    /// Computes the necessary changes to insert the specified (account ID, state commitment) pairs
+    /// into this tree, allowing for validation before applying those changes.
+    ///
+    /// [`Self::apply_mutations`] can be used in order to commit these changes to the tree.
+    ///
+    /// This is a thin wrapper around [`Smt::compute_mutations`], see its documentation for more
+    /// details.
+    pub fn compute_mutations(
+        &self,
+        account_commitments: impl IntoIterator<Item = (AccountId, Digest)>,
+    ) -> AccountMutationSet {
+        let mutation_set = self.smt.compute_mutations(
+            account_commitments
+                .into_iter()
+                .map(|(id, commitment)| (Self::account_id_to_key(id), Word::from(commitment))),
+        );
 
-    /// Returns the account ID encoded in the given SMT key, if it can be decoded, `None` otherwise.
-    pub(super) fn key_to_account_id(key: Digest) -> Option<AccountId> {
-        AccountId::try_from([key.as_elements()[3], key.as_elements()[2]]).ok()
+        AccountMutationSet::new(mutation_set)
     }
 
     // PUBLIC MUTATORS
@@ -153,21 +163,12 @@ impl AccountTree {
         Ok(prev_value)
     }
 
-    /// TODO
-    pub fn compute_mutations(
-        &self,
-        account_commitments: impl IntoIterator<Item = (AccountId, Digest)>,
-    ) -> AccountMutationSet {
-        let mutation_set = self.smt.compute_mutations(
-            account_commitments
-                .into_iter()
-                .map(|(id, commitment)| (Self::account_id_to_key(id), Word::from(commitment))),
-        );
-
-        AccountMutationSet::new(mutation_set)
-    }
-
-    /// TODO
+    /// Applies the prospective mutations computed with [`Self::compute_mutations`] to this tree.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - `mutations` was computed on a tree with a different root than this one.
     pub fn apply_mutations(
         &mut self,
         mutations: AccountMutationSet,
@@ -179,6 +180,16 @@ impl AccountTree {
 
     // HELPERS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the SMT key of the given account ID.
+    pub(super) fn account_id_to_key(account_id: AccountId) -> Digest {
+        Digest::from([Felt::ZERO, Felt::ZERO, account_id.suffix(), account_id.prefix().as_felt()])
+    }
+
+    /// Returns the account ID encoded in the given SMT key, if it can be decoded, `None` otherwise.
+    pub(super) fn key_to_account_id(key: Digest) -> Option<AccountId> {
+        AccountId::try_from([key.as_elements()[3], key.as_elements()[2]]).ok()
+    }
 }
 
 impl Default for AccountTree {
@@ -190,23 +201,34 @@ impl Default for AccountTree {
 // ACCOUNT MUTATION SET
 // ================================================================================================
 
-/// TODO
+/// A newtype wrapper around a [`MutationSet`] which exists for type safety reasons.
+///
+/// It is returned by and used in methods on the [`AccountTree`].
 pub struct AccountMutationSet {
     mutation_set: MutationSet<{ AccountTree::DEPTH }, Digest, Word>,
 }
 
 impl AccountMutationSet {
-    /// TODO
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Creates a new [`AccountMutationSet`] from the provided raw mutation set.
     fn new(mutation_set: MutationSet<{ AccountTree::DEPTH }, Digest, Word>) -> Self {
         Self { mutation_set }
     }
 
-    /// TODO
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a reference to the underlying [`MutationSet`].
     pub fn as_mutation_set(&self) -> &MutationSet<{ AccountTree::DEPTH }, Digest, Word> {
         &self.mutation_set
     }
 
-    /// TODO
+    // PUBLIC MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes self and returns the underlying [`MutationSet`].
     pub fn into_mutation_set(self) -> MutationSet<{ AccountTree::DEPTH }, Digest, Word> {
         self.mutation_set
     }

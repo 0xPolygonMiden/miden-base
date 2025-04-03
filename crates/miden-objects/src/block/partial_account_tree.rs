@@ -92,7 +92,9 @@ impl PartialAccountTree {
     ) -> Result<(), AccountTreeError> {
         let (path, leaf) = witness.into_proof().into_parts();
         if leaf.num_entries() >= 2 {
-            let id_key = leaf.entries().first().expect("there should be at least one entry").0;
+            let id_key = leaf.entries().first().expect("there should be at least two entries").0;
+            // The witness is external input so we can't be certain that the leaf key is a valid
+            // account ID. That is why the key to account ID function returns an option.
             let duplicate_prefix =
                 AccountTree::key_to_account_id(id_key).as_ref().map(AccountId::prefix);
             return Err(AccountTreeError::DuplicateIdPrefix { duplicate_prefix });
@@ -100,7 +102,13 @@ impl PartialAccountTree {
         self.smt.add_path(leaf, path).map_err(AccountTreeError::TreeRootConflict)
     }
 
-    /// TODO
+    /// Inserts the provided account ID -> state commitment updates into the partial tree which
+    /// results in a new tree root.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the prefix of the account ID already exists in the tree.
     pub fn update_state_commitments(
         &mut self,
         updates: impl IntoIterator<Item = (AccountId, Digest)>,
@@ -133,8 +141,11 @@ impl PartialAccountTree {
                 |source| AccountTreeError::UntrackedAccountId { id: account_id, source },
             )?;
 
-        // If the leaf of the account ID now has two or more entries, we've inserted a duplicate
-        // prefix.
+        // If the leaf of the account ID _after the insertion_ has two or more entries, we've
+        // inserted a duplicate prefix.
+        // We check this after the insertion because it is easier to do than before. The downside is
+        // that the tree is left in an inconsistent state, but trees on which operations fail are
+        // usually discarded anyway.
         if self
             .smt
             .get_leaf(&key)
