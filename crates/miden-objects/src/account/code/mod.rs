@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use vm_core::mast::MastForest;
+use vm_core::{mast::MastForest, prettier::PrettyPrint};
 
 use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
@@ -282,6 +282,36 @@ impl Deserializable for AccountCode {
         let procedures = source.read_many::<AccountProcedureInfo>(num_procedures)?;
 
         Ok(Self::from_parts(module, procedures))
+    }
+}
+
+// PRETTY PRINT
+// ================================================================================================
+
+impl PrettyPrint for AccountCode {
+    fn render(&self) -> vm_core::prettier::Document {
+        use vm_core::prettier::*;
+        let mut partial = Document::Empty;
+        let len_procedures = self.procedures().len();
+        for (index, procedure_root) in self.procedure_roots().enumerate() {
+            let node_id = self
+                .mast
+                .find_procedure_root(procedure_root)
+                .expect("procedure root should be present in the mast forest");
+            let node_raw = self.mast[node_id].clone();
+
+            partial = partial
+                + indent(
+                    4,
+                    const_text("begin") + nl() + node_raw.to_pretty_print(&self.mast).render(),
+                )
+                + nl()
+                + const_text("end");
+            if index < len_procedures - 1 {
+                partial += nl();
+            }
+        }
+        partial
     }
 }
 
