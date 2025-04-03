@@ -24,10 +24,6 @@ const.ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020202
 # The origin of the non-fungible asset is not this faucet
 const.ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN=0x00020241
 
-const.ASSET_OTW_UNINITIALIZED=0
-const.ASSET_OTW_INITIALIZED=1
-const.ASSET_OTW_USED=2
-
 # CONSTANT ACCESSORS
 # =================================================================================================
 
@@ -189,16 +185,4 @@ export.validate_non_fungible_asset_origin
     # assert the non-fungible asset is valid
     exec.validate_non_fungible_asset
     # => [ASSET]
-end
-
-export.otw_uninitialized
-    push.ASSET_OTW_UNINITIALIZED
-end
-
-export.otw_initialized
-    push.ASSET_OTW_INITIALIZED
-end
-
-export.otw_used
-    push.ASSET_OTW_USED
 end

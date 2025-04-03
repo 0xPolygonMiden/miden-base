@@ -69,7 +69,7 @@ fn test_fpi_asset_memory() {
             # => [treasury_cap_ptr, otw_id]
 
             # consume OTW or abort if it was already consumed
-            dup.1 exec.asset::asset_consume_one_time_witness
+            dup.1 exec.asset::consume_one_time_witness
             # => [treasury_cap_ptr, otw_id]
 
             swap push.TREASURY_CAP_FIELD_OTW_ID dup.2

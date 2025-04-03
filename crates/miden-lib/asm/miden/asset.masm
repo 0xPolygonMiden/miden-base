@@ -169,7 +169,7 @@ end
 #!
 #! Inputs:  [one_time_witness_id]
 #! Outputs: []
-export.asset_consume_one_time_witness
+export.consume_one_time_witness
   exec.kernel_proc_offsets::asset_consume_one_time_witness_offset
   # => [offset, one_time_witness_id]
 
