@@ -119,7 +119,7 @@ impl TransactionHeader {
 
 impl From<&ProvenTransaction> for TransactionHeader {
     fn from(tx: &ProvenTransaction) -> Self {
-        TransactionHeader::new_unchecked(
+        TransactionHeader::new(
             tx.id(),
             tx.account_id(),
             tx.account_update().initial_state_commitment(),
@@ -153,7 +153,7 @@ impl Deserializable for TransactionHeader {
         let input_notes = <Vec<Nullifier>>::read_from(source)?;
         let output_notes = <Vec<NoteId>>::read_from(source)?;
 
-        Ok(Self::new_unchecked(
+        Ok(Self::new(
             id,
             account_id,
             initial_state_commitment,
