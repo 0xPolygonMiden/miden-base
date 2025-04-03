@@ -68,6 +68,21 @@ const.TX_END_FOREIGN_CONTEXT_OFFSET=33
 const.TX_GET_EXPIRATION_DELTA_OFFSET=34          # accessor
 const.TX_UPDATE_EXPIRATION_BLOCK_NUM_OFFSET=35   # mutator
 
+### ASSET ##########################################
+
+const.ASSET_CREATE_OFFSET=36
+const.ASSET_CONSUME_ONE_TIME_WITNESS_OFFSET=37
+const.ASSET_SET_FIELD_OFFSET=38
+const.GET_NATIVE_ACCOUNT_ID_OFFSET=39
+const.ASSET_STORE_TO_ACCOUNT_OFFSET=40
+const.ASSET_GET_ISSUER_OFFSET=41
+const.ASSET_GET_TYPE_OFFSET=42
+const.ASSET_GET_NUM_FIELDS_OFFSET=43
+const.ASSET_GET_FIELD_OFFSET=44
+const.ASSET_LOAD_FROM_ACCOUNT_OFFSET=45
+const.ASSET_GET_ID_OFFSET=46
+const.ASSET_DESTROY_OFFSET=47
+
 # ACCESSORS
 # -------------------------------------------------------------------------------------------------
 
@@ -509,4 +524,52 @@ end
 #!   address where this procedure is stored.
 export.tx_get_expiration_delta_offset
     push.TX_GET_EXPIRATION_DELTA_OFFSET
+end
+
+export.asset_create_offset
+    push.ASSET_CREATE_OFFSET
+end
+
+export.asset_consume_one_time_witness_offset
+    push.ASSET_CONSUME_ONE_TIME_WITNESS_OFFSET
+end
+
+export.asset_set_field_offset
+    push.ASSET_SET_FIELD_OFFSET
+end
+
+export.asset_get_field_offset
+    push.ASSET_GET_FIELD_OFFSET
+end
+
+export.get_native_account_id_offset
+  push.GET_NATIVE_ACCOUNT_ID_OFFSET
+end
+
+export.asset_store_to_account_offset
+  push.ASSET_STORE_TO_ACCOUNT_OFFSET
+end
+
+export.asset_get_issuer_offset
+  push.ASSET_GET_ISSUER_OFFSET
+end
+
+export.asset_get_type_offset
+  push.ASSET_GET_TYPE_OFFSET
+end
+
+export.asset_get_num_fields_offset
+  push.ASSET_GET_NUM_FIELDS_OFFSET
+end
+
+export.asset_load_from_account
+  push.ASSET_LOAD_FROM_ACCOUNT_OFFSET
+end
+
+export.asset_get_id_offset
+  push.ASSET_GET_ID_OFFSET
+end
+
+export.asset_destroy_offset
+  push.ASSET_DESTROY_OFFSET
 end

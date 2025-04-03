@@ -137,6 +137,10 @@ impl TransactionContext {
     pub fn get_data_store(&self) -> Arc<dyn DataStore> {
         Arc::new(self.tx_inputs().clone())
     }
+
+    pub fn assembler_mut(&mut self) -> &mut Assembler {
+        &mut self.assembler
+    }
 }
 
 #[maybe_async_trait]
