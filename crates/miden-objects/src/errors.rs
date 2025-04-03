@@ -188,6 +188,8 @@ pub enum AccountTreeError {
     UntrackedAccountId { id: AccountId, source: MerkleError },
     #[error("new tree root after account witness insertion does not match previous tree root")]
     TreeRootConflict(#[source] MerkleError),
+    #[error("failed to apply mutations to account tree")]
+    ApplyMutations(#[source] MerkleError),
 }
 
 // BECH32 ERROR

@@ -1,4 +1,5 @@
-use miden_crypto::merkle::{MerkleError, Smt};
+use miden_crypto::merkle::{MerkleError, MutationSet, Smt};
+use vm_processor::SMT_DEPTH;
 
 use crate::{
     Digest, Felt, FieldElement, Word,
@@ -6,6 +7,9 @@ use crate::{
     block::AccountWitness,
     errors::AccountTreeError,
 };
+
+// ACCOUNT TREE
+// ================================================================================================
 
 /// The sparse merkle tree of all accounts in the blockchain.
 ///
@@ -21,6 +25,12 @@ pub struct AccountTree {
 }
 
 impl AccountTree {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// The depth of the account tree.
+    pub const DEPTH: u8 = SMT_DEPTH;
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -143,7 +153,29 @@ impl AccountTree {
         Ok(prev_value)
     }
 
-    // TODO: add api for computing mutations and applying them
+    /// TODO
+    pub fn compute_mutations(
+        &self,
+        account_commitments: impl IntoIterator<Item = (AccountId, Digest)>,
+    ) -> AccountMutationSet {
+        let mutation_set = self.smt.compute_mutations(
+            account_commitments
+                .into_iter()
+                .map(|(id, commitment)| (Self::account_id_to_key(id), Word::from(commitment))),
+        );
+
+        AccountMutationSet::new(mutation_set)
+    }
+
+    /// TODO
+    pub fn apply_mutations(
+        &mut self,
+        mutations: AccountMutationSet,
+    ) -> Result<(), AccountTreeError> {
+        self.smt
+            .apply_mutations(mutations.into_mutation_set())
+            .map_err(AccountTreeError::ApplyMutations)
+    }
 
     // HELPERS
     // --------------------------------------------------------------------------------------------
@@ -152,6 +184,26 @@ impl AccountTree {
 impl Default for AccountTree {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ACCOUNT MUTATION SET
+// ================================================================================================
+
+/// TODO
+pub struct AccountMutationSet {
+    mutation_set: MutationSet<{ AccountTree::DEPTH }, Digest, Word>,
+}
+
+impl AccountMutationSet {
+    /// TODO
+    fn new(mutation_set: MutationSet<{ AccountTree::DEPTH }, Digest, Word>) -> Self {
+        Self { mutation_set }
+    }
+
+    /// TODO
+    fn into_mutation_set(self) -> MutationSet<{ AccountTree::DEPTH }, Digest, Word> {
+        self.mutation_set
     }
 }
 
@@ -165,7 +217,7 @@ pub(super) mod tests {
     use super::*;
     use crate::{
         account::{AccountStorageMode, AccountType},
-        testing::account_id::account_id,
+        testing::account_id::{AccountIdBuilder, account_id},
     };
 
     pub(crate) fn setup_duplicate_prefix_ids() -> [(AccountId, Digest); 2] {
@@ -224,5 +276,27 @@ pub(super) mod tests {
         tree.insert(id0, commitment0).unwrap();
         tree.insert(id0, commitment1).unwrap();
         assert_eq!(tree.get(id0), commitment1);
+    }
+
+    #[test]
+    fn apply_mutations() {
+        let id0 = AccountIdBuilder::new().build_with_seed([5; 32]);
+        let id1 = AccountIdBuilder::new().build_with_seed([6; 32]);
+        let id2 = AccountIdBuilder::new().build_with_seed([7; 32]);
+
+        let digest0 = Digest::from([0, 0, 0, 1u32]);
+        let digest1 = Digest::from([0, 0, 0, 2u32]);
+        let digest2 = Digest::from([0, 0, 0, 3u32]);
+        let digest3 = Digest::from([0, 0, 0, 4u32]);
+
+        let mut tree = AccountTree::with_entries([(id0, digest0), (id1, digest1)]).unwrap();
+
+        let mutations = tree.compute_mutations([(id0, digest1), (id1, digest2), (id2, digest3)]);
+
+        tree.apply_mutations(mutations).unwrap();
+
+        assert_eq!(tree.get(id0), digest1);
+        assert_eq!(tree.get(id1), digest2);
+        assert_eq!(tree.get(id2), digest3);
     }
 }
