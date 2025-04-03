@@ -220,7 +220,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
         // Felts can be deserialized as either:
         //
         // - Scalars (parsed from strings)
-        // - A table object that can or cannot harcode a value. If not present, this is a
+        // - A table object that can or cannot hardcode a value. If not present, this is a
         //   placeholder type
         #[derive(Deserialize)]
         #[serde(untagged)]

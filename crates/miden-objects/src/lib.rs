@@ -106,7 +106,7 @@ pub mod utils {
             };
 
             // This digit's nibble offset within the felt. We need to invert the nibbles per
-            // byte for endianess reasons i.e. ABCD -> BADC.
+            // byte for endianness reasons i.e. ABCD -> BADC.
             let inibble = if i % 2 == 0 { (i + 1) % 16 } else { (i - 1) % 16 };
 
             let value = hex_digit << (inibble * 4);
