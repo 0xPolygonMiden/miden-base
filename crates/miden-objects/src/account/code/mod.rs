@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use assembly::KernelLibrary;
+use assembly::mast::MastNode;
 use vm_core::{mast::MastForest, prettier::PrettyPrint};
 
 use super::{
@@ -11,6 +11,52 @@ use crate::account::{AccountComponent, AccountType};
 
 pub mod procedure;
 use procedure::AccountProcedureInfo;
+
+/// A printable representation of a single account procedure.
+#[derive(Debug, Clone)]
+pub struct PrintableProcedure {
+    mast: Arc<MastForest>,
+    procedure_info: AccountProcedureInfo,
+    node_raw: MastNode,
+}
+
+impl PrettyPrint for PrintableProcedure {
+    fn render(&self) -> vm_core::prettier::Document {
+        use vm_core::prettier::*;
+        let procedure_root = self.procedure_info.mast_root();
+        let storage_offset = self.procedure_info.storage_offset();
+        let storage_size = self.procedure_info.storage_size();
+
+        indent(
+            4,
+            text(format!("Procedure: {}", procedure_root))
+                + nl()
+                + indent(
+                    4,
+                    const_text("Storage:")
+                        + nl()
+                        + text(format!("offset: {}", storage_offset))
+                        + nl()
+                        + text(format!("size: {}", storage_size)),
+                )
+                + nl()
+                + indent(
+                    4,
+                    const_text("Body:")
+                        + nl()
+                        + indent(
+                            8,
+                            text(format!("export.{}", procedure_root))
+                                + nl()
+                                + self.node_raw.to_pretty_print(&self.mast).render(),
+                        )
+                        + nl()
+                        + const_text("end"),
+                )
+                + nl(),
+        )
+    }
+}
 
 // ACCOUNT CODE
 // ================================================================================================
@@ -221,6 +267,31 @@ impl AccountCode {
     pub fn as_elements(&self) -> Vec<Felt> {
         procedures_as_elements(self.procedures())
     }
+
+    /// Returns a printable representation of the procedure with the specified MAST root.
+    ///
+    /// # Errors
+    /// Returns an error if no procedure with the specified root exists in this account code.
+    pub fn get_printable_procedure(
+        &self,
+        root: Digest,
+    ) -> Result<PrintableProcedure, AccountError> {
+        let procedure_info = self.procedures.iter().find(|p| p.mast_root() == &root).ok_or(
+            AccountError::AssumptionViolated(format!("procedure with root {} not found", root)),
+        )?;
+
+        let node_id = self
+            .mast
+            .find_procedure_root(root)
+            .expect("procedure root should be present in the mast forest");
+        let node_raw = self.mast[node_id].clone();
+
+        Ok(PrintableProcedure {
+            mast: self.mast.clone(),
+            procedure_info: *procedure_info,
+            node_raw,
+        })
+    }
 }
 
 // EQUALITY
@@ -295,46 +366,12 @@ impl PrettyPrint for AccountCode {
         let mut partial = Document::Empty;
         let len_procedures = self.procedures().len();
         for (index, procedure_info) in self.procedures().iter().enumerate() {
-            let procedure_root = procedure_info.mast_root();
-            let storage_offset = procedure_info.storage_offset();
-            let storage_size = procedure_info.storage_size();
-
-            let node_id = self
-                .mast
-                .find_procedure_root(*procedure_root)
+            let procedure_root = *procedure_info.mast_root();
+            let printable_procedure = self
+                .get_printable_procedure(procedure_root)
                 .expect("procedure root should be present in the mast forest");
-            let node_raw = self.mast[node_id].clone();
 
-            partial = partial
-                + indent(
-                    4,
-                    text(format!("Procedure: {}", procedure_root))
-                        + nl()
-                        + indent(
-                            4,
-                            const_text("Storage:")
-                                + nl()
-                                + text(&format!("offset: {}", storage_offset))
-                                + nl()
-                                + text(&format!("size: {}", storage_size)),
-                        )
-                        + nl()
-                        + indent(
-                            4,
-                            const_text("Body:")
-                                + nl()
-                                + indent(
-                                    8,
-                                    text(format!("export.{}", procedure_root))
-                                        + nl()
-                                        + node_raw.to_pretty_print(&self.mast).render(),
-                                )
-                                + nl()
-                                + const_text("end"),
-                        )
-                        + nl(),
-                );
-
+            partial += printable_procedure.render();
             if index < len_procedures - 1 {
                 partial += nl();
             }
