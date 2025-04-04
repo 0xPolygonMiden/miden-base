@@ -1,8 +1,7 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::{
-    account::interface::{ExecutionCheckResult, NoteAccountCompatibility},
-    note::well_known_note::WellKnownNote,
+    account::interface::NoteAccountCompatibility, note::well_known_note::WellKnownNote,
     transaction::TransactionKernel,
 };
 use miden_objects::{
@@ -244,7 +243,7 @@ impl TransactionExecutor {
     }
 
     // CHECK CONSUMABILITY
-    // ================================================================================================
+    // ============================================================================================
 
     // TODO: update the name, add docs
     #[maybe_async]
@@ -254,8 +253,9 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         notes: &InputNotes<InputNote>,
         tx_args: TransactionArgs,
-    ) -> Result<(), TransactionExecutorError> {
-        // 1. Check note inputs
+    ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
+        // Check note inputs
+        // ----------------------------------------------------------------------------------------
 
         let note_ids = notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
 
@@ -270,45 +270,15 @@ impl TransactionExecutor {
                 let inputs_check_result =
                     well_known_note.check_note_inputs(note.note(), tx_inputs.account());
                 if let NoteAccountCompatibility::No = inputs_check_result {
-                    std::println!("Note {} has incorrect inputs", note.id());
-                    return Ok(());
+                    return Ok(ExecutionCheckResult::Failure((note.id(), vec![])));
                 }
             }
         }
 
-        // # 2. Perform validation: outgoing notes required
+        // Execute transaction
+        // ----------------------------------------------------------------------------------------
 
-        // 3. Transaction execution
-        let result = maybe_await!(self.iterative_executor(tx_inputs, tx_args))?;
-
-        // how should we return the result of the check?
-        match result {
-            ExecutionCheckResult::Success => {
-                std::println!("All notes processed successfully");
-            },
-            ExecutionCheckResult::Failure((failing_note, successful_notes)) => {
-                std::println!("Notes execution error");
-                std::println!(
-                    "Notes processed: {} out of {}\n",
-                    successful_notes.len() + 1,
-                    notes.num_notes()
-                );
-                std::println!("Failing note: {}\n", failing_note.to_hex());
-
-                if !successful_notes.is_empty() {
-                    std::println!(
-                        "Successful notes:\n{}",
-                        successful_notes
-                            .iter()
-                            .map(|note| note.to_hex())
-                            .collect::<Vec<alloc::string::String>>()
-                            .join("\n")
-                    );
-                }
-            },
-        }
-
-        Ok(())
+        maybe_await!(self.iterative_executor(tx_inputs, tx_args))
     }
 
     #[maybe_async]
@@ -429,4 +399,15 @@ fn build_executed_transaction(
         advice_witness,
         tx_progress.into(),
     ))
+}
+
+/// Describes whether a transaction with a specified set of notes could be executed against target
+/// account.
+///
+/// [ExecutionCheckResult::Failure] holds a tuple, the first value of which is a failing note ID,
+/// and the second is a vector of note IDs which were successfully executed.
+#[derive(Debug, PartialEq)]
+pub enum ExecutionCheckResult {
+    Success,
+    Failure((NoteId, Vec<NoteId>)),
 }

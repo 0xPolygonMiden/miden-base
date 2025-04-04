@@ -148,7 +148,19 @@ impl WellKnownNote {
         }
     }
 
-    pub fn check_note_inputs(&self, note: &Note, account: &Account) -> NoteAccountCompatibility {
+    /// Checks the correctness of the provided note inputs against the target account.
+    ///
+    /// It performs:
+    /// - for all notes: a check that note inputs have correct number of values.
+    /// - for `P2ID` and `P2IDR` notes: assertion that the account ID provided by the note inputs is
+    ///   equal to the target account ID.
+    /// - for `SWAP` note: a check that the target account has sufficient amount of assets required
+    ///   by the note.
+    pub fn check_note_inputs(
+        &self,
+        note: &Note,
+        target_account: &Account,
+    ) -> NoteAccountCompatibility {
         match self {
             WellKnownNote::P2ID => {
                 let note_inputs = note.inputs().values();
@@ -156,7 +168,7 @@ impl WellKnownNote {
                     return NoteAccountCompatibility::No;
                 }
 
-                Self::check_input_account_id(note_inputs, account.id())
+                Self::check_input_account_id(note_inputs, target_account.id())
             },
             WellKnownNote::P2IDR => {
                 let note_inputs = note.inputs().values();
@@ -164,7 +176,7 @@ impl WellKnownNote {
                     return NoteAccountCompatibility::No;
                 }
 
-                Self::check_input_account_id(note_inputs, account.id())
+                Self::check_input_account_id(note_inputs, target_account.id())
             },
             WellKnownNote::SWAP => {
                 let note_inputs = note.inputs().values();
@@ -185,18 +197,19 @@ impl WellKnownNote {
                 // Check that the account can cover the demanded asset
                 match asset {
                     Asset::NonFungible(non_fungible_asset) => {
-                        if !account.vault().has_non_fungible_asset(non_fungible_asset).expect("Should be able to query has_non_fungible_asset for an Asset::NonFungible") {
+                        if !target_account.vault().has_non_fungible_asset(non_fungible_asset).expect("Should be able to query has_non_fungible_asset for an Asset::NonFungible") {
                             return NoteAccountCompatibility::No;
                         }
                     },
                     Asset::Fungible(fungible_asset) => {
                         let asset_faucet_id = fungible_asset.faucet_id();
-                        if account
+                        if target_account
                             .vault()
                             .get_balance(asset_faucet_id)
                             .expect("Should be able to query get_balance for an Asset::Fungible") < fungible_asset.amount()
                         {
-                            return NoteAccountCompatibility::No;            }
+                            return NoteAccountCompatibility::No;
+                        }
                     },
                 }
 
@@ -205,9 +218,11 @@ impl WellKnownNote {
         }
     }
 
+    /// Checks that the account ID, created from the first two values of the note inputs, is the
+    /// same as the ID of the target account.
     fn check_input_account_id(
         note_inputs: &[Felt],
-        account_id: AccountId,
+        target_account_id: AccountId,
     ) -> NoteAccountCompatibility {
         let account_id_felts: [Felt; 2] = note_inputs[0..2].try_into().expect(
             "Should be able to convert the first two note inputs to an array of two Felt elements",
@@ -216,7 +231,7 @@ impl WellKnownNote {
         let inputs_account_id = AccountId::try_from([account_id_felts[1], account_id_felts[0]])
             .expect("invalid account ID felts");
 
-        if inputs_account_id != account_id {
+        if inputs_account_id != target_account_id {
             return NoteAccountCompatibility::No;
         }
 
