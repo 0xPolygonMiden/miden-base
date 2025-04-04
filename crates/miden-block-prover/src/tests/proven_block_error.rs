@@ -1,16 +1,22 @@
 use anyhow::Context;
 use assert_matches::assert_matches;
+use miden_crypto::{EMPTY_WORD, Felt, FieldElement};
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     AccountTreeError, NullifierTreeError,
+    account::{Account, AccountBuilder, AccountId, AccountIdAnchor, StorageSlot},
     batch::ProvenBatch,
     block::{BlockInputs, ProposedBlock},
+    testing::account_component::AccountMockComponent,
+    transaction::ProvenTransaction,
 };
+use miden_tx::testing::{MockChain, TransactionContextBuilder};
 
 use crate::{
     LocalBlockProver, ProvenBlockError,
     tests::utils::{
-        TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
-        generate_tracked_note, setup_chain,
+        ProvenTransactionExt, TestSetup, generate_batch,
+        generate_executed_tx_with_authenticated_notes, generate_tracked_note, setup_chain,
     },
 };
 
@@ -240,4 +246,81 @@ fn proven_block_fails_on_nullifier_tree_root_mismatch() -> anyhow::Result<()> {
     Ok(())
 }
 
-// TODO: Add test to make sure duplicate account ID prefixes result in an error.
+/// Tests that creating an account when an existing account with the same account ID prefix exists,
+/// results in an error.
+#[test]
+fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> anyhow::Result<()> {
+    // Construct a new account.
+    // --------------------------------------------------------------------------------------------
+
+    let mut mock_chain = MockChain::new();
+    let anchor_block = mock_chain.block_header(0);
+    let (account, seed) = AccountBuilder::new([5; 32])
+        .anchor(AccountIdAnchor::try_from(&anchor_block)?)
+        .with_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![StorageSlot::Value([5u32.into(); 4])],
+            )
+            .unwrap(),
+        )
+        .build()
+        .context("failed to build account")?;
+
+    let account_id = account.id();
+
+    // Construct a second account whose ID matches the prefix of the first and insert it into the
+    // chain, as if that account already existed. That way we can check if the block prover errors
+    // when we attempt to create the first account.
+    // --------------------------------------------------------------------------------------------
+
+    // Set some bits on the hash part of the suffix to make the account id distinct from the
+    // original one, but their prefix is still the same.
+    let account_id2 = AccountId::try_from(u128::from(account_id) | 0xffff00)
+        .context("failed to convert account ID")?;
+
+    assert_eq!(
+        account_id.prefix(),
+        account_id2.prefix(),
+        "test requires that prefixes are the same"
+    );
+    assert_ne!(
+        account_id.suffix(),
+        account_id2.suffix(),
+        "test should work if suffixes are different, so we want to ensure it"
+    );
+    assert_eq!(account.init_commitment(), miden_objects::Digest::from(EMPTY_WORD));
+
+    let account2 =
+        Account::mock(account_id2.into(), Felt::ZERO, TransactionKernel::testing_assembler());
+    mock_chain.add_pending_account(account2);
+    mock_chain.seal_next_block();
+
+    // Execute the account-creating transaction.
+    // --------------------------------------------------------------------------------------------
+
+    let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
+    let tx_context = TransactionContextBuilder::new(account)
+        .account_seed(Some(seed))
+        .tx_inputs(tx_inputs)
+        .build();
+    let tx = tx_context.execute().context("failed to execute account creating tx")?;
+    let tx =
+        ProvenTransaction::from_executed_transaction_mocked(tx, &mock_chain.latest_block_header());
+
+    let batch = generate_batch(&mut mock_chain, vec![tx]);
+    let block = mock_chain.propose_block([batch]).context("failed to propose block")?;
+
+    let err = LocalBlockProver::new(0).prove_without_batch_verification(block).unwrap_err();
+
+    assert_matches!(
+        err,
+        ProvenBlockError::AccountIdPrefixDuplicate {
+            source: AccountTreeError::DuplicateIdPrefix { duplicate_prefix }
+        } if duplicate_prefix == account_id.prefix()
+    );
+
+    Ok(())
+}
+
+// TODO: Add test where two accounts share the same ID prefix in the _same block_.

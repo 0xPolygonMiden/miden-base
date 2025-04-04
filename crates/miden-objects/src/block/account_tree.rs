@@ -1,4 +1,4 @@
-use miden_crypto::merkle::{LeafIndex, MerkleError, MutationSet, Smt};
+use miden_crypto::merkle::{LeafIndex, MerkleError, MutationSet, Smt, SmtLeaf};
 use vm_processor::SMT_DEPTH;
 
 use crate::{
@@ -30,6 +30,11 @@ impl AccountTree {
 
     /// The depth of the account tree.
     pub const DEPTH: u8 = SMT_DEPTH;
+
+    /// The index of the account ID suffix in the SMT key.
+    pub(super) const KEY_SUFFIX_IDX: usize = 2;
+    /// The index of the account ID prefix in the SMT key.
+    pub(super) const KEY_PREFIX_IDX: usize = 3;
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -98,7 +103,7 @@ impl AccountTree {
     pub fn open(&self, account_id: AccountId) -> AccountWitness {
         let key = Self::account_id_to_key(account_id);
         // SAFETY: The tree only contains unique prefixes.
-        AccountWitness::new_unchecked(self.smt.open(&key))
+        AccountWitness::new_unchecked(account_id, self.smt.open(&key))
     }
 
     /// Returns the current state commitment of the given account ID.
@@ -117,6 +122,25 @@ impl AccountTree {
         // Because each ID's prefix is unique in the tree and occupies a single leaf, the number of
         // IDs in the tree is equivalent to the number of leaves in the tree.
         self.smt.num_leaves()
+    }
+
+    /// Returns an iterator over the account ID state commitment pairs in the tree.
+    pub fn account_commitments(&self) -> impl Iterator<Item = (AccountId, Digest)> {
+        self.smt.leaves().map(|(_leaf_idx, leaf)| {
+            // SAFETY: By construction no Multiple variant is ever present in the tree.
+            // The Empty variant is not returned by Smt::leaves, because it only returns leaves that
+            // are actually present.
+            let SmtLeaf::Single((key, commitment)) = leaf else {
+                unreachable!("empty and multiple variant should never be encountered")
+            };
+
+            (
+                // SAFETY: By construction, the tree only contains valid IDs.
+                AccountId::try_from([key[Self::KEY_PREFIX_IDX], key[Self::KEY_SUFFIX_IDX]])
+                    .expect("account tree should only contain valid IDs"),
+                Digest::from(commitment),
+            )
+        })
     }
 
     /// Computes the necessary changes to insert the specified (account ID, state commitment) pairs
@@ -195,7 +219,13 @@ impl AccountTree {
 
     /// Returns the SMT key of the given account ID.
     pub(super) fn account_id_to_key(account_id: AccountId) -> Digest {
-        Digest::from([Felt::ZERO, Felt::ZERO, account_id.suffix(), account_id.prefix().as_felt()])
+        // We construct this in such a way that we're forced to use the constants, so that when
+        // they're updated, the other usages of the constants are also updated.
+        let mut key = [Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ZERO];
+        key[Self::KEY_SUFFIX_IDX] = account_id.suffix();
+        key[Self::KEY_PREFIX_IDX] = account_id.prefix().as_felt();
+
+        Digest::from(key)
     }
 
     /// Returns the account ID prefix of the given leaf index' underlying value.
@@ -258,7 +288,10 @@ impl AccountMutationSet {
 
 #[cfg(test)]
 pub(super) mod tests {
+    use std::vec::Vec;
+
     use assert_matches::assert_matches;
+    use vm_core::EMPTY_WORD;
 
     use super::*;
     use crate::{
@@ -345,5 +378,30 @@ pub(super) mod tests {
         assert_eq!(tree.get(id0), digest1);
         assert_eq!(tree.get(id1), digest2);
         assert_eq!(tree.get(id2), digest3);
+    }
+
+    #[test]
+    fn account_commitments() {
+        let id0 = AccountIdBuilder::new().build_with_seed([5; 32]);
+        let id1 = AccountIdBuilder::new().build_with_seed([6; 32]);
+        let id2 = AccountIdBuilder::new().build_with_seed([7; 32]);
+
+        let digest0 = Digest::from([0, 0, 0, 1u32]);
+        let digest1 = Digest::from([0, 0, 0, 2u32]);
+        let digest2 = Digest::from([0, 0, 0, 3u32]);
+        let empty_digest = Digest::from(EMPTY_WORD);
+
+        let mut tree =
+            AccountTree::with_entries([(id0, digest0), (id1, digest1), (id2, digest2)]).unwrap();
+
+        // remove id2
+        tree.insert(id2, empty_digest).unwrap();
+
+        assert_eq!(tree.num_accounts(), 2);
+
+        let accounts: Vec<_> = tree.account_commitments().collect();
+        assert_eq!(accounts.len(), 2);
+        assert!(accounts.contains(&(id0, digest0)));
+        assert!(accounts.contains(&(id1, digest1)));
     }
 }

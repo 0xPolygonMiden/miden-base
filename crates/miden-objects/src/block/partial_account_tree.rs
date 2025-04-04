@@ -59,7 +59,7 @@ impl PartialAccountTree {
         // SAFETY: The tree only contains unique prefixes.
         self.smt
             .open(&key)
-            .map(AccountWitness::new_unchecked)
+            .map(|proof| AccountWitness::new_unchecked(account_id, proof))
             .map_err(|source| AccountTreeError::UntrackedAccountId { id: account_id, source })
     }
 
