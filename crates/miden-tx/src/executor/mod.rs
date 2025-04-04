@@ -1,13 +1,19 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{
+    account::interface::NoteAccountCompatibility, note::well_known_note::WellKnownNote,
+    transaction::TransactionKernel,
+};
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::{AccountCode, AccountId},
     assembly::Library,
     block::BlockNumber,
     note::NoteId,
-    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
+    transaction::{
+        ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs,
+        TransactionScript,
+    },
     vm::StackOutputs,
 };
 use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
@@ -235,6 +241,121 @@ impl TransactionExecutor {
 
         Ok(*stack_outputs)
     }
+
+    // CHECK CONSUMABILITY
+    // ============================================================================================
+
+    /// Checks whether the provided input notes could be consumed by the provided account.
+    ///
+    /// This check consists of two main steps:
+    /// - Check whether there are "well known" notes (`P2ID`, `P2IDR` and `SWAP`) in the list of the
+    ///   provided input notes. If so, assert that the note inputs are correct.
+    /// - Execute the transaction with specified notes.
+    ///   - Returns [`ExecutionCheckResult::Success`] if the execution was successful.
+    ///   - Returns [`ExecutionCheckResult::Failure`] if some note returned an error. The tuple
+    ///     associated with `Failure` variant contains the ID of the failing note and a vector of
+    ///     note IDs, which were successfully executed.
+    #[maybe_async]
+    pub fn check_notes_consumability(
+        &self,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        notes: &InputNotes<InputNote>,
+        tx_args: TransactionArgs,
+    ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
+        // Check note inputs
+        // ----------------------------------------------------------------------------------------
+
+        let note_ids = notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
+
+        let tx_inputs =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &note_ids))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
+        let input_notes = tx_inputs.input_notes().clone().into_vec();
+
+        for note in input_notes.iter() {
+            if let Some(well_known_note) = WellKnownNote::from_note(note.note()) {
+                let inputs_check_result =
+                    well_known_note.check_note_inputs(note.note(), tx_inputs.account());
+                if let NoteAccountCompatibility::No = inputs_check_result {
+                    return Ok(ExecutionCheckResult::Failure((note.id(), vec![])));
+                }
+            }
+        }
+
+        // Execute transaction
+        // ----------------------------------------------------------------------------------------
+
+        maybe_await!(self.notes_execution_progress_checker(tx_inputs, tx_args))
+    }
+
+    /// Executes the transaction with specified notes, returning the [ExecutionCheckResult::Success]
+    /// if all notes has been consumed successfully and [ExecutionCheckResult::Failure] if some note
+    /// returned an error.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction host can not be created from the provided values.
+    /// - If the execution of the provided program fails on the stage other than note execution.
+    #[maybe_async]
+    fn notes_execution_progress_checker(
+        &self,
+        tx_inputs: TransactionInputs,
+        tx_args: TransactionArgs,
+    ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
+        let advice_recorder: RecAdviceProvider = advice_inputs.into();
+
+        // load note script MAST into the MAST store
+        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+
+        let mut host = TransactionHost::new(
+            tx_inputs.account().into(),
+            advice_recorder,
+            self.mast_store.clone(),
+            self.authenticator.clone(),
+            self.account_codes.iter().map(|code| code.commitment()).collect(),
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        // execute the transaction kernel
+        let result = vm_processor::execute(
+            &TransactionKernel::main(),
+            stack_inputs,
+            &mut host,
+            self.exec_options,
+        )
+        .map_err(TransactionExecutorError::TransactionProgramExecutionFailed);
+
+        match result {
+            Ok(_) => Ok(ExecutionCheckResult::Success),
+            Err(e) => {
+                let notes = host.tx_progress().note_execution();
+
+                // empty notes vector means that we didn't process the notes, so an error
+                // occurred somewhere else
+                if notes.is_empty() {
+                    return Err(e);
+                }
+
+                let (last, success_notes) = notes.split_last().expect("notes vector is empty");
+
+                // if the interval end of the last note is specified, then an error occurred after
+                // notes processing
+                if last.1.end().is_some() {
+                    return Err(e);
+                }
+
+                Ok(ExecutionCheckResult::Failure((
+                    last.0,
+                    success_notes.iter().map(|note| note.0).collect(),
+                )))
+            },
+        }
+    }
 }
 
 // HELPER FUNCTIONS
@@ -296,4 +417,15 @@ fn build_executed_transaction(
         advice_witness,
         tx_progress.into(),
     ))
+}
+
+/// Describes whether a transaction with a specified set of notes could be executed against target
+/// account.
+///
+/// [ExecutionCheckResult::Failure] holds a tuple, the first value of which is a failing note ID,
+/// and the second is a vector of note IDs which were successfully executed.
+#[derive(Debug, PartialEq)]
+pub enum ExecutionCheckResult {
+    Success,
+    Failure((NoteId, Vec<NoteId>)),
 }
