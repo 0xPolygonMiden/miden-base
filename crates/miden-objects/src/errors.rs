@@ -174,7 +174,7 @@ pub enum AccountIdError {
 #[derive(Debug, Error)]
 pub enum AccountTreeError {
     #[error(
-        "account tree contains two or more account IDs that share the same prefix {duplicate_prefix}"
+        "account tree contains multiple account IDs that share the same prefix {duplicate_prefix}"
     )]
     DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
     #[error(
