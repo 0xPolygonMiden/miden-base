@@ -1,11 +1,10 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{ByteReader, Deserializable};
-use vm_processor::DeserializationError;
-
 use crate::{
+    Digest,
+    block::BlockHeader,
     transaction::TransactionHeader,
-    utils::{ByteWriter, Serializable},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // ORDERED TRANSACTION HEADERS
@@ -35,6 +34,15 @@ impl OrderedTransactionHeaders {
     /// See the type-level documentation for the requirements of the passed transactions.
     pub fn new_unchecked(transactions: Vec<TransactionHeader>) -> Self {
         Self(transactions)
+    }
+
+    /// Computes a commitment to the provided list of transactions.
+    ///
+    /// See [`BlockHeader::compute_tx_commitment`] for details.
+    pub fn commitment(&self) -> Digest {
+        BlockHeader::compute_tx_commitment(
+            self.0.as_slice().iter().map(|tx| (tx.id(), tx.account_id())),
+        )
     }
 
     /// Returns a reference to the underlying transaction headers.
