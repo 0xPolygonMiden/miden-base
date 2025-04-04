@@ -306,31 +306,26 @@ impl PrettyPrint for AccountCode {
             let node_raw = self.mast[node_id].clone();
 
             partial = partial
-                + const_text("Procedure:")
-                + nl()
                 + indent(
                     4,
-                    text(&format!("export.{}", procedure_root))
+                    text(format!("Procedure: {}", procedure_root))
+                        + nl()
+                        + text("Storage:")
                         + nl()
                         + indent(
                             4,
-                            text("Storage:")
+                            text(&format!("offset: {}", storage_offset))
                                 + nl()
-                                + indent(
-                                    4,
-                                    text(&format!("offset: {}", storage_offset))
-                                        + nl()
-                                        + text(&format!("size: {}", storage_size)),
-                                )
-                                + nl()
-                                + nl()
-                                + text("Body:")
-                                + nl()
-                                + indent(4, node_raw.to_pretty_print(&self.mast).render()),
-                        ),
-                )
-                + nl()
-                + const_text("end");
+                                + text(&format!("size: {}", storage_size)),
+                        )
+                        + nl()
+                        + text("Body:")
+                        + nl()
+                        + indent(4, node_raw.to_pretty_print(&self.mast).render())
+                        + nl()
+                        + const_text("end"),
+                );
+
             if index < len_procedures - 1 {
                 partial += nl();
             }
