@@ -293,18 +293,23 @@ impl PrettyPrint for AccountCode {
         use vm_core::prettier::*;
         let mut partial = Document::Empty;
         let len_procedures = self.procedures().len();
-        for (index, procedure_root) in self.procedure_roots().enumerate() {
+        for (index, procedure_info) in self.procedures().iter().enumerate() {
+            let procedure_root = procedure_info.mast_root();
+            let storage_offset = procedure_info.storage_offset();
+            let storage_size = procedure_info.storage_size();
+
             let node_id = self
                 .mast
-                .find_procedure_root(procedure_root)
+                .find_procedure_root(*procedure_root)
                 .expect("procedure root should be present in the mast forest");
             let node_raw = self.mast[node_id].clone();
 
             partial = partial
-                + indent(
-                    4,
-                    const_text("begin") + nl() + node_raw.to_pretty_print(&self.mast).render(),
-                )
+                + text(&format!("Storage offset: {}", storage_offset))
+                + nl()
+                + text(&format!("Storage size: {}", storage_size))
+                + nl()
+                + indent(4, node_raw.to_pretty_print(&self.mast).render())
                 + nl()
                 + const_text("end");
             if index < len_procedures - 1 {
