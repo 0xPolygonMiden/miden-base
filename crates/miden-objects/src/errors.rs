@@ -176,12 +176,7 @@ pub enum AccountTreeError {
     #[error(
         "account tree contains two or more account IDs that share the same prefix {duplicate_prefix}"
     )]
-    DuplicateIdPrefix {
-        // Internal note: This is an Option because when constructing a new account witness from an
-        // arbitrary smt proof, it is not guaranteed that the leaf index is a valid account ID
-        // prefix.
-        duplicate_prefix: AccountIdPrefix,
-    },
+    DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
     #[error(
         "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
     )]

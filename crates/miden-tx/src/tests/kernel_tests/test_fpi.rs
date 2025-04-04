@@ -1228,8 +1228,9 @@ fn test_fpi_stale_account() {
     // Place the modified account in the advice provider, which will cause the commitment mismatch.
     let advice_inputs = get_mock_fpi_adv_inputs(vec![&foreign_account], &mock_chain);
 
-    // The account tree at this point will have a commitment to the account before the storage
-    // modification.
+    // The account tree from which the transaction inputs are fetched here has the state from the
+    // original unmodified foreign account. This should result in the foreign account's proof to be
+    // invalid for this account tree root.
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
         .foreign_account_codes(vec![foreign_account.code().clone()])

@@ -23,7 +23,7 @@ impl PartialAccountTree {
         PartialAccountTree { smt: PartialSmt::new() }
     }
 
-    /// Returns a new [`Smt`] instantiated with the provided entries.
+    /// Returns a new [`PartialAccountTree`] instantiated with the provided entries.
     ///
     /// # Errors
     ///
@@ -98,13 +98,13 @@ impl PartialAccountTree {
         &mut self,
         witness: AccountWitness,
     ) -> Result<(), AccountTreeError> {
+        let id_prefix = witness.id_prefix();
         let (path, leaf) = witness.into_proof().into_parts();
         if leaf.is_empty() {
             return Ok(());
         }
 
         let id_key = leaf.entries().first().expect("there should be at least one entry").0;
-        let leaf_idx = leaf.index();
 
         self.smt.add_path(leaf, path).map_err(AccountTreeError::TreeRootConflict)?;
 
@@ -115,10 +115,7 @@ impl PartialAccountTree {
             .num_entries()
             >= 2
         {
-            // SAFETY: The account witness guarantees it tracks a valid account ID prefix so we can
-            // safely convert the leaf idx to that prefix.
-            let duplicate_prefix = AccountTree::key_to_account_id_prefix(leaf_idx);
-            return Err(AccountTreeError::DuplicateIdPrefix { duplicate_prefix });
+            return Err(AccountTreeError::DuplicateIdPrefix { duplicate_prefix: id_prefix });
         };
 
         Ok(())
@@ -131,6 +128,7 @@ impl PartialAccountTree {
     ///
     /// Returns an error if:
     /// - the prefix of the account ID already exists in the tree.
+    /// - the account_id is not tracked by this partial account tree.
     pub fn upsert_state_commitments(
         &mut self,
         updates: impl IntoIterator<Item = (AccountId, Digest)>,
@@ -152,6 +150,7 @@ impl PartialAccountTree {
     ///
     /// Returns an error if:
     /// - the prefix of the account ID already exists in the tree.
+    /// - the account_id is not tracked by this partial account tree.
     fn insert(
         &mut self,
         account_id: AccountId,
@@ -234,4 +233,6 @@ mod tests {
         partial_tree.insert(id0, commitment1).unwrap();
         assert_eq!(partial_tree.get(id0).unwrap(), commitment1);
     }
+
+    // TODO: Add tests for the errors of upsert_state_commitments.
 }
