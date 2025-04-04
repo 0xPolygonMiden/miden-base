@@ -245,7 +245,16 @@ impl TransactionExecutor {
     // CHECK CONSUMABILITY
     // ============================================================================================
 
-    // TODO: update the name, add docs
+    /// Checks whether the provided input notes could be consumed by the provided account.
+    ///
+    /// This check consists of two main steps:
+    /// - Check whether there are "well known" notes (`P2ID`, `P2IDR` and `SWAP`) in the list of the
+    ///   provided input notes. If so, assert that the note inputs are correct.
+    /// - Execute the transaction with specified notes.
+    ///   - Returns [`ExecutionCheckResult::Success`] if the execution was successful.
+    ///   - Returns [`ExecutionCheckResult::Failure`] if some note returned an error. The tuple
+    ///     associated with `Failure` variant contains the ID of the failing note and a vector of
+    ///     note IDs, which were successfully executed.
     #[maybe_async]
     pub fn check_notes_consumability(
         &self,
@@ -278,11 +287,20 @@ impl TransactionExecutor {
         // Execute transaction
         // ----------------------------------------------------------------------------------------
 
-        maybe_await!(self.iterative_executor(tx_inputs, tx_args))
+        maybe_await!(self.notes_execution_progress_checker(tx_inputs, tx_args))
     }
 
+    /// Executes the transaction with specified notes, returning the [ExecutionCheckResult::Success]
+    /// if all notes has been consumed successfully and [ExecutionCheckResult::Failure] if some note
+    /// returned an error.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction host can not be created from the provided values.
+    /// - If the execution of the provided program fails on the stage other than note execution.
     #[maybe_async]
-    fn iterative_executor(
+    fn notes_execution_progress_checker(
         &self,
         tx_inputs: TransactionInputs,
         tx_args: TransactionArgs,

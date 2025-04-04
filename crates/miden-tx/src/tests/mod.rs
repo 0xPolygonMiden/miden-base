@@ -1069,10 +1069,7 @@ fn test_check_note_consumability() {
         .check_notes_consumability(account_id, block_ref, input_notes, tx_context.tx_args().clone())
         .unwrap();
 
-    assert_eq!(
-        execution_check_result,
-        ExecutionCheckResult::Success,
-    );
+    assert_eq!(execution_check_result, ExecutionCheckResult::Success,);
 
     // Failure
     // --------------------------------------------------------------------------------------------
