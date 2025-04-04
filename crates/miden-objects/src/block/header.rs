@@ -226,6 +226,8 @@ impl BlockHeader {
     }
 
     /// Computes a commitment to the provided list of transactions.
+    ///
+    /// This is a sequential hash over each transaction's ID and its account ID.
     pub fn compute_tx_commitment(
         updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
     ) -> Digest {

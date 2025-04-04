@@ -652,10 +652,11 @@ impl AccountUpdateAggregator {
     /// chronological order using the state commitments to link them.
     fn aggregate_account(
         account_id: AccountId,
-        witness: AccountWitness,
+        initial_state_proof: AccountWitness,
         mut updates: BTreeMap<Digest, (BatchAccountUpdate, BatchId)>,
     ) -> Result<AccountUpdateWitness, ProposedBlockError> {
-        let (initial_state_commitment, initial_state_proof) = witness.into_parts();
+        let initial_state_commitment = initial_state_proof.state_commitment();
+
         let mut details: Option<AccountUpdateDetails> = None;
 
         let mut current_commitment = initial_state_commitment;

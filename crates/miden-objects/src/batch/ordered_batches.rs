@@ -1,12 +1,9 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{ByteReader, Deserializable};
-use vm_processor::DeserializationError;
-
 use crate::{
     batch::ProvenBatch,
     transaction::OrderedTransactionHeaders,
-    utils::{ByteWriter, Serializable},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // ORDERED BATCHES
@@ -50,6 +47,11 @@ impl OrderedBatches {
                 .flat_map(|batch| batch.into_transactions().into_vec().into_iter())
                 .collect(),
         )
+    }
+
+    /// Returns the sum of created notes across all batches.
+    pub fn num_created_notes(&self) -> usize {
+        self.0.as_slice().iter().fold(0, |acc, batch| acc + batch.output_notes().len())
     }
 
     /// Consumes self and returns the underlying vector of batches.
