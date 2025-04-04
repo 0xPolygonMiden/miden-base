@@ -256,10 +256,10 @@ fn compute_account_root(
     }
 
     // First reconstruct the current account tree from the provided merkle paths.
-    // If a witness points to a leaf where multiple account ID share the same prefix, this will
+    // If a witness points to a leaf where multiple account IDs share the same prefix, this will
     // return an error.
     let mut partial_account_tree = PartialAccountTree::with_witnesses(
-        updated_accounts.iter().map(|(_, update_witness)| update_witness.witness()),
+        updated_accounts.iter().map(|(_, update_witness)| update_witness.to_witness()),
     )
     .map_err(|source| ProvenBlockError::AccountWitnessTracking { source })?;
 

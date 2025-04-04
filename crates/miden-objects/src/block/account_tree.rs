@@ -1,4 +1,4 @@
-use miden_crypto::merkle::{MerkleError, MutationSet, Smt};
+use miden_crypto::merkle::{LeafIndex, MerkleError, MutationSet, Smt};
 use vm_processor::SMT_DEPTH;
 
 use crate::{
@@ -77,10 +77,10 @@ impl AccountTree {
                 // SAFETY: Since we only inserted account IDs into the SMT, it is guaranteed that
                 // the leaf_idx is a valid Felt as well as a valid account ID prefix.
                 return Err(AccountTreeError::DuplicateIdPrefix {
-                    duplicate_prefix: Some(AccountIdPrefix::new_unchecked(
+                    duplicate_prefix: AccountIdPrefix::new_unchecked(
                         Felt::try_from(leaf_idx.value())
                             .expect("leaf index should be a valid felt"),
-                    )),
+                    ),
                 });
             }
         }
@@ -97,7 +97,8 @@ impl AccountTree {
     /// Conceptually, an opening is a Merkle path to the leaf, as well as the leaf itself.
     pub fn open(&self, account_id: AccountId) -> AccountWitness {
         let key = Self::account_id_to_key(account_id);
-        AccountWitness::new(self.smt.open(&key))
+        // SAFETY: The tree only contains unique prefixes.
+        AccountWitness::new_unchecked(self.smt.open(&key))
     }
 
     /// Returns the current state commitment of the given account ID.
@@ -111,12 +112,23 @@ impl AccountTree {
         self.smt.root()
     }
 
+    /// Returns the number of account IDs in this tree.
+    pub fn num_accounts(&self) -> usize {
+        // Because each ID's prefix is unique in the tree and occupies a single leaf, the number of
+        // IDs in the tree is equivalent to the number of leaves in the tree.
+        self.smt.num_leaves()
+    }
+
     /// Computes the necessary changes to insert the specified (account ID, state commitment) pairs
     /// into this tree, allowing for validation before applying those changes.
     ///
     /// [`Self::apply_mutations`] can be used in order to commit these changes to the tree.
     ///
-    /// This is a thin wrapper around [`Smt::compute_mutations`], see its documentation for more
+    /// If the `concurrent` feature of `miden-crypto` is enabled, this function uses a parallel
+    /// implementation to compute the mutations, otherwise it defaults to the sequential
+    /// implementation.
+    ///
+    /// This is a thin wrapper around [`Smt::compute_mutations`]. See its documentation for more
     /// details.
     pub fn compute_mutations(
         &self,
@@ -156,7 +168,7 @@ impl AccountTree {
         // prefix.
         if self.smt.get_leaf(&key).num_entries() >= 2 {
             return Err(AccountTreeError::DuplicateIdPrefix {
-                duplicate_prefix: Some(account_id.prefix()),
+                duplicate_prefix: account_id.prefix(),
             });
         }
 
@@ -186,9 +198,15 @@ impl AccountTree {
         Digest::from([Felt::ZERO, Felt::ZERO, account_id.suffix(), account_id.prefix().as_felt()])
     }
 
-    /// Returns the account ID encoded in the given SMT key, if it can be decoded, `None` otherwise.
-    pub(super) fn key_to_account_id(key: Digest) -> Option<AccountId> {
-        AccountId::try_from([key.as_elements()[3], key.as_elements()[2]]).ok()
+    /// Returns the account ID prefix of the given leaf index' underlying value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the leaf index is not a valid account ID prefix.
+    pub(super) fn key_to_account_id_prefix(
+        leaf_idx: LeafIndex<{ Self::DEPTH }>,
+    ) -> AccountIdPrefix {
+        AccountIdPrefix::try_from(leaf_idx.value()).expect("expected valid prefix")
     }
 }
 
@@ -204,6 +222,7 @@ impl Default for AccountTree {
 /// A newtype wrapper around a [`MutationSet`] which exists for type safety reasons.
 ///
 /// It is returned by and used in methods on the [`AccountTree`].
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountMutationSet {
     mutation_set: MutationSet<{ AccountTree::DEPTH }, Digest, Word>,
 }
@@ -280,8 +299,8 @@ pub(super) mod tests {
         let err = tree.insert(id1, commitment1).unwrap_err();
 
         assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
-          duplicate_prefix: Some(prefix)
-        } if prefix == id0.prefix());
+          duplicate_prefix
+        } if duplicate_prefix == id0.prefix());
     }
 
     #[test]
@@ -291,8 +310,8 @@ pub(super) mod tests {
         let err = AccountTree::with_entries(entries.iter().copied()).unwrap_err();
 
         assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
-          duplicate_prefix: Some(prefix)
-        } if prefix == entries[0].0.prefix());
+          duplicate_prefix
+        } if duplicate_prefix == entries[0].0.prefix());
     }
 
     #[test]
@@ -322,6 +341,7 @@ pub(super) mod tests {
 
         tree.apply_mutations(mutations).unwrap();
 
+        assert_eq!(tree.num_accounts(), 3);
         assert_eq!(tree.get(id0), digest1);
         assert_eq!(tree.get(id1), digest2);
         assert_eq!(tree.get(id2), digest3);

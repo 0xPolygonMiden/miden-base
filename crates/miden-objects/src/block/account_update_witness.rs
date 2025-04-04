@@ -1,5 +1,3 @@
-use miden_crypto::merkle::SmtProof;
-
 use crate::{
     Digest,
     account::delta::AccountUpdateDetails,
@@ -9,9 +7,9 @@ use crate::{
 
 /// This type encapsulates essentially three components:
 /// - The initial and final state commitment of the account update.
-/// - The witness is a merkle path of the initial state commitment of the account before the block
-///   in which the witness is included, that is, in the account tree at the state of the previous
-///   block header.
+/// - The witness is an smt proof of the initial state commitment of the account before the block in
+///   which the witness is included, that is, in the account tree at the state of the previous block
+///   header.
 /// - The account update details represent the delta between the state of the account before the
 ///   block and the state after this block.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,9 +18,9 @@ pub struct AccountUpdateWitness {
     initial_state_commitment: Digest,
     /// The state commitment after the update.
     final_state_commitment: Digest,
-    /// The merkle path for the account tree proving that the initial state commitment is the
-    /// current state.
-    initial_state_proof: SmtProof,
+    /// The account witness proving that the initial state commitment is the current state in the
+    /// account tree.
+    initial_state_proof: AccountWitness,
     /// A set of changes which can be applied to the previous account state (i.e., the state as of
     /// the last block, equivalent to `initial_state_commitment`) to get the new account state. For
     /// private accounts, this is set to [`AccountUpdateDetails::Private`].
@@ -37,7 +35,7 @@ impl AccountUpdateWitness {
     pub fn new(
         initial_state_commitment: Digest,
         final_state_commitment: Digest,
-        initial_state_proof: SmtProof,
+        initial_state_proof: AccountWitness,
         details: AccountUpdateDetails,
     ) -> Self {
         Self {
@@ -62,8 +60,13 @@ impl AccountUpdateWitness {
     }
 
     /// Returns a reference to the initial state proof of the account.
-    pub fn initial_state_proof(&self) -> &SmtProof {
+    pub fn as_witness(&self) -> &AccountWitness {
         &self.initial_state_proof
+    }
+
+    /// Returns the [`AccountWitness`] of this update witness.
+    pub fn to_witness(&self) -> AccountWitness {
+        self.initial_state_proof.clone()
     }
 
     /// Returns a reference to the underlying [`AccountUpdateDetails`] of this update, representing
@@ -73,21 +76,16 @@ impl AccountUpdateWitness {
         &self.details
     }
 
-    /// TODO
-    pub fn witness(&self) -> AccountWitness {
-        AccountWitness::new(self.initial_state_proof.clone())
-    }
-
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns a mutable reference to the initial state proof of the account.
-    pub fn initial_state_proof_mut(&mut self) -> &mut SmtProof {
+    pub fn initial_state_proof_mut(&mut self) -> &mut AccountWitness {
         &mut self.initial_state_proof
     }
 
     /// Consumes self and returns its parts.
-    pub fn into_parts(self) -> (Digest, Digest, SmtProof, AccountUpdateDetails) {
+    pub fn into_parts(self) -> (Digest, Digest, AccountWitness, AccountUpdateDetails) {
         (
             self.initial_state_commitment,
             self.final_state_commitment,

@@ -174,11 +174,13 @@ pub enum AccountIdError {
 #[derive(Debug, Error)]
 pub enum AccountTreeError {
     #[error(
-        "account tree contains two or more account IDs that share the same prefix {}",
-        duplicate_prefix.map(AccountIdPrefix::to_hex).unwrap_or_else(String::new)
+        "account tree contains two or more account IDs that share the same prefix {duplicate_prefix}"
     )]
     DuplicateIdPrefix {
-        duplicate_prefix: Option<AccountIdPrefix>,
+        // Internal note: This is an Option because when constructing a new account witness from an
+        // arbitrary smt proof, it is not guaranteed that the leaf index is a valid account ID
+        // prefix.
+        duplicate_prefix: AccountIdPrefix,
     },
     #[error(
         "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
@@ -190,6 +192,8 @@ pub enum AccountTreeError {
     TreeRootConflict(#[source] MerkleError),
     #[error("failed to apply mutations to account tree")]
     ApplyMutations(#[source] MerkleError),
+    #[error("smt leaf's index is not a valid account ID prefix")]
+    InvalidAccountIdPrefix(#[source] AccountIdError),
 }
 
 // BECH32 ERROR
