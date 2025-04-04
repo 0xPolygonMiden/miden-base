@@ -9,8 +9,6 @@ extern crate std;
 mod local_batch_prover;
 pub use local_batch_prover::LocalBatchProver;
 
-pub mod errors;
-
 #[cfg(test)]
 pub mod testing;
 
