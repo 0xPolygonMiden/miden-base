@@ -1052,6 +1052,30 @@ fn test_execute_program() {
 
 #[test]
 fn test_check_note_consumability() {
+    // Success
+    // --------------------------------------------------------------------------------------------
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
+
+    let input_notes = tx_context.input_notes();
+    let account_id = tx_context.account().id();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+
+    let executor: TransactionExecutor =
+        TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
+
+    let execution_check_result: ExecutionCheckResult = executor
+        .check_notes_consumability(account_id, block_ref, input_notes, tx_context.tx_args().clone())
+        .unwrap();
+
+    assert_eq!(
+        execution_check_result,
+        ExecutionCheckResult::Success,
+    );
+
+    // Failure
+    // --------------------------------------------------------------------------------------------
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     let failing_note_1 = NoteBuilder::new(
@@ -1085,7 +1109,7 @@ fn test_check_note_consumability() {
         TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
 
     let execution_check_result: ExecutionCheckResult = executor
-        .check(account_id, block_ref, input_notes, tx_context.tx_args().clone())
+        .check_notes_consumability(account_id, block_ref, input_notes, tx_context.tx_args().clone())
         .unwrap();
 
     assert_eq!(

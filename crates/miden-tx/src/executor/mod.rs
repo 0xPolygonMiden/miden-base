@@ -247,7 +247,7 @@ impl TransactionExecutor {
 
     // TODO: update the name, add docs
     #[maybe_async]
-    pub fn check(
+    pub fn check_notes_consumability(
         &self,
         account_id: AccountId,
         block_ref: BlockNumber,
