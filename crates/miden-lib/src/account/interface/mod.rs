@@ -5,7 +5,7 @@ use miden_objects::{
     account::{Account, AccountCode, AccountId, AccountIdPrefix, AccountType},
     assembly::mast::{MastForest, MastNode, MastNodeId},
     crypto::dsa::rpo_falcon512,
-    note::{Note, NoteId, NoteScript, PartialNote},
+    note::{Note, NoteScript, PartialNote},
     transaction::TransactionScript,
 };
 use thiserror::Error;
@@ -311,15 +311,6 @@ pub enum NoteAccountCompatibility {
     /// The account has all necessary procedures of one execution branch of the note script. This
     /// means the note may be able to be consumed by the account if that branch is executed.
     Maybe,
-}
-
-/// TODO: move and rename this enum
-#[derive(Debug)]
-pub enum ExecutionCheckResult {
-    Success,
-
-    // (failing_note, successful_notes)
-    Failure((NoteId, Vec<NoteId>)),
 }
 
 // HELPER FUNCTIONS
