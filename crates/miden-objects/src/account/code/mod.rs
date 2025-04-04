@@ -310,23 +310,29 @@ impl PrettyPrint for AccountCode {
                     4,
                     text(format!("Procedure: {}", procedure_root))
                         + nl()
-                        + text("Storage:")
                         + indent(
                             4,
-                            nl() + text(&format!("offset: {}", storage_offset))
+                            const_text("Storage:")
+                                + nl()
+                                + text(&format!("offset: {}", storage_offset))
                                 + nl()
                                 + text(&format!("size: {}", storage_size)),
                         )
                         + nl()
-                        + text("Body:")
                         + indent(
                             4,
-                            text(format!("export.{}", procedure_root))
+                            const_text("Body:")
                                 + nl()
-                                + node_raw.to_pretty_print(&self.mast).render(),
+                                + indent(
+                                    8,
+                                    text(format!("export.{}", procedure_root))
+                                        + nl()
+                                        + node_raw.to_pretty_print(&self.mast).render(),
+                                )
+                                + nl()
+                                + const_text("end"),
                         )
-                        + nl()
-                        + const_text("end"),
+                        + nl(),
                 );
 
             if index < len_procedures - 1 {
