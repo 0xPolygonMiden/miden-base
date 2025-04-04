@@ -52,8 +52,7 @@ impl PrettyPrint for PrintableProcedure {
                         )
                         + nl()
                         + const_text("end"),
-                )
-                + nl(),
+                ),
         )
     }
 }
