@@ -44,7 +44,9 @@ use super::{
     LocalTransactionProver, TransactionExecutor, TransactionHost, TransactionProver,
     TransactionVerifier,
 };
-use crate::{TransactionMastStore, testing::TransactionContextBuilder};
+use crate::{
+    TransactionMastStore, executor::ExecutionCheckResult, testing::TransactionContextBuilder,
+};
 
 mod kernel_tests;
 
@@ -1070,19 +1072,24 @@ fn test_check_note_consumability() {
 
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
-        .input_notes(vec![failing_note_1, failing_note_2])
+        .input_notes(vec![failing_note_1, failing_note_2.clone()])
         .build();
 
+    let input_notes = tx_context.input_notes();
+    let input_note_ids =
+        input_notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
     let account_id = tx_context.account().id();
-
     let block_ref = tx_context.tx_inputs().block_header().block_num();
 
     let executor: TransactionExecutor =
         TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
 
-    let input_notes = tx_context.tx_inputs().input_notes();
-
-    executor
+    let execution_check_result: ExecutionCheckResult = executor
         .check(account_id, block_ref, input_notes, tx_context.tx_args().clone())
         .unwrap();
+
+    assert_eq!(
+        execution_check_result,
+        ExecutionCheckResult::Failure((failing_note_2.id(), vec![input_note_ids[0]]))
+    );
 }
