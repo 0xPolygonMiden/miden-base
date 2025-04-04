@@ -250,7 +250,7 @@ impl ProvenTransactionExt for ProvenTransaction {
     ) -> ProvenTransaction {
         let account_delta = executed_tx.account_delta().clone();
         let initial_account = executed_tx.initial_account().clone();
-        let account_update_details = if initial_account.is_public() {
+        let account_update_details = if initial_account.is_onchain() {
             if initial_account.is_new() {
                 let mut account = initial_account;
                 account.apply_delta(&account_delta).expect("account delta should be applyable");

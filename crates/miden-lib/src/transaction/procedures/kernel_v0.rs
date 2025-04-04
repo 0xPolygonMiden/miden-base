@@ -32,7 +32,7 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     // account_get_vault_root
     digest!("0x279b4a9e5adca07f01cadf8ecc1303fa3c670003a7a4e69f09506b070c4023df"),
     // account_add_asset
-    digest!("0x7ae966cc7da065c7d06248ccdc5cf319eddba55c063900fc97833f39870234f1"),
+    digest!("0x43302e70ddcb53eb86b059c95f29365ecab85f5ff1d7e92bda6f6c0543cb6c90"),
     // account_remove_asset
     digest!("0x50935b368b7843258ae86f6392df9346721b60dd9563d77a2d548da8ab81e44c"),
     // account_get_balance
@@ -40,17 +40,17 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     // account_has_non_fungible_asset
     digest!("0x4fea67ed25474d5494a23c5e1e06a93f8aa140d0a673c6e140e0d4f1dd8bd835"),
     // faucet_mint_asset
-    digest!("0xc8f5ec2b280ba12b685b8730b4a8e32c1b9199081fd6070db89dc87af598a317"),
+    digest!("0x1625331925bedbdbdade4d4ebf5946b81bc0fb2050d6b0e27e32aee46e3da97f"),
     // faucet_burn_asset
-    digest!("0xabf28cea013cbef5838c49f0e4a9118f32437e2086e31d1dea14959c3a7e862d"),
+    digest!("0x455a5ec8e82e1095eadc3623393a8eb16768edc539c88fa17f1fe4136c4ddcf5"),
     // faucet_get_total_fungible_asset_issuance
     digest!("0xd2ee4bd330f989165ee2be0f121a4db916f95e58f6fd2d040d57672f2f0cef63"),
     // faucet_is_non_fungible_asset_issued
-    digest!("0x1587b082609234cbb46300f8ce342ecf2b7757ae98d13c679df7c439b0b33cbc"),
+    digest!("0x0651315c2ce01f0e009dcaf912a1b86d3c1c073e8f45c627e7b5d8708155bfc4"),
     // note_get_assets_info
     digest!("0x34e4f1ea83eb4342ab8f5acec89962b2ab4b56d9c631e807d8e4dc8efd270bf2"),
     // note_add_asset
-    digest!("0x999a790c639966f85b4420f7b00a5965db163e7a69fa288b059f79162f3f81a8"),
+    digest!("0xb27ce5541d30919f219fe1957d7d2001a24e1d27edd906b4e8a2059f0fee5b24"),
     // note_get_serial_number
     digest!("0x59b3ea650232049bb333867841012c3694bd557fa199cd65655c0006edccc3ab"),
     // note_get_inputs_commitment

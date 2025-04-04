@@ -499,7 +499,10 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
     // block.
     mock_chain.seal_next_block();
 
-    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)?;
+
+    // Test account storage mode network, too.
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Network)
 }
 
 /// Tests that a valid account of each type can be created successfully with an epoch block whose
