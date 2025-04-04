@@ -1,5 +1,6 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
+use assembly::KernelLibrary;
 use vm_core::{mast::MastForest, prettier::PrettyPrint};
 
 use super::{
@@ -305,17 +306,28 @@ impl PrettyPrint for AccountCode {
             let node_raw = self.mast[node_id].clone();
 
             partial = partial
-                + text(&format!("Storage offset: {}", storage_offset))
-                + nl()
-                + text(&format!("Storage size: {}", storage_size))
-                + nl()
                 + const_text("Procedure:")
                 + nl()
                 + indent(
                     4,
                     text(&format!("export.{}", procedure_root))
                         + nl()
-                        + node_raw.to_pretty_print(&self.mast).render(),
+                        + indent(
+                            4,
+                            text("Storage:")
+                                + nl()
+                                + indent(
+                                    4,
+                                    text(&format!("offset: {}", storage_offset))
+                                        + nl()
+                                        + text(&format!("size: {}", storage_size)),
+                                )
+                                + nl()
+                                + nl()
+                                + text("Body:")
+                                + nl()
+                                + indent(4, node_raw.to_pretty_print(&self.mast).render()),
+                        ),
                 )
                 + nl()
                 + const_text("end");
