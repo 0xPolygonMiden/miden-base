@@ -309,7 +309,14 @@ impl PrettyPrint for AccountCode {
                 + nl()
                 + text(&format!("Storage size: {}", storage_size))
                 + nl()
-                + indent(4, node_raw.to_pretty_print(&self.mast).render())
+                + const_text("Procedure:")
+                + nl()
+                + indent(
+                    4,
+                    text(&format!("export.{}", procedure_root))
+                        + nl()
+                        + node_raw.to_pretty_print(&self.mast).render(),
+                )
                 + nl()
                 + const_text("end");
             if index < len_procedures - 1 {
