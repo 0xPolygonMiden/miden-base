@@ -29,6 +29,7 @@ impl LocalBatchProver {
     /// Returns an error if:
     /// - a proof of any transaction in the batch fails to verify.
     pub fn prove(&self, proposed_batch: ProposedBatch) -> Result<ProvenBatch, ProvenBatchError> {
+        let tx_headers = proposed_batch.transaction_headers();
         let (
             transactions,
             block_header,
@@ -60,6 +61,7 @@ impl LocalBatchProver {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            tx_headers,
         )
     }
 }
