@@ -41,7 +41,7 @@ impl AccountStorageMode {
 
     /// Returns `true` if the storage mode is [`Self::Network`], `false` otherwise.
     pub fn is_network(&self) -> bool {
-        matches!(self, Self::Public)
+        matches!(self, Self::Network)
     }
 
     /// Returns `true` if the storage mode is [`Self::Private`], `false` otherwise.
