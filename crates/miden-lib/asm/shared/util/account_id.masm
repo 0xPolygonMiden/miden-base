@@ -166,7 +166,7 @@ export.validate
     # Validate storage mode in prefix.
     # ---------------------------------------------------------------------------------------------
 
-    # there are 3 valid and 1 invalid storage mode
+    # there are 3 valid and 1 invalid storage modes
     # instead of checking the presence of any valid mode, we check the absence of the invalid mode
     u32split drop
     # => [account_id_prefix_lo, account_id_suffix]
