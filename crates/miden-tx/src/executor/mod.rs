@@ -254,7 +254,7 @@ impl TransactionExecutor {
     ///   - Returns [`ExecutionCheckResult::Success`] if the execution was successful.
     ///   - Returns [`ExecutionCheckResult::Failure`] if some note returned an error. The tuple
     ///     associated with `Failure` variant contains the ID of the failing note and a vector of
-    ///     note IDs, which were successfully executed.
+    ///     IDs of the notes, which were successfully executed.
     #[maybe_async]
     pub fn check_notes_consumability(
         &self,
@@ -266,18 +266,10 @@ impl TransactionExecutor {
         // Check note inputs
         // ----------------------------------------------------------------------------------------
 
-        let note_ids = notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
-
-        let tx_inputs =
-            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &note_ids))
-                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
-
-        let input_notes = tx_inputs.input_notes().clone().into_vec();
-
-        for note in input_notes.iter() {
+        for note in notes.iter() {
             if let Some(well_known_note) = WellKnownNote::from_note(note.note()) {
                 let inputs_check_result =
-                    well_known_note.check_note_inputs(note.note(), tx_inputs.account());
+                    well_known_note.check_note_inputs(note.note(), account_id);
                 if let NoteAccountCompatibility::No = inputs_check_result {
                     return Ok(ExecutionCheckResult::Failure((note.id(), vec![])));
                 }
@@ -287,7 +279,7 @@ impl TransactionExecutor {
         // Execute transaction
         // ----------------------------------------------------------------------------------------
 
-        maybe_await!(self.notes_execution_progress_checker(tx_inputs, tx_args))
+        maybe_await!(self.notes_execution_progress_checker(account_id, block_ref, notes, tx_args))
     }
 
     /// Executes the transaction with specified notes, returning the [ExecutionCheckResult::Success]
@@ -302,9 +294,17 @@ impl TransactionExecutor {
     #[maybe_async]
     fn notes_execution_progress_checker(
         &self,
-        tx_inputs: TransactionInputs,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        notes: &InputNotes<InputNote>,
         tx_args: TransactionArgs,
     ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
+        let note_ids = notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
+
+        let tx_inputs =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &note_ids))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
         let (stack_inputs, advice_inputs) =
             TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
