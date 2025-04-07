@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::String};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use miden_lib::{
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
@@ -11,7 +11,7 @@ use miden_objects::{
         Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
     },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
-    transaction::TransactionArgs,
+    transaction::{ForeignAccountInputs, TransactionArgs},
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
@@ -375,6 +375,7 @@ fn test_note_script_and_note_args() {
         None,
         Some(note_args_map),
         tx_context.tx_args().advice_inputs().clone().map,
+        Vec::<ForeignAccountInputs>::new(),
     );
 
     tx_context.set_tx_args(tx_args);

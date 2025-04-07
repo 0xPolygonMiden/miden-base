@@ -1,9 +1,9 @@
-use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
-    account::{AccountCode, AccountId},
+    account::AccountId,
     block::BlockNumber,
     note::NoteLocation,
     transaction::{
@@ -12,7 +12,7 @@ use miden_objects::{
     },
     vm::StackOutputs,
 };
-use vm_processor::{AdviceInputs, ExecutionOptions, MastForestStore, Process, RecAdviceProvider};
+use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
@@ -107,7 +107,6 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
-        foreign_account_codes: BTreeSet<AccountCode>
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let mut ref_blocks: BTreeSet<BlockNumber> = notes
             .iter()
@@ -116,8 +115,9 @@ impl TransactionExecutor {
             .collect();
         ref_blocks.insert(block_ref);
 
-        let (account, seed, header, mmr) = maybe_await!(self.data_store.get_transaction_inputs(account_id,ref_blocks))
-            .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+        let (account, seed, header, mmr) =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let tx_inputs = TransactionInputs::new(account, seed, header, mmr, notes)
             .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
@@ -132,7 +132,11 @@ impl TransactionExecutor {
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            foreign_account_codes.iter().map(|code| code.commitment()).collect(),
+            tx_args
+                .foreign_accounts()
+                .iter()
+                .map(|acc| acc.account_code().commitment())
+                .collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -145,12 +149,7 @@ impl TransactionExecutor {
         )
         .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
-        build_executed_transaction(
-            tx_args,
-            tx_inputs,
-            result.stack_outputs().clone(),
-            host,
-        )
+        build_executed_transaction(tx_args, tx_inputs, result.stack_outputs().clone(), host)
     }
 
     // SCRIPT EXECUTION
@@ -173,13 +172,19 @@ impl TransactionExecutor {
         advice_inputs: AdviceInputs,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
         let ref_blocks = [block_ref].into_iter().collect();
-        let (account, seed, header, mmr) = maybe_await!(self.data_store.get_transaction_inputs(account_id,ref_blocks))
-            .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+        let (account, seed, header, mmr) =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let tx_inputs = TransactionInputs::new(account, seed, header, mmr, Default::default())
             .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
 
-        let tx_args = TransactionArgs::new(Some(tx_script.clone()), None, Default::default());
+        let tx_args = TransactionArgs::new(
+            Some(tx_script.clone()),
+            None,
+            Default::default(),
+            Default::default(),
+        );
 
         let (stack_inputs, advice_inputs) =
             TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs));
@@ -190,7 +195,11 @@ impl TransactionExecutor {
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            tx_args..iter().map(|code| code.commitment()).collect(),
+            tx_args
+                .foreign_accounts()
+                .iter()
+                .map(|acc| acc.account_code().commitment())
+                .collect(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 

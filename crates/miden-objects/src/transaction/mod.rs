@@ -17,7 +17,9 @@ mod tx_witness;
 
 pub use chain_mmr::ChainMmr;
 pub use executed_tx::{ExecutedTransaction, TransactionMeasurements};
-pub use inputs::{InputNote, InputNotes, ToInputNoteCommitments, TransactionInputs};
+pub use inputs::{
+    ForeignAccountInputs, InputNote, InputNotes, ToInputNoteCommitments, TransactionInputs,
+};
 pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
 pub use proven_tx::{
     InputNoteCommitment, ProvenTransaction, ProvenTransactionBuilder, TxAccountUpdate,

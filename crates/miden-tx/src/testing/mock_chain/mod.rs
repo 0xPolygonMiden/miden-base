@@ -11,8 +11,8 @@ use miden_lib::{
 use miden_objects::{
     ACCOUNT_TREE_DEPTH, AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
-        Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
-        AccountType, AuthSecretKey, delta::AccountUpdateDetails,
+        Account, AccountBuilder, AccountComponent, AccountDelta, AccountHeader, AccountId,
+        AccountIdAnchor, AccountType, AuthSecretKey, StorageSlot, delta::AccountUpdateDetails,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
@@ -22,20 +22,21 @@ use miden_objects::{
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{LeafIndex, Mmr, Smt},
+        merkle::{LeafIndex, Mmr, Smt, SmtProof},
     },
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
-        ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
+        ChainMmr, ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, OutputNote,
+        ProvenTransaction, ToInputNoteCommitments, TransactionId, TransactionInputs,
+        TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
     Digest, Felt, Word, ZERO,
-    crypto::{RpoRandomCoin, SimpleSmt},
+    crypto::{MerklePath, RpoRandomCoin, SimpleSmt},
 };
 
 use super::TransactionContextBuilder;
@@ -745,6 +746,38 @@ impl MockChain {
             self.latest_selective_chain_mmr(tx_reference_blocks);
 
         (batch_reference_block, chain_mmr)
+    }
+
+    /// Gets foreign account inputs to execute FPI transactions.
+    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
+        let account = self.available_account(account_id);
+
+        let merkle_proof = MerklePath::new(
+            self.accounts()
+                .open(
+                    &LeafIndex::<ACCOUNT_TREE_DEPTH>::new(account_id.prefix().as_felt().as_int())
+                        .unwrap(),
+                )
+                .path
+                .into(),
+        );
+
+        let mut storage_map_proofs = vec![];
+        for slot in account.storage().slots() {
+            // if there are storage maps, we populate the merkle store and advice map
+            if let StorageSlot::Map(map) = slot {
+                let proofs: Vec<SmtProof> = map.entries().map(|(key, _)| map.open(key)).collect();
+                storage_map_proofs.extend(proofs);
+            }
+        }
+
+        ForeignAccountInputs::new(
+            AccountHeader::from(account),
+            account.storage().get_header(),
+            account.code().clone(),
+            merkle_proof,
+            storage_map_proofs,
+        )
     }
 
     /// Gets the inputs for a block for the provided batches.

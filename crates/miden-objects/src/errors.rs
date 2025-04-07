@@ -257,7 +257,7 @@ pub enum BatchAccountUpdateError {
     )]
     AccountUpdateInitialStateMismatch(TransactionId),
     #[error("failed to merge account delta from transaction {0}")]
-    TransactionUpdateMergeError(TransactionId, #[source] AccountDeltaError),
+    TransactionUpdateMergeError(TransactionId, #[source] Box<AccountDeltaError>),
 }
 
 // ASSET ERROR
@@ -760,7 +760,7 @@ pub enum ProposedBlockError {
     #[error("failed to merge transaction delta into account {account_id}")]
     AccountUpdateError {
         account_id: AccountId,
-        source: AccountDeltaError,
+        source: Box<AccountDeltaError>,
     },
 }
 

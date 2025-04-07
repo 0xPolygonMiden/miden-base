@@ -26,11 +26,10 @@ use miden_objects::{
     transaction::{OutputNote, OutputNotes},
 };
 
-use super::{Felt, ONE, Process, ProcessState, Word, ZERO, word_to_masm_push_string};
+use super::{Felt, ONE, ProcessState, Word, ZERO};
 use crate::{
-    assert_execution_error,
-    testing::{MockChain, TransactionContextBuilder},
-    tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
+    assert_execution_error, testing::TransactionContextBuilder,
+    tests::kernel_tests::read_root_mem_word,
 };
 
 #[test]

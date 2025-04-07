@@ -71,6 +71,11 @@ impl TransactionMastStore {
             self.insert(note.note().script().mast().clone());
         }
 
+        // load foreign account's MAST forests
+        for foreign_account in tx_args.foreign_accounts() {
+            self.load_account_code(foreign_account.account_code());
+        }
+
         // load tx script MAST into the MAST store
         if let Some(tx_script) = tx_args.tx_script() {
             self.insert(tx_script.mast().clone());

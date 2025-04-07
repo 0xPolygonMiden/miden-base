@@ -7,7 +7,6 @@ use super::{
     TransactionOutputs, TransactionWitness,
 };
 use crate::{
-    account::AccountCode,
     block::BlockNumber,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };

@@ -81,17 +81,7 @@ impl TransactionProver for LocalTransactionProver {
         &self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
-        let TransactionWitness {
-            tx_inputs,
-            tx_args,
-            advice_witness,
-            account_codes,
-        } = tx_witness;
-
-        for account_code in &account_codes {
-            // load the code mast forest to the mast store
-            self.mast_store.load_account_code(account_code);
-        }
+        let TransactionWitness { tx_inputs, tx_args, advice_witness } = tx_witness;
 
         let account = tx_inputs.account();
         let input_notes = tx_inputs.input_notes();
@@ -111,7 +101,11 @@ impl TransactionProver for LocalTransactionProver {
             advice_provider,
             self.mast_store.clone(),
             None,
-            account_codes.iter().map(|c| c.commitment()).collect(),
+            tx_args
+                .foreign_accounts()
+                .iter()
+                .map(|acc| acc.account_code().commitment())
+                .collect(),
         )
         .map_err(TransactionProverError::TransactionHostCreationFailed)?;
 

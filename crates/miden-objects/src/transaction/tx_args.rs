@@ -1,13 +1,14 @@
-use std::collections::BTreeSet;
-
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
 use assembly::{Assembler, Compile};
 use miden_crypto::merkle::InnerNodeInfo;
 
-use super::{Digest, Felt, Word};
+use super::{Digest, Felt, ForeignAccountInputs, Word};
 use crate::{
-    account::AccountCode, note::{NoteId, NoteRecipient}, utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable}, vm::{AdviceInputs, AdviceMap, Program}, MastForest, MastNodeId, TransactionScriptError
+    MastForest, MastNodeId, TransactionScriptError,
+    note::{NoteId, NoteRecipient},
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    vm::{AdviceInputs, AdviceMap, Program},
 };
 
 // TRANSACTION ARGS
@@ -26,7 +27,7 @@ pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
     advice_inputs: AdviceInputs,
-    foreign_account_codes: BTreeSet<AccountCode>
+    foreign_accounts: Vec<ForeignAccountInputs>,
 }
 
 impl TransactionArgs {
@@ -42,7 +43,7 @@ impl TransactionArgs {
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
         advice_map: AdviceMap,
-        foreign_account_codes: BTreeSet<AccountCode>
+        foreign_accounts: Vec<ForeignAccountInputs>,
     ) -> Self {
         let mut advice_inputs = AdviceInputs::default().with_map(advice_map);
         // add transaction script inputs to the advice inputs' map
@@ -55,18 +56,18 @@ impl TransactionArgs {
             tx_script,
             note_args: note_args.unwrap_or_default(),
             advice_inputs,
-            foreign_account_codes
+            foreign_accounts,
         }
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided transaction script.
     pub fn with_tx_script(tx_script: TransactionScript) -> Self {
-        Self::new(Some(tx_script), Some(BTreeMap::default()), AdviceMap::default(),BTreeSet::default())
+        Self::new(Some(tx_script), Some(BTreeMap::default()), AdviceMap::default(), Vec::default())
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
     pub fn with_note_args(note_args: BTreeMap<NoteId, Word>) -> Self {
-        Self::new(None, Some(note_args), AdviceMap::default(),BTreeSet::default())
+        Self::new(None, Some(note_args), AdviceMap::default(), Vec::default())
     }
 
     /// Returns the provided [TransactionArgs] with advice inputs extended with the passed-in
@@ -92,6 +93,11 @@ impl TransactionArgs {
     /// Returns a reference to the args [AdviceInputs].
     pub fn advice_inputs(&self) -> &AdviceInputs {
         &self.advice_inputs
+    }
+
+    /// Returns a reference to the foreign account inputs in the transaction args.
+    pub fn foreign_accounts(&self) -> &[ForeignAccountInputs] {
+        &self.foreign_accounts
     }
 
     // STATE MUTATORS
@@ -152,7 +158,7 @@ impl Serializable for TransactionArgs {
         self.tx_script.write_into(target);
         self.note_args.write_into(target);
         self.advice_inputs.write_into(target);
-        self.foreign_account_codes.write_into(target);
+        self.foreign_accounts.write_into(target);
     }
 }
 
@@ -161,9 +167,14 @@ impl Deserializable for TransactionArgs {
         let tx_script = Option::<TransactionScript>::read_from(source)?;
         let note_args = BTreeMap::<NoteId, Word>::read_from(source)?;
         let advice_inputs = AdviceInputs::read_from(source)?;
-        let foreign_account_codes = BTreeSet::<AccountCode>::read_from(source)?;
+        let foreign_accounts = Vec::<ForeignAccountInputs>::read_from(source)?;
 
-        Ok(Self { tx_script, note_args, advice_inputs, foreign_account_codes })
+        Ok(Self {
+            tx_script,
+            note_args,
+            advice_inputs,
+            foreign_accounts,
+        })
     }
 }
 
@@ -270,8 +281,6 @@ impl Deserializable for TransactionScript {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
-
     use vm_core::{
         AdviceMap,
         utils::{Deserializable, Serializable},
@@ -281,7 +290,7 @@ mod tests {
 
     #[test]
     fn test_tx_args_serialization() {
-        let args = TransactionArgs::new(None, None, AdviceMap::default(),BTreeSet::default());
+        let args = TransactionArgs::new(None, None, AdviceMap::default(), std::vec::Vec::default());
         let bytes: std::vec::Vec<u8> = args.to_bytes();
         let decoded = TransactionArgs::read_from_bytes(&bytes).unwrap();
 

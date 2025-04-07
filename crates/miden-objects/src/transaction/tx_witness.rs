@@ -1,10 +1,5 @@
-use alloc::vec::Vec;
-
 use super::{AdviceInputs, TransactionArgs, TransactionInputs};
-use crate::{
-    account::AccountCode,
-    utils::serde::{ByteReader, Deserializable, DeserializationError, Serializable},
-};
+use crate::utils::serde::{ByteReader, Deserializable, DeserializationError, Serializable};
 
 // TRANSACTION WITNESS
 // ================================================================================================
@@ -45,10 +40,6 @@ impl Deserializable for TransactionWitness {
         let tx_inputs = TransactionInputs::read_from(source)?;
         let tx_args = TransactionArgs::read_from(source)?;
         let advice_witness = AdviceInputs::read_from(source)?;
-        Ok(Self {
-            tx_inputs,
-            tx_args,
-            advice_witness,
-        })
+        Ok(Self { tx_inputs, tx_args, advice_witness })
     }
 }

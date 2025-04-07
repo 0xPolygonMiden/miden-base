@@ -71,9 +71,8 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let tx_args = tx_context.tx_args().clone();
     let notes = tx_context.tx_inputs().input_notes().clone();
-    let mast_store = tx_context.get_mast_store();
     let executor: TransactionExecutor =
-        TransactionExecutor::new(Arc::new(tx_context), mast_store, None).with_tracing();
+        TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, notes, tx_args)
         .map_err(|e| e.to_string())?;
@@ -118,11 +117,9 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     let block_ref = tx_context.tx_inputs().block_header().block_num();
 
     let notes = tx_context.tx_inputs().input_notes().clone();
-    let mast_store = tx_context.get_mast_store();
 
     let executor =
-        TransactionExecutor::new(Arc::new(tx_context), mast_store, Some(falcon_auth.clone()))
-            .with_tracing();
+        TransactionExecutor::new(Arc::new(tx_context), Some(falcon_auth.clone())).with_tracing();
 
     let tx_script_target =
         TransactionScript::compile(DEFAULT_AUTH_SCRIPT, [], TransactionKernel::assembler())

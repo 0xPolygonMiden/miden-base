@@ -30,9 +30,7 @@ use miden_objects::{
         note::DEFAULT_NOTE_CODE,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
-    transaction::{
-        InputNote, InputNotes, OutputNote, ProvenTransaction, TransactionArgs, TransactionScript,
-    },
+    transaction::{OutputNote, ProvenTransaction, TransactionScript},
 };
 use miden_prover::ProvingOptions;
 use rand::{Rng, SeedableRng};
@@ -122,10 +120,6 @@ fn executed_transaction_account_delta_new() {
         .with_assets(account_assets)
         .build_existing()
         .unwrap();
-
-    let mut tx_context = TransactionContextBuilder::new(account)
-        .with_mock_notes_preserved_with_account_vault_delta()
-        .build();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
@@ -268,13 +262,21 @@ fn executed_transaction_account_delta_new() {
     )
     .unwrap();
 
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+    let tx_context = TransactionContextBuilder::new(account)
+        .with_mock_notes_preserved_with_account_vault_delta()
+        .tx_script(tx_script)
+        .build();
 
-    tx_context.set_tx_args(tx_args);
+    // Storing assets that will be added to assert correctness later
+    let added_assets = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .find_map(|n| {
+            let assets = n.note().assets();
+            (assets.num_assets() == 3).then(|| assets.iter().cloned().collect::<Vec<_>>())
+        })
+        .unwrap();
 
     // expected delta
     // --------------------------------------------------------------------------------------------
@@ -311,18 +313,6 @@ fn executed_transaction_account_delta_new() {
     // vault delta
     // --------------------------------------------------------------------------------------------
     // assert that added assets are tracked
-    let added_assets = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .find(|n| n.note().assets().num_assets() == 3)
-        .unwrap()
-        .note()
-        .assets()
-        .iter()
-        .cloned()
-        .collect::<Vec<_>>();
-
     assert!(
         executed_transaction
             .account_delta()
@@ -899,8 +889,6 @@ fn transaction_executor_account_code_using_custom_library() {
         .build_existing()
         .unwrap();
 
-    let tx_context = TransactionContextBuilder::new(native_account.clone()).build();
-
     let tx_script = TransactionScript::compile(
         tx_script_src,
         [],
@@ -910,20 +898,12 @@ fn transaction_executor_account_code_using_custom_library() {
     )
     .unwrap();
 
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+    let tx_context = TransactionContextBuilder::new(native_account.clone())
+        .libraries(vec![external_library])
+        .tx_script(tx_script)
+        .build();
 
-    let account_id = tx_context.account().id();
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-
-    let executor = TransactionExecutor::new(Arc::new(tx_context), None);
-
-    let executed_tx = executor
-        .execute_transaction(account_id, block_ref, InputNotes::<InputNote>::default(), tx_args)
-        .unwrap();
+    let executed_tx = tx_context.execute().unwrap();
 
     // Account's initial nonce of 1 should have been incremented by 4.
     assert_eq!(executed_tx.account_delta().nonce().unwrap(), Felt::new(5));

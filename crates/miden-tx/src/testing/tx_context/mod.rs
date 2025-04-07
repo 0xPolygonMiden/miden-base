@@ -5,12 +5,18 @@ use alloc::{collections::BTreeSet, rc::Rc, sync::Arc, vec::Vec};
 use builder::MockAuthenticator;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    account::{Account, AccountCode, AccountId}, assembly::Assembler, block::{BlockHeader, BlockNumber}, note::Note, transaction::{
+    account::{Account, AccountId},
+    assembly::Assembler,
+    block::{BlockHeader, BlockNumber},
+    note::Note,
+    transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs,
-    }
+    },
 };
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, Digest, ExecutionError, MastForest, MastForestStore, Process, Word};
+use vm_processor::{
+    AdviceInputs, Digest, ExecutionError, MastForest, MastForestStore, Process, Word,
+};
 use winter_maybe_async::*;
 
 use super::{MockHost, executor::CodeExecutor};
@@ -39,6 +45,10 @@ pub struct TransactionContext {
     assembler: Assembler,
 }
 
+// TODO: remove
+unsafe impl Send for TransactionContext {}
+unsafe impl Sync for TransactionContext {}
+
 impl TransactionContext {
     /// Executes arbitrary code within the context of a mocked transaction environment and returns
     /// the resulting [Process].
@@ -58,7 +68,6 @@ impl TransactionContext {
         );
         advice_inputs.extend(self.advice_inputs.clone());
 
-
         let test_lib = TransactionKernel::kernel_as_library();
 
         let program = self
@@ -71,14 +80,18 @@ impl TransactionContext {
         let mast_store = Rc::new(TransactionMastStore::new());
 
         mast_store.insert(program.mast_forest().clone());
-        mast_store.load_transaction_code(&self.tx_inputs, &self.tx_args);
         mast_store.insert(test_lib.mast_forest().clone());
+        mast_store.load_transaction_code(&self.tx_inputs, &self.tx_args);
 
         CodeExecutor::new(MockHost::new(
             self.tx_inputs.account().into(),
             advice_inputs,
             mast_store,
-            self.foreign_codes.iter().map(|code| code.commitment()).collect(),
+            self.tx_args
+                .foreign_accounts()
+                .iter()
+                .map(|acc| acc.account_code().commitment())
+                .collect(),
         ))
         .stack_inputs(stack_inputs)
         .execute_program(program)
@@ -97,14 +110,8 @@ impl TransactionContext {
             .authenticator()
             .cloned()
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
-        
-        // for foreign_code in self.foreign_codes.iter() {
-        //     tx_executor.load_account_commitment(foreign_code);
-        // }
 
-        let tx_executor =
-            TransactionExecutor::new(Arc::new(self), authenticator);
-
+        let tx_executor = TransactionExecutor::new(Arc::new(self), authenticator);
 
         maybe_await!(tx_executor.execute_transaction(account_id, block_num, notes, tx_args))
     }
@@ -147,8 +154,7 @@ impl DataStore for TransactionContext {
         _ref_blocks: BTreeSet<BlockNumber>,
     ) -> Result<(Account, Option<Word>, BlockHeader, ChainMmr), DataStoreError> {
         assert_eq!(account_id, self.account().id());
-        let (account, seed, header, mmr, _) = 
-            self.tx_inputs.clone().into_parts().clone();
+        let (account, seed, header, mmr, _) = self.tx_inputs.clone().into_parts().clone();
 
         Ok((account, seed, header, mmr))
     }
