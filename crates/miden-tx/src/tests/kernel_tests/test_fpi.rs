@@ -1,4 +1,4 @@
-use alloc::{string::ToString, sync::Arc, vec, vec::Vec};
+use alloc::{string::ToString, vec, vec::Vec};
 
 use miden_lib::{
     errors::tx_kernel_errors::{
@@ -20,7 +20,7 @@ use miden_objects::{
         StorageSlot,
     },
     testing::{account_component::AccountMockComponent, storage::STORAGE_LEAVES_2},
-    transaction::{ForeignAccountInputs, InputNotes, TransactionScript},
+    transaction::{ForeignAccountInputs, TransactionScript},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -28,7 +28,7 @@ use vm_processor::AdviceInputs;
 
 use super::{Process, Word, ZERO};
 use crate::{
-    TransactionExecutor, TransactionExecutorError, assert_execution_error,
+    TransactionExecutorError, assert_execution_error,
     testing::MockChain,
     tests::kernel_tests::{read_root_mem_word, try_read_root_mem_word},
 };
@@ -624,15 +624,7 @@ fn test_fpi_execute_foreign_procedure() {
         .tx_script(tx_script)
         .build();
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-
-    let tx_args = tx_context.tx_args().clone();
-    let executor = TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
-
-    let _executed_transaction = executor
-        .execute_transaction(native_account.id(), block_ref, InputNotes::default(), tx_args)
-        .map_err(|e| e.to_string())
-        .unwrap();
+    let _executed_transaction = tx_context.execute().map_err(|e| e.to_string()).unwrap();
 }
 
 // NESTED FPI TESTS
@@ -846,17 +838,7 @@ fn test_nested_fpi_cyclic_invocation() {
         .tx_script(tx_script)
         .build();
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-
-    let tx_args = tx_context.tx_args().clone();
-    let executor = TransactionExecutor::new(Arc::new(tx_context), None)
-        .with_tracing()
-        .with_debug_mode();
-
-    let _executed_transaction = executor
-        .execute_transaction(native_account.id(), block_ref, InputNotes::default(), tx_args)
-        .map_err(|e| e.to_string())
-        .unwrap();
+    let _executed_transaction = tx_context.execute().map_err(|e| e.to_string()).unwrap();
 }
 
 /// Test that code will panic in attempt to create more than 63 foreign accounts.
@@ -1140,16 +1122,7 @@ fn test_nested_fpi_native_account_invocation() {
         .tx_script(tx_script)
         .build();
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-
-    let tx_args = tx_context.tx_args().clone();
-    let executor = TransactionExecutor::new(Arc::new(tx_context), None)
-        .with_tracing()
-        .with_debug_mode();
-
-    let err = executor
-        .execute_transaction(native_account.id(), block_ref, InputNotes::default(), tx_args)
-        .unwrap_err();
+    let err = tx_context.execute().unwrap_err();
 
     let TransactionExecutorError::TransactionProgramExecutionFailed(err) = err else {
         panic!("unexpected error")

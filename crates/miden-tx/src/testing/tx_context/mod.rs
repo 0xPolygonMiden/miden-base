@@ -45,10 +45,6 @@ pub struct TransactionContext {
     assembler: Assembler,
 }
 
-// TODO: remove
-unsafe impl Send for TransactionContext {}
-unsafe impl Sync for TransactionContext {}
-
 impl TransactionContext {
     /// Executes arbitrary code within the context of a mocked transaction environment and returns
     /// the resulting [Process].
