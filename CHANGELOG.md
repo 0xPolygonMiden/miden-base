@@ -5,6 +5,7 @@
 - [BREAKING] Add `TransactionHeader` and include it in batches and blocks (#1247).
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
+- [BREAKING] Refactored how foreign account inputs are passed to `TransactionExecutor`, and upgraded Rust version to 1.86 (#1229).
 
 ## 0.8.1 (2025-03-26)
 
