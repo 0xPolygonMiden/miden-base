@@ -53,7 +53,7 @@ impl ProvenBatch {
             });
         }
 
-        Ok(Self::new_unchecked(
+        Ok(Self {
             id,
             reference_block_commitment,
             reference_block_num,
@@ -62,30 +62,7 @@ impl ProvenBatch {
             output_notes,
             batch_expiration_block_num,
             transactions,
-        ))
-    }
-    /// Creates a new [`ProvenBatch`] from the provided parts.
-    #[allow(clippy::too_many_arguments)]
-    pub fn new_unchecked(
-        id: BatchId,
-        reference_block_commitment: Digest,
-        reference_block_num: BlockNumber,
-        account_updates: BTreeMap<AccountId, BatchAccountUpdate>,
-        input_notes: InputNotes<InputNoteCommitment>,
-        output_notes: Vec<OutputNote>,
-        batch_expiration_block_num: BlockNumber,
-        transactions: OrderedTransactionHeaders,
-    ) -> Self {
-        Self {
-            id,
-            reference_block_commitment,
-            reference_block_num,
-            account_updates,
-            input_notes,
-            output_notes,
-            batch_expiration_block_num,
-            transactions,
-        }
+        })
     }
 
     // PUBLIC ACCESSORS
