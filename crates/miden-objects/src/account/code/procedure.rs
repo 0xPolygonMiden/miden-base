@@ -1,4 +1,7 @@
-use alloc::string::ToString;
+use alloc::{string::ToString, sync::Arc};
+
+use vm_core::{mast::MastForest, prettier::PrettyPrint};
+use vm_processor::MastNode;
 
 use super::{Digest, Felt};
 use crate::{
@@ -146,6 +149,64 @@ impl Deserializable for AccountProcedureInfo {
         let storage_size = source.read_u8()?;
         Self::new(mast_root, storage_offset, storage_size)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+// PRINTABLE PROCEDURE
+
+/// A printable representation of a single account procedure.
+#[derive(Debug, Clone)]
+pub struct PrintableProcedure {
+    mast: Arc<MastForest>,
+    procedure_info: AccountProcedureInfo,
+    node_raw: MastNode,
+}
+
+impl PrintableProcedure {
+    /// Creates a new PrintableProcedure instance from its components.
+    pub fn new(
+        mast: Arc<MastForest>,
+        procedure_info: AccountProcedureInfo,
+        node_raw: MastNode,
+    ) -> Self {
+        Self { mast, procedure_info, node_raw }
+    }
+}
+
+impl PrettyPrint for PrintableProcedure {
+    fn render(&self) -> vm_core::prettier::Document {
+        use vm_core::prettier::*;
+        let procedure_root = self.procedure_info.mast_root();
+        let storage_offset = self.procedure_info.storage_offset();
+        let storage_size = self.procedure_info.storage_size();
+
+        indent(
+            4,
+            text(format!("Procedure: {}", procedure_root))
+                + nl()
+                + indent(
+                    4,
+                    const_text("Storage:")
+                        + nl()
+                        + text(format!("offset: {}", storage_offset))
+                        + nl()
+                        + text(format!("size: {}", storage_size)),
+                )
+                + nl()
+                + indent(
+                    4,
+                    const_text("Body:")
+                        + nl()
+                        + indent(
+                            8,
+                            text(format!("export.{}", procedure_root))
+                                + nl()
+                                + self.node_raw.to_pretty_print(&self.mast).render(),
+                        )
+                        + nl()
+                        + const_text("end"),
+                ),
+        )
     }
 }
 

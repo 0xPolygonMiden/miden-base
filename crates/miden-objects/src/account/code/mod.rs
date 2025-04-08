@@ -1,6 +1,5 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use assembly::mast::MastNode;
 use vm_core::{mast::MastForest, prettier::PrettyPrint};
 
 use super::{
@@ -10,52 +9,7 @@ use super::{
 use crate::account::{AccountComponent, AccountType};
 
 pub mod procedure;
-use procedure::AccountProcedureInfo;
-
-/// A printable representation of a single account procedure.
-#[derive(Debug, Clone)]
-pub struct PrintableProcedure {
-    mast: Arc<MastForest>,
-    procedure_info: AccountProcedureInfo,
-    node_raw: MastNode,
-}
-
-impl PrettyPrint for PrintableProcedure {
-    fn render(&self) -> vm_core::prettier::Document {
-        use vm_core::prettier::*;
-        let procedure_root = self.procedure_info.mast_root();
-        let storage_offset = self.procedure_info.storage_offset();
-        let storage_size = self.procedure_info.storage_size();
-
-        indent(
-            4,
-            text(format!("Procedure: {}", procedure_root))
-                + nl()
-                + indent(
-                    4,
-                    const_text("Storage:")
-                        + nl()
-                        + text(format!("offset: {}", storage_offset))
-                        + nl()
-                        + text(format!("size: {}", storage_size)),
-                )
-                + nl()
-                + indent(
-                    4,
-                    const_text("Body:")
-                        + nl()
-                        + indent(
-                            8,
-                            text(format!("export.{}", procedure_root))
-                                + nl()
-                                + self.node_raw.to_pretty_print(&self.mast).render(),
-                        )
-                        + nl()
-                        + const_text("end"),
-                ),
-        )
-    }
-}
+use procedure::{AccountProcedureInfo, PrintableProcedure};
 
 // ACCOUNT CODE
 // ================================================================================================
@@ -285,10 +239,18 @@ impl AccountCode {
             .expect("procedure root should be present in the mast forest");
         let node_raw = self.mast[node_id].clone();
 
-        Ok(PrintableProcedure {
-            mast: self.mast.clone(),
-            procedure_info: *procedure_info,
-            node_raw,
+        Ok(PrintableProcedure::new(self.mast.clone(), *procedure_info, node_raw))
+    }
+
+    /// Returns an iterator of printable representations for all procedures in this account code.
+    ///
+    /// # Returns
+    /// An iterator yielding [`PrintableProcedure`] instances for all procedures in this account
+    /// code.
+    pub fn get_printable_procedures(&self) -> impl Iterator<Item = PrintableProcedure> {
+        self.procedures().iter().filter_map(move |procedure_info| {
+            let root = *procedure_info.mast_root();
+            self.get_printable_procedure(root).ok()
         })
     }
 }
@@ -363,13 +325,9 @@ impl PrettyPrint for AccountCode {
     fn render(&self) -> vm_core::prettier::Document {
         use vm_core::prettier::*;
         let mut partial = Document::Empty;
-        let len_procedures = self.procedures().len();
-        for (index, procedure_info) in self.procedures().iter().enumerate() {
-            let procedure_root = *procedure_info.mast_root();
-            let printable_procedure = self
-                .get_printable_procedure(procedure_root)
-                .expect("procedure root should be present in the mast forest");
+        let len_procedures = self.num_procedures();
 
+        for (index, printable_procedure) in self.get_printable_procedures().enumerate() {
             partial += printable_procedure.render();
             if index < len_procedures - 1 {
                 partial += nl();
