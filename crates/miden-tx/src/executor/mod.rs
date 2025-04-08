@@ -1,19 +1,13 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use miden_lib::{
-    account::interface::NoteAccountCompatibility, note::well_known_note::WellKnownNote,
-    transaction::TransactionKernel,
-};
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::{AccountCode, AccountId},
     assembly::Library,
     block::BlockNumber,
     note::NoteId,
-    transaction::{
-        ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs,
-        TransactionScript,
-    },
+    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
     vm::StackOutputs,
 };
 use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
@@ -27,6 +21,9 @@ pub use data_store::DataStore;
 
 mod mast_store;
 pub use mast_store::TransactionMastStore;
+
+mod notes_checker;
+pub use notes_checker::NotesChecker;
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -245,43 +242,6 @@ impl TransactionExecutor {
     // CHECK CONSUMABILITY
     // ============================================================================================
 
-    /// Checks whether the provided input notes could be consumed by the provided account.
-    ///
-    /// This check consists of two main steps:
-    /// - Check whether there are "well known" notes (`P2ID`, `P2IDR` and `SWAP`) in the list of the
-    ///   provided input notes. If so, assert that the note inputs are correct.
-    /// - Execute the transaction with specified notes.
-    ///   - Returns [`ExecutionCheckResult::Success`] if the execution was successful.
-    ///   - Returns [`ExecutionCheckResult::Failure`] if some note returned an error. The tuple
-    ///     associated with `Failure` variant contains the ID of the failing note and a vector of
-    ///     IDs of the notes, which were successfully executed.
-    #[maybe_async]
-    pub fn check_notes_consumability(
-        &self,
-        account_id: AccountId,
-        block_ref: BlockNumber,
-        notes: &InputNotes<InputNote>,
-        tx_args: TransactionArgs,
-    ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
-        // Check note inputs
-        // ----------------------------------------------------------------------------------------
-
-        for note in notes.iter() {
-            if let Some(well_known_note) = WellKnownNote::from_note(note.note()) {
-                let inputs_check_result =
-                    well_known_note.check_note_inputs(note.note(), account_id);
-                if let NoteAccountCompatibility::No = inputs_check_result {
-                    return Ok(ExecutionCheckResult::Failure((note.id(), vec![])));
-                }
-            }
-        }
-
-        // Execute transaction
-        // ----------------------------------------------------------------------------------------
-
-        maybe_await!(self.notes_execution_progress_checker(account_id, block_ref, notes, tx_args))
-    }
-
     /// Executes the transaction with specified notes, returning the [ExecutionCheckResult::Success]
     /// if all notes has been consumed successfully and [ExecutionCheckResult::Failure] if some note
     /// returned an error.
@@ -292,17 +252,15 @@ impl TransactionExecutor {
     /// - If the transaction host can not be created from the provided values.
     /// - If the execution of the provided program fails on the stage other than note execution.
     #[maybe_async]
-    fn notes_execution_progress_checker(
+    pub(crate) fn notes_execution_progress_checker(
         &self,
         account_id: AccountId,
         block_ref: BlockNumber,
-        notes: &InputNotes<InputNote>,
+        note_ids: &[NoteId],
         tx_args: TransactionArgs,
     ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
-        let note_ids = notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
-
         let tx_inputs =
-            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &note_ids))
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, note_ids))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let (stack_inputs, advice_inputs) =
