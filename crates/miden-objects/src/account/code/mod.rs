@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-use vm_core::mast::MastForest;
+use vm_core::{mast::MastForest, prettier::PrettyPrint};
 
 use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
@@ -9,7 +9,7 @@ use super::{
 use crate::account::{AccountComponent, AccountType};
 
 pub mod procedure;
-use procedure::AccountProcedureInfo;
+use procedure::{AccountProcedureInfo, PrintableProcedure};
 
 // ACCOUNT CODE
 // ================================================================================================
@@ -220,6 +220,39 @@ impl AccountCode {
     pub fn as_elements(&self) -> Vec<Felt> {
         procedures_as_elements(self.procedures())
     }
+
+    /// Returns a printable representation of the procedure with the specified MAST root.
+    ///
+    /// # Errors
+    /// Returns an error if no procedure with the specified root exists in this account code.
+    pub fn get_printable_procedure(
+        &self,
+        root: Digest,
+    ) -> Result<PrintableProcedure, AccountError> {
+        let procedure_info = self.procedures.iter().find(|p| p.mast_root() == &root).ok_or(
+            AccountError::AssumptionViolated(format!("procedure with root {} not found", root)),
+        )?;
+
+        let node_id = self
+            .mast
+            .find_procedure_root(root)
+            .expect("procedure root should be present in the mast forest");
+        let node_raw = self.mast[node_id].clone();
+
+        Ok(PrintableProcedure::new(self.mast.clone(), *procedure_info, node_raw))
+    }
+
+    /// Returns an iterator of printable representations for all procedures in this account code.
+    ///
+    /// # Returns
+    /// An iterator yielding [`PrintableProcedure`] instances for all procedures in this account
+    /// code.
+    pub fn get_printable_procedures(&self) -> impl Iterator<Item = PrintableProcedure> {
+        self.procedures().iter().filter_map(move |procedure_info| {
+            let root = *procedure_info.mast_root();
+            self.get_printable_procedure(root).ok()
+        })
+    }
 }
 
 // EQUALITY
@@ -282,6 +315,25 @@ impl Deserializable for AccountCode {
         let procedures = source.read_many::<AccountProcedureInfo>(num_procedures)?;
 
         Ok(Self::from_parts(module, procedures))
+    }
+}
+
+// PRETTY PRINT
+// ================================================================================================
+
+impl PrettyPrint for AccountCode {
+    fn render(&self) -> vm_core::prettier::Document {
+        use vm_core::prettier::*;
+        let mut partial = Document::Empty;
+        let len_procedures = self.num_procedures();
+
+        for (index, printable_procedure) in self.get_printable_procedures().enumerate() {
+            partial += printable_procedure.render();
+            if index < len_procedures - 1 {
+                partial += nl();
+            }
+        }
+        partial
     }
 }
 
