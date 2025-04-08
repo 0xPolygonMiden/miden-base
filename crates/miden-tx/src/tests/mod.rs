@@ -9,7 +9,10 @@ use ::assembly::{
     LibraryPath,
     ast::{Module, ModuleKind},
 };
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{
+    account::interface::NoteAccountCompatibility, note::create_p2id_note,
+    transaction::TransactionKernel,
+};
 use miden_objects::{
     Felt, MIN_PROOF_SECURITY_LEVEL, Word,
     account::{AccountBuilder, AccountComponent, AccountId, AccountStorage, StorageSlot},
@@ -23,13 +26,14 @@ use miden_objects::{
         account_component::AccountMockComponent,
         account_id::{
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE, ACCOUNT_ID_SENDER,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE, ACCOUNT_ID_SENDER,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         note::{DEFAULT_NOTE_CODE, NoteBuilder},
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
-    transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
+    transaction::{InputNote, ProvenTransaction, TransactionArgs, TransactionScript},
     utils::word_to_masm_push_string,
 };
 use miden_prover::ProvingOptions;
@@ -37,6 +41,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
     Digest, MemAdviceProvider, ONE,
+    crypto::RpoRandomCoin,
     utils::{Deserializable, Serializable},
 };
 
@@ -45,7 +50,9 @@ use super::{
     TransactionVerifier,
 };
 use crate::{
-    TransactionMastStore, executor::ExecutionCheckResult, testing::TransactionContextBuilder,
+    TransactionMastStore,
+    executor::{ExecutionCheckResult, NotesChecker},
+    testing::TransactionContextBuilder,
 };
 
 mod kernel_tests;
@@ -1051,6 +1058,38 @@ fn test_execute_program() {
 }
 
 #[test]
+fn check_note_inputs() {
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let target_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE).unwrap();
+
+    let p2id_note = create_p2id_note(
+        sender_account_id,
+        target_account_id,
+        vec![],
+        NoteType::Public,
+        Default::default(),
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
+    )
+    .expect("failed to create P2ID note");
+    let p2id_note_id = p2id_note.id();
+
+    // Success
+    // --------------------------------------------------------------------------------------------
+    let notes_checker =
+        NotesChecker::new(target_account_id, vec![InputNote::unauthenticated(p2id_note.clone())]);
+    let note_inputs_check_result = notes_checker.check_note_inputs();
+    assert_eq!(note_inputs_check_result, (NoteAccountCompatibility::Maybe, None));
+
+    // Failure
+    // --------------------------------------------------------------------------------------------
+    let notes_checker =
+        NotesChecker::new(sender_account_id, vec![InputNote::unauthenticated(p2id_note)]);
+    let note_inputs_check_result = notes_checker.check_note_inputs();
+    assert_eq!(note_inputs_check_result, (NoteAccountCompatibility::No, Some(p2id_note_id)));
+}
+
+#[test]
 fn test_check_note_consumability() {
     // Success
     // --------------------------------------------------------------------------------------------
@@ -1065,11 +1104,11 @@ fn test_check_note_consumability() {
     let executor: TransactionExecutor =
         TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
 
-    let execution_check_result: ExecutionCheckResult = executor
-        .check_notes_consumability(account_id, block_ref, input_notes, tx_context.tx_args().clone())
+    let notes_checker = NotesChecker::new(account_id, input_notes.clone().into_vec());
+    let execution_check_result = notes_checker
+        .check_notes_consumability(&executor, block_ref, tx_context.tx_args().clone())
         .unwrap();
-
-    assert_eq!(execution_check_result, ExecutionCheckResult::Success,);
+    assert_eq!(execution_check_result, ExecutionCheckResult::Success);
 
     // Failure
     // --------------------------------------------------------------------------------------------
@@ -1105,10 +1144,10 @@ fn test_check_note_consumability() {
     let executor: TransactionExecutor =
         TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
 
-    let execution_check_result: ExecutionCheckResult = executor
-        .check_notes_consumability(account_id, block_ref, input_notes, tx_context.tx_args().clone())
+    let notes_checker = NotesChecker::new(account_id, input_notes.clone().into_vec());
+    let execution_check_result = notes_checker
+        .check_notes_consumability(&executor, block_ref, tx_context.tx_args().clone())
         .unwrap();
-
     assert_eq!(
         execution_check_result,
         ExecutionCheckResult::Failure((failing_note_2.id(), vec![input_note_ids[0]]))
