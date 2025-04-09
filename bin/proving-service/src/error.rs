@@ -18,6 +18,8 @@ pub enum ProvingServiceError {
     ParseError(#[from] std::num::ParseIntError),
     #[error("port {1} is already in use: {0}")]
     PortAlreadyInUse(#[source] std::io::Error, u16),
+    #[error("invalid proof type: {0}")]
+    InvalidProofType(String),
 }
 
 impl From<ProvingServiceError> for String {
