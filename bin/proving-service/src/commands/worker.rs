@@ -56,6 +56,28 @@ impl ProverTypeSupport {
     }
 }
 
+impl std::fmt::Display for ProverTypeSupport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut prover_types = Vec::new();
+
+        if self.supports_transaction() {
+            prover_types.push("tx");
+        }
+        if self.supports_batch() {
+            prover_types.push("batch");
+        }
+        if self.supports_block() {
+            prover_types.push("block");
+        }
+
+        if prover_types.is_empty() {
+            write!(f, "")
+        } else {
+            write!(f, "{}", prover_types.join(","))
+        }
+    }
+}
+
 /// Starts a worker.
 #[derive(Debug, Parser)]
 pub struct StartWorker {
@@ -65,6 +87,9 @@ pub struct StartWorker {
     /// The port of the worker
     #[clap(long, default_value = "50051")]
     port: u16,
+    /// The port of the HTTP server for the information endpoint
+    #[clap(short, long, default_value = "3000")]
+    info_port: u16,
     /// The type of prover that the worker will be
     #[clap(flatten)]
     prover_type: ProverTypeSupport,
@@ -102,6 +127,7 @@ impl StartWorker {
         tonic::transport::Server::builder()
             .accept_http1(true)
             .add_service(tonic_web::enable(rpc.api_service))
+            .add_service(tonic_web::enable(rpc.status_service))
             .add_service(health_service)
             .serve_with_incoming(TcpListenerStream::new(rpc.listener))
             .await
