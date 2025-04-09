@@ -2,13 +2,10 @@ use std::time::Duration;
 
 use pingora::lb::Backend;
 use tonic::transport::Channel;
-use tonic_health::pb::{
-    HealthCheckRequest, health_check_response::ServingStatus, health_client::HealthClient,
-};
 use tracing::error;
 
-use super::health_check::create_health_check_client;
-use crate::error::ProvingServiceError;
+use super::status::create_status_client;
+use crate::{error::ProvingServiceError, generated::status::status_api_client::StatusApiClient};
 
 // WORKER
 // ================================================================================================
@@ -16,16 +13,16 @@ use crate::error::ProvingServiceError;
 /// A worker used for processing of requests.
 ///
 /// A worker consists of a backend service (defined by worker address), a flag indicating wheter
-/// the worker is currently available to process new requests, and a gRPC health check client.
+/// the worker is currently available to process new requests, and a gRPC status client.
 #[derive(Debug, Clone)]
 pub struct Worker {
     backend: Backend,
-    health_check_client: HealthClient<Channel>,
+    status_client: StatusApiClient<Channel>,
     is_available: bool,
 }
 
 impl Worker {
-    /// Creates a new worker and a gRPC health check client for the given worker address.
+    /// Creates a new worker and a gRPC status client for the given worker address.
     ///
     /// # Errors
     /// - Returns [ProvingServiceError::InvalidURI] if the worker address is invalid.
@@ -35,14 +32,14 @@ impl Worker {
         connection_timeout: Duration,
         total_timeout: Duration,
     ) -> Result<Self, ProvingServiceError> {
-        let health_check_client =
-            create_health_check_client(worker.addr.to_string(), connection_timeout, total_timeout)
+        let status_client =
+            create_status_client(worker.addr.to_string(), connection_timeout, total_timeout)
                 .await?;
 
         Ok(Self {
             backend: worker,
             is_available: true,
-            health_check_client,
+            status_client,
         })
     }
 
@@ -50,15 +47,11 @@ impl Worker {
         self.backend.addr.to_string()
     }
 
-    pub async fn is_healthy(&mut self) -> bool {
-        match self
-            .health_check_client
-            .check(HealthCheckRequest { service: "".to_string() })
-            .await
-        {
-            Ok(response) => response.into_inner().status() == ServingStatus::Serving,
+    pub async fn is_ready(&mut self) -> bool {
+        match self.status_client.status(()).await {
+            Ok(response) => response.into_inner().ready,
             Err(err) => {
-                error!("Failed to check worker health ({}): {}", self.address(), err);
+                error!("Failed to check worker status ({}): {}", self.address(), err);
                 false
             },
         }
@@ -69,7 +62,7 @@ impl Worker {
     }
 
     pub fn set_availability(&mut self, is_available: bool) {
-        self.is_available = is_available;
+        self.is_available = is_available
     }
 }
 

@@ -46,6 +46,13 @@ pub(crate) struct ProxyConfig {
     /// Control port.
     #[clap(long, default_value = "8083", env = "MPS_CONTROL_PORT")]
     pub(crate) control_port: u16,
+    /// Supported proof types.
+    #[clap(
+        long,
+        default_value = "transaction,batch,block",
+        env = "MPS_SUPPORTED_PROOF_TYPES"
+    )]
+    pub(crate) supported_proof_types: String,
 }
 
 #[derive(Debug, Clone, clap::Parser)]

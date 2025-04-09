@@ -24,12 +24,12 @@ use pingora_proxy::{ProxyHttp, Session};
 use tokio::sync::RwLock;
 use tracing::{Span, error, info, info_span, warn};
 use uuid::Uuid;
-use worker::Worker;
 
 use crate::{
     commands::{
         ProxyConfig,
         update_workers::{Action, UpdateWorkers},
+        worker::ProverTypeSupport,
     },
     error::ProvingServiceError,
     utils::{
@@ -40,8 +40,11 @@ use crate::{
 
 mod health_check;
 pub mod metrics;
+mod status;
 pub(crate) mod update_workers;
 mod worker;
+
+pub use worker::Worker;
 
 // LOAD BALANCER STATE
 // ================================================================================================
@@ -57,6 +60,7 @@ pub struct LoadBalancerState {
     max_req_per_sec: isize,
     available_workers_polling_interval: Duration,
     health_check_interval: Duration,
+    supported_proof_types: ProverTypeSupport,
 }
 
 impl LoadBalancerState {
@@ -91,6 +95,10 @@ impl LoadBalancerState {
         RATE_LIMITED_REQUESTS.reset();
         REQUEST_RETRIES.reset();
 
+        let supported_proof_types =
+            ProverTypeSupport::try_from(config.supported_proof_types.clone())
+                .map_err(ProvingServiceError::InvalidProofType)?;
+
         Ok(Self {
             workers: Arc::new(RwLock::new(workers)),
             timeout_secs: total_timeout,
@@ -102,6 +110,7 @@ impl LoadBalancerState {
                 config.available_workers_polling_interval_ms,
             ),
             health_check_interval: Duration::from_secs(config.health_check_interval_secs),
+            supported_proof_types,
         })
     }
 
@@ -193,18 +202,19 @@ impl LoadBalancerState {
         self.workers.read().await.iter().filter(|w| !w.is_available()).count()
     }
 
-    /// Check the health of the workers and returns a list of healthy workers.
+    /// Check the status of the workers and returns a list of healthy workers.
     ///
-    /// Performs a health check on each worker using the gRPC health check protocol. If a worker
-    /// is not healthy, it won't be included in the list of healthy workers.
-    async fn check_workers_health(
+    /// Performs a status check on each worker using the gRPC status protocol. If a worker
+    /// is not ready, it won't be included in the list of healthy workers.
+    async fn check_workers_status(
         &self,
         workers: impl Iterator<Item = &mut Worker>,
     ) -> Vec<Worker> {
         let mut healthy_workers = Vec::new();
 
+        
         for worker in workers {
-            if worker.is_healthy().await {
+            if worker.is_ready().await {
                 healthy_workers.push(worker.clone());
             } else {
                 warn!("Worker {} is not healthy", worker.address());
