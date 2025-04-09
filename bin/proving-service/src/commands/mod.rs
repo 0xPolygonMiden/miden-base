@@ -49,7 +49,7 @@ pub(crate) struct ProxyConfig {
     /// Supported proof types.
     #[clap(
         long,
-        default_value = "transaction,batch,block",
+        default_value = "tx,batch,block",
         env = "MPS_SUPPORTED_PROOF_TYPES"
     )]
     pub(crate) supported_proof_types: String,
