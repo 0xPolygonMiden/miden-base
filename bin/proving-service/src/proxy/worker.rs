@@ -5,7 +5,10 @@ use tonic::transport::Channel;
 use tracing::error;
 
 use super::status::create_status_client;
-use crate::{error::ProvingServiceError, generated::status::{status_api_client::StatusApiClient, StatusRequest}};
+use crate::{
+    error::ProvingServiceError,
+    generated::status::{StatusRequest, status_api_client::StatusApiClient},
+};
 
 /// The maximum exponent for the backoff.
 ///
@@ -56,8 +59,7 @@ impl Worker {
             Backend::new(&worker_addr).map_err(ProvingServiceError::BackendCreationFailed)?;
 
         let status_client =
-            create_status_client(worker.addr.to_string(), connection_timeout, total_timeout)
-                .await?;
+            create_status_client(worker_addr, connection_timeout, total_timeout).await?;
 
         Ok(Self {
             backend,
