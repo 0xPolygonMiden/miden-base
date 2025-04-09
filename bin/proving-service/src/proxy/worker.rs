@@ -6,6 +6,7 @@ use tracing::error;
 
 use super::status::create_status_client;
 use crate::{
+    commands::worker::ProverTypeSupport,
     error::ProvingServiceError,
     generated::status::{StatusRequest, status_api_client::StatusApiClient},
 };
@@ -80,21 +81,25 @@ impl Worker {
     /// - `Some(true)` if the worker is ready.
     /// - `Some(false)` if the worker is not ready.
     /// - `None` if the worker should not do a health check.
-    pub async fn is_ready(&mut self) -> Option<bool> {
+    pub async fn is_ready(&mut self, supported_proof_types: &ProverTypeSupport) -> Option<bool> {
         if !self.should_do_health_check() {
             return None;
         }
 
-        Some(
-            self.status_client
-                .status(StatusRequest {})
-                .await
-                .map(|response| response.into_inner().ready)
-                .unwrap_or_else(|err| {
-                    error!("Failed to check worker status ({}): {}", self.address(), err);
-                    false
-                }),
-        )
+        let worker_status = self
+            .status_client
+            .status(StatusRequest {})
+            .await
+            .map(|response| Some(response.into_inner()))
+            .unwrap_or_else(|e| {
+                error!("Failed to check worker status ({}): {}", self.address(), e);
+                None
+            })?;
+
+        let worker_supported_proof_types =
+            ProverTypeSupport::from(worker_status.supported_proof_types.unwrap());
+
+        Some((*supported_proof_types == worker_supported_proof_types) && worker_status.ready)
     }
 
     /// Returns the worker availability.

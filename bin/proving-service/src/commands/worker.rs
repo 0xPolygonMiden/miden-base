@@ -7,7 +7,7 @@ use crate::{api::RpcListener, utils::MIDEN_PROVING_SERVICE};
 
 /// Specifies the types of proving tasks a worker can handle.
 /// Multiple options can be enabled simultaneously.
-#[derive(Debug, Parser, Clone, Copy, Default)]
+#[derive(Debug, Parser, Clone, Copy, Default, PartialEq)]
 pub struct ProverTypeSupport {
     /// Enables transaction proving.
     #[clap(long, default_value = "false")]
