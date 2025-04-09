@@ -11,6 +11,9 @@ pub mod proving_service;
 pub mod status;
 
 pub use proving_service::*;
+use status::SupportedProofTypes;
+
+use crate::commands::worker::ProverTypeSupport;
 
 // CONVERSIONS
 // ================================================================================================
@@ -50,5 +53,21 @@ impl TryFrom<ProvingRequest> for ProposedBlock {
 
     fn try_from(request: ProvingRequest) -> Result<Self, Self::Error> {
         ProposedBlock::read_from_bytes(&request.payload)
+    }
+}
+
+impl From<SupportedProofTypes> for ProverTypeSupport {
+    fn from(value: SupportedProofTypes) -> Self {
+        let mut support = ProverTypeSupport::default();
+        if value.transaction {
+            support = support.with_transaction();
+        }
+        if value.batch {
+            support = support.with_batch();
+        }
+        if value.block {
+            support = support.with_block();
+        }
+        support
     }
 }
