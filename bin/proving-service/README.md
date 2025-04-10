@@ -79,11 +79,14 @@ miden-proving-service add-workers 0.0.0.0:8085
 
 Note that, in order to update the workers, the proxy must be running in the same computer as the command is being executed because it will check if the client address is localhost to avoid any security issues.
 
-### Health check
+### Status check
 
-The worker service implements the [gRPC Health Check](https://grpc.io/docs/guides/health-checking/) standard, and includes the methods described in this [official proto file](https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto).
+The worker service implements a custom status check that returns information about the worker's current state and supported proof types. The proxy service uses this status check to determine if a worker is available to receive requests and if it supports the required proof types. If a worker is not available or doesn't support the required proof types, it will be removed from the set of workers that the proxy can use to send requests.
 
-The proxy service uses this health check to determine if a worker is available to receive requests. If a worker is not available, it will be removed from the set of workers that the proxy can use to send requests.
+The status check returns:
+- Whether the worker is ready to process requests
+- The types of proofs the worker supports (transaction, batch, or block proofs)
+- The version of the worker
 
 ## Logging and Tracing
 
