@@ -79,25 +79,28 @@ impl Worker {
     ///
     /// # Returns
     /// - `Some(true)` if the worker is ready.
-    /// - `Some(false)` if the worker is not ready.
+    /// - `Some(false)` if the worker is not ready or if there was an error checking the status.
     /// - `None` if the worker should not do a health check.
     pub async fn is_ready(&mut self, supported_proof_types: &ProverTypeSupport) -> Option<bool> {
         if !self.should_do_health_check() {
             return None;
         }
 
-        let worker_status = self
-            .status_client
-            .status(StatusRequest {})
-            .await
-            .map(|response| Some(response.into_inner()))
-            .unwrap_or_else(|e| {
+        let worker_status = match self.status_client.status(StatusRequest {}).await {
+            Ok(response) => response.into_inner(),
+            Err(e) => {
                 error!("Failed to check worker status ({}): {}", self.address(), e);
-                None
-            })?;
+                return Some(false);
+            },
+        };
 
-        let worker_supported_proof_types =
-            ProverTypeSupport::from(worker_status.supported_proof_types.unwrap());
+        let worker_supported_proof_types = match worker_status.supported_proof_types {
+            Some(types) => ProverTypeSupport::from(types),
+            None => {
+                error!("Worker {} returned empty supported_proof_types", self.address());
+                return Some(false);
+            },
+        };
 
         Some((*supported_proof_types == worker_supported_proof_types) && worker_status.ready)
     }
