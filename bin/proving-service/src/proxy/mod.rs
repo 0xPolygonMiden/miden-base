@@ -39,7 +39,7 @@ use crate::{
 
 mod health_check;
 pub mod metrics;
-mod status;
+pub mod status;
 pub(crate) mod update_workers;
 mod worker;
 
@@ -59,7 +59,6 @@ pub struct LoadBalancerState {
     max_req_per_sec: isize,
     available_workers_polling_interval: Duration,
     health_check_interval: Duration,
-    #[allow(dead_code)]
     supported_proof_types: ProverTypeSupport,
 }
 
