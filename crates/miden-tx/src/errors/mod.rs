@@ -3,7 +3,7 @@ use core::error::Error;
 
 use miden_objects::{
     AccountError, Felt, ProvenTransactionError, TransactionInputError, TransactionOutputError,
-    account::AccountId, block::BlockNumber, note::NoteId,
+    account::AccountId, block::BlockNumber,
 };
 use miden_verifier::VerificationError;
 use thiserror::Error;
