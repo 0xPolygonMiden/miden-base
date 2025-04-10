@@ -5,10 +5,7 @@ use tonic::{async_trait, transport::Channel};
 use tonic_health::pb::health_client::HealthClient;
 use tracing::debug_span;
 
-use super::{
-    LoadBalancerState,
-    metrics::{WORKER_COUNT, WORKER_UNHEALTHY},
-};
+use super::LoadBalancerState;
 use crate::error::ProvingServiceError;
 
 /// Implement the BackgroundService trait for the LoadBalancer
@@ -37,21 +34,12 @@ impl BackgroundService for LoadBalancerState {
                 // Create a new spawn to perform the health check
                 let span = debug_span!("proxy:health_check");
                 let _guard = span.enter();
+                {
+                    let mut workers = self.workers.write().await;
 
-                let mut workers = self.workers.write().await;
-                let initial_workers_len = workers.len();
-
-                // Perform health checks on workers and retain healthy ones
-                let healthy_workers = self.check_workers_health(workers.iter_mut()).await;
-
-                // Update the worker list with healthy workers
-                *workers = healthy_workers;
-
-                // Update the worker count and worker unhealhy count metrics
-                WORKER_COUNT.set(workers.len() as i64);
-                let unhealthy_workers = initial_workers_len - workers.len();
-                WORKER_UNHEALTHY.inc_by(unhealthy_workers as u64);
-
+                    // Perform health checks on workers and retain healthy ones
+                    self.check_workers_health(workers.iter_mut()).await;
+                }
                 // Sleep for the defined interval before the next health check
                 sleep(self.health_check_interval).await;
             }
