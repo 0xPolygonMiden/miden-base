@@ -9,6 +9,7 @@
 - Added a retry strategy for worker's health check (#1255).
 - Added a status endpoint for the `miden-proving-service` worker (#1277).
 - Added a retry strategy for worker's health check (#1255).
+- Added a status endpoint for the `miden-proving-service` proxy (#1280).
 
 ## 0.8.1 (2025-03-26)
 
