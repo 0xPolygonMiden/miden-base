@@ -1179,5 +1179,8 @@ export.prepare_transaction
     exec.process_tx_script_root
     # => []
 
+    exec.memory::init_asset_id_seed
+    exec.memory::init_next_asset_ptr
+
     push.MAX_BLOCK_NUM exec.memory::set_expiration_block_num
 end
