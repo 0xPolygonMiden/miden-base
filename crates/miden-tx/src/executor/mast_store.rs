@@ -62,6 +62,7 @@ impl TransactionMastStore {
     /// - Account code for the account specified in the provided [TransactionInputs].
     /// - Note scripts for all input notes in the provided [TransactionInputs].
     /// - Transaction script (if any) from the specified [TransactionArgs].
+    /// - Foreign account code (if any) from the specified [TransactionArgs].
     pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
         // load account code
         self.load_account_code(tx_inputs.account().code());
