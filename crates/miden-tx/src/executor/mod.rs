@@ -12,6 +12,7 @@ use miden_objects::{
     },
     vm::StackOutputs,
 };
+pub use vm_processor::MastForestStore;
 use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 

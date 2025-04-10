@@ -113,10 +113,6 @@ pub enum DataStoreError {
     AccountNotFound(AccountId),
     #[error("block with number {0} not found in data store")]
     BlockNotFound(BlockNumber),
-    #[error("note with id {0} is already consumed")]
-    NoteAlreadyConsumed(NoteId),
-    #[error("not with id {0} not found in data store")]
-    NoteNotFound(NoteId),
     /// Custom error variant for implementors of the [`DataStore`](crate::executor::DataStore)
     /// trait.
     #[error("{error_msg}")]
