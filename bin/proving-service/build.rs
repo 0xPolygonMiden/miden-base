@@ -35,12 +35,17 @@ fn main() -> miette::Result<()> {
 
 /// Copies the proto file from the root proto directory to the proto directory of this crate.
 fn copy_proto_files() -> miette::Result<()> {
-    let src_file = format!("{REPO_PROTO_DIR}/proving_service.proto");
-    let dest_file = format!("{CRATE_PROTO_DIR}/proving_service.proto");
+    let files = ["proving_service.proto", "worker_status.proto"];
 
+    // remove and create dirs
     fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
     fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
-    fs::copy(src_file, dest_file).into_diagnostic()?;
+
+    for file in &files {
+        let src = format!("{REPO_PROTO_DIR}/{}", file);
+        let dest = format!("{CRATE_PROTO_DIR}/{}", file);
+        fs::copy(src, dest).into_diagnostic()?;
+    }
 
     Ok(())
 }
@@ -50,15 +55,15 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set"));
     let dst_dir = crate_root.join("src").join("generated");
 
-    // Remove `proving_service.rs` if it exists.
-    // We don't need to check the success of this operation because the file may not exist.
+    // Remove generated files if they exist
     let _ = fs::remove_file(dst_dir.join("proving_service.rs"));
+    let _ = fs::remove_file(dst_dir.join("worker_status.rs"));
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
     let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
-    let protos = &[proto_dir.join("proving_service.proto")];
+    let protos = &[proto_dir.join("proving_service.proto"), proto_dir.join("worker_status.proto")];
     let includes = &[proto_dir];
 
     let file_descriptors = protox::compile(protos, includes)?;
