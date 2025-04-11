@@ -1,4 +1,5 @@
 use clap::Parser;
+use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tracing::{info, instrument};
@@ -7,7 +8,7 @@ use crate::{api::RpcListener, utils::MIDEN_PROVING_SERVICE};
 
 /// Specifies the types of proving tasks a worker can handle.
 /// Multiple options can be enabled simultaneously.
-#[derive(Debug, Parser, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Parser, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct ProverTypeSupport {
     /// Enables transaction proving.
     #[clap(short, long, default_value = "false")]

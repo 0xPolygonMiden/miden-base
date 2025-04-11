@@ -85,6 +85,41 @@ The status check returns:
 - The types of proofs the worker supports (transaction, batch, or block proofs)
 - The version of the worker
 
+### Proxy Status Endpoint
+
+The proxy service exposes a status endpoint that provides information about the current state of the proxy and its workers. This endpoint can be accessed at `http://<proxy_host>:<status_port>/status`.
+
+The status endpoint returns a JSON response with the following information:
+- `version`: The version of the proxy
+- `supported_proof_types`: The types of proofs that the proxy supports
+- `busy_workers`: The number of workers that are currently busy
+- `workers`: A list of workers with their status
+
+Example response:
+```json
+{
+  "version": "1.0.0",
+  "supported_proof_types": ["tx", "batch"],
+  "busy_workers": 1,
+  "workers": [
+    {
+      "address": "127.0.0.1:8080",
+      "is_available": true,
+      "is_healthy": true,
+      "retries": 0
+    },
+    {
+      "address": "127.0.0.1:9090",
+      "is_available": false,
+      "is_healthy": true,
+      "retries": 0
+    }
+  ]
+}
+```
+
+The status port can be configured using the `MPS_STATUS_PORT` environment variable or the `--status-port` command-line argument when starting the proxy.
+
 ## Logging and Tracing
 
 The service uses the [`tracing`](https://docs.rs/tracing/latest/tracing/) crate for both logging and distributed tracing, providing structured, high-performance logs and trace data.

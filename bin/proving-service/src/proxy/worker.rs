@@ -28,7 +28,7 @@ pub struct Worker {
     backend: Backend,
     status_client: StatusApiClient<Channel>,
     is_available: bool,
-    health_status: WorkerHealthStatus,
+    pub(crate) health_status: WorkerHealthStatus,
 }
 
 /// The health status of a worker.

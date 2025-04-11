@@ -42,6 +42,7 @@ pingora-limits = "0.4"
 reqwest = { version = "0.12" }
 serde = { version = "1.0", features = ["derive"] }
 serde_qs = { version = "0.13" }
+serde_json = { version = "1.0" }
 tokio = { version = "1.44", features = ["full"] }
 tokio-stream = { version = "0.1", features = [ "net" ]}
 thiserror = { workspace = true }
