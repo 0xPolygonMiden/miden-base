@@ -668,9 +668,9 @@ impl TransactionContextBuilder {
             Some(self.note_args),
             AdviceMap::default(),
             self.foreign_accounts,
-        )
-        .with_advice_inputs(self.advice_inputs.clone());
+        );
 
+        tx_args.extend_advice_inputs(self.advice_inputs.clone());
         tx_args.extend_output_note_recipients(self.expected_output_notes.clone());
 
         let mast_store = {

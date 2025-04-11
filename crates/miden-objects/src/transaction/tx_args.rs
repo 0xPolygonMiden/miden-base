@@ -61,19 +61,26 @@ impl TransactionArgs {
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided transaction script.
-    pub fn with_tx_script(tx_script: TransactionScript) -> Self {
-        Self::new(Some(tx_script), Some(BTreeMap::default()), AdviceMap::default(), Vec::default())
+    #[must_use]
+    pub fn with_tx_script(mut self, tx_script: TransactionScript) -> Self {
+        self.tx_script = Some(tx_script);
+        self
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
-    pub fn with_note_args(note_args: BTreeMap<NoteId, Word>) -> Self {
-        Self::new(None, Some(note_args), AdviceMap::default(), Vec::default())
+    #[must_use]
+    pub fn with_note_args(mut self, note_args: BTreeMap<NoteId, Word>) -> Self {
+        self.note_args = note_args;
+        self
     }
 
-    /// Returns the provided [TransactionArgs] with advice inputs extended with the passed-in
-    /// `advice_inputs`.
-    pub fn with_advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
-        self.advice_inputs.extend(advice_inputs);
+    /// Returns the modified [TransactionArgs] with the provided foreign account inputs.
+    #[must_use]
+    pub fn with_foreign_account_inputs(
+        mut self,
+        foreign_account_inputs: Vec<ForeignAccountInputs>,
+    ) -> Self {
+        self.foreign_accounts = foreign_account_inputs;
         self
     }
 
@@ -140,6 +147,11 @@ impl TransactionArgs {
         for note in notes {
             self.add_output_note_recipient(note);
         }
+    }
+
+    /// Extends the provided [TransactionArgs] with the passed-in `advice_inputs`.
+    pub fn extend_advice_inputs(&mut self, advice_inputs: AdviceInputs) {
+        self.advice_inputs.extend(advice_inputs);
     }
 
     /// Extends the internal advice inputs' map with the provided key-value pairs.
