@@ -94,7 +94,7 @@ impl TransactionProver for LocalTransactionProver {
         let advice_provider: MemAdviceProvider = advice_inputs.into();
 
         // load the store with account/note/tx_script MASTs
-        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+        self.mast_store.load_transaction_code(account.code(), input_notes, &tx_args);
 
         let mut host: TransactionHost<_> = TransactionHost::new(
             account.into(),

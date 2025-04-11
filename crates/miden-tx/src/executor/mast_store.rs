@@ -5,7 +5,7 @@ use miden_objects::{
     Digest,
     account::AccountCode,
     assembly::mast::MastForest,
-    transaction::{TransactionArgs, TransactionInputs},
+    transaction::{InputNote, InputNotes, TransactionArgs},
 };
 use vm_processor::MastForestStore;
 
@@ -59,16 +59,21 @@ impl TransactionMastStore {
     /// this store.
     ///
     /// The loaded code includes:
-    /// - Account code for the account specified in the provided [TransactionInputs].
-    /// - Note scripts for all input notes in the provided [TransactionInputs].
+    /// - Account code for the account specified from the provided [AccountCode].
+    /// - Note scripts for all input notes in the provided [InputNotes].
     /// - Transaction script (if any) from the specified [TransactionArgs].
     /// - Foreign account code (if any) from the specified [TransactionArgs].
-    pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
+    pub fn load_transaction_code(
+        &self,
+        account_code: &AccountCode,
+        input_notes: &InputNotes<InputNote>,
+        tx_args: &TransactionArgs,
+    ) {
         // load account code
-        self.load_account_code(tx_inputs.account().code());
+        self.load_account_code(account_code);
 
         // load note script MAST into the MAST store
-        for note in tx_inputs.input_notes() {
+        for note in input_notes {
             self.insert(note.note().script().mast().clone());
         }
 
