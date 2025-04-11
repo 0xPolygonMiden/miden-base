@@ -15,6 +15,10 @@ use crate::{
     utils::MIDEN_PROVING_SERVICE,
 };
 
+/// A collection of provers.
+///
+/// This struct is used to store the provers for the proving service.
+/// Provers are optional because they are not always enabled.
 struct Provers {
     tx_prover: Option<LocalTransactionProver>,
     batch_prover: Option<LocalBatchProver>,
