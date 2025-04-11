@@ -124,7 +124,7 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     let tx_script_target =
         TransactionScript::compile(DEFAULT_AUTH_SCRIPT, [], TransactionKernel::assembler())
             .unwrap();
-    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
+    let tx_args_target = TransactionArgs::default().with_tx_script(tx_script_target);
 
     // execute transaction
     let executed_transaction = executor
