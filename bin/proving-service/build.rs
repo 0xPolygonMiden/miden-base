@@ -35,19 +35,15 @@ fn main() -> miette::Result<()> {
 
 /// Copies the proto file from the root proto directory to the proto directory of this crate.
 fn copy_proto_files() -> miette::Result<()> {
-    let src_files = [
-        format!("{REPO_PROTO_DIR}/proving_service.proto"),
-        format!("{REPO_PROTO_DIR}/worker_status.proto"),
-    ];
-    let dest_files = [
-        format!("{CRATE_PROTO_DIR}/proving_service.proto"),
-        format!("{CRATE_PROTO_DIR}/worker_status.proto"),
-    ];
+    let files = ["proving_service.proto", "worker_status.proto"];
 
+    // remove and create dirs
     fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
     fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
 
-    for (src, dest) in src_files.iter().zip(dest_files.iter()) {
+    for file in &files {
+        let src = format!("{REPO_PROTO_DIR}/{}", file);
+        let dest = format!("{CRATE_PROTO_DIR}/{}", file);
         fs::copy(src, dest).into_diagnostic()?;
     }
 
