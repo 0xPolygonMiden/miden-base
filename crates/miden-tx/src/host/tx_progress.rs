@@ -132,6 +132,10 @@ impl CycleInterval {
         self.end = Some(e);
     }
 
+    pub fn end(&self) -> &Option<RowIndex> {
+        &self.end
+    }
+
     /// Calculate the length of the interval
     pub fn len(&self) -> usize {
         if let Some(start) = self.start {

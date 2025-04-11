@@ -1,5 +1,6 @@
 use miden_objects::{
-    Digest,
+    Digest, Felt,
+    account::AccountId,
     assembly::{ProcedureName, QualifiedProcedureName},
     note::{Note, NoteScript},
     utils::{Deserializable, sync::LazyLock},
@@ -8,7 +9,7 @@ use miden_objects::{
 
 use crate::account::{
     components::basic_wallet_library,
-    interface::{AccountComponentInterface, AccountInterface},
+    interface::{AccountComponentInterface, AccountInterface, NoteAccountCompatibility},
 };
 
 // WELL KNOWN NOTE SCRIPTS
@@ -144,5 +145,65 @@ impl WellKnownNote {
                     .all(|proc_digest| interface_proc_digests.contains(&proc_digest))
             },
         }
+    }
+
+    /// Checks the correctness of the provided note inputs against the target account.
+    ///
+    /// It performs:
+    /// - for all notes: a check that note inputs have correct number of values.
+    /// - for `P2ID` and `P2IDR` notes: assertion that the account ID provided by the note inputs is
+    ///   equal to the target account ID.
+    /// - for `SWAP` note: a check that the target account has sufficient amount of assets required
+    ///   by the note.
+    pub fn check_note_inputs(
+        &self,
+        note: &Note,
+        target_account_id: AccountId,
+    ) -> NoteAccountCompatibility {
+        match self {
+            WellKnownNote::P2ID => {
+                let note_inputs = note.inputs().values();
+                if note_inputs.len() != 2 {
+                    return NoteAccountCompatibility::No;
+                }
+
+                Self::check_input_account_id(note_inputs, target_account_id)
+            },
+            WellKnownNote::P2IDR => {
+                let note_inputs = note.inputs().values();
+                if note_inputs.len() != 3 {
+                    return NoteAccountCompatibility::No;
+                }
+
+                Self::check_input_account_id(note_inputs, target_account_id)
+            },
+            WellKnownNote::SWAP => {
+                if note.inputs().values().len() != 10 {
+                    return NoteAccountCompatibility::No;
+                }
+
+                NoteAccountCompatibility::Maybe
+            },
+        }
+    }
+
+    /// Checks that the account ID, created from the first two values of the note inputs, is the
+    /// same as the ID of the target account.
+    fn check_input_account_id(
+        note_inputs: &[Felt],
+        target_account_id: AccountId,
+    ) -> NoteAccountCompatibility {
+        let account_id_felts: [Felt; 2] = note_inputs[0..2].try_into().expect(
+            "Should be able to convert the first two note inputs to an array of two Felt elements",
+        );
+
+        let inputs_account_id = AccountId::try_from([account_id_felts[1], account_id_felts[0]])
+            .expect("invalid account ID felts");
+
+        if inputs_account_id != target_account_id {
+            return NoteAccountCompatibility::No;
+        }
+
+        NoteAccountCompatibility::Maybe
     }
 }

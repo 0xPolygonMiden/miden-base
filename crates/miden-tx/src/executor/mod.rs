@@ -22,6 +22,9 @@ pub use data_store::DataStore;
 mod mast_store;
 pub use mast_store::TransactionMastStore;
 
+mod notes_checker;
+pub use notes_checker::NotesChecker;
+
 // TRANSACTION EXECUTOR
 // ================================================================================================
 
@@ -235,6 +238,82 @@ impl TransactionExecutor {
 
         Ok(*stack_outputs)
     }
+
+    // CHECK CONSUMABILITY
+    // ============================================================================================
+
+    /// Executes the transaction with specified notes, returning the [ExecutionCheckResult::Success]
+    /// if all notes has been consumed successfully and [ExecutionCheckResult::Failure] if some note
+    /// returned an error.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction host can not be created from the provided values.
+    /// - If the execution of the provided program fails on the stage other than note execution.
+    #[maybe_async]
+    pub(crate) fn notes_execution_progress_checker(
+        &self,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        note_ids: &[NoteId],
+        tx_args: TransactionArgs,
+    ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
+        let tx_inputs =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, note_ids))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
+        let advice_recorder: RecAdviceProvider = advice_inputs.into();
+
+        // load note script MAST into the MAST store
+        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+
+        let mut host = TransactionHost::new(
+            tx_inputs.account().into(),
+            advice_recorder,
+            self.mast_store.clone(),
+            self.authenticator.clone(),
+            self.account_codes.iter().map(|code| code.commitment()).collect(),
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        // execute the transaction kernel
+        let result = vm_processor::execute(
+            &TransactionKernel::main(),
+            stack_inputs,
+            &mut host,
+            self.exec_options,
+        )
+        .map_err(TransactionExecutorError::TransactionProgramExecutionFailed);
+
+        match result {
+            Ok(_) => Ok(ExecutionCheckResult::Success),
+            Err(e) => {
+                let notes = host.tx_progress().note_execution();
+
+                // empty notes vector means that we didn't process the notes, so an error
+                // occurred somewhere else
+                if notes.is_empty() {
+                    return Err(e);
+                }
+
+                let (last, success_notes) = notes.split_last().expect("notes vector is empty");
+
+                // if the interval end of the last note is specified, then an error occurred after
+                // notes processing
+                if last.1.end().is_some() {
+                    return Err(e);
+                }
+
+                Ok(ExecutionCheckResult::Failure((
+                    last.0,
+                    success_notes.iter().map(|note| note.0).collect(),
+                )))
+            },
+        }
+    }
 }
 
 // HELPER FUNCTIONS
@@ -296,4 +375,15 @@ fn build_executed_transaction(
         advice_witness,
         tx_progress.into(),
     ))
+}
+
+/// Describes whether a transaction with a specified set of notes could be executed against target
+/// account.
+///
+/// [ExecutionCheckResult::Failure] holds a tuple, the first value of which is a failing note ID,
+/// and the second is a vector of note IDs which were successfully executed.
+#[derive(Debug, PartialEq)]
+pub enum ExecutionCheckResult {
+    Success,
+    Failure((NoteId, Vec<NoteId>)),
 }
