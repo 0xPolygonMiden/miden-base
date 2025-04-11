@@ -58,7 +58,7 @@ impl ProverTypeSupport {
 
 impl std::fmt::Display for ProverTypeSupport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut prover_types = Vec::new();
+        let mut prover_types = Vec::with_capacity(3);
 
         if self.supports_transaction() {
             prover_types.push("tx");
