@@ -28,6 +28,27 @@ This will spawn a worker using the hosts and ports defined in the command option
 
 Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
 
+### Worker Configuration
+
+The worker can be configured using the following environment variables:
+
+| Variable                  | Description                     | Default   |
+|---------------------------|---------------------------------|-----------|
+| `MPS_WORKER_HOST`         | The host address for the worker | `0.0.0.0` |
+| `MPS_WORKER_PORT`         | The port number for the worker  | `50051`   |
+| `MPS_WORKER_TX_PROVER`    | Enable transaction proving      | `false`   |
+| `MPS_WORKER_BATCH_PROVER` | Enable batch proving            | `false`   |
+| `MPS_WORKER_BLOCK_PROVER` | Enable block proving            | `false`   |
+
+For example:
+```bash
+export MPS_WORKER_HOST="0.0.0.0"
+export MPS_WORKER_PORT="8082"
+export MPS_WORKER_TX_PROVER="true"
+export MPS_WORKER_BATCH_PROVER="true"
+miden-proving-service start-worker
+```
+
 ## Proxy
 
 To start the proxy service, you will need to run:
