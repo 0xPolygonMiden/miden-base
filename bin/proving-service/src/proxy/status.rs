@@ -52,7 +52,6 @@ pub struct WorkerStatus {
 pub struct ProxyStatus {
     version: String,
     supported_proof_types: ProverTypeSupport,
-    total_workers: usize,
     busy_workers: usize,
     workers: Vec<WorkerStatus>,
 }
@@ -82,7 +81,6 @@ impl StatusService {
         let status = ProxyStatus {
             version: env!("CARGO_PKG_VERSION").to_string(),
             supported_proof_types: self.load_balancer.supported_proof_types,
-            total_workers: workers.len(),
             busy_workers: workers.iter().filter(|w| !w.is_available()).count(),
             workers: worker_statuses,
         };

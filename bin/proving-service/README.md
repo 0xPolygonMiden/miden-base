@@ -90,22 +90,16 @@ The status check returns:
 The proxy service exposes a status endpoint that provides information about the current state of the proxy and its workers. This endpoint can be accessed at `http://<proxy_host>:<status_port>/status`.
 
 The status endpoint returns a JSON response with the following information:
-- `version`: The version of the proxy service
-- `supported_proof_types`: The types of proofs supported by the proxy
-- `total_workers`: The total number of workers registered with the proxy
-- `busy_workers`: The number of workers currently processing requests
-- `workers`: An array of worker status objects, each containing:
-  - `address`: The address of the worker
-  - `is_available`: Whether the worker is available to process new requests
-  - `is_healthy`: Whether the worker is healthy (passing health checks)
-  - `retries`: The number of retries attempted for this worker
+- `version`: The version of the proxy
+- `supported_proof_types`: The types of proofs that the proxy supports
+- `busy_workers`: The number of workers that are currently busy
+- `workers`: A list of workers with their status
 
 Example response:
 ```json
 {
   "version": "1.0.0",
   "supported_proof_types": ["tx", "batch"],
-  "total_workers": 2,
   "busy_workers": 1,
   "workers": [
     {
