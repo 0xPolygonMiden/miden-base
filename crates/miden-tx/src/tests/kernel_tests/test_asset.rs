@@ -1,3 +1,4 @@
+use miden_lib::utils::word_to_masm_push_string;
 use miden_objects::{
     account::AccountId,
     asset::NonFungibleAsset,
@@ -10,7 +11,7 @@ use miden_objects::{
 };
 use vm_processor::ProcessState;
 
-use super::{Felt, Hasher, ONE, Word, word_to_masm_push_string};
+use super::{Felt, Hasher, ONE, Word};
 use crate::testing::TransactionContextBuilder;
 
 #[test]

@@ -33,6 +33,11 @@ pub(super) fn extend_advice_inputs(
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
+    for foreign_account in tx_args.foreign_accounts() {
+        TransactionKernel::extend_advice_inputs_for_account(advice_inputs, foreign_account)
+            .unwrap();
+    }
+
     advice_inputs.extend(tx_args.advice_inputs().clone());
 }
 

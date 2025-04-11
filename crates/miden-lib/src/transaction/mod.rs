@@ -2,12 +2,13 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
     Digest, EMPTY_WORD, Felt, TransactionOutputError, ZERO,
-    account::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
+    account::{AccountCode, AccountId},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     block::BlockNumber,
-    crypto::merkle::{MerkleError, MerklePath},
+    crypto::merkle::MerkleError,
     transaction::{
-        OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
+        ForeignAccountInputs, OutputNote, OutputNotes, TransactionArgs, TransactionInputs,
+        TransactionOutputs,
     },
     utils::{serde::Deserializable, sync::LazyLock},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
@@ -199,11 +200,14 @@ impl TransactionKernel {
     ///   account.
     pub fn extend_advice_inputs_for_account(
         advice_inputs: &mut AdviceInputs,
-        account_header: &AccountHeader,
-        account_code: &AccountCode,
-        storage_header: &AccountStorageHeader,
-        merkle_path: &MerklePath,
+        foreign_account_inputs: &ForeignAccountInputs,
     ) -> Result<(), MerkleError> {
+        let account_header = foreign_account_inputs.account_header();
+        let storage_header = foreign_account_inputs.storage_header();
+        let account_code = foreign_account_inputs.account_code();
+        let merkle_path = foreign_account_inputs.merkle_proof();
+        let storage_proofs = foreign_account_inputs.storage_map_proofs();
+
         let account_id = account_header.id();
         let storage_root = account_header.storage_commitment();
         let code_root = account_header.code_commitment();
@@ -226,6 +230,17 @@ impl TransactionKernel {
             // The prefix is the index in the account tree.
             merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.commitment())?,
         );
+
+        // Load merkle nodes for storage maps
+        for proof in storage_proofs {
+            // Extend the merkle store and map with the storage maps
+            advice_inputs.extend_merkle_store(
+                proof.path().inner_nodes(proof.leaf().index().value(), proof.leaf().hash())?,
+            );
+            // Populate advice map with Sparse Merkle Tree leaf nodes
+            advice_inputs
+                .extend_map(core::iter::once((proof.leaf().hash(), proof.leaf().to_elements())));
+        }
 
         Ok(())
     }

@@ -9,9 +9,11 @@ use miden_objects::{
     asset::{Asset, FungibleAsset},
     note::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::TransactionScript,
+};
+use miden_tx::{
+    testing::{Auth, MockChain},
     utils::word_to_masm_push_string,
 };
-use miden_tx::testing::{Auth, MockChain};
 
 use crate::{
     assert_transaction_executor_error, get_note_with_fungible_asset_and_script,

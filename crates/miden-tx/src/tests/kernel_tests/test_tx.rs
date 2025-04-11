@@ -9,6 +9,7 @@ use miden_lib::{
         NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET,
         OUTPUT_NOTE_METADATA_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
     },
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     FieldElement,
@@ -25,7 +26,7 @@ use miden_objects::{
     transaction::{OutputNote, OutputNotes},
 };
 
-use super::{Felt, ONE, ProcessState, Word, ZERO, word_to_masm_push_string};
+use super::{Felt, ONE, ProcessState, Word, ZERO};
 use crate::{
     assert_execution_error, testing::TransactionContextBuilder,
     tests::kernel_tests::read_root_mem_word,

@@ -38,9 +38,7 @@ use note_builder::OutputNoteBuilder;
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::{
-    auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
-};
+use crate::{auth::TransactionAuthenticator, errors::TransactionHostError};
 
 // TRANSACTION HOST
 // ================================================================================================
@@ -56,7 +54,7 @@ pub struct TransactionHost<A> {
     adv_provider: A,
 
     /// MAST store which contains the code required to execute the transaction.
-    mast_store: Arc<TransactionMastStore>,
+    mast_store: Arc<dyn MastForestStore>,
 
     /// Account state changes accumulated during transaction execution.
     ///
@@ -98,7 +96,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     pub fn new(
         account: AccountHeader,
         adv_provider: A,
-        mast_store: Arc<TransactionMastStore>,
+        mast_store: Arc<dyn MastForestStore>,
         authenticator: Option<Arc<dyn TransactionAuthenticator>>,
         mut account_code_commitments: BTreeSet<Digest>,
     ) -> Result<Self, TransactionHostError> {

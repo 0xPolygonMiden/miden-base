@@ -39,7 +39,7 @@ use miden_objects::{
         account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET},
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
     },
-    transaction::{TransactionArgs, TransactionScript},
+    transaction::{ForeignAccountInputs, TransactionArgs, TransactionScript},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -95,6 +95,7 @@ fn test_transaction_prologue() {
         Some(tx_script),
         Some(note_args_map),
         tx_context.tx_args().advice_inputs().clone().map,
+        Vec::<ForeignAccountInputs>::new(),
     );
 
     tx_context.set_tx_args(tx_args);

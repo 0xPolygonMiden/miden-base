@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::String};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use miden_lib::{
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
@@ -11,7 +11,7 @@ use miden_objects::{
         Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
     },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
-    transaction::TransactionArgs,
+    transaction::{ForeignAccountInputs, TransactionArgs},
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
@@ -375,6 +375,7 @@ fn test_note_script_and_note_args() {
         None,
         Some(note_args_map),
         tx_context.tx_args().advice_inputs().clone().map,
+        Vec::<ForeignAccountInputs>::new(),
     );
 
     tx_context.set_tx_args(tx_args);
@@ -622,29 +623,29 @@ pub fn test_timelock() {
     const TIMESTAMP_ERROR: u32 = 123;
 
     let code = format!(
-        "
+        "	
       use.miden::note
       use.miden::tx
 
-      begin
-          # store the note inputs to memory starting at address 0
-          push.0 exec.note::get_inputs
-          # => [num_inputs, inputs_ptr]
+      begin	
+          # store the note inputs to memory starting at address 0	
+          push.0 exec.note::get_inputs	
+          # => [num_inputs, inputs_ptr]	
 
-          # make sure the number of inputs is 1
-          eq.1 assert.err=789
-          # => [inputs_ptr]
+          # make sure the number of inputs is 1	
+          eq.1 assert.err=789	
+          # => [inputs_ptr]	
 
-          # read the timestamp at which the note can be consumed
-          mem_load
-          # => [timestamp]
+          # read the timestamp at which the note can be consumed	
+          mem_load	
+          # => [timestamp]	
 
-          exec.tx::get_block_timestamp
-          # => [block_timestamp, timestamp]
+          exec.tx::get_block_timestamp	
+          # => [block_timestamp, timestamp]	
+          # ensure block timestamp is newer than timestamp	
 
-          # ensure block timestamp is newer than timestamp
-          lte assert.err={TIMESTAMP_ERROR}
-          # => []
+          lte assert.err={TIMESTAMP_ERROR}	
+          # => []	
       end"
     );
 
