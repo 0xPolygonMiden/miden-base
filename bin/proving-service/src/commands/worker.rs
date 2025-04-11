@@ -11,13 +11,13 @@ use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PRO
 #[derive(Debug, Parser, Clone, Copy, Default)]
 pub struct ProverTypeSupport {
     /// Enables transaction proving.
-    #[clap(short, long, default_value = "false")]
+    #[clap(long, default_value = "false", env = "MPS_WORKER_TX_PROVER")]
     tx_prover: bool,
     /// Enables batch proving.
-    #[clap(short, long, default_value = "false")]
+    #[clap(long, default_value = "false", env = "MPS_WORKER_BATCH_PROVER")]
     batch_prover: bool,
     /// Enables block proving.
-    #[clap(short, long, default_value = "false")]
+    #[clap(long, default_value = "false", env = "MPS_WORKER_BLOCK_PROVER")]
     block_prover: bool,
 }
 
@@ -60,10 +60,10 @@ impl ProverTypeSupport {
 #[derive(Debug, Parser)]
 pub struct StartWorker {
     /// The host of the worker
-    #[clap(short, long, default_value = "0.0.0.0")]
+    #[clap(long, default_value = "0.0.0.0", env = "MPS_WORKER_HOST")]
     host: String,
     /// The port of the worker
-    #[clap(short, long, default_value = "50051")]
+    #[clap(long, default_value = "50051", env = "MPS_WORKER_PORT")]
     port: u16,
     /// The type of prover that the worker will be
     #[clap(flatten)]
