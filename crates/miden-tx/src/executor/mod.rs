@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -7,8 +7,8 @@ use miden_objects::{
     block::BlockNumber,
     note::NoteLocation,
     transaction::{
-        ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs,
-        TransactionScript,
+        ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, TransactionArgs,
+        TransactionInputs, TransactionScript,
     },
     vm::StackOutputs,
 };
@@ -171,6 +171,7 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         tx_script: TransactionScript,
         advice_inputs: AdviceInputs,
+        foreign_account_inputs: Vec<ForeignAccountInputs>,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
         let ref_blocks = [block_ref].into_iter().collect();
         let (account, seed, header, mmr) =
@@ -184,7 +185,7 @@ impl TransactionExecutor {
             Some(tx_script.clone()),
             None,
             Default::default(),
-            Default::default(),
+            foreign_account_inputs,
         );
 
         let (stack_inputs, advice_inputs) =

@@ -954,7 +954,7 @@ fn test_execute_program() {
     let executor = TransactionExecutor::new(Arc::new(tx_context), None);
 
     let stack_outputs = executor
-        .execute_tx_view_script(account_id, block_ref, tx_script, advice_inputs)
+        .execute_tx_view_script(account_id, block_ref, tx_script, advice_inputs, Vec::default())
         .unwrap();
 
     assert_eq!(stack_outputs[..3], [Felt::new(7), Felt::new(2), ONE]);
