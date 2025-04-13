@@ -1,7 +1,6 @@
 use clap::Parser;
 use pingora::{
     apps::HttpServerOptions,
-    lb::Backend,
     prelude::{Opt, background_service},
     server::Server,
     services::listening::Service,
@@ -66,17 +65,11 @@ impl StartProxy {
 
         info!("Proxy starting with workers: {:?}", self.workers);
 
-        let workers = self
-            .workers
-            .iter()
-            .map(|worker| Backend::new(worker).map_err(ProvingServiceError::BackendCreationFailed))
-            .collect::<Result<Vec<Backend>, ProvingServiceError>>()?;
-
-        if workers.is_empty() {
+        if self.workers.is_empty() {
             warn!("Starting the proxy without any workers");
         }
 
-        let worker_lb = LoadBalancerState::new(workers, &self.proxy_config).await?;
+        let worker_lb = LoadBalancerState::new(self.workers.clone(), &self.proxy_config).await?;
 
         let health_check_service = background_service("health_check", worker_lb);
 
