@@ -5,6 +5,8 @@
 - [BREAKING] Add `TransactionHeader` and include it in batches and blocks (#1247).
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
+- Added a retry strategy for worker's health check (#1255).
+- [BREAKING] Replaced the `ProvenBatch::new_unchecked` with the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 - [BREAKING] Add `Network` account storage mode (#1275).
 
 ## 0.8.1 (2025-03-26)

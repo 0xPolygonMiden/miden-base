@@ -1,7 +1,10 @@
-use miden_objects::batch::{ProposedBatch, ProvenBatch};
-use miden_tx::TransactionVerifier;
+use alloc::boxed::Box;
 
-use crate::errors::ProvenBatchError;
+use miden_objects::{
+    ProvenBatchError,
+    batch::{ProposedBatch, ProvenBatch},
+};
+use miden_tx::TransactionVerifier;
 
 // LOCAL BATCH PROVER
 // ================================================================================================
@@ -43,11 +46,14 @@ impl LocalBatchProver {
 
         for tx in transactions {
             verifier.verify(&tx).map_err(|source| {
-                ProvenBatchError::TransactionVerificationFailed { transaction_id: tx.id(), source }
+                ProvenBatchError::TransactionVerificationFailed {
+                    transaction_id: tx.id(),
+                    source: Box::new(source),
+                }
             })?;
         }
 
-        Ok(ProvenBatch::new_unchecked(
+        ProvenBatch::new(
             id,
             block_header.commitment(),
             block_header.block_num(),
@@ -56,6 +62,6 @@ impl LocalBatchProver {
             output_notes,
             batch_expiration_block_num,
             tx_headers,
-        ))
+        )
     }
 }

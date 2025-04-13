@@ -483,7 +483,7 @@ impl MockChain {
                 .collect::<Vec<_>>(),
         );
 
-        ProvenBatch::new_unchecked(
+        ProvenBatch::new(
             id,
             block_header.commitment(),
             block_header.block_num(),
@@ -493,6 +493,7 @@ impl MockChain {
             batch_expiration_block_num,
             tx_headers,
         )
+        .expect("Failed to create ProvenBatch")
     }
 
     /// Proposes a new block from the provided batches and returns it.

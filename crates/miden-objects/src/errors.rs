@@ -624,6 +624,25 @@ pub enum ProposedBatchError {
     },
 }
 
+// PROVEN BATCH ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum ProvenBatchError {
+    #[error("failed to verify transaction {transaction_id} in transaction batch")]
+    TransactionVerificationFailed {
+        transaction_id: TransactionId,
+        source: Box<dyn Error + Send + Sync + 'static>,
+    },
+    #[error(
+        "batch expiration block number {batch_expiration_block_num} is not greater than the reference block number {reference_block_num}"
+    )]
+    InvalidBatchExpirationBlockNum {
+        batch_expiration_block_num: BlockNumber,
+        reference_block_num: BlockNumber,
+    },
+}
+
 // PROPOSED BLOCK ERROR
 // ================================================================================================
 
