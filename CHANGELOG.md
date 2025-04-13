@@ -8,7 +8,7 @@
 - [BREAKING] Replaced the `ProvenBatch::new_unchecked` with the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 - Added a retry strategy for worker's health check (#1255).
 
-## 0.8.1 (2025-03-26)
+## 0.8.1 (2025-03-26) - `miden-objects` and `miden-tx` crates only.
 
 ### Changes
 
