@@ -59,9 +59,11 @@ The serial number has two main purposes. Firstly by adding some randomness to th
 
 ## Note Lifecycle
 
-![Architecture core concepts](img/note/note-life-cycle.png)
+<p style="text-align: center;">
+    <img src="img/note/note-life-cycle.png" style="width:70%;" alt="Note lifecycle"/>
+</p>
 
-The `Note` lifecycle proceeds through four primary phases: **creation**, **validation**, **discovery**, and **consumption**. Throughout this process, `Note`s function as secure, privacy-preserving vehicles for asset transfers and logic execution.
+The `Note` lifecycle proceeds through four primary phases: **creation**, **validation**, **discovery**, and **consumption**. Creation and consumption requires two separate transactions. Throughout this process, `Note`s function as secure, privacy-preserving vehicles for asset transfers and logic execution.
 
 ### Note creation
 
@@ -74,7 +76,7 @@ Accounts can create `Note`s in a transaction. The `Note` exists if it is include
 
 As with [accounts](account.md), `Note`s can be stored either publicly or privately:
 
-- **Public mode:** The `Note` data is stored in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database), making it fully visible on-chain.
+- **Public mode:** The `Note` data is stored in the [note database](state.md#note-database), making it fully visible on-chain.
 - **Private mode:** Only the `Note`’s hash is stored publicly. The `Note`’s actual data remains off-chain, enhancing privacy.
 
 ### Note validation
@@ -128,4 +130,7 @@ This achieves the following properties:
 
 That means if a `Note` is private and the operator stores only the `Note`'s hash, only those with the `Note` details know if this `Note` has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
 
-![Architecture core concepts](img/note/nullifier.png)
+
+<p style="text-align: center;">
+    <img src="img/note/nullifier.png" style="width:70%;" alt="Nullifier diagram"/>
+</p>
