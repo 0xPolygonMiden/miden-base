@@ -50,6 +50,9 @@ pub(crate) struct ProxyConfig {
     /// Supported prover type.
     #[clap(long, default_value = "transaction", env = "MPS_SUPPORTED_PROVER_TYPE")]
     pub(crate) supported_prover_type: ProverType,
+    /// Status port.
+    #[clap(long, default_value = "8084", env = "MPS_STATUS_PORT")]
+    pub(crate) status_port: u16,
 }
 
 #[derive(Debug, Parser)]
