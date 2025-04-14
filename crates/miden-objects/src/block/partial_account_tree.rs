@@ -177,6 +177,8 @@ impl PartialAccountTree {
     /// Returns an error if:
     /// - the prefix of the account ID already exists in the tree.
     /// - the account_id is not tracked by this partial account tree.
+    ///
+    /// If an error is returned, assume that the tree is in an inconsistent state.
     fn insert(
         &mut self,
         account_id: AccountId,
@@ -237,7 +239,14 @@ mod tests {
         partial_tree.insert(id0, commitment0).unwrap();
         assert_eq!(partial_tree.get(id0).unwrap(), commitment0);
 
-        let err = partial_tree.insert(id1, commitment1).unwrap_err();
+        // We clone the tree because it will be left in an inconsistent state after the error.
+        let err = partial_tree.clone().insert(id1, commitment1).unwrap_err();
+
+        assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
+          duplicate_prefix
+        } if duplicate_prefix == id0.prefix());
+
+        partial_tree.upsert_state_commitments([(id1, commitment1)]).unwrap_err();
 
         assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
           duplicate_prefix
@@ -260,5 +269,14 @@ mod tests {
         assert_eq!(partial_tree.get(id0).unwrap(), commitment1);
     }
 
-    // TODO: Add tests for the errors of upsert_state_commitments.
+    #[test]
+    fn upsert_state_commitments_fails_on_untracked_key() {
+        let mut partial_tree = PartialAccountTree::new();
+        let [update, _] = setup_duplicate_prefix_ids();
+
+        let err = partial_tree.upsert_state_commitments([update]).unwrap_err();
+        assert_matches!(err, AccountTreeError::UntrackedAccountId { id, .. }
+          if id == update.0
+        )
+    }
 }
