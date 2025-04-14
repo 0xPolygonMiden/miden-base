@@ -2,13 +2,14 @@ use std::time::{Duration, Instant};
 
 use pingora::lb::Backend;
 use tonic::transport::Channel;
-use tonic_health::pb::{
-    HealthCheckRequest, health_check_response::ServingStatus, health_client::HealthClient,
-};
 use tracing::error;
 
-use super::health_check::create_health_check_client;
-use crate::error::ProvingServiceError;
+use super::status::create_status_client;
+use crate::{
+    commands::worker::ProverType,
+    error::ProvingServiceError,
+    generated::status::{StatusRequest, status_api_client::StatusApiClient},
+};
 
 /// The maximum exponent for the backoff.
 ///
@@ -21,11 +22,11 @@ const MAX_BACKOFF_EXPONENT: usize = 9;
 /// A worker used for processing of requests.
 ///
 /// A worker consists of a backend service (defined by worker address), a flag indicating wheter
-/// the worker is currently available to process new requests, and a gRPC health check client.
+/// the worker is currently available to process new requests, and a gRPC status client.
 #[derive(Debug, Clone)]
 pub struct Worker {
     backend: Backend,
-    health_check_client: HealthClient<Channel>,
+    status_client: StatusApiClient<Channel>,
     is_available: bool,
     health_status: WorkerHealthStatus,
 }
@@ -45,7 +46,7 @@ pub enum WorkerHealthStatus {
 }
 
 impl Worker {
-    /// Creates a new worker and a gRPC health check client for the given worker address.
+    /// Creates a new worker and a gRPC status client for the given worker address.
     ///
     /// # Errors
     /// - Returns [ProvingServiceError::InvalidURI] if the worker address is invalid.
@@ -58,13 +59,13 @@ impl Worker {
         let backend =
             Backend::new(&worker_addr).map_err(ProvingServiceError::BackendCreationFailed)?;
 
-        let health_check_client =
-            create_health_check_client(worker_addr, connection_timeout, total_timeout).await?;
+        let status_client =
+            create_status_client(worker_addr, connection_timeout, total_timeout).await?;
 
         Ok(Self {
             backend,
             is_available: true,
-            health_check_client,
+            status_client,
             health_status: WorkerHealthStatus::Healthy,
         })
     }
@@ -74,27 +75,39 @@ impl Worker {
         self.backend.addr.to_string()
     }
 
-    /// Checks the worker health.
+    /// Checks the worker status.
     ///
     /// # Returns
-    /// - `Some(true)` if the worker is healthy.
-    /// - `Some(false)` if the worker is unhealthy.
+    /// - `Some(true)` if the worker is ready.
+    /// - `Some(false)` if the worker is not ready or if there was an error checking the status.
     /// - `None` if the worker should not do a health check.
-    pub async fn is_healthy(&mut self) -> Option<bool> {
+    pub async fn is_ready(&mut self, supported_prover_type: &ProverType) -> Option<bool> {
         if !self.should_do_health_check() {
             return None;
         }
 
-        Some(
-            self.health_check_client
-                .check(HealthCheckRequest { service: "".to_string() })
-                .await
-                .map(|response| response.into_inner().status() == ServingStatus::Serving)
-                .unwrap_or_else(|err| {
-                    error!("Failed to check worker health ({}): {}", self.address(), err);
-                    false
-                }),
-        )
+        let worker_status = match self.status_client.status(StatusRequest {}).await {
+            Ok(response) => response.into_inner(),
+            Err(e) => {
+                error!("Failed to check worker status ({}): {}", self.address(), e);
+                return Some(false);
+            },
+        };
+
+        let worker_supported_proof_types =
+            match ProverType::try_from(worker_status.supported_proof_type) {
+                Ok(proof_type) => proof_type,
+                Err(e) => {
+                    error!(
+                        "Failed to convert worker supported proof type ({}): {}",
+                        self.address(),
+                        e
+                    );
+                    return Some(false);
+                },
+            };
+
+        Some((*supported_prover_type == worker_supported_proof_types) && worker_status.ready)
     }
 
     /// Returns the worker availability.
@@ -104,7 +117,7 @@ impl Worker {
 
     /// Sets the worker availability.
     pub fn set_availability(&mut self, is_available: bool) {
-        self.is_available = is_available;
+        self.is_available = is_available
     }
 
     /// Marks the worker as unhealthy and increments the number of retries.
