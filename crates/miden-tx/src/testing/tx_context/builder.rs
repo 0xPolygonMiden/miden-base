@@ -50,6 +50,7 @@ pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 /// ```
 /// # use miden_tx::testing::TransactionContextBuilder;
 /// # use miden_objects::{account::AccountBuilder,Felt, FieldElement};
+/// # use miden_lib::transaction::TransactionKernel;
 /// let tx_context = TransactionContextBuilder::with_standard_account(Felt::ONE).build();
 ///
 /// let code = "
@@ -63,7 +64,7 @@ pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 /// end
 /// ";
 ///
-/// let process = tx_context.execute_code(code).unwrap();
+/// let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 /// assert_eq!(process.stack.get(0), Felt::new(5),);
 /// ```
 pub struct TransactionContextBuilder {
