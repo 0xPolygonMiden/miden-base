@@ -153,6 +153,7 @@ impl Deserializable for AccountProcedureInfo {
 }
 
 // PRINTABLE PROCEDURE
+// ================================================================================================
 
 /// A printable representation of a single account procedure.
 #[derive(Debug, Clone)]
