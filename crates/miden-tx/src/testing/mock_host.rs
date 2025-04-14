@@ -1,5 +1,10 @@
-use alloc::{boxed::Box, collections::BTreeMap, rc::Rc, string::ToString, sync::Arc};
-use std::collections::BTreeSet;
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+    rc::Rc,
+    string::ToString,
+    sync::Arc,
+};
 
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
