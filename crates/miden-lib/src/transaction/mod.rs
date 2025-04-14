@@ -221,13 +221,12 @@ impl TransactionKernel {
             (code_root, account_code.as_elements()),
         ]);
 
-        let account_leaf = account_witness.as_proof().leaf();
+        let account_leaf = account_witness.leaf();
         let account_leaf_hash = account_leaf.hash();
 
         // extend the merkle store and map with account witnesses merkle path
         advice_inputs.extend_merkle_store(
             account_witness
-                .as_proof()
                 .path()
                 .inner_nodes(account_id.prefix().as_u64(), account_leaf_hash)?,
         );

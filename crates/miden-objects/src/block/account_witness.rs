@@ -1,16 +1,12 @@
 use alloc::string::ToString;
 
-use miden_crypto::merkle::{SmtLeaf, SmtProof};
-use vm_core::{
-    EMPTY_WORD, Felt,
-    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-};
-use vm_processor::DeserializationError;
+use miden_crypto::merkle::{MerklePath, SMT_DEPTH, SmtLeaf, SmtProof, SmtProofError};
 
 use crate::{
-    AccountTreeError, Digest,
+    AccountTreeError, Digest, Word,
     account::{AccountId, AccountIdPrefix},
     block::AccountTree,
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // ACCOUNT WITNESS
@@ -23,26 +19,17 @@ use crate::{
 /// # Guarantees
 ///
 /// This type guarantees that:
-/// - its SmtLeaf contains zero or one entries, i.e. that the account ID prefix is unique.
-/// - the leaf index is a valid account ID prefix.
+/// - its MerklePath is of depth [`SMT_DEPTH`].
+/// - converting this type into an [`SmtProof`] results in a leaf with zero or one entries, i.e. the
+///   account ID prefix is unique.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountWitness {
-    /// The suffix of the account ID for which this witness is for. Storing just the suffix of the
-    /// account ID is sufficient.
-    ///
-    /// Even though we only ever store zero or one entry, this is needed to differentiate two
-    /// cases:
-    ///
-    /// - The leaf contains exactly the account ID which this proof is for. If so, the commitment
-    ///   in the leaf is for that account ID.
-    /// - The leaf contains another account ID whose prefix matches, but not its suffix. For
-    ///   example, if a new account is attempted to be created in the chain while an account whose
-    ///   prefix matches already exists, the witness that is fetched for this account will
-    ///   (correctly) contain the leaf of the existing account. In that case,
-    ///   `Self::state_commitment` must return the empty digest instead.
-    id_suffix: Felt,
-    /// The underlying proof of the witness.
-    proof: SmtProof,
+    /// The account ID that this witness proves inclusion for.
+    id: AccountId,
+    /// The state commitment of the account ID.
+    commitment: Digest,
+    /// The merkle path of the account witness.
+    path: MerklePath,
 }
 
 impl AccountWitness {
@@ -53,19 +40,6 @@ impl AccountWitness {
     /// Returns an error if any of the guarantees of the type are not met. See the type-level docs
     /// for details.
     pub fn new(account_id: AccountId, proof: SmtProof) -> Result<Self, AccountTreeError> {
-        Self::new_inner(account_id.suffix(), proof)
-    }
-
-    /// Constructs a new [`AccountWitness`] from the provided proof.
-    ///
-    /// Note that we do not check whether the suffix exists in the leaf, because the proof could be
-    /// for an empty leaf - which is valid - but then the suffix wouldn't exist.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if any of the guarantees of the type are not met. See the type-level docs
-    /// for details.
-    fn new_inner(id_suffix: Felt, proof: SmtProof) -> Result<Self, AccountTreeError> {
         let id_prefix = AccountIdPrefix::try_from(proof.leaf().index().value())
             .map_err(AccountTreeError::InvalidAccountIdPrefix)?;
 
@@ -73,7 +47,7 @@ impl AccountWitness {
             return Err(AccountTreeError::DuplicateIdPrefix { duplicate_prefix: id_prefix });
         }
 
-        Ok(Self { id_suffix, proof })
+        Ok(Self::new_unchecked(account_id, proof))
     }
 
     /// Constructs a new [`AccountWitness`] from the provided proof without validating that it has
@@ -83,45 +57,52 @@ impl AccountWitness {
     ///
     /// This does not validate any of the guarantees of this type.
     pub(super) fn new_unchecked(account_id: AccountId, proof: SmtProof) -> Self {
-        Self { id_suffix: account_id.suffix(), proof }
+        let commitment = proof
+            .get(&AccountTree::account_id_to_key(account_id))
+            .map(Digest::from)
+            .unwrap_or_default();
+        let (path, _) = proof.into_parts();
+
+        Self { commitment, path, id: account_id }
     }
 
-    /// Returns the inner proof for the account tree of this witness.
-    pub fn as_proof(&self) -> &SmtProof {
-        &self.proof
-    }
-
-    /// Returns the underlying [`AccountIdPrefix`] that this witness prove inclusion for.
-    pub fn id_prefix(&self) -> AccountIdPrefix {
-        // SAFETY: By construction the account witness guarantees it tracks a valid account ID
-        // prefix so we can safely convert the leaf idx to that prefix.
-        AccountTree::key_to_account_id_prefix(self.proof.leaf().index())
+    /// Returns the underlying [`AccountId`] that this witness proves inclusion for.
+    pub fn id(&self) -> AccountId {
+        self.id
     }
 
     /// Returns the state commitment of the account witness.
     pub fn state_commitment(&self) -> Digest {
-        // SAFETY: By construction, this type contains only proofs with zero or one entry, so
-        // the leaf is either of variant Empty or Single.
-        match self.proof.leaf() {
-            SmtLeaf::Empty(_) => Digest::default(),
-            SmtLeaf::Single((key, commitment)) => {
-                // See the docs of the `id_suffix` field for details on why this distinction is
-                // necessary.
-                if key[AccountTree::KEY_SUFFIX_IDX] == self.id_suffix {
-                    Digest::from(commitment)
-                } else {
-                    Digest::from(EMPTY_WORD)
-                }
-            },
-            SmtLeaf::Multiple(_) => {
-                unreachable!("account witness is guaranteed to contain zero or one entries")
-            },
+        self.commitment
+    }
+
+    /// Returns the [`MerklePath`] of the account witness.
+    pub fn path(&self) -> &MerklePath {
+        &self.path
+    }
+
+    /// Returns the [`SmtLeaf`] of the account witness.
+    pub fn leaf(&self) -> SmtLeaf {
+        if self.commitment == Digest::default() {
+            let leaf_idx = AccountTree::account_id_prefix_to_leaf_index(self.id.prefix());
+            SmtLeaf::new_empty(leaf_idx)
+        } else {
+            let key = AccountTree::account_id_to_key(self.id);
+            SmtLeaf::new_single(key, Word::from(self.commitment))
         }
     }
 
     /// Consumes self and returns the inner proof.
     pub fn into_proof(self) -> SmtProof {
-        self.proof
+        let leaf = self.leaf();
+        SmtProof::new(self.path, leaf)
+            .expect("merkle path depth should be the SMT depth by construction")
+    }
+}
+
+impl From<AccountWitness> for SmtProof {
+    fn from(witness: AccountWitness) -> Self {
+        witness.into_proof()
     }
 }
 
@@ -130,18 +111,24 @@ impl AccountWitness {
 
 impl Serializable for AccountWitness {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.id_suffix.write_into(target);
-        self.proof.write_into(target);
+        self.id.write_into(target);
+        self.commitment.write_into(target);
+        self.path.write_into(target);
     }
 }
 
 impl Deserializable for AccountWitness {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let id_suffix = Felt::read_from(source)?;
-        let proof = SmtProof::read_from(source)?;
+        let id = AccountId::read_from(source)?;
+        let commitment = Digest::read_from(source)?;
+        let path = MerklePath::read_from(source)?;
 
-        // Note: This potentially swallows the source error.
-        Self::new_inner(id_suffix, proof)
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        if path.len() != SMT_DEPTH as usize {
+            return Err(DeserializationError::InvalidValue(
+                SmtProofError::InvalidMerklePathLength(path.len()).to_string(),
+            ));
+        }
+
+        Ok(Self { id, commitment, path })
     }
 }

@@ -102,8 +102,29 @@ impl AccountTree {
     /// Conceptually, an opening is a Merkle path to the leaf, as well as the leaf itself.
     pub fn open(&self, account_id: AccountId) -> AccountWitness {
         let key = Self::account_id_to_key(account_id);
+        let proof = self.smt.open(&key);
+
+        // Check which account ID this proof actually contains. We rely on the fact that the tree
+        // only contains zero or one entry per account ID prefix.
+        //
+        // If the requested account ID matches an existing ID's prefix but their suffixes do not
+        // match, then this witness is for the _existing ID_.
+        //
+        // Otherwise, if the ID matches the one in the leaf or if it's empty, the witness is for the
+        // requested ID.
+        let witness_id = match proof.leaf() {
+            SmtLeaf::Empty(_) => account_id,
+            SmtLeaf::Single((key_in_leaf, _)) => {
+                // SAFETY: By construction, the tree only contains valid IDs.
+                Self::key_to_account_id(*key_in_leaf)
+            },
+            SmtLeaf::Multiple(_) => {
+                unreachable!("account tree should only contain zero or one entry per ID prefix")
+            },
+        };
+
         // SAFETY: The tree only contains unique prefixes.
-        AccountWitness::new_unchecked(account_id, self.smt.open(&key))
+        AccountWitness::new_unchecked(witness_id, proof)
     }
 
     /// Returns the current state commitment of the given account ID.
@@ -228,15 +249,24 @@ impl AccountTree {
         Digest::from(key)
     }
 
-    /// Returns the account ID prefix of the given leaf index' underlying value.
+    /// Returns the [`LeafIndex`] corresponding to the provided [`AccountIdPrefix`].
+    pub(super) fn account_id_prefix_to_leaf_index(
+        id_prefix: AccountIdPrefix,
+    ) -> LeafIndex<{ Self::DEPTH }> {
+        LeafIndex::new(id_prefix.as_u64())
+            .expect("prefix as u64 should not exceed 2^{AccountTree::DEPTH}")
+    }
+
+    /// Returns the [`AccountId`] recovered from the given SMT key.
     ///
     /// # Panics
     ///
-    /// Panics if the leaf index is not a valid account ID prefix.
-    pub(super) fn key_to_account_id_prefix(
-        leaf_idx: LeafIndex<{ Self::DEPTH }>,
-    ) -> AccountIdPrefix {
-        AccountIdPrefix::try_from(leaf_idx.value()).expect("expected valid prefix")
+    /// Panics if:
+    /// - the key is not a valid account ID. This should not happen when used on keys from (partial)
+    ///   account tree.
+    pub(super) fn key_to_account_id(key: Digest) -> AccountId {
+        AccountId::try_from([key[Self::KEY_PREFIX_IDX], key[Self::KEY_SUFFIX_IDX]])
+            .expect("account tree should only contain valid IDs")
     }
 }
 
@@ -403,5 +433,27 @@ pub(super) mod tests {
         assert_eq!(accounts.len(), 2);
         assert!(accounts.contains(&(id0, digest0)));
         assert!(accounts.contains(&(id1, digest1)));
+    }
+
+    #[test]
+    fn account_witness() {
+        let id0 = AccountIdBuilder::new().build_with_seed([5; 32]);
+        let id1 = AccountIdBuilder::new().build_with_seed([6; 32]);
+
+        let digest0 = Digest::from([0, 0, 0, 1u32]);
+        let digest1 = Digest::from([0, 0, 0, 2u32]);
+
+        let tree = AccountTree::with_entries([(id0, digest0), (id1, digest1)]).unwrap();
+
+        assert_eq!(tree.num_accounts(), 2);
+
+        for id in [id0, id1] {
+            let (control_path, control_leaf) =
+                tree.smt.open(&AccountTree::account_id_to_key(id)).into_parts();
+            let witness = tree.open(id);
+
+            assert_eq!(witness.leaf(), control_leaf);
+            assert_eq!(witness.path(), &control_path);
+        }
     }
 }

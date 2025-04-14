@@ -267,7 +267,7 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
         .build()
         .context("failed to build account")?;
 
-    let account_id = account.id();
+    let new_id = account.id();
 
     // Construct a second account whose ID matches the prefix of the first and insert it into the
     // chain, as if that account already existed. That way we can check if the block prover errors
@@ -276,23 +276,23 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
 
     // Set some bits on the hash part of the suffix to make the account id distinct from the
     // original one, but their prefix is still the same.
-    let account_id2 = AccountId::try_from(u128::from(account_id) | 0xffff00)
+    let existing_id = AccountId::try_from(u128::from(new_id) | 0xffff00)
         .context("failed to convert account ID")?;
 
     assert_eq!(
-        account_id.prefix(),
-        account_id2.prefix(),
+        new_id.prefix(),
+        existing_id.prefix(),
         "test requires that prefixes are the same"
     );
     assert_ne!(
-        account_id.suffix(),
-        account_id2.suffix(),
+        new_id.suffix(),
+        existing_id.suffix(),
         "test should work if suffixes are different, so we want to ensure it"
     );
     assert_eq!(account.init_commitment(), miden_objects::Digest::from(EMPTY_WORD));
 
     let account2 =
-        Account::mock(account_id2.into(), Felt::ZERO, TransactionKernel::testing_assembler());
+        Account::mock(existing_id.into(), Felt::ZERO, TransactionKernel::testing_assembler());
     mock_chain.add_pending_account(account2);
     mock_chain.seal_next_block();
 
@@ -309,7 +309,20 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
         ProvenTransaction::from_executed_transaction_mocked(tx, &mock_chain.latest_block_header());
 
     let batch = generate_batch(&mut mock_chain, vec![tx]);
-    let block = mock_chain.propose_block([batch]).context("failed to propose block")?;
+    let batches = [batch];
+
+    // Sanity check: The block inputs should contain an account witness whose ID matches the
+    // existing ID.
+    let block_inputs = mock_chain.get_block_inputs(batches.iter());
+    assert_eq!(block_inputs.account_witnesses().len(), 1);
+    let witness = block_inputs
+        .account_witnesses()
+        .get(&new_id)
+        .context("block inputs did not contain witness for id")?;
+    // The witness should be for the **existing** account ID.
+    assert_eq!(witness.id(), existing_id);
+
+    let block = mock_chain.propose_block(batches).context("failed to propose block")?;
 
     let err = LocalBlockProver::new(0).prove_without_batch_verification(block).unwrap_err();
 
@@ -317,7 +330,7 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
         err,
         ProvenBlockError::AccountIdPrefixDuplicate {
             source: AccountTreeError::DuplicateIdPrefix { duplicate_prefix }
-        } if duplicate_prefix == account_id.prefix()
+        } if duplicate_prefix == new_id.prefix()
     );
 
     Ok(())

@@ -655,7 +655,13 @@ impl AccountUpdateAggregator {
         initial_state_proof: AccountWitness,
         mut updates: BTreeMap<Digest, (BatchAccountUpdate, BatchId)>,
     ) -> Result<AccountUpdateWitness, ProposedBlockError> {
-        let initial_state_commitment = initial_state_proof.state_commitment();
+        // The account witness could prove inclusion of a different ID in which case the initial
+        // state commitment of the current ID is the empty word.
+        let initial_state_commitment = if account_id == initial_state_proof.id() {
+            initial_state_proof.state_commitment()
+        } else {
+            Digest::from(EMPTY_WORD)
+        };
 
         let mut details: Option<AccountUpdateDetails> = None;
 

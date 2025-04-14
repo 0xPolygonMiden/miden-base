@@ -1,3 +1,5 @@
+use miden_crypto::merkle::SmtLeaf;
+
 use crate::{
     Digest, Word,
     account::AccountId,
@@ -56,10 +58,34 @@ impl PartialAccountTree {
     /// - the account ID is not tracked by this account tree.
     pub fn open(&self, account_id: AccountId) -> Result<AccountWitness, AccountTreeError> {
         let key = AccountTree::account_id_to_key(account_id);
-        // SAFETY: The tree only contains unique prefixes.
+
         self.smt
             .open(&key)
-            .map(|proof| AccountWitness::new_unchecked(account_id, proof))
+            .map(|proof| {
+                // Check which account ID this proof actually contains. We rely on the fact that the
+                // tree only contains zero or one entry per account ID prefix.
+                //
+                // If the requested account ID matches an existing ID's prefix but their suffixes do
+                // not match, then this witness is for the _existing ID_.
+                //
+                // Otherwise, if the ID matches the one in the leaf or if it's empty, the witness is
+                // for the requested ID.
+                let witness_id = match proof.leaf() {
+                    SmtLeaf::Empty(_) => account_id,
+                    SmtLeaf::Single((key_in_leaf, _)) => {
+                        // SAFETY: By construction, the tree only contains valid IDs.
+                        AccountTree::key_to_account_id(*key_in_leaf)
+                    },
+                    SmtLeaf::Multiple(_) => {
+                        unreachable!(
+                            "account tree should only contain zero or one entry per ID prefix"
+                        )
+                    },
+                };
+
+                // SAFETY: The tree only contains unique prefixes.
+                AccountWitness::new_unchecked(witness_id, proof)
+            })
             .map_err(|source| AccountTreeError::UntrackedAccountId { id: account_id, source })
     }
 
@@ -98,7 +124,7 @@ impl PartialAccountTree {
         &mut self,
         witness: AccountWitness,
     ) -> Result<(), AccountTreeError> {
-        let id_prefix = witness.id_prefix();
+        let id_prefix = witness.id().prefix();
         let (path, leaf) = witness.into_proof().into_parts();
         if leaf.is_empty() {
             return Ok(());
