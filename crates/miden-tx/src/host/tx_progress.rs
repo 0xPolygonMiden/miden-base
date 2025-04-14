@@ -132,8 +132,12 @@ impl CycleInterval {
         self.end = Some(e);
     }
 
-    pub fn end(&self) -> &Option<RowIndex> {
-        &self.end
+    pub fn start(&self) -> Option<RowIndex> {
+        self.start
+    }
+
+    pub fn end(&self) -> Option<RowIndex> {
+        self.end
     }
 
     /// Calculate the length of the interval

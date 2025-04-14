@@ -9,10 +9,7 @@ use ::assembly::{
     LibraryPath,
     ast::{Module, ModuleKind},
 };
-use miden_lib::{
-    account::interface::NoteAccountCompatibility, note::create_p2id_note,
-    transaction::TransactionKernel,
-};
+use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     Felt, MIN_PROOF_SECURITY_LEVEL, Word,
     account::{AccountBuilder, AccountComponent, AccountId, AccountStorage, StorageSlot},
@@ -50,8 +47,8 @@ use super::{
     TransactionVerifier,
 };
 use crate::{
-    TransactionMastStore,
-    executor::{ExecutionCheckResult, NotesChecker},
+    TransactionExecutorError, TransactionMastStore,
+    executor::{NoteAccountExecution, NoteInputsCheck, NotesChecker},
     testing::TransactionContextBuilder,
 };
 
@@ -1079,14 +1076,14 @@ fn check_note_inputs() {
     let notes_checker =
         NotesChecker::new(target_account_id, vec![InputNote::unauthenticated(p2id_note.clone())]);
     let note_inputs_check_result = notes_checker.check_note_inputs();
-    assert_eq!(note_inputs_check_result, (NoteAccountCompatibility::Maybe, None));
+    assert_eq!(note_inputs_check_result, NoteInputsCheck::Maybe);
 
     // Failure
     // --------------------------------------------------------------------------------------------
     let notes_checker =
         NotesChecker::new(sender_account_id, vec![InputNote::unauthenticated(p2id_note)]);
     let note_inputs_check_result = notes_checker.check_note_inputs();
-    assert_eq!(note_inputs_check_result, (NoteAccountCompatibility::No, Some(p2id_note_id)));
+    assert_eq!(note_inputs_check_result, NoteInputsCheck::No { failed_note_id: p2id_note_id });
 }
 
 #[test]
@@ -1108,7 +1105,7 @@ fn test_check_note_consumability() {
     let execution_check_result = notes_checker
         .check_notes_consumability(&executor, block_ref, tx_context.tx_args().clone())
         .unwrap();
-    assert_eq!(execution_check_result, ExecutionCheckResult::Success);
+    assert!(matches!(execution_check_result, NoteAccountExecution::Success));
 
     // Failure
     // --------------------------------------------------------------------------------------------
@@ -1148,8 +1145,18 @@ fn test_check_note_consumability() {
     let execution_check_result = notes_checker
         .check_notes_consumability(&executor, block_ref, tx_context.tx_args().clone())
         .unwrap();
-    assert_eq!(
-        execution_check_result,
-        ExecutionCheckResult::Failure((failing_note_2.id(), vec![input_note_ids[0]]))
-    );
+
+    assert!(if let NoteAccountExecution::Failure {
+        failed_note_id,
+        successful_notes,
+        error: Some(e),
+    } = execution_check_result
+    {
+        assert_eq!(failed_note_id, failing_note_2.id());
+        assert_eq!(successful_notes, vec![input_note_ids[0]]);
+        assert!(matches!(e, TransactionExecutorError::TransactionProgramExecutionFailed { .. }));
+        true
+    } else {
+        false
+    });
 }

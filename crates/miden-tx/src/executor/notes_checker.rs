@@ -11,15 +11,22 @@ use miden_objects::{
 };
 use winter_maybe_async::{maybe_async, maybe_await};
 
-use super::{ExecutionCheckResult, TransactionExecutor};
+use super::{NoteAccountExecution, TransactionExecutor};
 use crate::TransactionExecutorError;
 
+/// This struct performs input notes checks against provided target account.
+///
+/// A check could be:
+/// - Static -- performed by the [NotesChecker::check_note_inputs]. See method description.
+/// - Dynamic -- performed by the [NotesChecker::check_notes_consumability]. Essentially runs the
+///   transaction to make sure that provided input notes could be consumed by the account.
 pub struct NotesChecker {
     account_id: AccountId,
     notes: Vec<InputNote>,
 }
 
 impl NotesChecker {
+    /// Returns a new instance of the [NotesChecker].
     pub fn new(account_id: AccountId, notes: Vec<InputNote>) -> Self {
         NotesChecker { account_id, notes }
     }
@@ -28,18 +35,18 @@ impl NotesChecker {
     /// provided input notes. If so, assert that the note inputs are correct.
     ///
     /// Returns [NoteAccountCompatibility::No] if at least one note has incorrect inputs.
-    pub fn check_note_inputs(&self) -> (NoteAccountCompatibility, Option<NoteId>) {
+    pub fn check_note_inputs(&self) -> NoteInputsCheck {
         for note in self.notes.iter() {
             if let Some(well_known_note) = WellKnownNote::from_note(note.note()) {
                 if let NoteAccountCompatibility::No =
                     well_known_note.check_note_inputs(note.note(), self.account_id)
                 {
-                    return (NoteAccountCompatibility::No, Some(note.id()));
+                    return NoteInputsCheck::No { failed_note_id: note.id() };
                 }
             }
         }
 
-        (NoteAccountCompatibility::Maybe, None)
+        NoteInputsCheck::Maybe
     }
 
     /// Checks whether the provided input notes could be consumed by the provided account.
@@ -58,26 +65,33 @@ impl NotesChecker {
         tx_executor: &TransactionExecutor,
         block_ref: BlockNumber,
         tx_args: TransactionArgs,
-    ) -> Result<ExecutionCheckResult, TransactionExecutorError> {
+    ) -> Result<NoteAccountExecution, TransactionExecutorError> {
         // Check input notes
         // ----------------------------------------------------------------------------------------
-
         let inputs_check_result = self.check_note_inputs();
-        if let (NoteAccountCompatibility::No, failing_note_id) = inputs_check_result {
-            return Ok(ExecutionCheckResult::Failure((
-                failing_note_id.expect("tuple with incompatible note should contain its ID"),
-                vec![],
-            )));
+        if let NoteInputsCheck::No { failed_note_id } = inputs_check_result {
+            return Ok(NoteAccountExecution::Failure {
+                failed_note_id,
+                successful_notes: vec![],
+                error: None,
+            });
         }
 
         // Execute transaction
         // ----------------------------------------------------------------------------------------
         let note_ids = self.notes.iter().map(|note| note.id()).collect::<Vec<NoteId>>();
-        maybe_await!(tx_executor.notes_execution_progress_checker(
+        maybe_await!(tx_executor.try_notes_execution(
             self.account_id,
             block_ref,
             &note_ids,
             tx_args
         ))
     }
+}
+
+/// Helper enum for getting a result of the well known note inputs check.
+#[derive(Debug, PartialEq)]
+pub enum NoteInputsCheck {
+    Maybe,
+    No { failed_note_id: NoteId },
 }
