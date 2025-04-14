@@ -99,7 +99,7 @@ fn test_transaction_prologue() {
     );
 
     tx_context.set_tx_args(tx_args);
-    let process = &tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     global_input_memory_assertions(process, &tx_context);
     block_data_memory_assertions(process, &tx_context);
@@ -436,7 +436,7 @@ pub fn create_account_test(
   end
   ";
 
-    tx_context.execute_code(code, TransactionKernel::assembler())?;
+    tx_context.execute_code(code, TransactionKernel::testing_assembler())?;
 
     Ok(())
 }
@@ -647,7 +647,7 @@ pub fn create_account_invalid_seed() {
       end
       ";
 
-    let result = tx_context.execute_code(code, TransactionKernel::assembler());
+    let result = tx_context.execute_code(code, TransactionKernel::testing_assembler());
 
     assert_execution_error!(result, ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH)
 }
@@ -668,7 +668,7 @@ fn test_get_blk_version() {
     end
     ";
 
-    let process = tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_context.tx_inputs().block_header().version().into());
 }
@@ -689,7 +689,7 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let process = tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_context.tx_inputs().block_header().timestamp().into());
 }

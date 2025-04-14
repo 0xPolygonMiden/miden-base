@@ -53,7 +53,9 @@ fn test_get_balance() {
         suffix = faucet_id.suffix(),
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context
+        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
 
     assert_eq!(
         process.stack.get(0).as_int(),
@@ -81,7 +83,8 @@ fn test_get_balance_non_fungible_fails() {
         suffix = faucet_id.suffix(),
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
+    let process =
+        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
 
     assert_execution_error!(
         process,
@@ -112,7 +115,9 @@ fn test_has_non_fungible_asset() {
         non_fungible_asset_key = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context
+        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
 
     assert_eq!(process.stack.get(0), ONE);
 }
@@ -148,7 +153,9 @@ fn test_add_fungible_asset_success() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&add_fungible_asset.into())
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context
+        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -191,7 +198,8 @@ fn test_add_non_fungible_asset_fail_overflow() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&add_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
+    let process =
+        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
 
     assert_execution_error!(process, ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED);
     assert!(account_vault.add_asset(add_fungible_asset).is_err());
@@ -227,7 +235,9 @@ fn test_add_non_fungible_asset_success() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&add_non_fungible_asset.into())
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context
+        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -265,7 +275,8 @@ fn test_add_non_fungible_asset_fail_duplicate() {
         NON_FUNGIBLE_ASSET = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
+    let process =
+        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
 
     assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS);
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
@@ -303,7 +314,9 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&remove_fungible_asset.into())
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context
+        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -344,7 +357,8 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&remove_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
+    let process =
+        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
 
     assert_execution_error!(process, ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW);
 }
@@ -381,7 +395,9 @@ fn test_remove_fungible_asset_success_balance_remaining() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&remove_fungible_asset.into())
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context
+        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -426,7 +442,8 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&non_existent_non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
+    let process =
+        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
 
     assert_execution_error!(process, ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND);
     assert_matches!(
@@ -463,7 +480,9 @@ fn test_remove_non_fungible_asset_success() {
         FUNGIBLE_ASSET = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context
+        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(

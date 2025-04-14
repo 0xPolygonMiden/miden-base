@@ -46,7 +46,7 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let process = tx_context.execute_code(code, TransactionKernel::assembler());
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler());
 
     assert_execution_error!(process, ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT);
 }
@@ -74,7 +74,7 @@ fn test_get_sender() {
         end
         ";
 
-    let process = tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     let sender = tx_context.input_notes().get_note(0).note().metadata().sender();
     assert_eq!(process.stack.get(0), sender.prefix().as_felt());
@@ -129,7 +129,7 @@ fn test_get_vault_data() {
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
-    tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 }
 #[test]
 fn test_get_assets() {
@@ -240,7 +240,7 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
     );
 
-    tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 }
 
 #[test]
@@ -309,7 +309,7 @@ fn test_get_inputs() {
         NOTE_0_PTR = 100000000,
     );
 
-    tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 }
 
 #[test]
@@ -332,7 +332,7 @@ fn test_note_setup() {
         end
         ";
 
-    let process = tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     note_setup_stack_assertions(&process, &tx_context);
     note_setup_memory_assertions(&process);
@@ -379,7 +379,7 @@ fn test_note_script_and_note_args() {
     );
 
     tx_context.set_tx_args(tx_args);
-    let process = tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     assert_eq!(process.stack.get_word(0), note_args[0]);
 
@@ -426,7 +426,7 @@ fn test_get_note_serial_number() {
         end
         ";
 
-    let process = tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     let serial_number = tx_context.input_notes().get_note(0).note().serial_num();
     assert_eq!(process.stack.get_word(0), serial_number);
@@ -477,7 +477,7 @@ fn test_get_inputs_hash() {
         end
     ";
 
-    let process = &tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
     let process_state: ProcessState = process.into();
 
     let note_inputs_5_hash =
@@ -549,7 +549,7 @@ fn test_get_current_script_root() {
     end
     ";
 
-    let process = tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
 
     let script_root = tx_context.input_notes().get_note(0).note().script().root();
     assert_eq!(process.stack.get_word(0), script_root.as_elements());
@@ -602,7 +602,8 @@ fn test_build_note_metadata() {
             tag = test_metadata.tag(),
         );
 
-        let process = tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+        let process =
+            tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 
         let metadata_word = [
             process.stack.get(3),

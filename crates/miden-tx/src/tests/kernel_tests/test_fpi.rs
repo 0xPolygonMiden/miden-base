@@ -140,7 +140,7 @@ fn test_fpi_memory() {
         get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -194,7 +194,7 @@ fn test_fpi_memory() {
         get_map_item_foreign_hash = foreign_account.code().procedures()[1].mast_root(),
     );
 
-    let process = tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -264,7 +264,7 @@ fn test_fpi_memory() {
         get_item_foreign_hash = foreign_account.code().procedures()[0].mast_root(),
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 
     // Check that the second invocation of the foreign procedure from the same account does not load
     // the account data again: already loaded data should be reused.
@@ -447,7 +447,7 @@ fn test_fpi_memory_two_accounts() {
         foreign_2_suffix = foreign_account_2.id().suffix(),
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
 
     // Check the correctness of the memory layout after multiple foreign procedure invocations from
     // different foreign accounts
