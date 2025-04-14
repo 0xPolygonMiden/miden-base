@@ -108,22 +108,25 @@ The status endpoint returns a JSON response with the following information:
 Example response:
 ```json
 {
-  "version": "1.0.0",
-  "supported_proof_type": "batch",
+  "version": "0.8.0",
+  "supported_proof_type": "Transaction",
   "busy_workers": 1,
   "workers": [
     {
-      "address": "127.0.0.1:8080",
-      "is_available": true,
-      "is_healthy": true,
-      "retries": 0
+      "address": "0.0.0.0:50051",
+      "version": "0.8.0",
+      "status": {
+        "Unhealthy": {
+          "failed_attempts": 3,
+          "reason": "Unsupported proof type"
+        }
+      }
     },
     {
-      "address": "127.0.0.1:9090",
-      "is_available": false,
-      "is_healthy": true,
-      "retries": 0
-    }
+      "address": "0.0.0.0:50052",
+      "version": "0.8.0",
+      "status": "Healthy"
+    },
   ]
 }
 ```
