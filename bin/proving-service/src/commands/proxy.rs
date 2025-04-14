@@ -11,7 +11,10 @@ use tracing::{info, warn};
 use super::ProxyConfig;
 use crate::{
     error::ProvingServiceError,
-    proxy::{LoadBalancer, LoadBalancerState, update_workers::LoadBalancerUpdateService},
+    proxy::{
+        LoadBalancer, LoadBalancerState, status::StatusService,
+        update_workers::LoadBalancerUpdateService,
+    },
     utils::{MIDEN_PROVING_SERVICE, check_port_availability},
 };
 
@@ -85,7 +88,7 @@ impl StartProxy {
         );
 
         // Set up the load balancer
-        let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb));
+        let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb.clone()));
 
         lb.add_tcp(format!("{}:{}", &self.proxy_config.host, self.proxy_config.port).as_str());
         info!("Proxy listening on {}:{}", &self.proxy_config.host, self.proxy_config.port);
@@ -120,8 +123,20 @@ impl StartProxy {
             tracing::info!("Prometheus metrics not enabled");
         }
 
+        // Add status service
+        let status_service = StatusService::new(worker_lb);
+        let mut status_service = Service::new("status".to_string(), status_service);
+        status_service.add_tcp(
+            format!("{}:{}", self.proxy_config.host, self.proxy_config.status_port).as_str(),
+        );
+        info!(
+            "Status service listening on {}:{}/status",
+            self.proxy_config.host, self.proxy_config.status_port
+        );
+
         server.add_service(health_check_service);
         server.add_service(update_workers_service);
+        server.add_service(status_service);
         server.add_service(lb);
         tokio::task::spawn_blocking(|| server.run_forever())
             .await
