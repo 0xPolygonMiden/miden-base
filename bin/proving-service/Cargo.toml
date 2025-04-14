@@ -64,7 +64,3 @@ prost = { version = "0.13", default-features = false, features = ["derive"] }
 prost-build = { version = "0.13" }
 protox = { version = "0.7" }
 tonic-build = { version = "0.12" }
-
-# TODO: remove when pingora releases a fix https://github.com/cloudflare/pingora/issues/568
-[patch.crates-io]
-sfv = { git = "https://github.com/undef1nd/sfv.git", tag = "v0.9.4" }
