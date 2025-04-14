@@ -1,10 +1,11 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use crate::{
     Digest, MIN_PROOF_SECURITY_LEVEL,
     account::AccountId,
     batch::{BatchAccountUpdate, BatchId},
     block::BlockNumber,
+    errors::ProvenBatchError,
     note::Nullifier,
     transaction::{InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -28,8 +29,13 @@ impl ProvenBatch {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [`ProvenBatch`] from the provided parts.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the batch expiration block number is not greater than the reference
+    /// block number.
     #[allow(clippy::too_many_arguments)]
-    pub fn new_unchecked(
+    pub fn new(
         id: BatchId,
         reference_block_commitment: Digest,
         reference_block_num: BlockNumber,
@@ -38,8 +44,16 @@ impl ProvenBatch {
         output_notes: Vec<OutputNote>,
         batch_expiration_block_num: BlockNumber,
         transactions: OrderedTransactionHeaders,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, ProvenBatchError> {
+        // Check that the batch expiration block number is greater than the reference block number.
+        if batch_expiration_block_num <= reference_block_num {
+            return Err(ProvenBatchError::InvalidBatchExpirationBlockNum {
+                batch_expiration_block_num,
+                reference_block_num,
+            });
+        }
+
+        Ok(Self {
             id,
             reference_block_commitment,
             reference_block_num,
@@ -48,7 +62,7 @@ impl ProvenBatch {
             output_notes,
             batch_expiration_block_num,
             transactions,
-        }
+        })
     }
 
     // PUBLIC ACCESSORS
@@ -156,7 +170,7 @@ impl Deserializable for ProvenBatch {
         let batch_expiration_block_num = BlockNumber::read_from(source)?;
         let transactions = OrderedTransactionHeaders::read_from(source)?;
 
-        Ok(Self::new_unchecked(
+        Self::new(
             id,
             reference_block_commitment,
             reference_block_num,
@@ -165,6 +179,7 @@ impl Deserializable for ProvenBatch {
             output_notes,
             batch_expiration_block_num,
             transactions,
-        ))
+        )
+        .map_err(|e| DeserializationError::UnknownError(e.to_string()))
     }
 }

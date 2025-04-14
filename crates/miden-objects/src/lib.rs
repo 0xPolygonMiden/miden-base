@@ -25,9 +25,9 @@ mod errors;
 pub use constants::*;
 pub use errors::{
     AccountDeltaError, AccountError, AccountIdError, AccountTreeError, AssetError, AssetVaultError,
-    BatchAccountUpdateError, ChainMmrError, NoteError, NullifierTreeError, ProposedBatchError,
-    ProposedBlockError, ProvenTransactionError, TransactionInputError, TransactionOutputError,
-    TransactionScriptError,
+    BatchAccountUpdateError, ChainMmrError, NetworkIdError, NoteError, NullifierTreeError,
+    ProposedBatchError, ProposedBlockError, ProvenBatchError, ProvenTransactionError,
+    TransactionInputError, TransactionOutputError, TransactionScriptError,
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{
