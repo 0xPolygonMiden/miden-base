@@ -2,6 +2,8 @@
 syntax = "proto3";
 package status;
 
+import "proving_service.proto";
+
 service StatusApi {
     // Returns the status of the worker.
     rpc Status(StatusRequest) returns (StatusResponse) {}
@@ -16,15 +18,6 @@ message StatusResponse {
     bool ready = 1;
     // The version of the worker.
     string version = 2;
-    // The supported proof types.
-    SupportedProofTypes supported_proof_types = 3;
-}
-
-message SupportedProofTypes {
-    // Whether the worker supports transaction proofs.
-    bool transaction = 1;
-    // Whether the worker supports batch proofs.
-    bool batch = 2;
-    // Whether the worker supports block proofs.
-    bool block = 3;
+    // The proof type supported by this worker.
+    proving_service.ProofType supported_proof_type = 3;
 }

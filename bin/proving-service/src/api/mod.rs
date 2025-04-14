@@ -1,7 +1,7 @@
 use tokio::net::TcpListener;
 
 use crate::{
-    commands::worker::ProverTypeSupport,
+    commands::worker::ProverType,
     generated::{api_server::ApiServer, status::status_api_server::StatusApiServer},
 };
 
@@ -17,9 +17,9 @@ pub struct RpcListener {
 }
 
 impl RpcListener {
-    pub fn new(listener: TcpListener, prover_type_support: ProverTypeSupport) -> Self {
-        let prover_rpc_api = ProverRpcApi::new(prover_type_support);
-        let status_rpc_api = status::StatusRpcApi::new(prover_type_support);
+    pub fn new(listener: TcpListener, prover_type: ProverType) -> Self {
+        let prover_rpc_api = ProverRpcApi::new(prover_type);
+        let status_rpc_api = status::StatusRpcApi::new(prover_type);
         let api_service = ApiServer::new(prover_rpc_api);
         let status_service = StatusApiServer::new(status_rpc_api);
         Self { listener, api_service, status_service }

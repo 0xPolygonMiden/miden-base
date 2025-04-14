@@ -10,7 +10,7 @@ use tonic::{Request, Response, Status};
 use tracing::instrument;
 
 use crate::{
-    commands::worker::ProverTypeSupport,
+    commands::worker::ProverType,
     generated::{ProofType, ProvingRequest, ProvingResponse, api_server::Api as ProverApi},
     utils::MIDEN_PROVING_SERVICE,
 };
@@ -26,26 +26,24 @@ struct Provers {
 }
 
 impl Provers {
-    fn new(prover_type_support: ProverTypeSupport) -> Self {
-        let tx_prover = if prover_type_support.supports_transaction() {
-            Some(LocalTransactionProver::default())
-        } else {
-            None
-        };
-
-        let batch_prover = if prover_type_support.supports_batch() {
-            Some(LocalBatchProver::new(MIN_PROOF_SECURITY_LEVEL))
-        } else {
-            None
-        };
-
-        let block_prover = if prover_type_support.supports_block() {
-            Some(LocalBlockProver::new(MIN_PROOF_SECURITY_LEVEL))
-        } else {
-            None
-        };
-
-        Self { tx_prover, batch_prover, block_prover }
+    fn new(prover_type: ProverType) -> Self {
+        match prover_type {
+            ProverType::Transaction => Self {
+                tx_prover: Some(LocalTransactionProver::default()),
+                batch_prover: None,
+                block_prover: None,
+            },
+            ProverType::Batch => Self {
+                tx_prover: None,
+                batch_prover: Some(LocalBatchProver::new(MIN_PROOF_SECURITY_LEVEL)),
+                block_prover: None,
+            },
+            ProverType::Block => Self {
+                tx_prover: None,
+                batch_prover: None,
+                block_prover: Some(LocalBlockProver::new(MIN_PROOF_SECURITY_LEVEL)),
+            },
+        }
     }
 }
 
@@ -54,8 +52,8 @@ pub struct ProverRpcApi {
 }
 
 impl ProverRpcApi {
-    pub fn new(prover_type_support: ProverTypeSupport) -> Self {
-        let provers = Mutex::new(Provers::new(prover_type_support));
+    pub fn new(prover_type: ProverType) -> Self {
+        let provers = Mutex::new(Provers::new(prover_type));
 
         Self { provers }
     }

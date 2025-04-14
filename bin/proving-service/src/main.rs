@@ -46,7 +46,7 @@ mod test {
 
     use crate::{
         api::ProverRpcApi,
-        commands::worker::ProverTypeSupport,
+        commands::worker::ProverType,
         generated::{ProofType, ProvingRequest, api_client::ApiClient, api_server::ApiServer},
     };
 
@@ -55,7 +55,7 @@ mod test {
         // Start the server in the background
         let listener = TcpListener::bind("127.0.0.1:50052").await.unwrap();
 
-        let prover_type = ProverTypeSupport::default().with_transaction();
+        let prover_type = ProverType::Transaction;
 
         let api_service = ApiServer::new(ProverRpcApi::new(prover_type));
 
