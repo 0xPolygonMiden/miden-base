@@ -5,7 +5,7 @@
 
 A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions, transaction batches, and blocks.
 
-The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if it is already in use.
+The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if it is already in use. Each worker is specialized to handle exactly one type of proof (transaction, batch, or block).
 
 The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue, assigning a worker to each request and retrying if the worker is not available. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
@@ -24,28 +24,47 @@ The CLI can be installed from the source code using specific git revisions with 
 To start the worker service you will need to run:
 
 ```bash
-miden-proving-service start-worker --host 0.0.0.0 --port 8082 --tx-prover --batch-prover
+miden-proving-service start-worker --host 0.0.0.0 --port 8082 --prover-type transaction
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. This command will start a worker that can handle transaction and batch proving requests.
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
 
-Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
+The `--prover-type` flag is required and specifies which type of proof the worker will handle. The available options are:
+- `transaction`: For transaction proofs
+- `batch`: For batch proofs
+- `block`: For block proofs
+
+Each worker can only handle one type of proof. If you need to handle multiple proof types, you should start multiple workers, each with a different proof type.
 
 ## Proxy
 
 To start the proxy service, you will need to run:
 
 ```bash
-miden-proving-service start-proxy [worker1] [worker2] ... [workerN]
+miden-proving-service start-proxy --supported-prover-type transaction [worker1] [worker2] ... [workerN]
 ```
 
 For example:
 
 ```bash
-miden-proving-service start-proxy 0.0.0.0:8084 0.0.0.0:8085
+miden-proving-service start-proxy --supported-prover-type transaction 0.0.0.0:8084 0.0.0.0:8085
 ```
 
 This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
+
+The `--supported-prover-type` flag is required and specifies which type of proof the proxy will handle. The available options are:
+- `transaction`: For transaction proofs
+- `batch`: For batch proofs
+- `block`: For block proofs
+
+The proxy can only handle one type of proof at a time. When you add workers to the proxy, it will check their supported proof type. Workers that support a different proof type than the proxy will be marked as unhealthy and will not be used for proving requests.
+
+For example, if you start a proxy with `--supported-prover-type transaction` and add these workers:
+- Worker 1: Transaction proofs (Healthy)
+- Worker 2: Batch proofs (Unhealthy - incompatible proof type)
+- Worker 3: Block proofs (Unhealthy - incompatible proof type)
+
+Only Worker 1 will be used for proving requests, while Workers 2 and 3 will be marked as unhealthy due to incompatible proof types.
 
 You can customize the proxy service by setting environment variables. Possible customizations can be found by running `miden-proving-service start-proxy --help`.
 
