@@ -1,6 +1,6 @@
 # State
 
-The `State` describes the current condition of all accounts, notes, nullifiers and their statuses. Reflecting the “current reality” of the protocol at any given time.
+The `State` describes the current condition of all accounts, notes, nullifiers and their statuses. Reflecting the "current reality" of the protocol at any given time.
 
 ## What is the purpose of the Miden state model?
 
@@ -78,7 +78,7 @@ Both of these properties are needed for supporting local transactions using clie
 
 ### Nullifier database
 
-Each [note](note.md) has an associated nullifier which enables the tracking of whether it's associated note has been consumed or not, preventing double-spending.
+Each [note](note.md) has an associated nullifier which enables the tracking of whether its associated note has been consumed or not, preventing double-spending.
 
 To prove that a note has not been consumed, the operator must provide a Merkle path to the corresponding node and show that the node’s value is 0. Since nullifiers are 32 bytes each, the sparse Merkle tree height must be sufficient to represent all possible nullifiers. Operators must maintain the entire nullifier set to compute the new tree root after inserting new nullifiers. For each nullifier we also record the block in which it was created. This way "unconsumed" nullifiers have block 0, but all consumed nullifiers have a non-zero block.
 
