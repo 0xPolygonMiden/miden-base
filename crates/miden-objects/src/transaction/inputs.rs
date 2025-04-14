@@ -681,7 +681,7 @@ mod tests {
     fn serde_roundtrip() {
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap();
         let code = AccountCode::mock();
-        let vault = AssetVault::new(&vec![]).unwrap();
+        let vault = AssetVault::new(&[]).unwrap();
         let storage = AccountStorage::new(vec![]).unwrap();
         let account = Account::from_parts(id, vault, storage, code, Felt::new(10));
 
