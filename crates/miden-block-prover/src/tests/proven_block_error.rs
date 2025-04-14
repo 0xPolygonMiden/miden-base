@@ -3,14 +3,19 @@ use assert_matches::assert_matches;
 use miden_crypto::{EMPTY_WORD, Felt, FieldElement};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    AccountTreeError, NullifierTreeError,
-    account::{Account, AccountBuilder, AccountId, AccountIdAnchor, StorageSlot},
+    AccountTreeError, Digest, NullifierTreeError,
+    account::{
+        Account, AccountBuilder, AccountId, AccountIdAnchor, StorageSlot,
+        delta::AccountUpdateDetails,
+    },
     batch::ProvenBatch,
-    block::{BlockInputs, ProposedBlock},
+    block::{BlockInputs, BlockNumber, ProposedBlock},
     testing::account_component::AccountMockComponent,
-    transaction::ProvenTransaction,
+    transaction::{ProvenTransaction, ProvenTransactionBuilder},
+    vm::ExecutionProof,
 };
 use miden_tx::testing::{MockChain, TransactionContextBuilder};
+use winterfell::Proof;
 
 use crate::{
     LocalBlockProver, ProvenBlockError,
@@ -319,13 +324,16 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
         .account_witnesses()
         .get(&new_id)
         .context("block inputs did not contain witness for id")?;
-    // The witness should be for the **existing** account ID.
+
+    // The witness should be for the **existing** account ID, because that's the one that exists in
+    // the tree and is therefore in the same SMT leaf that we would insert the new ID into.
     assert_eq!(witness.id(), existing_id);
 
     let block = mock_chain.propose_block(batches).context("failed to propose block")?;
 
     let err = LocalBlockProver::new(0).prove_without_batch_verification(block).unwrap_err();
 
+    // This should fail when we try to _insert_ the same two prefixes into the partial tree.
     assert_matches!(
         err,
         ProvenBlockError::AccountIdPrefixDuplicate {
@@ -336,4 +344,98 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
     Ok(())
 }
 
-// TODO: Add test where two accounts share the same ID prefix in the _same block_.
+/// Tests that creating two accounts in the same block whose ID prefixes match, results in an error.
+#[test]
+fn proven_block_fails_on_creating_account_with_duplicate_account_id_prefix() -> anyhow::Result<()> {
+    // Construct a new account.
+    // --------------------------------------------------------------------------------------------
+
+    let mut mock_chain = MockChain::new();
+    let anchor_block = mock_chain.block_header(0);
+    let (account, _) = AccountBuilder::new([5; 32])
+        .anchor(AccountIdAnchor::try_from(&anchor_block)?)
+        .with_component(
+            AccountMockComponent::new_with_slots(
+                TransactionKernel::testing_assembler(),
+                vec![StorageSlot::Value([5u32.into(); 4])],
+            )
+            .unwrap(),
+        )
+        .build()
+        .context("failed to build account")?;
+
+    let id0 = account.id();
+
+    // Construct a second account whose ID matches the prefix of the first.
+    // --------------------------------------------------------------------------------------------
+
+    // Set some bits on the hash part of the suffix to make the account id distinct from the
+    // original one, but their prefix is still the same.
+    let id1 =
+        AccountId::try_from(u128::from(id0) | 0xffff00).context("failed to convert account ID")?;
+
+    assert_eq!(id0.prefix(), id1.prefix(), "test requires that prefixes are the same");
+    assert_ne!(
+        id0.suffix(),
+        id1.suffix(),
+        "test should work if suffixes are different, so we want to ensure it"
+    );
+
+    // Build two mocked proven transactions, each of which creates a new account and both share the
+    // same ID prefix but not the suffix.
+    // --------------------------------------------------------------------------------------------
+
+    let [tx0, tx1] =
+        [(id0, [0, 0, 0, 1u32]), (id1, [0, 0, 0, 2u32])].map(|(id, final_state_comm)| {
+            ProvenTransactionBuilder::new(
+                id,
+                Digest::default(),
+                Digest::from(final_state_comm),
+                anchor_block.block_num(),
+                anchor_block.commitment(),
+                BlockNumber::from(u32::MAX),
+                ExecutionProof::new(Proof::new_dummy(), Default::default()),
+            )
+            .account_update_details(AccountUpdateDetails::Private)
+            .build()
+            .unwrap()
+        });
+
+    // Build a batch from these transactions and attempt to prove a block.
+    // --------------------------------------------------------------------------------------------
+
+    let batch = generate_batch(&mut mock_chain, vec![tx0, tx1]);
+    let batches = [batch];
+
+    // Sanity check: The block inputs should contain two account witnesses that point to the same
+    // empty entry.
+    let block_inputs = mock_chain.get_block_inputs(batches.iter());
+    assert_eq!(block_inputs.account_witnesses().len(), 2);
+    let witness0 = block_inputs
+        .account_witnesses()
+        .get(&id0)
+        .context("block inputs did not contain witness for id0")?;
+    let witness1 = block_inputs
+        .account_witnesses()
+        .get(&id1)
+        .context("block inputs did not contain witness for id1")?;
+    assert_eq!(witness0.id(), id0);
+    assert_eq!(witness1.id(), id1);
+
+    assert_eq!(witness0.state_commitment(), Digest::default());
+    assert_eq!(witness1.state_commitment(), Digest::default());
+
+    let block = mock_chain.propose_block(batches).context("failed to propose block")?;
+
+    let err = LocalBlockProver::new(0).prove_without_batch_verification(block).unwrap_err();
+
+    // This should fail when we try to _track_ the same two prefixes in the partial tree.
+    assert_matches!(
+        err,
+        ProvenBlockError::AccountWitnessTracking {
+            source: AccountTreeError::DuplicateIdPrefix { duplicate_prefix }
+        } if duplicate_prefix == id0.prefix()
+    );
+
+    Ok(())
+}

@@ -30,8 +30,8 @@ impl PartialAccountTree {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - the provided entries contain multiple commitments for the same account ID.
-    /// - multiple account IDs share the same prefix.
+    /// - the merkle paths of the witnesses do not result in the same tree root.
+    /// - there are multiple witnesses for the same ID _prefix_.
     pub fn with_witnesses(
         witnesses: impl IntoIterator<Item = AccountWitness>,
     ) -> Result<Self, AccountTreeError> {
@@ -118,31 +118,30 @@ impl PartialAccountTree {
     ///
     /// Returns an error if:
     /// - after the witness' merkle path was added, the partial account tree has a different root
-    ///   than before it was added.
-    /// - the prefix of the account ID tracked by the witness is already in the tree.
+    ///   than before it was added (except when the first witness is added).
+    /// - there exists a leaf in the tree whose account ID prefix matches the one in the provided
+    ///   witness.
     pub fn track_account_witness(
         &mut self,
         witness: AccountWitness,
     ) -> Result<(), AccountTreeError> {
         let id_prefix = witness.id().prefix();
+        let id_key = AccountTree::account_id_to_key(witness.id());
         let (path, leaf) = witness.into_proof().into_parts();
-        if leaf.is_empty() {
-            return Ok(());
+
+        // If a leaf with the same prefix is already tracked by this partial tree, consider it an
+        // error.
+        //
+        // We return an error even for empty leaves, because tracking the same ID prefix twice
+        // indicates that different IDs are attempted to be tracked. It would technically
+        // not violate the invariant of the tree that it only tracks zero or one entries per leaf,
+        // but since tracking the same ID twice should practically never happen, we return an error,
+        // out of an abundance of caution.
+        if self.smt.get_leaf(&id_key).is_ok() {
+            return Err(AccountTreeError::DuplicateIdPrefix { duplicate_prefix: id_prefix });
         }
 
-        let id_key = leaf.entries().first().expect("there should be at least one entry").0;
-
         self.smt.add_path(leaf, path).map_err(AccountTreeError::TreeRootConflict)?;
-
-        if self
-            .smt
-            .get_leaf(&id_key)
-            .expect("the key should be tracked because we just inserted it")
-            .num_entries()
-            >= 2
-        {
-            return Err(AccountTreeError::DuplicateIdPrefix { duplicate_prefix: id_prefix });
-        };
 
         Ok(())
     }
@@ -177,37 +176,31 @@ impl PartialAccountTree {
     /// Returns an error if:
     /// - the prefix of the account ID already exists in the tree.
     /// - the account_id is not tracked by this partial account tree.
-    ///
-    /// If an error is returned, assume that the tree is in an inconsistent state.
     fn insert(
         &mut self,
         account_id: AccountId,
         state_commitment: Digest,
     ) -> Result<Digest, AccountTreeError> {
         let key = AccountTree::account_id_to_key(account_id);
-        let prev_value =
-            self.smt.insert(key, Word::from(state_commitment)).map(Digest::from).map_err(
-                |source| AccountTreeError::UntrackedAccountId { id: account_id, source },
-            )?;
 
-        // If the leaf of the account ID _after the insertion_ has two or more entries, we've
-        // inserted a duplicate prefix.
-        // We check this after the insertion because it is easier to do than before. The downside is
-        // that the tree is left in an inconsistent state, but trees on which operations fail are
-        // usually discarded anyway.
-        if self
-            .smt
-            .get_leaf(&key)
-            .map_err(|source| AccountTreeError::UntrackedAccountId { id: account_id, source })?
-            .num_entries()
-            >= 2
-        {
-            return Err(AccountTreeError::DuplicateIdPrefix {
-                duplicate_prefix: account_id.prefix(),
-            });
+        // If there exists a tracked leaf whose key is _not_ the one we're about to overwrite, then
+        // we would insert the new commitment next to an existing account ID with the same prefix,
+        // which is an error.
+        // Note that if the leaf is empty, that's fine. It means it is tracked by the partial SMT,
+        // but no account ID is inserted yet.
+        // Also note that the multiple variant cannot occur by construction of the tree.
+        if let Ok(SmtLeaf::Single((existing_key, _))) = self.smt.get_leaf(&key) {
+            if key != existing_key {
+                return Err(AccountTreeError::DuplicateIdPrefix {
+                    duplicate_prefix: account_id.prefix(),
+                });
+            }
         }
 
-        Ok(prev_value)
+        self.smt
+            .insert(key, Word::from(state_commitment))
+            .map(Digest::from)
+            .map_err(|source| AccountTreeError::UntrackedAccountId { id: account_id, source })
     }
 }
 
@@ -220,6 +213,7 @@ impl Default for PartialAccountTree {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use miden_crypto::merkle::Smt;
 
     use super::*;
     use crate::block::account_tree::tests::setup_duplicate_prefix_ids;
@@ -239,8 +233,7 @@ mod tests {
         partial_tree.insert(id0, commitment0).unwrap();
         assert_eq!(partial_tree.get(id0).unwrap(), commitment0);
 
-        // We clone the tree because it will be left in an inconsistent state after the error.
-        let err = partial_tree.clone().insert(id1, commitment1).unwrap_err();
+        let err = partial_tree.insert(id1, commitment1).unwrap_err();
 
         assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
           duplicate_prefix
@@ -277,6 +270,34 @@ mod tests {
         let err = partial_tree.upsert_state_commitments([update]).unwrap_err();
         assert_matches!(err, AccountTreeError::UntrackedAccountId { id, .. }
           if id == update.0
+        )
+    }
+
+    #[test]
+    fn track_fails_on_duplicate_prefix() {
+        // Use a raw Smt since an account tree would not allow us to get the witnesses for two
+        // account IDs with the same prefix.
+        let full_tree =
+            Smt::with_entries(setup_duplicate_prefix_ids().map(|(id, commitment)| {
+                (AccountTree::account_id_to_key(id), Word::from(commitment))
+            }))
+            .unwrap();
+
+        let [(id0, _), (id1, _)] = setup_duplicate_prefix_ids();
+
+        let proof0 = full_tree.open(&AccountTree::account_id_to_key(id0));
+        let proof1 = full_tree.open(&AccountTree::account_id_to_key(id1));
+        assert_eq!(proof0.leaf(), proof1.leaf());
+
+        let witness0 = AccountWitness::new_unchecked(id0, proof0);
+        let witness1 = AccountWitness::new_unchecked(id1, proof1);
+
+        let mut partial_tree = PartialAccountTree::new();
+        partial_tree.track_account_witness(witness0).unwrap();
+        let err = partial_tree.track_account_witness(witness1).unwrap_err();
+
+        assert_matches!(err, AccountTreeError::DuplicateIdPrefix { duplicate_prefix, .. }
+          if duplicate_prefix == id1.prefix()
         )
     }
 }
