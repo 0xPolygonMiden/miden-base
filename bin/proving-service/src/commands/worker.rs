@@ -7,7 +7,7 @@ use tracing::{info, instrument};
 use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PROVING_SERVICE};
 
 /// Specifies the type of proving task a worker can handle.
-#[derive(Debug, Clone, Copy, Default, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, ValueEnum, PartialEq)]
 pub enum ProverType {
     /// Transaction proving
     #[default]

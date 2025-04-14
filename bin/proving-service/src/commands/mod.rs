@@ -2,7 +2,7 @@ use clap::Parser;
 use proxy::StartProxy;
 use tracing::instrument;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
-use worker::StartWorker;
+use worker::{ProverType, StartWorker};
 
 use crate::utils::MIDEN_PROVING_SERVICE;
 
@@ -47,6 +47,9 @@ pub(crate) struct ProxyConfig {
     /// Worker update service port.
     #[clap(long, default_value = "8083", env = "MPS_MPS_WORKERS_UPDATE_PORT")]
     pub(crate) workers_update_port: u16,
+    /// Supported prover type.
+    #[clap(long, default_value = "transaction", env = "MPS_SUPPORTED_PROVER_TYPE")]
+    pub(crate) supported_prover_type: ProverType,
 }
 
 #[derive(Debug, Parser)]
