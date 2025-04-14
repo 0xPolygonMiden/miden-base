@@ -13,7 +13,9 @@ use vm_processor::MemAdviceProvider;
 use winter_maybe_async::*;
 
 use super::{TransactionHost, TransactionProverError};
-use crate::executor::TransactionMastStore;
+
+mod mast_store;
+pub use mast_store::TransactionMastStore;
 
 // TRANSACTION PROVER TRAIT
 // ================================================================================================

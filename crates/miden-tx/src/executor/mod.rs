@@ -21,9 +21,6 @@ use crate::auth::TransactionAuthenticator;
 mod data_store;
 pub use data_store::DataStore;
 
-mod mast_store;
-pub use mast_store::TransactionMastStore;
-
 // TRANSACTION EXECUTOR
 // ================================================================================================
 
