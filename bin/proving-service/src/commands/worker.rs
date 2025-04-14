@@ -1,4 +1,5 @@
 use clap::{Parser, ValueEnum};
+use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic_health::server::health_reporter;
@@ -7,7 +8,7 @@ use tracing::{info, instrument};
 use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PROVING_SERVICE};
 
 /// Specifies the type of proving task a worker can handle.
-#[derive(Debug, Clone, Copy, Default, ValueEnum, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, ValueEnum, PartialEq, Serialize, Deserialize)]
 pub enum ProverType {
     /// Transaction proving
     #[default]

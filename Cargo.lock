@@ -2026,6 +2026,7 @@ dependencies = [
  "protox",
  "reqwest",
  "serde",
+ "serde_json",
  "serde_qs",
  "thiserror 2.0.12",
  "tokio",

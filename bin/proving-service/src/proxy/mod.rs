@@ -9,7 +9,7 @@ use bytes::Bytes;
 use metrics::{
     QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMIT_VIOLATIONS, RATE_LIMITED_REQUESTS, REQUEST_COUNT,
     REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
-    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
+    WORKER_REQUEST_COUNT,
 };
 use pingora::{
     http::ResponseHeader,
@@ -40,7 +40,7 @@ use crate::{
 
 mod health_check;
 pub mod metrics;
-mod status;
+pub(crate) mod status;
 pub(crate) mod update_workers;
 mod worker;
 
@@ -195,7 +195,7 @@ impl LoadBalancerState {
         self.workers.read().await.iter().filter(|w| !w.is_available()).count()
     }
 
-    /// Check the status of the workers.
+    /// Check the status of the workers and update the health status.
     ///
     /// Performs a status check on each worker using the gRPC status protocol.
     ///
@@ -203,13 +203,8 @@ impl LoadBalancerState {
     /// workers will be incremented.
     async fn check_workers_status(&self, workers: impl Iterator<Item = &mut Worker>) {
         for worker in workers {
-            if let Some(is_ready) = worker.is_ready(&self.supported_prover_type).await {
-                if is_ready {
-                    worker.mark_as_healthy();
-                } else {
-                    worker.mark_as_unhealthy();
-                    WORKER_UNHEALTHY.with_label_values(&[&worker.address()]).inc();
-                }
+            if let Some(worker_status) = worker.check_status(&self.supported_prover_type).await {
+                worker.set_health_status(worker_status);
             }
         }
     }

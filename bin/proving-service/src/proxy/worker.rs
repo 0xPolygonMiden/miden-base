@@ -1,10 +1,11 @@
 use std::time::{Duration, Instant};
 
 use pingora::lb::Backend;
+use serde::Serialize;
 use tonic::transport::Channel;
 use tracing::error;
 
-use super::status::create_status_client;
+use super::{metrics::WORKER_UNHEALTHY, status::create_status_client};
 use crate::{
     commands::worker::ProverType,
     error::ProvingServiceError,
@@ -29,6 +30,7 @@ pub struct Worker {
     status_client: StatusApiClient<Channel>,
     is_available: bool,
     health_status: WorkerHealthStatus,
+    version: String,
 }
 
 /// The health status of a worker.
@@ -36,12 +38,14 @@ pub struct Worker {
 /// A worker can be either healthy or unhealthy.
 /// If the worker is unhealthy, it will have a number of failed attempts.
 /// The number of failed attempts is incremented each time the worker is unhealthy.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum WorkerHealthStatus {
     Healthy,
     Unhealthy {
         failed_attempts: usize,
+        #[serde(skip_serializing)]
         first_fail_timestamp: Instant,
+        reason: String,
     },
 }
 
@@ -67,6 +71,7 @@ impl Worker {
             is_available: true,
             status_client,
             health_status: WorkerHealthStatus::Healthy,
+            version: "".to_string(),
         })
     }
 
@@ -81,20 +86,31 @@ impl Worker {
     /// - `Some(true)` if the worker is ready.
     /// - `Some(false)` if the worker is not ready or if there was an error checking the status.
     /// - `None` if the worker should not do a health check.
-    pub async fn is_ready(&mut self, supported_prover_type: &ProverType) -> Option<bool> {
+    pub async fn check_status(
+        &mut self,
+        supported_prover_type: &ProverType,
+    ) -> Option<WorkerHealthStatus> {
         if !self.should_do_health_check() {
             return None;
         }
+
+        let failed_attempts = self.retries_amount();
 
         let worker_status = match self.status_client.status(StatusRequest {}).await {
             Ok(response) => response.into_inner(),
             Err(e) => {
                 error!("Failed to check worker status ({}): {}", self.address(), e);
-                return Some(false);
+                return Some(WorkerHealthStatus::Unhealthy {
+                    failed_attempts: failed_attempts + 1,
+                    first_fail_timestamp: Instant::now(),
+                    reason: e.message().to_string(),
+                });
             },
         };
 
-        let worker_supported_proof_types =
+        self.version = worker_status.version;
+
+        let worker_supported_proof_type =
             match ProverType::try_from(worker_status.supported_proof_type) {
                 Ok(proof_type) => proof_type,
                 Err(e) => {
@@ -103,11 +119,31 @@ impl Worker {
                         self.address(),
                         e
                     );
-                    return Some(false);
+                    return Some(WorkerHealthStatus::Unhealthy {
+                        failed_attempts: failed_attempts + 1,
+                        first_fail_timestamp: Instant::now(),
+                        reason: e.to_string(),
+                    });
                 },
             };
 
-        Some((*supported_prover_type == worker_supported_proof_types) && worker_status.ready)
+        if !(*supported_prover_type == worker_supported_proof_type) {
+            return Some(WorkerHealthStatus::Unhealthy {
+                failed_attempts: failed_attempts + 1,
+                first_fail_timestamp: Instant::now(),
+                reason: "Unsupported proof type".to_string(),
+            });
+        }
+
+        if !worker_status.ready {
+            return Some(WorkerHealthStatus::Unhealthy {
+                failed_attempts: failed_attempts + 1,
+                first_fail_timestamp: Instant::now(),
+                reason: "Worker not ready".to_string(),
+            });
+        }
+
+        Some(WorkerHealthStatus::Healthy)
     }
 
     /// Returns the worker availability.
@@ -120,38 +156,28 @@ impl Worker {
         self.is_available = is_available
     }
 
-    /// Marks the worker as unhealthy and increments the number of retries.
-    ///
-    /// Additionally, the worker is set to unavailable.
-    pub fn mark_as_unhealthy(&mut self) {
-        self.health_status = match &self.health_status {
-            WorkerHealthStatus::Healthy => WorkerHealthStatus::Unhealthy {
-                failed_attempts: 1,
-                first_fail_timestamp: Instant::now(),
+    pub(crate) fn set_health_status(&mut self, health_status: WorkerHealthStatus) {
+        self.health_status = health_status;
+        match &self.health_status {
+            WorkerHealthStatus::Healthy => {
+                self.is_available = true;
             },
-            WorkerHealthStatus::Unhealthy { failed_attempts, first_fail_timestamp } => {
-                WorkerHealthStatus::Unhealthy {
-                    failed_attempts: failed_attempts + 1,
-                    first_fail_timestamp: *first_fail_timestamp,
-                }
+            WorkerHealthStatus::Unhealthy { .. } => {
+                WORKER_UNHEALTHY.with_label_values(&[&self.address()]).inc();
+                self.is_available = false;
             },
-        };
-        self.is_available = false;
-    }
-
-    /// Resets the health status to healthy and sets the worker to available.
-    pub fn mark_as_healthy(&mut self) {
-        self.health_status = WorkerHealthStatus::Healthy;
-        self.is_available = true;
+        }
     }
 
     /// Returns the number of retries the worker has had.
     pub fn retries_amount(&self) -> usize {
         match &self.health_status {
             WorkerHealthStatus::Healthy => 0,
-            WorkerHealthStatus::Unhealthy { failed_attempts, first_fail_timestamp: _ } => {
-                *failed_attempts
-            },
+            WorkerHealthStatus::Unhealthy {
+                failed_attempts,
+                first_fail_timestamp: _,
+                reason: _,
+            } => *failed_attempts,
         }
     }
 
@@ -165,7 +191,11 @@ impl Worker {
     pub(crate) fn should_do_health_check(&self) -> bool {
         match self.health_status {
             WorkerHealthStatus::Healthy => true,
-            WorkerHealthStatus::Unhealthy { failed_attempts, first_fail_timestamp } => {
+            WorkerHealthStatus::Unhealthy {
+                failed_attempts,
+                first_fail_timestamp,
+                reason: _,
+            } => {
                 let time_since_first_failure = Instant::now() - first_fail_timestamp;
                 time_since_first_failure
                     > Duration::from_secs(
@@ -173,6 +203,14 @@ impl Worker {
                     )
             },
         }
+    }
+
+    pub fn health_status(&self) -> &WorkerHealthStatus {
+        &self.health_status
+    }
+
+    pub fn version(&self) -> &str {
+        &self.version
     }
 }
 
