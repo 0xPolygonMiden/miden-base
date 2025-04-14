@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use core::fmt::Debug;
 
-use miden_crypto::merkle::{MerklePath, SmtProof};
+use miden_crypto::merkle::{MerkleError, MerklePath, SmtProof};
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
@@ -549,7 +549,7 @@ pub struct ForeignAccountInputs {
     /// Code associated with the account.
     account_code: AccountCode,
     /// Merkle proof of the account's inclusion in the account tree.
-    merkle_proof: MerklePath,
+    account_witness: MerklePath,
     /// Storage SMT proof for storage map values that the transaction will access.
     storage_map_proofs: Vec<SmtProof>,
 }
@@ -567,7 +567,7 @@ impl ForeignAccountInputs {
             account_header,
             storage_header,
             account_code,
-            merkle_proof,
+            account_witness: merkle_proof,
             storage_map_proofs,
         }
     }
@@ -597,9 +597,15 @@ impl ForeignAccountInputs {
         &self.account_code
     }
 
-    /// Returns the account's proof.
-    pub fn merkle_proof(&self) -> &MerklePath {
-        &self.merkle_proof
+    /// Returns the account witness.
+    pub fn account_witness(&self) -> &MerklePath {
+        &self.account_witness
+    }
+
+    /// Computes account root based on the account witness.
+    pub fn compute_account_root(&self) -> Result<Digest, MerkleError> {
+        self.account_witness()
+            .compute_root(self.id().prefix().into(), self.account_header().commitment())
     }
 
     /// Extends the storage proofs with the input `smt_proofs` and returns the new structure
@@ -620,7 +626,7 @@ impl ForeignAccountInputs {
             self.account_header,
             self.storage_header,
             self.account_code,
-            self.merkle_proof,
+            self.account_witness,
             self.storage_map_proofs,
         )
     }
@@ -631,7 +637,7 @@ impl Serializable for ForeignAccountInputs {
         self.account_header.write_into(target);
         self.storage_header.write_into(target);
         self.account_code.write_into(target);
-        self.merkle_proof.write_into(target);
+        self.account_witness.write_into(target);
         self.storage_map_proofs.write_into(target);
     }
 }
@@ -652,5 +658,47 @@ impl Deserializable for ForeignAccountInputs {
             merkle_proof,
             storage_maps,
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use miden_crypto::merkle::MerklePath;
+    use vm_core::{
+        Felt,
+        utils::{Deserializable, Serializable},
+    };
+
+    use super::ForeignAccountInputs;
+    use crate::{
+        account::{Account, AccountCode, AccountHeader, AccountId, AccountStorage},
+        asset::AssetVault,
+        testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+    };
+
+    #[test]
+    fn serde_roundtrip() {
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap();
+        let code = AccountCode::mock();
+        let vault = AssetVault::new(&vec![]).unwrap();
+        let storage = AccountStorage::new(vec![]).unwrap();
+        let account = Account::from_parts(id, vault, storage, code, Felt::new(10));
+
+        let commitment = account.commitment();
+        let header: AccountHeader = account.clone().into();
+        let (_, _, storage, code, _) = account.into_parts();
+
+        let fpi_inputs = ForeignAccountInputs::new(
+            header,
+            storage.get_header(),
+            code,
+            MerklePath::new(vec![commitment]),
+            vec![],
+        );
+
+        let serialized = fpi_inputs.to_bytes();
+        let deserialized = ForeignAccountInputs::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, fpi_inputs);
     }
 }

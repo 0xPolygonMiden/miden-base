@@ -624,9 +624,16 @@ impl MockChain {
         };
 
         let (account, seed) = if let AccountState::New = account_state {
-            let last_block = self.blocks.last().expect("one block should always exist");
+            let epoch_block_number = self
+                .blocks
+                .last()
+                .expect("one block should always exist")
+                .header()
+                .epoch_block_num();
+            let account_id_anchor =
+                self.blocks.get(epoch_block_number.as_usize()).unwrap().header();
             account_builder =
-                account_builder.anchor(AccountIdAnchor::try_from(last_block.header()).unwrap());
+                account_builder.anchor(AccountIdAnchor::try_from(account_id_anchor).unwrap());
 
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {

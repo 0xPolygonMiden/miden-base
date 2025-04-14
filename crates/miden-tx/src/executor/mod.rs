@@ -5,7 +5,6 @@ use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::AccountId,
     block::BlockNumber,
-    note::NoteLocation,
     transaction::{
         ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, TransactionArgs,
         TransactionInputs, TransactionScript,
@@ -32,11 +31,11 @@ pub use mast_store::TransactionMastStore;
 ///
 /// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Load the code associated with the transaction into the [TransactionMastStore].
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
 /// The transaction executor uses dynamic dispatch with trait objects for the [DataStore] and
 /// [TransactionAuthenticator], allowing it to be used with different backend implementations.
+/// At the moment of execution, the [DataStore] is expected to provide all required MAST nodes.
 pub struct TransactionExecutor {
     data_store: Arc<dyn DataStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
@@ -101,6 +100,9 @@ impl TransactionExecutor {
     /// # Errors:
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction arguments contain foreign account data not anchored in the reference
+    ///   block.
+    /// - If any input notes were created in block numbers higher than the reference block.
     #[maybe_async]
     pub fn execute_transaction(
         &self,
@@ -109,22 +111,45 @@ impl TransactionExecutor {
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let mut ref_blocks: BTreeSet<BlockNumber> = notes
-            .iter()
-            .filter_map(InputNote::location)
-            .map(NoteLocation::block_num)
-            .collect();
+        // Validate that notes were not created after the reference, and build the set of required
+        // block numbers
+        let mut ref_blocks: BTreeSet<BlockNumber> = BTreeSet::new();
+        for note in &notes {
+            if let Some(location) = note.location() {
+                if location.block_num() > block_ref {
+                    return Err(TransactionExecutorError::NoteBlockPastReferenceBlock(
+                        note.id(),
+                        block_ref,
+                    ));
+                }
+                ref_blocks.insert(location.block_num());
+            }
+        }
+
         ref_blocks.insert(block_ref);
 
-        let (account, seed, header, mmr) =
+        let (account, seed, ref_header, mmr) =
             maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let tx_inputs = TransactionInputs::new(account, seed, header, mmr, notes)
+        // Validate that foreign account inputs are anchored in the reference block
+        for foreign_account in tx_args.foreign_accounts() {
+            let computed_account_root = foreign_account.compute_account_root().map_err(|err| {
+                TransactionExecutorError::InvalidAccountWitness(foreign_account.id(), err)
+            })?;
+            if computed_account_root != ref_header.account_root() {
+                return Err(TransactionExecutorError::ForeignAccountNotAnchoredInReference(
+                    foreign_account.id(),
+                ));
+            }
+        }
+
+        let tx_inputs = TransactionInputs::new(account, seed, ref_header, mmr, notes)
             .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
 
         let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None)
+                .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
 
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
@@ -133,15 +158,11 @@ impl TransactionExecutor {
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            tx_args
-                .foreign_accounts()
-                .iter()
-                .map(|acc| acc.account_code().commitment())
-                .collect(),
+            tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
-        // execute the transaction kernel
+        // Execute the transaction kernel
         let result = vm_processor::execute(
             &TransactionKernel::main(),
             stack_inputs,
@@ -189,7 +210,8 @@ impl TransactionExecutor {
         );
 
         let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs));
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs))
+                .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
         let mut host = TransactionHost::new(
@@ -197,11 +219,7 @@ impl TransactionExecutor {
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            tx_args
-                .foreign_accounts()
-                .iter()
-                .map(|acc| acc.account_code().commitment())
-                .collect(),
+            tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 

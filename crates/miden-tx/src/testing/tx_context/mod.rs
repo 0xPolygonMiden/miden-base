@@ -42,7 +42,6 @@ pub struct TransactionContext {
     mast_store: TransactionMastStore,
     advice_inputs: AdviceInputs,
     authenticator: Option<MockAuthenticator>,
-    assembler: Assembler,
 }
 
 impl TransactionContext {
@@ -56,18 +55,22 @@ impl TransactionContext {
     ///
     /// # Errors
     /// Returns an error if the assembly or execution of the provided code fails.
-    pub fn execute_code(&self, code: &str) -> Result<Process, ExecutionError> {
+    pub fn execute_code(
+        &self,
+        code: &str,
+        assembler: Assembler,
+    ) -> Result<Process, ExecutionError> {
         let (stack_inputs, mut advice_inputs) = TransactionKernel::prepare_inputs(
             &self.tx_inputs,
             &self.tx_args,
             Some(self.advice_inputs.clone()),
-        );
+        )
+        .unwrap();
         advice_inputs.extend(self.advice_inputs.clone());
 
         let test_lib = TransactionKernel::kernel_as_library();
 
-        let program = self
-            .assembler
+        let program = assembler
             .clone()
             .with_debug_mode(true)
             .assemble_program(code)
@@ -83,18 +86,13 @@ impl TransactionContext {
             self.tx_inputs.account().into(),
             advice_inputs,
             mast_store,
-            self.tx_args
-                .foreign_accounts()
-                .iter()
-                .map(|acc| acc.account_code().commitment())
-                .collect(),
+            self.tx_args.foreign_account_code_commitments(),
         ))
         .stack_inputs(stack_inputs)
         .execute_program(program)
     }
 
     /// Executes the transaction through a [TransactionExecutor]
-    #[allow(clippy::arc_with_non_send_sync)]
     #[maybe_async]
     pub fn execute(self) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let account_id = self.account().id();
@@ -150,7 +148,7 @@ impl DataStore for TransactionContext {
         _ref_blocks: BTreeSet<BlockNumber>,
     ) -> Result<(Account, Option<Word>, BlockHeader, ChainMmr), DataStoreError> {
         assert_eq!(account_id, self.account().id());
-        let (account, seed, header, mmr, _) = self.tx_inputs.clone().into_parts().clone();
+        let (account, seed, header, mmr, _) = self.tx_inputs.clone().into_parts();
 
         Ok((account, seed, header, mmr))
     }

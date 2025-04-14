@@ -694,7 +694,6 @@ impl TransactionContextBuilder {
             mast_store,
             authenticator: self.authenticator,
             advice_inputs: self.advice_inputs,
-            assembler: self.assembler,
         }
     }
 }

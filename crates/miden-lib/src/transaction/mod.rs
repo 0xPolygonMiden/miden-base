@@ -1,11 +1,10 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
-    Digest, EMPTY_WORD, Felt, TransactionOutputError, ZERO,
+    Digest, EMPTY_WORD, Felt, TransactionInputError, TransactionOutputError, ZERO,
     account::{AccountCode, AccountId},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     block::BlockNumber,
-    crypto::merkle::MerkleError,
     transaction::{
         ForeignAccountInputs, OutputNote, OutputNotes, TransactionArgs, TransactionInputs,
         TransactionOutputs,
@@ -115,7 +114,7 @@ impl TransactionKernel {
         tx_inputs: &TransactionInputs,
         tx_args: &TransactionArgs,
         init_advice_inputs: Option<AdviceInputs>,
-    ) -> (StackInputs, AdviceInputs) {
+    ) -> Result<(StackInputs, AdviceInputs), TransactionInputError> {
         let account = tx_inputs.account();
 
         let stack_inputs = TransactionKernel::build_input_stack(
@@ -127,9 +126,9 @@ impl TransactionKernel {
         );
 
         let mut advice_inputs = init_advice_inputs.unwrap_or_default();
-        inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs);
+        inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs)?;
 
-        (stack_inputs, advice_inputs)
+        Ok((stack_inputs, advice_inputs))
     }
 
     // ASSEMBLER CONSTRUCTOR
@@ -201,11 +200,11 @@ impl TransactionKernel {
     pub fn extend_advice_inputs_for_account(
         advice_inputs: &mut AdviceInputs,
         foreign_account_inputs: &ForeignAccountInputs,
-    ) -> Result<(), MerkleError> {
+    ) -> Result<(), TransactionInputError> {
         let account_header = foreign_account_inputs.account_header();
         let storage_header = foreign_account_inputs.storage_header();
         let account_code = foreign_account_inputs.account_code();
-        let merkle_path = foreign_account_inputs.merkle_proof();
+        let merkle_path = foreign_account_inputs.account_witness();
         let storage_proofs = foreign_account_inputs.storage_map_proofs();
 
         let account_id = account_header.id();
@@ -228,14 +227,29 @@ impl TransactionKernel {
         // Extend the advice inputs with Merkle store data
         advice_inputs.extend_merkle_store(
             // The prefix is the index in the account tree.
-            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.commitment())?,
+            merkle_path
+                .inner_nodes(account_id.prefix().as_u64(), account_header.commitment())
+                .map_err(|err| {
+                    TransactionInputError::InvalidMerklePath(
+                        format!("foreign account ID {}", account_id),
+                        err,
+                    )
+                })?,
         );
 
         // Load merkle nodes for storage maps
         for proof in storage_proofs {
             // Extend the merkle store and map with the storage maps
             advice_inputs.extend_merkle_store(
-                proof.path().inner_nodes(proof.leaf().index().value(), proof.leaf().hash())?,
+                proof
+                    .path()
+                    .inner_nodes(proof.leaf().index().value(), proof.leaf().hash())
+                    .map_err(|err| {
+                        TransactionInputError::InvalidMerklePath(
+                            format!("foreign account ID {} storage proof", account_id),
+                            err,
+                        )
+                    })?,
             );
             // Populate advice map with Sparse Merkle Tree leaf nodes
             advice_inputs

@@ -55,7 +55,7 @@ fn test_epilogue() {
         "
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
 
     let final_account = Account::mock(
         tx_context.account().id().into(),
@@ -120,7 +120,7 @@ fn test_compute_output_note_id() {
             "
         );
 
-        let process = &tx_context.execute_code(&code).unwrap();
+        let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
 
         assert_eq!(
             note.assets().commitment().as_elements(),
@@ -171,7 +171,7 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
         "
     );
 
-    let process = tx_context.execute_code(&code);
+    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
     assert_execution_error!(process, ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME);
 }
 
@@ -205,7 +205,7 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
         "
     );
 
-    let process = tx_context.execute_code(&code);
+    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
 
     assert_execution_error!(process, ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME);
 }
@@ -242,7 +242,7 @@ fn test_block_expiration_height_monotonically_decreases() {
             .replace("{value_2}", &v2.to_string())
             .replace("{min_value}", &v2.min(v1).to_string());
 
-        let process = &tx_context.execute_code(code).unwrap();
+        let process = &tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
         let process_state: ProcessState = process.into();
 
         // Expiry block should be set to transaction's block + the stored expiration delta
@@ -269,7 +269,7 @@ fn test_invalid_expiration_deltas() {
 
     for value in test_values {
         let code = &code_template.replace("{value_1}", &value.to_string());
-        let process = tx_context.execute_code(code);
+        let process = tx_context.execute_code(code, TransactionKernel::assembler());
 
         assert_execution_error!(process, ERR_TX_INVALID_EXPIRATION_DELTA);
     }
@@ -296,7 +296,7 @@ fn test_no_expiration_delta_set() {
     end
     ";
 
-    let process = &tx_context.execute_code(code_template).unwrap();
+    let process = &tx_context.execute_code(code_template, TransactionKernel::assembler()).unwrap();
     let process_state: ProcessState = process.into();
 
     // Default value should be equal to u32::max, set in the prologue
@@ -341,7 +341,7 @@ fn test_epilogue_increment_nonce_success() {
         "
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
 }
 
 #[test]
@@ -379,6 +379,6 @@ fn test_epilogue_increment_nonce_violation() {
         "
     );
 
-    let process = tx_context.execute_code(&code);
+    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
     assert_execution_error!(process, ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE)
 }

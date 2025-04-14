@@ -1,4 +1,5 @@
-use alloc::{boxed::Box, collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, rc::Rc, string::ToString, sync::Arc};
+use std::collections::BTreeSet;
 
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
@@ -38,9 +39,9 @@ impl MockHost {
         account: AccountHeader,
         advice_inputs: AdviceInputs,
         mast_store: Rc<TransactionMastStore>,
-        mut foreign_code_commitments: Vec<Digest>,
+        mut foreign_code_commitments: BTreeSet<Digest>,
     ) -> Self {
-        foreign_code_commitments.push(account.code_commitment());
+        foreign_code_commitments.insert(account.code_commitment());
         let adv_provider: MemAdviceProvider = advice_inputs.into();
         let proc_index_map = AccountProcedureIndexMap::new(foreign_code_commitments, &adv_provider);
 

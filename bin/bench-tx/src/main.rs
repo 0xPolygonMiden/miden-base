@@ -60,7 +60,6 @@ fn main() -> Result<(), String> {
 // ================================================================================================
 
 /// Runs the default transaction with empty transaction script and two default notes.
-#[allow(clippy::arc_with_non_send_sync)]
 pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
@@ -81,7 +80,6 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
 }
 
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
-#[allow(clippy::arc_with_non_send_sync)]
 pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();

@@ -67,7 +67,8 @@ fn transaction_executor_witness() {
         tx_inputs,
         tx_args,
         Some(executed_transaction.advice_witness().clone()),
-    );
+    )
+    .unwrap();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
 
     // load account/note/tx_script MAST to the mast_store
@@ -514,7 +515,6 @@ fn test_send_note_proc() {
 }
 
 #[test]
-#[allow(clippy::arc_with_non_send_sync)]
 fn executed_transaction_output_notes() {
     let executor_account = Account::mock(
         ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
@@ -750,7 +750,6 @@ fn executed_transaction_output_notes() {
 }
 
 #[test]
-#[allow(clippy::arc_with_non_send_sync)]
 fn prove_witness_and_verify() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
@@ -829,7 +828,6 @@ fn test_tx_script() {
 /// The call chain and dependency graph in this test is:
 /// `tx script -> account code -> external library`
 #[test]
-#[allow(clippy::arc_with_non_send_sync)]
 fn transaction_executor_account_code_using_custom_library() {
     const EXTERNAL_LIBRARY_CODE: &str = "
       use.miden::account
@@ -910,7 +908,6 @@ fn transaction_executor_account_code_using_custom_library() {
 }
 
 #[test]
-#[allow(clippy::arc_with_non_send_sync)]
 fn test_execute_program() {
     let test_module_source = "
         export.foo

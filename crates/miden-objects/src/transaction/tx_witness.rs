@@ -17,6 +17,11 @@ use crate::utils::serde::{ByteReader, Deserializable, DeserializationError, Seri
 ///   additional advice data to initialize the advice provide with prior to transaction execution.
 /// - Advice witness which contains all data requested by the VM from the advice provider while
 ///   executing the transaction program.
+///
+/// TODO: currently, the advice witness contains redundant and irrelevant data (e.g., tx inputs
+/// and tx outputs; account codes and a subset of that data in advice inputs).
+/// We should optimize it to contain only the minimum data required for executing/proving the
+/// transaction.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransactionWitness {
     pub tx_inputs: TransactionInputs,

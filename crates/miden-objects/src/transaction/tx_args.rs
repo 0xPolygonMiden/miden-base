@@ -1,4 +1,8 @@
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    vec::Vec,
+};
 
 use assembly::{Assembler, Compile};
 use miden_crypto::merkle::InnerNodeInfo;
@@ -107,6 +111,14 @@ impl TransactionArgs {
         &self.foreign_accounts
     }
 
+    /// Collects and returns a set containing all code commitments from foreign accounts.
+    pub fn foreign_account_code_commitments(&self) -> BTreeSet<Digest> {
+        self.foreign_accounts()
+            .iter()
+            .map(|acc| acc.account_code().commitment())
+            .collect()
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -149,7 +161,7 @@ impl TransactionArgs {
         }
     }
 
-    /// Extends the provided [TransactionArgs] with the passed-in `advice_inputs`.
+    /// Extends the advice inputs in self with the provided ones.
     pub fn extend_advice_inputs(&mut self, advice_inputs: AdviceInputs) {
         self.advice_inputs.extend(advice_inputs);
     }

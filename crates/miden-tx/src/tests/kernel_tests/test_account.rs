@@ -47,7 +47,7 @@ pub fn test_get_code() {
         end
         ";
 
-    let process = &tx_context.execute_code(code).unwrap();
+    let process = &tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -262,7 +262,7 @@ fn test_get_item() {
             item_value = word_to_masm_push_string(&storage_item.slot.value())
         );
 
-        tx_context.execute_code(&code).unwrap();
+        tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
     }
 }
 
@@ -302,7 +302,7 @@ fn test_get_map_item() {
             map_key = word_to_masm_push_string(&key),
         );
 
-        let process = &tx_context.execute_code(&code).unwrap();
+        let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
         let process_state: ProcessState = process.into();
 
         assert_eq!(
@@ -358,7 +358,7 @@ fn test_get_storage_slot_type() {
             item_index = storage_item.index,
         );
 
-        let process = &tx_context.execute_code(&code).unwrap();
+        let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
         let process_state: ProcessState = process.into();
 
         let storage_slot_type = storage_item.slot.slot_type();
@@ -419,7 +419,7 @@ fn test_set_item() {
         new_storage_item_index = 0,
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
 }
 
 #[test]
@@ -472,7 +472,7 @@ fn test_set_map_item() {
         new_value = word_to_masm_push_string(&new_value),
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
     let process_state: ProcessState = process.into();
 
     let mut new_storage_map = AccountStorage::mock_map();
@@ -664,7 +664,7 @@ fn test_get_vault_root() {
         expected_vault_root = word_to_masm_push_string(&account.vault().root()),
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
 }
 
 // PROCEDURE AUTHENTICATION TESTS
@@ -714,7 +714,7 @@ fn test_authenticate_procedure() {
 
         // Execution of this code will return an EventError(UnknownAccountProcedure) for procs
         // that are not in the advice provider.
-        let process = tx_context.execute_code(&code);
+        let process = tx_context.execute_code(&code, TransactionKernel::assembler());
 
         match valid {
             true => assert!(process.is_ok(), "A valid procedure must successfully authenticate"),

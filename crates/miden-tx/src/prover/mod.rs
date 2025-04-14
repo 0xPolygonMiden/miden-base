@@ -5,7 +5,6 @@ use alloc::{sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::delta::AccountUpdateDetails,
-    assembly::Library,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 pub use miden_prover::ProvingOptions;
@@ -55,14 +54,6 @@ impl LocalTransactionProver {
             proof_options,
         }
     }
-
-    /// Loads the provided library code into the internal MAST forest store.
-    ///
-    /// TODO: this is a work-around to support accounts which were complied with user-defined
-    /// libraries. Once Miden Assembler supports library vendoring, this should go away.
-    pub fn load_library(&mut self, library: &Library) {
-        self.mast_store.insert(library.mast_forest().clone());
-    }
 }
 
 impl Default for LocalTransactionProver {
@@ -90,7 +81,8 @@ impl TransactionProver for LocalTransactionProver {
 
         // execute and prove
         let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_witness));
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_witness))
+                .map_err(TransactionProverError::InvalidTransactionInputs)?;
         let advice_provider: MemAdviceProvider = advice_inputs.into();
 
         // load the store with account/note/tx_script MASTs

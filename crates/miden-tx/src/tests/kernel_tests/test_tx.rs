@@ -1,13 +1,15 @@
-use alloc::vec::Vec;
-use std::string::String;
+use alloc::{string::String, sync::Arc, vec::Vec};
 
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
-    transaction::memory::{
-        NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET,
-        OUTPUT_NOTE_METADATA_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+    transaction::{
+        TransactionKernel,
+        memory::{
+            NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET,
+            OUTPUT_NOTE_METADATA_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+        },
     },
     utils::word_to_masm_push_string,
 };
@@ -15,22 +17,103 @@ use miden_objects::{
     FieldElement,
     account::AccountId,
     asset::NonFungibleAsset,
+    block::BlockNumber,
     note::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
         NoteRecipient, NoteTag, NoteType,
     },
     testing::{
-        account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2},
+        account_id::{
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        },
         constants::NON_FUNGIBLE_ASSET_DATA_2,
     },
-    transaction::{OutputNote, OutputNotes},
+    transaction::{InputNotes, OutputNote, OutputNotes, TransactionArgs},
 };
 
 use super::{Felt, ONE, ProcessState, Word, ZERO};
 use crate::{
-    assert_execution_error, testing::TransactionContextBuilder,
+    TransactionExecutor, TransactionExecutorError, assert_execution_error,
+    testing::{Auth, MockChain, TransactionContextBuilder},
     tests::kernel_tests::read_root_mem_word,
 };
+
+#[test]
+fn test_fpi_anchoring_validations() {
+    // Create a chain with an account
+    let mut mock_chain = MockChain::new();
+    let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    mock_chain.seal_next_block();
+
+    // Retrieve inputs which will become stale
+    let inputs = mock_chain.get_foreign_account_inputs(account.id());
+
+    // Add account to modify account tree
+    let new_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    mock_chain.seal_next_block();
+
+    // Attempt to execute with older foreign account inputs
+    let transaction = mock_chain
+        .build_tx_context(new_account.id(), &[], &[])
+        .foreign_accounts(vec![inputs])
+        .build()
+        .execute();
+
+    assert_matches::assert_matches!(
+        transaction,
+        Err(TransactionExecutorError::ForeignAccountNotAnchoredInReference(_))
+    );
+}
+
+#[test]
+fn test_future_input_note_fails() {
+    // Create a chain with an account
+    let mut mock_chain = MockChain::new();
+    let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    mock_chain.seal_block(Some(10), None);
+
+    // Create note that will land on a future block
+    let note = mock_chain
+        .add_p2id_note(
+            account.id(),
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
+            &[],
+            NoteType::Private,
+            None,
+        )
+        .unwrap();
+    mock_chain.seal_next_block();
+
+    // Get as input note, and assert that the note was created after block 1 (which we'll
+    // use as reference)
+    let input_note = mock_chain
+        .available_notes()
+        .iter()
+        .find(|n| n.id() == note.id())
+        .unwrap()
+        .clone();
+    assert!(input_note.location().unwrap().block_num() > 1.into());
+
+    mock_chain.seal_next_block();
+
+    // Attempt to execute with a note created in the future
+    let tx_context = mock_chain.build_tx_context(account.id(), &[], &[]).build();
+
+    let tx_executor = TransactionExecutor::new(Arc::new(tx_context), None);
+    // Try to execute with block_ref==1
+    let error = tx_executor.execute_transaction(
+        account.id(),
+        BlockNumber::from(1),
+        InputNotes::new(vec![input_note]).unwrap(),
+        TransactionArgs::default(),
+    );
+
+    assert_matches::assert_matches!(
+        error,
+        Err(TransactionExecutorError::NoteBlockPastReferenceBlock(..))
+    );
+}
 
 #[test]
 fn test_create_note() {
@@ -68,7 +151,7 @@ fn test_create_note() {
         tag = tag,
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
 
     assert_eq!(
         read_root_mem_word(&process.into(), NUM_OUTPUT_NOTES_PTR),
@@ -124,9 +207,17 @@ fn test_create_note_with_invalid_tag() {
     let valid_tag: Felt = NoteTag::for_local_use_case(0, 0).unwrap().into();
 
     // Test invalid tag
-    assert!(tx_context.execute_code(&note_creation_script(invalid_tag)).is_err());
+    assert!(
+        tx_context
+            .execute_code(&note_creation_script(invalid_tag), TransactionKernel::assembler())
+            .is_err()
+    );
     // Test valid tag
-    assert!(tx_context.execute_code(&note_creation_script(valid_tag)).is_ok());
+    assert!(
+        tx_context
+            .execute_code(&note_creation_script(valid_tag), TransactionKernel::assembler())
+            .is_ok()
+    );
 
     fn note_creation_script(tag: Felt) -> String {
         format!(
@@ -189,7 +280,7 @@ fn test_create_note_too_many_notes() {
         aux = Felt::ZERO,
     );
 
-    let process = tx_context.execute_code(&code);
+    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
 
     assert_execution_error!(process, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT);
 }
@@ -319,7 +410,7 @@ fn test_get_output_notes_commitment() {
         )),
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -396,7 +487,7 @@ fn test_create_note_and_add_asset() {
         asset = word_to_masm_push_string(&asset),
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -478,7 +569,7 @@ fn test_create_note_and_add_multiple_assets() {
         nft = word_to_masm_push_string(&non_fungible_asset_encoded),
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(
@@ -561,7 +652,7 @@ fn test_create_note_and_add_same_nft_twice() {
         nft = word_to_masm_push_string(&encoded),
     );
 
-    let process = tx_context.execute_code(&code);
+    let process = tx_context.execute_code(&code, TransactionKernel::assembler());
 
     assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS);
 }
@@ -631,7 +722,7 @@ fn test_build_recipient_hash() {
         aux = aux,
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context.execute_code(&code, TransactionKernel::assembler()).unwrap();
 
     assert_eq!(
         read_root_mem_word(&process.into(), NUM_OUTPUT_NOTES_PTR),
@@ -676,7 +767,7 @@ fn test_block_procedures() {
         end
         ";
 
-    let process = &tx_context.execute_code(code).unwrap();
+    let process = &tx_context.execute_code(code, TransactionKernel::assembler()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),

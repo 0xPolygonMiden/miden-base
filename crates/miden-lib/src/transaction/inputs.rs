@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    Digest, EMPTY_WORD, Felt, FieldElement, WORD_SIZE, Word, ZERO,
+    Digest, EMPTY_WORD, Felt, FieldElement, TransactionInputError, WORD_SIZE, Word, ZERO,
     account::{Account, StorageSlot},
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
@@ -22,7 +22,7 @@ pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
-) {
+) -> Result<(), TransactionInputError> {
     // TODO: remove this value and use a user input instead
     let kernel_version = 0;
 
@@ -32,13 +32,13 @@ pub(super) fn extend_advice_inputs(
     add_kernel_commitments_to_advice_inputs(advice_inputs, kernel_version);
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs)?;
     for foreign_account in tx_args.foreign_accounts() {
-        TransactionKernel::extend_advice_inputs_for_account(advice_inputs, foreign_account)
-            .unwrap();
+        TransactionKernel::extend_advice_inputs_for_account(advice_inputs, foreign_account)?;
     }
 
     advice_inputs.extend(tx_args.advice_inputs().clone());
+    Ok(())
 }
 
 // ADVICE STACK BUILDER
@@ -228,10 +228,10 @@ fn add_input_notes_to_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
     inputs: &mut AdviceInputs,
-) {
+) -> Result<(), TransactionInputError> {
     // if there are no input notes, nothing is added to the advice inputs
     if tx_inputs.input_notes().is_empty() {
-        return;
+        return Ok(());
     }
 
     let mut note_data = Vec::new();
@@ -288,7 +288,12 @@ fn add_input_notes_to_advice_inputs(
                             proof.location().node_index_in_block().into(),
                             note.commitment(),
                         )
-                        .unwrap(),
+                        .map_err(|err| {
+                            TransactionInputError::InvalidMerklePath(
+                                format!("input note ID {}", note.id()),
+                                err,
+                            )
+                        })?,
                 );
                 note_data.push(proof.location().block_num().into());
                 note_data.extend(note_block_header.sub_commitment());
@@ -305,6 +310,7 @@ fn add_input_notes_to_advice_inputs(
 
     // NOTE: keep map in sync with the `prologue::process_input_notes_data` kernel procedure
     inputs.extend_map([(tx_inputs.input_notes().commitment(), note_data)]);
+    Ok(())
 }
 
 // KERNEL COMMITMENTS INJECTOR
