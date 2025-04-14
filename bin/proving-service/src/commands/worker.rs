@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic_health::server::health_reporter;
@@ -6,74 +6,48 @@ use tracing::{info, instrument};
 
 use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PROVING_SERVICE};
 
-/// Specifies the types of proving tasks a worker can handle.
-/// Multiple options can be enabled simultaneously.
-#[derive(Debug, Parser, Clone, Copy, Default)]
-pub struct ProverTypeSupport {
-    /// Enables transaction proving.
-    #[clap(long, default_value = "false")]
-    tx_prover: bool,
-    /// Enables batch proving.
-    #[clap(long, default_value = "false")]
-    batch_prover: bool,
-    /// Enables block proving.
-    #[clap(long, default_value = "false")]
-    block_prover: bool,
+/// Specifies the type of proving task a worker can handle.
+#[derive(Debug, Clone, Copy, Default, ValueEnum)]
+pub enum ProverType {
+    /// Transaction proving
+    #[default]
+    Transaction,
+    /// Batch proving
+    Batch,
+    /// Block proving
+    Block,
 }
 
-impl ProverTypeSupport {
-    /// Checks if the worker is a transaction prover.
-    pub fn supports_transaction(&self) -> bool {
-        self.tx_prover
-    }
-
-    /// Checks if the worker is a batch prover.
-    pub fn supports_batch(&self) -> bool {
-        self.batch_prover
-    }
-
-    /// Checks if the worker is a block prover.
-    pub fn supports_block(&self) -> bool {
-        self.block_prover
-    }
-
-    /// Mark the worker as a transaction prover.
-    pub fn with_transaction(mut self) -> Self {
-        self.tx_prover = true;
-        self
-    }
-
-    /// Mark the worker as a batch prover.
-    pub fn with_batch(mut self) -> Self {
-        self.batch_prover = true;
-        self
-    }
-
-    /// Mark the worker as a block prover.
-    pub fn with_block(mut self) -> Self {
-        self.block_prover = true;
-        self
+impl ProverType {
+    /// Returns the corresponding ProofType from the generated code
+    pub fn to_proof_type(&self) -> crate::generated::ProofType {
+        match self {
+            ProverType::Transaction => crate::generated::ProofType::Transaction,
+            ProverType::Batch => crate::generated::ProofType::Batch,
+            ProverType::Block => crate::generated::ProofType::Block,
+        }
     }
 }
 
-impl std::fmt::Display for ProverTypeSupport {
+impl std::fmt::Display for ProverType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut prover_types = Vec::with_capacity(3);
+        match self {
+            ProverType::Transaction => write!(f, "tx"),
+            ProverType::Batch => write!(f, "batch"),
+            ProverType::Block => write!(f, "block"),
+        }
+    }
+}
 
-        if self.supports_transaction() {
-            prover_types.push("tx");
-        }
-        if self.supports_batch() {
-            prover_types.push("batch");
-        }
-        if self.supports_block() {
-            prover_types.push("block");
-        }
+impl std::str::FromStr for ProverType {
+    type Err = String;
 
-        if prover_types.is_empty() {
-            write!(f, "")
-        } else {
-            write!(f, "{}", prover_types.join(","))
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "tx" => Ok(ProverType::Transaction),
+            "batch" => Ok(ProverType::Batch),
+            "block" => Ok(ProverType::Block),
+            _ => Err(format!("Invalid proof type: {}", s)),
         }
     }
 }
@@ -91,8 +65,8 @@ pub struct StartWorker {
     #[clap(short, long, default_value = "3000")]
     info_port: u16,
     /// The type of prover that the worker will be
-    #[clap(flatten)]
-    prover_type: ProverTypeSupport,
+    #[clap(long)]
+    prover_type: ProverType,
 }
 
 impl StartWorker {

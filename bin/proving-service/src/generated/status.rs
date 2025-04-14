@@ -11,21 +11,9 @@ pub struct StatusResponse {
     /// The version of the worker.
     #[prost(string, tag = "2")]
     pub version: ::prost::alloc::string::String,
-    /// The supported proof types.
-    #[prost(message, optional, tag = "3")]
-    pub supported_proof_types: ::core::option::Option<SupportedProofTypes>,
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct SupportedProofTypes {
-    /// Whether the worker supports transaction proofs.
-    #[prost(bool, tag = "1")]
-    pub transaction: bool,
-    /// Whether the worker supports batch proofs.
-    #[prost(bool, tag = "2")]
-    pub batch: bool,
-    /// Whether the worker supports block proofs.
-    #[prost(bool, tag = "3")]
-    pub block: bool,
+    /// The proof type supported by this worker.
+    #[prost(enumeration = "super::proving_service::ProofType", tag = "3")]
+    pub supported_proof_type: i32,
 }
 /// Generated client implementations.
 pub mod status_api_client {
