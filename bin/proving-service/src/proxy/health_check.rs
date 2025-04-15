@@ -34,7 +34,7 @@ impl BackgroundService for LoadBalancerState {
                     let mut workers = self.workers.write().await;
 
                     for worker in workers.iter_mut() {
-                        worker.check_status(&self.supported_prover_type).await;
+                        worker.check_status(self.supported_prover_type).await;
                     }
                 }
                 // Sleep for the defined interval before the next health check
