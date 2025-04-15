@@ -160,53 +160,62 @@ impl Deserializable for AccountProcedureInfo {
 pub struct PrintableProcedure {
     mast: Arc<MastForest>,
     procedure_info: AccountProcedureInfo,
-    node_raw: MastNode,
+    entrypoint: MastNode,
 }
 
 impl PrintableProcedure {
     /// Creates a new PrintableProcedure instance from its components.
-    pub fn new(
+    pub(crate) fn new(
         mast: Arc<MastForest>,
         procedure_info: AccountProcedureInfo,
-        node_raw: MastNode,
+        entrypoint: MastNode,
     ) -> Self {
-        Self { mast, procedure_info, node_raw }
+        Self { mast, procedure_info, entrypoint }
+    }
+
+    fn entrypoint(&self) -> &MastNode {
+        &self.entrypoint
+    }
+
+    fn storage_offset(&self) -> u8 {
+        self.procedure_info.storage_offset()
+    }
+
+    fn storage_size(&self) -> u8 {
+        self.procedure_info.storage_size()
+    }
+
+    fn mast_root(&self) -> &Digest {
+        self.procedure_info.mast_root()
     }
 }
 
 impl PrettyPrint for PrintableProcedure {
     fn render(&self) -> vm_core::prettier::Document {
         use vm_core::prettier::*;
-        let procedure_root = self.procedure_info.mast_root();
-        let storage_offset = self.procedure_info.storage_offset();
-        let storage_size = self.procedure_info.storage_size();
+        let procedure_root = self.mast_root();
+        let storage_offset = self.storage_offset();
+        let storage_size = self.storage_size();
 
         indent(
-            4,
-            text(format!("Procedure: {}", procedure_root))
+            0,
+            text(format!("proc.{}", procedure_root))
                 + nl()
                 + indent(
                     4,
-                    const_text("Storage:")
-                        + nl()
-                        + text(format!("offset: {}", storage_offset))
-                        + nl()
-                        + text(format!("size: {}", storage_size)),
-                )
-                + nl()
-                + indent(
-                    4,
-                    const_text("Body:")
+                    text(format!("storage.{}.{}", storage_offset, storage_size))
                         + nl()
                         + indent(
-                            8,
-                            text(format!("export.{}", procedure_root))
+                            4,
+                            const_text("begin")
                                 + nl()
-                                + self.node_raw.to_pretty_print(&self.mast).render(),
+                                + self.entrypoint().to_pretty_print(&self.mast).render(),
                         )
                         + nl()
                         + const_text("end"),
-                ),
+                )
+                + nl()
+                + const_text("end"),
         )
     }
 }

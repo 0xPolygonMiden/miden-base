@@ -221,14 +221,26 @@ impl AccountCode {
         procedures_as_elements(self.procedures())
     }
 
+    /// Returns an iterator of printable representations for all procedures in this account code.
+    ///
+    /// # Returns
+    /// An iterator yielding [`PrintableProcedure`] instances for all procedures in this account
+    /// code.
+    pub fn printable_procedures(&self) -> impl Iterator<Item = PrintableProcedure> {
+        self.procedures().iter().filter_map(move |procedure_info| {
+            let root = *procedure_info.mast_root();
+            self.printable_procedure(root).ok()
+        })
+    }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns a printable representation of the procedure with the specified MAST root.
     ///
     /// # Errors
     /// Returns an error if no procedure with the specified root exists in this account code.
-    pub fn get_printable_procedure(
-        &self,
-        root: Digest,
-    ) -> Result<PrintableProcedure, AccountError> {
+    fn printable_procedure(&self, root: Digest) -> Result<PrintableProcedure, AccountError> {
         let procedure_info = self.procedures.iter().find(|p| p.mast_root() == &root).ok_or(
             AccountError::AssumptionViolated(format!("procedure with root {} not found", root)),
         )?;
@@ -240,18 +252,6 @@ impl AccountCode {
         let node_raw = self.mast[node_id].clone();
 
         Ok(PrintableProcedure::new(self.mast.clone(), *procedure_info, node_raw))
-    }
-
-    /// Returns an iterator of printable representations for all procedures in this account code.
-    ///
-    /// # Returns
-    /// An iterator yielding [`PrintableProcedure`] instances for all procedures in this account
-    /// code.
-    pub fn get_printable_procedures(&self) -> impl Iterator<Item = PrintableProcedure> {
-        self.procedures().iter().filter_map(move |procedure_info| {
-            let root = *procedure_info.mast_root();
-            self.get_printable_procedure(root).ok()
-        })
     }
 }
 
@@ -327,7 +327,7 @@ impl PrettyPrint for AccountCode {
         let mut partial = Document::Empty;
         let len_procedures = self.num_procedures();
 
-        for (index, printable_procedure) in self.get_printable_procedures().enumerate() {
+        for (index, printable_procedure) in self.printable_procedures().enumerate() {
             partial += printable_procedure.render();
             if index < len_procedures - 1 {
                 partial += nl();
