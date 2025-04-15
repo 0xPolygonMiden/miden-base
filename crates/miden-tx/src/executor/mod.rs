@@ -242,8 +242,8 @@ impl TransactionExecutor {
     // CHECK CONSUMABILITY
     // ============================================================================================
 
-    /// Executes the transaction with specified notes, returning the [ExecutionCheckResult::Success]
-    /// if all notes has been consumed successfully and [ExecutionCheckResult::Failure] if some note
+    /// Executes the transaction with specified notes, returning the [NoteAccountExecution::Success]
+    /// if all notes has been consumed successfully and [NoteAccountExecution::Failure] if some note
     /// returned an error.
     ///
     /// # Errors:

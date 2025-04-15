@@ -11,8 +11,7 @@ use miden_objects::{
 };
 use winter_maybe_async::{maybe_async, maybe_await};
 
-use super::{NoteAccountExecution, TransactionExecutor};
-use crate::TransactionExecutorError;
+use super::{NoteAccountExecution, TransactionExecutor, TransactionExecutorError};
 
 /// This struct performs input notes checks against provided target account.
 ///
@@ -55,10 +54,11 @@ impl NotesChecker {
     /// - Check whether there are "well known" notes (`P2ID`, `P2IDR` and `SWAP`) in the list of the
     ///   provided input notes. If so, assert that the note inputs are correct.
     /// - Execute the transaction with specified notes.
-    ///   - Returns [`ExecutionCheckResult::Success`] if the execution was successful.
-    ///   - Returns [`ExecutionCheckResult::Failure`] if some note returned an error. The tuple
-    ///     associated with `Failure` variant contains the ID of the failing note and a vector of
-    ///     IDs of the notes, which were successfully executed.
+    ///   - Returns `NoteAccountExecution::Success` if the execution was successful.
+    ///   - Returns `NoteAccountExecution::Failure` if some note returned an error. The fields
+    ///     associated with `Failure` variant contains the ID of the failed note, a vector of IDs of
+    ///     the notes, which were successfully executed, and the [TransactionExecutorError] if the
+    ///     check failed durning the execution stage.
     #[maybe_async]
     pub fn check_notes_consumability(
         &self,
