@@ -33,7 +33,7 @@ impl ProverType {
 impl std::fmt::Display for ProverType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ProverType::Transaction => write!(f, "tx"),
+            ProverType::Transaction => write!(f, "transaction"),
             ProverType::Batch => write!(f, "batch"),
             ProverType::Block => write!(f, "block"),
         }
@@ -45,7 +45,7 @@ impl std::str::FromStr for ProverType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "tx" => Ok(ProverType::Transaction),
+            "transaction" => Ok(ProverType::Transaction),
             "batch" => Ok(ProverType::Batch),
             "block" => Ok(ProverType::Block),
             _ => Err(format!("Invalid proof type: {}", s)),
