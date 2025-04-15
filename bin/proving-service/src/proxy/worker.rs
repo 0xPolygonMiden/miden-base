@@ -217,17 +217,22 @@ impl Worker {
 
     /// Sets the health status of the worker.
     fn set_health_status(&mut self, health_status: WorkerHealthStatus) {
+        let previous_health_status = self.health_status.clone();
         self.health_status = health_status;
         match &self.health_status {
             WorkerHealthStatus::Healthy => {
-                self.is_available = true;
+                if matches!(previous_health_status, WorkerHealthStatus::Unhealthy { .. }) {
+                    self.is_available = true;
+                }
             },
             WorkerHealthStatus::Unhealthy { .. } => {
                 WORKER_UNHEALTHY.with_label_values(&[&self.address()]).inc();
                 self.is_available = false;
             },
             WorkerHealthStatus::Unknown => {
-                self.is_available = true;
+                if matches!(previous_health_status, WorkerHealthStatus::Unhealthy { .. }) {
+                    self.is_available = true;
+                }
             },
         }
     }
