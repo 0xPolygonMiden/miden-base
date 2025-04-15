@@ -5,7 +5,7 @@ use serde::Serialize;
 use tonic::transport::Channel;
 use tracing::error;
 
-use super::{metrics::WORKER_UNHEALTHY, status::create_status_client};
+use super::metrics::WORKER_UNHEALTHY;
 use crate::{
     commands::worker::ProverType,
     error::ProvingServiceError,
@@ -222,4 +222,25 @@ impl PartialEq for Worker {
     fn eq(&self, other: &Self) -> bool {
         self.backend == other.backend
     }
+}
+
+/// Create a gRPC [StatusApiClient] for the given worker address.
+///
+/// # Errors
+/// - [ProvingServiceError::InvalidURI] if the worker address is invalid.
+/// - [ProvingServiceError::ConnectionFailed] if the connection to the worker fails.
+async fn create_status_client(
+    address: String,
+    connection_timeout: Duration,
+    total_timeout: Duration,
+) -> Result<StatusApiClient<Channel>, ProvingServiceError> {
+    let channel = Channel::from_shared(format!("http://{}", address))
+        .map_err(|err| ProvingServiceError::InvalidURI(err, address.clone()))?
+        .connect_timeout(connection_timeout)
+        .timeout(total_timeout)
+        .connect()
+        .await
+        .map_err(|err| ProvingServiceError::ConnectionFailed(err, address))?;
+
+    Ok(StatusApiClient::new(channel))
 }
