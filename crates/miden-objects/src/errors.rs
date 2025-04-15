@@ -189,6 +189,8 @@ pub enum AccountTreeError {
     ApplyMutations(#[source] MerkleError),
     #[error("smt leaf's index is not a valid account ID prefix")]
     InvalidAccountIdPrefix(#[source] AccountIdError),
+    #[error("account witness merkle path depth {0} does not match AccountTree::DEPTH")]
+    WitnessMerklePathDepthDoesNotMatchAccountTreeDepth(usize),
 }
 
 // BECH32 ERROR

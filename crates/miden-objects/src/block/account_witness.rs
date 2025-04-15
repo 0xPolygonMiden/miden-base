@@ -37,9 +37,10 @@ impl AccountWitness {
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the guarantees of the type are not met. See the type-level docs
-    /// for details.
-    pub fn new(account_id: AccountId, proof: SmtProof) -> Result<Self, AccountTreeError> {
+    /// Returns an error if:
+    /// - the proof contains two or more entries, i.e. the account ID prefix of the proven value is
+    ///   not unique.
+    pub fn from_proof(account_id: AccountId, proof: SmtProof) -> Result<Self, AccountTreeError> {
         let id_prefix = AccountIdPrefix::try_from(proof.leaf().index().value())
             .map_err(AccountTreeError::InvalidAccountIdPrefix)?;
 
@@ -48,6 +49,26 @@ impl AccountWitness {
         }
 
         Ok(Self::new_unchecked(account_id, proof))
+    }
+
+    /// Constructs a new [`AccountWitness`] from the provided parts.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the merkle path's depth is not [`AccountTree::DEPTH`].
+    pub fn new(
+        account_id: AccountId,
+        commitment: Digest,
+        path: MerklePath,
+    ) -> Result<Self, AccountTreeError> {
+        if path.len() != SMT_DEPTH as usize {
+            return Err(AccountTreeError::WitnessMerklePathDepthDoesNotMatchAccountTreeDepth(
+                path.len(),
+            ));
+        }
+
+        Ok(Self { id: account_id, commitment, path })
     }
 
     /// Constructs a new [`AccountWitness`] from the provided proof without validating that it has
