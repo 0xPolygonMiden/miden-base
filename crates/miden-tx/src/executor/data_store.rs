@@ -23,7 +23,7 @@ pub trait DataStore: MastForestStore {
     /// specified ID and consuming input notes created in blocks in the input `ref_blocks` set.
     ///
     /// The highest block number in `ref_blocks` will be the transaction reference block. In
-    /// general, it is recommended that the refernece corresponds to the latest block available
+    /// general, it is recommended that the reference corresponds to the latest block available
     /// in the data store.
     ///
     /// # Errors
