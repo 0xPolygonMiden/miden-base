@@ -296,9 +296,9 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
     );
     assert_eq!(account.init_commitment(), miden_objects::Digest::from(EMPTY_WORD));
 
-    let account2 =
+    let existing_account =
         Account::mock(existing_id.into(), Felt::ZERO, TransactionKernel::testing_assembler());
-    mock_chain.add_pending_account(account2);
+    mock_chain.add_pending_account(existing_account.clone());
     mock_chain.seal_next_block();
 
     // Execute the account-creating transaction.
@@ -316,18 +316,24 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
     let batch = generate_batch(&mut mock_chain, vec![tx]);
     let batches = [batch];
 
+    let block_inputs = mock_chain.get_block_inputs(batches.iter());
+    // Sanity check: The mock chain account tree root should match the previous block header's
+    // account tree root.
+    assert_eq!(mock_chain.accounts().root(), block_inputs.prev_block_header().account_root());
+    assert_eq!(mock_chain.accounts().num_accounts(), 1);
+
     // Sanity check: The block inputs should contain an account witness whose ID matches the
     // existing ID.
-    let block_inputs = mock_chain.get_block_inputs(batches.iter());
     assert_eq!(block_inputs.account_witnesses().len(), 1);
     let witness = block_inputs
         .account_witnesses()
         .get(&new_id)
         .context("block inputs did not contain witness for id")?;
 
-    // The witness should be for the **existing** account ID, because that's the one that exists in
+    // The witness should be for the **existing** account, because that's the one that exists in
     // the tree and is therefore in the same SMT leaf that we would insert the new ID into.
     assert_eq!(witness.id(), existing_id);
+    assert_eq!(witness.state_commitment(), existing_account.commitment());
 
     let block = mock_chain.propose_block(batches).context("failed to propose block")?;
 

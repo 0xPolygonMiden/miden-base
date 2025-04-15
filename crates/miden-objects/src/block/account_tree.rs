@@ -124,7 +124,9 @@ impl AccountTree {
         };
 
         let commitment = Digest::from(
-            proof.get(&key).expect("we should have received a proof for the requested key"),
+            proof
+                .get(&Self::account_id_to_key(witness_id))
+                .expect("we should have received a proof for the witness key"),
         );
 
         // SAFETY: The proof is guaranteed to have depth AccountTree::DEPTH.

@@ -84,7 +84,9 @@ impl PartialAccountTree {
                 };
 
                 let commitment = Digest::from(
-                    proof.get(&key).expect("we should have received a proof for the requested key"),
+                    proof
+                        .get(&AccountTree::account_id_to_key(witness_id))
+                        .expect("we should have received a proof for the witness key"),
                 );
 
                 // SAFETY: The proof is guaranteed to have depth AccountTree::DEPTH.
@@ -259,7 +261,17 @@ mod tests {
         full_tree.insert(id0, commitment0).unwrap();
         let witness = full_tree.open(id0);
 
-        partial_tree.track_account_witness(witness).unwrap();
+        partial_tree.track_account_witness(witness.clone()).unwrap();
+        assert_eq!(
+            partial_tree.open(id0).unwrap(),
+            witness,
+            "full tree witness and partial tree witness should be the same"
+        );
+        assert_eq!(
+            partial_tree.root(),
+            full_tree.root(),
+            "full tree root and partial tree root should be the same"
+        );
 
         partial_tree.insert(id0, commitment0).unwrap();
         partial_tree.insert(id0, commitment1).unwrap();
