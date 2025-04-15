@@ -82,7 +82,7 @@ impl TryFrom<i32> for ProverType {
             0 => Ok(ProverType::Transaction),
             1 => Ok(ProverType::Batch),
             2 => Ok(ProverType::Block),
-            _ => Err(format!("Unknown ProverType value: {}", value)),
+            _ => Err(format!("unknown ProverType value: {}", value)),
         }
     }
 }
