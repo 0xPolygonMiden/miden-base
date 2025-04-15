@@ -57,6 +57,9 @@ pub enum WorkerHealthStatus {
 }
 
 impl Worker {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
     /// Creates a new worker and a gRPC status client for the given worker address.
     ///
     /// # Errors
@@ -82,10 +85,8 @@ impl Worker {
         })
     }
 
-    /// Returns the worker address.
-    pub fn address(&self) -> String {
-        self.backend.addr.to_string()
-    }
+    // MUTATORS
+    // --------------------------------------------------------------------------------------------
 
     /// Checks the worker status.
     ///
@@ -145,16 +146,12 @@ impl Worker {
         Some(WorkerHealthStatus::Healthy)
     }
 
-    /// Returns the worker availability.
-    pub fn is_available(&self) -> bool {
-        self.is_available
-    }
-
     /// Sets the worker availability.
     pub fn set_availability(&mut self, is_available: bool) {
         self.is_available = is_available
     }
 
+    /// Sets the health status of the worker.
     pub(crate) fn set_health_status(&mut self, health_status: WorkerHealthStatus) {
         self.health_status = health_status;
         match &self.health_status {
@@ -171,6 +168,9 @@ impl Worker {
         }
     }
 
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns the number of retries the worker has had.
     pub fn num_retries(&self) -> usize {
         match &self.health_status {
@@ -184,6 +184,29 @@ impl Worker {
         }
     }
 
+    /// Returns the health status of the worker.
+    pub fn health_status(&self) -> &WorkerHealthStatus {
+        &self.health_status
+    }
+
+    /// Returns the version of the worker.
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    /// Returns the worker availability.
+    pub fn is_available(&self) -> bool {
+        self.is_available
+    }
+
+    /// Returns the worker address.
+    pub fn address(&self) -> String {
+        self.backend.addr.to_string()
+    }
+
+    // PRIVATE HELPERS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns whether the worker should do a health check.
     ///
     /// A worker should do a health check if it is healthy or if the time since the first failure
@@ -191,7 +214,7 @@ impl Worker {
     ///
     /// The maximum exponent is [MAX_BACKOFF_EXPONENT], which corresponds to a backoff of
     /// 2^[MAX_BACKOFF_EXPONENT] seconds.
-    pub(crate) fn should_do_health_check(&self) -> bool {
+    fn should_do_health_check(&self) -> bool {
         match self.health_status {
             WorkerHealthStatus::Healthy => true,
             WorkerHealthStatus::Unhealthy {
@@ -208,21 +231,19 @@ impl Worker {
             WorkerHealthStatus::Unknown => true,
         }
     }
-
-    pub fn health_status(&self) -> &WorkerHealthStatus {
-        &self.health_status
-    }
-
-    pub fn version(&self) -> &str {
-        &self.version
-    }
 }
+
+// PARTIAL EQUALITY
+// --------------------------------------------------------------------------------------------
 
 impl PartialEq for Worker {
     fn eq(&self, other: &Self) -> bool {
         self.backend == other.backend
     }
 }
+
+// HELPER FUNCTIONS
+// --------------------------------------------------------------------------------------------
 
 /// Create a gRPC [StatusApiClient] for the given worker address.
 ///
