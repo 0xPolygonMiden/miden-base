@@ -40,13 +40,20 @@ pub struct Worker {
 /// The number of failed attempts is incremented each time the worker is unhealthy.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum WorkerHealthStatus {
+    /// The worker is healthy.
     Healthy,
+    /// The worker is unhealthy.
     Unhealthy {
+        /// The number of failed attempts.
         failed_attempts: usize,
+        /// The timestamp of the first failure.
         #[serde(skip_serializing)]
         first_fail_timestamp: Instant,
+        /// The reason for the failure.
         reason: String,
     },
+    /// The worker status is unknown.
+    Unknown,
 }
 
 impl Worker {
@@ -70,7 +77,7 @@ impl Worker {
             backend,
             is_available: true,
             status_client,
-            health_status: WorkerHealthStatus::Healthy,
+            health_status: WorkerHealthStatus::Unknown,
             version: "".to_string(),
         })
     }
@@ -158,6 +165,9 @@ impl Worker {
                 WORKER_UNHEALTHY.with_label_values(&[&self.address()]).inc();
                 self.is_available = false;
             },
+            WorkerHealthStatus::Unknown => {
+                self.is_available = true;
+            },
         }
     }
 
@@ -170,6 +180,7 @@ impl Worker {
                 first_fail_timestamp: _,
                 reason: _,
             } => *failed_attempts,
+            WorkerHealthStatus::Unknown => 0,
         }
     }
 
@@ -194,6 +205,7 @@ impl Worker {
                         2u64.pow(failed_attempts.min(MAX_BACKOFF_EXPONENT) as u32),
                     )
             },
+            WorkerHealthStatus::Unknown => true,
         }
     }
 
