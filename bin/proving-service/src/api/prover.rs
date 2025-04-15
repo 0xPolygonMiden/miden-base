@@ -15,47 +15,41 @@ use crate::{
     utils::MIDEN_PROVING_SERVICE,
 };
 
-/// A collection of provers.
+/// The provers for the proving service.
 ///
-/// This struct is used to store the provers for the proving service.
-/// Provers are optional because they are not always enabled.
-struct Provers {
-    tx_prover: Option<LocalTransactionProver>,
-    batch_prover: Option<LocalBatchProver>,
-    block_prover: Option<LocalBlockProver>,
+/// This enum is used to store the provers for the proving service.
+/// Only one prover is enabled at a time.
+enum Provers {
+    Transaction(Mutex<LocalTransactionProver>),
+    Batch(Mutex<LocalBatchProver>),
+    Block(Mutex<LocalBlockProver>),
 }
 
 impl Provers {
     fn new(prover_type: ProverType) -> Self {
         match prover_type {
-            ProverType::Transaction => Self {
-                tx_prover: Some(LocalTransactionProver::default()),
-                batch_prover: None,
-                block_prover: None,
+            ProverType::Transaction => {
+                Self::Transaction(Mutex::new(LocalTransactionProver::default()))
             },
-            ProverType::Batch => Self {
-                tx_prover: None,
-                batch_prover: Some(LocalBatchProver::new(MIN_PROOF_SECURITY_LEVEL)),
-                block_prover: None,
+            ProverType::Batch => {
+                Self::Batch(Mutex::new(LocalBatchProver::new(MIN_PROOF_SECURITY_LEVEL)))
             },
-            ProverType::Block => Self {
-                tx_prover: None,
-                batch_prover: None,
-                block_prover: Some(LocalBlockProver::new(MIN_PROOF_SECURITY_LEVEL)),
+            ProverType::Block => {
+                Self::Block(Mutex::new(LocalBlockProver::new(MIN_PROOF_SECURITY_LEVEL)))
             },
         }
     }
 }
 
 pub struct ProverRpcApi {
-    provers: Mutex<Provers>,
+    prover: Provers,
 }
 
 impl ProverRpcApi {
     pub fn new(prover_type: ProverType) -> Self {
-        let provers = Mutex::new(Provers::new(prover_type));
+        let prover = Provers::new(prover_type);
 
-        Self { provers }
+        Self { prover }
     }
 
     #[instrument(
@@ -70,17 +64,16 @@ impl ProverRpcApi {
         &self,
         transaction_witness: TransactionWitness,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
-        let prover = self
-            .provers
+        let prover = match &self.prover {
+            Provers::Transaction(prover) => prover,
+            _ => return Err(Status::unimplemented("Transaction prover is not enabled")),
+        };
+
+        let proof = prover
             .try_lock()
-            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
-
-        let prover = prover
-            .tx_prover
-            .as_ref()
-            .ok_or(Status::unimplemented("Transaction prover is not enabled"))?;
-
-        let proof = prover.prove(transaction_witness).map_err(internal_error)?;
+            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?
+            .prove(transaction_witness)
+            .map_err(internal_error)?;
 
         // Record the transaction_id in the current tracing span
         let transaction_id = proof.id();
@@ -101,17 +94,16 @@ impl ProverRpcApi {
         &self,
         proposed_batch: ProposedBatch,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
-        let prover = self
-            .provers
+        let prover = match &self.prover {
+            Provers::Batch(prover) => prover,
+            _ => return Err(Status::unimplemented("Batch prover is not enabled")),
+        };
+
+        let proven_batch = prover
             .try_lock()
-            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
-
-        let prover = prover
-            .batch_prover
-            .as_ref()
-            .ok_or(Status::unimplemented("Batch prover is not enabled"))?;
-
-        let proven_batch = prover.prove(proposed_batch).map_err(internal_error)?;
+            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?
+            .prove(proposed_batch)
+            .map_err(internal_error)?;
 
         // Record the batch_id in the current tracing span
         let batch_id = proven_batch.id();
@@ -132,17 +124,16 @@ impl ProverRpcApi {
         &self,
         proposed_block: ProposedBlock,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
-        let prover = self
-            .provers
+        let prover = match &self.prover {
+            Provers::Block(prover) => prover,
+            _ => return Err(Status::unimplemented("Block prover is not enabled")),
+        };
+
+        let proven_block = prover
             .try_lock()
-            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?;
-
-        let prover = prover
-            .block_prover
-            .as_ref()
-            .ok_or(Status::unimplemented("Block prover is not enabled"))?;
-
-        let proven_block = prover.prove(proposed_block).map_err(internal_error)?;
+            .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?
+            .prove(proposed_block)
+            .map_err(internal_error)?;
 
         // Record the commitment of the block in the current tracing span
         let block_id = proven_block.commitment();
