@@ -90,6 +90,7 @@ impl HttpServerApp for ProxyStatusService {
         }
 
         if session.req_header().uri.path() != "/status" {
+            session.respond_error(404).await;
             return None;
         }
 
