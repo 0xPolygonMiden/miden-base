@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use std::{string::ToString, vec};
+use std::string::ToString;
 
 use miden_lib::{
     errors::tx_kernel_errors::{
@@ -1176,7 +1176,7 @@ fn test_nested_fpi_native_account_invocation() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn get_mock_fpi_adv_inputs(
+pub(super) fn get_mock_fpi_adv_inputs(
     foreign_accounts: Vec<&Account>,
     mock_chain: &MockChain,
 ) -> AdviceInputs {

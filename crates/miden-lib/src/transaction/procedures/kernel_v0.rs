@@ -6,7 +6,7 @@ use miden_objects::{digest, Digest};
 // ================================================================================================
 
 /// Hashes of all dynamically executed procedures from the kernel 0.
-pub const KERNEL0_PROCEDURES: [Digest; 36] = [
+pub const KERNEL0_PROCEDURES: [Digest; 48] = [
     // account_get_initial_commitment
     digest!("0x920898348bacd6d98a399301eb308478fd32b32eab019a5a6ef7a6b44abb61f6"),
     // account_get_current_commitment
@@ -79,4 +79,28 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     digest!("0x756352beed1624a42d4540c434a4faa986d6d9d08ef8437699d9086fcd9ad9e7"),
     // tx_update_expiration_block_num
     digest!("0x11ca0c8662d20e6b05fbff4a20423bfa52595862b6c7c5c5ef1cc0a917e4cb62"),
+    // asset_create
+    digest!("0x21dec12627806c03b444f44326c9715aaa1ede8bd555f7a96db17711589ed68b"),
+    // asset_consume_one_time_witness
+    digest!("0x1cbc1a00a2b2bd110def30d241567c1713c459f71628cc0aeb2a8c2753eadecf"),
+    // asset_set_field
+    digest!("0x9ef0a49fb58034beec4468f442d7acf782c233ca12a932154747dfd2290621c3"),
+    // get_native_account_id
+    digest!("0xc9180623881da1c2bde78026708404a949f32ca93e033fdc45ff1c8f7e28b63f"),
+    // asset_store_to_account
+    digest!("0x7e608e22834cdf4f10ad7ae3bdc9a8a8f2793bf12757d38a9074bd0483d0038e"),
+    // asset_get_issuer
+    digest!("0xd2bc05af310f06eda11af6ea6f85940e4fb80c91d1fbb62222241fa4e1bd55d0"),
+    // asset_get_type
+    digest!("0x7ab6c6f4622e9abaee4cb7922d1e09080165487be998473cd61fe6cd2eb367f9"),
+    // asset_get_num_fields
+    digest!("0xd96aad5f502c28a46799ab4ced5559d11d377fb1437dca3929c79d1ef4e2a157"),
+    // asset_get_field
+    digest!("0x281f3c0aa892dab908079f61aee05d03fa9c00501350911fe26a2a3cfd80aadc"),
+    // asset_load_from_account
+    digest!("0xce77e15263ec43f5a489b7fb2553733fa661fba976de0fdfd59248b357b819c4"),
+    // asset_get_id
+    digest!("0x8778ef1df663d26feb50842df8fa7e023349f41aee8d0e969fc5c85e243435b5"),
+    // asset_destroy
+    digest!("0xc98b87726fafa9f05ef942c7d6a8ac973dddc0c09e45c0f554158ed8b463d26f"),
 ];

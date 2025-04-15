@@ -1,4 +1,5 @@
 use.miden::account
+use.miden::kernel_proc_offsets
 
 # ERRORS
 # =================================================================================================
@@ -113,3 +114,238 @@ end
 #!
 #! fungible_asset_max_amount is the maximum amount of a fungible asset.
 export.::miden::util::asset::get_fungible_asset_max_amount
+
+#! Creates a new asset with the given number of fields and returns the pointer to it.
+#!
+#! Inputs:  [num_fields, type_id]
+#! Outputs: [asset_ptr]
+export.create
+    exec.kernel_proc_offsets::asset_create_offset
+    # => [offset, num_fields, type_id]
+
+    # Padding Ops:
+    # => [offset, num_fields, type_id, 0]
+    # => [pad(4), pad(4), offset, num_fields, type_id, 0]
+    # => [pad(4), pad(4), pad(4), offset, num_fields, type_id, 0]
+    # => [pad(4), offset, num_fields, type_id, 0, pad(4), pad(4)]
+    # => [offset, num_fields, type_id, 0, pad(4), pad(4), pad(4)]
+
+    # pad the stack
+    push.0 movdn.3 padw padw padw swapdw swapw
+    # => [offset, num_fields, type_id, pad(13)]
+
+    syscall.exec_kernel_proc
+    # => [asset_ptr, pad(15)]
+
+    # clean the stack
+    swapdw dropw dropw
+    # => [asset_ptr, pad(7)]
+    swapw dropw
+    # => [asset_ptr, 0, 0, 0]
+    movdn.3 drop drop drop
+
+    # => [asset_ptr]
+end
+
+#! Destroys the given asset by making it inaccessible by invalidating its ptr.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.destroy
+  exec.kernel_proc_offsets::asset_destroy_offset
+  # => [offset, asset_ptr]
+
+  repeat.14 push.0 movdn.2 end
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [pad(16)]
+
+  dropw dropw dropw dropw
+  # => []
+end
+
+#! Creates a new one time witness in the context of the native account if it has not been created before.
+#!
+#! Inputs:  [one_time_witness_id]
+#! Outputs: []
+export.consume_one_time_witness
+  exec.kernel_proc_offsets::asset_consume_one_time_witness_offset
+  # => [offset, one_time_witness_id]
+
+  # pad the stack
+  push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  # => [offset, one_time_witness_id, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [pad(16)]
+
+  # clean the stack
+  dropw dropw dropw dropw
+  # => []
+end
+
+#! Gets the ID of the asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [ASSET_ID]
+export.get_id
+  exec.kernel_proc_offsets::asset_get_id_offset
+  # => [offset, asset_ptr]
+
+  # pad the stack
+  #push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
+  repeat.14 push.0 movdn.2 end
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [ASSET_ID, pad(12)]
+
+  # clean the stack
+  # swapdw dropw dropw swapw dropw swapw dropw
+  repeat.12 movup.4 drop end
+  # => [ASSET_ID]
+end
+
+#! Sets the field of the asset to the provided value.
+#!
+#! Inputs:  [asset_ptr, field_idx, field_value]
+#! Outputs: []
+export.set_field
+  exec.kernel_proc_offsets::asset_set_field_offset
+  # => [offset, asset_ptr, field_idx, field_value]
+
+  # pad the stack
+  padw padw padw swapdw swapw
+  # => [offset, asset_ptr, field_idx, field_value, pad(12)]
+
+  syscall.exec_kernel_proc
+  # => [pad(16)]
+
+  # clean the stack
+  dropw dropw dropw dropw
+  # => []
+end
+
+#! Gets the field of the asset.
+#!
+#! Inputs:  [asset_ptr, field_idx]
+#! Outputs: [field_value]
+export.get_field
+  exec.kernel_proc_offsets::asset_get_field_offset
+  # => [offset, asset_ptr, field_idx]
+
+  # pad the stack
+  push.0 movdn.3 padw padw padw swapdw swapw
+  # => [offset, asset_ptr, field_idx, field_value, pad(13)]
+
+  syscall.exec_kernel_proc
+  # => [field_value, pad(15)]
+
+  # clean the stack
+  swapdw dropw dropw swapw dropw swap drop swap drop swap drop
+  # => [field_value]
+end
+
+#! Stores the asset in kernel memory to the native account's vault.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.store_to_account
+  exec.kernel_proc_offsets::asset_store_to_account_offset
+  # => [offset, asset_ptr]
+
+  # pad the stack
+  # push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  repeat.14 push.0 movdn.2 end
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [pad(16)]
+
+  # clean the stack
+  dropw dropw dropw dropw
+  # => []
+end
+
+#! Loads the asset from the native account's vault into kernel memory.
+#! 
+#! NOTE: Bypasses asset_vault.masm for now and does not emit events.
+#!
+#! Inputs:  [ASSET_ID, asset_type]
+#! Outputs: [asset_ptr]
+export.load_from_account
+  exec.kernel_proc_offsets::asset_load_from_account
+  # => [offset, ASSET_ID, asset_type]
+
+  # pad the stack
+  repeat.10 push.0 movdn.6 end
+  # => [offset, ASSET_ID, asset_type, pad(10)]
+
+  syscall.exec_kernel_proc
+  # => [asset_ptr, pad(15)]
+
+  # clean the stack
+  repeat.15 swap drop end
+  # => [asset_ptr]
+end
+
+#! Gets the issuer of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [account_id_prefix, account_id_suffix]
+export.asset_get_issuer
+  exec.kernel_proc_offsets::asset_get_issuer_offset
+  # => [offset, asset_ptr]
+
+  # pad the stack
+  push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [account_id_prefix, account_id_suffix, pad(14)]
+
+  # clean the stack
+  swapdw dropw dropw swapw dropw movup.2 drop movup.2 drop
+  # => [account_id_prefix, account_id_suffix]
+end
+
+#! Gets the type of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [type_id]
+export.asset_get_type
+  exec.kernel_proc_offsets::asset_get_type_offset
+  # => [offset, asset_ptr]
+
+  # pad the stack
+  push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [type_id, pad(15)]
+
+  # clean the stack
+  swapdw dropw dropw swapw dropw swap drop swap drop swap drop
+  # => [type_id]
+end
+
+#! Gets the number of fields of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [num_fields]
+export.asset_get_num_fields
+  exec.kernel_proc_offsets::asset_get_num_fields_offset
+  # => [offset, asset_ptr]
+
+  # pad the stack
+  push.0.0 movdn.3 movdn.3 padw padw padw swapdw swapw
+  # => [offset, asset_ptr, pad(14)]
+
+  syscall.exec_kernel_proc
+  # => [num_fields, pad(15)]
+
+  # clean the stack
+  swapdw dropw dropw swapw dropw swap drop swap drop swap drop
+  # => [num_fields]
+end

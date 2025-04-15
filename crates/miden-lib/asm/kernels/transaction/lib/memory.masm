@@ -1,6 +1,8 @@
 use.kernel::account
 use.kernel::constants
 
+use.std::crypto::hashes::rpo
+
 # ERRORS
 # =================================================================================================
 
@@ -200,6 +202,49 @@ const.OUTPUT_NOTE_RECIPIENT_OFFSET=8
 const.OUTPUT_NOTE_ASSETS_HASH_OFFSET=12
 const.OUTPUT_NOTE_NUM_ASSETS_OFFSET=16
 const.OUTPUT_NOTE_ASSETS_OFFSET=20
+
+# USER-DEFINED ASSETS
+# -------------------------------------------------------------------------------------------------
+
+# Asset Section Layout
+# ID_SEED,
+# num_created_assets,
+# next_asset_ptr,
+# 0,
+# 0,
+# 0..256 -> asset ptrs (256)
+# 256..288 -> one time witnesses (32)
+# 288.. -> <asset_data>
+
+const.ASSET_ID_SEED_PTR=33554432
+const.ASSET_NUM_CREATED=33554436
+const.ASSET_NEXT_OFFSET_PTR=33554437
+const.ASSET_PTR_MAP_MIN=33554440
+const.ASSET_PTR_MAP_MAX=33554696
+const.ASSET_OTW=33554696
+const.ASSET_MIN_PTR=33554728
+
+# Asset Memory Layout
+# [
+#   ASSET_ID,
+#   BOOKKEEPING = [
+#     issuer_id_prefix,
+#     issuer_id_suffix, # optimization: type_id can be included in suffix
+#     type_id,
+#     num_fields
+#   ],
+#   field_0,
+#   field_1,
+#   ...,
+#   field_n
+# ]
+
+# The size of each asset's bookkeeping section, including the asset ID.
+const.ASSET_BOOKKEEPING_SIZE=8
+const.ASSET_ISSUER_PREFIX_OFFSET=4
+const.ASSET_ISSUER_SUFFIX_OFFSET=5
+const.ASSET_TYPE_ID_OFFSET=6
+const.ASSET_NUM_FIELDS_OFFSET=7
 
 # MEMORY PROCEDURES
 # =================================================================================================
@@ -916,6 +961,31 @@ export.set_acct_vault_root
     mem_storew
 end
 
+#! Returns the native account's vault root.
+#!
+#! Inputs:  []
+#! Outputs: [ACCT_VAULT_ROOT]
+#!
+#! Where:
+#! - ACCT_VAULT_ROOT is the account asset vault root.
+export.get_native_account_vault_root
+    padw
+    exec.get_native_account_data_ptr push.ACCT_VAULT_ROOT_OFFSET add
+    mem_loadw
+end
+
+#! Sets the native account's vault root.
+#!
+#! Inputs:  [ACCT_VAULT_ROOT]
+#! Outputs: [ACCT_VAULT_ROOT]
+#!
+#! Where:
+#! - ACCT_VAULT_ROOT is the account asset vault root.
+export.set_native_account_vault_root
+    exec.get_native_account_data_ptr push.ACCT_VAULT_ROOT_OFFSET add
+    mem_storew
+end
+
 ### ACCOUNT CODE #################################################
 
 #! Returns the code commitment of the account.
@@ -1490,6 +1560,264 @@ end
 export.set_output_note_assets_hash
     push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add
     mem_storew
+end
+
+#! Computes and sets the asset id seed.
+#!
+#! Inputs:  []
+#! Outputs: []
+export.init_asset_id_seed
+  exec.get_block_commitment
+  # => [BLOCK_COMMITMENT]
+
+  exec.get_account_id
+  # => [curr_acct_id_prefix, curr_acct_id_suffix, BLOCK_COMMITMENT]
+
+  push.0 exec.get_acct_nonce
+  # => [nonce, 0, curr_acct_id_prefix, curr_acct_id_suffix, BLOCK_COMMITMENT]
+
+  # TODO: Not sure if this is correct
+  hmerge
+  # => [ASSET_ID_SEED]
+
+  push.ASSET_ID_SEED_PTR mem_storew dropw
+end
+
+#! Computes a new Asset ID and increments the number of created assets by one.
+#!
+#! Inputs:  []
+#! Outputs: []
+export.generate_asset_id
+  padw push.ASSET_ID_SEED_PTR mem_loadw
+  # => [ASSET_ID_SEED]
+
+  push.ASSET_NUM_CREATED mem_load
+  # => [num_created, ASSET_ID_SEED]
+
+  dup add.1
+  # => [num_created+1, num_created, ASSET_ID_SEED]
+
+  push.ASSET_NUM_CREATED mem_store
+  # => [num_created, ASSET_ID_SEED]
+
+  push.0.0.0
+  # => [0, 0, 0, num_created, ASSET_ID_SEED]
+
+  hmerge
+  # => [ASSET_ID]
+end
+
+export.init_next_asset_ptr
+  push.ASSET_MIN_PTR
+  push.ASSET_PTR_MAP_MIN
+  mem_store
+end
+
+
+#! Computes the next free asset pointer for an asset with the given number of felts.
+#!
+#! Inputs:  [num_fields]
+#! Outputs: [asset_ptr]
+export.get_next_asset_ptr
+    # Assert num_fields % 8 == 0 (we can actually allow arbitrary field nums and compute the next multiple,
+    # this is just for asset hash padding reasons)
+    dup push.8 u32mod assertz.err=163
+    # => [num_fields]
+
+    push.ASSET_NEXT_OFFSET_PTR mem_load
+    # => [map_offset, num_fields]
+
+    dup add.ASSET_PTR_MAP_MIN swap
+    # => [map_offset, asset_ptr, num_fields]
+
+    # TODO: Assert offset is in valid range.
+  
+    # update offset so it points to the next map entry on the next call
+    add.1 dup push.ASSET_NEXT_OFFSET_PTR mem_store
+    # => [next_map_offset, asset_ptr, num_fields]
+    movdn.2
+    # => [asset_ptr, num_fields, next_map_offset]
+    dup mem_load swap
+    # => [asset_ptr, asset_mem_ptr, num_fields, next_map_offset]
+
+    swap.2
+    # => [num_fields, asset_mem_ptr, asset_ptr, next_map_offset]
+
+    push.ASSET_BOOKKEEPING_SIZE
+    # => [ASSET_BOOKKEEPING_SIZE, num_fields, asset_mem_ptr, asset_ptr, next_map_offset]
+
+    add add
+    # => [next_asset_mem_ptr, asset_ptr, next_map_offset]
+
+    # store the next asset mem ptr in the _next_ asset ptr map entry
+    movup.2 add.ASSET_PTR_MAP_MIN
+    # => [next_map_entry_ptr, next_asset_mem_ptr, asset_ptr]
+    mem_store
+    # => [asset_ptr]
+end
+
+#! Invalidates an asset ptr by making it point to zero.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.invalidate_asset_ptr
+  push.0 swap mem_store
+  # => []
+end
+
+#! Computes the one time witness pointer for the given otw ID which is assumed to be within the valid range.
+#!
+#! Inputs:  [one_time_witness_id]
+#! Outputs: [one_time_witness_ptr]
+export.compute_otw_ptr
+  push.ASSET_OTW add
+end
+
+#! Computes the pointer to an asset's field.
+#!
+#! Inputs:  [asset_mem_ptr, field_idx]
+#! Outputs: [asset_field_ptr]
+export.compute_asset_field_ptr
+  push.ASSET_BOOKKEEPING_SIZE add add
+  # => [asset_field_ptr]
+end
+
+#! Computes the asset hash.
+#!
+#! Inputs:  [asset_mem_ptr]
+#! Outputs: [ASSET_HASH]
+export.compute_asset_hash
+  dup dup
+  # => [asset_mem_ptr, asset_mem_ptr, asset_hash_start_ptr]
+
+  exec.asset_get_num_fields push.ASSET_BOOKKEEPING_SIZE add add
+  # => [asset_hash_end_ptr, asset_hash_start_ptr]
+  swap dup movdn.2
+  # => [asset_hash_start_ptr, asset_hash_end_ptr, asset_hash_start_ptr]
+
+  # initialize hasher state
+  padw padw padw
+  # => [pad(12), asset_hash_start_ptr, asset_hash_end_ptr, asset_hash_start_ptr]
+
+  exec.rpo::absorb_double_words_from_memory
+  exec.rpo::squeeze_digest
+  # => [ASSET_HASH, asset_hash_end_ptr, asset_hash_end_ptr, asset_hash_start_ptr]
+
+  movup.4 drop
+  # => [ASSET_HASH, asset_hash_end_ptr, asset_hash_start_ptr]
+  movup.5 movdn.4
+  # => [ASSET_HASH, asset_hash_start_ptr, asset_hash_end_ptr]
+
+  # insert the object into the advice provider for demo purposes,
+  # so we can load it from there
+  adv.insert_mem
+
+  movup.4 drop movup.4 drop
+  # => [ASSET_HASH]
+end
+
+#! Sets the asset ID of an asset.
+#!
+#! Inputs:  [asset_mem_ptr, ASSET_ID]
+#! Outputs: []
+export.set_asset_id
+  mem_storew dropw
+end
+
+#! Gets the asset ID of an asset.
+#!
+#! Inputs:  [asset_mem_ptr]
+#! Outputs: [ASSET_ID]
+export.get_asset_id
+  padw movup.4 mem_loadw
+end
+
+#! Sets the issuer of an asset.
+#!
+#! Inputs:  [asset_mem_ptr, account_id_prefix, account_id_suffix]
+#! Outputs: []
+export.set_asset_issuer
+  dup movdn.2
+  # => [asset_mem_ptr, account_id_prefix, asset_mem_ptr, account_id_suffix]
+
+  push.ASSET_ISSUER_PREFIX_OFFSET add mem_store
+  # => [asset_mem_ptr, account_id_suffix]
+
+  push.ASSET_ISSUER_SUFFIX_OFFSET add mem_store
+  # => []
+end
+
+#! Gets the issuer of an asset.
+#!
+#! Inputs:  [asset_mem_ptr]
+#! Outputs: [account_id_prefix, account_id_suffix]
+export.asset_get_issuer
+  push.ASSET_ISSUER_SUFFIX_OFFSET dup.1 add mem_load
+  # => [account_id_suffix, asset_mem_ptr]
+
+  swap push.ASSET_ISSUER_PREFIX_OFFSET add mem_load
+  # => [account_id_prefix, account_id_suffix]
+end
+
+#! Sets the type of an asset.
+#!
+#! Inputs:  [asset_mem_ptr, type_id]
+#! Outputs: []
+export.set_asset_type
+  push.ASSET_TYPE_ID_OFFSET add mem_store
+  # => []
+end
+
+#! Gets the type of an asset.
+#!
+#! Inputs:  [asset_mem_ptr]
+#! Outputs: [type_id]
+export.asset_get_type
+  push.ASSET_TYPE_ID_OFFSET add mem_load
+  # => []
+end
+
+#! Sets the number of fields of an asset.
+#!
+#! Inputs:  [asset_mem_ptr, num_fields]
+#! Outputs: []
+export.set_asset_num_fields
+  push.ASSET_NUM_FIELDS_OFFSET add mem_store
+  # => []
+end
+
+#! Gets the number of fields of an asset.
+#!
+#! Inputs:  [asset_mem_ptr]
+#! Outputs: [num_fields]
+export.asset_get_num_fields
+  push.ASSET_NUM_FIELDS_OFFSET add mem_load
+  # => [num_fields]
+end
+
+#! Asserts the validity of an asset ptr by checking that it is within the range of loaded asset pointers.
+#! If it is valid, returns the dereferenced pointer to the actual memory of the asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [asset_mem_ptr]
+export.assert_valid_asset_ptr
+  # check asset_ptr >= ptr_map_min
+  dup gte.ASSET_PTR_MAP_MIN assert.err=9421
+  # => [asset_ptr]
+
+  # check asset_ptr < next_asset_ptr
+  dup push.ASSET_PTR_MAP_MIN push.ASSET_NEXT_OFFSET_PTR mem_load add
+  # => [next_asset_ptr, asset_ptr, asset_ptr]
+  lt assert.err=34817
+  # => [asset_ptr]
+
+  # dereference the asset ptr to the actual memory location of the asset
+  mem_load
+  # => [asset_mem_ptr]
+
+  # if it is a null pointer, it means we have invalidated the ptr and we abort
+  dup eq.0 assertz.err=491472
+  # => [asset_mem_ptr]
 end
 
 # KERNEL DATA

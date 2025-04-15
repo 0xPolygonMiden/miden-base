@@ -1,7 +1,11 @@
 use.std::sys
+use.std::collections::smt
+use.std::crypto::hashes::rpo
+use.std::mem
 
 use.kernel::account
 use.kernel::asset_vault
+use.kernel::asset
 use.kernel::constants
 use.kernel::faucet
 use.kernel::memory
@@ -127,6 +131,19 @@ export.account_get_id
     # truncate the stack
     movup.2 drop movup.2 drop
     # => [acct_id_prefix, acct_id_suffix, pad(14)]
+end
+
+#! Returns the ID of the native account.
+#!
+#! Inputs:  [pad(16)]
+#! Outputs: [acct_id_prefix, acct_id_suffix, pad(14)]
+export.get_native_account_id
+  exec.memory::get_native_account_id
+  # => [acct_id_prefix, acct_id_suffix, pad(16)]
+
+  # truncate the stack
+  movup.2 drop movup.2 drop
+  # => [acct_id_prefix, acct_id_suffix, pad(14)]
 end
 
 #! Returns the account nonce.
@@ -1072,6 +1089,298 @@ export.tx_get_expiration_delta
     # truncate the stack
     swap drop
     # => [block_height_delta, pad(15)]
+end
+
+### ASSETS ########################################
+
+#! Creates a new asset with the given number of fields and returns the pointer to it.
+#!
+#! Inputs:  [num_fields, type_id]
+#! Outputs: [asset_ptr]
+export.asset_create
+  dup movdn.2 exec.memory::get_next_asset_ptr
+  # => [asset_ptr, type_id, num_fields]
+  dup movdn.3
+  # => [asset_ptr, type_id, num_fields, asset_ptr]
+
+  # dereference asset ptr which should be valid
+  mem_load
+  # => [asset_mem_ptr, type_id, num_fields, asset_ptr]
+
+  exec.memory::generate_asset_id
+  # => [ASSET_ID, asset_mem_ptr, type_id, num_fields, asset_ptr]
+
+  dup.4 exec.memory::set_asset_id
+  # => [asset_mem_ptr, type_id, num_fields, asset_ptr]
+
+  # Get the _current_ account's ID, which becomes the issuer of the asset.
+  exec.memory::get_account_id dup.2
+  # => [asset_mem_ptr, account_id_prefix, account_id_suffix, asset_mem_ptr, type_id, num_fields, asset_ptr]
+
+  exec.memory::set_asset_issuer dup movdn.2
+  # => [asset_mem_ptr, type_id, asset_mem_ptr, num_fields, asset_ptr]
+
+  exec.memory::set_asset_type
+  # => [asset_mem_ptr, num_fields, asset_ptr]
+
+  exec.memory::set_asset_num_fields
+  # => [asset_ptr]
+end
+
+#! Destroys the given asset by making it inaccessible by invalidating its ptr.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.asset_destroy
+  dup exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr, asset_ptr]
+
+  exec.assert_asset_issuer
+  # => [asset_ptr]
+
+  exec.memory::invalidate_asset_ptr
+  # => []
+end
+
+#! Sets the field of the asset to the provided value.
+#!
+#! Inputs:  [asset_ptr, field_idx, field_value]
+#! Outputs: []
+export.asset_set_field
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr, field_idx, field_value]
+
+  dup exec.assert_asset_issuer
+  # => [asset_mem_ptr, field_idx, field_value]
+
+  exec.memory::compute_asset_field_ptr mem_store
+  # => []
+end
+
+#! Gets the field of the asset.
+#!
+#! Inputs:  [asset_ptr, field_idx]
+#! Outputs: [field_value]
+export.asset_get_field
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr, field_idx]
+
+  # TODO: Not 100% necessary.
+  dup exec.assert_asset_issuer
+  # => [asset_mem_ptr, field_idx]
+
+  exec.memory::compute_asset_field_ptr mem_load
+  # => []
+end
+
+#! Creates a new one time witness in the context of the native account if it has not been created before.
+#!
+#! Inputs:  [one_time_witness_id]
+#! Outputs: []
+export.asset_consume_one_time_witness
+  # exec.memory::assert_native_account
+  # => []
+
+  # TODO: Assert 0 <= one_time_witness_id < 32
+
+  # Assert that the native account is new.
+  exec.memory::get_init_nonce assertz.err=123
+  # => []
+
+  # Make sure the OTW hasn't been instantiated before by checking its state is 0.
+  exec.memory::compute_otw_ptr dup mem_load
+  # => [otw_state, otw_ptr]
+  assertz.err=456
+  # => [otw_ptr]
+
+  # Mark OTW as consumed.
+  dup push.1 mem_store
+  # => [otw_ptr]
+end
+
+#! Stores the asset from kernel memory to the native account's vault.
+#! 
+#! NOTE: Bypasses asset_vault.masm for now and does not emit events.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: []
+export.asset_store_to_account.1
+  dup loc_store.0
+  # => [asset_ptr]
+
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
+  # this asserts that only the issuing account code can control transfers of an asset
+  dup exec.assert_asset_issuer
+  # => [asset_mem_ptr]
+
+  exec.memory::get_native_account_vault_root
+  # => [ACCOUNT_VAULT_ROOT, asset_mem_ptr]
+
+  dup.4 exec.memory::get_asset_id
+  # => [ASSET_ID, ACCOUNT_VAULT_ROOT, asset_mem_ptr]
+
+  movup.8 exec.memory::compute_asset_hash
+  # => [ASSET_HASH, ASSET_ID, ACCOUNT_VAULT_ROOT]
+
+  # insert asset into account vault
+  exec.smt::set
+  # => [OLD_VALUE, NEW_VAULT_ROOT]
+
+  # assert previous value was empty
+  padw assert_eqw.err=9187
+  # => [NEW_VAULT_ROOT]
+
+  exec.memory::set_native_account_vault_root dropw
+  # => []
+
+  # invalidate the ptr to make the asset inaccessible
+  # we do not clear the asset's memory because we do not reuse it anyway
+  loc_load.0 exec.memory::invalidate_asset_ptr
+  # => []
+end
+
+#! Loads the asset from the native account's vault into kernel memory.
+#! 
+#! NOTE: Bypasses asset_vault.masm for now and does not emit events.
+#!
+#! Inputs:  [ASSET_ID, expected_asset_type]
+#! Outputs: [asset_ptr]
+export.asset_load_from_account
+  exec.memory::get_native_account_vault_root swapw padw
+  # => [EMPTY_WORD, ASSET_ID, ACCOUNT_VAULT_ROOT, expected_asset_type]
+
+  # Overwrite the object's ID with an empty word to prevent loading this asset multiple times.
+  # It also cleanly handles loading an account to move it to a note - the account then no longer has this asset.
+  # We could potentially have separate APIs for loading an asset for mutation (where it is written back to the same account),
+  # or loaded to move it somewhere else, in which case it is removed from the account vault, but these would have some tricky
+  # edge cases.
+  exec.smt::set swapw
+  # => [NEW_ACCOUNT_VAULT_ROOT, ASSET_HASH, expected_asset_type]
+  exec.memory::set_native_account_vault_root dropw
+  # => [ASSET_HASH, expected_asset_type]
+
+  adv.push_mapvaln
+  # OS => [ASSET_HASH, expected_asset_type]
+  # AS => [num_elems, [ASSET_DATA]]
+  adv_push.1
+  # OS => [num_elems, ASSET_HASH, expected_asset_type]
+  # AS => [[ASSET_DATA]]
+
+  # subtract asset bookkeeping size
+  dup sub.8
+  # => [num_fields, num_elems, ASSET_HASH, expected_asset_type]
+
+  exec.memory::get_next_asset_ptr dup movdn.6
+  # => [asset_ptr, num_elems, ASSET_HASH, asset_ptr, expected_asset_type]
+  mem_load dup movdn.6
+  # => [asset_mem_ptr, num_elems, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  dup movdn.2 add swap
+  # => [asset_mem_ptr, asset_mem_end_ptr, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  # pad stack before reading from advice stack
+  padw padw padw
+  exec.mem::pipe_double_words_to_memory
+  # => [C, B, A, _ptr, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  # extract the digest
+  exec.rpo::squeeze_digest
+  movup.4 drop
+  # => [COMPUTED_ASSET_HASH, ASSET_HASH, asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  # assert asset from advice provider matches the commitment from the account vault
+  assert_eqw.err=47293
+  # => [asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  # make sure only the issuer code can control loading this asset
+  dup exec.assert_asset_issuer
+  # => [asset_mem_ptr, asset_ptr, expected_asset_type]
+
+  # make sure the asset is of the expected type
+  # this could be checked by the calling code as well, but should be done anyway
+  # and would incur another context switch.
+  movup.2 swap
+  # => [asset_mem_ptr, expected_asset_type, asset_ptr]
+  exec.assert_asset_type
+  # => [asset_ptr]
+end
+
+#! Gets the ID of the asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [ASSET_ID]
+export.asset_get_id
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
+  exec.memory::get_asset_id swapw dropw
+  # => [ASSET_ID]
+end
+
+#! Gets the issuer of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [account_id_prefix, account_id_suffix]
+export.asset_get_issuer
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
+  exec.memory::asset_get_issuer
+  # truncate stack
+  movup.2 drop
+end
+
+#! Gets the type of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [type_id]
+export.asset_get_type
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
+  exec.memory::asset_get_type
+end
+
+#! Gets the number of fields of an asset.
+#!
+#! Inputs:  [asset_ptr]
+#! Outputs: [num_fields]
+export.asset_get_num_fields
+  exec.memory::assert_valid_asset_ptr
+  # => [asset_mem_ptr]
+
+  exec.memory::asset_get_num_fields
+end
+
+#! Asserts the currently accessing account is the account that issued the asset.
+#!
+#! Inputs:  [asset_mem_ptr]
+#! Outputs: []
+proc.assert_asset_issuer
+  exec.memory::asset_get_issuer
+  # => [asset_account_id_prefix, asset_account_id_suffix]
+
+  exec.memory::get_account_id
+  # => [current_account_id_prefix, current_account_id_suffix, asset_account_id_prefix, asset_account_id_suffix]
+
+  # assert only the account that defines the asset can modify it
+  exec.account::is_id_equal assert.err=987
+  # => []
+end
+
+#! Asserts the asset ptr points to an asset of the given expected type.
+#!
+#! Inputs:  [asset_mem_ptr, expected_asset_type]
+#! Outputs: []
+proc.assert_asset_type
+  exec.memory::asset_get_type
+  # => [actual_asset_type, expected_asset_type]
+
+  # assert types match
+  assert_eq.err=31927
+  # => []
 end
 
 #! Executes a kernel procedure specified by its offset.
