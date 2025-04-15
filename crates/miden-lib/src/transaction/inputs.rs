@@ -290,7 +290,7 @@ fn add_input_notes_to_advice_inputs(
                         )
                         .map_err(|err| {
                             TransactionInputError::InvalidMerklePath(
-                                format!("input note ID {}", note.id()),
+                                format!("input note ID {}", note.id()).into(),
                                 err,
                             )
                         })?,

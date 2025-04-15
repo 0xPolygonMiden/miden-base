@@ -231,7 +231,7 @@ impl TransactionKernel {
                 .inner_nodes(account_id.prefix().as_u64(), account_header.commitment())
                 .map_err(|err| {
                     TransactionInputError::InvalidMerklePath(
-                        format!("foreign account ID {}", account_id),
+                        format!("foreign account ID {}", account_id).into(),
                         err,
                     )
                 })?,
@@ -246,7 +246,7 @@ impl TransactionKernel {
                     .inner_nodes(proof.leaf().index().value(), proof.leaf().hash())
                     .map_err(|err| {
                         TransactionInputError::InvalidMerklePath(
-                            format!("foreign account ID {} storage proof", account_id),
+                            format!("foreign account ID {} storage proof", account_id).into(),
                             err,
                         )
                     })?,
