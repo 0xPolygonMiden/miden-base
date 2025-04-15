@@ -45,7 +45,7 @@ pub enum WorkerHealthStatus {
     /// The worker is unhealthy.
     Unhealthy {
         /// The number of failed attempts.
-        failed_attempts: usize,
+        num_failed_attempts: usize,
         /// The timestamp of the first failure.
         #[serde(skip_serializing)]
         first_fail_timestamp: Instant,
@@ -108,7 +108,7 @@ impl Worker {
             Err(e) => {
                 error!("Failed to check worker status ({}): {}", self.address(), e);
                 return Some(WorkerHealthStatus::Unhealthy {
-                    failed_attempts: failed_attempts + 1,
+                    num_failed_attempts: failed_attempts + 1,
                     first_fail_timestamp: Instant::now(),
                     reason: e.message().to_string(),
                 });
@@ -127,7 +127,7 @@ impl Worker {
                         e
                     );
                     return Some(WorkerHealthStatus::Unhealthy {
-                        failed_attempts: failed_attempts + 1,
+                        num_failed_attempts: failed_attempts + 1,
                         first_fail_timestamp: Instant::now(),
                         reason: e.to_string(),
                     });
@@ -136,7 +136,7 @@ impl Worker {
 
         if !(*supported_prover_type == worker_supported_proof_type) {
             return Some(WorkerHealthStatus::Unhealthy {
-                failed_attempts: failed_attempts + 1,
+                num_failed_attempts: failed_attempts + 1,
                 first_fail_timestamp: Instant::now(),
                 reason: "Unsupported proof type".to_string(),
             });
@@ -176,7 +176,7 @@ impl Worker {
         match &self.health_status {
             WorkerHealthStatus::Healthy => 0,
             WorkerHealthStatus::Unhealthy {
-                failed_attempts,
+                num_failed_attempts: failed_attempts,
                 first_fail_timestamp: _,
                 reason: _,
             } => *failed_attempts,
@@ -195,7 +195,7 @@ impl Worker {
         match self.health_status {
             WorkerHealthStatus::Healthy => true,
             WorkerHealthStatus::Unhealthy {
-                failed_attempts,
+                num_failed_attempts: failed_attempts,
                 first_fail_timestamp,
                 reason: _,
             } => {
