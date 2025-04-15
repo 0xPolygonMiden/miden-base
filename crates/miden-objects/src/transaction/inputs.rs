@@ -1,10 +1,14 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use core::fmt::Debug;
 
+use miden_crypto::merkle::{MerkleError, MerklePath, SmtProof};
+
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
     MAX_INPUT_NOTES_PER_TX, TransactionInputError,
-    account::{Account, AccountId, AccountIdAnchor},
+    account::{
+        Account, AccountCode, AccountHeader, AccountId, AccountIdAnchor, AccountStorageHeader,
+    },
     block::BlockNumber,
     note::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -302,7 +306,7 @@ impl<T: ToInputNoteCommitments> Default for InputNotes<T> {
 }
 
 // SERIALIZATION
-// ------------------------------------------------------------------------------------------------
+// ================================================================================================
 
 impl<T: Serializable> Serializable for InputNotes<T> {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -322,7 +326,7 @@ impl<T: Deserializable + ToInputNoteCommitments> Deserializable for InputNotes<T
 }
 
 // HELPER FUNCTIONS
-// ------------------------------------------------------------------------------------------------
+// ================================================================================================
 
 fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest {
     // Note: This implementation must be kept in sync with the kernel's `process_input_notes_data`
@@ -529,5 +533,172 @@ pub fn validate_account_seed(
         (true, None) => Err(TransactionInputError::AccountSeedNotProvidedForNewAccount),
         (false, Some(_)) => Err(TransactionInputError::AccountSeedProvidedForExistingAccount),
         (false, None) => Ok(()),
+    }
+}
+
+// FOREIGN ACCOUNT INPUTS
+// ================================================================================================
+
+/// Contains information about a foreign account, with everything required to execute its code.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ForeignAccountInputs {
+    /// Account header of the foreign account.
+    account_header: AccountHeader,
+    /// Header information about the account's storage.
+    storage_header: AccountStorageHeader,
+    /// Code associated with the account.
+    account_code: AccountCode,
+    /// Merkle proof of the account's inclusion in the account tree.
+    account_witness: MerklePath,
+    /// Storage SMT proof for storage map values that the transaction will access.
+    storage_map_proofs: Vec<SmtProof>,
+}
+
+impl ForeignAccountInputs {
+    /// Creates a new [`ForeignAccountInputs`]
+    pub fn new(
+        account_header: AccountHeader,
+        storage_header: AccountStorageHeader,
+        account_code: AccountCode,
+        merkle_proof: MerklePath,
+        storage_map_proofs: Vec<SmtProof>,
+    ) -> ForeignAccountInputs {
+        ForeignAccountInputs {
+            account_header,
+            storage_header,
+            account_code,
+            account_witness: merkle_proof,
+            storage_map_proofs,
+        }
+    }
+
+    /// Returns the account's [`AccountId`]
+    pub fn id(&self) -> AccountId {
+        self.account_header.id()
+    }
+
+    /// Returns the account's [`AccountHeader`]
+    pub fn account_header(&self) -> &AccountHeader {
+        &self.account_header
+    }
+
+    /// Returns the account's [`AccountStorageHeader`].
+    pub fn storage_header(&self) -> &AccountStorageHeader {
+        &self.storage_header
+    }
+
+    /// Returns the account's storage maps.
+    pub fn storage_map_proofs(&self) -> &[SmtProof] {
+        &self.storage_map_proofs
+    }
+
+    /// Returns the account's [`AccountCode`].
+    pub fn account_code(&self) -> &AccountCode {
+        &self.account_code
+    }
+
+    /// Returns the account witness.
+    pub fn account_witness(&self) -> &MerklePath {
+        &self.account_witness
+    }
+
+    /// Computes account root based on the account witness.
+    pub fn compute_account_root(&self) -> Result<Digest, MerkleError> {
+        self.account_witness()
+            .compute_root(self.id().prefix().into(), self.account_header().commitment())
+    }
+
+    /// Extends the storage proofs with the input `smt_proofs` and returns the new structure
+    #[must_use]
+    pub fn with_storage_map_proofs(
+        mut self,
+        smt_proofs: impl IntoIterator<Item = SmtProof>,
+    ) -> Self {
+        self.storage_map_proofs.extend(smt_proofs);
+        self
+    }
+
+    /// Consumes the [`ForeignAccountInputs`] and returns its parts.
+    pub fn into_parts(
+        self,
+    ) -> (AccountHeader, AccountStorageHeader, AccountCode, MerklePath, Vec<SmtProof>) {
+        (
+            self.account_header,
+            self.storage_header,
+            self.account_code,
+            self.account_witness,
+            self.storage_map_proofs,
+        )
+    }
+}
+
+impl Serializable for ForeignAccountInputs {
+    fn write_into<W: crate::utils::ByteWriter>(&self, target: &mut W) {
+        self.account_header.write_into(target);
+        self.storage_header.write_into(target);
+        self.account_code.write_into(target);
+        self.account_witness.write_into(target);
+        self.storage_map_proofs.write_into(target);
+    }
+}
+
+impl Deserializable for ForeignAccountInputs {
+    fn read_from<R: crate::utils::ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, crate::utils::DeserializationError> {
+        let account_header = AccountHeader::read_from(source)?;
+        let storage_header = AccountStorageHeader::read_from(source)?;
+        let account_code = AccountCode::read_from(source)?;
+        let merkle_proof = MerklePath::read_from(source)?;
+        let storage_maps = Vec::<SmtProof>::read_from(source)?;
+        Ok(ForeignAccountInputs::new(
+            account_header,
+            storage_header,
+            account_code,
+            merkle_proof,
+            storage_maps,
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use miden_crypto::merkle::MerklePath;
+    use vm_core::{
+        Felt,
+        utils::{Deserializable, Serializable},
+    };
+
+    use super::ForeignAccountInputs;
+    use crate::{
+        account::{Account, AccountCode, AccountHeader, AccountId, AccountStorage},
+        asset::AssetVault,
+        testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+    };
+
+    #[test]
+    fn serde_roundtrip() {
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap();
+        let code = AccountCode::mock();
+        let vault = AssetVault::new(&[]).unwrap();
+        let storage = AccountStorage::new(vec![]).unwrap();
+        let account = Account::from_parts(id, vault, storage, code, Felt::new(10));
+
+        let commitment = account.commitment();
+        let header: AccountHeader = account.clone().into();
+        let (_, _, storage, code, _) = account.into_parts();
+
+        let fpi_inputs = ForeignAccountInputs::new(
+            header,
+            storage.get_header(),
+            code,
+            MerklePath::new(vec![commitment]),
+            vec![],
+        );
+
+        let serialized = fpi_inputs.to_bytes();
+        let deserialized = ForeignAccountInputs::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, fpi_inputs);
     }
 }

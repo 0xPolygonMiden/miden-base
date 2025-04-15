@@ -3,11 +3,11 @@
 
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
 use miden_objects::{
     FieldElement,
-    account::{Account, AccountCode, AccountId},
-    assembly::Assembler,
+    account::{Account, AccountId},
+    assembly::{Assembler, Library},
     asset::{Asset, FungibleAsset, NonFungibleAsset},
     note::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
@@ -23,8 +23,9 @@ use miden_objects::{
         note::NoteBuilder,
         storage::prepare_assets,
     },
-    transaction::{OutputNote, TransactionArgs, TransactionInputs, TransactionScript},
-    utils::word_to_masm_push_string,
+    transaction::{
+        ForeignAccountInputs, OutputNote, TransactionArgs, TransactionInputs, TransactionScript,
+    },
     vm::AdviceMap,
 };
 use rand::{Rng, SeedableRng};
@@ -32,7 +33,7 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, Felt, Word};
 
 use super::TransactionContext;
-use crate::{auth::BasicAuthenticator, testing::MockChain};
+use crate::{TransactionMastStore, auth::BasicAuthenticator, testing::MockChain};
 
 pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 
@@ -49,6 +50,7 @@ pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 /// ```
 /// # use miden_tx::testing::TransactionContextBuilder;
 /// # use miden_objects::{account::AccountBuilder,Felt, FieldElement};
+/// # use miden_lib::transaction::TransactionKernel;
 /// let tx_context = TransactionContextBuilder::with_standard_account(Felt::ONE).build();
 ///
 /// let code = "
@@ -72,7 +74,8 @@ pub struct TransactionContextBuilder {
     advice_inputs: AdviceInputs,
     authenticator: Option<MockAuthenticator>,
     expected_output_notes: Vec<Note>,
-    foreign_account_codes: Vec<AccountCode>,
+    foreign_account_inputs: Vec<ForeignAccountInputs>,
+    libraries: Vec<Library>,
     input_notes: Vec<Note>,
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
@@ -94,7 +97,8 @@ impl TransactionContextBuilder {
             advice_inputs: Default::default(),
             transaction_inputs: None,
             note_args: BTreeMap::new(),
-            foreign_account_codes: vec![],
+            foreign_account_inputs: vec![],
+            libraries: Default::default(),
         }
     }
 
@@ -121,7 +125,8 @@ impl TransactionContextBuilder {
             tx_script: None,
             transaction_inputs: None,
             note_args: BTreeMap::new(),
-            foreign_account_codes: vec![],
+            foreign_account_inputs: vec![],
+            libraries: Default::default(),
         }
     }
 
@@ -168,8 +173,8 @@ impl TransactionContextBuilder {
     }
 
     /// Set foreign account codes that are used by the transaction
-    pub fn foreign_account_codes(mut self, codes: Vec<AccountCode>) -> Self {
-        self.foreign_account_codes = codes;
+    pub fn foreign_accounts(mut self, inputs: Vec<ForeignAccountInputs>) -> Self {
+        self.foreign_account_inputs = inputs;
         self
     }
 
@@ -188,6 +193,12 @@ impl TransactionContextBuilder {
     /// Set the desired transaction inputs
     pub fn tx_inputs(mut self, tx_inputs: TransactionInputs) -> Self {
         self.transaction_inputs = Some(tx_inputs);
+        self
+    }
+
+    /// Set custom libraries to add to the MAST forest store at context creation.
+    pub fn libraries(mut self, libraries: Vec<Library>) -> Self {
+        self.libraries = libraries;
         self
     }
 
@@ -653,20 +664,37 @@ impl TransactionContextBuilder {
             },
         };
 
-        let mut tx_args =
-            TransactionArgs::new(self.tx_script, Some(self.note_args), AdviceMap::default())
-                .with_advice_inputs(self.advice_inputs.clone());
+        let mut tx_args = TransactionArgs::new(
+            self.tx_script,
+            Some(self.note_args),
+            AdviceMap::default(),
+            self.foreign_account_inputs,
+        );
 
+        tx_args.extend_advice_inputs(self.advice_inputs.clone());
         tx_args.extend_output_note_recipients(self.expected_output_notes.clone());
+
+        let mast_store = {
+            let mast_forest_store = TransactionMastStore::new();
+            mast_forest_store.load_transaction_code(
+                tx_inputs.account().code(),
+                tx_inputs.input_notes(),
+                &tx_args,
+            );
+
+            for custom_library in self.libraries {
+                mast_forest_store.insert(custom_library.mast_forest().clone());
+            }
+            mast_forest_store
+        };
 
         TransactionContext {
             expected_output_notes: self.expected_output_notes,
             tx_args,
             tx_inputs,
+            mast_store,
             authenticator: self.authenticator,
             advice_inputs: self.advice_inputs,
-            assembler: self.assembler,
-            foreign_codes: self.foreign_account_codes,
         }
     }
 }
