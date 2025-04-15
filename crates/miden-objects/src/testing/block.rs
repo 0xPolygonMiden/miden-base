@@ -1,9 +1,10 @@
-use vm_core::Felt;
-use vm_processor::Digest;
 #[cfg(not(target_family = "wasm"))]
 use winter_rand_utils::{rand_array, rand_value};
 
+#[cfg(not(target_family = "wasm"))]
+use crate::Felt;
 use crate::{
+    Digest,
     account::Account,
     block::{AccountTree, BlockHeader, BlockNumber},
 };
