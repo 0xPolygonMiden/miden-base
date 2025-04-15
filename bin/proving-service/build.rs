@@ -15,6 +15,9 @@ const BUILD_GENERATED_FILES_IN_SRC: bool = option_env!("BUILD_GENERATED_FILES_IN
 const REPO_PROTO_DIR: &str = "../../proto";
 const CRATE_PROTO_DIR: &str = "proto";
 
+/// List of proto files to be compiled
+const PROTO_FILES: &[&str] = &["proving_service.proto", "worker_status.proto"];
+
 /// Generates Rust protobuf bindings from .proto files.
 ///
 /// Because the proto generated files will be written to ./src/generated, this should be a no-op
@@ -35,13 +38,11 @@ fn main() -> miette::Result<()> {
 
 /// Copies the proto file from the root proto directory to the proto directory of this crate.
 fn copy_proto_files() -> miette::Result<()> {
-    let files = ["proving_service.proto", "worker_status.proto"];
-
     // remove and create dirs
     fs::remove_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
     fs::create_dir_all(CRATE_PROTO_DIR).into_diagnostic()?;
 
-    for file in &files {
+    for file in PROTO_FILES {
         let src = format!("{REPO_PROTO_DIR}/{}", file);
         let dest = format!("{CRATE_PROTO_DIR}/{}", file);
         fs::copy(src, dest).into_diagnostic()?;
@@ -56,20 +57,23 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     let dst_dir = crate_root.join("src").join("generated");
 
     // Remove generated files if they exist
-    let _ = fs::remove_file(dst_dir.join("proving_service.rs"));
-    let _ = fs::remove_file(dst_dir.join("worker_status.rs"));
+    for file in PROTO_FILES {
+        let _ = fs::remove_file(dst_dir.join(file.replace(".proto", ".rs")));
+    }
 
     let out_dir = env::var("OUT_DIR").into_diagnostic()?;
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
     let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
-    let protos = &[proto_dir.join("proving_service.proto"), proto_dir.join("worker_status.proto")];
+    let protos: Vec<PathBuf> = PROTO_FILES.iter()
+        .map(|file| proto_dir.join(file))
+        .collect();
     let includes = &[proto_dir];
 
-    let file_descriptors = protox::compile(protos, includes)?;
+    let file_descriptors = protox::compile(&protos, includes)?;
     fs::write(&file_descriptor_path, file_descriptors.encode_to_vec()).into_diagnostic()?;
 
-    build_tonic_server(&file_descriptor_path, &dst_dir, protos, includes)?;
+    build_tonic_server(&file_descriptor_path, &dst_dir, &protos, includes)?;
 
     Ok(())
 }
