@@ -12,7 +12,7 @@ use super::ProxyConfig;
 use crate::{
     error::ProvingServiceError,
     proxy::{
-        LoadBalancer, LoadBalancerState, status::StatusService,
+        LoadBalancer, LoadBalancerState, status::ProxyStatusService,
         update_workers::LoadBalancerUpdateService,
     },
     utils::{MIDEN_PROVING_SERVICE, check_port_availability},
@@ -126,7 +126,7 @@ impl StartProxy {
         }
 
         // Add status service
-        let status_service = StatusService::new(worker_lb);
+        let status_service = ProxyStatusService::new(worker_lb);
         let mut status_service = Service::new("status".to_string(), status_service);
         status_service.add_tcp(
             format!("{}:{}", self.proxy_config.host, self.proxy_config.status_port).as_str(),

@@ -31,11 +31,11 @@ pub struct ProxyStatus {
 }
 
 /// Service that handles status requests
-pub struct StatusService {
+pub struct ProxyStatusService {
     load_balancer: Arc<LoadBalancerState>,
 }
 
-impl StatusService {
+impl ProxyStatusService {
     pub fn new(load_balancer: Arc<LoadBalancerState>) -> Self {
         Self { load_balancer }
     }
@@ -74,7 +74,7 @@ impl StatusService {
 }
 
 #[async_trait]
-impl HttpServerApp for StatusService {
+impl HttpServerApp for ProxyStatusService {
     async fn process_new_http(
         self: &Arc<Self>,
         mut session: ServerSession,
