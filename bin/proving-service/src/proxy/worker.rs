@@ -156,7 +156,7 @@ impl Worker {
             self.set_health_status(WorkerHealthStatus::Unhealthy {
                 num_failed_attempts: failed_attempts + 1,
                 first_fail_timestamp: Instant::now(),
-                reason: "Unsupported proof type".to_string(),
+                reason: format!("Unsupported prover type: {}", worker_supported_proof_type),
             });
             return;
         }

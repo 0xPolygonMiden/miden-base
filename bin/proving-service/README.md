@@ -135,7 +135,7 @@ Example response:
       "status": {
         "Unhealthy": {
           "failed_attempts": 3,
-          "reason": "Unsupported proof type"
+          "reason": "Unsupported prover type: Batch"
         }
       }
     },
