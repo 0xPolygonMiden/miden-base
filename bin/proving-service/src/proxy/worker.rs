@@ -94,7 +94,7 @@ impl Worker {
     /// - `Some(true)` if the worker is ready.
     /// - `Some(false)` if the worker is not ready or if there was an error checking the status.
     /// - `None` if the worker should not do a health check.
-    pub async fn check_status(&mut self, supported_prover_type: &ProverType) {
+    pub async fn check_status(&mut self, supported_prover_type: ProverType) {
         if !self.should_do_health_check() {
             return;
         }
@@ -152,7 +152,7 @@ impl Worker {
                 },
             };
 
-        if !(*supported_prover_type == worker_supported_proof_type) {
+        if supported_prover_type != worker_supported_proof_type {
             self.set_health_status(WorkerHealthStatus::Unhealthy {
                 num_failed_attempts: failed_attempts + 1,
                 first_fail_timestamp: Instant::now(),
