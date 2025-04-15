@@ -114,6 +114,24 @@ impl Worker {
             },
         };
 
+        if worker_status.version.is_empty() {
+            self.set_health_status(WorkerHealthStatus::Unhealthy {
+                num_failed_attempts: failed_attempts + 1,
+                first_fail_timestamp: Instant::now(),
+                reason: "Worker version is empty".to_string(),
+            });
+            return;
+        }
+
+        if !self.is_valid_version(&worker_status.version) {
+            self.set_health_status(WorkerHealthStatus::Unhealthy {
+                num_failed_attempts: failed_attempts + 1,
+                first_fail_timestamp: Instant::now(),
+                reason: "Worker version is invalid".to_string(),
+            });
+            return;
+        }
+
         self.version = worker_status.version;
 
         let worker_supported_proof_type =
@@ -235,6 +253,18 @@ impl Worker {
                 }
             },
         }
+    }
+
+    /// Returns whether the worker version is valid.
+    ///
+    /// The version is valid if it is a semantic version and is greater than or equal to the
+    /// current version. We dont check the patch version.
+    fn is_valid_version(&self, version: &str) -> bool {
+        // Dont check the patch version.
+        let current_version = env!("CARGO_PKG_VERSION");
+        let current_version_parts: Vec<&str> = current_version.split('.').collect();
+        let version_parts: Vec<&str> = version.split('.').collect();
+        version_parts[0] == current_version_parts[0] && version_parts[1] == current_version_parts[1]
     }
 }
 
