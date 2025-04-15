@@ -56,7 +56,10 @@ fn test_epilogue() {
     );
 
     let process = tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 
     let final_account = Account::mock(
@@ -123,7 +126,10 @@ fn test_compute_output_note_id() {
         );
 
         let process = &tx_context
-            .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+            .execute_code_with_assembler(
+                &code,
+                TransactionKernel::testing_assembler_with_mock_account(),
+            )
             .unwrap();
 
         assert_eq!(
@@ -175,8 +181,10 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
         "
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
     assert_execution_error!(process, ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME);
 }
 
@@ -210,8 +218,10 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
         "
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_EPILOGUE_TOTAL_NUMBER_OF_ASSETS_MUST_STAY_THE_SAME);
 }
@@ -249,7 +259,10 @@ fn test_block_expiration_height_monotonically_decreases() {
             .replace("{min_value}", &v2.min(v1).to_string());
 
         let process = &tx_context
-            .execute_code(code, TransactionKernel::testing_assembler_with_mock_account())
+            .execute_code_with_assembler(
+                code,
+                TransactionKernel::testing_assembler_with_mock_account(),
+            )
             .unwrap();
         let process_state: ProcessState = process.into();
 
@@ -277,8 +290,10 @@ fn test_invalid_expiration_deltas() {
 
     for value in test_values {
         let code = &code_template.replace("{value_1}", &value.to_string());
-        let process =
-            tx_context.execute_code(code, TransactionKernel::testing_assembler_with_mock_account());
+        let process = tx_context.execute_code_with_assembler(
+            code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        );
 
         assert_execution_error!(process, ERR_TX_INVALID_EXPIRATION_DELTA);
     }
@@ -306,7 +321,10 @@ fn test_no_expiration_delta_set() {
     ";
 
     let process = &tx_context
-        .execute_code(code_template, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            code_template,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
     let process_state: ProcessState = process.into();
 
@@ -353,7 +371,10 @@ fn test_epilogue_increment_nonce_success() {
     );
 
     tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 }
 
@@ -392,7 +413,9 @@ fn test_epilogue_increment_nonce_violation() {
         "
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
     assert_execution_error!(process, ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE)
 }

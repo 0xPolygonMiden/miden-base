@@ -152,7 +152,10 @@ fn test_create_note() {
     );
 
     let process = &tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 
     assert_eq!(
@@ -211,7 +214,7 @@ fn test_create_note_with_invalid_tag() {
     // Test invalid tag
     assert!(
         tx_context
-            .execute_code(
+            .execute_code_with_assembler(
                 &note_creation_script(invalid_tag),
                 TransactionKernel::testing_assembler()
             )
@@ -220,7 +223,10 @@ fn test_create_note_with_invalid_tag() {
     // Test valid tag
     assert!(
         tx_context
-            .execute_code(&note_creation_script(valid_tag), TransactionKernel::testing_assembler())
+            .execute_code_with_assembler(
+                &note_creation_script(valid_tag),
+                TransactionKernel::testing_assembler()
+            )
             .is_ok()
     );
 
@@ -285,8 +291,10 @@ fn test_create_note_too_many_notes() {
         aux = Felt::ZERO,
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT);
 }
@@ -417,7 +425,10 @@ fn test_get_output_notes_commitment() {
     );
 
     let process = &tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
     let process_state: ProcessState = process.into();
 
@@ -496,7 +507,10 @@ fn test_create_note_and_add_asset() {
     );
 
     let process = &tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
     let process_state: ProcessState = process.into();
 
@@ -580,7 +594,10 @@ fn test_create_note_and_add_multiple_assets() {
     );
 
     let process = &tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
     let process_state: ProcessState = process.into();
 
@@ -664,8 +681,10 @@ fn test_create_note_and_add_same_nft_twice() {
         nft = word_to_masm_push_string(&encoded),
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS);
 }
@@ -736,7 +755,10 @@ fn test_build_recipient_hash() {
     );
 
     let process = &tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 
     assert_eq!(
@@ -783,7 +805,7 @@ fn test_block_procedures() {
         ";
 
     let process = &tx_context
-        .execute_code(code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(code, TransactionKernel::testing_assembler_with_mock_account())
         .unwrap();
 
     assert_eq!(

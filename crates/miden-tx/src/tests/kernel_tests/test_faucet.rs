@@ -73,7 +73,10 @@ fn test_mint_fungible_asset_succeeds() {
     );
 
     let process = &tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
     let process_state: ProcessState = process.into();
 
@@ -111,8 +114,10 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
         suffix = faucet_id.suffix(),
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
@@ -137,8 +142,10 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
         suffix = faucet_id.suffix(),
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
@@ -169,8 +176,10 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
         saturating_amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_FAUCET_INITIAL_BALANCE + 1
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT);
 }
@@ -231,7 +240,10 @@ fn test_mint_non_fungible_asset_succeeds() {
     );
 
     tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 }
 
@@ -255,8 +267,10 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
         non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
@@ -281,8 +295,10 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
         non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_NON_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
@@ -312,8 +328,10 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
         non_fungible_asset = word_to_masm_push_string(&non_fungible_asset.into())
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED);
 }
@@ -364,7 +382,10 @@ fn test_burn_fungible_asset_succeeds() {
     );
 
     let process = &tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
     let process_state: ProcessState = process.into();
 
@@ -402,8 +423,10 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
         suffix = faucet_id.suffix(),
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
@@ -434,8 +457,10 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
         suffix = faucet_id.suffix(),
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FUNGIBLE_ASSET_FAUCET_IS_NOT_ORIGIN);
 }
@@ -467,8 +492,10 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
         saturating_amount = CONSUMED_ASSET_1_AMOUNT + 1
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_VAULT_FUNGIBLE_ASSET_AMOUNT_LESS_THAN_AMOUNT_TO_WITHDRAW);
 }
@@ -534,7 +561,10 @@ fn test_burn_non_fungible_asset_succeeds() {
     );
 
     tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 }
 
@@ -564,8 +594,10 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
         non_fungible_asset = word_to_masm_push_string(&non_fungible_asset_burnt.into())
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND);
 }
@@ -591,8 +623,10 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         non_fungible_asset = word_to_masm_push_string(&non_fungible_asset_burnt.into())
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(
         process,
@@ -627,8 +661,10 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         non_fungible_asset = word_to_masm_push_string(&non_fungible_asset_burnt.into())
     );
 
-    let process =
-        tx_context.execute_code(&code, TransactionKernel::testing_assembler_with_mock_account());
+    let process = tx_context.execute_code_with_assembler(
+        &code,
+        TransactionKernel::testing_assembler_with_mock_account(),
+    );
 
     assert_execution_error!(process, ERR_FAUCET_NON_FUNGIBLE_ASSET_TO_BURN_NOT_FOUND);
 }
@@ -678,7 +714,10 @@ fn test_is_non_fungible_asset_issued_succeeds() {
     );
 
     tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 }
 
@@ -714,6 +753,9 @@ fn test_get_total_issuance_succeeds() {
     );
 
     tx_context
-        .execute_code(&code, TransactionKernel::testing_assembler_with_mock_account())
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
         .unwrap();
 }

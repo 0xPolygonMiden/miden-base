@@ -64,7 +64,7 @@ pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 /// end
 /// ";
 ///
-/// let process = tx_context.execute_code(code, TransactionKernel::testing_assembler()).unwrap();
+/// let process = tx_context.execute_code(code).unwrap();
 /// assert_eq!(process.stack.get(0), Felt::new(5),);
 /// ```
 pub struct TransactionContextBuilder {
@@ -74,7 +74,7 @@ pub struct TransactionContextBuilder {
     advice_inputs: AdviceInputs,
     authenticator: Option<MockAuthenticator>,
     expected_output_notes: Vec<Note>,
-    foreign_accounts: Vec<ForeignAccountInputs>,
+    foreign_account_inputs: Vec<ForeignAccountInputs>,
     libraries: Vec<Library>,
     input_notes: Vec<Note>,
     tx_script: Option<TransactionScript>,
@@ -97,7 +97,7 @@ impl TransactionContextBuilder {
             advice_inputs: Default::default(),
             transaction_inputs: None,
             note_args: BTreeMap::new(),
-            foreign_accounts: vec![],
+            foreign_account_inputs: vec![],
             libraries: Default::default(),
         }
     }
@@ -125,7 +125,7 @@ impl TransactionContextBuilder {
             tx_script: None,
             transaction_inputs: None,
             note_args: BTreeMap::new(),
-            foreign_accounts: vec![],
+            foreign_account_inputs: vec![],
             libraries: Default::default(),
         }
     }
@@ -174,7 +174,7 @@ impl TransactionContextBuilder {
 
     /// Set foreign account codes that are used by the transaction
     pub fn foreign_accounts(mut self, inputs: Vec<ForeignAccountInputs>) -> Self {
-        self.foreign_accounts = inputs;
+        self.foreign_account_inputs = inputs;
         self
     }
 
@@ -668,7 +668,7 @@ impl TransactionContextBuilder {
             self.tx_script,
             Some(self.note_args),
             AdviceMap::default(),
-            self.foreign_accounts,
+            self.foreign_account_inputs,
         );
 
         tx_args.extend_advice_inputs(self.advice_inputs.clone());

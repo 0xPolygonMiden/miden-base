@@ -55,7 +55,7 @@ impl TransactionContext {
     ///
     /// # Errors
     /// Returns an error if the assembly or execution of the provided code fails.
-    pub fn execute_code(
+    pub fn execute_code_with_assembler(
         &self,
         code: &str,
         assembler: Assembler,
@@ -90,6 +90,14 @@ impl TransactionContext {
         ))
         .stack_inputs(stack_inputs)
         .execute_program(program)
+    }
+
+    /// Executes arbitrary code with a testing assembler ([TransactionKernel::testing_assembler()]).
+    ///
+    /// For more information, see the docs for [TransactionContext::execute_code_with_assembler()].
+    pub fn execute_code(&self, code: &str) -> Result<Process, ExecutionError> {
+        let assembler = TransactionKernel::testing_assembler();
+        self.execute_code_with_assembler(code, assembler)
     }
 
     /// Executes the transaction through a [TransactionExecutor]

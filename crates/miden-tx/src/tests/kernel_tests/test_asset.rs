@@ -1,4 +1,4 @@
-use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
+use miden_lib::utils::word_to_masm_push_string;
 use miden_objects::{
     account::AccountId,
     asset::NonFungibleAsset,
@@ -41,7 +41,7 @@ fn test_create_fungible_asset_succeeds() {
         "
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
     let process_state: ProcessState = process.into();
 
     let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
@@ -87,7 +87,7 @@ fn test_create_non_fungible_asset_succeeds() {
             word_to_masm_push_string(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(process_state.get_stack_word(0), Word::from(non_fungible_asset));
@@ -120,7 +120,7 @@ fn test_validate_non_fungible_asset() {
         asset = word_to_masm_push_string(&encoded)
     );
 
-    let process = &tx_context.execute_code(&code, TransactionKernel::testing_assembler()).unwrap();
+    let process = &tx_context.execute_code(&code).unwrap();
     let process_state: ProcessState = process.into();
 
     assert_eq!(process_state.get_stack_word(0), encoded);

@@ -31,7 +31,7 @@ pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
     advice_inputs: AdviceInputs,
-    foreign_accounts: Vec<ForeignAccountInputs>,
+    foreign_account_inputs: Vec<ForeignAccountInputs>,
 }
 
 impl TransactionArgs {
@@ -47,7 +47,7 @@ impl TransactionArgs {
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
         advice_map: AdviceMap,
-        foreign_accounts: Vec<ForeignAccountInputs>,
+        foreign_account_inputs: Vec<ForeignAccountInputs>,
     ) -> Self {
         let mut advice_inputs = AdviceInputs::default().with_map(advice_map);
         // add transaction script inputs to the advice inputs' map
@@ -60,7 +60,7 @@ impl TransactionArgs {
             tx_script,
             note_args: note_args.unwrap_or_default(),
             advice_inputs,
-            foreign_accounts,
+            foreign_account_inputs,
         }
     }
 
@@ -84,7 +84,7 @@ impl TransactionArgs {
         mut self,
         foreign_account_inputs: Vec<ForeignAccountInputs>,
     ) -> Self {
-        self.foreign_accounts = foreign_account_inputs;
+        self.foreign_account_inputs = foreign_account_inputs;
         self
     }
 
@@ -108,7 +108,7 @@ impl TransactionArgs {
 
     /// Returns a reference to the foreign account inputs in the transaction args.
     pub fn foreign_accounts(&self) -> &[ForeignAccountInputs] {
-        &self.foreign_accounts
+        &self.foreign_account_inputs
     }
 
     /// Collects and returns a set containing all code commitments from foreign accounts.
@@ -182,7 +182,7 @@ impl Serializable for TransactionArgs {
         self.tx_script.write_into(target);
         self.note_args.write_into(target);
         self.advice_inputs.write_into(target);
-        self.foreign_accounts.write_into(target);
+        self.foreign_account_inputs.write_into(target);
     }
 }
 
@@ -197,7 +197,7 @@ impl Deserializable for TransactionArgs {
             tx_script,
             note_args,
             advice_inputs,
-            foreign_accounts,
+            foreign_account_inputs: foreign_accounts,
         })
     }
 }
