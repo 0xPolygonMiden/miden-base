@@ -197,18 +197,6 @@ impl LoadBalancerState {
     pub async fn num_busy_workers(&self) -> usize {
         self.workers.read().await.iter().filter(|w| !w.is_available()).count()
     }
-
-    /// Check the status of the workers and update the health status.
-    ///
-    /// Performs a status check on each worker using the gRPC status protocol.
-    ///
-    /// If a worker is not ready, it will be marked as unhealthy and the number of unhealthy
-    /// workers will be incremented.
-    async fn check_workers_status(&self, workers: impl Iterator<Item = &mut Worker>) {
-        for worker in workers {
-            worker.check_status(&self.supported_prover_type).await;
-        }
-    }
 }
 
 /// Rate limiter
