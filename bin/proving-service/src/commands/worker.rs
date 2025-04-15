@@ -62,10 +62,7 @@ pub struct StartWorker {
     /// The port of the worker
     #[clap(long, default_value = "50051")]
     port: u16,
-    /// The port of the HTTP server for the information endpoint
-    #[clap(short, long, default_value = "3000")]
-    info_port: u16,
-    /// The type of prover that the worker will be
+    /// The type of prover that the worker will be handling
     #[clap(long)]
     prover_type: ProverType,
 }
