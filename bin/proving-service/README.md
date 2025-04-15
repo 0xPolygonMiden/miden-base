@@ -41,25 +41,25 @@ Each worker can only handle one type of proof. If you need to handle multiple pr
 To start the proxy service, you will need to run:
 
 ```bash
-miden-proving-service start-proxy --supported-prover-type transaction [worker1] [worker2] ... [workerN]
+miden-proving-service start-proxy --prover-type transaction [worker1] [worker2] ... [workerN]
 ```
 
 For example:
 
 ```bash
-miden-proving-service start-proxy --supported-prover-type transaction 0.0.0.0:8084 0.0.0.0:8085
+miden-proving-service start-proxy --prover-type transaction 0.0.0.0:8084 0.0.0.0:8085
 ```
 
 This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
 
-The `--supported-prover-type` flag is required and specifies which type of proof the proxy will handle. The available options are:
+The `--prover-type` flag is required and specifies which type of proof the proxy will handle. The available options are:
 - `transaction`: For transaction proofs
 - `batch`: For batch proofs
 - `block`: For block proofs
 
 The proxy can only handle one type of proof at a time. When you add workers to the proxy, it will check their supported proof type. Workers that support a different proof type than the proxy will be marked as unhealthy and will not be used for proving requests.
 
-For example, if you start a proxy with `--supported-prover-type transaction` and add these workers:
+For example, if you start a proxy with `--prover-type transaction` and add these workers:
 - Worker 1: Transaction proofs (Healthy)
 - Worker 2: Batch proofs (Unhealthy - incompatible proof type)
 - Worker 3: Block proofs (Unhealthy - incompatible proof type)
