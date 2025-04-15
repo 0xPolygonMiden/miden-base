@@ -104,7 +104,7 @@ impl LoadBalancerState {
                 config.available_workers_polling_interval_ms,
             ),
             health_check_interval: Duration::from_secs(config.health_check_interval_secs),
-            supported_prover_type: config.supported_prover_type,
+            supported_prover_type: config.prover_type,
         })
     }
 
