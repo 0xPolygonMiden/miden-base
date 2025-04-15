@@ -356,9 +356,11 @@ fn build_procedure_commitment(procedures: &[AccountProcedureInfo]) -> Digest {
 
 #[cfg(test)]
 mod tests {
+    use std::println;
+
     use assembly::Assembler;
     use assert_matches::assert_matches;
-    use vm_core::Word;
+    use vm_core::{Word, prettier::PrettyPrint};
 
     use super::{AccountCode, Deserializable, Serializable};
     use crate::{
@@ -398,12 +400,14 @@ mod tests {
                 .with_supports_all_types();
 
         // This is fine as the offset+size for component 2 is <= 255.
-        AccountCode::from_components(
+        let account_code = AccountCode::from_components(
             &[component1.clone(), component2.clone()],
             AccountType::RegularAccountUpdatableCode,
         )
         .unwrap();
 
+        println!("{}", account_code.to_pretty_string());
+        assert!(false);
         // Push one more slot so offset+size exceeds 255.
         component2.storage_slots.push(StorageSlot::Value(Word::default()));
 

@@ -199,22 +199,21 @@ impl PrettyPrint for PrintableProcedure {
 
         indent(
             0,
-            text(format!("proc.{}", procedure_root))
-                + nl()
-                + indent(
-                    4,
-                    text(format!("storage.{}.{}", storage_offset, storage_size))
-                        + nl()
-                        + indent(
-                            4,
-                            const_text("begin")
-                                + nl()
-                                + self.entrypoint().to_pretty_print(&self.mast).render(),
-                        )
-                        + nl()
-                        + const_text("end"),
-                )
-                + nl()
+            indent(
+                4,
+                text(format!("proc.{}", procedure_root))
+                    + nl()
+                    + text(format!("storage.{}.{}", storage_offset, storage_size))
+                    + nl()
+                    + indent(
+                        4,
+                        const_text("begin")
+                            + nl()
+                            + self.entrypoint().to_pretty_print(&self.mast).render(),
+                    )
+                    + nl()
+                    + const_text("end"),
+            ) + nl()
                 + const_text("end"),
         )
     }
