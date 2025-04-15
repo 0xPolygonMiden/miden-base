@@ -65,9 +65,7 @@ fn compile_tonic_server_proto() -> miette::Result<()> {
     let file_descriptor_path = PathBuf::from(out_dir).join("file_descriptor_set.bin");
 
     let proto_dir: PathBuf = CRATE_PROTO_DIR.into();
-    let protos: Vec<PathBuf> = PROTO_FILES.iter()
-        .map(|file| proto_dir.join(file))
-        .collect();
+    let protos: Vec<PathBuf> = PROTO_FILES.iter().map(|file| proto_dir.join(file)).collect();
     let includes = &[proto_dir];
 
     let file_descriptors = protox::compile(&protos, includes)?;

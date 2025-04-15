@@ -5,14 +5,11 @@ pub struct StatusRequest {}
 /// Response message containing the status of the worker.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StatusResponse {
-    /// Whether the worker is ready to generate proofs.
-    #[prost(bool, tag = "1")]
-    pub ready: bool,
     /// The version of the worker.
-    #[prost(string, tag = "2")]
+    #[prost(string, tag = "1")]
     pub version: ::prost::alloc::string::String,
     /// The proof type supported by this worker.
-    #[prost(enumeration = "super::proving_service::ProofType", tag = "3")]
+    #[prost(enumeration = "super::proving_service::ProofType", tag = "2")]
     pub supported_proof_type: i32,
 }
 /// Generated client implementations.

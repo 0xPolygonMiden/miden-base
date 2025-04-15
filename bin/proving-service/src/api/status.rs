@@ -19,7 +19,6 @@ impl StatusRpcApi {
 impl StatusApi for StatusRpcApi {
     async fn status(&self, _: Request<StatusRequest>) -> Result<Response<StatusResponse>, Status> {
         Ok(Response::new(StatusResponse {
-            ready: true,
             version: env!("CARGO_PKG_VERSION").to_string(),
             supported_proof_type: self.prover_type.to_proof_type() as i32,
         }))

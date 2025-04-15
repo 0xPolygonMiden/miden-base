@@ -14,10 +14,8 @@ message StatusRequest {}
 
 // Response message containing the status of the worker.
 message StatusResponse {
-    // Whether the worker is ready to generate proofs.
-    bool ready = 1;
     // The version of the worker.
-    string version = 2;
+    string version = 1;
     // The proof type supported by this worker.
-    proving_service.ProofType supported_proof_type = 3;
+    proving_service.ProofType supported_proof_type = 2;
 }

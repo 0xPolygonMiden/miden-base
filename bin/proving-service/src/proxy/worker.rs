@@ -135,14 +135,6 @@ impl Worker {
             });
         }
 
-        if !worker_status.ready {
-            return Some(WorkerHealthStatus::Unhealthy {
-                failed_attempts: failed_attempts + 1,
-                first_fail_timestamp: Instant::now(),
-                reason: "Worker not ready".to_string(),
-            });
-        }
-
         Some(WorkerHealthStatus::Healthy)
     }
 
