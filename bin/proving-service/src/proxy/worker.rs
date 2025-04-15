@@ -101,7 +101,7 @@ impl Worker {
             return None;
         }
 
-        let failed_attempts = self.retries_amount();
+        let failed_attempts = self.num_retries();
 
         let worker_status = match self.status_client.status(StatusRequest {}).await {
             Ok(response) => response.into_inner(),
@@ -172,7 +172,7 @@ impl Worker {
     }
 
     /// Returns the number of retries the worker has had.
-    pub fn retries_amount(&self) -> usize {
+    pub fn num_retries(&self) -> usize {
         match &self.health_status {
             WorkerHealthStatus::Healthy => 0,
             WorkerHealthStatus::Unhealthy {
