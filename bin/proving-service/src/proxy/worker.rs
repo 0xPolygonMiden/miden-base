@@ -94,12 +94,9 @@ impl Worker {
     /// - `Some(true)` if the worker is ready.
     /// - `Some(false)` if the worker is not ready or if there was an error checking the status.
     /// - `None` if the worker should not do a health check.
-    pub async fn check_status(
-        &mut self,
-        supported_prover_type: &ProverType,
-    ) -> Option<WorkerHealthStatus> {
+    pub async fn check_status(&mut self, supported_prover_type: &ProverType) {
         if !self.should_do_health_check() {
-            return None;
+            return;
         }
 
         let failed_attempts = self.num_retries();
@@ -108,11 +105,12 @@ impl Worker {
             Ok(response) => response.into_inner(),
             Err(e) => {
                 error!("Failed to check worker status ({}): {}", self.address(), e);
-                return Some(WorkerHealthStatus::Unhealthy {
+                self.set_health_status(WorkerHealthStatus::Unhealthy {
                     num_failed_attempts: failed_attempts + 1,
                     first_fail_timestamp: Instant::now(),
                     reason: e.message().to_string(),
                 });
+                return;
             },
         };
 
@@ -127,45 +125,30 @@ impl Worker {
                         self.address(),
                         e
                     );
-                    return Some(WorkerHealthStatus::Unhealthy {
+                    self.set_health_status(WorkerHealthStatus::Unhealthy {
                         num_failed_attempts: failed_attempts + 1,
                         first_fail_timestamp: Instant::now(),
                         reason: e.to_string(),
                     });
+                    return;
                 },
             };
 
         if !(*supported_prover_type == worker_supported_proof_type) {
-            return Some(WorkerHealthStatus::Unhealthy {
+            self.set_health_status(WorkerHealthStatus::Unhealthy {
                 num_failed_attempts: failed_attempts + 1,
                 first_fail_timestamp: Instant::now(),
                 reason: "Unsupported proof type".to_string(),
             });
+            return;
         }
 
-        Some(WorkerHealthStatus::Healthy)
+        self.set_health_status(WorkerHealthStatus::Healthy);
     }
 
     /// Sets the worker availability.
     pub fn set_availability(&mut self, is_available: bool) {
         self.is_available = is_available
-    }
-
-    /// Sets the health status of the worker.
-    pub(crate) fn set_health_status(&mut self, health_status: WorkerHealthStatus) {
-        self.health_status = health_status;
-        match &self.health_status {
-            WorkerHealthStatus::Healthy => {
-                self.is_available = true;
-            },
-            WorkerHealthStatus::Unhealthy { .. } => {
-                WORKER_UNHEALTHY.with_label_values(&[&self.address()]).inc();
-                self.is_available = false;
-            },
-            WorkerHealthStatus::Unknown => {
-                self.is_available = true;
-            },
-        }
     }
 
     // PUBLIC ACCESSORS
@@ -229,6 +212,23 @@ impl Worker {
                     )
             },
             WorkerHealthStatus::Unknown => true,
+        }
+    }
+
+    /// Sets the health status of the worker.
+    fn set_health_status(&mut self, health_status: WorkerHealthStatus) {
+        self.health_status = health_status;
+        match &self.health_status {
+            WorkerHealthStatus::Healthy => {
+                self.is_available = true;
+            },
+            WorkerHealthStatus::Unhealthy { .. } => {
+                WORKER_UNHEALTHY.with_label_values(&[&self.address()]).inc();
+                self.is_available = false;
+            },
+            WorkerHealthStatus::Unknown => {
+                self.is_available = true;
+            },
         }
     }
 }

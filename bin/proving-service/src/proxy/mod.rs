@@ -203,9 +203,7 @@ impl LoadBalancerState {
     /// workers will be incremented.
     async fn check_workers_status(&self, workers: impl Iterator<Item = &mut Worker>) {
         for worker in workers {
-            if let Some(worker_status) = worker.check_status(&self.supported_prover_type).await {
-                worker.set_health_status(worker_status);
-            }
+            worker.check_status(&self.supported_prover_type).await;
         }
     }
 }
