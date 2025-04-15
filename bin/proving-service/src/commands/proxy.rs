@@ -70,6 +70,8 @@ impl StartProxy {
 
         if self.workers.is_empty() {
             warn!("Starting the proxy without any workers");
+        } else {
+            info!("Proxy starting with workers: {:?}", self.workers);
         }
 
         let worker_lb = LoadBalancerState::new(self.workers.clone(), &self.proxy_config).await?;
