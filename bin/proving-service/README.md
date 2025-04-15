@@ -121,15 +121,13 @@ The proxy service exposes a status endpoint that provides information about the 
 The status endpoint returns a JSON response with the following information:
 - `version`: The version of the proxy
 - `supported_proof_type`: The types of proof that the proxy supports
-- `busy_workers`: The number of workers that are currently busy
 - `workers`: A list of workers with their status
 
 Example response:
 ```json
 {
   "version": "0.8.0",
-  "supported_proof_type": "Transaction",
-  "busy_workers": 1,
+  "prover_type": "Transaction",
   "workers": [
     {
       "address": "0.0.0.0:50051",
