@@ -1,4 +1,4 @@
-use miden_crypto::merkle::{LeafIndex, MerkleError, MutationSet, Smt, SmtLeaf};
+use miden_crypto::merkle::{MerkleError, MutationSet, Smt, SmtLeaf};
 use vm_processor::SMT_DEPTH;
 
 use crate::{
@@ -123,8 +123,12 @@ impl AccountTree {
             },
         };
 
-        // SAFETY: The tree only contains unique prefixes.
-        AccountWitness::new_unchecked(witness_id, proof)
+        let commitment = Digest::from(
+            proof.get(&key).expect("we should have received a proof for the requested key"),
+        );
+
+        // SAFETY: The proof is guaranteed to have depth AccountTree::DEPTH.
+        AccountWitness::new_unchecked(witness_id, commitment, proof.into_parts().0)
     }
 
     /// Returns the current state commitment of the given account ID.
@@ -247,14 +251,6 @@ impl AccountTree {
         key[Self::KEY_PREFIX_IDX] = account_id.prefix().as_felt();
 
         Digest::from(key)
-    }
-
-    /// Returns the [`LeafIndex`] corresponding to the provided [`AccountIdPrefix`].
-    pub(super) fn account_id_prefix_to_leaf_index(
-        id_prefix: AccountIdPrefix,
-    ) -> LeafIndex<{ Self::DEPTH }> {
-        LeafIndex::new(id_prefix.as_u64())
-            .expect("prefix as u64 should not exceed 2^{AccountTree::DEPTH}")
     }
 
     /// Returns the [`AccountId`] recovered from the given SMT key.

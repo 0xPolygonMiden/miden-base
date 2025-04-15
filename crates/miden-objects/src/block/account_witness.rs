@@ -1,10 +1,10 @@
 use alloc::string::ToString;
 
-use miden_crypto::merkle::{MerklePath, SMT_DEPTH, SmtLeaf, SmtProof, SmtProofError};
+use miden_crypto::merkle::{LeafIndex, MerklePath, SMT_DEPTH, SmtLeaf, SmtProof, SmtProofError};
 
 use crate::{
     AccountTreeError, Digest, Word,
-    account::{AccountId, AccountIdPrefix},
+    account::AccountId,
     block::AccountTree,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
@@ -33,24 +33,6 @@ pub struct AccountWitness {
 }
 
 impl AccountWitness {
-    /// Constructs a new [`AccountWitness`] from the provided proof.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - the proof contains two or more entries, i.e. the account ID prefix of the proven value is
-    ///   not unique.
-    pub fn from_proof(account_id: AccountId, proof: SmtProof) -> Result<Self, AccountTreeError> {
-        let id_prefix = AccountIdPrefix::try_from(proof.leaf().index().value())
-            .map_err(AccountTreeError::InvalidAccountIdPrefix)?;
-
-        if proof.leaf().num_entries() >= 2 {
-            return Err(AccountTreeError::DuplicateIdPrefix { duplicate_prefix: id_prefix });
-        }
-
-        Ok(Self::new_unchecked(account_id, proof))
-    }
-
     /// Constructs a new [`AccountWitness`] from the provided parts.
     ///
     /// # Errors
@@ -68,7 +50,7 @@ impl AccountWitness {
             ));
         }
 
-        Ok(Self { id: account_id, commitment, path })
+        Ok(Self::new_unchecked(account_id, commitment, path))
     }
 
     /// Constructs a new [`AccountWitness`] from the provided proof without validating that it has
@@ -77,14 +59,8 @@ impl AccountWitness {
     /// # Warning
     ///
     /// This does not validate any of the guarantees of this type.
-    pub(super) fn new_unchecked(account_id: AccountId, proof: SmtProof) -> Self {
-        let commitment = proof
-            .get(&AccountTree::account_id_to_key(account_id))
-            .map(Digest::from)
-            .unwrap_or_default();
-        let (path, _) = proof.into_parts();
-
-        Self { commitment, path, id: account_id }
+    pub fn new_unchecked(account_id: AccountId, commitment: Digest, path: MerklePath) -> Self {
+        Self { id: account_id, commitment, path }
     }
 
     /// Returns the underlying [`AccountId`] that this witness proves inclusion for.
@@ -105,7 +81,7 @@ impl AccountWitness {
     /// Returns the [`SmtLeaf`] of the account witness.
     pub fn leaf(&self) -> SmtLeaf {
         if self.commitment == Digest::default() {
-            let leaf_idx = AccountTree::account_id_prefix_to_leaf_index(self.id.prefix());
+            let leaf_idx = LeafIndex::from(AccountTree::account_id_to_key(self.id));
             SmtLeaf::new_empty(leaf_idx)
         } else {
             let key = AccountTree::account_id_to_key(self.id);

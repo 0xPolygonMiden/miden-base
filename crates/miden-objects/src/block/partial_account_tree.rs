@@ -83,8 +83,12 @@ impl PartialAccountTree {
                     },
                 };
 
-                // SAFETY: The tree only contains unique prefixes.
-                AccountWitness::new_unchecked(witness_id, proof)
+                let commitment = Digest::from(
+                    proof.get(&key).expect("we should have received a proof for the requested key"),
+                );
+
+                // SAFETY: The proof is guaranteed to have depth AccountTree::DEPTH.
+                AccountWitness::new_unchecked(witness_id, commitment, proof.into_parts().0)
             })
             .map_err(|source| AccountTreeError::UntrackedAccountId { id: account_id, source })
     }
@@ -285,12 +289,22 @@ mod tests {
 
         let [(id0, _), (id1, _)] = setup_duplicate_prefix_ids();
 
-        let proof0 = full_tree.open(&AccountTree::account_id_to_key(id0));
-        let proof1 = full_tree.open(&AccountTree::account_id_to_key(id1));
+        let key0 = AccountTree::account_id_to_key(id0);
+        let key1 = AccountTree::account_id_to_key(id1);
+        let proof0 = full_tree.open(&key0);
+        let proof1 = full_tree.open(&key1);
         assert_eq!(proof0.leaf(), proof1.leaf());
 
-        let witness0 = AccountWitness::new_unchecked(id0, proof0);
-        let witness1 = AccountWitness::new_unchecked(id1, proof1);
+        let witness0 = AccountWitness::new_unchecked(
+            id0,
+            proof0.get(&key0).unwrap().into(),
+            proof0.into_parts().0,
+        );
+        let witness1 = AccountWitness::new_unchecked(
+            id1,
+            proof1.get(&key1).unwrap().into(),
+            proof1.into_parts().0,
+        );
 
         let mut partial_tree = PartialAccountTree::new();
         partial_tree.track_account_witness(witness0).unwrap();
