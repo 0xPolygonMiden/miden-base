@@ -160,10 +160,12 @@ impl AccountIdV0 {
     }
 
     /// See [`AccountId::compute_account_seed`](super::AccountId::compute_account_seed) for details.
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_account_seed(
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
+        network_flag: AccountNetworkFlag,
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
@@ -173,6 +175,7 @@ impl AccountIdV0 {
             init_seed,
             account_type,
             storage_mode,
+            network_flag,
             version,
             code_commitment,
             storage_commitment,
@@ -450,7 +453,8 @@ fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountIdV0, AccountIdEr
 /// - is for a public account if the network flag is set.
 pub(crate) fn validate_prefix(
     prefix: Felt,
-) -> Result<(AccountType, AccountStorageMode, AccountIdVersion), AccountIdError> {
+) -> Result<(AccountType, AccountStorageMode, AccountNetworkFlag, AccountIdVersion), AccountIdError>
+{
     let prefix = prefix.as_int();
 
     // Validate storage bits.
@@ -466,7 +470,7 @@ pub(crate) fn validate_prefix(
 
     let account_type = extract_type(prefix);
 
-    Ok((account_type, storage_mode, version))
+    Ok((account_type, storage_mode, network_flag, version))
 }
 
 /// Checks that the suffix:
@@ -617,6 +621,7 @@ mod tests {
             [10; 32],
             AccountType::FungibleFaucet,
             AccountStorageMode::Public,
+            AccountNetworkFlag::Enabled,
             AccountIdVersion::Version0,
             code_commitment,
             storage_commitment,

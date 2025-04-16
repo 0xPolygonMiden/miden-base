@@ -1,6 +1,3 @@
-const DISABLED: u8 = 0;
-const ENABLED: u8 = 1;
-
 /// Describes whether the account is a network account, which means that notes directed at it will
 /// be applied to this account in network transactions.
 ///
@@ -10,15 +7,17 @@ const ENABLED: u8 = 1;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum AccountNetworkFlag {
-    Disabled = DISABLED,
-    Enabled = ENABLED,
+    Disabled = 0,
+    Enabled = 1,
 }
 
 impl AccountNetworkFlag {
+    /// Returns `true` if the network flag is enabled, `false` otherwise.
     pub fn is_enabled(&self) -> bool {
         *self == Self::Enabled
     }
 
+    /// Returns `true` if the network flag is disabled, `false` otherwise.
     pub fn is_disabled(&self) -> bool {
         *self == Self::Disabled
     }

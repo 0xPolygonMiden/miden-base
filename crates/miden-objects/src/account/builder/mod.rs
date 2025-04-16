@@ -147,6 +147,7 @@ impl AccountBuilder {
             init_seed,
             self.account_type,
             self.storage_mode,
+            self.network_flag,
             version,
             code_commitment,
             storage_commitment,

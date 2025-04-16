@@ -232,10 +232,12 @@ impl AccountId {
     ///
     /// The grinding process is started from the given `init_seed` which should be a random seed
     /// generated from a cryptographically secure source.
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_account_seed(
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
+        network_flag: AccountNetworkFlag,
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
@@ -246,6 +248,7 @@ impl AccountId {
                 init_seed,
                 account_type,
                 storage_mode,
+                network_flag,
                 version,
                 code_commitment,
                 storage_commitment,
