@@ -123,7 +123,7 @@ impl Worker {
             return;
         }
 
-        if !self.is_valid_version(&worker_status.version) {
+        if !is_valid_version(&self.version, &worker_status.version) {
             self.set_health_status(WorkerHealthStatus::Unhealthy {
                 num_failed_attempts: failed_attempts + 1,
                 first_fail_timestamp: Instant::now(),
@@ -254,18 +254,6 @@ impl Worker {
             },
         }
     }
-
-    /// Returns whether the worker version is valid.
-    ///
-    /// The version is valid if it is a semantic version and is greater than or equal to the
-    /// current version. We dont check the patch version.
-    fn is_valid_version(&self, version: &str) -> bool {
-        // Dont check the patch version.
-        let current_version = env!("CARGO_PKG_VERSION");
-        let current_version_parts: Vec<&str> = current_version.split('.').collect();
-        let version_parts: Vec<&str> = version.split('.').collect();
-        version_parts[0] == current_version_parts[0] && version_parts[1] == current_version_parts[1]
-    }
 }
 
 // PARTIAL EQUALITY
@@ -299,4 +287,38 @@ async fn create_status_client(
         .map_err(|err| ProvingServiceError::ConnectionFailed(err, address))?;
 
     Ok(StatusApiClient::new(channel))
+}
+
+/// Returns whether the worker version is valid.
+///
+/// The version is valid if it is a semantic version and is greater than or equal to the
+/// current version. We dont check the patch version.
+fn is_valid_version(current_version: &str, received_version: &str) -> bool {
+    // Dont check the patch version.
+    let current_version_parts: Vec<&str> = current_version.split('.').collect();
+    let version_parts: Vec<&str> = received_version.split('.').collect();
+    version_parts[0] == current_version_parts[0] && version_parts[1] == current_version_parts[1]
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_valid_version() {
+        assert!(is_valid_version("1.0.0", "1.0.0"));
+        assert!(is_valid_version("1.0.0", "1.0.1"));
+        assert!(is_valid_version("1.0.12", "1.0.1"));
+        assert!(is_valid_version("1.0.0", "1.0"));
+        assert!(!is_valid_version("1.0.0", "2.0.0"));
+        assert!(!is_valid_version("1.0.0", "1.1.0"));
+        assert!(!is_valid_version("1.0.0", "0.9.0"));
+        assert!(!is_valid_version("1.0.0", "0.9.1"));
+        assert!(!is_valid_version("1.0.0", "0.10.0"));
+        assert!(!is_valid_version("miden", "1.0"));
+        assert!(!is_valid_version("1.0.0", "1.miden.12"));
+    }
 }
