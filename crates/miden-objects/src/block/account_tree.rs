@@ -61,7 +61,7 @@ impl AccountTree {
         let smt = Smt::with_entries(
             entries
                 .into_iter()
-                .map(|(id, commitment)| (Self::account_id_to_key(id), Word::from(commitment))),
+                .map(|(id, commitment)| (Self::id_to_smt_key(id), Word::from(commitment))),
         )
         .map_err(|err| {
             let MerkleError::DuplicateValuesForIndex(leaf_idx) = err else {
@@ -101,7 +101,7 @@ impl AccountTree {
     ///
     /// Conceptually, an opening is a Merkle path to the leaf, as well as the leaf itself.
     pub fn open(&self, account_id: AccountId) -> AccountWitness {
-        let key = Self::account_id_to_key(account_id);
+        let key = Self::id_to_smt_key(account_id);
         let proof = self.smt.open(&key);
 
         // Check which account ID this proof actually contains. We rely on the fact that the tree
@@ -116,7 +116,7 @@ impl AccountTree {
             SmtLeaf::Empty(_) => account_id,
             SmtLeaf::Single((key_in_leaf, _)) => {
                 // SAFETY: By construction, the tree only contains valid IDs.
-                Self::key_to_account_id(*key_in_leaf)
+                Self::smt_key_to_id(*key_in_leaf)
             },
             SmtLeaf::Multiple(_) => {
                 unreachable!("account tree should only contain zero or one entry per ID prefix")
@@ -125,7 +125,7 @@ impl AccountTree {
 
         let commitment = Digest::from(
             proof
-                .get(&Self::account_id_to_key(witness_id))
+                .get(&Self::id_to_smt_key(witness_id))
                 .expect("we should have received a proof for the witness key"),
         );
 
@@ -135,7 +135,7 @@ impl AccountTree {
 
     /// Returns the current state commitment of the given account ID.
     pub fn get(&self, account_id: AccountId) -> Digest {
-        let key = Self::account_id_to_key(account_id);
+        let key = Self::id_to_smt_key(account_id);
         Digest::from(self.smt.get_value(&key))
     }
 
@@ -188,7 +188,7 @@ impl AccountTree {
         let mutation_set = self.smt.compute_mutations(
             account_commitments
                 .into_iter()
-                .map(|(id, commitment)| (Self::account_id_to_key(id), Word::from(commitment))),
+                .map(|(id, commitment)| (Self::id_to_smt_key(id), Word::from(commitment))),
         );
 
         AccountMutationSet::new(mutation_set)
@@ -212,7 +212,7 @@ impl AccountTree {
         account_id: AccountId,
         state_commitment: Digest,
     ) -> Result<Digest, AccountTreeError> {
-        let key = Self::account_id_to_key(account_id);
+        let key = Self::id_to_smt_key(account_id);
         let prev_value = Digest::from(self.smt.insert(key, Word::from(state_commitment)));
 
         // If the leaf of the account ID now has two or more entries, we've inserted a duplicate
@@ -245,7 +245,7 @@ impl AccountTree {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the SMT key of the given account ID.
-    pub(super) fn account_id_to_key(account_id: AccountId) -> Digest {
+    pub(super) fn id_to_smt_key(account_id: AccountId) -> Digest {
         // We construct this in such a way that we're forced to use the constants, so that when
         // they're updated, the other usages of the constants are also updated.
         let mut key = [Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ZERO];
@@ -262,7 +262,7 @@ impl AccountTree {
     /// Panics if:
     /// - the key is not a valid account ID. This should not happen when used on keys from (partial)
     ///   account tree.
-    pub(super) fn key_to_account_id(key: Digest) -> AccountId {
+    pub(super) fn smt_key_to_id(key: Digest) -> AccountId {
         AccountId::try_from([key[Self::KEY_PREFIX_IDX], key[Self::KEY_SUFFIX_IDX]])
             .expect("account tree should only contain valid IDs")
     }
@@ -448,7 +448,7 @@ pub(super) mod tests {
 
         for id in [id0, id1] {
             let (control_path, control_leaf) =
-                tree.smt.open(&AccountTree::account_id_to_key(id)).into_parts();
+                tree.smt.open(&AccountTree::id_to_smt_key(id)).into_parts();
             let witness = tree.open(id);
 
             assert_eq!(witness.leaf(), control_leaf);

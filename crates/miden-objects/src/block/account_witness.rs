@@ -12,9 +12,12 @@ use crate::{
 // ACCOUNT WITNESS
 // ================================================================================================
 
-/// A wrapper around an [`SmtProof`] that proves the inclusion of an account ID at a certain state
-/// (i.e. [`Account::commitment`](crate::account::Account::commitment)) in the
-/// [`AccountTree`](crate::block::AccountTree).
+/// A specialized version of an [`SmtProof`] for use in [`AccountTree`] and [`PartialAccountTree`].
+/// It proves the inclusion of an account ID at a certain state (i.e.
+/// [`Account::commitment`](crate::account::Account::commitment)) in the [`AccountTree`].
+///
+/// By construction the witness can only represent the equivalent of an [`SmtLeaf`] with zero or one
+/// entries, which guarantees that the account ID prefix it represents is unique in the tree.
 ///
 /// # Guarantees
 ///
@@ -53,8 +56,7 @@ impl AccountWitness {
         Ok(Self::new_unchecked(account_id, commitment, path))
     }
 
-    /// Constructs a new [`AccountWitness`] from the provided proof without validating that it has
-    /// zero or one entries.
+    /// Constructs a new [`AccountWitness`] from the provided parts.
     ///
     /// # Warning
     ///
@@ -81,10 +83,10 @@ impl AccountWitness {
     /// Returns the [`SmtLeaf`] of the account witness.
     pub fn leaf(&self) -> SmtLeaf {
         if self.commitment == Digest::default() {
-            let leaf_idx = LeafIndex::from(AccountTree::account_id_to_key(self.id));
+            let leaf_idx = LeafIndex::from(AccountTree::id_to_smt_key(self.id));
             SmtLeaf::new_empty(leaf_idx)
         } else {
-            let key = AccountTree::account_id_to_key(self.id);
+            let key = AccountTree::id_to_smt_key(self.id);
             SmtLeaf::new_single(key, Word::from(self.commitment))
         }
     }

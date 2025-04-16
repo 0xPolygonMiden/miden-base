@@ -57,7 +57,7 @@ impl PartialAccountTree {
     /// Returns an error if:
     /// - the account ID is not tracked by this account tree.
     pub fn open(&self, account_id: AccountId) -> Result<AccountWitness, AccountTreeError> {
-        let key = AccountTree::account_id_to_key(account_id);
+        let key = AccountTree::id_to_smt_key(account_id);
 
         self.smt
             .open(&key)
@@ -74,7 +74,7 @@ impl PartialAccountTree {
                     SmtLeaf::Empty(_) => account_id,
                     SmtLeaf::Single((key_in_leaf, _)) => {
                         // SAFETY: By construction, the tree only contains valid IDs.
-                        AccountTree::key_to_account_id(*key_in_leaf)
+                        AccountTree::smt_key_to_id(*key_in_leaf)
                     },
                     SmtLeaf::Multiple(_) => {
                         unreachable!(
@@ -85,7 +85,7 @@ impl PartialAccountTree {
 
                 let commitment = Digest::from(
                     proof
-                        .get(&AccountTree::account_id_to_key(witness_id))
+                        .get(&AccountTree::id_to_smt_key(witness_id))
                         .expect("we should have received a proof for the witness key"),
                 );
 
@@ -102,7 +102,7 @@ impl PartialAccountTree {
     /// Returns an error if:
     /// - the account ID is not tracked by this account tree.
     pub fn get(&self, account_id: AccountId) -> Result<Digest, AccountTreeError> {
-        let key = AccountTree::account_id_to_key(account_id);
+        let key = AccountTree::id_to_smt_key(account_id);
         self.smt
             .get_value(&key)
             .map(Digest::from)
@@ -132,7 +132,7 @@ impl PartialAccountTree {
         witness: AccountWitness,
     ) -> Result<(), AccountTreeError> {
         let id_prefix = witness.id().prefix();
-        let id_key = AccountTree::account_id_to_key(witness.id());
+        let id_key = AccountTree::id_to_smt_key(witness.id());
         let (path, leaf) = witness.into_proof().into_parts();
 
         // If a leaf with the same prefix is already tracked by this partial tree, consider it an
@@ -187,7 +187,7 @@ impl PartialAccountTree {
         account_id: AccountId,
         state_commitment: Digest,
     ) -> Result<Digest, AccountTreeError> {
-        let key = AccountTree::account_id_to_key(account_id);
+        let key = AccountTree::id_to_smt_key(account_id);
 
         // If there exists a tracked leaf whose key is _not_ the one we're about to overwrite, then
         // we would insert the new commitment next to an existing account ID with the same prefix,
@@ -293,16 +293,16 @@ mod tests {
     fn track_fails_on_duplicate_prefix() {
         // Use a raw Smt since an account tree would not allow us to get the witnesses for two
         // account IDs with the same prefix.
-        let full_tree =
-            Smt::with_entries(setup_duplicate_prefix_ids().map(|(id, commitment)| {
-                (AccountTree::account_id_to_key(id), Word::from(commitment))
-            }))
-            .unwrap();
+        let full_tree = Smt::with_entries(
+            setup_duplicate_prefix_ids()
+                .map(|(id, commitment)| (AccountTree::id_to_smt_key(id), Word::from(commitment))),
+        )
+        .unwrap();
 
         let [(id0, _), (id1, _)] = setup_duplicate_prefix_ids();
 
-        let key0 = AccountTree::account_id_to_key(id0);
-        let key1 = AccountTree::account_id_to_key(id1);
+        let key0 = AccountTree::id_to_smt_key(id0);
+        let key1 = AccountTree::id_to_smt_key(id1);
         let proof0 = full_tree.open(&key0);
         let proof1 = full_tree.open(&key1);
         assert_eq!(proof0.leaf(), proof1.leaf());
