@@ -328,7 +328,22 @@ impl PrettyPrint for AccountCode {
         let len_procedures = self.num_procedures();
 
         for (index, printable_procedure) in self.printable_procedures().enumerate() {
-            partial += printable_procedure.render();
+            partial += indent(
+                0,
+                indent(
+                    4,
+                    text(format!("proc.{}", printable_procedure.mast_root()))
+                        + nl()
+                        + text(format!(
+                            "storage.{}.{}",
+                            printable_procedure.storage_offset(),
+                            printable_procedure.storage_size()
+                        ))
+                        + nl()
+                        + printable_procedure.render(),
+                ) + nl()
+                    + const_text("end"),
+            );
             if index < len_procedures - 1 {
                 partial += nl();
             }

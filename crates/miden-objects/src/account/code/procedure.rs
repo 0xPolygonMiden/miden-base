@@ -177,15 +177,15 @@ impl PrintableProcedure {
         &self.entrypoint
     }
 
-    fn storage_offset(&self) -> u8 {
+    pub(crate) fn storage_offset(&self) -> u8 {
         self.procedure_info.storage_offset()
     }
 
-    fn storage_size(&self) -> u8 {
+    pub(crate) fn storage_size(&self) -> u8 {
         self.procedure_info.storage_size()
     }
 
-    fn mast_root(&self) -> &Digest {
+    pub(crate) fn mast_root(&self) -> &Digest {
         self.procedure_info.mast_root()
     }
 }
@@ -193,29 +193,12 @@ impl PrintableProcedure {
 impl PrettyPrint for PrintableProcedure {
     fn render(&self) -> vm_core::prettier::Document {
         use vm_core::prettier::*;
-        let procedure_root = self.mast_root();
-        let storage_offset = self.storage_offset();
-        let storage_size = self.storage_size();
 
         indent(
-            0,
-            indent(
-                4,
-                text(format!("proc.{}", procedure_root))
-                    + nl()
-                    + text(format!("storage.{}.{}", storage_offset, storage_size))
-                    + nl()
-                    + indent(
-                        4,
-                        const_text("begin")
-                            + nl()
-                            + self.entrypoint().to_pretty_print(&self.mast).render(),
-                    )
-                    + nl()
-                    + const_text("end"),
-            ) + nl()
-                + const_text("end"),
-        )
+            4,
+            const_text("begin") + nl() + self.entrypoint().to_pretty_print(&self.mast).render(),
+        ) + nl()
+            + const_text("end")
     }
 }
 
