@@ -90,10 +90,9 @@ impl Worker {
 
     /// Checks the worker status.
     ///
-    /// # Returns
-    /// - `Some(true)` if the worker is ready.
-    /// - `Some(false)` if the worker is not ready or if there was an error checking the status.
-    /// - `None` if the worker should not do a health check.
+    /// This function will check the worker status and update the worker health status.
+    /// If the worker is unhealthy, it will be marked as unavailable thus preventing requests from
+    /// being sent to it.
     pub async fn check_status(&mut self, supported_prover_type: ProverType) {
         if !self.should_do_health_check() {
             return;
