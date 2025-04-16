@@ -277,7 +277,8 @@ impl Default for AccountTree {
 // ACCOUNT MUTATION SET
 // ================================================================================================
 
-/// A newtype wrapper around a [`MutationSet`] which exists for type safety reasons.
+/// A newtype wrapper around a [`MutationSet`] which exists for type safety in some [`AccountTree`]
+/// methods.
 ///
 /// It is returned by and used in methods on the [`AccountTree`].
 #[derive(Debug, Clone, PartialEq, Eq)]
