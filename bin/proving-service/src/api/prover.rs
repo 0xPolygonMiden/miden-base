@@ -15,17 +15,17 @@ use crate::{
     utils::MIDEN_PROVING_SERVICE,
 };
 
-/// The provers for the proving service.
+/// The prover for the proving service.
 ///
-/// This enum is used to store the provers for the proving service.
+/// This enum is used to store the prover for the proving service.
 /// Only one prover is enabled at a time.
-enum Provers {
+enum Prover {
     Transaction(Mutex<LocalTransactionProver>),
     Batch(Mutex<LocalBatchProver>),
     Block(Mutex<LocalBlockProver>),
 }
 
-impl Provers {
+impl Prover {
     fn new(prover_type: ProverType) -> Self {
         match prover_type {
             ProverType::Transaction => {
@@ -42,12 +42,12 @@ impl Provers {
 }
 
 pub struct ProverRpcApi {
-    prover: Provers,
+    prover: Prover,
 }
 
 impl ProverRpcApi {
     pub fn new(prover_type: ProverType) -> Self {
-        let prover = Provers::new(prover_type);
+        let prover = Prover::new(prover_type);
 
         Self { prover }
     }
@@ -65,7 +65,7 @@ impl ProverRpcApi {
         transaction_witness: TransactionWitness,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
         let prover = match &self.prover {
-            Provers::Transaction(prover) => prover,
+            Prover::Transaction(prover) => prover,
             _ => return Err(Status::unimplemented("Transaction prover is not enabled")),
         };
 
@@ -95,7 +95,7 @@ impl ProverRpcApi {
         proposed_batch: ProposedBatch,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
         let prover = match &self.prover {
-            Provers::Batch(prover) => prover,
+            Prover::Batch(prover) => prover,
             _ => return Err(Status::unimplemented("Batch prover is not enabled")),
         };
 
@@ -125,7 +125,7 @@ impl ProverRpcApi {
         proposed_block: ProposedBlock,
     ) -> Result<Response<ProvingResponse>, tonic::Status> {
         let prover = match &self.prover {
-            Provers::Block(prover) => prover,
+            Prover::Block(prover) => prover,
             _ => return Err(Status::unimplemented("Block prover is not enabled")),
         };
 
