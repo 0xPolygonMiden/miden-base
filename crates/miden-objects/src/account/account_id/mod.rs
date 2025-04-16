@@ -269,10 +269,9 @@ impl AccountId {
         }
     }
 
-    /// Returns `true` if the full state of the account is on chain, i.e. if the modes are
-    /// [`AccountStorageMode::Public`] or [`AccountStorageMode::Network`], `false` otherwise.
-    pub fn is_onchain(&self) -> bool {
-        self.storage_mode().is_onchain()
+    /// Returns `true` if an account with this ID is a public account.
+    pub fn is_public(&self) -> bool {
+        self.storage_mode() == AccountStorageMode::Public
     }
 
     /// Returns the version of this account ID.

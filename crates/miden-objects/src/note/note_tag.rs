@@ -116,8 +116,8 @@ impl NoteTag {
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
-                if !account_id.storage_mode().is_network() {
-                    Err(NoteError::NetworkExecutionRequiresNetworkAccount)
+                if !account_id.is_public() {
+                    Err(NoteError::NetworkExecutionRequiresPublicAccount)
                 } else {
                     let prefix_id: u64 = account_id.prefix().into();
 
@@ -362,7 +362,7 @@ mod tests {
         for account_id in private_accounts.into_iter().chain(public_accounts) {
             assert_matches!(
                 NoteTag::from_account_id(account_id, NoteExecutionMode::Network).unwrap_err(),
-                NoteError::NetworkExecutionRequiresNetworkAccount,
+                NoteError::NetworkExecutionRequiresPublicAccount,
                 "Tag generation must fail if network execution and private account ID are mixed"
             )
         }
@@ -469,7 +469,7 @@ mod tests {
 
         assert_matches!(
             NoteTag::from_account_id(private_account_id, NoteExecutionMode::Network),
-            Err(NoteError::NetworkExecutionRequiresNetworkAccount)
+            Err(NoteError::NetworkExecutionRequiresPublicAccount)
         );
         assert_matches!(
             NoteTag::from_account_id(public_account_id, NoteExecutionMode::Network),

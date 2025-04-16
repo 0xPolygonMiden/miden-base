@@ -134,8 +134,8 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
             Some(ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX),
         ),
         (
-            // Set storage mode to an unknown value (0b11).
-            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0b11 << (64 + 6)),
+            // Set storage mode to an unknown value (0b01).
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0b01 << (64 + 6)),
             Some(ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE),
         ),
         (

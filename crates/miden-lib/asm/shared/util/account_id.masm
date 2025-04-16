@@ -48,8 +48,12 @@ const.ACCOUNT_VERSION_MASK_U32=0x0f # 0b1111
 const.ACCOUNT_ID_STORAGE_MODE_MASK_U32=0xC0 # 0b1100_0000
 
 # Given the least significant 32 bits of an account ID's first felt with the storage mode mask
-# applied, this value defines the non-existent, invalid storage mode.
-const.ACCOUNT_ID_STORAGE_MODE_INVALID_U32=0xc0 # 0b1100_0000
+# applied, this value defines the public storage mode.
+const.ACCOUNT_ID_STORAGE_MODE_PUBLIC_U32=0 # 0b0000_0000
+
+# Given the least significant 32 bits of an account ID's first felt with the storage mode mask
+# applied, this value defines the private storage mode.
+const.ACCOUNT_ID_STORAGE_MODE_PRIVATE_U32=0x80 # 0b1000_0000
 
 # PROCEDURES
 # =================================================================================================
@@ -151,7 +155,7 @@ end
 #!
 #! Panics if:
 #! - account_id_prefix does not contain version zero.
-#! - account_id_prefix does not contain either the public, network or private storage mode.
+#! - account_id_prefix does not contain either the public or private storage mode.
 #! - account_id_suffix contains an anchor epoch that is greater or equal to 2^16.
 #! - account_id_suffix does not have its lower 8 bits set to zero.
 export.validate
@@ -166,15 +170,13 @@ export.validate
     # Validate storage mode in prefix.
     # ---------------------------------------------------------------------------------------------
 
-    # there are 3 valid and 1 invalid storage modes
-    # instead of checking the presence of any valid mode, we check the absence of the invalid mode
     u32split drop
     # => [account_id_prefix_lo, account_id_suffix]
-    u32and.ACCOUNT_ID_STORAGE_MODE_MASK_U32
-    # => [id_storage_mode_masked, account_id_suffix]
-    eq.ACCOUNT_ID_STORAGE_MODE_INVALID_U32
-    # => [is_storage_mode_invalid, account_id_suffix]
-    assertz.err=ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE
+    u32and.ACCOUNT_ID_STORAGE_MODE_MASK_U32 dup eq.ACCOUNT_ID_STORAGE_MODE_PRIVATE_U32
+    # => [is_private_storage_mode, id_storage_mode_masked, account_id_suffix]
+    swap eq.ACCOUNT_ID_STORAGE_MODE_PUBLIC_U32
+    # => [is_public_storage_mode, is_private_storage_mode, account_id_suffix]
+    or assert.err=ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE
     # => [account_id_suffix]
 
     # Validate anchor epoch is less than u16::MAX (0xffff) in suffix.

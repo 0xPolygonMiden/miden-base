@@ -108,7 +108,7 @@ impl ProvenTransaction {
     // --------------------------------------------------------------------------------------------
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        if self.account_id().is_onchain() {
+        if self.account_id().is_public() {
             self.account_update.validate()?;
 
             let is_new_account =

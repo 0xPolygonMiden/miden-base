@@ -25,7 +25,7 @@ use crate::{
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
             },
             address_type::AddressType,
-            storage_mode::{NETWORK, PRIVATE, PUBLIC},
+            storage_mode::{PRIVATE, PUBLIC},
         },
     },
     errors::{AccountIdError, Bech32Error},
@@ -192,9 +192,9 @@ impl AccountIdV0 {
             .expect("account ID should have been constructed with a valid storage mode")
     }
 
-    /// See [`AccountId::is_onchain`](super::AccountId::is_onchain) for details.
-    pub fn is_onchain(&self) -> bool {
-        self.storage_mode().is_onchain()
+    /// See [`AccountId::is_public`](super::AccountId::is_public) for details.
+    pub fn is_public(&self) -> bool {
+        self.storage_mode() == AccountStorageMode::Public
     }
 
     /// See [`AccountId::version`](super::AccountId::version) for details.
@@ -469,7 +469,6 @@ pub(crate) fn extract_storage_mode(prefix: u64) -> Result<AccountStorageMode, Ac
     // SAFETY: `STORAGE_MODE_MASK` is u8 so casting bits is lossless
     match bits as u8 {
         PUBLIC => Ok(AccountStorageMode::Public),
-        NETWORK => Ok(AccountStorageMode::Network),
         PRIVATE => Ok(AccountStorageMode::Private),
         _ => Err(AccountIdError::UnknownAccountStorageMode(format!("0b{bits:b}").into())),
     }
@@ -685,24 +684,24 @@ mod tests {
             .expect("valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountImmutableCode);
-        assert!(account_id.is_onchain());
+        assert!(account_id.is_public());
 
         let account_id = AccountIdV0::try_from(ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE)
             .expect("valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountUpdatableCode);
-        assert!(!account_id.is_onchain());
+        assert!(!account_id.is_public());
 
         let account_id =
             AccountIdV0::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).expect("valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::FungibleFaucet);
-        assert!(account_id.is_onchain());
+        assert!(account_id.is_public());
 
         let account_id = AccountIdV0::try_from(ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET)
             .expect("valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::NonFungibleFaucet);
-        assert!(!account_id.is_onchain());
+        assert!(!account_id.is_public());
     }
 }

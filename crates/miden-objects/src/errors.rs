@@ -360,8 +360,8 @@ pub enum NoteError {
         node_index_in_block: u16,
         highest_index: usize,
     },
-    #[error("note network execution requires the target to be a network account")]
-    NetworkExecutionRequiresNetworkAccount,
+    #[error("note network execution requires public accounts")]
+    NetworkExecutionRequiresPublicAccount,
     #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
     #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]
