@@ -196,6 +196,8 @@ impl Worker {
     }
 
     /// Returns the worker availability.
+    ///
+    /// A worker is available if it is healthy and ready to process requests.
     pub fn is_available(&self) -> bool {
         self.is_available
     }
