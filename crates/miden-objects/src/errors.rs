@@ -159,6 +159,8 @@ pub enum AccountIdError {
     AnchorEpochMustNotBeU16Max,
     #[error("least significant byte of account ID suffix must be zero")]
     AccountIdSuffixLeastSignificantByteMustBeZero,
+    #[error("accounts that have the network flag enabled must be public")]
+    NetworkAccountMustBePublic,
     #[error(
         "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
         BlockNumber::EPOCH_LENGTH_EXPONENT
@@ -360,8 +362,8 @@ pub enum NoteError {
         node_index_in_block: u16,
         highest_index: usize,
     },
-    #[error("note network execution requires public accounts")]
-    NetworkExecutionRequiresPublicAccount,
+    #[error("note network execution requires a public account with the network flag enabled")]
+    NetworkExecutionRequiresNetworkAccount,
     #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
     #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]

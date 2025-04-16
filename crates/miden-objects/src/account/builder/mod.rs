@@ -7,7 +7,7 @@ use crate::{
     AccountError, Felt, Word,
     account::{
         Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdV0,
-        AccountIdVersion, AccountStorage, AccountStorageMode, AccountType,
+        AccountIdVersion, AccountNetworkFlag, AccountStorage, AccountStorageMode, AccountType,
     },
     asset::AssetVault,
 };
@@ -25,6 +25,7 @@ use crate::{
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
 /// - The `version` set to [`AccountIdVersion::Version0`].
+/// - The `network_flag` set to [`AccountNetworkFlag::Disabled`].
 ///
 /// The methods that are required to be called are:
 ///
@@ -46,6 +47,7 @@ pub struct AccountBuilder {
     components: Vec<AccountComponent>,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
+    network_flag: AccountNetworkFlag,
     id_anchor: Option<AccountIdAnchor>,
     init_seed: [u8; 32],
     id_version: AccountIdVersion,
@@ -65,6 +67,7 @@ impl AccountBuilder {
             init_seed,
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
+            network_flag: AccountNetworkFlag::Disabled,
             id_version: AccountIdVersion::Version0,
         }
     }
@@ -90,6 +93,12 @@ impl AccountBuilder {
     /// Sets the storage mode of the account.
     pub fn storage_mode(mut self, storage_mode: AccountStorageMode) -> Self {
         self.storage_mode = storage_mode;
+        self
+    }
+
+    /// Sets the network flag of the account.
+    pub fn network_flag(mut self, network_flag: AccountNetworkFlag) -> Self {
+        self.network_flag = network_flag;
         self
     }
 
@@ -156,6 +165,7 @@ impl AccountBuilder {
     ///
     /// Returns an error if:
     /// - The init seed is not set.
+    /// - The account is private and the network flag is enabled.
     /// - Any of the components does not support the set account type.
     /// - The number of procedures in all merged components is 0 or exceeds
     ///   [`AccountCode::MAX_NUM_PROCEDURES`](crate::account::AccountCode::MAX_NUM_PROCEDURES).
@@ -170,6 +180,13 @@ impl AccountBuilder {
         let id_anchor = self
             .id_anchor
             .ok_or_else(|| AccountError::BuildError("anchor must be set".into(), None))?;
+
+        if self.storage_mode.is_private() && self.network_flag.is_enabled() {
+            return Err(AccountError::BuildError(
+                "network flag cannot be set when the storage mode is private".into(),
+                None,
+            ));
+        }
 
         #[cfg(any(feature = "testing", test))]
         if !vault.is_empty() {
@@ -198,6 +215,7 @@ impl AccountBuilder {
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
+        debug_assert_eq!(account_id.network_flag(), self.network_flag);
 
         let account = Account::from_parts(account_id, vault, storage, code, Felt::ZERO);
 
@@ -232,6 +250,7 @@ impl AccountBuilder {
                 AccountIdVersion::Version0,
                 self.account_type,
                 self.storage_mode,
+                self.network_flag,
             )
         };
 
@@ -244,7 +263,7 @@ impl AccountBuilder {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::LazyLock;
+    use std::{string::ToString, sync::LazyLock};
 
     use assembly::{Assembler, Library};
     use assert_matches::assert_matches;
@@ -399,6 +418,25 @@ mod tests {
             .unwrap_err();
 
         assert_matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
+    }
+
+    #[test]
+    fn account_builder_fails_on_private_network_account() {
+        let anchor_block_commitment = Digest::new([Felt::new(42); 4]);
+        let anchor_block_number = 1 << 16;
+        let id_anchor =
+            AccountIdAnchor::new(BlockNumber::from(anchor_block_number), anchor_block_commitment)
+                .unwrap();
+
+        let err = Account::builder([5; 32])
+            .anchor(id_anchor)
+            .with_component(CustomComponent1 { slot0: 0 })
+            .storage_mode(AccountStorageMode::Private)
+            .network_flag(AccountNetworkFlag::Enabled)
+            .build()
+            .unwrap_err();
+
+        assert!(err.to_string().contains("network flag") && err.to_string().contains("private"))
     }
 
     // TODO: Test that a BlockHeader with a number which is not a multiple of 2^16 returns an error.

@@ -540,6 +540,7 @@ impl Deserializable for InputNoteCommitment {
 mod tests {
     use alloc::collections::BTreeMap;
 
+    use anyhow::Context;
     use miden_verifier::ExecutionProof;
     use vm_core::utils::Deserializable;
     use winter_air::proof::Proof;
@@ -549,8 +550,9 @@ mod tests {
     use crate::{
         ACCOUNT_UPDATE_MAX_SIZE, Digest, EMPTY_WORD, ONE, ProvenTransactionError, ZERO,
         account::{
-            AccountDelta, AccountId, AccountIdVersion, AccountStorageDelta, AccountStorageMode,
-            AccountType, AccountVaultDelta, StorageMapDelta, delta::AccountUpdateDetails,
+            AccountDelta, AccountId, AccountIdVersion, AccountNetworkFlag, AccountStorageDelta,
+            AccountStorageMode, AccountType, AccountVaultDelta, StorageMapDelta,
+            delta::AccountUpdateDetails,
         },
         block::BlockNumber,
         testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
@@ -630,12 +632,13 @@ mod tests {
     }
 
     #[test]
-    fn test_proven_tx_serde_roundtrip() {
+    fn test_proven_tx_serde_roundtrip() -> anyhow::Result<()> {
         let account_id = AccountId::dummy(
             [1; 15],
             AccountIdVersion::Version0,
             AccountType::FungibleFaucet,
             AccountStorageMode::Private,
+            AccountNetworkFlag::Disabled,
         );
         let initial_account_commitment =
             [2; 32].try_into().expect("failed to create initial account commitment");
@@ -656,10 +659,12 @@ mod tests {
             proof,
         )
         .build()
-        .expect("failed to build proven transaction");
+        .context("failed to build proven transaction")?;
 
         let deserialized = ProvenTransaction::read_from_bytes(&tx.to_bytes()).unwrap();
 
         assert_eq!(tx, deserialized);
+
+        Ok(())
     }
 }

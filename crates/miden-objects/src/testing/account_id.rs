@@ -1,6 +1,8 @@
 use rand_xoshiro::rand_core::SeedableRng;
 
-use crate::account::{AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType};
+use crate::account::{
+    AccountId, AccountIdV0, AccountIdVersion, AccountNetworkFlag, AccountStorageMode, AccountType,
+};
 
 // CONSTANTS
 // --------------------------------------------------------------------------------------------
@@ -45,9 +47,9 @@ pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2: u128 = account_
 // REGULAR ACCOUNTS - NETWORK
 pub const ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE: u128 = account_id(
     AccountType::RegularAccountImmutableCode,
-    AccountStorageMode::Network,
+    AccountStorageMode::Public,
     0xaacc_bbdd,
-);
+) | network_flag_bitmask();
 
 // These faucet IDs all have a unique prefix and suffix felts. This is to ensure that when they
 // are used to issue an asset they don't cause us to run into the "multiple leaf" case when
@@ -68,7 +70,8 @@ pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3: u128 =
     account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
 // FUNGIBLE TOKENS - NETWORK
 pub const ACCOUNT_ID_NETWORK_FUNGIBLE_FAUCET: u128 =
-    account_id(AccountType::FungibleFaucet, AccountStorageMode::Network, 0xaabc_bcdf);
+    account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabc_bcdf)
+        | network_flag_bitmask();
 
 // NON-FUNGIBLE TOKENS - PRIVATE
 pub const ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET: u128 =
@@ -80,12 +83,13 @@ pub const ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdf_eefa);
 // NON-FUNGIBLE TOKENS - NETWORK
 pub const ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Network, 0xabbc_ffde);
+    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xabbc_ffde)
+        | network_flag_bitmask();
 
 // TEST ACCOUNT IDs WITH CERTAIN PROPERTIES
 /// The Account Id with the maximum possible one bits.
 pub const ACCOUNT_ID_MAX_ONES: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0)
+    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0)
         | 0x7fff_ffff_ffff_ff00_7fff_ffff_ffff_ff00;
 /// The Account Id with the maximum possible zero bits.
 pub const ACCOUNT_ID_MAX_ZEROES: u128 =
@@ -97,6 +101,7 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 /// Produces a valid account ID with the given account type and storage mode.
 ///
 /// - Version is set to 0.
+/// - Network flag is set to 0, i.e. disabled (the account is not a network account).
 /// - Anchor epoch is set to 0.
 ///
 /// Finally, distributes the given `random` value over the ID to produce non-trivial values for
@@ -135,6 +140,12 @@ pub const fn account_id(
     id
 }
 
+/// Returns the bitmask for the network flag. A bitwise OR operation on an account ID an this
+/// bitmask will set it.
+const fn network_flag_bitmask() -> u128 {
+    (AccountIdV0::NETWORK_FLAG_MASK as u128) << 64
+}
+
 /// A builder for creating [`AccountId`]s for testing purposes.
 ///
 /// This is essentially a wrapper around [`AccountId::dummy`] generating random values as its input.
@@ -158,16 +169,22 @@ pub const fn account_id(
 ///     .build_with_rng(&mut rng);
 /// assert_eq!(random_id2.account_type(), AccountType::FungibleFaucet);
 /// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Public);
+/// assert_eq!(random_id2.network_flag(), AccountNetworkFlag::Disabled);
 /// ```
 pub struct AccountIdBuilder {
     account_type: Option<AccountType>,
     storage_mode: Option<AccountStorageMode>,
+    network_flag: Option<AccountNetworkFlag>,
 }
 
 impl AccountIdBuilder {
     /// Creates a new [`AccountIdBuilder`].
     pub fn new() -> Self {
-        Self { account_type: None, storage_mode: None }
+        Self {
+            account_type: None,
+            storage_mode: None,
+            network_flag: None,
+        }
     }
 
     /// Sets the [`AccountType`] of the generated [`AccountId`] to the provided value.
@@ -182,10 +199,22 @@ impl AccountIdBuilder {
         self
     }
 
+    /// Sets the [`AccountNetworkFlag`] of the generated [`AccountId`] to the provided value.
+    pub fn network_flag(mut self, network_flag: AccountNetworkFlag) -> Self {
+        self.network_flag = Some(network_flag);
+        self
+    }
+
     /// Builds an [`AccountId`] using the provided [`rand::Rng`].
     ///
     /// If no [`AccountType`] or [`AccountStorageMode`] were previously set, random ones are
     /// generated.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the network flag is set to [`AccountNetworkFlag::Enabled`] and the storage mode is
+    /// [`AccountStorageMode::Private`]. This can only happen when the network flag is set
+    /// explicitly.
     pub fn build_with_rng<R: rand::Rng + ?Sized>(self, rng: &mut R) -> AccountId {
         let account_type = match self.account_type {
             Some(account_type) => account_type,
@@ -197,7 +226,23 @@ impl AccountIdBuilder {
             None => rng.random(),
         };
 
-        AccountId::dummy(rng.random(), AccountIdVersion::Version0, account_type, storage_mode)
+        let network_flag = match (self.network_flag, storage_mode) {
+            // Do not automatically rewrite an incorrect configuration (enabled, private) to a
+            // correct one, so the caller is informed about the misconfiguration rather than
+            // it silently doing something unexpected.
+            (Some(network_flag), _) => network_flag,
+            (None, AccountStorageMode::Public) => rng.random(),
+            (None, AccountStorageMode::Private) => AccountNetworkFlag::Disabled,
+        };
+
+        // This will panic if the network flag and storage mode are misconfigured.
+        AccountId::dummy(
+            rng.random(),
+            AccountIdVersion::Version0,
+            account_type,
+            storage_mode,
+            network_flag,
+        )
     }
 
     /// Builds an [`AccountId`] using the provided seed as input for an RNG implemented in

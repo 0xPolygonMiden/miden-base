@@ -116,8 +116,8 @@ impl NoteTag {
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
-                if !account_id.is_public() {
-                    Err(NoteError::NetworkExecutionRequiresPublicAccount)
+                if !account_id.is_network() {
+                    Err(NoteError::NetworkExecutionRequiresNetworkAccount)
                 } else {
                     let prefix_id: u64 = account_id.prefix().into();
 
@@ -362,7 +362,7 @@ mod tests {
         for account_id in private_accounts.into_iter().chain(public_accounts) {
             assert_matches!(
                 NoteTag::from_account_id(account_id, NoteExecutionMode::Network).unwrap_err(),
-                NoteError::NetworkExecutionRequiresPublicAccount,
+                NoteError::NetworkExecutionRequiresNetworkAccount,
                 "Tag generation must fail if network execution and private account ID are mixed"
             )
         }
@@ -430,9 +430,9 @@ mod tests {
 
     #[test]
     fn test_from_account_id_values() {
-        // Private Account ID with the following bit pattern in the first and second byte:
-        // 0b11001100_01010101
-        //   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
+        /// Private Account ID with the following bit pattern in the first and second byte:
+        /// 0b11001100_01010101
+        ///   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
         const PRIVATE_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE
             | 0x0055_0000_0000_0000_0000_0000_0000_0000;
         let private_account_id = AccountId::try_from(PRIVATE_ACCOUNT_INT).unwrap();
@@ -440,36 +440,39 @@ mod tests {
         // Expected private tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
         let expected_private_local_tag = NoteTag(0b11110011_00010101_00000000_00000000);
 
-        // Public Account ID with the following bit pattern in the first and second byte:
-        // 0b10101010_01010101_11001100_01110111
-        //   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
+        /// Public Account ID with the following bit pattern in the first and second byte:
+        /// 0b10101010_01010101_11001100_10101010
+        ///   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
         const PUBLIC_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE
-            | 0x0055_cc77_0000_0000_0000_0000_0000_0000;
+            | 0x0055_ccaa_0000_0000_0000_0000_0000_0000;
         let public_account_id = AccountId::try_from(PUBLIC_ACCOUNT_INT).unwrap();
 
         // Expected public tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
         let expected_public_local_tag = NoteTag(0b11101010_10010101_00000000_00000000);
 
-        // Network Account ID with the following bit pattern in the first and second byte:
-        // 0b10101010_11001100_01110111_11001100
-        //   ^^^^^^^^ ^^^^^^^^ ^^^^^^^^ ^^^^^^  <- 30 bits of the network tag.
-        //   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
+        /// Network Account ID with the following bit pattern in the first and second byte:
+        /// 0b10101010_11001100_01110111_11000100
+        ///   ^^^^^^^^ ^^^^^^^^ ^^^^^^^^ ^^^^^^  <- 30 bits of the network tag.
+        ///   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
+        ///
+        /// Note that the 30th most significant bit is the enabled network flag.
         const NETWORK_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE
-            | 0x00cc_77cc_0000_0000_0000_0000_0000_0000;
+            | 0x00cc_77c0_0000_0000_0000_0000_0000_0000;
         let network_account_id = AccountId::try_from(NETWORK_ACCOUNT_INT).unwrap();
 
         // Expected network tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
         let expected_network_local_tag = NoteTag(0b11101010_10110011_00000000_00000000);
 
         // Expected network tag with leading 00 tag bits for network execution.
-        let expected_network_network_tag = NoteTag(0b00101010_10110011_00011101_11110011);
+        let expected_network_network_tag = NoteTag(0b00101010_10110011_00011101_11110001);
 
-        // Public and Private with NoteExecutionMode::Network should fail.
+        // Public and Private account modes (without network flag) with NoteExecutionMode::Network
+        // should fail.
         // ----------------------------------------------------------------------------------------
 
         assert_matches!(
             NoteTag::from_account_id(private_account_id, NoteExecutionMode::Network),
-            Err(NoteError::NetworkExecutionRequiresPublicAccount)
+            Err(NoteError::NetworkExecutionRequiresNetworkAccount)
         );
         assert_matches!(
             NoteTag::from_account_id(public_account_id, NoteExecutionMode::Network),

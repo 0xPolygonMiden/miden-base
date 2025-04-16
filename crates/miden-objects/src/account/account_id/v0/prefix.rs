@@ -10,7 +10,7 @@ use vm_processor::DeserializationError;
 
 use crate::{
     account::{
-        AccountIdVersion, AccountStorageMode, AccountType,
+        AccountIdVersion, AccountNetworkFlag, AccountStorageMode, AccountType,
         account_id::v0::{self, validate_prefix},
     },
     errors::AccountIdError,
@@ -96,6 +96,11 @@ impl AccountIdPrefixV0 {
     /// See [`AccountIdPrefix::is_public`](crate::account::AccountIdPrefix::is_public) for details.
     pub fn is_public(&self) -> bool {
         self.storage_mode() == AccountStorageMode::Public
+    }
+
+    /// See [`AccountIdPrefix::network_flag`](super::AccountIdPrefix::network_flag) for details.
+    pub fn network_flag(&self) -> AccountNetworkFlag {
+        v0::extract_network_flag(self.as_u64())
     }
 
     /// See [`AccountIdPrefix::version`](crate::account::AccountIdPrefix::version) for details.

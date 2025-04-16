@@ -7,7 +7,7 @@ use crate::{
 mod account_id;
 pub use account_id::{
     AccountId, AccountIdAnchor, AccountIdPrefix, AccountIdPrefixV0, AccountIdV0, AccountIdVersion,
-    AccountStorageMode, AccountType, AddressType, NetworkId,
+    AccountNetworkFlag, AccountStorageMode, AccountType, AddressType, NetworkId,
 };
 
 pub mod auth;
