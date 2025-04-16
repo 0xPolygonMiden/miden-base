@@ -44,12 +44,13 @@ use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
 ///
 /// # Layout
 ///
-/// An `AccountId` consists of two field elements and is layed out as follows:
+/// An `AccountId` consists of two field elements, where the first is called the prefix and the
+/// second is called the suffix. It is layed out as follows:
 ///
 /// ```text
-/// 1st felt: [hash (29 bits) | network account (1 bit) | hash (26 bits) |
-///            storage mode (2 bits) | type (2 bits) | version (4 bits)]
-/// 2nd felt: [anchor_epoch (16 bits) | hash (40 bits) | 8 zero bits]
+/// prefix: [hash (29 bits) | network account (1 bit) | hash (26 bits) |
+///          storage mode (2 bits) | type (2 bits) | version (4 bits)]
+/// suffix: [anchor_epoch (16 bits) | hash (40 bits) | 8 zero bits]
 /// ```
 ///
 /// # Generation
