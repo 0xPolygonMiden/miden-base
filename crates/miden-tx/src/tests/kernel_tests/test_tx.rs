@@ -19,7 +19,10 @@ use miden_objects::{
         NoteRecipient, NoteTag, NoteType,
     },
     testing::{
-        account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2},
+        account_id::{
+            ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+        },
         constants::NON_FUNGIBLE_ASSET_DATA_2,
     },
     transaction::{OutputNote, OutputNotes},
@@ -181,7 +184,7 @@ fn test_create_note_too_many_notes() {
             call.wallet::create_note
         end
         ",
-        tag = Felt::new(4),
+        tag = NoteTag::for_local_use_case(1234, 5678).unwrap(),
         recipient = word_to_masm_push_string(&[ZERO, ONE, Felt::new(2), Felt::new(3)]),
         execution_hint_always = Felt::from(NoteExecutionHint::always()),
         PUBLIC_NOTE = NoteType::Public as u8,
@@ -205,9 +208,14 @@ fn test_get_output_notes_commitment() {
     let input_note_2 = tx_context.tx_inputs().input_notes().get_note(1).note();
     let input_asset_2 = **input_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
 
+    // Choose random accounts as the target for the note tag.
+    let network_account = AccountId::try_from(ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET).unwrap();
+    let local_account = AccountId::try_from(ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET).unwrap();
+
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
-    let output_tag_1 = 8888.into();
+    let output_tag_1 =
+        NoteTag::from_account_id(network_account, NoteExecutionMode::Network).unwrap();
     let assets = NoteAssets::new(vec![input_asset_1]).unwrap();
     let metadata = NoteMetadata::new(
         tx_context.tx_inputs().account().id(),
@@ -223,7 +231,7 @@ fn test_get_output_notes_commitment() {
 
     // create output note 2
     let output_serial_no_2 = [Felt::new(11); 4];
-    let output_tag_2 = 1111.into();
+    let output_tag_2 = NoteTag::from_account_id(local_account, NoteExecutionMode::Local).unwrap();
     let assets = NoteAssets::new(vec![input_asset_2]).unwrap();
     let metadata = NoteMetadata::new(
         tx_context.tx_inputs().account().id(),
@@ -355,7 +363,7 @@ fn test_create_note_and_add_asset() {
     let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
-    let tag = Felt::new(4);
+    let tag = NoteTag::from_account_id(faucet_id, NoteExecutionMode::Local).unwrap();
     let asset = [Felt::new(10), ZERO, faucet_id.suffix(), faucet_id.prefix().as_felt()];
 
     let code = format!(
@@ -420,7 +428,7 @@ fn test_create_note_and_add_multiple_assets() {
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
-    let tag = Felt::new(4);
+    let tag = NoteTag::from_account_id(faucet_2, NoteExecutionMode::Local).unwrap();
 
     let asset = [Felt::new(10), ZERO, faucet.suffix(), faucet.prefix().as_felt()];
     let asset_2 = [Felt::new(20), ZERO, faucet_2.suffix(), faucet_2.prefix().as_felt()];
@@ -516,7 +524,7 @@ fn test_create_note_and_add_same_nft_twice() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let tag = Felt::new(4);
+    let tag = NoteTag::for_public_use_case(999, 777, NoteExecutionMode::Local).unwrap();
     let non_fungible_asset = NonFungibleAsset::mock(&[1, 2, 3]);
     let encoded = Word::from(non_fungible_asset);
 
@@ -576,7 +584,7 @@ fn test_build_recipient_hash() {
     // create output note
     let output_serial_no = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
-    let tag = 8888;
+    let tag = NoteTag::for_public_use_case(42, 42, NoteExecutionMode::Network).unwrap();
     let single_input = 2;
     let inputs = NoteInputs::new(vec![Felt::new(single_input)]).unwrap();
     let input_commitment = inputs.commitment();
