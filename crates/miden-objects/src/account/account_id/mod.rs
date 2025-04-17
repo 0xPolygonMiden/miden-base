@@ -85,7 +85,12 @@ use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
 ///
 /// - The prefix is the output of a hash function so it will be a valid field element without
 ///   requiring additional constraints.
-/// - TODO: Network flag rationale.
+/// - The network flag is placed at the 30th most significant bit in the prefix. This means that the
+///   last bit of a note tag with the `0b00` prefix will indicate whether the target account is a
+///   network account or not. Note tags intended for local execution use only the 14 most
+///   significant bits, so the network bit does not appear in those. This is desirable because if it
+///   was there, it would reduce the uniqueness of the note tag and it would be less useful for
+///   scanning for available notes in the network for private accounts.
 /// - The version is placed at a static offset such that future ID versions which may change the
 ///   number of type or storage mode bits will not cause the version to be at a different offset.
 ///   This is important so that a parser can always reliably read the version and then parse the
