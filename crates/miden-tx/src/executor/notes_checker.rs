@@ -13,12 +13,11 @@ use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{NoteAccountExecution, TransactionExecutor, TransactionExecutorError};
 
-/// This struct performs input notes checks against provided target account.
+/// This struct performs input notes check against provided target account.
 ///
-/// A check could be:
-/// - Static -- performed by the [NotesChecker::check_note_inputs]. See method description.
-/// - Dynamic -- performed by the [NotesChecker::check_notes_consumability]. Essentially runs the
-///   transaction to make sure that provided input notes could be consumed by the account.
+/// The check is performed using the [NotesChecker::check_notes_consumability] procedure.
+/// Essentially runs the transaction to make sure that provided input notes could be consumed by the
+/// account.
 pub struct NotesChecker {
     account_id: AccountId,
     notes: Vec<InputNote>,
@@ -33,9 +32,9 @@ impl NotesChecker {
     /// Checks whether the provided input notes could be consumed by the provided account.
     ///
     /// This check consists of two main steps:
-    /// - Check whether there are "well known" notes (`P2ID`, `P2IDR` and `SWAP`) in the list of the
-    ///   provided input notes. If so, assert that the note inputs are correct.
-    /// - Execute the transaction with specified notes.
+    /// - Statically check the notes: if all notes are either `P2ID` or `P2IDR` notes with correct
+    ///   inputs, return `NoteAccountExecution::Success`.
+    /// - Execute the transaction:
     ///   - Returns `NoteAccountExecution::Success` if the execution was successful.
     ///   - Returns `NoteAccountExecution::Failure` if some note returned an error. The fields
     ///     associated with `Failure` variant contains the ID of the failed note, a vector of IDs of
