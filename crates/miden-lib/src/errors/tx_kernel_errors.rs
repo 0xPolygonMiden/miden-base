@@ -141,8 +141,8 @@ pub const ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS: u32 = 0x20154;
 pub const ERR_ACCOUNT_STACK_OVERFLOW: u32 = 0x20155;
 /// Failed to end foreign context because the current account is the native account
 pub const ERR_ACCOUNT_STACK_UNDERFLOW: u32 = 0x20156;
-/// The account ID cannot be private and have the network flag enabled.
-pub const ERR_ACCOUNT_ID_PRIVATE_NETWORK_ACCOUNT: u32 = 0x20157;
+/// The account ID must have storage mode public if the network flag is set.
+pub const ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT: u32 = 0x20157;
 
 /// Creation of a foreign context against the native account is forbidden
 pub const ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT: u32 = 0x20180;
@@ -277,7 +277,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeds the maximum limit of 255"),
     (ERR_ACCOUNT_STACK_OVERFLOW, "Depth of the nested FPI calls exceeded 64"),
     (ERR_ACCOUNT_STACK_UNDERFLOW, "Failed to end foreign context because the current account is the native account"),
-    (ERR_ACCOUNT_ID_PRIVATE_NETWORK_ACCOUNT, "The account ID cannot be private and have the network flag enabled."),
+    (ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT, "The account ID must have storage mode public if the network flag is set."),
 
     (ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, "Creation of a foreign context against the native account is forbidden"),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "ID of the provided foreign account equals zero."),

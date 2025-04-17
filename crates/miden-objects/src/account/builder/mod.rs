@@ -166,7 +166,7 @@ impl AccountBuilder {
     ///
     /// Returns an error if:
     /// - The init seed is not set.
-    /// - The account is private and the network flag is enabled.
+    /// - The account network flag is set but the account is not public.
     /// - Any of the components does not support the set account type.
     /// - The number of procedures in all merged components is 0 or exceeds
     ///   [`AccountCode::MAX_NUM_PROCEDURES`](crate::account::AccountCode::MAX_NUM_PROCEDURES).
@@ -182,9 +182,9 @@ impl AccountBuilder {
             .id_anchor
             .ok_or_else(|| AccountError::BuildError("anchor must be set".into(), None))?;
 
-        if self.storage_mode.is_private() && self.network_flag.is_enabled() {
+        if self.network_flag.is_enabled() && !self.storage_mode.is_public() {
             return Err(AccountError::BuildError(
-                "network flag cannot be set when the storage mode is private".into(),
+                "account with the network flag set to `true` must have public storage mode".into(),
                 None,
             ));
         }
@@ -422,7 +422,7 @@ mod tests {
     }
 
     #[test]
-    fn account_builder_fails_on_private_network_account() {
+    fn account_builder_fails_on_non_public_network_account() {
         let anchor_block_commitment = Digest::new([Felt::new(42); 4]);
         let anchor_block_number = 1 << 16;
         let id_anchor =
@@ -437,7 +437,10 @@ mod tests {
             .build()
             .unwrap_err();
 
-        assert!(err.to_string().contains("network flag") && err.to_string().contains("private"))
+        assert!(
+            err.to_string().contains("network flag")
+                && err.to_string().contains("public storage mode")
+        )
     }
 
     // TODO: Test that a BlockHeader with a number which is not a multiple of 2^16 returns an error.
