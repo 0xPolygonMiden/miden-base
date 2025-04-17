@@ -56,12 +56,62 @@ impl AccountWitness {
         Ok(Self::new_unchecked(account_id, commitment, path))
     }
 
+    /// Creates an [`AccountWitness`] from the provided proof and the account ID for which the proof
+    /// was requested.
+    ///
+    /// # Warning
+    ///
+    /// This should only be called on SMT proofs retrieved from (partial) account tree, because it
+    /// relies on the guarantees of those types.
+    ///
+    /// # Panics
+    ///
+    /// Panics if:
+    /// - the merkle path in the proof does not have depth equal to [`AccountTree::DEPTH`].
+    /// - the proof contains an SmtLeaf::Multiple.
+    pub(super) fn from_smt_proof(requested_account_id: AccountId, proof: SmtProof) -> Self {
+        // Check which account ID this proof actually contains. We rely on the fact that the
+        // trees only contain zero or one entry per account ID prefix.
+        //
+        // If the requested account ID matches an existing ID's prefix but their suffixes do
+        // not match, then this witness is for the _existing ID_.
+        //
+        // Otherwise, if the ID matches the one in the leaf or if it's empty, the witness is
+        // for the requested ID.
+        let witness_id = match proof.leaf() {
+            SmtLeaf::Empty(_) => requested_account_id,
+            SmtLeaf::Single((key_in_leaf, _)) => {
+                // SAFETY: By construction, the tree only contains valid IDs.
+                AccountTree::smt_key_to_id(*key_in_leaf)
+            },
+            SmtLeaf::Multiple(_) => {
+                unreachable!("account tree should only contain zero or one entry per ID prefix")
+            },
+        };
+
+        let commitment = Digest::from(
+            proof
+                .get(&AccountTree::id_to_smt_key(witness_id))
+                .expect("we should have received a proof for the witness key"),
+        );
+
+        // SAFETY: The proof is guaranteed to have depth AccountTree::DEPTH if it comes from one of
+        // the account trees.
+        debug_assert_eq!(proof.path().depth(), AccountTree::DEPTH);
+
+        AccountWitness::new_unchecked(witness_id, commitment, proof.into_parts().0)
+    }
+
     /// Constructs a new [`AccountWitness`] from the provided parts.
     ///
     /// # Warning
     ///
     /// This does not validate any of the guarantees of this type.
-    pub fn new_unchecked(account_id: AccountId, commitment: Digest, path: MerklePath) -> Self {
+    pub(super) fn new_unchecked(
+        account_id: AccountId,
+        commitment: Digest,
+        path: MerklePath,
+    ) -> Self {
         Self { id: account_id, commitment, path }
     }
 

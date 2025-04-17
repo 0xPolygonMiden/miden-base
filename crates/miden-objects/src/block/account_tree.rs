@@ -104,33 +104,7 @@ impl AccountTree {
         let key = Self::id_to_smt_key(account_id);
         let proof = self.smt.open(&key);
 
-        // Check which account ID this proof actually contains. We rely on the fact that the tree
-        // only contains zero or one entry per account ID prefix.
-        //
-        // If the requested account ID matches an existing ID's prefix but their suffixes do not
-        // match, then this witness is for the _existing ID_.
-        //
-        // Otherwise, if the ID matches the one in the leaf or if it's empty, the witness is for the
-        // requested ID.
-        let witness_id = match proof.leaf() {
-            SmtLeaf::Empty(_) => account_id,
-            SmtLeaf::Single((key_in_leaf, _)) => {
-                // SAFETY: By construction, the tree only contains valid IDs.
-                Self::smt_key_to_id(*key_in_leaf)
-            },
-            SmtLeaf::Multiple(_) => {
-                unreachable!("account tree should only contain zero or one entry per ID prefix")
-            },
-        };
-
-        let commitment = Digest::from(
-            proof
-                .get(&Self::id_to_smt_key(witness_id))
-                .expect("we should have received a proof for the witness key"),
-        );
-
-        // SAFETY: The proof is guaranteed to have depth AccountTree::DEPTH.
-        AccountWitness::new_unchecked(witness_id, commitment, proof.into_parts().0)
+        AccountWitness::from_smt_proof(account_id, proof)
     }
 
     /// Returns the current state commitment of the given account ID.
