@@ -12,9 +12,10 @@ use crate::{
 // ACCOUNT WITNESS
 // ================================================================================================
 
-/// A specialized version of an [`SmtProof`] for use in [`AccountTree`] and [`PartialAccountTree`].
-/// It proves the inclusion of an account ID at a certain state (i.e.
-/// [`Account::commitment`](crate::account::Account::commitment)) in the [`AccountTree`].
+/// A specialized version of an [`SmtProof`] for use in [`AccountTree`] and
+/// [`PartialAccountTree`](crate::block::PartialAccountTree). It proves the inclusion of an account
+/// ID at a certain state (i.e. [`Account::commitment`](crate::account::Account::commitment)) in the
+/// [`AccountTree`].
 ///
 /// By construction the witness can only represent the equivalent of an [`SmtLeaf`] with zero or one
 /// entries, which guarantees that the account ID prefix it represents is unique in the tree.
