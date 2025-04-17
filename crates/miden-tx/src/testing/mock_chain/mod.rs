@@ -876,7 +876,7 @@ impl MockChain {
                 }
             }
 
-            let tx_commitment = BlockHeader::compute_tx_commitment(
+            let tx_commitment = OrderedTransactionHeaders::compute_tx_commitment(
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
 

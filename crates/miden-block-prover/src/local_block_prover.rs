@@ -77,11 +77,6 @@ impl LocalBlockProver {
 
         let block_num = proposed_block.block_num();
         let timestamp = proposed_block.timestamp();
-        let tx_commitment = BlockHeader::compute_tx_commitment(
-            proposed_block
-                .transactions()
-                .map(|tx_header| (tx_header.id(), tx_header.account_id())),
-        );
 
         // Split the proposed block into its parts.
         // --------------------------------------------------------------------------------------------
@@ -143,6 +138,7 @@ impl LocalBlockProver {
         // --------------------------------------------------------------------------------------------
 
         let txs = batches.into_transactions();
+        let tx_commitment = txs.commitment();
 
         // Construct the new block header.
         // --------------------------------------------------------------------------------------------
@@ -207,7 +203,7 @@ fn compute_nullifiers(
     // its corresponding nullifier witness, so we don't have to check again whether they match.
     for witness in created_nullifiers.into_values() {
         partial_nullifier_tree
-            .track_nullifier_witness(witness)
+            .track_nullifier(witness)
             .map_err(ProvenBlockError::NullifierWitnessRootMismatch)?;
     }
 

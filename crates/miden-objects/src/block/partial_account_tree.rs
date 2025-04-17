@@ -38,7 +38,7 @@ impl PartialAccountTree {
         let mut tree = Self::new();
 
         for witness in witnesses {
-            tree.track_account_witness(witness)?;
+            tree.track_account(witness)?;
         }
 
         Ok(tree)
@@ -97,10 +97,7 @@ impl PartialAccountTree {
     ///   than before it was added (except when the first witness is added).
     /// - there exists a leaf in the tree whose account ID prefix matches the one in the provided
     ///   witness.
-    pub fn track_account_witness(
-        &mut self,
-        witness: AccountWitness,
-    ) -> Result<(), AccountTreeError> {
+    pub fn track_account(&mut self, witness: AccountWitness) -> Result<(), AccountTreeError> {
         let id_prefix = witness.id().prefix();
         let id_key = AccountTree::id_to_smt_key(witness.id());
         let (path, leaf) = witness.into_proof().into_parts();
@@ -204,7 +201,7 @@ mod tests {
         full_tree.insert(id0, commitment0).unwrap();
         let witness = full_tree.open(id0);
 
-        partial_tree.track_account_witness(witness).unwrap();
+        partial_tree.track_account(witness).unwrap();
 
         partial_tree.insert(id0, commitment0).unwrap();
         assert_eq!(partial_tree.get(id0).unwrap(), commitment0);
@@ -231,7 +228,7 @@ mod tests {
         full_tree.insert(id0, commitment0).unwrap();
         let witness = full_tree.open(id0);
 
-        partial_tree.track_account_witness(witness.clone()).unwrap();
+        partial_tree.track_account(witness.clone()).unwrap();
         assert_eq!(
             partial_tree.open(id0).unwrap(),
             witness,
@@ -289,8 +286,8 @@ mod tests {
         );
 
         let mut partial_tree = PartialAccountTree::new();
-        partial_tree.track_account_witness(witness0).unwrap();
-        let err = partial_tree.track_account_witness(witness1).unwrap_err();
+        partial_tree.track_account(witness0).unwrap();
+        let err = partial_tree.track_account(witness1).unwrap_err();
 
         assert_matches!(err, AccountTreeError::DuplicateIdPrefix { duplicate_prefix, .. }
           if duplicate_prefix == id1.prefix()
