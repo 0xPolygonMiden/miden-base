@@ -305,10 +305,17 @@ async fn create_status_client(
 ///
 /// The version is valid if it is a semantic version and is greater than or equal to the
 /// current version. We dont check the patch version.
+/// Returns false if either version string is malformed.
 fn is_valid_version(current_version: &str, received_version: &str) -> bool {
     // Dont check the patch version.
     let current_version_parts: Vec<&str> = current_version.split('.').collect();
     let version_parts: Vec<&str> = received_version.split('.').collect();
+
+    // Check if both versions have at least major and minor components
+    if current_version_parts.len() < 2 || version_parts.len() < 2 {
+        return false;
+    }
+
     version_parts[0] == current_version_parts[0] && version_parts[1] == current_version_parts[1]
 }
 
