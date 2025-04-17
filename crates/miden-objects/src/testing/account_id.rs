@@ -154,10 +154,10 @@ const fn network_account_bitmask() -> u128 {
 /// # Example
 ///
 /// ```
-/// # use miden_objects::account::{AccountType, AccountStorageMode, AccountId};
+/// # use miden_objects::account::{AccountType, AccountStorageMode, AccountId, NetworkAccount};
 /// # use miden_objects::testing::account_id::{AccountIdBuilder};
 ///
-/// let mut rng = rand::thread_rng();
+/// let mut rng = rand::rng();
 ///
 /// // A random AccountId with random AccountType and AccountStorageMode.
 /// let random_id1: AccountId = AccountIdBuilder::new().build_with_rng(&mut rng);
