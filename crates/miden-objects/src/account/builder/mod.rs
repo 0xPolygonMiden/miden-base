@@ -97,7 +97,7 @@ impl AccountBuilder {
     }
 
     /// Sets the network flag of the account.
-    pub fn network_flag(mut self, network_flag: AccountNetworkFlag) -> Self {
+    pub fn network_account(mut self, network_flag: AccountNetworkFlag) -> Self {
         self.network_flag = network_flag;
         self
     }
@@ -216,7 +216,7 @@ impl AccountBuilder {
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
-        debug_assert_eq!(account_id.network_flag(), self.network_flag);
+        debug_assert_eq!(account_id.network_account(), self.network_flag);
 
         let account = Account::from_parts(account_id, vault, storage, code, Felt::ZERO);
 
@@ -433,7 +433,7 @@ mod tests {
             .anchor(id_anchor)
             .with_component(CustomComponent1 { slot0: 0 })
             .storage_mode(AccountStorageMode::Private)
-            .network_flag(AccountNetworkFlag::Enabled)
+            .network_account(AccountNetworkFlag::Enabled)
             .build()
             .unwrap_err();
 

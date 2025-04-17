@@ -124,15 +124,15 @@ impl AccountIdPrefix {
 
     /// Returns the network flag of this account, indicating whether self is a network account or
     /// not.
-    pub fn network_flag(&self) -> AccountNetworkFlag {
+    pub fn network_account(&self) -> AccountNetworkFlag {
         match self {
-            AccountIdPrefix::V0(id_prefix) => id_prefix.network_flag(),
+            AccountIdPrefix::V0(id_prefix) => id_prefix.network_account(),
         }
     }
 
     /// Returns `true` if self is a network account, `false` otherwise.
     pub fn is_network(&self) -> bool {
-        self.network_flag().is_enabled()
+        self.network_account().is_enabled()
     }
 
     /// Returns the version of this account ID.
@@ -333,7 +333,7 @@ mod tests {
                         assert_eq!(prefix.account_type(), account_type);
                         assert_eq!(prefix.storage_mode(), storage_mode);
                         assert_eq!(prefix.version(), AccountIdVersion::Version0);
-                        assert_eq!(prefix.network_flag(), network_flag);
+                        assert_eq!(prefix.network_account(), network_flag);
 
                         // Do a serialization roundtrip to ensure validity.
                         let serialized_prefix = prefix.to_bytes();

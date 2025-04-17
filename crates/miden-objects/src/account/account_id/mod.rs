@@ -302,15 +302,15 @@ impl AccountId {
 
     /// Returns the network flag of this account, indicating whether self is a network account or
     /// not.
-    pub fn network_flag(&self) -> AccountNetworkFlag {
+    pub fn network_account(&self) -> AccountNetworkFlag {
         match self {
-            AccountId::V0(account_id) => account_id.network_flag(),
+            AccountId::V0(account_id) => account_id.network_account(),
         }
     }
 
     /// Returns `true` if self is a network account, `false` otherwise.
     pub fn is_network(&self) -> bool {
-        self.network_flag().is_enabled()
+        self.network_account().is_enabled()
     }
 
     /// Returns the version of this account ID.

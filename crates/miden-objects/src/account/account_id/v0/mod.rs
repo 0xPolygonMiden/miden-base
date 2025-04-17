@@ -154,7 +154,7 @@ impl AccountIdV0 {
 
         debug_assert_eq!(account_id.account_type(), account_type);
         debug_assert_eq!(account_id.storage_mode(), storage_mode);
-        debug_assert_eq!(account_id.network_flag(), network_flag);
+        debug_assert_eq!(account_id.network_account(), network_flag);
 
         account_id
     }
@@ -208,7 +208,7 @@ impl AccountIdV0 {
     }
 
     /// See [`AccountId::network_flag`](super::AccountId::network_flag) for details.
-    pub fn network_flag(&self) -> AccountNetworkFlag {
+    pub fn network_account(&self) -> AccountNetworkFlag {
         extract_network_flag(self.prefix().as_u64())
     }
 
@@ -673,7 +673,7 @@ mod tests {
                             AccountIdV0::dummy(input, account_type, storage_mode, network_flag);
                         assert_eq!(id.account_type(), account_type);
                         assert_eq!(id.storage_mode(), storage_mode);
-                        assert_eq!(id.network_flag(), network_flag);
+                        assert_eq!(id.network_account(), network_flag);
                         assert_eq!(id.version(), AccountIdVersion::Version0);
                         assert_eq!(id.anchor_epoch(), 0);
 

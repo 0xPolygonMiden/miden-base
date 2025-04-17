@@ -99,7 +99,7 @@ impl AccountIdPrefixV0 {
     }
 
     /// See [`AccountIdPrefix::network_flag`](super::AccountIdPrefix::network_flag) for details.
-    pub fn network_flag(&self) -> AccountNetworkFlag {
+    pub fn network_account(&self) -> AccountNetworkFlag {
         v0::extract_network_flag(self.as_u64())
     }
 
