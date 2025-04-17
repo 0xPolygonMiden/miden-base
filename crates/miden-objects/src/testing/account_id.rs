@@ -165,10 +165,10 @@ const fn network_account_bitmask() -> u128 {
 /// // A random AccountId with the given AccountType and AccountStorageMode.
 /// let random_id2: AccountId = AccountIdBuilder::new()
 ///     .account_type(AccountType::FungibleFaucet)
-///     .storage_mode(AccountStorageMode::Public)
+///     .storage_mode(AccountStorageMode::Private)
 ///     .build_with_rng(&mut rng);
 /// assert_eq!(random_id2.account_type(), AccountType::FungibleFaucet);
-/// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Public);
+/// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Private);
 /// assert_eq!(random_id2.network_account(), NetworkAccount::Disabled);
 /// ```
 pub struct AccountIdBuilder {
