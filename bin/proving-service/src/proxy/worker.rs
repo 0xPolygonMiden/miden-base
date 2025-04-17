@@ -206,11 +206,11 @@ impl Worker {
         self.backend.addr.to_string()
     }
 
-    /// Returns whether the worker was healthy at the last health check.
+    /// Returns whether the worker is healthy.
     ///
-    /// This function will return `true` if the worker was healthy or the health status is unknown.
+    /// This function will return `true` if the worker is healthy or the health status is unknown.
     /// Otherwise, it will return `false`.
-    pub fn was_healthy(&self) -> bool {
+    pub fn is_healthy(&self) -> bool {
         !matches!(self.health_status, WorkerHealthStatus::Unhealthy { .. })
     }
 
@@ -247,7 +247,7 @@ impl Worker {
     /// This function will update the health status of the worker and update the worker availability
     /// based on the new health status.
     fn set_health_status(&mut self, health_status: WorkerHealthStatus) {
-        let was_healthy = self.was_healthy();
+        let was_healthy = self.is_healthy();
         self.health_status = health_status;
         match &self.health_status {
             WorkerHealthStatus::Healthy => {
