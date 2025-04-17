@@ -88,11 +88,12 @@ impl Worker {
     // MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Checks the worker status.
+    /// Checks the current status of the worker and marks the worker as healthy or unhealthy based
+    /// on the status.
     ///
-    /// This function will check the worker status and update the worker health status.
     /// If the worker is unhealthy, it will be marked as unavailable thus preventing requests from
-    /// being sent to it.
+    /// being sent to it. If a previously unhealthy worker becomes healthy, it will be marked as
+    /// available and the proxy will start sending incoming requests to it.
     pub async fn check_status(&mut self, supported_prover_type: ProverType) {
         if !self.should_do_health_check() {
             return;
