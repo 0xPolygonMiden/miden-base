@@ -169,7 +169,7 @@ const fn network_account_bitmask() -> u128 {
 ///     .build_with_rng(&mut rng);
 /// assert_eq!(random_id2.account_type(), AccountType::FungibleFaucet);
 /// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Public);
-/// assert_eq!(random_id2.network_account(), AccountNetworkFlag::Disabled);
+/// assert_eq!(random_id2.network_account(), NetworkAccount::Disabled);
 /// ```
 pub struct AccountIdBuilder {
     account_type: Option<AccountType>,
@@ -199,7 +199,7 @@ impl AccountIdBuilder {
         self
     }
 
-    /// Sets the [`AccountNetworkFlag`] of the generated [`AccountId`] to the provided value.
+    /// Sets the [`NetworkAccount`] of the generated [`AccountId`] to the provided value.
     pub fn network_account(mut self, network_account: NetworkAccount) -> Self {
         self.network_account = Some(network_account);
         self
@@ -212,7 +212,7 @@ impl AccountIdBuilder {
     ///
     /// # Panics
     ///
-    /// Panics if the network flag is set to [`AccountNetworkFlag::Enabled`] and the storage mode is
+    /// Panics if the network flag is set to [`NetworkAccount::Enabled`] and the storage mode is
     /// [`AccountStorageMode::Private`]. This can only happen when the network flag is set
     /// explicitly.
     pub fn build_with_rng<R: rand::Rng + ?Sized>(self, rng: &mut R) -> AccountId {

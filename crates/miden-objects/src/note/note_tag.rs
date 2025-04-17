@@ -89,8 +89,9 @@ impl NoteTag {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - [`NoteExecutionMode::Network`] is provided but the storage mode of the the account_id is
-    ///   not [`AccountStorageMode::Network`](crate::account::AccountStorageMode::Network).
+    /// - [`NoteExecutionMode::Network`] is provided but the storage mode of the account_id is not
+    ///   [`AccountStorageMode::Public`](crate::account::AccountStorageMode::Public) and the
+    ///   [`NetworkAccount`](crate::account::NetworkAccount) configuration is enabled.
     pub fn from_account_id(
         account_id: AccountId,
         execution: NoteExecutionMode,

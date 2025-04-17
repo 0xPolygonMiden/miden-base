@@ -25,7 +25,7 @@ impl NetworkAccount {
 
 #[cfg(any(feature = "testing", test))]
 impl rand::distr::Distribution<NetworkAccount> for rand::distr::StandardUniform {
-    /// Samples a uniformly random [`AccountNetworkFlag`] from the given `rng`.
+    /// Samples a uniformly random [`NetworkAccount`] from the given `rng`.
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> NetworkAccount {
         match rng.random::<bool>() {
             true => NetworkAccount::Enabled,

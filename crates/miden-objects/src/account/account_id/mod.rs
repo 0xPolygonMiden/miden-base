@@ -215,7 +215,7 @@ impl AccountId {
     ///
     /// # Panics
     ///
-    /// Panics if the network flag is set to [`AccountNetworkFlag::Enabled`] and the storage mode is
+    /// Panics if the network flag is set to [`NetworkAccount::Enabled`] and the storage mode is
     /// [`AccountStorageMode::Private`].
     #[cfg(any(feature = "testing", test))]
     pub fn dummy(

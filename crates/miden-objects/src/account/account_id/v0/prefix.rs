@@ -98,8 +98,8 @@ impl AccountIdPrefixV0 {
         self.storage_mode() == AccountStorageMode::Public
     }
 
-    /// See [`AccountIdPrefix::network_account`](super::AccountIdPrefix::network_account) for
-    /// details.
+    /// See [`AccountIdPrefix::network_account`](crate::account::AccountIdPrefix::network_account)
+    /// for details.
     pub fn network_account(&self) -> NetworkAccount {
         v0::extract_network_account(self.as_u64())
     }
