@@ -19,7 +19,7 @@ use crate::{
     account::{
         AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
         account_id::{
-            AccountNetworkFlag, NetworkId,
+            NetworkAccount, NetworkId,
             account_type::{
                 FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET, REGULAR_ACCOUNT_IMMUTABLE_CODE,
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
@@ -66,8 +66,8 @@ impl AccountIdV0 {
     pub(crate) const STORAGE_MODE_MASK: u8 = 0b11 << Self::STORAGE_MODE_SHIFT;
     pub(crate) const STORAGE_MODE_SHIFT: u64 = 6;
 
-    pub(crate) const NETWORK_FLAG_SHIFT: u64 = 34;
-    pub(crate) const NETWORK_FLAG_MASK: u64 = 1 << Self::NETWORK_FLAG_SHIFT;
+    pub(crate) const NETWORK_ACCOUNT_SHIFT: u64 = 34;
+    pub(crate) const NETWORK_ACCOUNT_MASK: u64 = 1 << Self::NETWORK_ACCOUNT_SHIFT;
 
     /// The bit at index 5 of the prefix encodes whether the account is a faucet.
     pub(crate) const IS_FAUCET_MASK: u64 = 0b10 << Self::TYPE_SHIFT;
@@ -115,9 +115,9 @@ impl AccountIdV0 {
         mut bytes: [u8; 15],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
-        network_flag: AccountNetworkFlag,
+        network_account: NetworkAccount,
     ) -> AccountIdV0 {
-        if network_flag.is_enabled() && !storage_mode.is_public() {
+        if network_account.is_enabled() && !storage_mode.is_public() {
             panic!("account ID storage mode cannot be private if network flag is enabled")
         }
 
@@ -133,7 +133,7 @@ impl AccountIdV0 {
         bytes[3] &= 0b1111_1010;
 
         // Set the network flag according to the provided value at the 30th most significant bit.
-        bytes[3] |= (network_flag as u8) << 2;
+        bytes[3] |= (network_account as u8) << 2;
 
         let prefix_bytes =
             bytes[0..8].try_into().expect("we should have sliced off exactly 8 bytes");
@@ -154,7 +154,7 @@ impl AccountIdV0 {
 
         debug_assert_eq!(account_id.account_type(), account_type);
         debug_assert_eq!(account_id.storage_mode(), storage_mode);
-        debug_assert_eq!(account_id.network_account(), network_flag);
+        debug_assert_eq!(account_id.network_account(), network_account);
 
         account_id
     }
@@ -165,7 +165,7 @@ impl AccountIdV0 {
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
-        network_flag: AccountNetworkFlag,
+        network_account: NetworkAccount,
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
@@ -175,7 +175,7 @@ impl AccountIdV0 {
             init_seed,
             account_type,
             storage_mode,
-            network_flag,
+            network_account,
             version,
             code_commitment,
             storage_commitment,
@@ -207,9 +207,9 @@ impl AccountIdV0 {
             .expect("account ID should have been constructed with a valid storage mode")
     }
 
-    /// See [`AccountId::network_flag`](super::AccountId::network_flag) for details.
-    pub fn network_account(&self) -> AccountNetworkFlag {
-        extract_network_flag(self.prefix().as_u64())
+    /// See [`AccountId::network_account`](super::AccountId::network_account) for details.
+    pub fn network_account(&self) -> NetworkAccount {
+        extract_network_account(self.prefix().as_u64())
     }
 
     /// See [`AccountId::is_public`](super::AccountId::is_public) for details.
@@ -453,15 +453,14 @@ fn account_id_from_felts(elements: [Felt; 2]) -> Result<AccountIdV0, AccountIdEr
 /// - is for a public account if the network flag is set.
 pub(crate) fn validate_prefix(
     prefix: Felt,
-) -> Result<(AccountType, AccountStorageMode, AccountNetworkFlag, AccountIdVersion), AccountIdError>
-{
+) -> Result<(AccountType, AccountStorageMode, NetworkAccount, AccountIdVersion), AccountIdError> {
     let prefix = prefix.as_int();
 
     // Validate storage bits.
     let storage_mode = extract_storage_mode(prefix)?;
 
-    let network_flag = extract_network_flag(prefix);
-    if network_flag.is_enabled() && !storage_mode.is_public() {
+    let network_account = extract_network_account(prefix);
+    if network_account.is_enabled() && !storage_mode.is_public() {
         return Err(AccountIdError::NetworkAccountMustBePublic);
     }
 
@@ -470,7 +469,7 @@ pub(crate) fn validate_prefix(
 
     let account_type = extract_type(prefix);
 
-    Ok((account_type, storage_mode, network_flag, version))
+    Ok((account_type, storage_mode, network_account, version))
 }
 
 /// Checks that the suffix:
@@ -491,14 +490,14 @@ const fn validate_suffix(suffix: Felt) -> Result<(), AccountIdError> {
     Ok(())
 }
 
-pub(crate) fn extract_network_flag(prefix: u64) -> AccountNetworkFlag {
-    let bit = (prefix & AccountIdV0::NETWORK_FLAG_MASK) >> AccountIdV0::NETWORK_FLAG_SHIFT;
+pub(crate) fn extract_network_account(prefix: u64) -> NetworkAccount {
+    let bit = (prefix & AccountIdV0::NETWORK_ACCOUNT_MASK) >> AccountIdV0::NETWORK_ACCOUNT_SHIFT;
     // Masking with the network flag mask results in exactly 1 bit remaining which is shifted to the
     // least significant position, so this results in either value 0 or 1.
-    if bit as u8 == AccountNetworkFlag::Enabled as u8 {
-        AccountNetworkFlag::Enabled
+    if bit as u8 == NetworkAccount::Enabled as u8 {
+        NetworkAccount::Enabled
     } else {
-        AccountNetworkFlag::Disabled
+        NetworkAccount::Disabled
     }
 }
 
@@ -621,7 +620,7 @@ mod tests {
             [10; 32],
             AccountType::FungibleFaucet,
             AccountStorageMode::Public,
-            AccountNetworkFlag::Enabled,
+            NetworkAccount::Enabled,
             AccountIdVersion::Version0,
             code_commitment,
             storage_commitment,
@@ -662,18 +661,17 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    for network_flag in [AccountNetworkFlag::Disabled, AccountNetworkFlag::Enabled]
-                    {
+                    for network_account in [NetworkAccount::Disabled, NetworkAccount::Enabled] {
                         // Skip the invalid configuration.
-                        if !storage_mode.is_public() && network_flag.is_enabled() {
+                        if !storage_mode.is_public() && network_account.is_enabled() {
                             continue;
                         }
 
                         let id =
-                            AccountIdV0::dummy(input, account_type, storage_mode, network_flag);
+                            AccountIdV0::dummy(input, account_type, storage_mode, network_account);
                         assert_eq!(id.account_type(), account_type);
                         assert_eq!(id.storage_mode(), storage_mode);
-                        assert_eq!(id.network_account(), network_flag);
+                        assert_eq!(id.network_account(), network_account);
                         assert_eq!(id.version(), AccountIdVersion::Version0);
                         assert_eq!(id.anchor_epoch(), 0);
 

@@ -21,8 +21,8 @@ pub use account_type::AccountType;
 mod storage_mode;
 pub use storage_mode::AccountStorageMode;
 
-mod network_flag;
-pub use network_flag::AccountNetworkFlag;
+mod network_account;
+pub use network_account::NetworkAccount;
 
 mod id_version;
 use alloc::string::{String, ToString};
@@ -223,11 +223,11 @@ impl AccountId {
         version: AccountIdVersion,
         account_type: AccountType,
         storage_mode: AccountStorageMode,
-        network_flag: AccountNetworkFlag,
+        network_account: NetworkAccount,
     ) -> AccountId {
         match version {
             AccountIdVersion::Version0 => {
-                Self::V0(AccountIdV0::dummy(bytes, account_type, storage_mode, network_flag))
+                Self::V0(AccountIdV0::dummy(bytes, account_type, storage_mode, network_account))
             },
         }
     }
@@ -243,7 +243,7 @@ impl AccountId {
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
-        network_flag: AccountNetworkFlag,
+        network_account: NetworkAccount,
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
@@ -254,7 +254,7 @@ impl AccountId {
                 init_seed,
                 account_type,
                 storage_mode,
-                network_flag,
+                network_account,
                 version,
                 code_commitment,
                 storage_commitment,
@@ -302,7 +302,7 @@ impl AccountId {
 
     /// Returns the network flag of this account, indicating whether self is a network account or
     /// not.
-    pub fn network_account(&self) -> AccountNetworkFlag {
+    pub fn network_account(&self) -> NetworkAccount {
         match self {
             AccountId::V0(account_id) => account_id.network_account(),
         }

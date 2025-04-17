@@ -56,7 +56,7 @@ pub fn build_swap_tag(
 mod tests {
     use miden_objects::{
         self,
-        account::{AccountIdVersion, AccountNetworkFlag, AccountStorageMode, AccountType},
+        account::{AccountIdVersion, AccountStorageMode, AccountType, NetworkAccount},
         asset::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     };
 
@@ -81,7 +81,7 @@ mod tests {
                     AccountIdVersion::Version0,
                     AccountType::FungibleFaucet,
                     AccountStorageMode::Public,
-                    AccountNetworkFlag::Disabled,
+                    NetworkAccount::Disabled,
                 ),
                 2500,
             )
@@ -96,7 +96,7 @@ mod tests {
                         AccountIdVersion::Version0,
                         AccountType::NonFungibleFaucet,
                         AccountStorageMode::Public,
-                        AccountNetworkFlag::Disabled,
+                        NetworkAccount::Disabled,
                     )
                     .prefix(),
                     vec![0xaa, 0xbb, 0xcc, 0xdd],

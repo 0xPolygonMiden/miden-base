@@ -5,7 +5,7 @@ use super::v0;
 use crate::{
     Felt,
     account::{
-        AccountIdV0, AccountIdVersion, AccountNetworkFlag, AccountStorageMode, AccountType,
+        AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType, NetworkAccount,
         account_id::AccountIdPrefixV0,
     },
     errors::AccountIdError,
@@ -124,7 +124,7 @@ impl AccountIdPrefix {
 
     /// Returns the network flag of this account, indicating whether self is a network account or
     /// not.
-    pub fn network_account(&self) -> AccountNetworkFlag {
+    pub fn network_account(&self) -> NetworkAccount {
         match self {
             AccountIdPrefix::V0(id_prefix) => id_prefix.network_account(),
         }
@@ -304,7 +304,7 @@ impl Deserializable for AccountIdPrefix {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::account::{AccountIdV0, AccountNetworkFlag};
+    use crate::account::{AccountIdV0, NetworkAccount};
 
     #[test]
     fn account_id_prefix_construction() {
@@ -320,20 +320,19 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    for network_flag in [AccountNetworkFlag::Disabled, AccountNetworkFlag::Enabled]
-                    {
+                    for network_account in [NetworkAccount::Disabled, NetworkAccount::Enabled] {
                         // Skip the invalid configuration.
-                        if !storage_mode.is_public() && network_flag.is_enabled() {
+                        if !storage_mode.is_public() && network_account.is_enabled() {
                             continue;
                         }
 
                         let id =
-                            AccountIdV0::dummy(input, account_type, storage_mode, network_flag);
+                            AccountIdV0::dummy(input, account_type, storage_mode, network_account);
                         let prefix = id.prefix();
                         assert_eq!(prefix.account_type(), account_type);
                         assert_eq!(prefix.storage_mode(), storage_mode);
                         assert_eq!(prefix.version(), AccountIdVersion::Version0);
-                        assert_eq!(prefix.network_account(), network_flag);
+                        assert_eq!(prefix.network_account(), network_account);
 
                         // Do a serialization roundtrip to ensure validity.
                         let serialized_prefix = prefix.to_bytes();

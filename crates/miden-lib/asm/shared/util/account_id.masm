@@ -60,12 +60,12 @@ const.ACCOUNT_ID_STORAGE_MODE_PRIVATE_U32=0x80 # 0b1000_0000
 
 # Given the most significant 32 bits of an account id's prefix, this mask defines the bits used
 # to determine the account network flag.
-const.ACCOUNT_ID_NETWORK_FLAG_MASK_U32=0x04 # 0b0000_0100
+const.ACCOUNT_ID_NETWORK_ACCOUNT_MASK_U32=0x04 # 0b0000_0100
 
 # Given the most significant 32 bits of an account ID's prefix with the network flag mask
 # applied, this value defines the enabled network flag.
 # This is equivalent to the mask, but is defined again for explicitness.
-const.ACCOUNT_ID_NETWORK_FLAG_ENABLED_U32=0x04 # 0b0000_0100
+const.ACCOUNT_ID_NETWORK_ACCOUNT_ENABLED_U32=0x04 # 0b0000_0100
 
 # PROCEDURES
 # =================================================================================================
@@ -196,7 +196,7 @@ export.validate
     # Validate network flag is not set on non-public accounts.
     # ---------------------------------------------------------------------------------------------
 
-    u32and.ACCOUNT_ID_NETWORK_FLAG_MASK_U32 eq.ACCOUNT_ID_NETWORK_FLAG_ENABLED_U32
+    u32and.ACCOUNT_ID_NETWORK_ACCOUNT_MASK_U32 eq.ACCOUNT_ID_NETWORK_ACCOUNT_ENABLED_U32
     # => [is_network_account, is_non_public_storage_mode, account_id_suffix]
 
     # Assert that !(!is_public_storage_mode && is_network_account).

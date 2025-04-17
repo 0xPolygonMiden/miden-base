@@ -550,8 +550,8 @@ mod tests {
     use crate::{
         ACCOUNT_UPDATE_MAX_SIZE, Digest, EMPTY_WORD, ONE, ProvenTransactionError, ZERO,
         account::{
-            AccountDelta, AccountId, AccountIdVersion, AccountNetworkFlag, AccountStorageDelta,
-            AccountStorageMode, AccountType, AccountVaultDelta, StorageMapDelta,
+            AccountDelta, AccountId, AccountIdVersion, AccountStorageDelta, AccountStorageMode,
+            AccountType, AccountVaultDelta, NetworkAccount, StorageMapDelta,
             delta::AccountUpdateDetails,
         },
         block::BlockNumber,
@@ -638,7 +638,7 @@ mod tests {
             AccountIdVersion::Version0,
             AccountType::FungibleFaucet,
             AccountStorageMode::Private,
-            AccountNetworkFlag::Disabled,
+            NetworkAccount::Disabled,
         );
         let initial_account_commitment =
             [2; 32].try_into().expect("failed to create initial account commitment");

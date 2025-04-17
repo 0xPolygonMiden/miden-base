@@ -1,7 +1,7 @@
 use rand_xoshiro::rand_core::SeedableRng;
 
 use crate::account::{
-    AccountId, AccountIdV0, AccountIdVersion, AccountNetworkFlag, AccountStorageMode, AccountType,
+    AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType, NetworkAccount,
 };
 
 // CONSTANTS
@@ -49,7 +49,7 @@ pub const ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE: u128 = account_id(
     AccountType::RegularAccountImmutableCode,
     AccountStorageMode::Public,
     0xaacc_bbdd,
-) | network_flag_bitmask();
+) | network_account_bitmask();
 
 // These faucet IDs all have a unique prefix and suffix felts. This is to ensure that when they
 // are used to issue an asset they don't cause us to run into the "multiple leaf" case when
@@ -71,7 +71,7 @@ pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3: u128 =
 // FUNGIBLE TOKENS - NETWORK
 pub const ACCOUNT_ID_NETWORK_FUNGIBLE_FAUCET: u128 =
     account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabc_bcdf)
-        | network_flag_bitmask();
+        | network_account_bitmask();
 
 // NON-FUNGIBLE TOKENS - PRIVATE
 pub const ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET: u128 =
@@ -84,7 +84,7 @@ pub const ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1: u128 =
 // NON-FUNGIBLE TOKENS - NETWORK
 pub const ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xabbc_ffde)
-        | network_flag_bitmask();
+        | network_account_bitmask();
 
 // TEST ACCOUNT IDs WITH CERTAIN PROPERTIES
 /// The Account Id with the maximum possible one bits.
@@ -142,8 +142,8 @@ pub const fn account_id(
 
 /// Returns the bitmask for the network flag. A bitwise OR operation on an account ID an this
 /// bitmask will set it.
-const fn network_flag_bitmask() -> u128 {
-    (AccountIdV0::NETWORK_FLAG_MASK as u128) << 64
+const fn network_account_bitmask() -> u128 {
+    (AccountIdV0::NETWORK_ACCOUNT_MASK as u128) << 64
 }
 
 /// A builder for creating [`AccountId`]s for testing purposes.
@@ -169,12 +169,12 @@ const fn network_flag_bitmask() -> u128 {
 ///     .build_with_rng(&mut rng);
 /// assert_eq!(random_id2.account_type(), AccountType::FungibleFaucet);
 /// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Public);
-/// assert_eq!(random_id2.network_flag(), AccountNetworkFlag::Disabled);
+/// assert_eq!(random_id2.network_account(), AccountNetworkFlag::Disabled);
 /// ```
 pub struct AccountIdBuilder {
     account_type: Option<AccountType>,
     storage_mode: Option<AccountStorageMode>,
-    network_flag: Option<AccountNetworkFlag>,
+    network_account: Option<NetworkAccount>,
 }
 
 impl AccountIdBuilder {
@@ -183,7 +183,7 @@ impl AccountIdBuilder {
         Self {
             account_type: None,
             storage_mode: None,
-            network_flag: None,
+            network_account: None,
         }
     }
 
@@ -200,8 +200,8 @@ impl AccountIdBuilder {
     }
 
     /// Sets the [`AccountNetworkFlag`] of the generated [`AccountId`] to the provided value.
-    pub fn network_flag(mut self, network_flag: AccountNetworkFlag) -> Self {
-        self.network_flag = Some(network_flag);
+    pub fn network_account(mut self, network_account: NetworkAccount) -> Self {
+        self.network_account = Some(network_account);
         self
     }
 
@@ -226,13 +226,13 @@ impl AccountIdBuilder {
             None => rng.random(),
         };
 
-        let network_flag = match (self.network_flag, storage_mode) {
+        let network_account = match (self.network_account, storage_mode) {
             // Do not automatically rewrite an incorrect configuration (enabled, private) to a
             // correct one, so the caller is informed about the misconfiguration rather than
             // it silently doing something unexpected.
-            (Some(network_flag), _) => network_flag,
+            (Some(network_account), _) => network_account,
             (None, AccountStorageMode::Public) => rng.random(),
-            (None, AccountStorageMode::Private) => AccountNetworkFlag::Disabled,
+            (None, AccountStorageMode::Private) => NetworkAccount::Disabled,
         };
 
         // This will panic if the network flag and storage mode are misconfigured.
@@ -241,7 +241,7 @@ impl AccountIdBuilder {
             AccountIdVersion::Version0,
             account_type,
             storage_mode,
-            network_flag,
+            network_account,
         )
     }
 

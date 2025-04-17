@@ -7,7 +7,7 @@ use crate::{
     AccountError, Felt, Word,
     account::{
         Account, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountIdV0,
-        AccountIdVersion, AccountNetworkFlag, AccountStorage, AccountStorageMode, AccountType,
+        AccountIdVersion, AccountStorage, AccountStorageMode, AccountType, NetworkAccount,
     },
     asset::AssetVault,
 };
@@ -25,7 +25,7 @@ use crate::{
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
 /// - The `version` set to [`AccountIdVersion::Version0`].
-/// - The `network_flag` set to [`AccountNetworkFlag::Disabled`].
+/// - The `network_account` set to [`NetworkAccount::Disabled`].
 ///
 /// The methods that are required to be called are:
 ///
@@ -47,7 +47,7 @@ pub struct AccountBuilder {
     components: Vec<AccountComponent>,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    network_flag: AccountNetworkFlag,
+    network_account: NetworkAccount,
     id_anchor: Option<AccountIdAnchor>,
     init_seed: [u8; 32],
     id_version: AccountIdVersion,
@@ -67,7 +67,7 @@ impl AccountBuilder {
             init_seed,
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
-            network_flag: AccountNetworkFlag::Disabled,
+            network_account: NetworkAccount::Disabled,
             id_version: AccountIdVersion::Version0,
         }
     }
@@ -97,8 +97,8 @@ impl AccountBuilder {
     }
 
     /// Sets the network flag of the account.
-    pub fn network_account(mut self, network_flag: AccountNetworkFlag) -> Self {
-        self.network_flag = network_flag;
+    pub fn network_account(mut self, network_account: NetworkAccount) -> Self {
+        self.network_account = network_account;
         self
     }
 
@@ -147,7 +147,7 @@ impl AccountBuilder {
             init_seed,
             self.account_type,
             self.storage_mode,
-            self.network_flag,
+            self.network_account,
             version,
             code_commitment,
             storage_commitment,
@@ -182,7 +182,7 @@ impl AccountBuilder {
             .id_anchor
             .ok_or_else(|| AccountError::BuildError("anchor must be set".into(), None))?;
 
-        if self.network_flag.is_enabled() && !self.storage_mode.is_public() {
+        if self.network_account.is_enabled() && !self.storage_mode.is_public() {
             return Err(AccountError::BuildError(
                 "account with the network flag set to `true` must have public storage mode".into(),
                 None,
@@ -216,7 +216,7 @@ impl AccountBuilder {
 
         debug_assert_eq!(account_id.account_type(), self.account_type);
         debug_assert_eq!(account_id.storage_mode(), self.storage_mode);
-        debug_assert_eq!(account_id.network_account(), self.network_flag);
+        debug_assert_eq!(account_id.network_account(), self.network_account);
 
         let account = Account::from_parts(account_id, vault, storage, code, Felt::ZERO);
 
@@ -251,7 +251,7 @@ impl AccountBuilder {
                 AccountIdVersion::Version0,
                 self.account_type,
                 self.storage_mode,
-                self.network_flag,
+                self.network_account,
             )
         };
 
@@ -433,7 +433,7 @@ mod tests {
             .anchor(id_anchor)
             .with_component(CustomComponent1 { slot0: 0 })
             .storage_mode(AccountStorageMode::Private)
-            .network_account(AccountNetworkFlag::Enabled)
+            .network_account(NetworkAccount::Enabled)
             .build()
             .unwrap_err();
 

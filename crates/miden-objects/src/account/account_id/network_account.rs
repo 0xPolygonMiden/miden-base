@@ -6,30 +6,30 @@
 /// the account ID.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum AccountNetworkFlag {
+pub enum NetworkAccount {
     Disabled = 0,
     Enabled = 1,
 }
 
-impl AccountNetworkFlag {
-    /// Returns `true` if the network flag is enabled, `false` otherwise.
+impl NetworkAccount {
+    /// Returns `true` if the account is a network account, `false` otherwise.
     pub fn is_enabled(&self) -> bool {
         *self == Self::Enabled
     }
 
-    /// Returns `true` if the network flag is disabled, `false` otherwise.
+    /// Returns `true` if the account is not a network account, `false` otherwise.
     pub fn is_disabled(&self) -> bool {
         *self == Self::Disabled
     }
 }
 
 #[cfg(any(feature = "testing", test))]
-impl rand::distr::Distribution<AccountNetworkFlag> for rand::distr::StandardUniform {
+impl rand::distr::Distribution<NetworkAccount> for rand::distr::StandardUniform {
     /// Samples a uniformly random [`AccountNetworkFlag`] from the given `rng`.
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountNetworkFlag {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> NetworkAccount {
         match rng.random::<bool>() {
-            true => AccountNetworkFlag::Enabled,
-            false => AccountNetworkFlag::Disabled,
+            true => NetworkAccount::Enabled,
+            false => NetworkAccount::Disabled,
         }
     }
 }
