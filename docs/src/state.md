@@ -26,7 +26,7 @@ The Miden node maintains three databases to describe `State`:
 3. Nullifiers
 
 <p style="text-align: center;">
-    <img src="img/transaction/img/state/state.png" style="width:70%;" alt="State"/>
+    <img src="img/state/state.png" style="width:70%;" alt="State"/>
 </p>
 
 ### Account database
