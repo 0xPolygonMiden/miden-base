@@ -27,10 +27,9 @@ impl AccountNetworkFlag {
 impl rand::distr::Distribution<AccountNetworkFlag> for rand::distr::StandardUniform {
     /// Samples a uniformly random [`AccountNetworkFlag`] from the given `rng`.
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AccountNetworkFlag {
-        match rng.random_range(0..2) {
-            0 => AccountNetworkFlag::Disabled,
-            1 => AccountNetworkFlag::Enabled,
-            _ => unreachable!("gen_range should not produce higher values"),
+        match rng.random::<bool>() {
+            true => AccountNetworkFlag::Enabled,
+            false => AccountNetworkFlag::Disabled,
         }
     }
 }
