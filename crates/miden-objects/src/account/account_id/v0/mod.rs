@@ -117,7 +117,7 @@ impl AccountIdV0 {
         storage_mode: AccountStorageMode,
         network_flag: AccountNetworkFlag,
     ) -> AccountIdV0 {
-        if storage_mode.is_private() && network_flag.is_enabled() {
+        if network_flag.is_enabled() && !storage_mode.is_public() {
             panic!("account ID storage mode cannot be private if network flag is enabled")
         }
 
