@@ -40,7 +40,7 @@ impl OrderedTransactionHeaders {
     ///
     /// This is a sequential hash over each transaction's ID and its account ID.
     pub fn commitment(&self) -> Digest {
-        Self::compute_tx_commitment(self.0.as_slice().iter().map(|tx| (tx.id(), tx.account_id())))
+        Self::compute_commitment(self.0.as_slice().iter().map(|tx| (tx.id(), tx.account_id())))
     }
 
     /// Returns a reference to the underlying transaction headers.
@@ -58,12 +58,13 @@ impl OrderedTransactionHeaders {
 
     /// Computes a commitment to the provided list of transactions.
     ///
-    /// This is a sequential hash over each transaction's ID and its account ID.
-    pub fn compute_tx_commitment(
-        updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
+    /// Each transaction is represented by a transaction ID and an account ID which it was executed
+    /// against. The commitment is a sequential hash over (transaction_id, account_id) tuples.
+    pub fn compute_commitment(
+        transactions: impl Iterator<Item = (TransactionId, AccountId)>,
     ) -> Digest {
         let mut elements = vec![];
-        for (transaction_id, account_id) in updated_accounts {
+        for (transaction_id, account_id) in transactions {
             let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(account_id);
             elements.extend_from_slice(transaction_id.as_elements());
             elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
