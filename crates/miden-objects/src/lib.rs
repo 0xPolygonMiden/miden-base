@@ -24,7 +24,7 @@ mod errors;
 
 pub use constants::*;
 pub use errors::{
-    AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError,
+    AccountDeltaError, AccountError, AccountIdError, AccountTreeError, AssetError, AssetVaultError,
     BatchAccountUpdateError, ChainMmrError, NetworkIdError, NoteError, NullifierTreeError,
     ProposedBatchError, ProposedBlockError, ProvenBatchError, ProvenTransactionError,
     TransactionInputError, TransactionOutputError, TransactionScriptError,

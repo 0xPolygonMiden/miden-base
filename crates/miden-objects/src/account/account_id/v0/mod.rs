@@ -6,7 +6,7 @@ use alloc::{
 use core::fmt;
 
 use bech32::{Bech32m, primitives::decode::CheckedHrpstring};
-use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
+use miden_crypto::utils::hex_to_bytes;
 pub use prefix::AccountIdPrefixV0;
 use vm_core::{
     Felt, Word,
@@ -15,7 +15,7 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use crate::{
-    ACCOUNT_TREE_DEPTH, AccountError, Hasher,
+    AccountError, Hasher,
     account::{
         AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
         account_id::{
@@ -344,13 +344,6 @@ impl From<AccountIdV0> for u128 {
         le_bytes[..8].copy_from_slice(&id.suffix().as_int().to_le_bytes());
         le_bytes[8..].copy_from_slice(&id.prefix().as_u64().to_le_bytes());
         u128::from_le_bytes(le_bytes)
-    }
-}
-
-/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
-impl From<AccountIdV0> for LeafIndex<ACCOUNT_TREE_DEPTH> {
-    fn from(id: AccountIdV0) -> Self {
-        LeafIndex::new_max_depth(id.prefix().as_u64())
     }
 }
 

@@ -7,7 +7,9 @@ Miden's `Transaction` model aims for the following:
 - **Parallel transaction execution**: Accounts can update their state independently from each other and in parallel.
 - **Private transaction execution**: Client-side `Transaction` proving allows the network to verify `Transaction`s validity with zero knowledge.
 
-![Transaction diagram](img/transaction/transaction-diagram.png)
+<p style="text-align: center;">
+    <img src="img/transaction/transaction-diagram.png" style="width:70%;" alt="Transaction diagram"/>
+</p>
 
 Compared to most blockchains, where a `Transaction` typically involves more than one account (e.g., sender and receiver), a `Transaction` in Miden involves a single account. To illustrate, Alice sends 5 ETH to Bob. In Miden, sending 5 ETH from Alice to Bob takes two `Transaction`s, one in which Alice creates a note containing 5 ETH and one in which Bob consumes that note and receives the 5 ETH. This model removes the need for a global lock on the blockchain's state, enabling Miden to process `Transaction`s in parallel.
 
@@ -19,7 +21,9 @@ A simple transaction currently takes about 1-2 seconds on a MacBook Pro. It take
 
 Every `Transaction` describes the process of an account changing its state. This process is described as a Miden VM program, resulting in the generation of a zero-knowledge proof. `Transaction`s are being executed in a specified sequence, in which several notes and a transaction script can interact with an account.
 
-![Transaction execution flow](img/transaction/transaction-program.png)
+<p style="text-align: center;">
+    <img src="img/transaction/transaction-program.png" style="width:70%;" alt="Transaction program"/>
+</p>
 
 ### Inputs
 

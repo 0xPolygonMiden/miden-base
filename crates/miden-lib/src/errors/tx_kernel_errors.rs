@@ -148,8 +148,8 @@ pub const ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT: u32 = 0x20157;
 pub const ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT: u32 = 0x20180;
 /// ID of the provided foreign account equals zero.
 pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 0x20181;
-/// State of the current foreign account is invalid.
-pub const ERR_FOREIGN_ACCOUNT_INVALID: u32 = 0x20182;
+/// Commitment of the foreign account in the advice provider does not match the commitment in the account tree.
+pub const ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT: u32 = 0x20182;
 /// Maximum allowed number of foreign account to be loaded (64) was exceeded.
 pub const ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED: u32 = 0x20183;
 
@@ -281,7 +281,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
 
     (ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, "Creation of a foreign context against the native account is forbidden"),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "ID of the provided foreign account equals zero."),
-    (ERR_FOREIGN_ACCOUNT_INVALID, "State of the current foreign account is invalid."),
+    (ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT, "Commitment of the foreign account in the advice provider does not match the commitment in the account tree."),
     (ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED, "Maximum allowed number of foreign account to be loaded (64) was exceeded."),
 
     (ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY, "Asset amount to burn can not exceed the existing total supply"),
