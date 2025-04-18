@@ -5,7 +5,7 @@ use super::v0;
 use crate::{
     Felt,
     account::{
-        AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType,
+        AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType, NetworkAccount,
         account_id::AccountIdPrefixV0,
     },
     errors::AccountIdError,
@@ -120,6 +120,19 @@ impl AccountIdPrefix {
     /// Returns true if an account with this ID is a public account.
     pub fn is_public(&self) -> bool {
         self.storage_mode() == AccountStorageMode::Public
+    }
+
+    /// Returns the network flag of this account, indicating whether self is a network account or
+    /// not.
+    pub fn network_account(&self) -> NetworkAccount {
+        match self {
+            AccountIdPrefix::V0(id_prefix) => id_prefix.network_account(),
+        }
+    }
+
+    /// Returns `true` if self is a network account, `false` otherwise.
+    pub fn is_network(&self) -> bool {
+        self.network_account().is_enabled()
     }
 
     /// Returns the version of this account ID.
@@ -291,7 +304,7 @@ impl Deserializable for AccountIdPrefix {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::account::AccountIdV0;
+    use crate::account::{AccountIdV0, NetworkAccount};
 
     #[test]
     fn account_id_prefix_construction() {
@@ -307,16 +320,25 @@ mod tests {
                 AccountType::RegularAccountUpdatableCode,
             ] {
                 for storage_mode in [AccountStorageMode::Private, AccountStorageMode::Public] {
-                    let id = AccountIdV0::dummy(input, account_type, storage_mode);
-                    let prefix = id.prefix();
-                    assert_eq!(prefix.account_type(), account_type);
-                    assert_eq!(prefix.storage_mode(), storage_mode);
-                    assert_eq!(prefix.version(), AccountIdVersion::Version0);
+                    for network_account in [NetworkAccount::Disabled, NetworkAccount::Enabled] {
+                        // Skip the invalid configuration.
+                        if !storage_mode.is_public() && network_account.is_enabled() {
+                            continue;
+                        }
 
-                    // Do a serialization roundtrip to ensure validity.
-                    let serialized_prefix = prefix.to_bytes();
-                    AccountIdPrefix::read_from_bytes(&serialized_prefix).unwrap();
-                    assert_eq!(serialized_prefix.len(), AccountIdPrefix::SERIALIZED_SIZE);
+                        let id =
+                            AccountIdV0::dummy(input, account_type, storage_mode, network_account);
+                        let prefix = id.prefix();
+                        assert_eq!(prefix.account_type(), account_type);
+                        assert_eq!(prefix.storage_mode(), storage_mode);
+                        assert_eq!(prefix.version(), AccountIdVersion::Version0);
+                        assert_eq!(prefix.network_account(), network_account);
+
+                        // Do a serialization roundtrip to ensure validity.
+                        let serialized_prefix = prefix.to_bytes();
+                        AccountIdPrefix::read_from_bytes(&serialized_prefix).unwrap();
+                        assert_eq!(serialized_prefix.len(), AccountIdPrefix::SERIALIZED_SIZE);
+                    }
                 }
             }
         }

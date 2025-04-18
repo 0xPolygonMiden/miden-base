@@ -3,7 +3,7 @@ use std::time::Duration;
 use criterion::{Criterion, criterion_group, criterion_main};
 use miden_objects::{
     Digest,
-    account::{AccountId, AccountIdVersion, AccountStorageMode, AccountType},
+    account::{AccountId, AccountIdVersion, AccountStorageMode, AccountType, NetworkAccount},
 };
 use rand::{Rng, SeedableRng};
 
@@ -39,6 +39,7 @@ fn grind_account_seed(c: &mut Criterion) {
                 rng.random(),
                 AccountType::RegularAccountImmutableCode,
                 AccountStorageMode::Public,
+                NetworkAccount::Enabled,
                 AccountIdVersion::Version0,
                 Digest::default(),
                 Digest::default(),

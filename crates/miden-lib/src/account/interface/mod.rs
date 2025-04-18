@@ -80,6 +80,11 @@ impl AccountInterface {
         self.account_id.is_public()
     }
 
+    /// Returns true if the reference account is public.
+    pub fn is_network(&self) -> bool {
+        self.account_id.is_network()
+    }
+
     /// Returns a reference to the vector of used authentication schemes.
     pub fn auth(&self) -> &Vec<AuthScheme> {
         &self.auth
