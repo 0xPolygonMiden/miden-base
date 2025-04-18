@@ -1,7 +1,7 @@
 use alloc::{string::ToString, sync::Arc};
 
 use vm_core::{mast::MastForest, prettier::PrettyPrint};
-use vm_processor::MastNode;
+use vm_processor::{MastNode, MastNodeId};
 
 use super::{Digest, Felt};
 use crate::{
@@ -160,7 +160,7 @@ impl Deserializable for AccountProcedureInfo {
 pub struct PrintableProcedure {
     mast: Arc<MastForest>,
     procedure_info: AccountProcedureInfo,
-    entrypoint: MastNode,
+    entrypoint: MastNodeId,
 }
 
 impl PrintableProcedure {
@@ -168,13 +168,13 @@ impl PrintableProcedure {
     pub(crate) fn new(
         mast: Arc<MastForest>,
         procedure_info: AccountProcedureInfo,
-        entrypoint: MastNode,
+        entrypoint: MastNodeId,
     ) -> Self {
         Self { mast, procedure_info, entrypoint }
     }
 
     fn entrypoint(&self) -> &MastNode {
-        &self.entrypoint
+        &self.mast[self.entrypoint]
     }
 
     pub(crate) fn storage_offset(&self) -> u8 {

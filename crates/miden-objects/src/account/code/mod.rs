@@ -247,9 +247,8 @@ impl AccountCode {
             .mast
             .find_procedure_root(*proc_info.mast_root())
             .expect("procedure root should be present in the mast forest");
-        let node_raw = self.mast[node_id].clone();
 
-        Ok(PrintableProcedure::new(self.mast.clone(), *proc_info, node_raw))
+        Ok(PrintableProcedure::new(self.mast.clone(), *proc_info, node_id))
     }
 }
 
