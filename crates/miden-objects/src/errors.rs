@@ -168,6 +168,31 @@ pub enum AccountIdError {
     Bech32DecodeError(#[source] Bech32Error),
 }
 
+// ACCOUNT TREE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountTreeError {
+    #[error(
+        "account tree contains multiple account IDs that share the same prefix {duplicate_prefix}"
+    )]
+    DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
+    #[error(
+        "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
+    )]
+    DuplicateStateCommitments { prefix: AccountIdPrefix },
+    #[error("untracked account ID {id} used in partial account tree")]
+    UntrackedAccountId { id: AccountId, source: MerkleError },
+    #[error("new tree root after account witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
+    #[error("failed to apply mutations to account tree")]
+    ApplyMutations(#[source] MerkleError),
+    #[error("smt leaf's index is not a valid account ID prefix")]
+    InvalidAccountIdPrefix(#[source] AccountIdError),
+    #[error("account witness merkle path depth {0} does not match AccountTree::DEPTH")]
+    WitnessMerklePathDepthDoesNotMatchAccountTreeDepth(usize),
+}
+
 // BECH32 ERROR
 // ================================================================================================
 
@@ -225,6 +250,18 @@ pub enum AccountDeltaError {
     InconsistentNonceUpdate(String),
     #[error("account ID {0} in fungible asset delta is not of type fungible faucet")]
     NotAFungibleFaucetId(AccountId),
+}
+
+// STORAGE MAP ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum StorageMapError {
+    #[error("map entries contain key {key} twice with values {value0} and {value1}",
+      value0 = vm_core::utils::to_hex(Felt::elements_as_bytes(value0)),
+      value1 = vm_core::utils::to_hex(Felt::elements_as_bytes(value1))
+    )]
+    DuplicateKey { key: Digest, value0: Word, value1: Word },
 }
 
 // BATCH ACCOUNT UPDATE ERROR
@@ -609,6 +646,25 @@ pub enum ProposedBatchError {
     MissingTransactionBlockReference {
         block_reference: Digest,
         transaction_id: TransactionId,
+    },
+}
+
+// PROVEN BATCH ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum ProvenBatchError {
+    #[error("failed to verify transaction {transaction_id} in transaction batch")]
+    TransactionVerificationFailed {
+        transaction_id: TransactionId,
+        source: Box<dyn Error + Send + Sync + 'static>,
+    },
+    #[error(
+        "batch expiration block number {batch_expiration_block_num} is not greater than the reference block number {reference_block_num}"
+    )]
+    InvalidBatchExpirationBlockNum {
+        batch_expiration_block_num: BlockNumber,
+        reference_block_num: BlockNumber,
     },
 }
 

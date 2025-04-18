@@ -146,19 +146,13 @@ mod tests {
 
     #[test]
     fn test_from_account_storage() {
+        let storage_map = AccountStorage::mock_map();
+
         // create new storage header from AccountStorage
         let slots = vec![
             (StorageSlotType::Value, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
             (StorageSlotType::Value, [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]),
-            (
-                StorageSlotType::Map,
-                [
-                    Felt::new(12405212884040084310),
-                    Felt::new(17614307840949763446),
-                    Felt::new(6101527485586301500),
-                    Felt::new(14442045877206841081),
-                ],
-            ),
+            (StorageSlotType::Map, storage_map.root().into()),
         ];
 
         let expected_header = AccountStorageHeader { slots };

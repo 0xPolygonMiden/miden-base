@@ -1,41 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_TX_PROVER",
-      "label": "tx_prover",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
-  "__elements": {},
-  "__requires": [
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "11.4.0"
-    },
-    {
-      "type": "datasource",
-      "id": "prometheus",
-      "name": "Prometheus",
-      "version": "1.0.0"
-    },
-    {
-      "type": "panel",
-      "id": "table",
-      "name": "Table",
-      "version": ""
-    },
-    {
-      "type": "panel",
-      "id": "timeseries",
-      "name": "Time series",
-      "version": ""
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -55,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
+  "id": 1,
   "links": [],
   "panels": [
     {
@@ -74,7 +37,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -203,7 +166,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "editorMode": "code",
           "expr": "sum(rate(request_count[1m]))",
@@ -216,7 +179,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "editorMode": "code",
           "expr": "sum(rate(request_count[1m])) - sum(rate(rate_limited_requests[1m])) - sum(rate(queue_drop_count[1m]))",
@@ -227,15 +190,15 @@
           "refId": "C"
         },
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "behiuc5qk89vkb"
+          },
           "editorMode": "code",
           "expr": "sum(rate(request_failure_count[1m]))",
           "legendFormat": "Failed requests",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
-          }
+          "refId": "A"
         }
       ],
       "title": "Requests",
@@ -244,7 +207,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -353,7 +316,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "editorMode": "code",
           "expr": "rate(rate_limited_requests[1m])",
@@ -366,7 +329,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "editorMode": "code",
           "expr": "rate(queue_drop_count[1m])",
@@ -383,7 +346,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -463,15 +426,15 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "behiuc5qk89vkb"
+          },
           "editorMode": "code",
           "expr": "rate(request_retries[1m])",
           "legendFormat": "Retry rate",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
-          }
+          "refId": "A"
         }
       ],
       "title": "Request retry rate",
@@ -480,7 +443,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -560,15 +523,15 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "behiuc5qk89vkb"
+          },
           "editorMode": "code",
           "expr": "(1 - rate(request_failure_count[1m]) / rate(request_count[1m])) * 100",
           "legendFormat": "Success rate over time",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
-          }
+          "refId": "A"
         }
       ],
       "title": "Success rate",
@@ -577,7 +540,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -657,20 +620,20 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "behiuc5qk89vkb"
+          },
           "editorMode": "code",
           "expr": "rate(request_latency_sum[1m]) / rate(request_latency_count[1m])",
           "legendFormat": "Average request latency",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
-          }
+          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "editorMode": "code",
           "expr": "rate(queue_latency_sum[1m]) / rate(queue_latency_count[1m])",
@@ -700,7 +663,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -781,7 +744,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -798,7 +761,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -819,7 +782,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -833,7 +796,7 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "axisSoftMax": 10,
+            "axisSoftMax": 3,
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
@@ -900,15 +863,15 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
-          "editorMode": "code",
-          "expr": "worker_unhealthy",
-          "legendFormat": "Unhealthy workers",
-          "range": true,
-          "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
-          }
+            "uid": "behiuc5qk89vkb"
+          },
+          "editorMode": "code",
+          "expr": "worker_unhealthy",
+          "legendFormat": "{{worker_id}}",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Unhealthy workers",
@@ -917,7 +880,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -971,15 +934,15 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "behiuc5qk89vkb"
+          },
           "editorMode": "code",
           "expr": "rate(worker_request_count[1m])",
           "legendFormat": "{{worker_id}}",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
-          }
+          "refId": "A"
         }
       ],
       "title": "Requests per worker",
@@ -1001,7 +964,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_TX_PROVER}"
+        "uid": "behiuc5qk89vkb"
       },
       "fieldConfig": {
         "defaults": {
@@ -1082,7 +1045,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_TX_PROVER}"
+            "uid": "behiuc5qk89vkb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1099,6 +1062,7 @@
       "type": "timeseries"
     }
   ],
+  "preload": false,
   "refresh": "5s",
   "schemaVersion": 40,
   "tags": [],
@@ -1106,13 +1070,13 @@
     "list": []
   },
   "time": {
-    "from": "now-2d",
-    "to": "now"
+    "from": "2025-03-31T19:02:51.110Z",
+    "to": "2025-03-31T19:04:03.015Z"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "tx_prover",
   "uid": "be7bobzl5fr40f",
-  "version": 40,
+  "version": 6,
   "weekStart": ""
 }

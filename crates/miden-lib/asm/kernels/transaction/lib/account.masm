@@ -61,8 +61,8 @@ const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020181
 # Maximum allowed number of foreign account to be loaded (64) was exceeded.
 const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020183
 
-# State of the current foreign account is invalid.
-const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020182
+# Commitment of the foreign account in the advice provider does not match the commitment in the account tree.
+const.ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT=0x00020182
 
 # Unknown version in account ID.
 const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020146
@@ -584,7 +584,11 @@ export.get_map_item
     exec.get_item swapw
     # => [KEY, ROOT]
 
-    # fetch the VALUE located under KEY in the tree
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, ROOT]
+
+    # fetch the VALUE located under HASHED_KEY in the tree
     exec.smt::get
     # => [VALUE, ROOT]
 
@@ -629,13 +633,17 @@ export.set_map_item.12
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item
-    # is being updated
+    # duplicate the original KEY and the NEW_VALUE to be able to emit an event after the
+    # account storage item was updated
     movdn.12 movupw.2 dupw.2 dupw.2
     # => [KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
 
-    # set the NEW_VALUE under KEY in the tree
-    # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
+
+    # set the NEW_VALUE under HASHED_KEY in the tree
+    # note smt::set expects the stack to be [NEW_VALUE, HASHED_KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_MAP_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
 
@@ -1114,21 +1122,32 @@ export.validate_current_foreign_account
     # => [ACCOUNT_DB_ROOT]
 
     # get the current account ID
-    exec.memory::get_account_id swap drop
-    # => [account_id_prefix, ACCOUNT_DB_ROOT]
+    push.0.0 exec.memory::get_account_id
+    # => [account_id_prefix, account_id_suffix, 0, 0, ACCOUNT_DB_ROOT]
 
-    # push the depth of the account database tree
-    push.ACCOUNT_TREE_DEPTH
-    # => [depth, account_id_prefix, ACCOUNT_DB_ROOT]
+    # retrieve the commitment of the foreign account from the current account tree
+    # this would abort if the proof for the commitment was invalid for the account root,
+    # so this implicitly verifies its correctness
+    exec.smt::get
+    # => [FOREIGN_ACCOUNT_COMMITMENT, ACCOUNT_DB_ROOT]
 
-    # get the foreign account commitment
-    exec.get_current_commitment
-    # => [FOREIGN_ACCOUNT_COMMITMENT, depth, account_id_prefix, ACCOUNT_DB_ROOT]
-
-    # verify that the account database has the hash of the current foreign account
-    mtree_verify.err=ERR_FOREIGN_ACCOUNT_INVALID
-    # => [FOREIGN_ACCOUNT_COMMITMENT, depth, account_id_prefix, ACCOUNT_DB_ROOT]
+    # get the foreign account's commitment from memory and compare with the verified commitment
+    exec.get_current_commitment assert_eqw.err=ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT
+    # => [ACCOUNT_DB_ROOT]
 
     # clean the stack
-    dropw drop drop dropw
+    dropw
+end
+
+#! Hashes the provided map key before using it as the key in an SMT.
+#!
+#! Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
+#! tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
+#! storage map are hashed before they are inserted into the SMT, which creates a uniform distribution.
+#!
+#! Inputs:  [KEY]
+#! Outputs: [HASHED_KEY]
+proc.hash_map_key
+  hash
+  # => [HASHED_KEY]
 end

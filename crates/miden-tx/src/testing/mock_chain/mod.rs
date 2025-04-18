@@ -9,7 +9,7 @@ use miden_lib::{
     transaction::{TransactionKernel, memory},
 };
 use miden_objects::{
-    ACCOUNT_TREE_DEPTH, AccountError, NoteError, ProposedBatchError, ProposedBlockError,
+    AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
         Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
         AccountType, AuthSecretKey, delta::AccountUpdateDetails,
@@ -17,26 +17,24 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        AccountTree, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
         BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{LeafIndex, Mmr, Smt},
+        merkle::{Mmr, Smt},
     },
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
-        ToInputNoteCommitments, TransactionId, TransactionInputs, TransactionScript,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OrderedTransactionHeaders,
+        OutputNote, ProvenTransaction, ToInputNoteCommitments, TransactionHeader, TransactionId,
+        TransactionInputs, TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{
-    Digest, Felt, Word, ZERO,
-    crypto::{RpoRandomCoin, SimpleSmt},
-};
+use vm_processor::{Digest, Felt, Word, ZERO, crypto::RpoRandomCoin};
 
 use super::TransactionContextBuilder;
 use crate::auth::BasicAuthenticator;
@@ -259,8 +257,8 @@ pub struct MockChain {
     /// Tree containing the latest `Nullifier`'s tree.
     nullifiers: Smt,
 
-    /// Tree containing the latest hash of each account.
-    accounts: SimpleSmt<ACCOUNT_TREE_DEPTH>,
+    /// Tree containing the latest state commitment of each account.
+    account_tree: AccountTree,
 
     /// Objects that have not yet been finalized.
     ///
@@ -287,7 +285,7 @@ impl Default for MockChain {
             chain: Mmr::default(),
             blocks: vec![],
             nullifiers: Smt::default(),
-            accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
+            account_tree: AccountTree::new(),
             pending_objects: PendingObjects::new(),
             available_notes: BTreeMap::new(),
             available_accounts: BTreeMap::new(),
@@ -360,7 +358,6 @@ impl MockChain {
             transaction.account_id(),
             account.commitment(),
             account_update_details,
-            vec![transaction.id()],
         );
         self.pending_objects.updated_accounts.push(block_account_update);
 
@@ -463,7 +460,7 @@ impl MockChain {
     /// This method does not modify the chain state.
     pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
         let (
-            _transactions,
+            transactions,
             block_header,
             _chain_mmr,
             _unauthenticated_note_proofs,
@@ -474,7 +471,16 @@ impl MockChain {
             batch_expiration_block_num,
         ) = proposed_batch.into_parts();
 
-        ProvenBatch::new_unchecked(
+        // SAFETY: This satisfies the requirements of the ordered tx headers.
+        let tx_headers = OrderedTransactionHeaders::new_unchecked(
+            transactions
+                .iter()
+                .map(AsRef::as_ref)
+                .map(TransactionHeader::from)
+                .collect::<Vec<_>>(),
+        );
+
+        ProvenBatch::new(
             id,
             block_header.commitment(),
             block_header.block_num(),
@@ -482,7 +488,9 @@ impl MockChain {
             input_notes,
             output_notes,
             batch_expiration_block_num,
+            tx_headers,
         )
+        .expect("Failed to create ProvenBatch")
     }
 
     /// Proposes a new block from the provided batches and returns it.
@@ -624,8 +632,7 @@ impl MockChain {
 
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-        self.accounts
-            .insert(LeafIndex::from(account.id()), Word::from(account.commitment()));
+        self.account_tree.insert(account.id(), account.commitment()).unwrap();
 
         account
     }
@@ -637,7 +644,6 @@ impl MockChain {
             account.id(),
             account.commitment(),
             AccountUpdateDetails::New(account),
-            vec![],
         ));
     }
 
@@ -816,8 +822,9 @@ impl MockChain {
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
-                self.accounts
-                    .insert(update.account_id().into(), *update.final_state_commitment());
+                self.account_tree
+                    .insert(update.account_id(), update.final_state_commitment())
+                    .unwrap();
 
                 if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
                     let account = match update.details() {
@@ -846,7 +853,7 @@ impl MockChain {
             let previous = self.blocks.last();
             let peaks = self.chain.peaks();
             let chain_commitment: Digest = peaks.hash_peaks();
-            let account_root = self.accounts.root();
+            let account_root = self.account_tree.root();
             let prev_block_commitment =
                 previous.map_or(Digest::default(), |block| block.commitment());
             let nullifier_root = self.nullifiers.root();
@@ -869,7 +876,7 @@ impl MockChain {
                 }
             }
 
-            let tx_commitment = BlockHeader::compute_tx_commitment(
+            let tx_commitment = OrderedTransactionHeaders::compute_commitment(
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
 
@@ -897,6 +904,9 @@ impl MockChain {
                 self.pending_objects.updated_accounts.clone(),
                 self.pending_objects.output_note_batches.clone(),
                 self.pending_objects.created_nullifiers.clone(),
+                // TODO: For now we can't easily compute the verified transactions of this block.
+                // Let's do this as part of miden-base/#1224.
+                OrderedTransactionHeaders::new_unchecked(vec![]),
             );
 
             for (batch_index, note_batch) in
@@ -998,8 +1008,8 @@ impl MockChain {
         let mut account_witnesses = BTreeMap::new();
 
         for account_id in account_ids {
-            let proof = self.accounts.open(&account_id.into());
-            account_witnesses.insert(account_id, AccountWitness::new(proof.value, proof.path));
+            let witness = self.account_tree.open(account_id);
+            account_witnesses.insert(account_id, witness);
         }
 
         account_witnesses
@@ -1077,9 +1087,9 @@ impl MockChain {
             .account()
     }
 
-    /// Get the reference to the accounts hash tree.
-    pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
-        &self.accounts
+    /// Get the reference to the account tree.
+    pub fn accounts(&self) -> &AccountTree {
+        &self.account_tree
     }
 }
 
