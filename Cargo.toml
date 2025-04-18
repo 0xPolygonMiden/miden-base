@@ -53,3 +53,7 @@ rand = { version = "0.9", default-features = false }
 thiserror = { version = "2.0", default-features = false }
 vm-core = { package = "miden-core", version = "0.13", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.13", default-features = false }
+
+# TODO: remove when pingora releases a fix https://github.com/cloudflare/pingora/issues/568
+[patch.crates-io]
+sfv = { git = "https://github.com/undef1nd/sfv.git", tag = "v0.9.4" }
