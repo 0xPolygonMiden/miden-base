@@ -1,7 +1,6 @@
 use clap::Parser;
 use pingora::{
     apps::HttpServerOptions,
-    lb::Backend,
     prelude::{Opt, background_service},
     server::Server,
     services::listening::Service,
@@ -12,7 +11,10 @@ use tracing::{info, warn};
 use super::ProxyConfig;
 use crate::{
     error::ProvingServiceError,
-    proxy::{LoadBalancer, LoadBalancerState, update_workers::LoadBalancerUpdateService},
+    proxy::{
+        LoadBalancer, LoadBalancerState, status::ProxyStatusService,
+        update_workers::LoadBalancerUpdateService,
+    },
     utils::{MIDEN_PROVING_SERVICE, check_port_availability},
 };
 
@@ -66,17 +68,13 @@ impl StartProxy {
 
         info!("Proxy starting with workers: {:?}", self.workers);
 
-        let workers = self
-            .workers
-            .iter()
-            .map(|worker| Backend::new(worker).map_err(ProvingServiceError::BackendCreationFailed))
-            .collect::<Result<Vec<Backend>, ProvingServiceError>>()?;
-
-        if workers.is_empty() {
+        if self.workers.is_empty() {
             warn!("Starting the proxy without any workers");
+        } else {
+            info!("Proxy starting with workers: {:?}", self.workers);
         }
 
-        let worker_lb = LoadBalancerState::new(workers, &self.proxy_config).await?;
+        let worker_lb = LoadBalancerState::new(self.workers.clone(), &self.proxy_config).await?;
 
         let health_check_service = background_service("health_check", worker_lb);
 
@@ -92,7 +90,7 @@ impl StartProxy {
         );
 
         // Set up the load balancer
-        let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb));
+        let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb.clone()));
 
         lb.add_tcp(format!("{}:{}", &self.proxy_config.host, self.proxy_config.port).as_str());
         info!("Proxy listening on {}:{}", &self.proxy_config.host, self.proxy_config.port);
@@ -127,8 +125,20 @@ impl StartProxy {
             tracing::info!("Prometheus metrics not enabled");
         }
 
+        // Add status service
+        let status_service = ProxyStatusService::new(worker_lb);
+        let mut status_service = Service::new("status".to_string(), status_service);
+        status_service.add_tcp(
+            format!("{}:{}", self.proxy_config.host, self.proxy_config.status_port).as_str(),
+        );
+        info!(
+            "Status service listening on {}:{}/status",
+            self.proxy_config.host, self.proxy_config.status_port
+        );
+
         server.add_service(health_check_service);
         server.add_service(update_workers_service);
+        server.add_service(status_service);
         server.add_service(lb);
         tokio::task::spawn_blocking(|| server.run_forever())
             .await

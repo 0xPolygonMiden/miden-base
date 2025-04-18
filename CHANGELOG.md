@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.2 (TBD) - `miden-proving-service` crate only
+
+### Changes
+
+- Added a retry strategy for worker's health check (#1255).
+- Added a status endpoint for the `miden-proving-service` worker and proxy (#???).
+
 ## 0.8.1 (2025-03-26) - `miden-objects` and `miden-tx` crates only.
 
 ### Changes

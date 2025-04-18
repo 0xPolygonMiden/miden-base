@@ -2,7 +2,7 @@ use clap::Parser;
 use proxy::StartProxy;
 use tracing::instrument;
 use update_workers::{AddWorkers, RemoveWorkers, UpdateWorkers};
-use worker::StartWorker;
+use worker::{ProverType, StartWorker};
 
 use crate::utils::MIDEN_PROVING_SERVICE;
 
@@ -45,8 +45,22 @@ pub(crate) struct ProxyConfig {
     #[clap(long, default_value = "100", env = "MPS_TIMEOUT_SECS")]
     pub(crate) timeout_secs: u64,
     /// Worker update service port.
-    #[clap(long, default_value = "8083", env = "MPS_MPS_WORKERS_UPDATE_PORT")]
+    ///
+    /// Port used to add and remove workers from the proxy.
+    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
     pub(crate) workers_update_port: u16,
+    /// Supported prover type.
+    ///
+    /// The type of proof the proxy will handle. Only workers that support the same prover type
+    /// will be able to connect to the proxy.
+    #[clap(long, default_value = "transaction", env = "MPS_PROVER_TYPE")]
+    pub(crate) prover_type: ProverType,
+    /// Status port.
+    ///
+    /// Port used to get the status of the proxy. It is used to get the list of workers and their
+    /// statuses, as well as the supported prover type and version of the proxy.
+    #[clap(long, default_value = "8084", env = "MPS_STATUS_PORT")]
+    pub(crate) status_port: u16,
 }
 
 #[derive(Debug, Parser)]
