@@ -1,11 +1,10 @@
 use alloc::vec::Vec;
 
-use vm_core::utils::{ByteReader, Deserializable};
-use vm_processor::DeserializationError;
-
 use crate::{
-    transaction::TransactionHeader,
-    utils::{ByteWriter, Serializable},
+    Digest, Felt, Hasher, ZERO,
+    account::AccountId,
+    transaction::{TransactionHeader, TransactionId},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 // ORDERED TRANSACTION HEADERS
@@ -37,6 +36,13 @@ impl OrderedTransactionHeaders {
         Self(transactions)
     }
 
+    /// Computes a commitment to the list of transactions.
+    ///
+    /// This is a sequential hash over each transaction's ID and its account ID.
+    pub fn commitment(&self) -> Digest {
+        Self::compute_commitment(self.0.as_slice().iter().map(|tx| (tx.id(), tx.account_id())))
+    }
+
     /// Returns a reference to the underlying transaction headers.
     pub fn as_slice(&self) -> &[TransactionHeader] {
         &self.0
@@ -45,6 +51,26 @@ impl OrderedTransactionHeaders {
     /// Consumes self and returns the underlying vector of transaction headers.
     pub fn into_vec(self) -> Vec<TransactionHeader> {
         self.0
+    }
+
+    // PUBLIC HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Computes a commitment to the provided list of transactions.
+    ///
+    /// Each transaction is represented by a transaction ID and an account ID which it was executed
+    /// against. The commitment is a sequential hash over (transaction_id, account_id) tuples.
+    pub fn compute_commitment(
+        transactions: impl Iterator<Item = (TransactionId, AccountId)>,
+    ) -> Digest {
+        let mut elements = vec![];
+        for (transaction_id, account_id) in transactions {
+            let [account_id_prefix, account_id_suffix] = <[Felt; 2]>::from(account_id);
+            elements.extend_from_slice(transaction_id.as_elements());
+            elements.extend_from_slice(&[account_id_prefix, account_id_suffix, ZERO, ZERO]);
+        }
+
+        Hasher::hash_elements(&elements)
     }
 }
 

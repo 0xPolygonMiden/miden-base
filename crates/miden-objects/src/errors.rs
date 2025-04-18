@@ -168,6 +168,31 @@ pub enum AccountIdError {
     Bech32DecodeError(#[source] Bech32Error),
 }
 
+// ACCOUNT TREE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountTreeError {
+    #[error(
+        "account tree contains multiple account IDs that share the same prefix {duplicate_prefix}"
+    )]
+    DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
+    #[error(
+        "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
+    )]
+    DuplicateStateCommitments { prefix: AccountIdPrefix },
+    #[error("untracked account ID {id} used in partial account tree")]
+    UntrackedAccountId { id: AccountId, source: MerkleError },
+    #[error("new tree root after account witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
+    #[error("failed to apply mutations to account tree")]
+    ApplyMutations(#[source] MerkleError),
+    #[error("smt leaf's index is not a valid account ID prefix")]
+    InvalidAccountIdPrefix(#[source] AccountIdError),
+    #[error("account witness merkle path depth {0} does not match AccountTree::DEPTH")]
+    WitnessMerklePathDepthDoesNotMatchAccountTreeDepth(usize),
+}
+
 // BECH32 ERROR
 // ================================================================================================
 

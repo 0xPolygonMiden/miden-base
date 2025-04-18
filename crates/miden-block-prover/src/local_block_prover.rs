@@ -1,14 +1,13 @@
 use std::{collections::BTreeMap, vec::Vec};
 
-use miden_crypto::merkle::{LeafIndex, PartialMerkleTree};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    Digest, Word,
+    Digest,
     account::AccountId,
     block::{
         AccountUpdateWitness, BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree,
-        BlockNumber, NullifierWitness, OutputNoteBatch, PartialNullifierTree, ProposedBlock,
-        ProvenBlock,
+        BlockNumber, NullifierWitness, OutputNoteBatch, PartialAccountTree, PartialNullifierTree,
+        ProposedBlock, ProvenBlock,
     },
     note::Nullifier,
     transaction::ChainMmr,
@@ -78,18 +77,13 @@ impl LocalBlockProver {
 
         let block_num = proposed_block.block_num();
         let timestamp = proposed_block.timestamp();
-        let tx_commitment = BlockHeader::compute_tx_commitment(
-            proposed_block
-                .transactions()
-                .map(|tx_header| (tx_header.id(), tx_header.account_id())),
-        );
 
         // Split the proposed block into its parts.
         // --------------------------------------------------------------------------------------------
 
         let (
             batches,
-            mut account_updated_witnesses,
+            account_updated_witnesses,
             output_note_batches,
             created_nullifiers,
             chain_mmr,
@@ -115,7 +109,7 @@ impl LocalBlockProver {
         // --------------------------------------------------------------------------------------------
 
         let new_account_root =
-            compute_account_root(&mut account_updated_witnesses, &prev_block_header)?;
+            compute_account_root(&account_updated_witnesses, &prev_block_header)?;
 
         // Insert the previous block header into the block chain MMR to get the new chain
         // commitment.
@@ -144,6 +138,7 @@ impl LocalBlockProver {
         // --------------------------------------------------------------------------------------------
 
         let txs = batches.into_transactions();
+        let tx_commitment = txs.commitment();
 
         // Construct the new block header.
         // --------------------------------------------------------------------------------------------
@@ -208,7 +203,7 @@ fn compute_nullifiers(
     // its corresponding nullifier witness, so we don't have to check again whether they match.
     for witness in created_nullifiers.into_values() {
         partial_nullifier_tree
-            .add_nullifier_witness(witness)
+            .track_nullifier(witness)
             .map_err(ProvenBlockError::NullifierWitnessRootMismatch)?;
     }
 
@@ -248,7 +243,7 @@ fn compute_chain_commitment(mut chain_mmr: ChainMmr, prev_block_header: BlockHea
 /// It uses a PartialMerkleTree for now while we use a SimpleSmt for the account tree. Once that is
 /// updated to an Smt, we can use a PartialSmt instead.
 fn compute_account_root(
-    updated_accounts: &mut Vec<(AccountId, AccountUpdateWitness)>,
+    updated_accounts: &[(AccountId, AccountUpdateWitness)],
     prev_block_header: &BlockHeader,
 ) -> Result<Digest, ProvenBlockError> {
     // If no accounts were updated, the account tree root is unchanged.
@@ -256,26 +251,13 @@ fn compute_account_root(
         return Ok(prev_block_header.account_root());
     }
 
-    let mut partial_account_tree = PartialMerkleTree::new();
-
     // First reconstruct the current account tree from the provided merkle paths.
-    for (account_id, witness) in updated_accounts.iter_mut() {
-        let account_leaf_index = LeafIndex::from(*account_id);
-        // Shouldn't the value in PartialMerkleTree::add_path be a Word instead of a Digest?
-        // PartialMerkleTree::update_leaf (below) takes a Word as a value, so this seems
-        // inconsistent.
-        partial_account_tree
-            .add_path(
-                account_leaf_index.value(),
-                witness.initial_state_commitment(),
-                // We don't need the merkle path later, so we can take it out.
-                core::mem::take(witness.initial_state_proof_mut()),
-            )
-            .map_err(|source| ProvenBlockError::AccountWitnessRootMismatch {
-                account_id: *account_id,
-                source,
-            })?;
-    }
+    // If a witness points to a leaf where multiple account IDs share the same prefix, this will
+    // return an error.
+    let mut partial_account_tree = PartialAccountTree::with_witnesses(
+        updated_accounts.iter().map(|(_, update_witness)| update_witness.to_witness()),
+    )
+    .map_err(|source| ProvenBlockError::AccountWitnessTracking { source })?;
 
     // Check the account tree root in the previous block header matches the reconstructed tree's
     // root.
@@ -288,13 +270,14 @@ fn compute_account_root(
 
     // Second, update the account tree by inserting the new final account state commitments to
     // compute the new root of the account tree.
-    // TODO: Move this loop into a method on `PartialAccountTree` once it is added.
-    for (account_id, witness) in updated_accounts {
-        let account_leaf_index = LeafIndex::from(*account_id);
-        partial_account_tree
-            .update_leaf(account_leaf_index.value(), Word::from(witness.final_state_commitment()))
-            .expect("every account leaf should have been inserted in the first loop");
-    }
+    // If an account ID's prefix already exists in the tree, this will return an error.
+    // Note that we have inserted all witnesses that we want to update into the partial account
+    // tree, so we should not run into the untracked key error.
+    partial_account_tree
+        .upsert_state_commitments(updated_accounts.iter().map(|(account_id, update_witness)| {
+            (*account_id, update_witness.final_state_commitment())
+        }))
+        .map_err(|source| ProvenBlockError::AccountIdPrefixDuplicate { source })?;
 
     Ok(partial_account_tree.root())
 }

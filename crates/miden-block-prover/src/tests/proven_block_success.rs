@@ -1,11 +1,11 @@
 use std::{collections::BTreeMap, vec::Vec};
 
 use anyhow::Context;
-use miden_crypto::merkle::{LeafIndex, SimpleSmt, Smt};
+use miden_crypto::merkle::Smt;
 use miden_objects::{
-    ACCOUNT_TREE_DEPTH, Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
+    Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
     batch::BatchNoteTree,
-    block::{BlockInputs, BlockNoteIndex, BlockNoteTree, ProposedBlock},
+    block::{AccountTree, BlockInputs, BlockNoteIndex, BlockNoteTree, ProposedBlock},
     transaction::InputNoteCommitment,
 };
 use rand::Rng;
@@ -104,13 +104,14 @@ fn proven_block_success() -> anyhow::Result<()> {
         );
     }
 
-    // Compute expected account root on the full SimpleSmt.
+    // Compute expected account root on the full account tree.
     // --------------------------------------------------------------------------------------------
 
     let mut expected_account_tree = chain.accounts().clone();
     for (account_id, witness) in proposed_block.updated_accounts() {
         expected_account_tree
-            .insert(LeafIndex::from(*account_id), *witness.final_state_commitment());
+            .insert(*account_id, witness.final_state_commitment())
+            .context("failed to insert account id into account tree")?;
     }
 
     // Prove block.
@@ -366,10 +367,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     assert_eq!(latest_block_header.commitment(), blockx.commitment());
 
     // Sanity check: The account and nullifier tree roots should not be the empty tree roots.
-    assert_ne!(
-        latest_block_header.account_root(),
-        SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().unwrap().root()
-    );
+    assert_ne!(latest_block_header.account_root(), AccountTree::new().root());
     assert_ne!(latest_block_header.nullifier_root(), Smt::new().root());
 
     let (_, empty_chain_mmr) = chain.latest_selective_chain_mmr([]);
