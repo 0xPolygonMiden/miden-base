@@ -9,7 +9,7 @@
 - Add `AccountTree` and `PartialAccountTree` wrappers and enforce ID prefix uniqueness (#1254).
 - Added a retry strategy for worker's health check (#1255).
 - Added pretty print for `AccountCode` (#1273).
-
+- Added support for environment variables to set up the `miden-proving-service` worker (#1281).
 
 ## 0.8.1 (2025-03-26) - `miden-objects` and `miden-tx` crates only.
 
