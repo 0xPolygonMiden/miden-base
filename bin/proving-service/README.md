@@ -24,12 +24,12 @@ The CLI can be installed from the source code using specific git revisions with 
 To start the worker service you will need to run:
 
 ```bash
-miden-proving-service start-worker --host 0.0.0.0 --port 8082 --tx-prover --batch-prover
+miden-proving-service start-worker --port 8082 --tx-prover --batch-prover
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. This command will start a worker that can handle transaction and batch proving requests.
+This will spawn a worker using the port defined in the command option. The host will be 0.0.0.0 by default, or 127.0.0.1 if the --localhost flag is used. In case that the port is not provided, it will default to `50051`. This command will start a worker that can handle transaction and batch proving requests.
 
-Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
+Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests. Additionally, you can use the `--localhost` flag to bind to 127.0.0.1 instead of 0.0.0.0.
 
 ### Worker Configuration
 
@@ -37,7 +37,7 @@ The worker can be configured using the following environment variables:
 
 | Variable                  | Description                     | Default   |
 |---------------------------|---------------------------------|-----------|
-| `MPS_WORKER_HOST`         | The host address for the worker | `0.0.0.0` |
+| `MPS_WORKER_LOCALHOST`    | Use localhost (127.0.0.1)       | `false`   |
 | `MPS_WORKER_PORT`         | The port number for the worker  | `50051`   |
 | `MPS_WORKER_TX_PROVER`    | Enable transaction proving      | `false`   |
 | `MPS_WORKER_BATCH_PROVER` | Enable batch proving            | `false`   |
@@ -45,7 +45,7 @@ The worker can be configured using the following environment variables:
 
 For example:
 ```bash
-export MPS_WORKER_HOST="0.0.0.0"
+export MPS_WORKER_LOCALHOST="true"
 export MPS_WORKER_PORT="8082"
 export MPS_WORKER_TX_PROVER="true"
 export MPS_WORKER_BATCH_PROVER="true"
