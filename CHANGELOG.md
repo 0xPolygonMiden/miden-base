@@ -7,9 +7,14 @@
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
 - [BREAKING] Replaced the `ProvenBatch::new_unchecked` with the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 - Add `AccountTree` and `PartialAccountTree` wrappers and enforce ID prefix uniqueness (#1254).
-- Added a retry strategy for worker's health check (#1255).
 - Added pretty print for `AccountCode` (#1273).
 
+## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
+
+### Changes
+
+- Added a retry strategy for worker's health check (#1255).
+- Added a status endpoint for the `miden-proving-service` worker and proxy (#1255).
 
 ## 0.8.1 (2025-03-26) - `miden-objects` and `miden-tx` crates only.
 

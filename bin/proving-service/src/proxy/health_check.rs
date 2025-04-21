@@ -1,12 +1,8 @@
-use std::time::Duration;
-
+use axum::async_trait;
 use pingora::{prelude::sleep, server::ShutdownWatch, services::background::BackgroundService};
-use tonic::{async_trait, transport::Channel};
-use tonic_health::pb::health_client::HealthClient;
 use tracing::debug_span;
 
 use super::LoadBalancerState;
-use crate::error::ProvingServiceError;
 
 /// Implement the BackgroundService trait for the LoadBalancer
 ///
@@ -23,7 +19,7 @@ impl BackgroundService for LoadBalancerState {
     /// background service can return at anytime or wait for the `shutdown` signal.
     ///
     /// The health check background service will periodically check the health of the workers
-    /// using the gRPC health check protocol. If a worker is not healthy, it will be removed from
+    /// using the gRPC status endpoint. If a worker is not healthy, it will be removed from
     /// the list of available workers.
     ///
     /// # Errors
@@ -37,8 +33,9 @@ impl BackgroundService for LoadBalancerState {
                 {
                     let mut workers = self.workers.write().await;
 
-                    // Perform health checks on workers and retain healthy ones
-                    self.check_workers_health(workers.iter_mut()).await;
+                    for worker in workers.iter_mut() {
+                        worker.check_status(self.supported_prover_type).await;
+                    }
                 }
                 // Sleep for the defined interval before the next health check
                 sleep(self.health_check_interval).await;
@@ -46,28 +43,4 @@ impl BackgroundService for LoadBalancerState {
         })
         .await;
     }
-}
-
-// HELPERS
-// ================================================================================================
-
-/// Create a gRPC [HealthClient] for the given worker address.
-///
-/// # Errors
-/// - [ProvingServiceError::InvalidURI] if the worker address is invalid.
-/// - [ProvingServiceError::ConnectionFailed] if the connection to the worker fails.
-pub async fn create_health_check_client(
-    address: String,
-    connection_timeout: Duration,
-    total_timeout: Duration,
-) -> Result<HealthClient<Channel>, ProvingServiceError> {
-    let channel = Channel::from_shared(format!("http://{}", address))
-        .map_err(|err| ProvingServiceError::InvalidURI(err, address.clone()))?
-        .connect_timeout(connection_timeout)
-        .timeout(total_timeout)
-        .connect()
-        .await
-        .map_err(|err| ProvingServiceError::ConnectionFailed(err, address))?;
-
-    Ok(HealthClient::new(channel))
 }

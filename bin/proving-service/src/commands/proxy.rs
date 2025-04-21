@@ -12,7 +12,10 @@ use super::ProxyConfig;
 use crate::{
     commands::PROXY_HOST,
     error::ProvingServiceError,
-    proxy::{LoadBalancer, LoadBalancerState, update_workers::LoadBalancerUpdateService},
+    proxy::{
+        LoadBalancer, LoadBalancerState, status::ProxyStatusService,
+        update_workers::LoadBalancerUpdateService,
+    },
     utils::{MIDEN_PROVING_SERVICE, check_port_availability},
 };
 
@@ -61,6 +64,8 @@ impl StartProxy {
 
         if self.workers.is_empty() {
             warn!("Starting the proxy without any workers");
+        } else {
+            info!("Proxy starting with workers: {:?}", self.workers);
         }
 
         let worker_lb = LoadBalancerState::new(self.workers.clone(), &self.proxy_config).await?;
@@ -77,7 +82,7 @@ impl StartProxy {
             .add_tcp(format!("{}:{}", PROXY_HOST, self.proxy_config.control_port).as_str());
 
         // Set up the load balancer
-        let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb));
+        let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb.clone()));
 
         lb.add_tcp(format!("{}:{}", PROXY_HOST, self.proxy_config.port).as_str());
         info!("Proxy listening on {}:{}", PROXY_HOST, self.proxy_config.port);
@@ -102,8 +107,20 @@ impl StartProxy {
             info!("Metrics are not enabled");
         }
 
+        // Add status service
+        let status_service = ProxyStatusService::new(worker_lb);
+        let mut status_service = Service::new("status".to_string(), status_service);
+        status_service.add_tcp(
+            format!("{}:{}", self.proxy_config.host, self.proxy_config.status_port).as_str(),
+        );
+        info!(
+            "Status service listening on {}:{}/status",
+            self.proxy_config.host, self.proxy_config.status_port
+        );
+
         server.add_service(health_check_service);
         server.add_service(update_workers_service);
+        server.add_service(status_service);
         server.add_service(lb);
         tokio::task::spawn_blocking(|| server.run_forever())
             .await
