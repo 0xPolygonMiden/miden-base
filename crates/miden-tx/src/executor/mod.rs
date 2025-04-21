@@ -131,9 +131,14 @@ impl TransactionExecutor {
 
         // Validate that foreign account inputs are anchored in the reference block
         for foreign_account in tx_args.foreign_accounts() {
-            foreign_account.verify_witness(&ref_header.account_root()).map_err(|err| {
+            let computed_account_root = foreign_account.compute_account_root().map_err(|err| {
                 TransactionExecutorError::InvalidAccountWitness(foreign_account.id(), err)
             })?;
+            if computed_account_root != ref_header.account_root() {
+                return Err(TransactionExecutorError::ForeignAccountNotAnchoredInReference(
+                    foreign_account.id(),
+                ));
+            }
         }
 
         let tx_inputs = TransactionInputs::new(account, seed, ref_header, mmr, notes)

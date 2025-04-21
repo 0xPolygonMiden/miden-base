@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use core::fmt::Debug;
 
-use miden_crypto::merkle::{MerkleError, SmtProof};
+use miden_crypto::merkle::{SmtProof, SmtProofError};
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
@@ -602,13 +602,13 @@ impl ForeignAccountInputs {
         &self.account_witness
     }
 
-    /// Verifies that the account witness is valid for the account's state commitment toward
-    /// the passed root.
-    pub fn verify_witness(&self, tree_root: &Digest) -> Result<(), MerkleError> {
-        let tree_index = self.account_header.id().prefix().into();
-        self.account_witness
-            .path()
-            .verify(tree_index, self.account_header.commitment(), tree_root)
+    /// Computes account root based on the account witness.
+    pub fn compute_account_root(&self) -> Result<Digest, SmtProofError> {
+        let smt_merkle_path = self.account_witness.path().clone();
+        let smt_leaf = self.account_witness.leaf();
+        let root = SmtProof::new(smt_merkle_path, smt_leaf)?.compute_root();
+
+        Ok(root)
     }
 
     /// Extends the storage proofs with the input `smt_proofs` and returns the new structure

@@ -18,8 +18,8 @@ use miden_lib::{
 use miden_objects::{
     FieldElement,
     account::{
-        Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
-        StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountHeader, AccountProcedureInfo,
+        AccountStorage, StorageSlot,
     },
     testing::{account_component::AccountMockComponent, storage::STORAGE_LEAVES_2},
     transaction::{ForeignAccountInputs, TransactionScript},
@@ -1189,12 +1189,25 @@ fn test_fpi_stale_account() {
     // Place the modified account in the advice provider, which will cause the commitment mismatch.
     let foreign_account_inputs = mock_chain.get_foreign_account_inputs(foreign_account.id());
 
+    // We want to create a mixed ForeignAccountInputs because we want to have a valid account
+    // witness against the ref block, but have newer account data (ie, a new state). Otherwise,
+    // any non-validity of the account witness is caught in
+    // TransactionExecutor::execute_transaction() (see `test_fpi_anchoring_validations()` for
+    // context on this check)
+    let overridden_foreign_account_inputs = ForeignAccountInputs::new(
+        AccountHeader::from(foreign_account.clone()),
+        foreign_account.storage().get_header(),
+        foreign_account.code().clone(),
+        foreign_account_inputs.account_witness().clone(),
+        foreign_account_inputs.storage_map_proofs().iter().cloned().collect(),
+    );
+
     // The account tree from which the transaction inputs are fetched here has the state from the
     // original unmodified foreign account. This should result in the foreign account's proof to be
     // invalid for this account tree root.
     let tx_context = mock_chain
         .build_tx_context(native_account.id(), &[], &[])
-        .foreign_accounts(vec![foreign_account_inputs])
+        .foreign_accounts(vec![overridden_foreign_account_inputs])
         .build();
 
     // Attempt to run FPI.

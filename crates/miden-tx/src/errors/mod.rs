@@ -3,11 +3,11 @@ use core::error::Error;
 
 use miden_objects::{
     AccountError, Felt, ProvenTransactionError, TransactionInputError, TransactionOutputError,
-    account::AccountId, block::BlockNumber, note::NoteId,
+    account::AccountId, block::BlockNumber, crypto::merkle::SmtProofError, note::NoteId,
 };
 use miden_verifier::VerificationError;
 use thiserror::Error;
-use vm_processor::{ExecutionError, crypto::MerkleError};
+use vm_processor::ExecutionError;
 
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================
@@ -16,6 +16,8 @@ use vm_processor::{ExecutionError, crypto::MerkleError};
 pub enum TransactionExecutorError {
     #[error("failed to fetch transaction inputs from the data store")]
     FetchTransactionInputsFailed(#[source] DataStoreError),
+    #[error("foreign account inputs for ID {0} are not anchored on reference block")]
+    ForeignAccountNotAnchoredInReference(AccountId),
     #[error("failed to create transaction inputs")]
     InvalidTransactionInputs(#[source] TransactionInputError),
     #[error("input account ID {input_id} does not match output account ID {output_id}")]
@@ -28,8 +30,8 @@ pub enum TransactionExecutorError {
         expected: Option<Felt>,
         actual: Option<Felt>,
     },
-    #[error("account witness provided for account ID {0} is invalid: {1}")]
-    InvalidAccountWitness(AccountId, #[source] MerkleError),
+    #[error("account witness provided for account ID {0} is invalid")]
+    InvalidAccountWitness(AccountId, #[source] SmtProofError),
     #[error(
         "input note {0} was created in a block past the transaction reference block number ({1})"
     )]

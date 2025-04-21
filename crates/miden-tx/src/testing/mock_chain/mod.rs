@@ -765,6 +765,7 @@ impl MockChain {
         let account = self.available_account(account_id);
 
         let account_witness = self.accounts().open(account_id);
+        assert_eq!(account_witness.state_commitment(), account.commitment());
 
         let mut storage_map_proofs = vec![];
         for slot in account.storage().slots() {

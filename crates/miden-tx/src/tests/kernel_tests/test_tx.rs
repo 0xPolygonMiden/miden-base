@@ -31,7 +31,6 @@ use miden_objects::{
     },
     transaction::{InputNotes, OutputNote, OutputNotes, TransactionArgs},
 };
-use vm_processor::crypto::MerkleError;
 
 use super::{Felt, ONE, ProcessState, Word, ZERO};
 use crate::{
@@ -63,10 +62,7 @@ fn test_fpi_anchoring_validations() {
 
     assert_matches::assert_matches!(
         transaction,
-        Err(TransactionExecutorError::InvalidAccountWitness(
-            _,
-            MerkleError::ConflictingRoots { .. }
-        ))
+        Err(TransactionExecutorError::ForeignAccountNotAnchoredInReference(_))
     );
 }
 
