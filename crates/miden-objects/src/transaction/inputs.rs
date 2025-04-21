@@ -613,10 +613,9 @@ impl ForeignAccountInputs {
 
     /// Returns `true` if the [`ForeignAccountInputs`]'s inner fields are cohesive.
     pub fn is_valid(&self) -> bool {
-        return self.account_header.code_commitment() == self.account_code.commitment()
-            && self.account_header.storage_commitment()
-                == self.storage_header.compute_commitment()
-            && self.account_header.commitment() == self.witness.state_commitment();
+        self.account_header.code_commitment() == self.account_code.commitment()
+            && self.account_header.storage_commitment() == self.storage_header.compute_commitment()
+            && self.account_header.commitment() == self.witness.state_commitment()
     }
 
     /// Extends the storage proofs with the input `smt_proofs` and returns the new structure
