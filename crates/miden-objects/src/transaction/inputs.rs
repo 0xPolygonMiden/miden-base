@@ -606,8 +606,10 @@ impl ForeignAccountInputs {
     /// the passed root.
     pub fn verify_witness(&self, tree_root: &Digest) -> Result<(), MerkleError> {
         let tree_index = self.account_header.id().prefix().into();
-        self.account_witness.path().verify(tree_index, self.account_header.commitment(), tree_root)
-    } 
+        self.account_witness
+            .path()
+            .verify(tree_index, self.account_header.commitment(), tree_root)
+    }
 
     /// Extends the storage proofs with the input `smt_proofs` and returns the new structure
     #[must_use]
@@ -676,7 +678,10 @@ mod tests {
 
     use super::ForeignAccountInputs;
     use crate::{
-        account::{Account, AccountCode, AccountHeader, AccountId, AccountStorage}, asset::AssetVault, block::AccountWitness, testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE
+        account::{Account, AccountCode, AccountHeader, AccountId, AccountStorage},
+        asset::AssetVault,
+        block::AccountWitness,
+        testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
     };
 
     #[test]

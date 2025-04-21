@@ -16,12 +16,13 @@ use miden_lib::{
     },
 };
 use miden_objects::{
+    FieldElement,
     account::{
         Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
         StorageSlot,
     },
     testing::{account_component::AccountMockComponent, storage::STORAGE_LEAVES_2},
-    transaction::{ForeignAccountInputs, TransactionScript}, FieldElement,
+    transaction::{ForeignAccountInputs, TransactionScript},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;

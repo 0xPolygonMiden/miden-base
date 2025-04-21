@@ -34,10 +34,7 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{
-    Digest, Felt, Word, ZERO,
-    crypto::RpoRandomCoin,
-};
+use vm_processor::{Digest, Felt, Word, ZERO, crypto::RpoRandomCoin};
 
 use super::TransactionContextBuilder;
 use crate::auth::BasicAuthenticator;

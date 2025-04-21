@@ -63,7 +63,10 @@ fn test_fpi_anchoring_validations() {
 
     assert_matches::assert_matches!(
         transaction,
-        Err(TransactionExecutorError::InvalidAccountWitness(_, MerkleError::ConflictingRoots{..}))
+        Err(TransactionExecutorError::InvalidAccountWitness(
+            _,
+            MerkleError::ConflictingRoots { .. }
+        ))
     );
 }
 
