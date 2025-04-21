@@ -271,7 +271,7 @@ fn slots_as_elements(slots: &[StorageSlot]) -> Vec<Felt> {
 }
 
 /// Computes the commitment to the given slots
-fn build_slots_commitment(slots: &[StorageSlot]) -> Digest {
+pub(crate) fn build_slots_commitment(slots: &[StorageSlot]) -> Digest {
     let elements = slots_as_elements(slots);
     super::Hasher::hash_elements(&elements)
 }

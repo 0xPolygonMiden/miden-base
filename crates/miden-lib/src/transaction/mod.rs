@@ -207,7 +207,7 @@ impl TransactionKernel {
 
         // Extend the advice inputs with the new data
         advice_inputs.extend_map([
-            // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_ROOT]
+            // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT]
             (account_key, account_header.as_elements()),
             // STORAGE_COMMITMENT -> [STORAGE_SLOT_DATA]
             (account_header.storage_commitment(), storage_header.as_elements()),
