@@ -24,7 +24,7 @@ mod errors;
 
 pub use constants::*;
 pub use errors::{
-    AccountDeltaError, AccountError, AccountIdError, AssetError, AssetVaultError,
+    AccountDeltaError, AccountError, AccountIdError, AccountTreeError, AssetError, AssetVaultError,
     BatchAccountUpdateError, ChainMmrError, NetworkIdError, NoteError, NullifierTreeError,
     ProposedBatchError, ProposedBlockError, ProvenBatchError, ProvenTransactionError,
     TransactionInputError, TransactionOutputError, TransactionScriptError,
@@ -106,7 +106,7 @@ pub mod utils {
             };
 
             // This digit's nibble offset within the felt. We need to invert the nibbles per
-            // byte for endianess reasons i.e. ABCD -> BADC.
+            // byte for endianness reasons i.e. ABCD -> BADC.
             let inibble = if i % 2 == 0 { (i + 1) % 16 } else { (i - 1) % 16 };
 
             let value = hex_digit << (inibble * 4);

@@ -16,8 +16,6 @@ use vm_processor::{ExecutionError, crypto::MerkleError};
 pub enum TransactionExecutorError {
     #[error("failed to fetch transaction inputs from the data store")]
     FetchTransactionInputsFailed(#[source] DataStoreError),
-    #[error("foreign account inputs for ID {0} are not anchored on reference block")]
-    ForeignAccountNotAnchoredInReference(AccountId),
     #[error("failed to create transaction inputs")]
     InvalidTransactionInputs(#[source] TransactionInputError),
     #[error("input account ID {input_id} does not match output account ID {output_id}")]
@@ -30,7 +28,7 @@ pub enum TransactionExecutorError {
         expected: Option<Felt>,
         actual: Option<Felt>,
     },
-    #[error("account witness provided for account ID {0} is invalid")]
+    #[error("account witness provided for account ID {0} is invalid: {1}")]
     InvalidAccountWitness(AccountId, #[source] MerkleError),
     #[error(
         "input note {0} was created in a block past the transaction reference block number ({1})"

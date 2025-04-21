@@ -61,8 +61,8 @@ const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020181
 # Maximum allowed number of foreign account to be loaded (64) was exceeded.
 const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020183
 
-# State of the current foreign account is invalid.
-const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020182
+# Commitment of the foreign account in the advice provider does not match the commitment in the account tree.
+const.ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT=0x00020182
 
 # Unknown version in account ID.
 const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020146
@@ -1122,23 +1122,21 @@ export.validate_current_foreign_account
     # => [ACCOUNT_DB_ROOT]
 
     # get the current account ID
-    exec.memory::get_account_id swap drop
-    # => [account_id_prefix, ACCOUNT_DB_ROOT]
+    push.0.0 exec.memory::get_account_id
+    # => [account_id_prefix, account_id_suffix, 0, 0, ACCOUNT_DB_ROOT]
 
-    # push the depth of the account database tree
-    push.ACCOUNT_TREE_DEPTH
-    # => [depth, account_id_prefix, ACCOUNT_DB_ROOT]
+    # retrieve the commitment of the foreign account from the current account tree
+    # this would abort if the proof for the commitment was invalid for the account root,
+    # so this implicitly verifies its correctness
+    exec.smt::get
+    # => [FOREIGN_ACCOUNT_COMMITMENT, ACCOUNT_DB_ROOT]
 
-    # get the foreign account commitment
-    exec.get_current_commitment
-    # => [FOREIGN_ACCOUNT_COMMITMENT, depth, account_id_prefix, ACCOUNT_DB_ROOT]
-
-    # verify that the account database has the hash of the current foreign account
-    mtree_verify.err=ERR_FOREIGN_ACCOUNT_INVALID
-    # => [FOREIGN_ACCOUNT_COMMITMENT, depth, account_id_prefix, ACCOUNT_DB_ROOT]
+    # get the foreign account's commitment from memory and compare with the verified commitment
+    exec.get_current_commitment assert_eqw.err=ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT
+    # => [ACCOUNT_DB_ROOT]
 
     # clean the stack
-    dropw drop drop dropw
+    dropw
 end
 
 #! Hashes the provided map key before using it as the key in an SMT.

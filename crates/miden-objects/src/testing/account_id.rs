@@ -92,8 +92,8 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 /// then the layout of the generated ID will be:
 ///
 /// ```text
-/// 1st felt: [0xaa | 5 zero bytes | 0xbb | metadata byte]
-/// 2nd felt: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
+/// prefix: [0xaa | 5 zero bytes | 0xbb | metadata byte]
+/// suffix: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
 /// ```
 pub const fn account_id(
     account_type: AccountType,

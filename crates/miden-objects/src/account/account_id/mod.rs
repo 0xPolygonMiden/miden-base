@@ -26,14 +26,14 @@ use alloc::string::{String, ToString};
 use core::fmt;
 
 pub use id_version::AccountIdVersion;
-use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
+use miden_crypto::utils::hex_to_bytes;
 use vm_core::{
     Felt, Word,
     utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::{DeserializationError, Digest};
 
-use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
+use crate::{AccountError, errors::AccountIdError};
 
 /// The identifier of an [`Account`](crate::account::Account).
 ///
@@ -391,15 +391,6 @@ impl From<AccountId> for [u8; 15] {
 }
 
 impl From<AccountId> for u128 {
-    fn from(id: AccountId) -> Self {
-        match id {
-            AccountId::V0(account_id) => account_id.into(),
-        }
-    }
-}
-
-/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
-impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
     fn from(id: AccountId) -> Self {
         match id {
             AccountId::V0(account_id) => account_id.into(),

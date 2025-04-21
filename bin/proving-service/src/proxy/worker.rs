@@ -20,7 +20,7 @@ const MAX_BACKOFF_EXPONENT: usize = 9;
 
 /// A worker used for processing of requests.
 ///
-/// A worker consists of a backend service (defined by worker address), a flag indicating wheter
+/// A worker consists of a backend service (defined by worker address), a flag indicating whether
 /// the worker is currently available to process new requests, and a gRPC health check client.
 #[derive(Debug, Clone)]
 pub struct Worker {
