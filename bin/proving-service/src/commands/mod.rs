@@ -44,7 +44,7 @@ pub(crate) struct ProxyConfig {
     #[clap(long, default_value = "100", env = "MPS_TIMEOUT_SECS")]
     pub(crate) timeout_secs: u64,
     /// Control port.
-    /// 
+    ///
     /// Port used to add and remove workers from the proxy.
     #[clap(long, default_value = "8083", env = "MPS_CONTROL_PORT")]
     pub(crate) control_port: u16,

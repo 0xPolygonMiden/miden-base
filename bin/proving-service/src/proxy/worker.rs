@@ -17,11 +17,6 @@ use crate::{
 /// The maximum backoff is 2^[MAX_BACKOFF_EXPONENT] seconds.
 const MAX_BACKOFF_EXPONENT: usize = 9;
 
-/// The maximum exponent for the backoff.
-///
-/// The maximum backoff is 2^[MAX_BACKOFF_EXPONENT] seconds.
-const MAX_BACKOFF_EXPONENT: usize = 9;
-
 // WORKER
 // ================================================================================================
 

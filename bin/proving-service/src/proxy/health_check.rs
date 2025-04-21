@@ -1,5 +1,5 @@
-use axum::async_trait;
 use pingora::{prelude::sleep, server::ShutdownWatch, services::background::BackgroundService};
+use tonic::async_trait;
 use tracing::debug_span;
 
 use super::LoadBalancerState;

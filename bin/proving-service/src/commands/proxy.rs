@@ -110,12 +110,11 @@ impl StartProxy {
         // Add status service
         let status_service = ProxyStatusService::new(worker_lb);
         let mut status_service = Service::new("status".to_string(), status_service);
-        status_service.add_tcp(
-            format!("{}:{}", self.proxy_config.host, self.proxy_config.status_port).as_str(),
-        );
+        status_service
+            .add_tcp(format!("{}:{}", PROXY_HOST, self.proxy_config.status_port).as_str());
         info!(
             "Status service listening on {}:{}/status",
-            self.proxy_config.host, self.proxy_config.status_port
+            PROXY_HOST, self.proxy_config.status_port
         );
 
         server.add_service(health_check_service);
