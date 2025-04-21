@@ -549,7 +549,7 @@ pub struct ForeignAccountInputs {
     /// Code associated with the account.
     account_code: AccountCode,
     /// Proof of the account's inclusion in the account tree for this account's state commitment.
-    account_witness: AccountWitness,
+    witness: AccountWitness,
     /// Storage SMT proof for storage map values that the transaction will access.
     storage_map_proofs: Vec<SmtProof>,
 }
@@ -560,14 +560,14 @@ impl ForeignAccountInputs {
         account_header: AccountHeader,
         storage_header: AccountStorageHeader,
         account_code: AccountCode,
-        account_witness: AccountWitness,
+        witness: AccountWitness,
         storage_map_proofs: Vec<SmtProof>,
     ) -> ForeignAccountInputs {
         ForeignAccountInputs {
             account_header,
             storage_header,
             account_code,
-            account_witness,
+            witness,
             storage_map_proofs,
         }
     }
@@ -598,17 +598,25 @@ impl ForeignAccountInputs {
     }
 
     /// Returns the account witness.
-    pub fn account_witness(&self) -> &AccountWitness {
-        &self.account_witness
+    pub fn witness(&self) -> &AccountWitness {
+        &self.witness
     }
 
     /// Computes account root based on the account witness.
     pub fn compute_account_root(&self) -> Result<Digest, SmtProofError> {
-        let smt_merkle_path = self.account_witness.path().clone();
-        let smt_leaf = self.account_witness.leaf();
+        let smt_merkle_path = self.witness.path().clone();
+        let smt_leaf = self.witness.leaf();
         let root = SmtProof::new(smt_merkle_path, smt_leaf)?.compute_root();
 
         Ok(root)
+    }
+
+    /// Returns `true` if the [`ForeignAccountInputs`]'s inner fields are cohesive.
+    pub fn is_valid(&self) -> bool {
+        return self.account_header.code_commitment() == self.account_code.commitment()
+            && self.account_header.storage_commitment()
+                == self.storage_header.compute_commitment()
+            && self.account_header.commitment() == self.witness.state_commitment();
     }
 
     /// Extends the storage proofs with the input `smt_proofs` and returns the new structure
@@ -629,7 +637,7 @@ impl ForeignAccountInputs {
             self.account_header,
             self.storage_header,
             self.account_code,
-            self.account_witness,
+            self.witness,
             self.storage_map_proofs,
         )
     }
@@ -640,7 +648,7 @@ impl Serializable for ForeignAccountInputs {
         self.account_header.write_into(target);
         self.storage_header.write_into(target);
         self.account_code.write_into(target);
-        self.account_witness.write_into(target);
+        self.witness.write_into(target);
         self.storage_map_proofs.write_into(target);
     }
 }
@@ -666,7 +674,6 @@ impl Deserializable for ForeignAccountInputs {
 
 #[cfg(test)]
 mod tests {
-
     use std::vec::Vec;
 
     use miden_crypto::merkle::MerklePath;
@@ -714,5 +721,6 @@ mod tests {
         let serialized = fpi_inputs.to_bytes();
         let deserialized = ForeignAccountInputs::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, fpi_inputs);
+        assert!(deserialized.is_valid());
     }
 }

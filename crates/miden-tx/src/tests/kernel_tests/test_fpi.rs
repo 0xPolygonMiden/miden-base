@@ -1198,7 +1198,7 @@ fn test_fpi_stale_account() {
         AccountHeader::from(foreign_account.clone()),
         foreign_account.storage().get_header(),
         foreign_account.code().clone(),
-        foreign_account_inputs.account_witness().clone(),
+        foreign_account_inputs.witness().clone(),
         foreign_account_inputs.storage_map_proofs().iter().cloned().collect(),
     );
 

@@ -4,7 +4,7 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::AccountId,
-    block::BlockNumber,
+    block::{BlockHeader, BlockNumber},
     transaction::{
         ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, TransactionArgs,
         TransactionInputs, TransactionScript,
@@ -125,23 +125,13 @@ impl TransactionExecutor {
 
         ref_blocks.insert(block_ref);
 
-        let (account, seed, ref_header, mmr) =
+        let (account, seed, ref_block, mmr) =
             maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        // Validate that foreign account inputs are anchored in the reference block
-        for foreign_account in tx_args.foreign_accounts() {
-            let computed_account_root = foreign_account.compute_account_root().map_err(|err| {
-                TransactionExecutorError::InvalidAccountWitness(foreign_account.id(), err)
-            })?;
-            if computed_account_root != ref_header.account_root() {
-                return Err(TransactionExecutorError::ForeignAccountNotAnchoredInReference(
-                    foreign_account.id(),
-                ));
-            }
-        }
+        validate_account_inputs(&tx_args, &ref_block)?;
 
-        let tx_inputs = TransactionInputs::new(account, seed, ref_header, mmr, notes)
+        let tx_inputs = TransactionInputs::new(account, seed, ref_block, mmr, notes)
             .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
 
         let (stack_inputs, advice_inputs) =
@@ -192,19 +182,20 @@ impl TransactionExecutor {
         foreign_account_inputs: Vec<ForeignAccountInputs>,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
         let ref_blocks = [block_ref].into_iter().collect();
-        let (account, seed, header, mmr) =
+        let (account, seed, ref_block, mmr) =
             maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
-
-        let tx_inputs = TransactionInputs::new(account, seed, header, mmr, Default::default())
-            .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
-
         let tx_args = TransactionArgs::new(
             Some(tx_script.clone()),
             None,
             Default::default(),
             foreign_account_inputs,
         );
+
+        validate_account_inputs(&tx_args, &ref_block)?;
+
+        let tx_inputs = TransactionInputs::new(account, seed, ref_block, mmr, Default::default())
+            .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
 
         let (stack_inputs, advice_inputs) =
             TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs))
@@ -290,4 +281,23 @@ fn build_executed_transaction(
         advice_witness,
         tx_progress.into(),
     ))
+}
+
+/// Validates the account inputs against the reference block header.
+fn validate_account_inputs(
+    tx_args: &TransactionArgs,
+    ref_block: &BlockHeader,
+) -> Result<(), TransactionExecutorError> {
+    // Validate that foreign account inputs are anchored in the reference block
+    for foreign_account in tx_args.foreign_accounts() {
+        let computed_account_root = foreign_account.compute_account_root().map_err(|err| {
+            TransactionExecutorError::InvalidAccountWitness(foreign_account.id(), err)
+        })?;
+        if computed_account_root != ref_block.account_root() {
+            return Err(TransactionExecutorError::ForeignAccountNotAnchoredInReference(
+                foreign_account.id(),
+            ));
+        }
+    }
+    Ok(())
 }

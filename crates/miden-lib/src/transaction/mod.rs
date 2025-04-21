@@ -197,7 +197,7 @@ impl TransactionKernel {
         let account_header = foreign_account_inputs.account_header();
         let storage_header = foreign_account_inputs.storage_header();
         let account_code = foreign_account_inputs.account_code();
-        let account_witness = foreign_account_inputs.account_witness();
+        let account_witness = foreign_account_inputs.witness();
         let storage_proofs = foreign_account_inputs.storage_map_proofs();
         let account_id = account_header.id();
 
