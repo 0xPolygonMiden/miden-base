@@ -92,6 +92,7 @@ impl AccountStorageHeader {
         })
     }
 
+    // NOTE: The way of computing the commitment should be kept in sync with `AccountStorage`
     /// Computes the account storage header commitment.
     pub fn compute_commitment(&self) -> Digest {
         Hasher::hash_elements(&self.as_elements())
