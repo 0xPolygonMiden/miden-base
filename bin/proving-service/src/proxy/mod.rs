@@ -9,7 +9,7 @@ use bytes::Bytes;
 use metrics::{
     QUEUE_LATENCY, QUEUE_SIZE, RATE_LIMIT_VIOLATIONS, RATE_LIMITED_REQUESTS, REQUEST_COUNT,
     REQUEST_FAILURE_COUNT, REQUEST_LATENCY, REQUEST_RETRIES, WORKER_BUSY, WORKER_COUNT,
-    WORKER_REQUEST_COUNT, WORKER_UNHEALTHY,
+    WORKER_REQUEST_COUNT,
 };
 use pingora::{
     http::ResponseHeader,
@@ -29,6 +29,7 @@ use crate::{
     commands::{
         ProxyConfig,
         update_workers::{Action, UpdateWorkers},
+        worker::ProverType,
     },
     error::ProvingServiceError,
     utils::{
@@ -39,6 +40,7 @@ use crate::{
 
 mod health_check;
 pub mod metrics;
+pub(crate) mod status;
 pub(crate) mod update_workers;
 mod worker;
 
@@ -56,6 +58,7 @@ pub struct LoadBalancerState {
     max_req_per_sec: isize,
     available_workers_polling_interval: Duration,
     health_check_interval: Duration,
+    supported_prover_type: ProverType,
 }
 
 impl LoadBalancerState {
@@ -101,6 +104,7 @@ impl LoadBalancerState {
                 config.available_workers_polling_interval_ms,
             ),
             health_check_interval: Duration::from_secs(config.health_check_interval_secs),
+            supported_prover_type: config.prover_type,
         })
     }
 
@@ -119,6 +123,9 @@ impl LoadBalancerState {
     /// Marks the given worker as available and moves it to the end of the list.
     ///
     /// If the worker is not in the list, it won't be added.
+    /// The worker is moved to the end of the list to avoid overloading since the selection of the
+    /// worker is done in order, causing the workers at the beggining of the list to be selected
+    /// more often.
     pub async fn add_available_worker(&self, worker: Worker) {
         let mut workers = self.workers.write().await;
         if let Some(pos) = workers.iter().position(|w| *w == worker) {
@@ -189,25 +196,6 @@ impl LoadBalancerState {
     /// Get the number of busy workers.
     pub async fn num_busy_workers(&self) -> usize {
         self.workers.read().await.iter().filter(|w| !w.is_available()).count()
-    }
-
-    /// Check the health of the workers.
-    ///
-    /// Performs a health check on each worker using the gRPC health check protocol.
-    ///
-    /// If a worker is not healthy, it will be marked as unhealthy and the number of unhealthy
-    /// workers will be incremented.
-    async fn check_workers_health(&self, workers: impl Iterator<Item = &mut Worker>) {
-        for worker in workers {
-            if let Some(is_healthy) = worker.is_healthy().await {
-                if is_healthy {
-                    worker.mark_as_healthy();
-                } else {
-                    worker.mark_as_unhealthy();
-                    WORKER_UNHEALTHY.with_label_values(&[&worker.address()]).inc();
-                }
-            }
-        }
     }
 }
 
