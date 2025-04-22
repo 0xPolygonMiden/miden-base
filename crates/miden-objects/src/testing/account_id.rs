@@ -39,7 +39,7 @@ pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE: u128 = account_id(
     AccountStorageMode::Public,
     0xacdd_eefc,
 );
-pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id(
     AccountType::RegularAccountUpdatableCode,
     AccountStorageMode::Public,
     0xeeff_ccdd,

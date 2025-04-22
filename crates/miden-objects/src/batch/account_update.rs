@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 use crate::{
     Digest,
     account::{AccountId, delta::AccountUpdateDetails},
@@ -106,7 +108,9 @@ impl BatchAccountUpdate {
         }
 
         self.details = self.details.clone().merge(tx.account_update().details().clone()).map_err(
-            |source_err| BatchAccountUpdateError::TransactionUpdateMergeError(tx.id(), source_err),
+            |source_err| {
+                BatchAccountUpdateError::TransactionUpdateMergeError(tx.id(), Box::new(source_err))
+            },
         )?;
         self.final_state_commitment = tx.account_update().final_state_commitment();
 

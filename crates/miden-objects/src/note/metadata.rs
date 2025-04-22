@@ -229,7 +229,7 @@ fn unmerge_id_type_and_hint_tag(element: Felt) -> Result<(Felt, NoteType, u8), N
     // Set least significant byte to zero.
     let element = element & 0xffff_ffff_ffff_ff00;
 
-    // SAFETY: The input was a valid felt and and we cleared additional bits and did not set any
+    // SAFETY: The input was a valid felt and we cleared additional bits and did not set any
     // bits, so it must still be a valid felt.
     let sender_id_suffix = Felt::try_from(element).expect("element should still be valid");
 

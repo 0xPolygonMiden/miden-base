@@ -1,4 +1,5 @@
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
@@ -681,7 +682,7 @@ impl AccountUpdateAggregator {
             details = Some(match details {
                 None => update_details,
                 Some(details) => details.merge(update_details).map_err(|source| {
-                    ProposedBlockError::AccountUpdateError { account_id, source }
+                    ProposedBlockError::AccountUpdateError { account_id, source: Box::new(source) }
                 })?,
             });
         }
