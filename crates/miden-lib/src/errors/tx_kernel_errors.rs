@@ -131,7 +131,7 @@ pub const ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 0x2014f;
 pub const ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT: u32 = 0x20150;
 /// Computed account storage commitment does not match recorded account storage commitment
 pub const ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH: u32 = 0x20151;
-/// Provided storage slot index is out of bounds.
+/// Provided storage slot index is out of bounds
 pub const ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x20152;
 /// Number of account procedures exceeds the maximum limit of 256
 pub const ERR_ACCOUNT_TOO_MANY_PROCEDURES: u32 = 0x20153;
@@ -272,7 +272,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Failed to write an account map item to a non-map storage slot"),
     (ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT, "Failed to write an account value item to a non-value storage slot"),
     (ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH, "Computed account storage commitment does not match recorded account storage commitment"),
-    (ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds."),
+    (ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
     (ERR_ACCOUNT_TOO_MANY_PROCEDURES, "Number of account procedures exceeds the maximum limit of 256"),
     (ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeds the maximum limit of 255"),
     (ERR_ACCOUNT_STACK_OVERFLOW, "Depth of the nested FPI calls exceeded 64"),
