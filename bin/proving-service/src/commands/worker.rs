@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
+use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic_health::server::health_reporter;
@@ -6,53 +7,49 @@ use tracing::{info, instrument};
 
 use crate::{api::RpcListener, generated::api_server::ApiServer, utils::MIDEN_PROVING_SERVICE};
 
-/// Specifies the types of proving tasks a worker can handle.
-/// Multiple options can be enabled simultaneously.
-#[derive(Debug, Parser, Clone, Copy, Default)]
-pub struct ProverTypeSupport {
-    /// Enables transaction proving.
-    #[clap(long, default_value = "false")]
-    tx_prover: bool,
-    /// Enables batch proving.
-    #[clap(long, default_value = "false")]
-    batch_prover: bool,
-    /// Enables block proving.
-    #[clap(long, default_value = "false")]
-    block_prover: bool,
+/// Specifies the type of proving task a worker can handle.
+#[derive(Debug, Clone, Copy, Default, ValueEnum, PartialEq, Serialize, Deserialize)]
+pub enum ProverType {
+    /// Transaction proving
+    #[default]
+    Transaction,
+    /// Batch proving
+    Batch,
+    /// Block proving
+    Block,
 }
 
-impl ProverTypeSupport {
-    /// Checks if the worker is a transaction prover.
-    pub fn supports_transaction(&self) -> bool {
-        self.tx_prover
+impl ProverType {
+    /// Returns the corresponding ProofType from the generated code
+    pub fn to_proof_type(&self) -> crate::generated::ProofType {
+        match self {
+            ProverType::Transaction => crate::generated::ProofType::Transaction,
+            ProverType::Batch => crate::generated::ProofType::Batch,
+            ProverType::Block => crate::generated::ProofType::Block,
+        }
     }
+}
 
-    /// Checks if the worker is a batch prover.
-    pub fn supports_batch(&self) -> bool {
-        self.batch_prover
+impl std::fmt::Display for ProverType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProverType::Transaction => write!(f, "transaction"),
+            ProverType::Batch => write!(f, "batch"),
+            ProverType::Block => write!(f, "block"),
+        }
     }
+}
 
-    /// Checks if the worker is a block prover.
-    pub fn supports_block(&self) -> bool {
-        self.block_prover
-    }
+impl std::str::FromStr for ProverType {
+    type Err = String;
 
-    /// Mark the worker as a transaction prover.
-    pub fn with_transaction(mut self) -> Self {
-        self.tx_prover = true;
-        self
-    }
-
-    /// Mark the worker as a batch prover.
-    pub fn with_batch(mut self) -> Self {
-        self.batch_prover = true;
-        self
-    }
-
-    /// Mark the worker as a block prover.
-    pub fn with_block(mut self) -> Self {
-        self.block_prover = true;
-        self
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "transaction" => Ok(ProverType::Transaction),
+            "batch" => Ok(ProverType::Batch),
+            "block" => Ok(ProverType::Block),
+            _ => Err(format!("Invalid proof type: {}", s)),
+        }
     }
 }
 
@@ -65,9 +62,9 @@ pub struct StartWorker {
     /// The port of the worker
     #[clap(long, default_value = "50051")]
     port: u16,
-    /// The type of prover that the worker will be
-    #[clap(flatten)]
-    prover_type: ProverTypeSupport,
+    /// The type of prover that the worker will be handling
+    #[clap(long)]
+    prover_type: ProverType,
 }
 
 impl StartWorker {
@@ -102,6 +99,7 @@ impl StartWorker {
         tonic::transport::Server::builder()
             .accept_http1(true)
             .add_service(tonic_web::enable(rpc.api_service))
+            .add_service(tonic_web::enable(rpc.status_service))
             .add_service(health_service)
             .serve_with_incoming(TcpListenerStream::new(rpc.listener))
             .await

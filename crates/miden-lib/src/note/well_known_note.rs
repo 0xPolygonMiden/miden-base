@@ -1,5 +1,11 @@
 use miden_objects::{
-    account::AccountId, assembly::{ProcedureName, QualifiedProcedureName}, block::BlockNumber, note::{Note, NoteScript}, utils::{sync::LazyLock, Deserializable}, vm::Program, Digest, Felt
+    Digest, Felt,
+    account::AccountId,
+    assembly::{ProcedureName, QualifiedProcedureName},
+    block::BlockNumber,
+    note::{Note, NoteScript},
+    utils::{Deserializable, sync::LazyLock},
+    vm::Program,
 };
 
 use crate::account::{
@@ -161,7 +167,7 @@ impl WellKnownNote {
                     return NoteAccountCompatibility::No;
                 }
 
-                Self::check_input_account_id(note_inputs,  &[target_account_id])
+                Self::check_input_account_id(note_inputs, &[target_account_id])
             },
             WellKnownNote::P2IDR => {
                 let note_inputs = note.inputs().values();
@@ -172,17 +178,20 @@ impl WellKnownNote {
                 let recall_hight: Result<u32, _> = note_inputs[2].try_into();
                 match recall_hight {
                     // invalid input value: the block number does not fit in u32
-                    Err(_) => return NoteAccountCompatibility::No,
+                    Err(_) => NoteAccountCompatibility::No,
                     Ok(recall_hight) => {
                         if block_ref.as_u32() >= recall_hight {
                             let sender_account_id = note.metadata().sender();
-                            // if the sender can already reclaim the assets back, provide it as a 
+                            // if the sender can already reclaim the assets back, provide it as a
                             // valid account alongside with the target account
-                            Self::check_input_account_id(note_inputs, &[target_account_id, sender_account_id])
+                            Self::check_input_account_id(
+                                note_inputs,
+                                &[target_account_id, sender_account_id],
+                            )
                         } else {
                             Self::check_input_account_id(note_inputs, &[target_account_id])
                         }
-                    }
+                    },
                 }
             },
             WellKnownNote::SWAP => {
@@ -196,7 +205,7 @@ impl WellKnownNote {
     }
 
     /// Checks that the account ID, created from the first two values of the note inputs, matches at
-    /// least one account from the list of valid accounts. This list contains accounts which are 
+    /// least one account from the list of valid accounts. This list contains accounts which are
     /// allowed to consume the note.
     fn check_input_account_id(
         note_inputs: &[Felt],

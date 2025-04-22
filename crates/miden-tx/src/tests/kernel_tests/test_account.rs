@@ -1,10 +1,12 @@
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX,
-        ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
+        ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO,
+        ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
         ERR_ACCOUNT_ID_UNKNOWN_VERSION, TX_KERNEL_ERRORS,
     },
     transaction::TransactionKernel,
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     account::{
@@ -27,7 +29,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{Felt, ONE, StackInputs, Word, ZERO, word_to_masm_push_string};
+use super::{Felt, ONE, StackInputs, Word, ZERO};
 use crate::testing::{TransactionContextBuilder, executor::CodeExecutor};
 
 // ACCOUNT CODE TESTS
@@ -124,6 +126,11 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
         (ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, None),
         (ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, None),
         (
+            // Set network flag to true while storage mode is public.
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE | (1 << 98),
+            None,
+        ),
+        (
             // Set version to a non-zero value (10).
             ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0x0a << 64),
             Some(ERR_ACCOUNT_ID_UNKNOWN_VERSION),
@@ -137,6 +144,11 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
             // Set storage mode to an unknown value (0b01).
             ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0b01 << (64 + 6)),
             Some(ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE),
+        ),
+        (
+            // Set network flag to true while storage mode is private.
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (1 << 98),
+            Some(ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT),
         ),
         (
             // Set lower 8 bits to a non-zero value (1).
@@ -179,7 +191,7 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
                 }
             },
             (Err(err), None) => {
-                anyhow::bail!("validation is supposed to succeed but error occurred {}", err)
+                anyhow::bail!("validation is supposed to succeed but error occurred: {}", err)
             },
             (Err(err), Some(_)) => {
                 anyhow::bail!("unexpected different error than expected {}", err)
@@ -270,7 +282,7 @@ fn test_get_map_item() {
     let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
-                TransactionKernel::testing_assembler(),
+                TransactionKernel::assembler(),
                 vec![AccountStorage::mock_item_2().slot],
             )
             .unwrap(),
@@ -301,7 +313,12 @@ fn test_get_map_item() {
             map_key = word_to_masm_push_string(&key),
         );
 
-        let process = &tx_context.execute_code(&code).unwrap();
+        let process = &tx_context
+            .execute_code_with_assembler(
+                &code,
+                TransactionKernel::testing_assembler_with_mock_account(),
+            )
+            .unwrap();
         let process_state: ProcessState = process.into();
 
         assert_eq!(
@@ -431,7 +448,7 @@ fn test_set_map_item() {
     let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
-                TransactionKernel::testing_assembler(),
+                TransactionKernel::assembler(),
                 vec![AccountStorage::mock_item_2().slot],
             )
             .unwrap(),
@@ -471,7 +488,12 @@ fn test_set_map_item() {
         new_value = word_to_masm_push_string(&new_value),
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
+        .unwrap();
     let process_state: ProcessState = process.into();
 
     let mut new_storage_map = AccountStorage::mock_map();

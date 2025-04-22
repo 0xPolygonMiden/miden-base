@@ -159,6 +159,8 @@ pub enum AccountIdError {
     AnchorEpochMustNotBeU16Max,
     #[error("least significant byte of account ID suffix must be zero")]
     AccountIdSuffixLeastSignificantByteMustBeZero,
+    #[error("accounts that have the network flag enabled must be public")]
+    NetworkAccountMustBePublic,
     #[error(
         "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
         BlockNumber::EPOCH_LENGTH_EXPONENT
@@ -166,6 +168,31 @@ pub enum AccountIdError {
     AnchorBlockMustBeEpochBlock,
     #[error("failed to decode bech32 string into account ID")]
     Bech32DecodeError(#[source] Bech32Error),
+}
+
+// ACCOUNT TREE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountTreeError {
+    #[error(
+        "account tree contains multiple account IDs that share the same prefix {duplicate_prefix}"
+    )]
+    DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
+    #[error(
+        "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
+    )]
+    DuplicateStateCommitments { prefix: AccountIdPrefix },
+    #[error("untracked account ID {id} used in partial account tree")]
+    UntrackedAccountId { id: AccountId, source: MerkleError },
+    #[error("new tree root after account witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
+    #[error("failed to apply mutations to account tree")]
+    ApplyMutations(#[source] MerkleError),
+    #[error("smt leaf's index is not a valid account ID prefix")]
+    InvalidAccountIdPrefix(#[source] AccountIdError),
+    #[error("account witness merkle path depth {0} does not match AccountTree::DEPTH")]
+    WitnessMerklePathDepthDoesNotMatchAccountTreeDepth(usize),
 }
 
 // BECH32 ERROR
@@ -257,7 +284,7 @@ pub enum BatchAccountUpdateError {
     )]
     AccountUpdateInitialStateMismatch(TransactionId),
     #[error("failed to merge account delta from transaction {0}")]
-    TransactionUpdateMergeError(TransactionId, #[source] AccountDeltaError),
+    TransactionUpdateMergeError(TransactionId, #[source] Box<AccountDeltaError>),
 }
 
 // ASSET ERROR
@@ -360,8 +387,8 @@ pub enum NoteError {
         node_index_in_block: u16,
         highest_index: usize,
     },
-    #[error("note network execution requires public accounts")]
-    NetworkExecutionRequiresPublicAccount,
+    #[error("note network execution requires a public account with the network flag enabled")]
+    NetworkExecutionRequiresNetworkAccount,
     #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
     #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]
@@ -450,6 +477,8 @@ pub enum TransactionInputError {
     InputNoteNotInBlock(NoteId, BlockNumber),
     #[error("account ID computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountIdError),
+    #[error("merkle path for {0} is invalid")]
+    InvalidMerklePath(Box<str>, #[source] MerkleError),
     #[error(
         "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
     )]
@@ -779,7 +808,7 @@ pub enum ProposedBlockError {
     #[error("failed to merge transaction delta into account {account_id}")]
     AccountUpdateError {
         account_id: AccountId,
-        source: AccountDeltaError,
+        source: Box<AccountDeltaError>,
     },
 }
 

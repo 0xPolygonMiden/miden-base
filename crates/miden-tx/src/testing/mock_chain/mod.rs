@@ -9,35 +9,32 @@ use miden_lib::{
     transaction::{TransactionKernel, memory},
 };
 use miden_objects::{
-    ACCOUNT_TREE_DEPTH, AccountError, NoteError, ProposedBatchError, ProposedBlockError,
+    AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
-        Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
-        AccountType, AuthSecretKey, delta::AccountUpdateDetails,
+        Account, AccountBuilder, AccountComponent, AccountDelta, AccountHeader, AccountId,
+        AccountIdAnchor, AccountType, AuthSecretKey, StorageSlot, delta::AccountUpdateDetails,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        AccountTree, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
         BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{LeafIndex, Mmr, Smt},
+        merkle::{Mmr, Smt, SmtProof},
     },
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OrderedTransactionHeaders,
-        OutputNote, ProvenTransaction, ToInputNoteCommitments, TransactionHeader, TransactionId,
-        TransactionInputs, TransactionScript,
+        ChainMmr, ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
+        OrderedTransactionHeaders, OutputNote, ProvenTransaction, ToInputNoteCommitments,
+        TransactionHeader, TransactionId, TransactionInputs, TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{
-    Digest, Felt, Word, ZERO,
-    crypto::{RpoRandomCoin, SimpleSmt},
-};
+use vm_processor::{Digest, Felt, Word, ZERO, crypto::RpoRandomCoin};
 
 use super::TransactionContextBuilder;
 use crate::auth::BasicAuthenticator;
@@ -260,8 +257,8 @@ pub struct MockChain {
     /// Tree containing the latest `Nullifier`'s tree.
     nullifiers: Smt,
 
-    /// Tree containing the latest hash of each account.
-    accounts: SimpleSmt<ACCOUNT_TREE_DEPTH>,
+    /// Tree containing the latest state commitment of each account.
+    account_tree: AccountTree,
 
     /// Objects that have not yet been finalized.
     ///
@@ -288,7 +285,7 @@ impl Default for MockChain {
             chain: Mmr::default(),
             blocks: vec![],
             nullifiers: Smt::default(),
-            accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
+            account_tree: AccountTree::new(),
             pending_objects: PendingObjects::new(),
             available_notes: BTreeMap::new(),
             available_accounts: BTreeMap::new(),
@@ -624,9 +621,16 @@ impl MockChain {
         };
 
         let (account, seed) = if let AccountState::New = account_state {
-            let last_block = self.blocks.last().expect("one block should always exist");
+            let epoch_block_number = self
+                .blocks
+                .last()
+                .expect("one block should always exist")
+                .header()
+                .epoch_block_num();
+            let account_id_anchor =
+                self.blocks.get(epoch_block_number.as_usize()).unwrap().header();
             account_builder =
-                account_builder.anchor(AccountIdAnchor::try_from(last_block.header()).unwrap());
+                account_builder.anchor(AccountIdAnchor::try_from(account_id_anchor).unwrap());
 
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {
@@ -635,8 +639,7 @@ impl MockChain {
 
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-        self.accounts
-            .insert(LeafIndex::from(account.id()), Word::from(account.commitment()));
+        self.account_tree.insert(account.id(), account.commitment()).unwrap();
 
         account
     }
@@ -757,6 +760,31 @@ impl MockChain {
         (batch_reference_block, chain_mmr)
     }
 
+    /// Gets foreign account inputs to execute FPI transactions.
+    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
+        let account = self.available_account(account_id);
+
+        let account_witness = self.accounts().open(account_id);
+        assert_eq!(account_witness.state_commitment(), account.commitment());
+
+        let mut storage_map_proofs = vec![];
+        for slot in account.storage().slots() {
+            // if there are storage maps, we populate the merkle store and advice map
+            if let StorageSlot::Map(map) = slot {
+                let proofs: Vec<SmtProof> = map.entries().map(|(key, _)| map.open(key)).collect();
+                storage_map_proofs.extend(proofs);
+            }
+        }
+
+        ForeignAccountInputs::new(
+            AccountHeader::from(account),
+            account.storage().get_header(),
+            account.code().clone(),
+            account_witness,
+            storage_map_proofs,
+        )
+    }
+
     /// Gets the inputs for a block for the provided batches.
     pub fn get_block_inputs<'batch, I>(
         &self,
@@ -826,8 +854,9 @@ impl MockChain {
 
         for current_block_num in next_block_num..=target_block_num {
             for update in self.pending_objects.updated_accounts.iter() {
-                self.accounts
-                    .insert(update.account_id().into(), *update.final_state_commitment());
+                self.account_tree
+                    .insert(update.account_id(), update.final_state_commitment())
+                    .unwrap();
 
                 if let Some(mock_account) = self.available_accounts.get(&update.account_id()) {
                     let account = match update.details() {
@@ -856,7 +885,7 @@ impl MockChain {
             let previous = self.blocks.last();
             let peaks = self.chain.peaks();
             let chain_commitment: Digest = peaks.hash_peaks();
-            let account_root = self.accounts.root();
+            let account_root = self.account_tree.root();
             let prev_block_commitment =
                 previous.map_or(Digest::default(), |block| block.commitment());
             let nullifier_root = self.nullifiers.root();
@@ -879,7 +908,7 @@ impl MockChain {
                 }
             }
 
-            let tx_commitment = BlockHeader::compute_tx_commitment(
+            let tx_commitment = OrderedTransactionHeaders::compute_commitment(
                 self.pending_objects.included_transactions.clone().into_iter(),
             );
 
@@ -1011,8 +1040,8 @@ impl MockChain {
         let mut account_witnesses = BTreeMap::new();
 
         for account_id in account_ids {
-            let proof = self.accounts.open(&account_id.into());
-            account_witnesses.insert(account_id, AccountWitness::new(proof.value, proof.path));
+            let witness = self.account_tree.open(account_id);
+            account_witnesses.insert(account_id, witness);
         }
 
         account_witnesses
@@ -1090,9 +1119,9 @@ impl MockChain {
             .account()
     }
 
-    /// Get the reference to the accounts hash tree.
-    pub fn accounts(&self) -> &SimpleSmt<ACCOUNT_TREE_DEPTH> {
-        &self.accounts
+    /// Get the reference to the account tree.
+    pub fn accounts(&self) -> &AccountTree {
+        &self.account_tree
     }
 }
 

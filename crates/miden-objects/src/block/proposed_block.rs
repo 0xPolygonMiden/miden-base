@@ -1,4 +1,5 @@
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
@@ -652,10 +653,17 @@ impl AccountUpdateAggregator {
     /// chronological order using the state commitments to link them.
     fn aggregate_account(
         account_id: AccountId,
-        witness: AccountWitness,
+        initial_state_proof: AccountWitness,
         mut updates: BTreeMap<Digest, (BatchAccountUpdate, BatchId)>,
     ) -> Result<AccountUpdateWitness, ProposedBlockError> {
-        let (initial_state_commitment, initial_state_proof) = witness.into_parts();
+        // The account witness could prove inclusion of a different ID in which case the initial
+        // state commitment of the current ID is the empty word.
+        let initial_state_commitment = if account_id == initial_state_proof.id() {
+            initial_state_proof.state_commitment()
+        } else {
+            Digest::from(EMPTY_WORD)
+        };
+
         let mut details: Option<AccountUpdateDetails> = None;
 
         let mut current_commitment = initial_state_commitment;
@@ -674,7 +682,7 @@ impl AccountUpdateAggregator {
             details = Some(match details {
                 None => update_details,
                 Some(details) => details.merge(update_details).map_err(|source| {
-                    ProposedBlockError::AccountUpdateError { account_id, source }
+                    ProposedBlockError::AccountUpdateError { account_id, source: Box::new(source) }
                 })?,
             });
         }

@@ -3,7 +3,7 @@
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/0xPolygonMiden/miden-base/blob/main/LICENSE)
 [![test](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml)
 [![build](https://github.com/0xPolygonMiden/miden-base/actions/workflows/build.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/build.yml)
-[![RUST_VERSION](https://img.shields.io/badge/rustc-1.85+-lightgray.svg)](https://www.rust-lang.org/tools/install)
+[![RUST_VERSION](https://img.shields.io/badge/rustc-1.86+-lightgray.svg)](https://www.rust-lang.org/tools/install)
 [![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-base)](https://github.com/0xPolygonMiden/miden-base/releases/)
 
 Description and core structures for the Miden Rollup protocol.
@@ -40,7 +40,7 @@ Polygon Miden is currently on release v0.9. This is an early version of the prot
 ### Planned features
 
 - **Network transactions**. Users will be able to create notes intended for network execution. Such notes will be included into transactions executed and proven by the Miden operator.
-- **Encrypted notes**. With encrypted notes users will be able to put all note details on-chain, but the data contained withing the notes would be encrypted with the recipients key.
+- **Encrypted notes**. With encrypted notes users will be able to put all note details on-chain, but the data contained within the notes would be encrypted with the recipient's key.
 
 ## Project structure
 

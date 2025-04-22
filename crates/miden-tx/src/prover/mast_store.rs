@@ -5,7 +5,7 @@ use miden_objects::{
     Digest,
     account::AccountCode,
     assembly::mast::MastForest,
-    transaction::{TransactionArgs, TransactionInputs},
+    transaction::{InputNote, InputNotes, TransactionArgs},
 };
 use vm_processor::MastForestStore;
 
@@ -50,25 +50,31 @@ impl TransactionMastStore {
         store
     }
 
-    /// Loads the provided account code into this store.
-    pub fn load_account_code(&self, code: &AccountCode) {
-        self.insert(code.mast().clone());
-    }
-
     /// Loads code required for executing a transaction with the specified inputs and args into
     /// this store.
     ///
     /// The loaded code includes:
-    /// - Account code for the account specified in the provided [TransactionInputs].
-    /// - Note scripts for all input notes in the provided [TransactionInputs].
+    /// - Account code for the account specified from the provided [AccountCode].
+    /// - Note scripts for all input notes in the provided [InputNotes].
     /// - Transaction script (if any) from the specified [TransactionArgs].
-    pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
+    /// - Foreign account code (if any) from the specified [TransactionArgs].
+    pub fn load_transaction_code(
+        &self,
+        account_code: &AccountCode,
+        input_notes: &InputNotes<InputNote>,
+        tx_args: &TransactionArgs,
+    ) {
         // load account code
-        self.load_account_code(tx_inputs.account().code());
+        self.load_account_code(account_code);
 
         // load note script MAST into the MAST store
-        for note in tx_inputs.input_notes() {
+        for note in input_notes {
             self.insert(note.note().script().mast().clone());
+        }
+
+        // load foreign account's MAST forests
+        for foreign_account in tx_args.foreign_accounts() {
+            self.load_account_code(foreign_account.account_code());
         }
 
         // load tx script MAST into the MAST store
@@ -85,6 +91,11 @@ impl TransactionMastStore {
         for proc_digest in mast_forest.local_procedure_digests() {
             mast_forests.insert(proc_digest, mast_forest.clone());
         }
+    }
+
+    /// Loads the provided account code into this store.
+    fn load_account_code(&self, code: &AccountCode) {
+        self.insert(code.mast().clone());
     }
 }
 

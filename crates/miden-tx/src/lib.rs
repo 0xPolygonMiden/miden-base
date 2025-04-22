@@ -9,15 +9,13 @@ extern crate std;
 pub use miden_objects::transaction::TransactionInputs;
 
 mod executor;
-pub use executor::{
-    DataStore, NoteConsumptionChecker, NoteInputsCheck, TransactionExecutor, TransactionMastStore,
-};
+pub use executor::{DataStore, NoteConsumptionChecker, NoteInputsCheck, TransactionExecutor};
 
 pub mod host;
 pub use host::{TransactionHost, TransactionProgress};
 
 mod prover;
-pub use prover::{LocalTransactionProver, ProvingOptions, TransactionProver};
+pub use prover::{LocalTransactionProver, ProvingOptions, TransactionMastStore, TransactionProver};
 
 mod verifier;
 pub use verifier::TransactionVerifier;

@@ -1,6 +1,8 @@
 use rand_xoshiro::rand_core::SeedableRng;
 
-use crate::account::{AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType};
+use crate::account::{
+    AccountId, AccountIdV0, AccountIdVersion, AccountStorageMode, AccountType, NetworkAccount,
+};
 
 // CONSTANTS
 // --------------------------------------------------------------------------------------------
@@ -37,11 +39,17 @@ pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE: u128 = account_id(
     AccountStorageMode::Public,
     0xacdd_eefc,
 );
-pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id(
     AccountType::RegularAccountUpdatableCode,
     AccountStorageMode::Public,
     0xeeff_ccdd,
 );
+// REGULAR ACCOUNTS - NETWORK
+pub const ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE: u128 = account_id(
+    AccountType::RegularAccountImmutableCode,
+    AccountStorageMode::Public,
+    0xaacc_bbdd,
+) | network_account_bitmask();
 
 // These faucet IDs all have a unique prefix and suffix felts. This is to ensure that when they
 // are used to issue an asset they don't cause us to run into the "multiple leaf" case when
@@ -60,6 +68,10 @@ pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2: u128 =
     account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdb_eefa);
 pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3: u128 =
     account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
+// FUNGIBLE TOKENS - NETWORK
+pub const ACCOUNT_ID_NETWORK_FUNGIBLE_FAUCET: u128 =
+    account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xaabc_bcdf)
+        | network_account_bitmask();
 
 // NON-FUNGIBLE TOKENS - PRIVATE
 pub const ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET: u128 =
@@ -69,11 +81,15 @@ pub const ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbcca_ddef);
 pub const ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdf_eefa);
+// NON-FUNGIBLE TOKENS - NETWORK
+pub const ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET: u128 =
+    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xabbc_ffde)
+        | network_account_bitmask();
 
 // TEST ACCOUNT IDs WITH CERTAIN PROPERTIES
 /// The Account Id with the maximum possible one bits.
 pub const ACCOUNT_ID_MAX_ONES: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0)
+    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0)
         | 0x7fff_ffff_ffff_ff00_7fff_ffff_ffff_ff00;
 /// The Account Id with the maximum possible zero bits.
 pub const ACCOUNT_ID_MAX_ZEROES: u128 =
@@ -85,6 +101,7 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 /// Produces a valid account ID with the given account type and storage mode.
 ///
 /// - Version is set to 0.
+/// - Network flag is set to 0, i.e. disabled (the account is not a network account).
 /// - Anchor epoch is set to 0.
 ///
 /// Finally, distributes the given `random` value over the ID to produce non-trivial values for
@@ -92,8 +109,8 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 /// then the layout of the generated ID will be:
 ///
 /// ```text
-/// 1st felt: [0xaa | 5 zero bytes | 0xbb | metadata byte]
-/// 2nd felt: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
+/// prefix: [0xaa | 5 zero bytes | 0xbb | metadata byte]
+/// suffix: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
 /// ```
 pub const fn account_id(
     account_type: AccountType,
@@ -123,6 +140,12 @@ pub const fn account_id(
     id
 }
 
+/// Returns the bitmask for the network flag. A bitwise OR operation on an account ID an this
+/// bitmask will set it.
+const fn network_account_bitmask() -> u128 {
+    (AccountIdV0::NETWORK_ACCOUNT_MASK as u128) << 64
+}
+
 /// A builder for creating [`AccountId`]s for testing purposes.
 ///
 /// This is essentially a wrapper around [`AccountId::dummy`] generating random values as its input.
@@ -131,10 +154,10 @@ pub const fn account_id(
 /// # Example
 ///
 /// ```
-/// # use miden_objects::account::{AccountType, AccountStorageMode, AccountId};
+/// # use miden_objects::account::{AccountType, AccountStorageMode, AccountId, NetworkAccount};
 /// # use miden_objects::testing::account_id::{AccountIdBuilder};
 ///
-/// let mut rng = rand::thread_rng();
+/// let mut rng = rand::rng();
 ///
 /// // A random AccountId with random AccountType and AccountStorageMode.
 /// let random_id1: AccountId = AccountIdBuilder::new().build_with_rng(&mut rng);
@@ -142,20 +165,26 @@ pub const fn account_id(
 /// // A random AccountId with the given AccountType and AccountStorageMode.
 /// let random_id2: AccountId = AccountIdBuilder::new()
 ///     .account_type(AccountType::FungibleFaucet)
-///     .storage_mode(AccountStorageMode::Public)
+///     .storage_mode(AccountStorageMode::Private)
 ///     .build_with_rng(&mut rng);
 /// assert_eq!(random_id2.account_type(), AccountType::FungibleFaucet);
-/// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Public);
+/// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Private);
+/// assert_eq!(random_id2.network_account(), NetworkAccount::Disabled);
 /// ```
 pub struct AccountIdBuilder {
     account_type: Option<AccountType>,
     storage_mode: Option<AccountStorageMode>,
+    network_account: Option<NetworkAccount>,
 }
 
 impl AccountIdBuilder {
     /// Creates a new [`AccountIdBuilder`].
     pub fn new() -> Self {
-        Self { account_type: None, storage_mode: None }
+        Self {
+            account_type: None,
+            storage_mode: None,
+            network_account: None,
+        }
     }
 
     /// Sets the [`AccountType`] of the generated [`AccountId`] to the provided value.
@@ -170,10 +199,22 @@ impl AccountIdBuilder {
         self
     }
 
+    /// Sets the [`NetworkAccount`] of the generated [`AccountId`] to the provided value.
+    pub fn network_account(mut self, network_account: NetworkAccount) -> Self {
+        self.network_account = Some(network_account);
+        self
+    }
+
     /// Builds an [`AccountId`] using the provided [`rand::Rng`].
     ///
     /// If no [`AccountType`] or [`AccountStorageMode`] were previously set, random ones are
     /// generated.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the network flag is set to [`NetworkAccount::Enabled`] and the storage mode is
+    /// [`AccountStorageMode::Private`]. This can only happen when the network flag is set
+    /// explicitly.
     pub fn build_with_rng<R: rand::Rng + ?Sized>(self, rng: &mut R) -> AccountId {
         let account_type = match self.account_type {
             Some(account_type) => account_type,
@@ -185,7 +226,23 @@ impl AccountIdBuilder {
             None => rng.random(),
         };
 
-        AccountId::dummy(rng.random(), AccountIdVersion::Version0, account_type, storage_mode)
+        let network_account = match (self.network_account, storage_mode) {
+            // Do not automatically rewrite an incorrect configuration (enabled, private) to a
+            // correct one, so the caller is informed about the misconfiguration rather than
+            // it silently doing something unexpected.
+            (Some(network_account), _) => network_account,
+            (None, AccountStorageMode::Public) => rng.random(),
+            (None, AccountStorageMode::Private) => NetworkAccount::Disabled,
+        };
+
+        // This will panic if the network flag and storage mode are misconfigured.
+        AccountId::dummy(
+            rng.random(),
+            AccountIdVersion::Version0,
+            account_type,
+            storage_mode,
+            network_account,
+        )
     }
 
     /// Builds an [`AccountId`] using the provided seed as input for an RNG implemented in

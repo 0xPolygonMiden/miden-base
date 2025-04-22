@@ -149,3 +149,7 @@ Users can choose whether their `Account`s are stored publicly or privately. The 
   Only a commitment (hash) to the `Account`’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
 
 The storage mode is chosen during `Account` creation, it cannot be changed later.
+
+### Network Accounts
+
+Users can choose whether their `Account` is a network account or not. The network will monitor this account for any public notes targetted at it and attempt to create network transactions against the account, which consume the notes. Because the network must be able to execute transactions against such an account, the storage mode of such accounts must be **Public**.

@@ -19,6 +19,18 @@ pub enum AccountStorageMode {
     Private = PRIVATE,
 }
 
+impl AccountStorageMode {
+    /// Returns `true` if the storage mode is [`Self::Public`], `false` otherwise.
+    pub fn is_public(&self) -> bool {
+        matches!(self, Self::Public)
+    }
+
+    /// Returns `true` if the storage mode is [`Self::Private`], `false` otherwise.
+    pub fn is_private(&self) -> bool {
+        matches!(self, Self::Private)
+    }
+}
+
 impl fmt::Display for AccountStorageMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

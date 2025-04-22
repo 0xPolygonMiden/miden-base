@@ -5,7 +5,7 @@
 
 A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions, transaction batches, and blocks.
 
-The worker is a gRPC service that can receive transaction witnesses or proposed batches and returns the proof. It can only handle one request at a time and returns an error if it is already in use.
+A worker is a gRPC service that can receive transaction witnesses, proposed batches, or proposed blocks, prove them, and return the generated proofs. It can handle only one request at a time and will return an error if it is already in use. Each worker is specialized on startup to handle exactly one type of proof requests - transactions, batches, or blocks.
 
 The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue, assigning a worker to each request and retrying if the worker is not available. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
@@ -24,28 +24,47 @@ The CLI can be installed from the source code using specific git revisions with 
 To start the worker service you will need to run:
 
 ```bash
-miden-proving-service start-worker --host 0.0.0.0 --port 8082 --tx-prover --batch-prover
+miden-proving-service start-worker --host 0.0.0.0 --port 8082 --prover-type transaction
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port. This command will start a worker that can handle transaction and batch proving requests.
+This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
 
-Note that the worker service can be started with the `--tx-prover`, `--batch-prover`, and `--block-prover` flags, to handle transaction, batch, and block proving requests, respectively, or it can be with any combination of them to handle multiple types of requests.
+The `--prover-type` flag is required and specifies which type of proof the worker will handle. The available options are:
+- `transaction`: For transaction proofs
+- `batch`: For batch proofs
+- `block`: For block proofs
+
+Each worker can only handle one type of proof. If you need to handle multiple proof types, you should start multiple workers, each with a different proof type.
 
 ## Proxy
 
 To start the proxy service, you will need to run:
 
 ```bash
-miden-proving-service start-proxy [worker1] [worker2] ... [workerN]
+miden-proving-service start-proxy --prover-type transaction [worker1] [worker2] ... [workerN]
 ```
 
 For example:
 
 ```bash
-miden-proving-service start-proxy 0.0.0.0:8084 0.0.0.0:8085
+miden-proving-service start-proxy --prover-type transaction 0.0.0.0:8084 0.0.0.0:8085
 ```
 
 This command will start the proxy using the workers passed as arguments. The workers should be in the format `host:port`. If no workers are passed, the proxy will start without any workers and will not be able to handle any requests until one is added through the `miden-proving-service add-worker` command.
+
+The `--prover-type` flag is required and specifies which type of proof the proxy will handle. The available options are:
+- `transaction`: For transaction proofs
+- `batch`: For batch proofs
+- `block`: For block proofs
+
+The proxy can only handle one type of proof at a time. When you add workers to the proxy, it will check their supported proof type. Workers that support a different proof type than the proxy will be marked as unhealthy and will not be used for proving requests.
+
+For example, if you start a proxy with `--prover-type transaction` and add these workers:
+- Worker 1: Transaction proofs (Healthy)
+- Worker 2: Batch proofs (Unhealthy - incompatible proof type)
+- Worker 3: Block proofs (Unhealthy - incompatible proof type)
+
+Only Worker 1 will be used for proving requests, while Workers 2 and 3 will be marked as unhealthy due to incompatible proof types.
 
 You can customize the proxy service by setting environment variables. Possible customizations can be found by running `miden-proving-service start-proxy --help`.
 
@@ -84,6 +103,51 @@ Note that, in order to update the workers, the proxy must be running in the same
 The worker service implements the [gRPC Health Check](https://grpc.io/docs/guides/health-checking/) standard, and includes the methods described in this [official proto file](https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto).
 
 The proxy service uses this health check to determine if a worker is available to receive requests. If a worker is not available, it will be removed from the set of workers that the proxy can use to send requests.
+
+### Status check
+
+The worker service implements a custom status check that returns information about the worker's current state and supported proof type. The proxy service uses this status check to determine if a worker is available to receive requests and if it supports the required proof type. If a worker is not available or doesn't support the required proof type, it will be removed from the set of workers that the proxy can use to send requests.
+
+The status check returns:
+- Whether the worker is ready to process requests
+- The type of proofs the worker supports (transaction, batch, or block proofs)
+- The version of the worker
+
+### Proxy Status Endpoint
+
+The proxy service exposes a status endpoint that provides information about the current state of the proxy and its workers. This endpoint can be accessed at `http://<proxy_host>:<status_port>/status`.
+
+The status endpoint returns a JSON response with the following information:
+- `version`: The version of the proxy
+- `supported_proof_type`: The types of proof that the proxy supports
+- `workers`: A list of workers with their status
+
+Example response:
+```json
+{
+  "version": "0.8.0",
+  "prover_type": "Transaction",
+  "workers": [
+    {
+      "address": "0.0.0.0:50051",
+      "version": "0.8.0",
+      "status": {
+        "Unhealthy": {
+          "failed_attempts": 3,
+          "reason": "Unsupported prover type: Batch"
+        }
+      }
+    },
+    {
+      "address": "0.0.0.0:50052",
+      "version": "0.8.0",
+      "status": "Healthy"
+    },
+  ]
+}
+```
+
+The status port can be configured using the `MPS_STATUS_PORT` environment variable or the `--status-port` command-line argument when starting the proxy.
 
 ## Logging and Tracing
 
