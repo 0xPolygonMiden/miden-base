@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3 (2025-04-22) - `miden-proving-service` crate only
+
+### Changes
+
+- [BUGFIX] Fixes a bug that caused the version check to fail (#1300).
+
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
 ### Changes
