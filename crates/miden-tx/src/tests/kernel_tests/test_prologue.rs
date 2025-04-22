@@ -31,7 +31,7 @@ use miden_lib::{
 use miden_objects::{
     account::{
         Account, AccountBuilder, AccountId, AccountIdAnchor, AccountIdVersion,
-        AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
+        AccountProcedureInfo, AccountStorageMode, AccountType, NetworkAccount, StorageSlot,
     },
     block::{BlockHeader, BlockNumber},
     testing::{
@@ -536,6 +536,7 @@ fn compute_valid_account_id(
         init_seed,
         account.account_type(),
         AccountStorageMode::Public,
+        NetworkAccount::Disabled,
         AccountIdVersion::Version0,
         account.code().commitment(),
         account.storage().commitment(),
