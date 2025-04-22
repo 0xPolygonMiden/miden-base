@@ -14,9 +14,11 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2, ACCOUNT_ID_SENDER,
     },
     transaction::{OutputNote, TransactionScript},
+};
+use miden_tx::{
+    testing::{Auth, MockChain},
     utils::word_to_masm_push_string,
 };
-use miden_tx::testing::{Auth, MockChain};
 
 use crate::{assert_transaction_executor_error, prove_and_verify_transaction};
 

@@ -282,7 +282,7 @@ pub enum BatchAccountUpdateError {
     )]
     AccountUpdateInitialStateMismatch(TransactionId),
     #[error("failed to merge account delta from transaction {0}")]
-    TransactionUpdateMergeError(TransactionId, #[source] AccountDeltaError),
+    TransactionUpdateMergeError(TransactionId, #[source] Box<AccountDeltaError>),
 }
 
 // ASSET ERROR
@@ -475,6 +475,8 @@ pub enum TransactionInputError {
     InputNoteNotInBlock(NoteId, BlockNumber),
     #[error("account ID computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountIdError),
+    #[error("merkle path for {0} is invalid")]
+    InvalidMerklePath(Box<str>, #[source] MerkleError),
     #[error(
         "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
     )]
@@ -804,7 +806,7 @@ pub enum ProposedBlockError {
     #[error("failed to merge transaction delta into account {account_id}")]
     AccountUpdateError {
         account_id: AccountId,
-        source: AccountDeltaError,
+        source: Box<AccountDeltaError>,
     },
 }
 

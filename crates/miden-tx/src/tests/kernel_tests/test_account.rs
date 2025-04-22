@@ -5,6 +5,7 @@ use miden_lib::{
         ERR_ACCOUNT_ID_UNKNOWN_VERSION, TX_KERNEL_ERRORS,
     },
     transaction::TransactionKernel,
+    utils::word_to_masm_push_string,
 };
 use miden_objects::{
     account::{
@@ -27,7 +28,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
-use super::{Felt, ONE, StackInputs, Word, ZERO, word_to_masm_push_string};
+use super::{Felt, ONE, StackInputs, Word, ZERO};
 use crate::testing::{TransactionContextBuilder, executor::CodeExecutor};
 
 // ACCOUNT CODE TESTS
@@ -270,7 +271,7 @@ fn test_get_map_item() {
     let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
-                TransactionKernel::testing_assembler(),
+                TransactionKernel::assembler(),
                 vec![AccountStorage::mock_item_2().slot],
             )
             .unwrap(),
@@ -301,7 +302,12 @@ fn test_get_map_item() {
             map_key = word_to_masm_push_string(&key),
         );
 
-        let process = &tx_context.execute_code(&code).unwrap();
+        let process = &tx_context
+            .execute_code_with_assembler(
+                &code,
+                TransactionKernel::testing_assembler_with_mock_account(),
+            )
+            .unwrap();
         let process_state: ProcessState = process.into();
 
         assert_eq!(
@@ -431,7 +437,7 @@ fn test_set_map_item() {
     let account = AccountBuilder::new(ChaCha20Rng::from_os_rng().random())
         .with_component(
             AccountMockComponent::new_with_slots(
-                TransactionKernel::testing_assembler(),
+                TransactionKernel::assembler(),
                 vec![AccountStorage::mock_item_2().slot],
             )
             .unwrap(),
@@ -471,7 +477,12 @@ fn test_set_map_item() {
         new_value = word_to_masm_push_string(&new_value),
     );
 
-    let process = &tx_context.execute_code(&code).unwrap();
+    let process = &tx_context
+        .execute_code_with_assembler(
+            &code,
+            TransactionKernel::testing_assembler_with_mock_account(),
+        )
+        .unwrap();
     let process_state: ProcessState = process.into();
 
     let mut new_storage_map = AccountStorage::mock_map();
