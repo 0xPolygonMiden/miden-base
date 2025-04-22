@@ -63,7 +63,7 @@ pub struct StartWorker {
     #[clap(long, default_value = "50051", env = "MPS_WORKER_PORT")]
     port: u16,
     /// The type of prover that the worker will be handling
-    #[clap(long)]
+    #[clap(long, env = "MPS_WORKER_PROVER_TYPE")]
     prover_type: ProverType,
 }
 

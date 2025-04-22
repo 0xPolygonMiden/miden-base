@@ -40,15 +40,17 @@ Each worker can only handle one type of proof. If you need to handle multiple pr
 
 The worker can be configured using the following environment variables:
 
-| Variable                  | Description                     | Default   |
-|---------------------------|---------------------------------|-----------|
-| `MPS_WORKER_LOCALHOST`    | Use localhost (127.0.0.1)       | `false`   |
-| `MPS_WORKER_PORT`         | The port number for the worker  | `50051`   |
+| Variable                  | Description                     | Default       |
+|---------------------------|---------------------------------|---------------|
+| `MPS_WORKER_LOCALHOST`    | Use localhost (127.0.0.1)       | `false`       |
+| `MPS_WORKER_PORT`         | The port number for the worker  | `50051`       |
+| `MPS_WORKER_PROVER_TYPE`  | The supported prover type       | `transaction` |
 
 For example:
 ```bash
 export MPS_WORKER_LOCALHOST="true"
 export MPS_WORKER_PORT="8082"
+export MPS_WORKER_PROVER_TYPE="block"
 miden-proving-service start-worker
 ```
 
