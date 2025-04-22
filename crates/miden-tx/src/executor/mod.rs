@@ -23,7 +23,7 @@ mod mast_store;
 pub use mast_store::TransactionMastStore;
 
 mod notes_checker;
-pub use notes_checker::{NoteInputsCheck, NotesChecker};
+pub use notes_checker::{NoteConsumptionChecker, NoteInputsCheck};
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -252,7 +252,7 @@ impl TransactionExecutor {
     /// - If the transaction host can not be created from the provided values.
     /// - If the execution of the provided program fails on the stage other than note execution.
     #[maybe_async]
-    pub(crate) fn try_notes_execution(
+    pub(crate) fn try_execute_notes(
         &self,
         account_id: AccountId,
         block_ref: BlockNumber,

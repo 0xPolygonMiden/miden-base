@@ -53,7 +53,7 @@ use super::{
 };
 use crate::{
     TransactionExecutorError, TransactionMastStore,
-    executor::{NoteAccountExecution, NotesChecker},
+    executor::{NoteAccountExecution, NoteConsumptionChecker},
     testing::TransactionContextBuilder,
 };
 
@@ -1089,15 +1089,20 @@ fn test_check_note_consumability() {
         .build();
 
     let input_notes = tx_context.input_notes();
-    let account_id = tx_context.account().id();
+    let target_account_id = tx_context.account().id();
     let block_ref = tx_context.tx_inputs().block_header().block_num();
-
+ 
     let executor: TransactionExecutor =
         TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
+    let notes_checker = NoteConsumptionChecker(&executor);
 
-    let notes_checker = NotesChecker::new(account_id, input_notes.clone().into_vec());
     let execution_check_result = notes_checker
-        .check_notes_consumability(&executor, block_ref, tx_context.tx_args().clone())
+        .check_notes_consumability(
+            target_account_id,
+            block_ref,
+            input_notes.clone().into_vec(),
+            tx_context.tx_args().clone(),
+        )
         .unwrap();
     assert_matches!(execution_check_result, NoteAccountExecution::Success);
 
@@ -1113,10 +1118,15 @@ fn test_check_note_consumability() {
 
     let executor: TransactionExecutor =
         TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
+    let notes_checker = NoteConsumptionChecker(&executor);
 
-    let notes_checker = NotesChecker::new(account_id, input_notes.clone().into_vec());
     let execution_check_result = notes_checker
-        .check_notes_consumability(&executor, block_ref, tx_context.tx_args().clone())
+        .check_notes_consumability(
+            account_id,
+            block_ref,
+            input_notes.clone().into_vec(),
+            tx_context.tx_args().clone(),
+        )
         .unwrap();
     assert_matches!(execution_check_result, NoteAccountExecution::Success);
 
@@ -1153,10 +1163,16 @@ fn test_check_note_consumability() {
 
     let executor: TransactionExecutor =
         TransactionExecutor::new(tx_context.get_data_store(), None).with_tracing();
+    let notes_checker = NoteConsumptionChecker(&executor);
 
-    let notes_checker = NotesChecker::new(account_id, input_notes.clone().into_vec());
+    // let notes_checker = NoteConsumptionChecker::new(account_id, input_notes.clone().into_vec());
     let execution_check_result = notes_checker
-        .check_notes_consumability(&executor, block_ref, tx_context.tx_args().clone())
+        .check_notes_consumability(
+            account_id,
+            block_ref,
+            input_notes.clone().into_vec(),
+            tx_context.tx_args().clone(),
+        )
         .unwrap();
 
     assert_matches!(execution_check_result, NoteAccountExecution::Failure {

@@ -10,7 +10,7 @@ pub use miden_objects::transaction::TransactionInputs;
 
 mod executor;
 pub use executor::{
-    DataStore, NoteInputsCheck, NotesChecker, TransactionExecutor, TransactionMastStore,
+    DataStore, NoteConsumptionChecker, NoteInputsCheck, TransactionExecutor, TransactionMastStore,
 };
 
 pub mod host;

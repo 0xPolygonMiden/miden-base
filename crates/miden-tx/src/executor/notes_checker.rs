@@ -15,20 +15,12 @@ use super::{NoteAccountExecution, TransactionExecutor, TransactionExecutorError}
 
 /// This struct performs input notes check against provided target account.
 ///
-/// The check is performed using the [NotesChecker::check_notes_consumability] procedure.
+/// The check is performed using the [NoteConsumptionChecker::check_notes_consumability] procedure.
 /// Essentially runs the transaction to make sure that provided input notes could be consumed by the
 /// account.
-pub struct NotesChecker {
-    account_id: AccountId,
-    notes: Vec<InputNote>,
-}
+pub struct NoteConsumptionChecker<'a>(pub &'a TransactionExecutor);
 
-impl NotesChecker {
-    /// Returns a new instance of the [NotesChecker].
-    pub fn new(account_id: AccountId, notes: Vec<InputNote>) -> Self {
-        NotesChecker { account_id, notes }
-    }
-
+impl NoteConsumptionChecker<'_> {
     /// Checks whether the provided input notes could be consumed by the provided account.
     ///
     /// This check consists of two main steps:
@@ -43,33 +35,39 @@ impl NotesChecker {
     #[maybe_async]
     pub fn check_notes_consumability(
         &self,
-        tx_executor: &TransactionExecutor,
+        target_account_id: AccountId,
         block_ref: BlockNumber,
+        notes: Vec<InputNote>,
         tx_args: TransactionArgs,
     ) -> Result<NoteAccountExecution, TransactionExecutorError> {
         // Check input notes
         // ----------------------------------------------------------------------------------------
 
         let mut successful_notes = vec![];
-        for note in self.notes.iter() {
+        for note in notes.iter() {
             if let Some(well_known_note) = WellKnownNote::from_note(note.note()) {
                 if let WellKnownNote::SWAP = well_known_note {
                     // if we encountered a SWAP note, then we have to execute the transaction
                     // anyway, so we can stop checking
                     break;
-                } else if let NoteAccountCompatibility::No =
-                    well_known_note.check_note_inputs(note.note(), self.account_id)
-                {
-                    // return a `Failure` with the vector of successfully checked `P2ID` and
-                    // `P2IDR` notes if the check failed
-                    return Ok(NoteAccountExecution::Failure {
-                        failed_note_id: note.id(),
-                        successful_notes,
-                        error: None,
-                    });
-                } else {
-                    // put the successfully checked `P2ID` or `P2IDR` note to the vector
-                    successful_notes.push(note.id());
+                } 
+
+                match well_known_note.check_note_inputs(note.note(), target_account_id, block_ref) {
+                    NoteAccountCompatibility::No => {
+                        // if the check failed, return a `Failure` with the vector of successfully 
+                        // checked `P2ID` and `P2IDR` notes 
+                        return Ok(NoteAccountExecution::Failure {
+                            failed_note_id: note.id(),
+                            successful_notes,
+                            error: None,
+                        }); 
+                    },
+                    // we need to execute the transaction if compatibility is unclear
+                    NoteAccountCompatibility::Maybe => break,
+                    NoteAccountCompatibility::Yes => {
+                        // put the successfully checked `P2ID` or `P2IDR` note to the vector
+                        successful_notes.push(note.id());
+                    }
                 }
             } else {
                 // if we encountered not a well known note, then we have to execute the transaction
@@ -80,19 +78,14 @@ impl NotesChecker {
 
         // if all checked notes turned out to be either `P2ID` or `P2IDR` notes and all of them
         // passed, then we could safely return the `Success`
-        if successful_notes.len() == self.notes.len() {
+        if successful_notes.len() == notes.len() {
             return Ok(NoteAccountExecution::Success);
         }
 
         // Execute transaction
         // ----------------------------------------------------------------------------------------
-        let note_ids = self.notes.iter().map(|note| note.id()).collect::<Vec<NoteId>>();
-        maybe_await!(tx_executor.try_notes_execution(
-            self.account_id,
-            block_ref,
-            &note_ids,
-            tx_args
-        ))
+        let note_ids = notes.iter().map(|note| note.id()).collect::<Vec<NoteId>>();
+        maybe_await!(self.0.try_execute_notes(target_account_id, block_ref, &note_ids, tx_args))
     }
 }
 
