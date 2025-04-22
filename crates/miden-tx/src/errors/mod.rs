@@ -3,7 +3,7 @@ use core::error::Error;
 
 use miden_objects::{
     AccountError, Felt, ProvenTransactionError, TransactionInputError, TransactionOutputError,
-    account::AccountId, block::BlockNumber, note::NoteId,
+    account::AccountId, block::BlockNumber, crypto::merkle::SmtProofError, note::NoteId,
 };
 use miden_verifier::VerificationError;
 use thiserror::Error;
@@ -14,10 +14,12 @@ use vm_processor::ExecutionError;
 
 #[derive(Debug, Error)]
 pub enum TransactionExecutorError {
-    #[error("failed to execute transaction kernel program")]
-    TransactionProgramExecutionFailed(#[source] ExecutionError),
     #[error("failed to fetch transaction inputs from the data store")]
     FetchTransactionInputsFailed(#[source] DataStoreError),
+    #[error("foreign account inputs for ID {0} are not anchored on reference block")]
+    ForeignAccountNotAnchoredInReference(AccountId),
+    #[error("failed to create transaction inputs")]
+    InvalidTransactionInputs(#[source] TransactionInputError),
     #[error("input account ID {input_id} does not match output account ID {output_id}")]
     InconsistentAccountId {
         input_id: AccountId,
@@ -28,10 +30,18 @@ pub enum TransactionExecutorError {
         expected: Option<Felt>,
         actual: Option<Felt>,
     },
-    #[error("failed to construct transaction outputs")]
-    TransactionOutputConstructionFailed(#[source] TransactionOutputError),
+    #[error("account witness provided for account ID {0} is invalid")]
+    InvalidAccountWitness(AccountId, #[source] SmtProofError),
+    #[error(
+        "input note {0} was created in a block past the transaction reference block number ({1})"
+    )]
+    NoteBlockPastReferenceBlock(NoteId, BlockNumber),
     #[error("failed to create transaction host")]
     TransactionHostCreationFailed(#[source] TransactionHostError),
+    #[error("failed to construct transaction outputs")]
+    TransactionOutputConstructionFailed(#[source] TransactionOutputError),
+    #[error("failed to execute transaction kernel program")]
+    TransactionProgramExecutionFailed(#[source] ExecutionError),
 }
 
 // TRANSACTION PROVER ERROR
@@ -41,6 +51,8 @@ pub enum TransactionExecutorError {
 pub enum TransactionProverError {
     #[error("failed to apply account delta")]
     AccountDeltaApplyFailed(#[source] AccountError),
+    #[error("transaction inputs are not valid")]
+    InvalidTransactionInputs(#[source] TransactionInputError),
     #[error("failed to construct transaction outputs")]
     TransactionOutputConstructionFailed(#[source] TransactionOutputError),
     #[error("failed to build proven transaction")]
@@ -111,12 +123,6 @@ pub enum DataStoreError {
     AccountNotFound(AccountId),
     #[error("block with number {0} not found in data store")]
     BlockNotFound(BlockNumber),
-    #[error("failed to create transaction inputs")]
-    InvalidTransactionInput(#[source] TransactionInputError),
-    #[error("note with id {0} is already consumed")]
-    NoteAlreadyConsumed(NoteId),
-    #[error("not with id {0} not found in data store")]
-    NoteNotFound(NoteId),
     /// Custom error variant for implementors of the [`DataStore`](crate::executor::DataStore)
     /// trait.
     #[error("{error_msg}")]

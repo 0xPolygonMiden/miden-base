@@ -5,7 +5,6 @@ use alloc::{sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::delta::AccountUpdateDetails,
-    assembly::Library,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 pub use miden_prover::ProvingOptions;
@@ -14,7 +13,9 @@ use vm_processor::MemAdviceProvider;
 use winter_maybe_async::*;
 
 use super::{TransactionHost, TransactionProverError};
-use crate::executor::TransactionMastStore;
+
+mod mast_store;
+pub use mast_store::TransactionMastStore;
 
 // TRANSACTION PROVER TRAIT
 // ================================================================================================
@@ -55,14 +56,6 @@ impl LocalTransactionProver {
             proof_options,
         }
     }
-
-    /// Loads the provided library code into the internal MAST forest store.
-    ///
-    /// TODO: this is a work-around to support accounts which were complied with user-defined
-    /// libraries. Once Miden Assembler supports library vendoring, this should go away.
-    pub fn load_library(&mut self, library: &Library) {
-        self.mast_store.insert(library.mast_forest().clone());
-    }
 }
 
 impl Default for LocalTransactionProver {
@@ -81,17 +74,7 @@ impl TransactionProver for LocalTransactionProver {
         &self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
-        let TransactionWitness {
-            tx_inputs,
-            tx_args,
-            advice_witness,
-            account_codes,
-        } = tx_witness;
-
-        for account_code in &account_codes {
-            // load the code mast forest to the mast store
-            self.mast_store.load_account_code(account_code);
-        }
+        let TransactionWitness { tx_inputs, tx_args, advice_witness } = tx_witness;
 
         let account = tx_inputs.account();
         let input_notes = tx_inputs.input_notes();
@@ -100,18 +83,23 @@ impl TransactionProver for LocalTransactionProver {
 
         // execute and prove
         let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_witness));
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_witness))
+                .map_err(TransactionProverError::InvalidTransactionInputs)?;
         let advice_provider: MemAdviceProvider = advice_inputs.into();
 
         // load the store with account/note/tx_script MASTs
-        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+        self.mast_store.load_transaction_code(account.code(), input_notes, &tx_args);
 
         let mut host: TransactionHost<_> = TransactionHost::new(
             account.into(),
             advice_provider,
             self.mast_store.clone(),
             None,
-            account_codes.iter().map(|c| c.commitment()).collect(),
+            tx_args
+                .foreign_accounts()
+                .iter()
+                .map(|acc| acc.account_code().commitment())
+                .collect(),
         )
         .map_err(TransactionProverError::TransactionHostCreationFailed)?;
 
