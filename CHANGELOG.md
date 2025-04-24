@@ -10,6 +10,7 @@
 - [BREAKING] Replaced the `ProvenBatch::new_unchecked` with the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 - Added pretty print for `AccountCode` (#1273).
 - [BREAKING] Add `NetworkAccount` configuration (#1275).
+- Added support for environment variables to set up the `miden-proving-service` worker (#1281).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
