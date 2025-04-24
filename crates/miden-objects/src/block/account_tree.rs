@@ -55,13 +55,17 @@ impl AccountTree {
     /// Returns an error if:
     /// - the provided entries contain multiple commitments for the same account ID.
     /// - multiple account IDs share the same prefix.
-    pub fn with_entries(
-        entries: impl IntoIterator<Item = (AccountId, Digest)>,
-    ) -> Result<Self, AccountTreeError> {
+    pub fn with_entries<I>(
+        entries: impl IntoIterator<Item = (AccountId, Digest), IntoIter = I>,
+    ) -> Result<Self, AccountTreeError>
+    where
+        I: ExactSizeIterator<Item = (AccountId, Digest)>,
+    {
+        let entries = entries.into_iter();
+        let num_accounts = entries.len();
+
         let smt = Smt::with_entries(
-            entries
-                .into_iter()
-                .map(|(id, commitment)| (Self::id_to_smt_key(id), Word::from(commitment))),
+            entries.map(|(id, commitment)| (Self::id_to_smt_key(id), Word::from(commitment))),
         )
         .map_err(|err| {
             let MerkleError::DuplicateValuesForIndex(leaf_idx) = err else {
@@ -77,16 +81,22 @@ impl AccountTree {
             }
         })?;
 
-        for (leaf_idx, leaf) in smt.leaves() {
-            if leaf.num_entries() >= 2 {
-                // SAFETY: Since we only inserted account IDs into the SMT, it is guaranteed that
-                // the leaf_idx is a valid Felt as well as a valid account ID prefix.
-                return Err(AccountTreeError::DuplicateIdPrefix {
-                    duplicate_prefix: AccountIdPrefix::new_unchecked(
-                        Felt::try_from(leaf_idx.value())
-                            .expect("leaf index should be a valid felt"),
-                    ),
-                });
+        // If the number of leaves in the SMT is smaller than the number of accounts that were
+        // passed in, it means that at least one account ID pair ended up in the same leaf. If this
+        // is the case, we iterate the SMT entries to find the duplicated account ID prefix.
+        if smt.num_leaves() < num_accounts {
+            for (leaf_idx, leaf) in smt.leaves() {
+                if leaf.num_entries() >= 2 {
+                    // SAFETY: Since we only inserted account IDs into the SMT, it is guaranteed
+                    // that the leaf_idx is a valid Felt as well as a valid
+                    // account ID prefix.
+                    return Err(AccountTreeError::DuplicateIdPrefix {
+                        duplicate_prefix: AccountIdPrefix::new_unchecked(
+                            Felt::try_from(leaf_idx.value())
+                                .expect("leaf index should be a valid felt"),
+                        ),
+                    });
+                }
             }
         }
 
