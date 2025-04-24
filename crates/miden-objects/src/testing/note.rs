@@ -11,8 +11,8 @@ use crate::{
     account::AccountId,
     asset::Asset,
     note::{
-        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
-        NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteScript, NoteTag, NoteType,
     },
 };
 
@@ -50,7 +50,8 @@ impl NoteBuilder {
             note_type: NoteType::Public,
             note_execution_hint: NoteExecutionHint::None,
             serial_num,
-            tag: 0.into(),
+            // The note tag is not under test, so we choose a value that is always valid.
+            tag: NoteTag::from_account_id(sender, NoteExecutionMode::Local).unwrap(),
             code: DEFAULT_NOTE_CODE.to_string(),
             aux: ZERO,
         }

@@ -618,7 +618,7 @@ pub enum MultiWordRepresentation {
     Value {
         /// The human-readable name of this multi-slot entry.
         identifier: FieldIdentifier,
-        /// A list of values to fill the logical slot, with a length equal to the amount of slots.
+        /// A list of values to fill the logical slot, with a length equal to the number of slots.
         values: Vec<[FeltRepresentation; 4]>,
     },
 }

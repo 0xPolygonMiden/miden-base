@@ -11,8 +11,8 @@ use miden_lib::{
 use miden_objects::{
     AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
-        Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
-        AccountType, AuthSecretKey, delta::AccountUpdateDetails,
+        Account, AccountBuilder, AccountComponent, AccountDelta, AccountHeader, AccountId,
+        AccountIdAnchor, AccountType, AuthSecretKey, StorageSlot, delta::AccountUpdateDetails,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
@@ -22,14 +22,14 @@ use miden_objects::{
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{Mmr, Smt},
+        merkle::{Mmr, Smt, SmtProof},
     },
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OrderedTransactionHeaders,
-        OutputNote, ProvenTransaction, ToInputNoteCommitments, TransactionHeader, TransactionId,
-        TransactionInputs, TransactionScript,
+        ChainMmr, ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
+        OrderedTransactionHeaders, OutputNote, ProvenTransaction, ToInputNoteCommitments,
+        TransactionHeader, TransactionId, TransactionInputs, TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -621,9 +621,16 @@ impl MockChain {
         };
 
         let (account, seed) = if let AccountState::New = account_state {
-            let last_block = self.blocks.last().expect("one block should always exist");
+            let epoch_block_number = self
+                .blocks
+                .last()
+                .expect("one block should always exist")
+                .header()
+                .epoch_block_num();
+            let account_id_anchor =
+                self.blocks.get(epoch_block_number.as_usize()).unwrap().header();
             account_builder =
-                account_builder.anchor(AccountIdAnchor::try_from(last_block.header()).unwrap());
+                account_builder.anchor(AccountIdAnchor::try_from(account_id_anchor).unwrap());
 
             account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
         } else {
@@ -751,6 +758,31 @@ impl MockChain {
             self.latest_selective_chain_mmr(tx_reference_blocks);
 
         (batch_reference_block, chain_mmr)
+    }
+
+    /// Gets foreign account inputs to execute FPI transactions.
+    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
+        let account = self.available_account(account_id);
+
+        let account_witness = self.accounts().open(account_id);
+        assert_eq!(account_witness.state_commitment(), account.commitment());
+
+        let mut storage_map_proofs = vec![];
+        for slot in account.storage().slots() {
+            // if there are storage maps, we populate the merkle store and advice map
+            if let StorageSlot::Map(map) = slot {
+                let proofs: Vec<SmtProof> = map.entries().map(|(key, _)| map.open(key)).collect();
+                storage_map_proofs.extend(proofs);
+            }
+        }
+
+        ForeignAccountInputs::new(
+            AccountHeader::from(account),
+            account.storage().get_header(),
+            account.code().clone(),
+            account_witness,
+            storage_map_proofs,
+        )
     }
 
     /// Gets the inputs for a block for the provided batches.

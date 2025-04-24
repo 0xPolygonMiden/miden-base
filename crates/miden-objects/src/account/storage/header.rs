@@ -1,6 +1,8 @@
 use alloc::vec::Vec;
 
-use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
+use vm_processor::Digest;
+
+use super::{AccountStorage, Felt, Hasher, StorageSlot, StorageSlotType, Word};
 use crate::{
     AccountError, ZERO,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -88,6 +90,12 @@ impl AccountStorageHeader {
             slots_len: self.slots.len() as u8,
             index: index as u8,
         })
+    }
+
+    // NOTE: The way of computing the commitment should be kept in sync with `AccountStorage`
+    /// Computes the account storage header commitment.
+    pub fn compute_commitment(&self) -> Digest {
+        Hasher::hash_elements(&self.as_elements())
     }
 
     /// Converts storage slots of this account storage header into a vector of field elements.

@@ -1,10 +1,5 @@
-use alloc::vec::Vec;
-
 use super::{AdviceInputs, TransactionArgs, TransactionInputs};
-use crate::{
-    account::AccountCode,
-    utils::serde::{ByteReader, Deserializable, DeserializationError, Serializable},
-};
+use crate::utils::serde::{ByteReader, Deserializable, DeserializationError, Serializable};
 
 // TRANSACTION WITNESS
 // ================================================================================================
@@ -32,7 +27,6 @@ pub struct TransactionWitness {
     pub tx_inputs: TransactionInputs,
     pub tx_args: TransactionArgs,
     pub advice_witness: AdviceInputs,
-    pub account_codes: Vec<AccountCode>,
 }
 
 // SERIALIZATION
@@ -43,7 +37,6 @@ impl Serializable for TransactionWitness {
         self.tx_inputs.write_into(target);
         self.tx_args.write_into(target);
         self.advice_witness.write_into(target);
-        self.account_codes.write_into(target);
     }
 }
 
@@ -52,12 +45,6 @@ impl Deserializable for TransactionWitness {
         let tx_inputs = TransactionInputs::read_from(source)?;
         let tx_args = TransactionArgs::read_from(source)?;
         let advice_witness = AdviceInputs::read_from(source)?;
-        let account_codes = <Vec<AccountCode>>::read_from(source)?;
-        Ok(Self {
-            tx_inputs,
-            tx_args,
-            advice_witness,
-            account_codes,
-        })
+        Ok(Self { tx_inputs, tx_args, advice_witness })
     }
 }

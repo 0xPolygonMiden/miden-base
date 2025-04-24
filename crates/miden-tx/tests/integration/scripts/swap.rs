@@ -6,9 +6,11 @@ use miden_objects::{
     crypto::rand::RpoRandomCoin,
     note::{Note, NoteDetails, NoteType},
     transaction::{OutputNote, TransactionScript},
+};
+use miden_tx::{
+    testing::{Auth, MockChain},
     utils::word_to_masm_push_string,
 };
-use miden_tx::testing::{Auth, MockChain};
 
 use crate::prove_and_verify_transaction;
 

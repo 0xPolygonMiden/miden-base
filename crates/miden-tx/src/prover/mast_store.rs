@@ -50,11 +50,6 @@ impl TransactionMastStore {
         store
     }
 
-    /// Loads the provided account code into this store.
-    pub fn load_account_code(&self, code: &AccountCode) {
-        self.insert(code.mast().clone());
-    }
-
     /// Loads code required for executing a transaction with the specified inputs and args into
     /// this store.
     ///
@@ -96,6 +91,11 @@ impl TransactionMastStore {
         for proc_digest in mast_forest.local_procedure_digests() {
             mast_forests.insert(proc_digest, mast_forest.clone());
         }
+    }
+
+    /// Loads the provided account code into this store.
+    fn load_account_code(&self, code: &AccountCode) {
+        self.insert(code.mast().clone());
     }
 }
 
