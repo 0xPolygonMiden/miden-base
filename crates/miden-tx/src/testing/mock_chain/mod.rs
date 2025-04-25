@@ -17,12 +17,13 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        AccountTree, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
-        BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch, ProposedBlock, ProvenBlock,
+        AccountTree, AccountWitness, BlockAccountUpdate, BlockChain, BlockHeader, BlockInputs,
+        BlockNoteIndex, BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch,
+        ProposedBlock, ProvenBlock,
     },
     crypto::{
         dsa::rpo_falcon512::SecretKey,
-        merkle::{Mmr, Smt, SmtProof},
+        merkle::{Smt, SmtProof},
     },
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
@@ -249,7 +250,7 @@ impl PendingObjects {
 #[derive(Debug, Clone)]
 pub struct MockChain {
     /// An append-only structure used to represent the history of blocks produced for this chain.
-    chain: Mmr,
+    chain: BlockChain,
 
     /// History of produced blocks.
     blocks: Vec<ProvenBlock>,
@@ -282,7 +283,7 @@ pub struct MockChain {
 impl Default for MockChain {
     fn default() -> Self {
         MockChain {
-            chain: Mmr::default(),
+            chain: BlockChain::default(),
             blocks: vec![],
             nullifiers: Smt::default(),
             account_tree: AccountTree::new(),
@@ -736,7 +737,7 @@ impl MockChain {
         }
 
         let block_headers = block_headers_map.values().cloned();
-        let mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();
+        let mmr = ChainMmr::from_blockchain(&self.chain, block_headers).unwrap();
 
         TransactionInputs::new(
             account,
@@ -974,7 +975,7 @@ impl MockChain {
             }
 
             self.blocks.push(block.clone());
-            self.chain.add(header.commitment());
+            self.chain.push(header.commitment());
             self.reset_pending();
 
             last_block = Some(block);
@@ -991,19 +992,19 @@ impl MockChain {
     // ACCESSORS
     // =========================================================================================
 
-    /// Returns a refernce to the current [`Mmr`] representing the blockchain.
-    pub fn block_chain(&self) -> &Mmr {
+    /// Returns a refernce to the current [`BlockChain`].
+    pub fn block_chain(&self) -> &BlockChain {
         &self.chain
     }
 
     /// Gets the latest [ChainMmr].
     pub fn latest_chain_mmr(&self) -> ChainMmr {
-        // We cannot pass the latest block as that would violate the condition in the transaction
-        // inputs that the chain length of the mmr must match the number of the reference block.
+        // We have to exclude the latest block because we need to fetch the state of the chain at
+        // that latest block, which does not include itself.
         let block_headers =
             self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).cloned();
 
-        ChainMmr::from_mmr(&self.chain, block_headers).unwrap()
+        ChainMmr::from_blockchain(&self.chain, block_headers).unwrap()
     }
 
     /// Creates a new [`ChainMmr`] with all reference blocks in the given iterator except for the
@@ -1027,7 +1028,7 @@ impl MockChain {
             .filter(|block_header| block_header.commitment() != latest_block_header.commitment())
             .collect();
 
-        let chain_mmr = ChainMmr::from_mmr(&self.chain, block_headers).unwrap();
+        let chain_mmr = ChainMmr::from_blockchain(&self.chain, block_headers).unwrap();
 
         (latest_block_header, chain_mmr)
     }
@@ -1087,7 +1088,9 @@ impl MockChain {
 
     /// Returns a reference to the latest [`BlockHeader`].
     pub fn latest_block_header(&self) -> BlockHeader {
-        self.blocks[self.chain.forest() - 1].header().clone()
+        let chain_tip =
+            self.chain.chain_tip().expect("chain should contain at least the genesis block");
+        self.blocks[chain_tip.as_usize()].header().clone()
     }
 
     /// Gets a reference to [BlockHeader] with `block_number`.
