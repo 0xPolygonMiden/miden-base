@@ -21,7 +21,7 @@ fn proposed_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),

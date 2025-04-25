@@ -3,7 +3,9 @@ use alloc::vec::Vec;
 use miden_objects::{
     Digest, EMPTY_WORD, Felt, FieldElement, TransactionInputError, WORD_SIZE, Word, ZERO,
     account::{Account, StorageSlot},
-    transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    transaction::{
+        InputNote, PartialBlockChain, TransactionArgs, TransactionInputs, TransactionScript,
+    },
     vm::AdviceInputs,
 };
 
@@ -17,7 +19,7 @@ use super::TransactionKernel;
 ///
 /// This includes the initial account, an optional account seed (required for new accounts), and
 /// the input note data, including core note data + authentication paths all the way to the root
-/// of one of chain MMR peaks.
+/// of one of partial blockchain peaks.
 pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
@@ -30,7 +32,7 @@ pub(super) fn extend_advice_inputs(
 
     // build the advice map and Merkle store for relevant components
     add_kernel_commitments_to_advice_inputs(advice_inputs, kernel_version);
-    add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
+    add_partial_block_chain_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs)?;
     for foreign_account in tx_args.foreign_accounts() {
@@ -50,7 +52,7 @@ pub(super) fn extend_advice_inputs(
 ///
 /// [
 ///     PARENT_BLOCK_COMMITMENT,
-///     CHAIN_MMR_HASH,
+///     PARTIAL_BLOCK_CHAIN_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_COMMITMENT,
@@ -115,13 +117,13 @@ fn build_advice_stack(
     inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.root()));
 }
 
-// CHAIN MMR INJECTOR
+// PARTIAL BLOCKCHAIN INJECTOR
 // ------------------------------------------------------------------------------------------------
 
-/// Inserts the chain MMR data into the provided advice inputs.
+/// Inserts the partial blockchain data into the provided advice inputs.
 ///
 /// Inserts the following items into the Merkle store:
-/// - Inner nodes of all authentication paths contained in the chain MMR.
+/// - Inner nodes of all authentication paths contained in the partial blockchain.
 ///
 /// Inserts the following data to the advice map:
 ///
@@ -131,7 +133,7 @@ fn build_advice_stack(
 /// - MMR_ROOT, is the sequential hash of the padded MMR peaks
 /// - num_blocks, is the number of blocks in the MMR.
 /// - PEAK_1 .. PEAK_N, are the MMR peaks.
-fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
+fn add_partial_block_chain_to_advice_inputs(mmr: &PartialBlockChain, inputs: &mut AdviceInputs) {
     // NOTE: keep this code in sync with the `process_chain_data` kernel procedure
 
     // add authentication paths from the MMR to the Merkle store
@@ -273,7 +275,7 @@ fn add_input_notes_to_advice_inputs(
                     tx_inputs
                         .block_chain()
                         .get_block(block_num)
-                        .expect("block not found in chain MMR")
+                        .expect("block not found in partial blockchain")
                 };
 
                 // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure

@@ -113,17 +113,17 @@ const.BLOCK_METADATA_PTR=828
 # The memory address at which the note root is stored
 const.NOTE_ROOT_PTR=832
 
-# CHAIN MMR
+# PARTIAL BLOCKCHAIN
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the chain data section begins
-const.CHAIN_MMR_PTR=1200
+const.PARTIAL_BLOCK_CHAIN_PTR=1200
 
-# The memory address at which the total number of leaves in the chain MMR is stored
-const.CHAIN_MMR_NUM_LEAVES_PTR=1200
+# The memory address at which the total number of leaves in the partial blockchain is stored
+const.PARTIAL_BLOCK_CHAIN_NUM_LEAVES_PTR=1200
 
-# The memory address at which the chain mmr peaks are stored
-const.CHAIN_MMR_PEAKS_PTR=1204
+# The memory address at which the partial blockchain peaks are stored
+const.PARTIAL_BLOCK_CHAIN_PEAKS_PTR=1204
 
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
@@ -618,37 +618,37 @@ end
 # CHAIN DATA
 # -------------------------------------------------------------------------------------------------
 
-#! Returns a pointer to the chain MMR section.
+#! Returns a pointer to the partial blockchain section.
 #!
 #! Inputs:  []
 #! Outputs: [ptr]
 #!
 #! Where:
-#! - ptr is the pointer to the chain MMR section.
-export.get_chain_mmr_ptr
-    push.CHAIN_MMR_PTR
+#! - ptr is the pointer to the partial blockchain section.
+export.get_partial_block_chain_ptr
+    push.PARTIAL_BLOCK_CHAIN_PTR
 end
 
-#! Sets the number of leaves in the chain MMR.
+#! Sets the number of leaves in the partial blockchain.
 #!
 #! Inputs:  [num_leaves]
 #! Outputs: []
 #!
 #! Where:
-#! - num_leaves is the number of leaves in the chain MMR.
-export.set_chain_mmr_num_leaves
-    push.CHAIN_MMR_NUM_LEAVES_PTR mem_store
+#! - num_leaves is the number of leaves in the partial blockchain.
+export.set_partial_block_chain_num_leaves
+    push.PARTIAL_BLOCK_CHAIN_NUM_LEAVES_PTR mem_store
 end
 
-#! Returns a pointer to start of the chain MMR peaks section.
+#! Returns a pointer to start of the partial blockchain peaks section.
 #!
 #! Inputs:  []
 #! Outputs: [ptr]
 #!
 #! Where:
-#! - ptr is the pointer to the start of the chain MMR peaks section.
-export.get_chain_mmr_peaks_ptr
-    push.CHAIN_MMR_PEAKS_PTR
+#! - ptr is the pointer to the start of the partial blockchain peaks section.
+export.get_partial_block_chain_peaks_ptr
+    push.PARTIAL_BLOCK_CHAIN_PEAKS_PTR
 end
 
 # ACCOUNT DATA

@@ -129,7 +129,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // The Mmr in MockChain adds a new block after it is sealed, so at this point the chain contains
     // block2 and has length 3.
     // This means the chain commitment of the mock chain must match the chain commitment of the
-    // ChainMmr with chain length 2 when the prev block (block2) is added.
+    // PartialBlockChain with chain length 2 when the prev block (block2) is added.
     assert_eq!(
         proven_block.header().chain_commitment(),
         chain.block_chain().peaks().hash_peaks()
@@ -369,12 +369,12 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     assert_ne!(latest_block_header.account_root(), AccountTree::new().root());
     assert_ne!(latest_block_header.nullifier_root(), Smt::new().root());
 
-    let (_, empty_chain_mmr) = chain.latest_selective_chain_mmr([]);
-    assert_eq!(empty_chain_mmr.block_headers().count(), 0);
+    let (_, empty_partial_block_chain) = chain.latest_selective_partial_block_chain([]);
+    assert_eq!(empty_partial_block_chain.block_headers().count(), 0);
 
     let block_inputs = BlockInputs::new(
         latest_block_header.clone(),
-        empty_chain_mmr.clone(),
+        empty_partial_block_chain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),

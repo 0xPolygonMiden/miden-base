@@ -11,7 +11,7 @@ use miden_objects::{
     block::BlockNumber,
     note::{Note, NoteType},
     testing::{account_id::AccountIdBuilder, note::NoteBuilder},
-    transaction::{ChainMmr, InputNote, InputNoteCommitment, OutputNote},
+    transaction::{InputNote, InputNoteCommitment, OutputNote, PartialBlockChain},
 };
 use miden_tx::testing::{Auth, MockChain};
 use rand::{SeedableRng, rngs::SmallRng};
@@ -57,8 +57,9 @@ fn empty_transaction_batch() -> anyhow::Result<()> {
     let TestSetup { chain, .. } = setup_chain();
     let block1 = chain.block_header(1);
 
-    let error = ProposedBatch::new(vec![], block1, chain.latest_chain_mmr(), BTreeMap::default())
-        .unwrap_err();
+    let error =
+        ProposedBatch::new(vec![], block1, chain.latest_partial_block_chain(), BTreeMap::default())
+            .unwrap_err();
 
     assert_matches!(error, ProposedBatchError::EmptyTransactionBatch);
 
@@ -88,7 +89,7 @@ fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block2.header().clone(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )?;
 
@@ -120,7 +121,7 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -160,7 +161,7 @@ fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block2.header().clone(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -200,7 +201,7 @@ fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block2.header().clone(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -239,7 +240,7 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -280,9 +281,9 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let input_note1 = chain.available_notes_map().get(&note1.id()).expect("note not found");
     let note_inclusion_proof1 = input_note1.proof().expect("note should be of type authenticated");
 
-    // The chain MMR will contain all blocks in the mock chain, in particular block2 which both note
-    // inclusion proofs need for verification.
-    let chain_mmr = chain.latest_chain_mmr();
+    // The partial blockchain will contain all blocks in the mock chain, in particular block2 which
+    // both note inclusion proofs need for verification.
+    let partial_block_chain = chain.latest_partial_block_chain();
 
     // Case 1: Error: A wrong proof is passed.
     // --------------------------------------------------------------------------------------------
@@ -290,7 +291,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone()].into_iter().map(Arc::new).collect(),
         block4.header().clone(),
-        chain_mmr.clone(),
+        partial_block_chain.clone(),
         BTreeMap::from_iter([(input_note1.id(), note_inclusion_proof0.clone())]),
     )
     .unwrap_err();
@@ -306,10 +307,10 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     // Case 2: Error: The block referenced by the (valid) note inclusion proof is missing.
     // --------------------------------------------------------------------------------------------
 
-    // Make a clone of the chain mmr where block2 is missing.
-    let mut mmr = chain_mmr.mmr().clone();
+    // Make a clone of the partial blockchain where block2 is missing.
+    let mut mmr = partial_block_chain.mmr().clone();
     mmr.untrack(block2.header().block_num().as_usize());
-    let blocks = chain_mmr
+    let blocks = partial_block_chain
         .block_headers()
         .filter(|header| header.block_num() != block2.header().block_num())
         .cloned();
@@ -317,14 +318,15 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone()].into_iter().map(Arc::new).collect(),
         block4.header().clone(),
-        ChainMmr::new(mmr, blocks).context("failed to build chain mmr with missing block")?,
+        PartialBlockChain::new(mmr, blocks)
+            .context("failed to build partial blockchain with missing block")?,
         BTreeMap::from_iter([(input_note1.id(), note_inclusion_proof1.clone())]),
     )
     .unwrap_err();
 
     assert_matches!(
         error,
-        ProposedBatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
+        ProposedBatchError::UnauthenticatedInputNoteBlockNotInPartialBlockChain {
           block_number,
           note_id
         } if block_number == note_inclusion_proof1.location().block_num() &&
@@ -337,7 +339,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1].into_iter().map(Arc::new).collect(),
         block4.header().clone(),
-        chain_mmr,
+        partial_block_chain,
         BTreeMap::from_iter([(input_note1.id(), note_inclusion_proof1.clone())]),
     )?;
 
@@ -387,7 +389,7 @@ fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block2.header().clone(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )?;
 
@@ -430,7 +432,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1.clone(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )?;
 
@@ -450,7 +452,7 @@ fn multiple_transactions_against_same_account() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx2.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -498,7 +500,7 @@ fn input_and_output_notes_commitment() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1.clone(), tx2.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )?;
 
@@ -546,7 +548,7 @@ fn batch_expiration() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block1.clone(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )?;
 
@@ -570,7 +572,7 @@ fn duplicate_transaction() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx1.clone()].into_iter().map(Arc::new).collect(),
         block1,
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )
     .unwrap_err();
@@ -607,7 +609,7 @@ fn circular_note_dependency() -> anyhow::Result<()> {
     let batch = ProposedBatch::new(
         [tx1, tx2].into_iter().map(Arc::new).collect(),
         block1,
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )?;
 
@@ -638,7 +640,7 @@ fn expired_transaction() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone(), tx2].into_iter().map(Arc::new).collect(),
         block1.clone(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
     )
     .unwrap_err();

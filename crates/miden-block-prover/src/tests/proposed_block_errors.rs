@@ -40,7 +40,7 @@ fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -64,7 +64,7 @@ fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -124,7 +124,7 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
     // Mock BlockInputs.
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.latest_chain_mmr(),
+        chain.latest_partial_block_chain(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -143,22 +143,24 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
     Ok(())
 }
 
-/// Tests that a chain MMR that is not at the state of the previous block header produces an error.
+/// Tests that a partial blockchain that is not at the state of the previous block header produces
+/// an error.
 #[test]
-fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::Result<()> {
+fn proposed_block_fails_on_partial_block_chain_and_prev_block_inconsistency() -> anyhow::Result<()>
+{
     let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
     let batches = vec![batch0];
 
-    // Select the chain MMR which is valid for the current block but pass the next block in the
-    // chain, which is an inconsistent combination.
-    let mut chain_mmr = chain.latest_chain_mmr();
+    // Select the partial blockchain which is valid for the current block but pass the next block in
+    // the chain, which is an inconsistent combination.
+    let mut partial_block_chain = chain.latest_partial_block_chain();
     let block2 = chain.clone().seal_next_block();
 
     let block_inputs = BlockInputs::new(
         block2.header().clone(),
-        chain_mmr.clone(),
+        partial_block_chain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -170,17 +172,19 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
         ProposedBlockError::ChainLengthNotEqualToPreviousBlockNumber {
             chain_length,
             prev_block_num
-        } if chain_length == chain_mmr.chain_length() &&
+        } if chain_length == partial_block_chain.chain_length() &&
           prev_block_num == block2.header().block_num()
     );
 
     // Add an invalid value making the chain length equal to block2's number, but resulting in a
     // different chain commitment.
-    chain_mmr.partial_mmr_mut().add(block2.header().nullifier_root(), true);
+    partial_block_chain
+        .partial_mmr_mut()
+        .add(block2.header().nullifier_root(), true);
 
     let block_inputs = BlockInputs::new(
         block2.header().clone(),
-        chain_mmr.clone(),
+        partial_block_chain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -195,8 +199,8 @@ fn proposed_block_fails_on_chain_mmr_and_prev_block_inconsistency() -> anyhow::R
     Ok(())
 }
 
-/// Tests that a chain MMR that does not contain all reference blocks of the batches produces an
-/// error.
+/// Tests that a partial blockchain that does not contain all reference blocks of the batches
+/// produces an error.
 #[test]
 fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
@@ -208,13 +212,14 @@ fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()>
 
     let block2 = chain.seal_next_block();
 
-    let (_, chain_mmr) = chain.latest_selective_chain_mmr([BlockNumber::from(0)]);
+    let (_, partial_block_chain) =
+        chain.latest_selective_partial_block_chain([BlockNumber::from(0)]);
 
-    // The proposed block references block 2 but the chain MMR only contains block 0 but not
-    // block 1 which is referenced by the batch.
+    // The proposed block references block 2 but the partial blockchain only contains block 0 but
+    // not block 1 which is referenced by the batch.
     let block_inputs = BlockInputs::new(
         block2.header().clone(),
-        chain_mmr.clone(),
+        partial_block_chain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -307,7 +312,7 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
 
 /// Tests that a missing note inclusion proof produces an error.
 /// Also tests that an error is produced if the block that the note inclusion proof references is
-/// not in the chain MMR.
+/// not in the partial blockchain.
 #[test]
 fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_block()
 -> anyhow::Result<()> {
@@ -337,22 +342,22 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
 
     let original_block_inputs = chain.get_block_inputs(&batches);
 
-    // Error: Block referenced by note inclusion proof is not in chain MMR.
+    // Error: Block referenced by note inclusion proof is not in partial blockchain.
     // --------------------------------------------------------------------------------------------
 
     let mut invalid_block_inputs = original_block_inputs.clone();
     invalid_block_inputs
-        .chain_mmr_mut()
+        .partial_block_chain_mut()
         .partial_mmr_mut()
         .untrack(block2.header().block_num().as_usize());
     invalid_block_inputs
-        .chain_mmr_mut()
+        .partial_block_chain_mut()
         .block_headers_mut()
         .remove(&block2.header().block_num())
         .expect("block2 should have been fetched");
 
     let error = ProposedBlock::new(invalid_block_inputs, batches.clone()).unwrap_err();
-    assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInChainMmr { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
+    assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockChain { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
 
     // Error: Invalid note inclusion proof.
     // --------------------------------------------------------------------------------------------

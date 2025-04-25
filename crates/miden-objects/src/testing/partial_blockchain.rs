@@ -1,17 +1,18 @@
 use alloc::vec::Vec;
 
 use crate::{
-    ChainMmrError,
+    PartialBlockChainError,
     block::{BlockChain, BlockHeader},
-    transaction::ChainMmr,
+    transaction::PartialBlockChain,
 };
 
-impl ChainMmr {
-    /// Converts the [`BlockChain`] into a [`ChainMmr`] by selectively copying all leaves that are
-    /// in the given `blocks` iterator.
+impl PartialBlockChain {
+    /// Converts the [`BlockChain`] into a [`PartialBlockChain`] by selectively copying all leaves
+    /// that are in the given `blocks` iterator.
     ///
-    /// This tracks all blocks in the given iterator in the [`ChainMmr`] except for the block whose
-    /// block number equals [`BlockChain::chain_tip`], which is the current chain tip.
+    /// This tracks all blocks in the given iterator in the [`PartialBlockChain`] except for the
+    /// block whose block number equals [`BlockChain::chain_tip`], which is the current chain
+    /// tip.
     ///
     /// # Panics
     ///
@@ -21,7 +22,7 @@ impl ChainMmr {
     pub fn from_blockchain(
         chain: &BlockChain,
         blocks: impl IntoIterator<Item = BlockHeader>,
-    ) -> Result<ChainMmr, ChainMmrError> {
+    ) -> Result<PartialBlockChain, PartialBlockChainError> {
         let block_headers: Vec<_> = blocks.into_iter().collect();
 
         // We take the state at the latest block which will be used as the reference block by
@@ -38,6 +39,6 @@ impl ChainMmr {
             )
             .expect("latest block should be in the chain and set of blocks should be valid");
 
-        ChainMmr::new(partial_mmr, block_headers)
+        PartialBlockChain::new(partial_mmr, block_headers)
     }
 }

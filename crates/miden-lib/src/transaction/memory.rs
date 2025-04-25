@@ -19,7 +19,7 @@ pub type StorageSlot = u8;
 // | Bookkeeping       | 0 (0)                                 | 287 (71)                            |                                             |
 // | Global inputs     | 400 (100)                             | 423 (105)                           |                                             |
 // | Block header      | 800 (200)                             | 835 (208)                           |                                             |
-// | Chain MMR         | 1_200 (300)                           | 1_331? (332?)                       |                                             |
+// | Partial blockchain         | 1_200 (300)                           | 1_331? (332?)                       |                                             |
 // | Kernel data       | 1_600 (400)                           | 1_739 (434)                         | 34 procedures in total, 4 elements each     |
 // | Accounts data     | 8_192 (2048)                          | 532_479 (133_119)                   | 64 accounts max, 8192 elements each         |
 // | Input notes       | 4_194_304 (1_048_576)                 | ?                                   |                                             |
@@ -162,13 +162,13 @@ pub const NOTE_ROOT_PTR: MemoryAddress = 832;
 // ------------------------------------------------------------------------------------------------
 
 /// The memory address at which the chain data section begins
-pub const CHAIN_MMR_PTR: MemoryAddress = 1200;
+pub const PARTIAL_BLOCK_CHAIN_PTR: MemoryAddress = 1200;
 
-/// The memory address at which the total number of leaves in the chain MMR is stored
-pub const CHAIN_MMR_NUM_LEAVES_PTR: MemoryAddress = 1200;
+/// The memory address at which the total number of leaves in the partial blockchain is stored
+pub const PARTIAL_BLOCK_CHAIN_NUM_LEAVES_PTR: MemoryAddress = 1200;
 
-/// The memory address at which the chain mmr peaks are stored
-pub const CHAIN_MMR_PEAKS_PTR: MemoryAddress = 1204;
+/// The memory address at which the partial blockchain peaks are stored
+pub const PARTIAL_BLOCK_CHAIN_PEAKS_PTR: MemoryAddress = 1204;
 
 // KERNEL DATA
 // ------------------------------------------------------------------------------------------------

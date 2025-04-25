@@ -216,7 +216,7 @@ end
 #!   Operand stack: [block_num]
 #!   Advice stack: [
 #!     PREV_BLOCK_COMMITMENT,
-#!     CHAIN_MMR_HASH,
+#!     PARTIAL_BLOCK_CHAIN_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_COMMITMENT,
@@ -230,7 +230,7 @@ end
 #!
 #! Where:
 #! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
-#! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
+#! - PARTIAL_BLOCK_CHAIN_HASH is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
@@ -278,7 +278,7 @@ end
 # CHAIN DATA
 # =================================================================================================
 
-#! Saves the MMR peaks to memory and verifies that it matches the reference block's CHAIN_MMR_HASH.
+#! Saves the MMR peaks to memory and verifies that it matches the reference block's PARTIAL_BLOCK_CHAIN_HASH.
 #!
 #! This procedure loads the MMR peaks from the advice provider, verifies their hash matches the
 #! reference block, and insert the reference block in the MMR. The reference block is added to the
@@ -289,23 +289,23 @@ end
 #! Inputs:
 #!   Operand stack: []
 #!   Advice map: {
-#!     CHAIN_MMR_HASH: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]
+#!     PARTIAL_BLOCK_CHAIN_HASH: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]
 #!   }
 #! Outputs:
 #!   Operand stack: []
 #!
 #! Where:
-#! - CHAIN_MMR_HASH is the sequential hash of the padded MMR peaks.
+#! - PARTIAL_BLOCK_CHAIN_HASH is the sequential hash of the padded MMR peaks.
 #! - num_blocks is the number of blocks in the MMR.
 #! - PEAK_1 .. PEAK_N are the MMR peaks.
 proc.process_chain_data
-    exec.memory::get_chain_mmr_ptr dup
-    # => [chain_mmr_ptr, chain_mmr_ptr]
+    exec.memory::get_partial_block_chain_ptr dup
+    # => [partial_block_chain_ptr, partial_block_chain_ptr]
 
     # save the MMR peaks to memory and verify it matches the block's CHAIN_COMMITMENT
     exec.memory::get_chain_commitment
     exec.mmr::unpack
-    # => [chain_mmr_ptr]
+    # => [partial_block_chain_ptr]
 
     # add the current block's commitment to the MMR, enabling authentication of notes created in it
     exec.memory::get_block_commitment
@@ -566,11 +566,11 @@ end
 #! - NOTE_ROOT is the merkle root of the notes tree containing the input note.
 #! - note_index is the input note's position in the notes tree.
 proc.authenticate_note.8
-    # Load the BLOCK_COMMITMENT from the CHAIN_MMR
+    # Load the BLOCK_COMMITMENT from the PARTIAL_BLOCK_CHAIN
     # ---------------------------------------------------------------------------------------------
 
-    exec.memory::get_chain_mmr_ptr adv_push.1
-    # => [block_num, chain_mmr_ptr, NOTE_COMMITMENT]
+    exec.memory::get_partial_block_chain_ptr adv_push.1
+    # => [block_num, partial_block_chain_ptr, NOTE_COMMITMENT]
 
     exec.mmr::get
     # => [BLOCK_COMMITMENT, NOTE_COMMITMENT]
@@ -1103,7 +1103,7 @@ end
 #!   ]
 #!   Advice stack: [
 #!     PREV_BLOCK_COMMITMENT,
-#!     CHAIN_MMR_HASH,
+#!     PARTIAL_BLOCK_CHAIN_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_COMMITMENT,
@@ -1120,7 +1120,7 @@ end
 #!     TX_SCRIPT_ROOT,
 #!   ]
 #!   Advice map: {
-#!      CHAIN_MMR_HASH: [MMR_PEAKS],
+#!      PARTIAL_BLOCK_CHAIN_HASH: [MMR_PEAKS],
 #!      INPUT_NOTES_COMMITMENT: [NOTE_DATA],
 #!      TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS],
 #!      KERNEL_COMMITMENT: [KERNEL_PROCEDURE_ROOTS],
@@ -1140,7 +1140,7 @@ end
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.
 #! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
-#! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
+#! - PARTIAL_BLOCK_CHAIN_HASH is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
