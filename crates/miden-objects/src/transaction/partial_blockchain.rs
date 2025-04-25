@@ -23,8 +23,7 @@ use crate::{
 /// one needed to validate the seed of a new account, if applicable).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialBlockChain {
-    /// Partial view of the Partial blockchain with authentication paths for the blocks listed
-    /// below.
+    /// Partial view of the blockchain with authentication paths for the blocks listed below.
     mmr: PartialMmr,
     /// A map of block_num |-> block_header for all blocks for which the partial MMR contains
     /// authentication paths.

@@ -154,13 +154,13 @@ impl ProposedBatch {
         // Verify all block references from the transactions are in the partial blockchain, except
         // for the batch's reference block.
         //
-        // Note that some block X is only added to the blockpartial blockchain by block X + 1. This
+        // Note that some block X is only added to the blockchain by block X + 1. This
         // is because block X cannot compute its own block commitment and thus cannot add
         // itself to the chain. So, more generally, a previous block is added to the
         // blockchain by its child block.
         //
         // The reference block of a batch may be the latest block in the chain and, as mentioned,
-        // block is not yet part of the blockpartial blockchain, so its inclusion cannot be proven.
+        // block is not yet part of the blockchain, so its inclusion cannot be proven.
         // Since the inclusion cannot be proven in all cases, the batch kernel instead
         // commits to this reference block's commitment as a public input, which means the
         // block kernel will prove this block's inclusion when including this batch and

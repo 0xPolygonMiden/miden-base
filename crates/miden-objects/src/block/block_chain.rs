@@ -12,8 +12,7 @@ use crate::{Digest, block::BlockNumber};
 /// Each new block updates the blockchain by adding **the previous block's commitment** to the MMR.
 /// This means the chain commitment found in block 10's header commits to all blocks 0..=9, but not
 /// 10 itself. This results from the fact that block 10 cannot compute its own block commitment
-/// and thus cannot add itself to the chain. Hence, the blockpartial blockchain is lagging behind by
-/// one block.
+/// and thus cannot add itself to the chain. Hence, the blockchain is lagging behind by one block.
 ///
 /// Some APIs take a _state block_ which is equivalent to the concept of _forest_ of the underlying
 /// MMR. As an example, if the blockchain has 20 blocks in total, and the state block is 10, then
