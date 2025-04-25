@@ -18,13 +18,10 @@ use miden_objects::{
     batch::{ProposedBatch, ProvenBatch},
     block::{
         AccountTree, AccountWitness, BlockAccountUpdate, BlockChain, BlockHeader, BlockInputs,
-        BlockNoteIndex, BlockNoteTree, BlockNumber, NullifierWitness, OutputNoteBatch,
-        ProposedBlock, ProvenBlock,
+        BlockNoteIndex, BlockNoteTree, BlockNumber, NullifierTree, NullifierWitness,
+        OutputNoteBatch, ProposedBlock, ProvenBlock,
     },
-    crypto::{
-        dsa::rpo_falcon512::SecretKey,
-        merkle::{Smt, SmtProof},
-    },
+    crypto::{dsa::rpo_falcon512::SecretKey, merkle::SmtProof},
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
@@ -256,7 +253,7 @@ pub struct MockChain {
     blocks: Vec<ProvenBlock>,
 
     /// Tree containing the latest `Nullifier`'s tree.
-    nullifiers: Smt,
+    nullifiers: NullifierTree,
 
     /// Tree containing the latest state commitment of each account.
     account_tree: AccountTree,
@@ -285,7 +282,7 @@ impl Default for MockChain {
         MockChain {
             chain: BlockChain::default(),
             blocks: vec![],
-            nullifiers: Smt::default(),
+            nullifiers: NullifierTree::default(),
             account_tree: AccountTree::new(),
             pending_objects: PendingObjects::new(),
             available_notes: BTreeMap::new(),
@@ -878,7 +875,8 @@ impl MockChain {
             // TODO: Implement nullifier tree reset once defined at the protocol level.
             for nullifier in self.pending_objects.created_nullifiers.iter() {
                 self.nullifiers
-                    .insert(nullifier.inner(), [current_block_num.into(), ZERO, ZERO, ZERO]);
+                    .mark_spent(*nullifier, BlockNumber::from(current_block_num))
+                    .expect("nullifier should not already be spent");
             }
             let notes_tree = self.pending_objects.build_notes_tree();
 
@@ -1018,7 +1016,7 @@ impl MockChain {
     ) -> (BlockHeader, ChainMmr) {
         let latest_block_header = self.latest_block_header().clone();
         // Deduplicate block numbers so each header will be included just once. This is required so
-        // ChainMmr::from_mmr does not panic.
+        // ChainMmr::from_blockchain does not panic.
         let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
 
         // Include all block headers of the reference blocks except the latest block.
@@ -1056,8 +1054,8 @@ impl MockChain {
         let mut nullifier_proofs = BTreeMap::new();
 
         for nullifier in nullifiers {
-            let proof = self.nullifiers.open(&nullifier.inner());
-            nullifier_proofs.insert(nullifier, NullifierWitness::new(proof));
+            let witness = self.nullifiers.open(&nullifier);
+            nullifier_proofs.insert(nullifier, witness);
         }
 
         nullifier_proofs
@@ -1099,7 +1097,7 @@ impl MockChain {
     }
 
     /// Gets a reference to the nullifier tree.
-    pub fn nullifiers(&self) -> &Smt {
+    pub fn nullifiers(&self) -> &NullifierTree {
         &self.nullifiers
     }
 

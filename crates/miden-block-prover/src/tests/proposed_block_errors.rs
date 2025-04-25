@@ -4,7 +4,7 @@ use assert_matches::assert_matches;
 use miden_objects::{
     MAX_BATCHES_PER_BLOCK, ProposedBlockError,
     account::AccountId,
-    block::{BlockInputs, BlockNumber, NullifierWitness, ProposedBlock},
+    block::{BlockInputs, BlockNumber, ProposedBlock},
     note::NoteInclusionProof,
     testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
     transaction::ProvenTransaction,
@@ -476,16 +476,14 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
     );
     alternative_chain.apply_executed_transaction(&transaction);
     alternative_chain.seal_next_block();
-    let spent_proof = alternative_chain.nullifiers().open(&note0.nullifier().inner());
+    let spent_proof = alternative_chain.nullifiers().open(&note0.nullifier());
 
     let batches = vec![batch0.clone()];
     let mut block_inputs = chain.get_block_inputs(&batches);
 
     // Insert the spent nullifier proof from the alternative chain into the block inputs from the
     // actual chain.
-    block_inputs
-        .nullifier_witnesses_mut()
-        .insert(note0.nullifier(), NullifierWitness::new(spent_proof));
+    block_inputs.nullifier_witnesses_mut().insert(note0.nullifier(), spent_proof);
 
     let error = ProposedBlock::new(block_inputs, batches).unwrap_err();
     assert_matches!(error, ProposedBlockError::NullifierSpent(nullifier) if nullifier == note0.nullifier());

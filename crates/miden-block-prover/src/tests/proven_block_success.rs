@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, vec::Vec};
 use anyhow::Context;
 use miden_crypto::merkle::Smt;
 use miden_objects::{
-    Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
+    MIN_PROOF_SECURITY_LEVEL,
     batch::BatchNoteTree,
     block::{AccountTree, BlockInputs, BlockNoteIndex, BlockNoteTree, ProposedBlock},
     transaction::InputNoteCommitment,
@@ -98,10 +98,9 @@ fn proven_block_success() -> anyhow::Result<()> {
 
     let mut expected_nullifier_tree = chain.nullifiers().clone();
     for nullifier in proposed_block.created_nullifiers().keys() {
-        expected_nullifier_tree.insert(
-            nullifier.inner(),
-            [Felt::from(proposed_block.block_num()), Felt::ZERO, Felt::ZERO, Felt::ZERO],
-        );
+        expected_nullifier_tree
+            .mark_spent(*nullifier, proposed_block.block_num())
+            .context("failed to mark nullifier as spent")?;
     }
 
     // Compute expected account root on the full account tree.
