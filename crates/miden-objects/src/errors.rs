@@ -817,13 +817,20 @@ pub enum ProposedBlockError {
 
 #[derive(Debug, Error)]
 pub enum NullifierTreeError {
+    #[error(
+        "entries passed to nullifier tree contain multiple block numbers for the same nullifier"
+    )]
+    DuplicateNullifierBlockNumbers(#[source] MerkleError),
+
     #[error("attempt to mark nullifier {0} as spent but it is already spent")]
     NullifierAlreadySpent(Nullifier),
+
     #[error("nullifier {nullifier} is not tracked by the partial nullifier tree")]
     UntrackedNullifier {
         nullifier: Nullifier,
         source: MerkleError,
     },
+
     #[error("new tree root after nullifier witness insertion does not match previous tree root")]
     TreeRootConflict(#[source] MerkleError),
 }

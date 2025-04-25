@@ -19,6 +19,9 @@ pub use partial_account_tree::PartialAccountTree;
 pub(super) mod account_tree;
 pub use account_tree::AccountTree;
 
+mod nullifier_tree;
+pub use nullifier_tree::NullifierTree;
+
 mod partial_nullifier_tree;
 pub use partial_nullifier_tree::PartialNullifierTree;
 
