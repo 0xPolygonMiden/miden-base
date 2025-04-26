@@ -16,9 +16,14 @@ use super::{NoteAccountExecution, TransactionExecutor, TransactionExecutorError}
 /// The check is performed using the [NoteConsumptionChecker::check_notes_consumability] procedure.
 /// Essentially runs the transaction to make sure that provided input notes could be consumed by the
 /// account.
-pub struct NoteConsumptionChecker<'a>(pub &'a TransactionExecutor);
+pub struct NoteConsumptionChecker<'a>(&'a TransactionExecutor);
 
-impl NoteConsumptionChecker<'_> {
+impl<'a> NoteConsumptionChecker<'a> {
+    /// Creates a new [`NoteConsumptionChecker`] instance with the given transaction executor.
+    pub fn new(tx_executor: &'a TransactionExecutor) -> Self {
+        NoteConsumptionChecker(tx_executor)
+    }
+
     /// Checks whether the provided input notes could be consumed by the provided account.
     ///
     /// This check consists of two main steps:
@@ -46,8 +51,9 @@ impl NoteConsumptionChecker<'_> {
             if let Some(well_known_note) = WellKnownNote::from_note(note.note()) {
                 if let WellKnownNote::SWAP = well_known_note {
                     // if we encountered a SWAP note, then we have to execute the transaction
-                    // anyway, so we can stop checking
-                    break;
+                    // anyway, but we should continue iterating to make sure that there are no
+                    // P2ID(R) notes which return a `No`
+                    continue;
                 }
 
                 match well_known_note.check_note_inputs(note.note(), target_account_id, block_ref) {
@@ -69,8 +75,9 @@ impl NoteConsumptionChecker<'_> {
                 }
             } else {
                 // if we encountered not a well known note, then we have to execute the transaction
-                // anyway, so we can stop checking
-                break;
+                // anyway, but we should continue iterating to make sure that there are no
+                // P2ID(R) notes which return a `No`
+                continue;
             }
         }
 

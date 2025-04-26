@@ -111,21 +111,7 @@ impl TransactionExecutor {
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        // Validate that notes were not created after the reference, and build the set of required
-        // block numbers
-        let mut ref_blocks: BTreeSet<BlockNumber> = BTreeSet::new();
-        for note in &notes {
-            if let Some(location) = note.location() {
-                if location.block_num() > block_ref {
-                    return Err(TransactionExecutorError::NoteBlockPastReferenceBlock(
-                        note.id(),
-                        block_ref,
-                    ));
-                }
-                ref_blocks.insert(location.block_num());
-            }
-        }
-
+        let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
         ref_blocks.insert(block_ref);
 
         let (account, seed, ref_block, mmr) =
@@ -246,21 +232,7 @@ impl TransactionExecutor {
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
     ) -> Result<NoteAccountExecution, TransactionExecutorError> {
-        // Validate that notes were not created after the reference, and build the set of required
-        // block numbers
-        let mut ref_blocks: BTreeSet<BlockNumber> = BTreeSet::new();
-        for note in &notes {
-            if let Some(location) = note.location() {
-                if location.block_num() > block_ref {
-                    return Err(TransactionExecutorError::NoteBlockPastReferenceBlock(
-                        note.id(),
-                        block_ref,
-                    ));
-                }
-                ref_blocks.insert(location.block_num());
-            }
-        }
-
+        let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
         ref_blocks.insert(block_ref);
 
         let (account, seed, ref_block, mmr) =
@@ -403,6 +375,31 @@ fn validate_account_inputs(
         }
     }
     Ok(())
+}
+
+/// Validates that input notes were not created after the reference block.
+///
+/// Returns the set of block numbers required to execute the provided notes.
+fn validate_input_notes(
+    notes: &InputNotes<InputNote>,
+    block_ref: BlockNumber,
+) -> Result<BTreeSet<BlockNumber>, TransactionExecutorError> {
+    // Validate that notes were not created after the reference, and build the set of required
+    // block numbers
+    let mut ref_blocks: BTreeSet<BlockNumber> = BTreeSet::new();
+    for note in notes.iter() {
+        if let Some(location) = note.location() {
+            if location.block_num() > block_ref {
+                return Err(TransactionExecutorError::NoteBlockPastReferenceBlock(
+                    note.id(),
+                    block_ref,
+                ));
+            }
+            ref_blocks.insert(location.block_num());
+        }
+    }
+
+    Ok(ref_blocks)
 }
 
 // HELPER ENUM

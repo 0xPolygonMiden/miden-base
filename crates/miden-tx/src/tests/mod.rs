@@ -1004,7 +1004,7 @@ fn test_check_note_consumability() {
 
     let executor: TransactionExecutor =
         TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
-    let notes_checker = NoteConsumptionChecker(&executor);
+    let notes_checker = NoteConsumptionChecker::new(&executor);
 
     let execution_check_result = notes_checker
         .check_notes_consumability(target_account_id, block_ref, input_notes, tx_args)
@@ -1024,7 +1024,7 @@ fn test_check_note_consumability() {
 
     let executor: TransactionExecutor =
         TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
-    let notes_checker = NoteConsumptionChecker(&executor);
+    let notes_checker = NoteConsumptionChecker::new(&executor);
 
     let execution_check_result = notes_checker
         .check_notes_consumability(account_id, block_ref, input_notes, tx_args)
@@ -1065,7 +1065,7 @@ fn test_check_note_consumability() {
 
     let executor: TransactionExecutor =
         TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
-    let notes_checker = NoteConsumptionChecker(&executor);
+    let notes_checker = NoteConsumptionChecker::new(&executor);
 
     // let notes_checker = NoteConsumptionChecker::new(account_id, input_notes.clone().into_vec());
     let execution_check_result = notes_checker
