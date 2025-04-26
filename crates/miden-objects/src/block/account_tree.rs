@@ -55,13 +55,17 @@ impl AccountTree {
     /// Returns an error if:
     /// - the provided entries contain multiple commitments for the same account ID.
     /// - multiple account IDs share the same prefix.
-    pub fn with_entries(
-        entries: impl IntoIterator<Item = (AccountId, Digest)>,
-    ) -> Result<Self, AccountTreeError> {
+    pub fn with_entries<I>(
+        entries: impl IntoIterator<Item = (AccountId, Digest), IntoIter = I>,
+    ) -> Result<Self, AccountTreeError>
+    where
+        I: ExactSizeIterator<Item = (AccountId, Digest)>,
+    {
+        let entries = entries.into_iter();
+        let num_accounts = entries.len();
+
         let smt = Smt::with_entries(
-            entries
-                .into_iter()
-                .map(|(id, commitment)| (Self::id_to_smt_key(id), Word::from(commitment))),
+            entries.map(|(id, commitment)| (Self::id_to_smt_key(id), Word::from(commitment))),
         )
         .map_err(|err| {
             let MerkleError::DuplicateValuesForIndex(leaf_idx) = err else {
@@ -77,16 +81,22 @@ impl AccountTree {
             }
         })?;
 
-        for (leaf_idx, leaf) in smt.leaves() {
-            if leaf.num_entries() >= 2 {
-                // SAFETY: Since we only inserted account IDs into the SMT, it is guaranteed that
-                // the leaf_idx is a valid Felt as well as a valid account ID prefix.
-                return Err(AccountTreeError::DuplicateIdPrefix {
-                    duplicate_prefix: AccountIdPrefix::new_unchecked(
-                        Felt::try_from(leaf_idx.value())
-                            .expect("leaf index should be a valid felt"),
-                    ),
-                });
+        // If the number of leaves in the SMT is smaller than the number of accounts that were
+        // passed in, it means that at least one account ID pair ended up in the same leaf. If this
+        // is the case, we iterate the SMT entries to find the duplicated account ID prefix.
+        if smt.num_leaves() < num_accounts {
+            for (leaf_idx, leaf) in smt.leaves() {
+                if leaf.num_entries() >= 2 {
+                    // SAFETY: Since we only inserted account IDs into the SMT, it is guaranteed
+                    // that the leaf_idx is a valid Felt as well as a valid
+                    // account ID prefix.
+                    return Err(AccountTreeError::DuplicateIdPrefix {
+                        duplicate_prefix: AccountIdPrefix::new_unchecked(
+                            Felt::try_from(leaf_idx.value())
+                                .expect("leaf index should be a valid felt"),
+                        ),
+                    });
+                }
             }
         }
 
@@ -155,17 +165,45 @@ impl AccountTree {
     ///
     /// This is a thin wrapper around [`Smt::compute_mutations`]. See its documentation for more
     /// details.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - an insertion of an account ID would violate the uniqueness of account ID prefixes in the
+    ///   tree.
     pub fn compute_mutations(
         &self,
         account_commitments: impl IntoIterator<Item = (AccountId, Digest)>,
-    ) -> AccountMutationSet {
+    ) -> Result<AccountMutationSet, AccountTreeError> {
         let mutation_set = self.smt.compute_mutations(
             account_commitments
                 .into_iter()
                 .map(|(id, commitment)| (Self::id_to_smt_key(id), Word::from(commitment))),
         );
 
-        AccountMutationSet::new(mutation_set)
+        for id_key in mutation_set.new_pairs().keys() {
+            // Check if the insertion would be valid.
+            match self.smt.get_leaf(id_key) {
+                // Inserting into an empty leaf is valid.
+                SmtLeaf::Empty(_) => (),
+                SmtLeaf::Single((existing_key, _)) => {
+                    // If the key matches the existing one, then we're updating the leaf, which is
+                    // valid. If it does not match, then we would insert a duplicate.
+                    if existing_key != *id_key {
+                        return Err(AccountTreeError::DuplicateIdPrefix {
+                            duplicate_prefix: Self::smt_key_to_id(*id_key).prefix(),
+                        });
+                    }
+                },
+                SmtLeaf::Multiple(_) => {
+                    unreachable!(
+                        "account tree should never contain duplicate ID prefixes and therefore never a multiple leaf"
+                    )
+                },
+            }
+        }
+
+        Ok(AccountMutationSet::new(mutation_set))
     }
 
     // PUBLIC MUTATORS
@@ -251,8 +289,10 @@ impl Default for AccountTree {
 // ACCOUNT MUTATION SET
 // ================================================================================================
 
-/// A newtype wrapper around a [`MutationSet`] which exists for type safety in some [`AccountTree`]
-/// methods.
+/// A newtype wrapper around a [`MutationSet`] for use in the [`AccountTree`].
+///
+/// It guarantees that applying the contained mutations will result in an account tree with unique
+/// account ID prefixes.
 ///
 /// It is returned by and used in methods on the [`AccountTree`].
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -373,7 +413,9 @@ pub(super) mod tests {
 
         let mut tree = AccountTree::with_entries([(id0, digest0), (id1, digest1)]).unwrap();
 
-        let mutations = tree.compute_mutations([(id0, digest1), (id1, digest2), (id2, digest3)]);
+        let mutations = tree
+            .compute_mutations([(id0, digest1), (id1, digest2), (id2, digest3)])
+            .unwrap();
 
         tree.apply_mutations(mutations).unwrap();
 
@@ -381,6 +423,21 @@ pub(super) mod tests {
         assert_eq!(tree.get(id0), digest1);
         assert_eq!(tree.get(id1), digest2);
         assert_eq!(tree.get(id2), digest3);
+    }
+
+    #[test]
+    fn duplicates_in_compute_mutations() {
+        let [pair0, pair1] = setup_duplicate_prefix_ids();
+        let id2 = AccountIdBuilder::new().build_with_seed([5; 32]);
+        let commitment2 = Digest::from([0, 0, 0, 99u32]);
+
+        let tree = AccountTree::with_entries([pair0, (id2, commitment2)]).unwrap();
+
+        let err = tree.compute_mutations([pair1]).unwrap_err();
+
+        assert_matches!(err, AccountTreeError::DuplicateIdPrefix {
+          duplicate_prefix
+        } if duplicate_prefix == pair1.0.prefix());
     }
 
     #[test]

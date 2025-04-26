@@ -5,7 +5,7 @@
 - [BREAKING] Refactored how foreign account inputs are passed to `TransactionExecutor`, and upgraded Rust version to 1.86 (#1229).
 - [BREAKING] Add `TransactionHeader` and include it in batches and blocks (#1247).
 - [BREAKING] Hash keys in storage maps before insertion into the SMT (#1250).
-- Add `AccountTree` and `PartialAccountTree` wrappers and enforce ID prefix uniqueness (#1254).
+- Add `AccountTree` and `PartialAccountTree` wrappers and enforce ID prefix uniqueness (#1254, #1301).
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
 - [BREAKING] Replaced the `ProvenBatch::new_unchecked` with the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 - Added pretty print for `AccountCode` (#1273).
