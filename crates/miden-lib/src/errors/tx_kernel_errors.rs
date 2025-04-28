@@ -109,7 +109,7 @@ pub const ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO: u32 = 0x20144;
 pub const ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE: u32 = 0x20145;
 /// Unknown version in account ID.
 pub const ERR_ACCOUNT_ID_UNKNOWN_VERSION: u32 = 0x20146;
-/// Storage offset is invalid for 0 storage size (should be 0)
+/// Storage size can only be zero if storage offset is also zero.
 pub const ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x20147;
 /// The current account is not native
 pub const ERR_ACCOUNT_IS_NOT_NATIVE: u32 = 0x20148;
@@ -261,7 +261,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 90] = [
     (ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, "Least significant byte of the account ID suffix must be zero."),
     (ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE, "Unknown account storage mode in account ID."),
     (ERR_ACCOUNT_ID_UNKNOWN_VERSION, "Unknown version in account ID."),
-    (ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage offset is invalid for 0 storage size (should be 0)"),
+    (ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage size can only be zero if storage offset is also zero."),
     (ERR_ACCOUNT_IS_NOT_NATIVE, "The current account is not native"),
     (ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE, "Account nonce did not increase after a state changing transaction"),
     (ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32, "Account nonce cannot be increased by a greater than u32 value"),
