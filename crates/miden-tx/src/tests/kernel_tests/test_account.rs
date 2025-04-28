@@ -1,3 +1,4 @@
+use anyhow::Context;
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX,
@@ -10,8 +11,8 @@ use miden_lib::{
 };
 use miden_objects::{
     account::{
-        AccountBuilder, AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
-        StorageSlot,
+        AccountBuilder, AccountCode, AccountComponent, AccountId, AccountIdAnchor, AccountStorage,
+        AccountType, StorageSlot,
     },
     assembly::Library,
     testing::{
@@ -30,7 +31,7 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
 
 use super::{Felt, ONE, StackInputs, Word, ZERO};
-use crate::testing::{TransactionContextBuilder, executor::CodeExecutor};
+use crate::testing::{MockChain, TransactionContextBuilder, executor::CodeExecutor};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
@@ -658,6 +659,35 @@ fn test_account_component_storage_offset() {
         account.storage().get_item(1).unwrap(),
         [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
     );
+}
+
+/// Tests that we can successfully create regular and faucet accounts with empty storage.
+#[test]
+fn create_account_with_empty_storage_slots() -> anyhow::Result<()> {
+    for account_type in [AccountType::FungibleFaucet, AccountType::RegularAccountUpdatableCode] {
+        let mock_chain = MockChain::new();
+        let anchor_block = mock_chain.block_header(0);
+        let (account, seed) = AccountBuilder::new([5; 32])
+            .account_type(account_type)
+            .anchor(AccountIdAnchor::try_from(&anchor_block)?)
+            .with_component(
+                AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
+                    .unwrap(),
+            )
+            .build()
+            .context("failed to build account")?;
+
+        let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
+        let tx_context = TransactionContextBuilder::new(account)
+            .account_seed(Some(seed))
+            .tx_inputs(tx_inputs)
+            .build();
+        tx_context
+            .execute()
+            .context(format!("failed to execute {account_type} account creating tx"))?;
+    }
+
+    Ok(())
 }
 
 // ACCOUNT VAULT TESTS
