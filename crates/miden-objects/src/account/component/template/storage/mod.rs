@@ -371,7 +371,6 @@ impl Deserializable for MapEntry {
 mod tests {
     use alloc::{collections::BTreeSet, string::ToString};
     use core::{error::Error, panic};
-    use std::println;
 
     use assembly::Assembler;
     use semver::Version;
@@ -490,7 +489,6 @@ mod tests {
             storage,
         };
         let toml = config.as_toml().unwrap();
-        println!("{toml}");
         let deserialized = AccountComponentMetadata::from_toml(&toml).unwrap();
 
         assert_eq!(deserialized, config);

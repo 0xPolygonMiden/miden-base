@@ -199,9 +199,6 @@ impl Serialize for FeltRepresentation {
                     if let Some(id) = identifier {
                         state.serialize_field("name", &id.name)?;
                         state.serialize_field("description", &id.description)?;
-                    } else {
-                        state.serialize_field("name", &Option::<String>::None)?;
-                        state.serialize_field("description", &Option::<String>::None)?;
                     }
                     state.serialize_field("value", &hex)?;
                     state.end()
@@ -499,9 +496,7 @@ impl Serialize for FieldIdentifier {
     {
         let mut map = serializer.serialize_map(Some(2))?;
         map.serialize_entry("name", &self.name)?;
-        if let Some(description) = &self.description {
-            map.serialize_entry("description", description)?;
-        }
+        map.serialize_entry("description", &self.description)?;
         map.end()
     }
 }
@@ -532,6 +527,7 @@ impl<'de> Visitor<'de> for FieldIdentifierVisitor {
                     description = if d.trim().is_empty() { None } else { Some(d) };
                 },
                 _ => {
+                    // Ignore other values as FieldIdentifiers are flattened within other structs
                     let _: de::IgnoredAny = map.next_value()?;
                 },
             }

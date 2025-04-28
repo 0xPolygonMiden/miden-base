@@ -624,7 +624,7 @@ pub enum MultiWordRepresentation {
 }
 
 impl MultiWordRepresentation {
-    /// Returns the amount of words described for the value.
+    /// Returns the number of words in this representation.
     pub fn num_words(&self) -> usize {
         match self {
             MultiWordRepresentation::Value { values, .. } => values.len(),
