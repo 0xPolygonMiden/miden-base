@@ -11,6 +11,7 @@
 - Added pretty print for `AccountCode` (#1273).
 - [BREAKING] Add `NetworkAccount` configuration (#1275).
 - Added support for environment variables to set up the `miden-proving-service` worker (#1281).
+- Fix error when creating accounts with empty storage (#1307).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
