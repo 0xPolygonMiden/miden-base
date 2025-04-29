@@ -35,6 +35,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, Felt, Word, ZERO, crypto::RpoRandomCoin};
 
+use super::note::MockChainNote;
 use crate::{
     Auth, MockFungibleFaucet, TransactionContextBuilder, mock_chain::account::MockAccount,
 };
@@ -170,8 +171,8 @@ pub struct MockChain {
     /// - The [Note]s in this container do not have the `proof` set.
     pending_objects: PendingObjects,
 
-    /// NoteID |-> InputNote mapping to simplify transaction inputs retrieval
-    available_notes: BTreeMap<NoteId, InputNote>,
+    /// NoteID |-> MockChainNote mapping to simplify note retrieval
+    available_notes: BTreeMap<NoteId, MockChainNote>,
 
     /// AccountId |-> Account mapping to simplify transaction creation
     available_accounts: BTreeMap<AccountId, MockAccount>,
@@ -604,7 +605,13 @@ impl MockChain {
         let mut input_notes = vec![];
         let mut block_headers_map: BTreeMap<BlockNumber, BlockHeader> = BTreeMap::new();
         for note in notes {
-            let input_note = self.available_notes.get(note).expect("Note not found").clone();
+            let input_note: InputNote = self
+                .available_notes
+                .get(note)
+                .expect("Note not found")
+                .clone()
+                .try_into()
+                .expect("Note should be public");
             let note_block_num = input_note.location().unwrap().block_num();
             if note_block_num != block.header().block_num() {
                 block_headers_map.insert(
@@ -845,26 +852,29 @@ impl MockChain {
                 self.pending_objects.output_note_batches.iter().enumerate()
             {
                 for (note_index, note) in note_batch.iter() {
-                    match note {
-                        OutputNote::Full(note) => {
-                            let block_note_index = BlockNoteIndex::new(batch_index, *note_index)
-                              .expect(
-                              "max batches in block and max notes in batches should be enforced",
-                          );
-                            let note_path = notes_tree.get_note_path(block_note_index);
-                            let note_inclusion_proof = NoteInclusionProof::new(
-                                block.header().block_num(),
-                                block_note_index.leaf_index_value(),
-                                note_path,
-                            )
-                            .unwrap();
-
-                            self.available_notes.insert(
+                    let block_note_index = BlockNoteIndex::new(batch_index, *note_index)
+                        .expect("max batches in block and max notes in batches should be enforced");
+                    let note_path = notes_tree.get_note_path(block_note_index);
+                    let note_inclusion_proof = NoteInclusionProof::new(
+                        block.header().block_num(),
+                        block_note_index.leaf_index_value(),
+                        note_path,
+                    )
+                    .unwrap();
+                    if let OutputNote::Full(note) = note {
+                        self.available_notes.insert(
+                            note.id(),
+                            MockChainNote::Public(note.clone(), note_inclusion_proof),
+                        );
+                    } else {
+                        self.available_notes.insert(
+                            note.id(),
+                            MockChainNote::Private(
                                 note.id(),
-                                InputNote::authenticated(note.clone(), note_inclusion_proof),
-                            );
-                        },
-                        _ => continue,
+                                *note.metadata(),
+                                note_inclusion_proof,
+                            ),
+                        );
                     }
                 }
             }
@@ -973,13 +983,7 @@ impl MockChain {
         let mut proofs = BTreeMap::default();
         for note in notes {
             if let Some(input_note) = self.available_notes.get(&note) {
-                proofs.insert(
-                    note,
-                    input_note
-                        .proof()
-                        .cloned()
-                        .expect("all notes tracked by the chain are authenticated"),
-                );
+                proofs.insert(note, input_note.inclusion_proof().clone());
             }
         }
 
@@ -1004,12 +1008,12 @@ impl MockChain {
     }
 
     /// Get the vector of IDs of the currently available notes.
-    pub fn available_notes(&self) -> Vec<InputNote> {
+    pub fn available_notes(&self) -> Vec<MockChainNote> {
         self.available_notes.values().cloned().collect()
     }
 
-    /// Returns the map of note IDs to consumable input notes.
-    pub fn available_notes_map(&self) -> &BTreeMap<NoteId, InputNote> {
+    /// Returns the map of note IDs to consumable notes.
+    pub fn available_notes_map(&self) -> &BTreeMap<NoteId, MockChainNote> {
         &self.available_notes
     }
 

@@ -275,10 +275,22 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
             .unauthenticated_notes(vec![note1.clone()])
             .build()?;
 
-    let input_note0 = chain.available_notes_map().get(&note0.id()).expect("note not found");
+    let input_note0: InputNote = chain
+        .available_notes_map()
+        .get(&note0.id())
+        .expect("note not found")
+        .clone()
+        .try_into()
+        .expect("note should be public");
     let note_inclusion_proof0 = input_note0.proof().expect("note should be of type authenticated");
 
-    let input_note1 = chain.available_notes_map().get(&note1.id()).expect("note not found");
+    let input_note1: InputNote = chain
+        .available_notes_map()
+        .get(&note1.id())
+        .expect("note not found")
+        .clone()
+        .try_into()
+        .expect("note should be public");
     let note_inclusion_proof1 = input_note1.proof().expect("note should be of type authenticated");
 
     // The partial blockchain will contain all blocks in the mock chain, in particular block2 which
@@ -350,7 +362,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
         batch
             .input_notes()
             .iter()
-            .any(|commitment| commitment == &InputNoteCommitment::from(input_note1))
+            .any(|commitment| commitment == &InputNoteCommitment::from(&input_note1))
     );
     assert_eq!(batch.output_notes().len(), 0);
 

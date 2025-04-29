@@ -32,7 +32,7 @@ use miden_objects::{
         },
         constants::NON_FUNGIBLE_ASSET_DATA_2,
     },
-    transaction::{InputNotes, OutputNote, OutputNotes, TransactionArgs},
+    transaction::{InputNote, InputNotes, OutputNote, OutputNotes, TransactionArgs},
 };
 use miden_tx::{TransactionExecutor, TransactionExecutorError};
 
@@ -90,12 +90,14 @@ fn test_future_input_note_fails() {
 
     // Get as input note, and assert that the note was created after block 1 (which we'll
     // use as reference)
-    let input_note = mock_chain
+    let input_note: InputNote = mock_chain
         .available_notes()
         .iter()
         .find(|n| n.id() == note.id())
         .unwrap()
-        .clone();
+        .clone()
+        .try_into()
+        .expect("note should be public");
     assert!(input_note.location().unwrap().block_num() > 1.into());
 
     mock_chain.seal_next_block();
