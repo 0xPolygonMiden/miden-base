@@ -89,7 +89,7 @@ fn prove_consume_swap_note() {
     // --------------------------------------------------------------------------------------------
 
     let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
-    mock_chain.add_pending_note(note.clone());
+    mock_chain.add_pending_note(OutputNote::Full(note.clone()));
     mock_chain.seal_next_block();
 
     let consume_swap_note_tx = mock_chain

@@ -276,10 +276,10 @@ impl MockChain {
         account
     }
 
-    /// Adds a public [Note] to the pending objects.
+    /// Adds an [OutputNote] to the pending objects.
     /// A block has to be created to finalize the new entity.
-    pub fn add_pending_note(&mut self, note: Note) {
-        self.pending_objects.output_note_batches.push(vec![(0, OutputNote::Full(note))]);
+    pub fn add_pending_note(&mut self, note: OutputNote) {
+        self.pending_objects.output_note_batches.push(vec![(0, note)]);
     }
 
     /// Adds a P2ID [Note] to the pending objects and returns it.
@@ -315,7 +315,7 @@ impl MockChain {
             )?
         };
 
-        self.add_pending_note(note.clone());
+        self.add_pending_note(OutputNote::Full(note.clone()));
 
         Ok(note)
     }
