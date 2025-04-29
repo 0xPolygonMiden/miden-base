@@ -10,17 +10,29 @@ use crate::{
 // PARTIAL BLOCKCHAIN
 // ================================================================================================
 
-/// A struct that represents the chain Merkle Mountain Range (MMR).
+/// A partial view into the full [`BlockChain`](crate::block::BlockChain)'s Merkle Mountain Range
+/// (MMR).
 ///
-/// The MMR allows for efficient authentication of input notes during transaction execution.
-/// Authentication is achieved by providing inclusion proofs for the notes consumed in the
-/// transaction against the partial blockchain root associated with the latest block known at the
-/// time of transaction execution.
+/// It allows for efficient authentication of input notes during transaction execution or
+/// authentication of reference blocks during batch or block execution. Authentication is achieved
+/// by providing inclusion proofs for the notes consumed in the transaction against the partial
+/// blockchain root associated with the transaction's reference block.
 ///
-/// [PartialBlockChain] represents a partial view into the actual MMR and contains authentication
-/// paths for a limited set of blocks. The intent is to include only the blocks relevant for
-/// execution of a specific transaction (i.e., the blocks corresponding to all input notes and the
-/// one needed to validate the seed of a new account, if applicable).
+/// [`PartialBlockChain`] contains authentication paths for a limited set of blocks. The intent is
+/// to include only the blocks relevant for execution:
+/// - For transactions: the set of blocks in which all input notes were created and the anchor block
+///   needed to validate the seed of a new account ID, if applicable.
+/// - For batches: the set of reference blocks of all transactions in the batch and the blocks to
+///   prove any unauthenticated note's inclusion.
+/// - For blocks: the set of reference blocks of all batches in the block and the blocks to prove
+///   any unauthenticated note's inclusion.
+///
+/// # Guarantees
+///
+/// The [`PartialBlockChain`] contains the full authenticated [`BlockHeader`]s of all blocks it
+/// tracks in its partial MMR and users of this type can make this assumption. This is ensured when
+/// using [`PartialBlockChain::new`]. [`PartialBlockChain::new_unchecked`] should only be used
+/// whenever this guarantee can be upheld.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialBlockChain {
     /// Partial view of the blockchain with authentication paths for the blocks listed below.
