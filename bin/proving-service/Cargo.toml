@@ -58,6 +58,7 @@ uuid = { version = "1.16", features = ["v4"] }
 miden-lib = { workspace = true , default-features = false, features = ["testing"]}
 miden-objects = { workspace = true, default-features = false, features = ["testing"] }
 miden-tx = { workspace = true, default-features = false, features = ["testing"] }
+miden-test = { workspace = true, default-features = false }
 
 [build-dependencies]
 miette = { version = "7.5", features = ["fancy"] }

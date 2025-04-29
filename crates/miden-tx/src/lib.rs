@@ -28,12 +28,6 @@ pub use errors::{
 
 pub mod auth;
 
-#[cfg(any(feature = "testing", test))]
-pub mod testing;
-
-#[cfg(test)]
-mod tests;
-
 // RE-EXPORTS
 // ================================================================================================
 pub use miden_objects::utils;

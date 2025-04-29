@@ -17,25 +17,8 @@ bench = false
 
 [features]
 default = ["std"]
-std = [
-  "miden-objects/std",
-  "miden-tx/std",
-  "miden-crypto/std",
-  "vm-core/std",
-  "vm-processor/std",
-]
+std = ["miden-objects/std", "miden-tx/std"]
 
 [dependencies]
-miden-crypto = { workspace = true }
 miden-tx = { workspace = true }
 miden-objects = { workspace = true }
-thiserror = { workspace = true }
-vm-core = { workspace = true }
-vm-processor = { workspace = true }
-
-[dev-dependencies]
-anyhow = { version = "1.0", features = ["std", "backtrace"] }
-miden-lib = { workspace = true, features = ["std", "testing"] }
-miden-tx = { workspace = true, features = ["std", "testing"] }
-rand = { workspace = true, features = ["small_rng"] }
-winterfell = { version = "0.12" }
