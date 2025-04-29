@@ -13,6 +13,7 @@
 - Added support for environment variables to set up the `miden-proving-service` worker (#1281).
 - Move `NullifierTree` and `BlockChain` from node to base (#1304).
 - Rename `ChainMmr` to `PartialBlockChain` (#1305).
+- Add safe `PartialBlockChain` constructor (#1308).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
