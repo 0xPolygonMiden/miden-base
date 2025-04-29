@@ -60,7 +60,7 @@ pub fn prove_send_swap_note() {
         .execute()
         .unwrap();
 
-    let sender_account = mock_chain.apply_executed_transaction(&create_swap_note_tx);
+    let sender_account = mock_chain.submit_transaction(&create_swap_note_tx);
 
     assert!(
         create_swap_note_tx
@@ -98,7 +98,7 @@ fn prove_consume_swap_note() {
         .execute()
         .unwrap();
 
-    let target_account = mock_chain.apply_executed_transaction(&consume_swap_note_tx);
+    let target_account = mock_chain.submit_transaction(&consume_swap_note_tx);
 
     let output_payback_note = consume_swap_note_tx.output_notes().iter().next().unwrap().clone();
     assert!(output_payback_note.id() == payback_note.id());
@@ -123,7 +123,7 @@ fn prove_consume_swap_note() {
         .execute()
         .unwrap();
 
-    let sender_account = mock_chain.apply_executed_transaction(&consume_payback_tx);
+    let sender_account = mock_chain.submit_transaction(&consume_payback_tx);
     assert!(sender_account.vault().assets().any(|asset| asset == requested_asset));
     assert!(prove_and_verify_transaction(consume_payback_tx).is_ok());
 }

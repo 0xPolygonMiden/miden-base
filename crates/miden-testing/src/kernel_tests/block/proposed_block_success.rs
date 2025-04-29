@@ -9,10 +9,11 @@ use miden_objects::{
 };
 
 use super::utils::{
-    ProvenTransactionExt, TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
+    TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
     generate_fungible_asset, generate_tracked_note_with_asset, generate_tx_with_expiration,
     generate_tx_with_unauthenticated_notes, generate_untracked_note, setup_chain,
 };
+use crate::ProvenTransactionExt;
 
 /// Tests that we can build empty blocks.
 #[test]
@@ -127,7 +128,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         account1.id(),
         &[note0.id()],
     );
-    alternative_chain.apply_executed_transaction(&executed_tx0);
+    alternative_chain.submit_transaction(&executed_tx0);
     alternative_chain.seal_next_block();
 
     let executed_tx1 = generate_executed_tx_with_authenticated_notes(
@@ -135,7 +136,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         account1.id(),
         &[note1.id()],
     );
-    alternative_chain.apply_executed_transaction(&executed_tx1);
+    alternative_chain.submit_transaction(&executed_tx1);
     alternative_chain.seal_next_block();
 
     let executed_tx2 = generate_executed_tx_with_authenticated_notes(
@@ -143,12 +144,15 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         account1.id(),
         &[note2.id()],
     );
-    alternative_chain.apply_executed_transaction(&executed_tx2);
+    alternative_chain.submit_transaction(&executed_tx2);
 
     let [tx0, tx1, tx2] = [executed_tx0, executed_tx1, executed_tx2]
         .into_iter()
         .map(|tx| {
-            ProvenTransaction::from_executed_transaction_mocked(tx, &chain.latest_block_header())
+            ProvenTransaction::from_executed_transaction_mocked_ref_block(
+                tx,
+                &chain.latest_block_header(),
+            )
         })
         .collect::<Vec<_>>()
         .try_into()

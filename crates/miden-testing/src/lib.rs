@@ -7,7 +7,9 @@ extern crate alloc;
 extern crate std;
 
 mod mock_chain;
-pub use mock_chain::{AccountState, Auth, MockChain, MockChainNote, MockFungibleFaucet};
+pub use mock_chain::{
+    AccountState, Auth, MockChain, MockChainNote, MockFungibleFaucet, ProvenTransactionExt,
+};
 
 mod tx_context;
 pub use tx_context::{TransactionContext, TransactionContextBuilder};

@@ -20,10 +20,10 @@ use miden_objects::{
 use winterfell::Proof;
 
 use super::utils::{
-    ProvenTransactionExt, TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
+    TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
     generate_tracked_note, setup_chain,
 };
-use crate::{MockChain, TransactionContextBuilder};
+use crate::{MockChain, ProvenTransactionExt, TransactionContextBuilder};
 
 struct WitnessTestSetup {
     stale_block_inputs: BlockInputs,
@@ -57,7 +57,7 @@ fn witness_test_setup() -> WitnessTestSetup {
     let nullifier_root0 = chain.nullifiers().root();
 
     // Apply the executed tx and seal a block. This invalidates the block inputs we've just fetched.
-    chain.apply_executed_transaction(&tx0);
+    chain.submit_transaction(&tx0);
     chain.seal_next_block();
 
     let valid_block_inputs = chain.get_block_inputs(&batches);
@@ -310,8 +310,7 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
         .tx_inputs(tx_inputs)
         .build();
     let tx = tx_context.execute().context("failed to execute account creating tx")?;
-    let tx =
-        ProvenTransaction::from_executed_transaction_mocked(tx, &mock_chain.latest_block_header());
+    let tx = ProvenTransaction::from_executed_transaction_mocked(tx);
 
     let batch = generate_batch(&mut mock_chain, vec![tx]);
     let batches = [batch];

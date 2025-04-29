@@ -3,6 +3,8 @@ use alloc::{
     vec::Vec,
 };
 
+use anyhow::Context;
+use miden_block_prover::LocalBlockProver;
 use miden_lib::{
     account::{faucets::BasicFungibleFaucet, wallets::BasicWallet},
     note::{create_p2id_note, create_p2idr_note},
@@ -37,7 +39,8 @@ use vm_processor::{Digest, Felt, Word, ZERO, crypto::RpoRandomCoin};
 
 use super::note::MockChainNote;
 use crate::{
-    Auth, MockFungibleFaucet, TransactionContextBuilder, mock_chain::account::MockAccount,
+    Auth, MockFungibleFaucet, ProvenTransactionExt, TransactionContextBuilder,
+    mock_chain::account::MockAccount,
 };
 
 // PENDING OBJECTS
@@ -174,6 +177,9 @@ pub struct MockChain {
     /// NoteID |-> MockChainNote mapping to simplify note retrieval
     available_notes: BTreeMap<NoteId, MockChainNote>,
 
+    /// TODO
+    pending_transactions: Vec<ExecutedTransaction>,
+
     /// AccountId |-> Account mapping to simplify transaction creation
     available_accounts: BTreeMap<AccountId, MockAccount>,
 
@@ -190,6 +196,7 @@ impl Default for MockChain {
             nullifiers: NullifierTree::default(),
             account_tree: AccountTree::new(),
             pending_objects: PendingObjects::new(),
+            pending_transactions: Vec::new(),
             available_notes: BTreeMap::new(),
             available_accounts: BTreeMap::new(),
             removed_notes: vec![],
@@ -245,7 +252,7 @@ impl MockChain {
 
     /// Applies the transaction, adding the entities to the mockchain.
     /// Returns the resulting state of the executing account after executing the transaction.
-    pub fn apply_executed_transaction(&mut self, transaction: &ExecutedTransaction) -> Account {
+    pub fn submit_transaction(&mut self, transaction: &ExecutedTransaction) -> Account {
         let mut account = transaction.initial_account().clone();
         account.apply_delta(transaction.account_delta()).unwrap();
 
@@ -412,6 +419,12 @@ impl MockChain {
         let proposed_block = ProposedBlock::new_at(block_inputs, batches, timestamp)?;
 
         Ok(proposed_block)
+    }
+
+    pub fn prove_block(&self, proposed_block: ProposedBlock) -> anyhow::Result<ProvenBlock> {
+        LocalBlockProver::new(0)
+            .prove_without_batch_verification(proposed_block)
+            .context("failed to prove proposed block into proven block")
     }
 
     // OTHER IMPLEMENTATIONS
@@ -768,6 +781,22 @@ impl MockChain {
             target_block_num >= next_block_num,
             "target block number must be greater or equal to the number of the next block in the chain"
         );
+
+        let pending_transactions = core::mem::take(&mut self.pending_transactions);
+
+        // TODO: Split into multiple batches if num of pending transactions exceeds max txs per
+        // batch.
+        let proposed_batch = self
+            .propose_transaction_batch(pending_transactions.into_iter().map(|executed_tx| {
+                ProvenTransaction::from_executed_transaction_mocked(executed_tx)
+            }))
+            .map(|proposed_batch| self.prove_transaction_batch(proposed_batch))
+            .unwrap();
+
+        // TODO: Add pending objects into block.
+        self.propose_block([proposed_batch])
+            .map(|proposed_block| self.prove_block(proposed_block).unwrap())
+            .unwrap();
 
         let mut last_block: Option<ProvenBlock> = None;
 

@@ -11,12 +11,13 @@ use miden_objects::{
 };
 
 use super::utils::{
-    ProvenTransactionExt, TestSetup, generate_account, generate_batch,
-    generate_executed_tx_with_authenticated_notes, generate_fungible_asset, generate_output_note,
-    generate_tracked_note, generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
+    TestSetup, generate_account, generate_batch, generate_executed_tx_with_authenticated_notes,
+    generate_fungible_asset, generate_output_note, generate_tracked_note,
+    generate_tracked_note_with_asset, generate_tx_with_authenticated_notes,
     generate_tx_with_expiration, generate_tx_with_unauthenticated_notes, generate_untracked_note,
     generate_untracked_note_with_output_note, setup_chain,
 };
+use crate::ProvenTransactionExt;
 
 /// Tests that too many batches produce an error.
 #[test]
@@ -475,7 +476,7 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
         account1.id(),
         &[note0.id()],
     );
-    alternative_chain.apply_executed_transaction(&transaction);
+    alternative_chain.submit_transaction(&transaction);
     alternative_chain.seal_next_block();
     let spent_proof = alternative_chain.nullifiers().open(&note0.nullifier());
 
@@ -594,7 +595,7 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
         account1.id(),
         &[note0.id()],
     );
-    alternative_chain.apply_executed_transaction(&executed_tx0);
+    alternative_chain.submit_transaction(&executed_tx0);
     alternative_chain.seal_next_block();
 
     let executed_tx1 = generate_executed_tx_with_authenticated_notes(
@@ -602,7 +603,7 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
         account1.id(),
         &[note1.id()],
     );
-    alternative_chain.apply_executed_transaction(&executed_tx1);
+    alternative_chain.submit_transaction(&executed_tx1);
     alternative_chain.seal_next_block();
 
     let executed_tx2 = generate_executed_tx_with_authenticated_notes(
@@ -610,15 +611,15 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
         account1.id(),
         &[note2.id()],
     );
-    alternative_chain.apply_executed_transaction(&executed_tx2);
+    alternative_chain.submit_transaction(&executed_tx2);
 
     // We will only include tx0 and tx2 and leave out tx1, which will trigger the error condition
     // that there is no transition from tx0 -> tx2.
-    let tx0 = ProvenTransaction::from_executed_transaction_mocked(
+    let tx0 = ProvenTransaction::from_executed_transaction_mocked_ref_block(
         executed_tx0.clone(),
         &chain.latest_block_header(),
     );
-    let tx2 = ProvenTransaction::from_executed_transaction_mocked(
+    let tx2 = ProvenTransaction::from_executed_transaction_mocked_ref_block(
         executed_tx2.clone(),
         &chain.latest_block_header(),
     );
