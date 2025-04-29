@@ -498,8 +498,9 @@ impl MockChain {
         MockFungibleFaucet::new(account)
     }
 
-    /// Adds the [`AccountComponent`] corresponding to `auth_method` to the account in the builder
-    /// and builds a new or existing account depending on `account_state`.
+    /// Adds the [`AccountComponent`](miden_objects::account::AccountComponent) corresponding to
+    /// `auth_method` to the account in the builder and builds a new or existing account
+    /// depending on `account_state`.
     ///
     /// This account is added to the available accounts and are immediately available without having
     /// to seal a block.

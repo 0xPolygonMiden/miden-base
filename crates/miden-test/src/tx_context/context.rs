@@ -1,4 +1,4 @@
-#[cfg(feature = "async")]
+#[cfg(any(feature = "async", target_family = "wasm"))]
 use alloc::boxed::Box;
 use alloc::{collections::BTreeSet, rc::Rc, sync::Arc, vec::Vec};
 
@@ -30,8 +30,8 @@ use crate::{MockHost, executor::CodeExecutor, tx_context::builder::MockAuthentic
 
 /// Represents all needed data for executing a transaction, or arbitrary code.
 ///
-/// It implements [DataStore], so transactions may be executed with
-/// [TransactionExecutor](crate::TransactionExecutor)
+/// It implements [`DataStore`], so transactions may be executed with
+/// [TransactionExecutor](miden_tx::TransactionExecutor)
 pub struct TransactionContext {
     pub(super) expected_output_notes: Vec<Note>,
     pub(super) tx_args: TransactionArgs,
