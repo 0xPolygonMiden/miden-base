@@ -339,11 +339,13 @@ impl MockChain {
     {
         let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
 
-        let (batch_reference_block, partial_blockchain) =
-            self.get_batch_inputs(transactions.iter().map(|tx| tx.ref_block_num()));
-
-        // TODO: Get the actual proofs as part of get_batch_inputs.
-        let unauthenticated_note_proofs = BTreeMap::new();
+        let (batch_reference_block, partial_blockchain, unauthenticated_note_proofs) = self
+            .get_batch_inputs(
+                transactions.iter().map(|tx| tx.ref_block_num()),
+                transactions
+                    .iter()
+                    .flat_map(|tx| tx.unauthenticated_notes().map(NoteHeader::id)),
+            );
 
         ProposedBatch::new(
             transactions,
@@ -658,11 +660,23 @@ impl MockChain {
     pub fn get_batch_inputs(
         &self,
         tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
-    ) -> (BlockHeader, PartialBlockchain) {
-        let (batch_reference_block, partial_blockchain) =
-            self.latest_selective_partial_blockchain(tx_reference_blocks);
+        unauthenticated_notes: impl Iterator<Item = NoteId>,
+    ) -> (BlockHeader, PartialBlockchain, BTreeMap<NoteId, NoteInclusionProof>) {
+        // Fetch note proofs for notes that exist in the chain.
+        let unauthenticated_note_proofs = self.unauthenticated_note_proofs(unauthenticated_notes);
 
-        (batch_reference_block, partial_blockchain)
+        // We also need to fetch block inclusion proofs for any of the blocks that contain
+        // unauthenticated notes for which we want to prove inclusion.
+        let required_blocks = tx_reference_blocks.into_iter().chain(
+            unauthenticated_note_proofs
+                .values()
+                .map(|note_proof| note_proof.location().block_num()),
+        );
+
+        let (batch_reference_block, partial_block_chain) =
+            self.latest_selective_partial_blockchain(required_blocks);
+
+        (batch_reference_block, partial_block_chain, unauthenticated_note_proofs)
     }
 
     /// Gets foreign account inputs to execute FPI transactions.
