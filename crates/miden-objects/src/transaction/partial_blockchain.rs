@@ -226,6 +226,7 @@ impl Serializable for PartialBlockChain {
 }
 
 impl Deserializable for PartialBlockChain {
+    /// This assumes a trusted input and does not run any validations.
     fn read_from<R: miden_crypto::utils::ByteReader>(
         source: &mut R,
     ) -> Result<Self, miden_crypto::utils::DeserializationError> {
