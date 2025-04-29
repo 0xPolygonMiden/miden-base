@@ -2,7 +2,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use core::error::Error;
 
 use assembly::{Report, diagnostics::reporting::PrintDiagnostic};
-use miden_crypto::utils::HexParseError;
+use miden_crypto::{merkle::MmrError, utils::HexParseError};
 use thiserror::Error;
 use vm_core::{Felt, FieldElement, mast::MastForestError};
 use vm_processor::DeserializationError;
@@ -415,10 +415,21 @@ pub enum PartialBlockChainError {
         chain_length: usize,
         block_num: BlockNumber,
     },
+
     #[error("duplicate block {block_num} in partial blockchain")]
     DuplicateBlock { block_num: BlockNumber },
+
     #[error("partial blockchain does not track authentication paths for block {block_num}")]
     UntrackedBlock { block_num: BlockNumber },
+
+    #[error(
+        "provided block header with number {block_num} and commitment {block_commitment} is not tracked by partial MMR"
+    )]
+    BlockHeaderCommitmentMismatch {
+        block_num: BlockNumber,
+        block_commitment: Digest,
+        source: MmrError,
+    },
 }
 
 impl PartialBlockChainError {
