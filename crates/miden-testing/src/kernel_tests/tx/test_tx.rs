@@ -47,14 +47,14 @@ fn test_fpi_anchoring_validations() {
     // Create a chain with an account
     let mut mock_chain = MockChain::new();
     let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Retrieve inputs which will become stale
     let inputs = mock_chain.get_foreign_account_inputs(account.id());
 
     // Add account to modify account tree
     let new_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Attempt to execute with older foreign account inputs
     let transaction = mock_chain
@@ -70,11 +70,11 @@ fn test_fpi_anchoring_validations() {
 }
 
 #[test]
-fn test_future_input_note_fails() {
+fn test_future_input_note_fails() -> anyhow::Result<()> {
     // Create a chain with an account
     let mut mock_chain = MockChain::new();
     let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_block(Some(10), None);
+    mock_chain.prove_until_block(10u32)?;
 
     // Create note that will land on a future block
     let note = mock_chain
@@ -86,14 +86,14 @@ fn test_future_input_note_fails() {
             None,
         )
         .unwrap();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Get as input note, and assert that the note was created after block 1 (which we'll
     // use as reference)
     let input_note = mock_chain.get_public_note(&note.id()).expect("note not found");
     assert!(input_note.location().unwrap().block_num() > 1.into());
 
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Attempt to execute with a note created in the future
     let tx_context = mock_chain.build_tx_context(account.id(), &[], &[]).build();
@@ -111,6 +111,8 @@ fn test_future_input_note_fails() {
         error,
         Err(TransactionExecutorError::NoteBlockPastReferenceBlock(..))
     );
+
+    Ok(())
 }
 
 #[test]

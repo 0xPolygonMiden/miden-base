@@ -42,7 +42,7 @@ fn witness_test_setup() -> WitnessTestSetup {
 
     let note = generate_tracked_note(&mut chain, account1.id(), account0.id());
     // Add note to chain.
-    chain.seal_next_block();
+    chain.prove_next_block();
 
     let tx0 =
         generate_executed_tx_with_authenticated_notes(&mut chain, account0.id(), &[note.id()]);
@@ -58,7 +58,7 @@ fn witness_test_setup() -> WitnessTestSetup {
 
     // Apply the executed tx and seal a block. This invalidates the block inputs we've just fetched.
     chain.submit_transaction(&tx0);
-    chain.seal_next_block();
+    chain.prove_next_block();
 
     let valid_block_inputs = chain.get_block_inputs(&batches);
 
@@ -299,7 +299,7 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
     let existing_account =
         Account::mock(existing_id.into(), Felt::ZERO, TransactionKernel::testing_assembler());
     mock_chain.add_pending_account(existing_account.clone());
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Execute the account-creating transaction.
     // --------------------------------------------------------------------------------------------

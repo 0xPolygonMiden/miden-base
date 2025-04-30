@@ -499,7 +499,7 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
 }
@@ -511,7 +511,9 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 #[test]
 pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(1 << 16), None);
+    mock_chain
+        .prove_until_block(1u32 << 16)
+        .context("failed to prove multiple blocks")?;
 
     // Choose epoch block 1 whose block number is 2^16 as the anchor block.
     // Here the transaction reference block is also the anchor block.
@@ -521,7 +523,7 @@ pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Public)
 }
@@ -567,7 +569,7 @@ fn compute_valid_account_id(
 #[test]
 pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
@@ -591,7 +593,7 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
 #[test]
 pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
@@ -617,7 +619,7 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
 #[test]
 pub fn create_account_invalid_seed() {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 

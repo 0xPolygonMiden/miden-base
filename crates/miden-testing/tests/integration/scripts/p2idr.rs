@@ -1,3 +1,4 @@
+use anyhow::Context;
 use miden_lib::errors::note_script_errors::{
     ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
 };
@@ -12,9 +13,9 @@ use miden_testing::{Auth, MockChain};
 use crate::assert_transaction_executor_error;
 
 #[test]
-fn p2idr_script() {
+fn p2idr_script() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(3), None);
+    mock_chain.prove_until_block(3u32).context("failed to prove multiple blocks")?;
 
     // Create assets
     let fungible_asset: Asset = FungibleAsset::mock(100);
@@ -49,7 +50,7 @@ fn p2idr_script() {
         )
         .unwrap();
 
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // --------------------------------------------------------------------------------------------
     // Case "in time": Only the target account can consume the note.
@@ -126,4 +127,6 @@ fn p2idr_script() {
         executed_transaction_6,
         ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
     );
+
+    Ok(())
 }

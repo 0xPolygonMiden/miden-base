@@ -222,7 +222,7 @@ pub fn setup_chain(num_accounts: usize) -> TestSetup {
         notes.insert(i, note);
     }
 
-    chain.seal_next_block();
+    chain.prove_next_block();
 
     for i in 0..num_accounts {
         let tx =
