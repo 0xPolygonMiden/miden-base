@@ -602,12 +602,11 @@ end
 #! Note:
 #! - We assume that index has been validated and is within bounds.
 #!
-#! Inputs:  [index, KEY, NEW_VALUE, OLD_ROOT]
+#! Inputs:  [index, KEY, NEW_VALUE]
 #! Outputs: [OLD_MAP_ROOT, OLD_MAP_VALUE]
 #!
 #! Where:
 #! - index is the index of the storage slot which contains the map root.
-#! - OLD_ROOT is the root of the map to set the KEY NEW_VALUE pair.
 #! - NEW_VALUE is the value to set under KEY.
 #! - KEY is the key to set.
 #! - OLD_MAP_VALUE is the previous value of the item.
@@ -619,19 +618,26 @@ end
 export.set_map_item.12
     # store index for later
     dup loc_store.0
-    # => [index, KEY, NEW_VALUE, OLD_ROOT, ...]
+    # => [index, KEY, NEW_VALUE, ...]
 
     # check if storage type is map
     dup exec.get_storage_slot_type
-    # => [slot_type, index, KEY, NEW_VALUE, OLD_ROOT]
+    # => [slot_type, index, KEY, NEW_VALUE]
 
     # check if slot_type == map
     exec.constants::get_storage_slot_type_map eq
     assert.err=ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
+    # => [index, KEY, NEW_VALUE]
+    exec.get_item
+    # => [OLD_ROOT, index, KEY, NEW_VALUE]
+
+    movdnw.2
+    # => [KEY, NEW_VALUE, OLD_ROOT]
+
+    loc_load.0
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
-    # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
     # duplicate the original KEY and the NEW_VALUE to be able to emit an event after the
     # account storage item was updated
