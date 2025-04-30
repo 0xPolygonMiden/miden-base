@@ -40,7 +40,7 @@ Polygon Miden is currently on release v0.8. This is an early version of the prot
 ### Planned features
 
 - **Network transactions**. Users will be able to create notes intended for network execution. Such notes will be included into transactions executed and proven by the Miden operator.
-- **Encrypted notes**. With encrypted notes users will be able to put all note details on-chain, but the data contained withing the notes would be encrypted with the recipients key.
+- **Encrypted notes**. With encrypted notes users will be able to put all note details on-chain, but the data contained within the notes would be encrypted with the recipients key.
 
 ## Project structure
 
