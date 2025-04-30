@@ -1002,6 +1002,11 @@ impl MockChain {
         self.blocks[block_number].header().clone()
     }
 
+    /// Returns a reference to the tracked proven blocks.
+    pub fn proven_blocks(&self) -> &[ProvenBlock] {
+        &self.blocks
+    }
+
     /// Gets a reference to the nullifier tree.
     pub fn nullifiers(&self) -> &NullifierTree {
         &self.nullifiers
@@ -1015,6 +1020,13 @@ impl MockChain {
     /// Returns the map of note IDs to consumable notes.
     pub fn available_notes_map(&self) -> &BTreeMap<NoteId, MockChainNote> {
         &self.available_notes
+    }
+
+    /// Returns an [`InputNote`] for the given note ID. If the note does not exist or is not
+    /// public, `None` is returned.
+    pub fn get_public_note(&self, note_id: &NoteId) -> Option<InputNote> {
+        let note = self.available_notes.get(note_id)?;
+        note.clone().try_into().ok()
     }
 
     /// Returns a reference to the account identifed by the given account ID and panics if it does
